@@ -63,7 +63,7 @@ export default function Schedule() {
                <p className="font-bold text-white">Lower Body Hypertrophy</p>
                <span className="text-xs text-indigo-300">Today • 45m</span>
              </div>
-             <button onClick={() => router.push('/workout/1')} className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-full hover:bg-gray-200">
+             <button onClick={() => router.push('/dashboard')} className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-full hover:bg-gray-200">
                Start
              </button>
            </div>

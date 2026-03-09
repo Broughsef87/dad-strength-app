@@ -4,6 +4,7 @@ import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, ChevronLeft, Dumbbell, History as HistoryIcon } from 'lucide-react'
+import BottomNav from '../../components/BottomNav'
 
 export default function History() {
   const supabase = createClient()
@@ -74,6 +75,8 @@ export default function History() {
           ))
         )}
       </main>
+
+      <BottomNav />
     </div>
   )
 }

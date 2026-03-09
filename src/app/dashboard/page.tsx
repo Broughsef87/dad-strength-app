@@ -4,6 +4,7 @@ import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlayCircle, Calendar, ArrowRight, User, Flame, Trophy, Dumbbell } from 'lucide-react'
+import BottomNav from '../../components/BottomNav'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -26,7 +27,7 @@ export default function Dashboard() {
         .from('workouts')
         .select('*')
         .limit(1)
-        .single()
+        .maybeSingle()
       
       setWorkout(workoutData)
 
@@ -57,6 +58,27 @@ export default function Dashboard() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  const loadSampleWorkout = async () => {
+    setLoading(true);
+    const sampleWorkout = {
+      name: 'Dad Bod Demolisher (Sample)',
+      description: 'A 30-minute full-body circuit designed for dads short on time.',
+      exercises: [
+        { name: "Back Squat", sets: 3, reps: "8-10" },
+        { name: "Push-ups", sets: 3, reps: "AMRAP" },
+        { name: "Pull-ups", sets: 3, reps: "AMRAP" },
+        { name: "Plank", sets: 3, reps: "60s" }
+      ]
+    };
+    
+    await supabase.from('workouts').insert(sampleWorkout);
+    
+    // Reload dashboard data
+    const { data: newWorkout } = await supabase.from('workouts').select('*').limit(1).maybeSingle();
+    setWorkout(newWorkout);
+    setLoading(false);
   }
 
   if (loading) {
@@ -105,10 +127,10 @@ export default function Dashboard() {
                 Next Session
               </span>
               <h2 className="text-2xl font-black text-white leading-tight uppercase">
-                {workout?.name || 'Loading...'}
+                {workout?.name || 'No Programs'}
               </h2>
               <p className="text-indigo-100/80 text-sm mt-2 font-medium">
-                {workout?.description || 'Build total body capacity.'}
+                {workout?.description || 'Build your first workout routine to get started.'}
               </p>
             </div>
             <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10">
@@ -117,13 +139,23 @@ export default function Dashboard() {
           </div>
 
           <div className="mt-8 flex items-center gap-4 relative z-10">
-            <button 
-              onClick={() => router.push(`/workout/${workout?.id || '1'}`)}
-              className="flex-1 flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-indigo-900 hover:bg-indigo-50 transition-all active:scale-95 shadow-xl"
-            >
-              <PlayCircle size={20} />
-              START TRAINING
-            </button>
+            {workout ? (
+              <button 
+                onClick={() => router.push(`/workout/${workout.id}`)}
+                className="flex-1 flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-indigo-900 hover:bg-indigo-50 transition-all active:scale-95 shadow-xl"
+              >
+                <PlayCircle size={20} />
+                START TRAINING
+              </button>
+            ) : (
+              <button 
+                onClick={loadSampleWorkout}
+                className="flex-1 flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-indigo-900 hover:bg-indigo-50 transition-all active:scale-95 shadow-xl"
+              >
+                <PlayCircle size={20} />
+                GENERATE SAMPLE
+              </button>
+            )}
           </div>
         </div>
 
@@ -182,29 +214,7 @@ export default function Dashboard() {
       </main>
 
       {/* BOTTOM NAV (MOBILE) */}
-      <nav className="fixed bottom-0 w-full border-t border-gray-800 bg-gray-950/80 backdrop-blur-xl p-2 flex justify-around items-center z-20 pb-8 sm:pb-4">
-         <button 
-          onClick={() => router.push('/dashboard')}
-          className="flex flex-col items-center gap-1 text-indigo-400 p-2"
-         >
-           <PlayCircle size={22} />
-           <span className="text-[10px] font-bold uppercase tracking-tighter">Train</span>
-         </button>
-         <button 
-          onClick={() => router.push('/library')}
-          className="flex flex-col items-center gap-1 text-gray-600 hover:text-gray-300 p-2"
-         >
-           <Dumbbell size={22} />
-           <span className="text-[10px] font-bold uppercase tracking-tighter">Library</span>
-         </button>
-         <button 
-          onClick={() => router.push('/history')}
-          className="flex flex-col items-center gap-1 text-gray-600 hover:text-gray-300 p-2"
-         >
-           <Calendar size={22} />
-           <span className="text-[10px] font-bold uppercase tracking-tighter">History</span>
-         </button>
-      </nav>
+      <BottomNav />
     </div>
   )
 }

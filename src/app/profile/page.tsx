@@ -1,111 +1,100 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { createClient } from '../../utils/supabase/client'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, User, Shield, Target, LogOut, Award } from 'lucide-react'
+import { User, LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target } from 'lucide-react'
+import BottomNav from '../../components/BottomNav'
 
 export default function Profile() {
   const router = useRouter()
   const supabase = createClient()
   const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-
+  
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/')
-      } else {
-        setUser(user)
-      }
-      setLoading(false)
-    }
-    getUser()
-  }, [router, supabase])
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+    })
+  }, [supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/')
   }
 
-  if (loading) return null
-
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6 font-sans">
-      <header className="flex items-center gap-4 mb-10">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors">
-          <ChevronLeft />
+    <div className="min-h-screen bg-gray-950 text-white font-sans">
+      <header className="flex items-center justify-between border-b border-gray-800 bg-gray-900/50 p-6 backdrop-blur-md sticky top-0 z-10">
+        <h1 className="text-2xl font-black italic uppercase">Profile</h1>
+        <button className="text-gray-400 hover:text-white transition-colors">
+          <SettingsIcon size={24} />
         </button>
-        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
       </header>
 
-      {/* USER CARD */}
-      <div className="bg-gradient-to-br from-gray-900 to-indigo-950 border border-gray-800 rounded-3xl p-8 text-center mb-8 shadow-2xl shadow-indigo-500/10">
-         <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white/5">
-            <User size={48} className="text-white" />
-         </div>
-         <h2 className="text-2xl font-black italic uppercase">{user?.email?.split('@')[0]}</h2>
-         <p className="text-indigo-400 text-xs font-bold uppercase tracking-widest mt-1">Master Dad • Level 4</p>
-         
-         <div className="mt-8 flex justify-center gap-4">
-            <div className="text-center">
-               <p className="text-2xl font-bold">12</p>
-               <p className="text-[10px] text-gray-500 uppercase font-black">Workouts</p>
-            </div>
-            <div className="w-px h-10 bg-white/10"></div>
-            <div className="text-center">
-               <p className="text-2xl font-bold">85k</p>
-               <p className="text-[10px] text-gray-500 uppercase font-black">Vol (lbs)</p>
-            </div>
-             <div className="w-px h-10 bg-white/10"></div>
-            <div className="text-center">
-               <p className="text-2xl font-bold">3</p>
-               <p className="text-[10px] text-gray-500 uppercase font-black">PRs</p>
-            </div>
-         </div>
-      </div>
+      <main className="max-w-md mx-auto p-6 pb-24 space-y-8">
+        
+        {/* User Card */}
+        <div className="bg-gray-900 rounded-3xl p-6 border border-gray-800 flex items-center gap-6 shadow-xl relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+           <div className="h-16 w-16 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xl ring-4 ring-indigo-500/20 z-10">
+             {user?.email?.charAt(0).toUpperCase() || 'D'}
+           </div>
+           <div className="z-10">
+             <h2 className="font-black text-xl">{user?.email?.split('@')[0] || 'Dad Warrior'}</h2>
+             <p className="text-xs text-gray-500">{user?.email}</p>
+             <span className="inline-block mt-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded">Pro Member</span>
+           </div>
+        </div>
 
-      {/* SETTINGS LIST */}
-      <div className="space-y-4">
-         <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 flex items-center gap-4 hover:border-indigo-500/50 transition-all">
-            <div className="h-10 w-10 rounded-xl bg-orange-500/20 text-orange-500 flex items-center justify-center">
-               <Target size={20} />
-            </div>
-            <div className="flex-1">
-               <p className="text-sm font-bold">My Goals</p>
-               <p className="text-[10px] text-gray-500 font-medium">Adjust your target weight and reps</p>
-            </div>
-         </div>
+        {/* Goals / Stats Summary */}
+        <div className="grid grid-cols-2 gap-4">
+           <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
+             <Target className="text-orange-500 mb-2" size={20} />
+             <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Current Goal</p>
+             <p className="font-bold text-sm mt-1">Recomp (Maintain Weight)</p>
+           </div>
+           <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
+             <Activity className="text-green-500 mb-2" size={20} />
+             <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Activity Level</p>
+             <p className="font-bold text-sm mt-1">3-4 Sessions / Wk</p>
+           </div>
+        </div>
 
-         <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 flex items-center gap-4 hover:border-indigo-500/50 transition-all">
-            <div className="h-10 w-10 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center">
-               <Shield size={20} />
-            </div>
-            <div className="flex-1">
-               <p className="text-sm font-bold">Integrations</p>
-               <p className="text-[10px] text-gray-500 font-medium">Sync with Health Kit or MyFitnessPal</p>
-            </div>
-         </div>
+        {/* Settings Links */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-2">App Settings</h3>
+          
+          <button className="w-full flex items-center justify-between p-4 bg-gray-900 rounded-2xl border border-gray-800 hover:border-gray-700 hover:bg-gray-800/50 transition-all group">
+             <div className="flex items-center gap-4">
+                <div className="p-2 bg-gray-800 rounded-lg group-hover:text-indigo-400"><Bell size={18} /></div>
+                <div className="text-left">
+                  <p className="font-bold text-sm">Notifications</p>
+                  <p className="text-xs text-gray-500">Workout reminders & alerts</p>
+                </div>
+             </div>
+          </button>
 
-         <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 flex items-center gap-4 hover:border-indigo-500/50 transition-all">
-            <div className="h-10 w-10 rounded-xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center">
-               <Award size={20} />
-            </div>
-            <div className="flex-1">
-               <p className="text-sm font-bold">Badges</p>
-               <p className="text-[10px] text-gray-500 font-medium">View your unlocked achievements</p>
-            </div>
-         </div>
+          <button className="w-full flex items-center justify-between p-4 bg-gray-900 rounded-2xl border border-gray-800 hover:border-gray-700 hover:bg-gray-800/50 transition-all group">
+             <div className="flex items-center gap-4">
+                <div className="p-2 bg-gray-800 rounded-lg group-hover:text-indigo-400"><Shield size={18} /></div>
+                <div className="text-left">
+                  <p className="font-bold text-sm">Privacy & Security</p>
+                  <p className="text-xs text-gray-500">Password, data export</p>
+                </div>
+             </div>
+          </button>
+        </div>
 
-         <button 
-           onClick={handleSignOut}
-           className="w-full mt-8 bg-red-500/10 border border-red-500/20 text-red-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-red-500 hover:text-white transition-all"
-         >
-            <LogOut size={16} />
-            Sign Out of Account
-         </button>
-      </div>
+        <button 
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-center gap-2 p-4 mt-8 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-all font-bold text-sm uppercase tracking-widest"
+        >
+          <LogOut size={18} /> Sign Out
+        </button>
+
+      </main>
+
+      <BottomNav />
     </div>
   )
 }

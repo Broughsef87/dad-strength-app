@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Search, Dumbbell, Play } from 'lucide-react'
+import BottomNav from '../../components/BottomNav'
 
 const EXERCISES = [
   { name: 'Back Squat', category: 'Legs', muscle: 'Quads/Glutes' },
@@ -60,6 +61,7 @@ export default function Library() {
           </div>
         ))}
       </div>
+      <BottomNav />
     </div>
   )
 }
