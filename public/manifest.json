@@ -1,0 +1,24 @@
+{
+  "name": "Dad Strength App",
+  "short_name": "DadStrength",
+  "description": "Functional fitness and health for busy fathers.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon512_maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon512_rounded.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

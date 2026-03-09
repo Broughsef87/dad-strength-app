@@ -1,0 +1,12 @@
+[
+  { "id": "sq1", "name": "Back Squat", "target": "Quads/Glutes", "mechanic": "Compound" },
+  { "id": "dl1", "name": "Deadlift", "target": "Posterior Chain", "mechanic": "Compound" },
+  { "id": "bp1", "name": "Bench Press", "target": "Chest", "mechanic": "Compound" },
+  { "id": "oh1", "name": "OHP", "target": "Shoulders", "mechanic": "Compound" },
+  { "id": "ru1", "name": "Barbell Row", "target": "Back", "mechanic": "Compound" },
+  { "id": "le1", "name": "Leg Extension", "target": "Quads", "mechanic": "Isolation" },
+  { "id": "lc1", "name": "Leg Curl", "target": "Hamstrings", "mechanic": "Isolation" },
+  { "id": "cr1", "name": "Calf Raise", "target": "Calves", "mechanic": "Isolation" },
+  { "id": "bc1", "name": "Bicep Curl", "target": "Bicep", "mechanic": "Isolation" },
+  { "id": "te1", "name": "Tricep Extension", "target": "Tricep", "mechanic": "Isolation" }
+]
