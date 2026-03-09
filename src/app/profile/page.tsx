@@ -3,7 +3,7 @@
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target } from 'lucide-react'
+import { User, LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, TrendingUp, BookOpen } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 
 export default function Profile() {
@@ -44,6 +44,31 @@ export default function Profile() {
              <p className="text-xs text-gray-500">{user?.email}</p>
              <span className="inline-block mt-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded">Pro Member</span>
            </div>
+        </div>
+
+        {/* High-Level Navigation (Empire / Growth) */}
+        <div className="grid grid-cols-2 gap-4">
+           <button 
+            onClick={() => router.push('/profile/empire')}
+            className="bg-gray-900 rounded-2xl p-5 border border-gray-800 hover:border-indigo-500/50 hover:bg-gray-800/50 transition-all flex flex-col items-center justify-center text-center group shadow-xl"
+           >
+             <div className="h-12 w-12 rounded-full bg-indigo-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <TrendingUp className="text-indigo-400" size={24} />
+             </div>
+             <p className="font-black text-sm uppercase tracking-widest text-white">The Empire</p>
+             <p className="text-[10px] text-gray-500 mt-1 font-bold tracking-wider">Business Goals</p>
+           </button>
+           
+           <button 
+            onClick={() => router.push('/profile/growth')}
+            className="bg-gray-900 rounded-2xl p-5 border border-gray-800 hover:border-indigo-500/50 hover:bg-gray-800/50 transition-all flex flex-col items-center justify-center text-center group shadow-xl"
+           >
+             <div className="h-12 w-12 rounded-full bg-pink-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <BookOpen className="text-pink-400" size={24} />
+             </div>
+             <p className="font-black text-sm uppercase tracking-widest text-white">Growth</p>
+             <p className="text-[10px] text-gray-500 mt-1 font-bold tracking-wider">Mindset & Family</p>
+           </button>
         </div>
 
         {/* Goals / Stats Summary */}
