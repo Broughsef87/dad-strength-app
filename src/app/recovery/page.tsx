@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Moon, Battery, Clock, Dumbbell, ShieldAlert, HeartPulse, Brain, CheckCircle2, Circle, HandsPraying, Sparkles, BookOpen } from 'lucide-react'
+import { Moon, Battery, Clock, Dumbbell, ShieldAlert, HeartPulse, Brain, CheckCircle2, Circle, Sparkles, BookOpen, Save } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 
 export default function Recovery() {
@@ -12,8 +12,20 @@ export default function Recovery() {
   const [gratitude, setGratitude] = useState(false)
   const [prayer, setPrayer] = useState(false)
   const [meditation, setMeditation] = useState(false)
+  
+  // Sleep state
+  const [sleepHours, setSleepHours] = useState<number | ''>('')
+  const [sleepSaved, setSleepSaved] = useState(false)
 
   const isAnchorComplete = gratitude && prayer && meditation
+
+  const handleSaveSleep = () => {
+    if (sleepHours !== '') {
+      setSleepSaved(true)
+      // In a real app, we'd push this to Supabase here
+      setTimeout(() => setSleepSaved(false), 2000)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white font-sans">
@@ -23,34 +35,6 @@ export default function Recovery() {
 
       <main className="max-w-md mx-auto p-6 pb-24 space-y-8">
         
-        {/* Readiness Score */}
-        <div className="bg-gradient-to-br from-indigo-900/80 to-gray-900 rounded-3xl p-8 border border-indigo-500/30 shadow-2xl relative overflow-hidden text-center">
-           <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl -mr-20 -mt-20"></div>
-           <Battery size={32} className="text-green-400 mx-auto mb-4 animate-pulse" />
-           <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-2">Daily Readiness</p>
-           <h2 className="text-5xl font-black tracking-tighter">85<span className="text-xl text-indigo-400">/100</span></h2>
-           <p className="text-xs text-indigo-200 mt-4 font-medium px-4">Sleep was solid. CNS is fresh. You are cleared to train heavy.</p>
-        </div>
-
-        {/* Quick Logs */}
-        <div className="grid grid-cols-2 gap-4">
-           {/* Sleep Log */}
-           <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 group hover:border-gray-700 transition-colors cursor-pointer">
-             <Moon className="text-blue-400 mb-3" size={24} />
-             <p className="text-xs text-gray-500 uppercase font-black tracking-widest mb-1">Sleep Log</p>
-             <p className="font-bold text-lg">7h 15m</p>
-             <p className="text-[10px] text-gray-500 mt-1">Logged today</p>
-           </div>
-           
-           {/* Stress/HRV */}
-           <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 group hover:border-gray-700 transition-colors cursor-pointer">
-             <HeartPulse className="text-red-400 mb-3" size={24} />
-             <p className="text-xs text-gray-500 uppercase font-black tracking-widest mb-1">Stress (HRV)</p>
-             <p className="font-bold text-lg">Good</p>
-             <p className="text-[10px] text-gray-500 mt-1">Slightly elevated</p>
-           </div>
-        </div>
-
         {/* Morning Anchor (Mind & Spirit) */}
         <div className="space-y-4">
            <div className="flex items-center justify-between">
@@ -81,7 +65,6 @@ export default function Recovery() {
                   className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors group"
                  >
                     <div className="flex items-center gap-3">
-                       {/* Using BookOpen as a fallback if HandsPraying isn't perfectly supported in this lucide version, though BookOpen works well for scripture/prayer */}
                        <BookOpen size={18} className={prayer ? "text-indigo-400" : "text-gray-500 group-hover:text-indigo-400/50"} />
                        <span className={`font-bold text-sm ${prayer ? 'text-white' : 'text-gray-300'}`}>Daily Prayer / Scripture</span>
                     </div>
@@ -98,6 +81,57 @@ export default function Recovery() {
                     </div>
                     {meditation ? <CheckCircle2 size={20} className="text-emerald-500" /> : <Circle size={20} className="text-gray-600" />}
                  </button>
+              </div>
+           </div>
+        </div>
+
+        {/* Manual Sleep Log */}
+        <div className="space-y-4">
+           <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest pl-2 flex items-center gap-2">
+                 <Moon size={14} className="text-blue-400" />
+                 Sleep Tracking
+              </h3>
+           </div>
+           
+           <div className="bg-gray-900 rounded-3xl border border-gray-800 p-6 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+              
+              <div className="relative z-10">
+                <p className="text-sm text-gray-300 font-medium mb-4">How many hours did you catch last night?</p>
+                
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <input 
+                      type="number" 
+                      step="0.5"
+                      min="0"
+                      max="24"
+                      value={sleepHours}
+                      onChange={(e) => setSleepHours(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="e.g. 6.5"
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white font-bold text-xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-700"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm uppercase tracking-wider">
+                      Hours
+                    </span>
+                  </div>
+                  
+                  <button 
+                    onClick={handleSaveSleep}
+                    disabled={sleepHours === ''}
+                    className={`h-[52px] px-6 rounded-xl font-bold flex items-center gap-2 transition-all ${
+                      sleepSaved 
+                        ? 'bg-emerald-500 text-white' 
+                        : sleepHours !== '' 
+                          ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25' 
+                          : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {sleepSaved ? <CheckCircle2 size={20} /> : <Save size={20} />}
+                    {sleepSaved ? 'Saved' : 'Log'}
+                  </button>
+                </div>
               </div>
            </div>
         </div>
