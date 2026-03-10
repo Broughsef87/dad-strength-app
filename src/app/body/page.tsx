@@ -3,15 +3,24 @@
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dumbbell, Activity, Beef, ArrowLeft, Trophy } from 'lucide-react';
+import { Dumbbell, Activity, ArrowLeft } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import FuelStation from '../../components/FuelStation';
 import WorkoutLogger from '../../components/WorkoutLogger';
 import Leaderboard from '../../components/Leaderboard';
 
 export default function BodyPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 p-6">
@@ -26,7 +35,6 @@ export default function BodyPage() {
       </header>
 
       <main className="max-w-md mx-auto space-y-8">
-        {/* ACTIVE SESSION */}
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <h2 className="text-lg font-black mb-6 flex items-center gap-2 italic uppercase tracking-tighter">
               <Activity className="w-6 h-6 text-indigo-500" />
@@ -35,12 +43,10 @@ export default function BodyPage() {
            <WorkoutLogger />
         </div>
 
-        {/* FUEL STATION (FULL VIEW) */}
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <FuelStation />
         </div>
 
-        {/* RECENT FEED */}
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <Leaderboard />
         </div>

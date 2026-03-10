@@ -3,14 +3,23 @@
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Flame, Anchor, Heart, ArrowLeft, Sun, CheckCircle2 } from 'lucide-react';
+import { Flame, Anchor, ArrowLeft, Sun, CheckCircle2 } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import RelationshipLedger from '../../components/RelationshipLedger';
 
 export default function SpiritPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   const [prayerDone, setPrayerDone] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 p-6">
@@ -25,12 +34,10 @@ export default function SpiritPage() {
       </header>
 
       <main className="max-w-md mx-auto space-y-8">
-        {/* RELATIONSHIP LEDGER (FULL VIEW) */}
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <RelationshipLedger />
         </div>
 
-        {/* PRAYER / MEDITATION (DEEP VIEW) */}
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <div className="flex items-center gap-2 mb-6">
               <Anchor size={18} className="text-indigo-500" />
@@ -45,7 +52,7 @@ export default function SpiritPage() {
                  : 'bg-gray-950/50 border-gray-800 text-gray-700 hover:border-gray-700 hover:text-gray-500'
              }`}
            >
-              {prayerDone ? <CheckCircle2 size={48} className="animate-in zoom-in" /> : <Sun size={48} />}
+              {prayerDone ? <CheckCircle2 size={48} /> : <Sun size={48} />}
               <span className="text-sm font-black uppercase tracking-[0.3em]">
                 {prayerDone ? 'Session Complete' : '5-10 MIN PRAYER / MED'}
               </span>

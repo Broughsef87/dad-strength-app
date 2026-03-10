@@ -3,15 +3,24 @@
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Brain, Target, PenLine, Timer, ArrowLeft } from 'lucide-react';
+import { Brain, Target, PenLine, ArrowLeft } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
 
 export default function MindPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   const [objectives, setObjectives] = useState(['', '', '']);
   const [journal, setJournal] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 p-6">
@@ -26,12 +35,10 @@ export default function MindPage() {
       </header>
 
       <main className="max-w-md mx-auto space-y-8">
-        {/* DEEP WORK TIMER (DEEP VIEW) */}
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <DeepWorkTimer />
         </div>
 
-        {/* TOP 3 OBJECTIVES */}
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <div className="flex items-center gap-2 mb-6">
               <Target size={18} className="text-indigo-500" />
@@ -57,7 +64,6 @@ export default function MindPage() {
            </div>
         </div>
 
-        {/* FULL JOURNAL */}
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <div className="flex items-center gap-2 mb-4">
               <PenLine size={18} className="text-indigo-500" />

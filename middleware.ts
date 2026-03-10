@@ -1,32 +1,61 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
 
-  // If no session and trying to access dashboard, redirect to login
-  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/' // Assuming landing page or login is at root
-    return NextResponse.redirect(redirectUrl)
+  const { data: { session } } = await supabase.auth.getSession()
+
+  const pathname = request.nextUrl.pathname
+
+  // Protected routes
+  const protectedPaths = ['/dashboard', '/mind', '/body', '/spirit', '/profile', '/workout', '/edit-program']
+  const isProtected = protectedPaths.some(path => pathname.startsWith(path))
+
+  if (!session && isProtected) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
   }
 
-  // If session exists and trying to access root (login), redirect to dashboard
-  if (session && req.nextUrl.pathname === '/') {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/dashboard'
-    return NextResponse.redirect(redirectUrl)
+  if (session && pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
-  return res
+  return response
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
