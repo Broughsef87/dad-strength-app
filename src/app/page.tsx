@@ -26,7 +26,7 @@ export default function Home() {
             appearance={{ theme: ThemeSupa }}
             theme="dark"
             providers={['google']}
-            redirectTo="http://localhost:3001/dashboard"
+            redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined}
           />
         </div>
       </div>
