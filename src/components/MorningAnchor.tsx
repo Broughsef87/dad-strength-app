@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Anchor, CheckCircle2, Circle, Moon, Sun, PenLine, Target, Scissors } from 'lucide-react';
+import { Anchor, CheckCircle2, Circle, Moon, Sun, PenLine, Target, Scissors, Heart, BookOpen } from 'lucide-react';
 
 interface RitualState {
   sleepHours: number;
@@ -9,6 +9,7 @@ interface RitualState {
   prayer: boolean;
   journal: string;
   objectives: string[];
+  familyPresent: boolean;
 }
 
 export default function MorningAnchor() {
@@ -18,6 +19,7 @@ export default function MorningAnchor() {
     prayer: false,
     journal: '',
     objectives: ['', '', ''],
+    familyPresent: false,
   });
 
   const updateObjective = (index: number, value: string) => {
@@ -26,7 +28,7 @@ export default function MorningAnchor() {
     setState({ ...state, objectives: newObjectives });
   };
 
-  const toggleRitual = (key: 'maintenance' | 'prayer') => {
+  const toggleRitual = (key: 'maintenance' | 'prayer' | 'familyPresent') => {
     setState({ ...state, [key]: !state[key] });
   };
 
@@ -56,6 +58,26 @@ export default function MorningAnchor() {
               />
               <span className="text-sm font-black text-white w-10">{state.sleepHours}h</span>
            </div>
+        </div>
+
+        {/* GROWTH / FAMILY OS */}
+        <div className="bg-gray-950/50 p-4 rounded-2xl border border-gray-800">
+           <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Heart size={14} className="text-pink-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Family OS / Growth</p>
+              </div>
+              <BookOpen size={12} className="text-gray-700" />
+           </div>
+           <button 
+             onClick={() => toggleRitual('familyPresent')}
+             className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+               state.familyPresent ? 'bg-pink-500/10 border-pink-500/30 text-pink-400' : 'bg-gray-900/50 border-gray-800 text-gray-600 hover:border-gray-700'
+             }`}
+           >
+              <span className="text-[10px] font-black uppercase tracking-widest">Presence: No Screens at Home</span>
+              {state.familyPresent ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+           </button>
         </div>
 
         {/* TOP 3 OBJECTIVES */}

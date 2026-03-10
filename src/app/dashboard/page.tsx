@@ -24,6 +24,7 @@ import RelationshipLedger from '../../components/RelationshipLedger'
 import DeepWorkTimer from '../../components/DeepWorkTimer'
 import MorningAnchor from '../../components/MorningAnchor'
 import HandoffChecklist from '../../components/HandoffChecklist'
+import EmpireWidget from '../../components/EmpireWidget'
 import Logo from '../../components/Logo'
 
 export default function Dashboard() {
@@ -126,7 +127,7 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* LEFT COLUMN: Body / Vitals */}
-        <div className="lg:col-span-4 space-y-8 order-2 lg:order-1">
+        <div className="lg:col-span-4 space-y-8 order-3 lg:order-1">
           <button 
             onClick={() => router.push('/body')}
             className="w-full bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl text-left hover:border-indigo-500 transition-colors group"
@@ -156,12 +157,16 @@ export default function Dashboard() {
           </button>
           
           <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <EmpireWidget />
+          </div>
+
+          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
              <Leaderboard />
           </div>
         </div>
 
         {/* CENTER COLUMN: The Mission */}
-        <div className="lg:col-span-5 space-y-8 order-1 lg:order-2">
+        <div className="lg:col-span-5 space-y-8 order-2 lg:order-2">
           {/* ACTIVE WORKOUT CARD */}
           <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 shadow-2xl shadow-indigo-500/20 ring-1 ring-white/10 group">
             <div className="absolute top-0 right-0 -mr-6 -mt-6 h-32 w-32 rounded-full bg-white opacity-10 blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -237,7 +242,7 @@ export default function Dashboard() {
         </div>
 
         {/* RIGHT COLUMN: Anchors */}
-        <div className="lg:col-span-3 space-y-8 order-3">
+        <div className="lg:col-span-3 space-y-8 order-1 lg:order-3">
           <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
              <MorningAnchor />
           </div>
