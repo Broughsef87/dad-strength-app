@@ -4,14 +4,26 @@ export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !key) {
+  // Debugging SSR env vars
+  if (typeof window === 'undefined') {
+    console.log(`[SSR] Supabase URL: ${url ? 'PRESENT' : 'MISSING'} (Value: "${url}")`);
+    console.log(`[SSR] Supabase Key: ${key ? 'PRESENT' : 'MISSING'} (Value: "${key}")`);
+  }
+
+  // Use more robust check for missing environment variables
+  const isMissing = !url || url === 'undefined' || !key || key === 'undefined';
+
+  if (isMissing) {
     // Return a dummy client during build time or if env vars are missing
-    // to avoid crashing the entire app.
+    // to avoid crashing the entire app during SSR.
     return {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
         getSession: async () => ({ data: { session: null }, error: null }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        onAuthStateChange: () => ({ 
+          data: { subscription: { unsubscribe: () => {} } },
+          error: null 
+        }),
       },
       from: () => ({
         select: () => ({

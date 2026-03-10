@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, 
   Dumbbell, 
   History, 
   User, 
@@ -21,7 +20,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-950 border-t border-gray-900 px-6 py-4 flex items-center justify-between z-50 backdrop-blur-md bg-gray-950/80">
+    <nav className="fixed bottom-0 left-0 right-0 bg-gray-950 border-t border-gray-900 px-6 py-4 flex items-center justify-between z-[100] backdrop-blur-md bg-gray-950/90">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.path;
