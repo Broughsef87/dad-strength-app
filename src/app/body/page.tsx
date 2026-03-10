@@ -3,7 +3,7 @@
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dumbbell, Activity, ArrowLeft } from 'lucide-react';
+import { Dumbbell, Activity, ArrowLeft, Settings } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import FuelStation from '../../components/FuelStation';
 import WorkoutLogger from '../../components/WorkoutLogger';
@@ -24,14 +24,22 @@ export default function BodyPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 p-6">
-      <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/dashboard')} className="p-2 bg-gray-900 rounded-xl text-gray-500">
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex items-center gap-3">
-          <Dumbbell className="w-8 h-8 text-indigo-500" />
-          <h1 className="font-black text-2xl tracking-tighter italic uppercase">Body</h1>
+      <header className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/dashboard')} className="p-2 bg-gray-900 rounded-xl text-gray-500">
+            <ArrowLeft size={20} />
+          </button>
+          <div className="flex items-center gap-3">
+            <Dumbbell className="w-8 h-8 text-indigo-500" />
+            <h1 className="font-black text-2xl tracking-tighter italic uppercase">Body</h1>
+          </div>
         </div>
+        <button 
+          onClick={() => router.push('/edit-program')}
+          className="p-2 bg-gray-900 rounded-xl text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all shadow-lg shadow-indigo-500/10"
+        >
+          <Settings size={20} />
+        </button>
       </header>
 
       <main className="max-w-md mx-auto space-y-8">

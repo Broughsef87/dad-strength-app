@@ -118,7 +118,7 @@ export default function Dashboard() {
           </div>
           <span className="font-black tracking-tighter text-lg italic uppercase">HQ</span>
         </div>
-        <button onClick={handleSignOut} className="p-2 bg-gray-900 rounded-lg text-gray-500">
+        <button onClick={() => router.push('/profile')} className="p-2 bg-gray-900 rounded-lg text-gray-500">
           <Settings size={20} />
         </button>
       </header>
@@ -183,13 +183,21 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 relative z-10">
+            <div className="flex flex-col gap-3 relative z-10">
               <button 
                 onClick={() => workout ? router.push(`/workout/${workout.id}`) : router.push('/body')}
-                className="flex-1 flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-5 text-sm font-black text-indigo-950 hover:bg-indigo-50 transition-all active:scale-95 shadow-2xl uppercase tracking-tighter"
+                className="w-full flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-5 text-sm font-black text-indigo-950 hover:bg-indigo-50 transition-all active:scale-95 shadow-2xl uppercase tracking-tighter"
               >
                 <PlayCircle size={22} />
                 {workout ? 'Deploy Training' : 'Go to Body'}
+              </button>
+              
+              <button 
+                onClick={() => router.push('/edit-program')}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-6 py-3 text-[10px] font-black text-white hover:bg-indigo-500/30 transition-all uppercase tracking-widest"
+              >
+                <Settings size={14} />
+                Change Program
               </button>
             </div>
           </div>
