@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { PlayCircle, Calendar, ArrowRight, User, Flame, Trophy, Dumbbell } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import Leaderboard from './Leaderboard'
+import Logo from '../../components/Logo'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -96,7 +97,9 @@ export default function Dashboard() {
       {/* HEADER */}
       <header className="flex items-center justify-between border-b border-gray-800 bg-gray-900/50 p-4 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold">D</div>
+          <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
+            <Logo className="w-5 h-5 text-white" />
+          </div>
           <span className="font-bold tracking-tight text-lg">DadStrength</span>
         </div>
         <div className="flex items-center gap-4">
