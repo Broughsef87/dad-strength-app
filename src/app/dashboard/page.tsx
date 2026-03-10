@@ -12,6 +12,7 @@ import {
   Dumbbell, 
   Activity, 
   ShieldCheck,
+  LayoutDashboard,
   Settings,
   Shield
 } from 'lucide-react'
@@ -22,6 +23,7 @@ import RelationshipLedger from '../../components/RelationshipLedger'
 import DeepWorkTimer from '../../components/DeepWorkTimer'
 import MorningAnchor from '../../components/MorningAnchor'
 import HandoffChecklist from '../../components/HandoffChecklist'
+import Logo from '../../components/Logo'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -82,7 +84,7 @@ export default function Dashboard() {
       <div className="flex h-screen items-center justify-center bg-gray-950 text-white font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Accessing Mission Control...</p>
+          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Accessing HQ...</p>
         </div>
       </div>
     )
@@ -110,9 +112,9 @@ export default function Dashboard() {
       <header className="md:hidden flex items-center justify-between p-6">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 rotate-3">
-             <span className="font-black text-xs text-white">HQ</span>
+             <span className="font-black text-xs">D</span>
           </div>
-          <span className="font-black tracking-tighter text-lg italic uppercase">Mission Control</span>
+          <span className="font-black tracking-tighter text-lg italic uppercase">HQ</span>
         </div>
         <button onClick={handleSignOut} className="p-2 bg-gray-900 rounded-lg text-gray-500">
           <Settings size={20} />
