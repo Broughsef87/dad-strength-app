@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   LayoutDashboard,
   Settings,
-  Shield
+  Shield,
+  Brain
 } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import Leaderboard from '../../components/Leaderboard'
@@ -102,8 +103,9 @@ export default function Dashboard() {
         </div>
         <nav className="flex gap-8 font-bold uppercase tracking-widest text-[10px] text-gray-500">
           <button className="text-white border-b-2 border-indigo-500 pb-1">HQ</button>
-          <button className="hover:text-gray-300">Protocol</button>
-          <button className="hover:text-gray-300">Equipment</button>
+          <button onClick={() => router.push('/mind')} className="hover:text-gray-300">Mind</button>
+          <button onClick={() => router.push('/body')} className="hover:text-gray-300">Body</button>
+          <button onClick={() => router.push('/spirit')} className="hover:text-gray-300">Spirit</button>
           <button onClick={handleSignOut} className="text-red-900/50 hover:text-red-500">Sign Out</button>
         </nav>
       </header>
@@ -123,20 +125,42 @@ export default function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* LEFT COLUMN: Vitals */}
+        {/* LEFT COLUMN: Body / Vitals */}
         <div className="lg:col-span-4 space-y-8 order-2 lg:order-1">
-          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+          <button 
+            onClick={() => router.push('/body')}
+            className="w-full bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl text-left hover:border-indigo-500 transition-colors group"
+          >
+             <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                   <Dumbbell className="w-5 h-5 text-indigo-500" />
+                   <span className="text-xs font-black uppercase tracking-widest text-gray-400">Body</span>
+                </div>
+                <ArrowRight size={14} className="text-gray-700 group-hover:text-white" />
+             </div>
              <FuelStation />
-          </div>
-          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+          </button>
+          
+          <button 
+            onClick={() => router.push('/spirit')}
+            className="w-full bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl text-left hover:border-indigo-500 transition-colors group"
+          >
+             <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                   <Flame className="w-5 h-5 text-indigo-500" />
+                   <span className="text-xs font-black uppercase tracking-widest text-gray-400">Spirit</span>
+                </div>
+                <ArrowRight size={14} className="text-gray-700 group-hover:text-white" />
+             </div>
              <RelationshipLedger />
-          </div>
+          </button>
+          
           <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
              <Leaderboard />
           </div>
         </div>
 
-        {/* CENTER COLUMN: Training & Productivity */}
+        {/* CENTER COLUMN: The Mission */}
         <div className="lg:col-span-5 space-y-8 order-1 lg:order-2">
           {/* ACTIVE WORKOUT CARD */}
           <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 shadow-2xl shadow-indigo-500/20 ring-1 ring-white/10 group">
@@ -161,11 +185,11 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-4 relative z-10">
               <button 
-                onClick={() => workout ? router.push(`/workout/${workout.id}`) : router.push('/library')}
+                onClick={() => workout ? router.push(`/workout/${workout.id}`) : router.push('/body')}
                 className="flex-1 flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-5 text-sm font-black text-indigo-950 hover:bg-indigo-50 transition-all active:scale-95 shadow-2xl uppercase tracking-tighter"
               >
                 <PlayCircle size={22} />
-                {workout ? 'Deploy Training' : 'Browse Library'}
+                {workout ? 'Deploy Training' : 'Go to Body'}
               </button>
             </div>
           </div>
@@ -188,10 +212,20 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* DEEP WORK */}
-          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+          {/* DEEP WORK (LINK TO MIND) */}
+          <button 
+            onClick={() => router.push('/mind')}
+            className="w-full bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl text-left hover:border-indigo-500 transition-colors group"
+          >
+             <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                   <Brain className="w-5 h-5 text-indigo-500" />
+                   <span className="text-xs font-black uppercase tracking-widest text-gray-400">Mind</span>
+                </div>
+                <ArrowRight size={14} className="text-gray-700 group-hover:text-white" />
+             </div>
              <DeepWorkTimer />
-          </div>
+          </button>
         </div>
 
         {/* RIGHT COLUMN: Anchors */}
