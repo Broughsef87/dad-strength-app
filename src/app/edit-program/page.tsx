@@ -2,78 +2,37 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, X, Save, Dumbbell, Home as HomeIcon } from 'lucide-react'
+import { ArrowLeft, X, Save, Dumbbell, Home as HomeIcon, LayoutPanelLeft, LayoutPanelTop, Layout, Zap, Calendar } from 'lucide-react'
 
-// Hardcoded movements for scaffolding
-const EQUIPMENT_TRACKS = {
-  'full-gym': {
-    name: 'Iron Path (Full Gym)',
-    icon: Dumbbell,
-    movements: [
-      { id: 'm1', name: 'Barbell Squat', category: 'Legs' },
-      { id: 'm2', name: 'Bench Press', category: 'Chest' },
-      { id: 'm3', name: 'Deadlift', category: 'Back' },
-      { id: 'm4', name: 'Pull-up', category: 'Back' },
-      { id: 'm5', name: 'Overhead Press', category: 'Shoulders' },
-      { id: 'm6', name: 'Barbell Row', category: 'Back' },
-    ]
-  },
-  'minimal': {
-    name: 'Living Room Warrior',
-    icon: HomeIcon,
-    movements: [
-      { id: 'mm1', name: 'Goblet Squat', category: 'Legs' },
-      { id: 'mm2', name: 'Push-ups', category: 'Chest' },
-      { id: 'mm3', name: 'Kettlebell Swing', category: 'Hinges' },
-      { id: 'mm4', name: 'Dumbbell Row', category: 'Back' },
-      { id: 'mm5', name: 'Dumbbell Shoulder Press', category: 'Shoulders' },
-      { id: 'mm6', name: 'Lunges', category: 'Legs' },
-    ]
-  }
-}
+// Programs Config
+const PROGRAM_FOCUSES = [
+  { id: 'upper', name: 'Upper Body Focus', icon: LayoutPanelTop, desc: 'Prioritize chest, back, and shoulders.' },
+  { id: 'lower', name: 'Lower Body Focus', icon: LayoutPanelLeft, desc: 'Heavy emphasis on legs and posterior chain.' },
+  { id: 'full', name: 'Full Body', icon: Layout, desc: 'Complete coverage in every session.' },
+  { id: 'cond', name: 'Conditioning', icon: Zap, desc: 'Work capacity, heart rate, and fat loss.' },
+]
 
-type TrackType = 'full-gym' | 'minimal';
-type Movement = { id: string; name: string; category: string }
+const EQUIPMENT_TRACKS = [
+  { id: 'iron', name: 'Iron Path', icon: Dumbbell, desc: 'Full gym with barbells and racks.' },
+  { id: 'home', name: 'At Home', icon: HomeIcon, desc: 'Dumbbells, bands, or bodyweight.' },
+]
+
+const DURATION_WEEKS = [4, 5, 6]
 
 export default function EditProgram() {
   const router = useRouter()
-  const [programName, setProgramName] = useState('Dad Strength Core')
-  const [track, setTrack] = useState<TrackType>('full-gym')
-  const [selectedExercises, setSelectedExercises] = useState<Movement[]>([
-    EQUIPMENT_TRACKS['full-gym'].movements[0],
-    EQUIPMENT_TRACKS['full-gym'].movements[1]
-  ])
-  const [isAdding, setIsAdding] = useState(false)
-
-  const activeMovements = EQUIPMENT_TRACKS[track].movements;
-
-  const handleTrackChange = (newTrack: TrackType) => {
-    setTrack(newTrack);
-    // Auto-swap selected exercises to match the new track type based on index to save time scaffolding
-    setSelectedExercises([
-      EQUIPMENT_TRACKS[newTrack].movements[0],
-      EQUIPMENT_TRACKS[newTrack].movements[1]
-    ]);
-  }
-
-  const handleAddExercise = (movement: Movement) => {
-    if (!selectedExercises.find(e => e.id === movement.id)) {
-      setSelectedExercises([...selectedExercises, movement])
-    }
-    setIsAdding(false)
-  }
-
-  const handleRemoveExercise = (id: string) => {
-    setSelectedExercises(selectedExercises.filter(e => e.id !== id))
-  }
+  const [selectedFocus, setSelectedFocus] = useState('full')
+  const [selectedTrack, setSelectedTrack] = useState('iron')
+  const [selectedWeeks, setSelectedWeeks] = useState(4)
 
   const handleSave = () => {
-    console.log('Saving program...', { track, programName, exercises: selectedExercises })
+    console.log('Saving program configuration...', { focus: selectedFocus, track: selectedTrack, weeks: selectedWeeks })
+    // In a real app, this would update the user's active program in Supabase
     router.push('/dashboard')
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans">
+    <div className="min-h-screen bg-gray-950 text-white font-sans pb-12">
       <header className="flex items-center justify-between border-b border-gray-800 bg-gray-900/50 p-4 backdrop-blur-md sticky top-0 z-10">
         <button 
           onClick={() => router.back()}
@@ -81,120 +40,122 @@ export default function EditProgram() {
         >
           <ArrowLeft size={24} />
         </button>
-        <span className="font-bold tracking-tight text-lg uppercase">Edit Program</span>
+        <span className="font-black tracking-tighter text-lg uppercase italic">Program Selector</span>
         <button 
           onClick={handleSave}
-          className="text-indigo-400 hover:text-indigo-300 font-bold text-sm tracking-wider uppercase flex items-center gap-1"
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-indigo-500/20"
         >
-          <Save size={16} /> Save
+          Save
         </button>
       </header>
 
-      <main className="mx-auto max-w-md p-6 pb-24 space-y-8">
+      <main className="mx-auto max-w-md p-6 space-y-10">
         
-        {/* TRACK SELECTION */}
-        <div className="space-y-3">
-          <label className="text-[10px] uppercase font-black tracking-widest text-gray-500">Equipment Setup</label>
-          <div className="grid grid-cols-2 gap-3">
-            {(Object.keys(EQUIPMENT_TRACKS) as TrackType[]).map((t) => {
-              const TrackIcon = EQUIPMENT_TRACKS[t].icon;
+        {/* STEP 1: FOCUS */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">1</div>
+            <label className="text-xs uppercase font-black tracking-[0.2em] text-gray-500">Select Your Focus</label>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-3">
+            {PROGRAM_FOCUSES.map((focus) => {
+              const Icon = focus.icon;
+              const isSelected = selectedFocus === focus.id;
               return (
                 <button
-                  key={t}
-                  onClick={() => handleTrackChange(t)}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
-                    track === t 
-                      ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' 
-                      : 'border-gray-800 bg-gray-900 text-gray-500 hover:border-gray-700 hover:text-gray-300'
+                  key={focus.id}
+                  onClick={() => setSelectedFocus(focus.id)}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+                    isSelected 
+                      ? 'border-indigo-500 bg-indigo-500/10 text-white shadow-xl shadow-indigo-500/5' 
+                      : 'border-gray-900 bg-gray-900/40 text-gray-500 hover:border-gray-800'
                   }`}
                 >
-                  <TrackIcon size={24} />
-                  <span className="text-xs font-bold uppercase tracking-wider text-center leading-tight">
-                    {EQUIPMENT_TRACKS[t].name}
-                  </span>
+                  <div className={`p-3 rounded-xl ${isSelected ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-600'}`}>
+                    <Icon size={24} />
+                  </div>
+                  <div>
+                    <h3 className={`font-black uppercase tracking-tight italic ${isSelected ? 'text-indigo-400' : 'text-gray-300'}`}>
+                      {focus.name}
+                    </h3>
+                    <p className="text-[10px] font-medium text-gray-600 leading-tight mt-0.5">
+                      {focus.desc}
+                    </p>
+                  </div>
                 </button>
               );
             })}
           </div>
-        </div>
+        </section>
 
-        {/* PROGRAM NAME */}
-        <div className="space-y-2">
-          <label className="text-[10px] uppercase font-black tracking-widest text-gray-500">Program Name</label>
-          <input 
-            type="text" 
-            value={programName}
-            onChange={(e) => setProgramName(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-white font-bold text-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-          />
-        </div>
-
-        {/* EXERCISES LIST */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] uppercase font-black tracking-widest text-gray-500">Movements</label>
-            <span className="text-xs text-indigo-400 font-bold">{selectedExercises.length} Selected</span>
+        {/* STEP 2: TRACK */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">2</div>
+            <label className="text-xs uppercase font-black tracking-[0.2em] text-gray-500">Choose Your Path</label>
           </div>
-
-          <div className="space-y-3">
-            {selectedExercises.map((exercise, index) => (
-              <div key={exercise.id} className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 font-bold text-xs">
-                    {index + 1}
+          
+          <div className="grid grid-cols-2 gap-3">
+            {EQUIPMENT_TRACKS.map((track) => {
+              const Icon = track.icon;
+              const isSelected = selectedTrack === track.id;
+              return (
+                <button
+                  key={track.id}
+                  onClick={() => setSelectedTrack(track.id)}
+                  className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 text-center transition-all ${
+                    isSelected 
+                      ? 'border-indigo-500 bg-indigo-500/10 text-white shadow-xl shadow-indigo-500/5' 
+                      : 'border-gray-900 bg-gray-900/40 text-gray-500 hover:border-gray-800'
+                  }`}
+                >
+                  <div className={`p-3 rounded-full ${isSelected ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-600'}`}>
+                    <Icon size={24} />
                   </div>
                   <div>
-                    <p className="font-bold text-sm">{exercise.name}</p>
-                    <p className="text-xs text-gray-500">{exercise.category}</p>
+                    <h3 className={`font-black uppercase tracking-widest text-[10px] italic ${isSelected ? 'text-indigo-400' : 'text-gray-300'}`}>
+                      {track.name}
+                    </h3>
                   </div>
-                </div>
-                <button 
-                  onClick={() => handleRemoveExercise(exercise.id)}
-                  className="text-gray-600 hover:text-red-400 transition-colors p-2"
-                >
-                  <X size={18} />
                 </button>
-              </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* STEP 3: DURATION */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">3</div>
+            <label className="text-xs uppercase font-black tracking-[0.2em] text-gray-500">Cycle Duration</label>
+          </div>
+          
+          <div className="flex bg-gray-900/50 p-1.5 rounded-2xl border border-gray-900">
+            {DURATION_WEEKS.map((weeks) => (
+              <button
+                key={weeks}
+                onClick={() => setSelectedWeeks(weeks)}
+                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                  selectedWeeks === weeks 
+                    ? 'bg-indigo-600 text-white shadow-lg' 
+                    : 'text-gray-600 hover:text-gray-400'
+                }`}
+              >
+                {weeks} Weeks
+              </button>
             ))}
           </div>
+        </section>
 
-          {/* ADD BUTTON */}
-          {!isAdding ? (
-            <button 
-              onClick={() => setIsAdding(true)}
-              className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-gray-800 rounded-xl text-gray-500 hover:text-indigo-400 hover:border-indigo-500/50 transition-all font-bold text-sm uppercase tracking-wider"
-            >
-              <Plus size={18} /> Add Movement
-            </button>
-          ) : (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-4 shadow-xl">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-sm uppercase tracking-wider text-indigo-400">Select Movement</h3>
-                <button onClick={() => setIsAdding(false)} className="text-gray-500 hover:text-white">
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                {activeMovements.filter(m => !selectedExercises.find(e => e.id === m.id)).map(movement => (
-                  <button
-                    key={movement.id}
-                    onClick={() => handleAddExercise(movement)}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-800 text-left transition-colors border border-transparent hover:border-gray-700"
-                  >
-                    <div>
-                      <p className="font-bold text-sm text-gray-200">{movement.name}</p>
-                      <p className="text-xs text-gray-600">{movement.category}</p>
-                    </div>
-                    <Plus size={16} className="text-indigo-500" />
-                  </button>
-                ))}
-                {activeMovements.filter(m => !selectedExercises.find(e => e.id === m.id)).length === 0 && (
-                  <p className="text-xs text-center text-gray-500 py-4">All available movements added.</p>
-                )}
-              </div>
-            </div>
-          )}
+        {/* PLACEHOLDER NOTE */}
+        <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-6 text-center">
+          <Calendar className="w-6 h-6 text-indigo-500 mx-auto mb-3 opacity-50" />
+          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed italic">
+            "The training cycle adapts to your life, not the other way around. Select your focus and start the forge."
+          </p>
         </div>
+
       </main>
     </div>
   )
