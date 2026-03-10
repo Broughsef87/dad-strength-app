@@ -3,17 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, 
+  Shield, 
+  Brain, 
   Dumbbell, 
-  History, 
-  User, 
-  Shield 
+  Flame, 
+  User 
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'hq', label: 'HQ', path: '/dashboard', icon: Shield },
-  { id: 'train', label: 'Train', path: '/library', icon: Dumbbell },
-  { id: 'history', label: 'History', path: '/history', icon: History },
+  { id: 'mind', label: 'Mind', path: '/mind', icon: Brain },
+  { id: 'body', label: 'Body', path: '/body', icon: Dumbbell },
+  { id: 'spirit', label: 'Spirit', path: '/spirit', icon: Flame },
   { id: 'profile', label: 'Profile', path: '/profile', icon: User },
 ];
 
@@ -21,7 +22,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-950 border-t border-gray-900 px-6 py-4 flex items-center justify-between z-50 backdrop-blur-md bg-gray-950/80">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-950 border-t border-gray-900 px-4 py-4 flex items-center justify-between z-50 backdrop-blur-md bg-gray-950/80">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.path;
