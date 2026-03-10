@@ -2,12 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Moon, Battery, Clock, Dumbbell, ShieldAlert, HeartPulse, Brain } from 'lucide-react'
+import { Moon, Battery, Clock, Dumbbell, ShieldAlert, HeartPulse, Brain, CheckCircle2, Circle, HandsPraying, Sparkles, BookOpen } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 
 export default function Recovery() {
   const router = useRouter()
   
+  // Minimal state for the morning anchor checklist
+  const [gratitude, setGratitude] = useState(false)
+  const [prayer, setPrayer] = useState(false)
+  const [meditation, setMeditation] = useState(false)
+
+  const isAnchorComplete = gratitude && prayer && meditation
+
   return (
     <div className="min-h-screen bg-gray-950 text-white font-sans">
       <header className="flex items-center justify-between border-b border-gray-800 bg-gray-900/50 p-6 backdrop-blur-md sticky top-0 z-10">
@@ -44,6 +51,57 @@ export default function Recovery() {
            </div>
         </div>
 
+        {/* Morning Anchor (Mind & Spirit) */}
+        <div className="space-y-4">
+           <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest pl-2 flex items-center gap-2">
+                 <Brain size={14} className="text-emerald-400" />
+                 The Morning Anchor
+              </h3>
+              {isAnchorComplete && <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">Anchored</span>}
+           </div>
+
+           <div className={`bg-gray-900 rounded-3xl border transition-all shadow-xl p-5 ${isAnchorComplete ? 'border-emerald-500/50 bg-gradient-to-br from-emerald-900/20 to-gray-900' : 'border-gray-800'}`}>
+              <p className="text-xs text-gray-400 font-medium mb-4">Mind, body, and spirit. Start the day grounded before the chaos hits.</p>
+              
+              <div className="space-y-3">
+                 <button 
+                  onClick={() => setGratitude(!gratitude)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors group"
+                 >
+                    <div className="flex items-center gap-3">
+                       <Sparkles size={18} className={gratitude ? "text-yellow-400" : "text-gray-500 group-hover:text-yellow-400/50"} />
+                       <span className={`font-bold text-sm ${gratitude ? 'text-white' : 'text-gray-300'}`}>1 Point of Gratitude</span>
+                    </div>
+                    {gratitude ? <CheckCircle2 size={20} className="text-emerald-500" /> : <Circle size={20} className="text-gray-600" />}
+                 </button>
+
+                 <button 
+                  onClick={() => setPrayer(!prayer)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors group"
+                 >
+                    <div className="flex items-center gap-3">
+                       {/* Using BookOpen as a fallback if HandsPraying isn't perfectly supported in this lucide version, though BookOpen works well for scripture/prayer */}
+                       <BookOpen size={18} className={prayer ? "text-indigo-400" : "text-gray-500 group-hover:text-indigo-400/50"} />
+                       <span className={`font-bold text-sm ${prayer ? 'text-white' : 'text-gray-300'}`}>Daily Prayer / Scripture</span>
+                    </div>
+                    {prayer ? <CheckCircle2 size={20} className="text-emerald-500" /> : <Circle size={20} className="text-gray-600" />}
+                 </button>
+
+                 <button 
+                  onClick={() => setMeditation(!meditation)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors group"
+                 >
+                    <div className="flex items-center gap-3">
+                       <Moon size={18} className={meditation ? "text-blue-400" : "text-gray-500 group-hover:text-blue-400/50"} />
+                       <span className={`font-bold text-sm ${meditation ? 'text-white' : 'text-gray-300'}`}>3 Mins of Silence</span>
+                    </div>
+                    {meditation ? <CheckCircle2 size={20} className="text-emerald-500" /> : <Circle size={20} className="text-gray-600" />}
+                 </button>
+              </div>
+           </div>
+        </div>
+
         {/* Mobility routines */}
         <div className="space-y-4">
            <div className="flex items-center justify-between">
@@ -73,15 +131,6 @@ export default function Recovery() {
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-800 px-2 py-0.5 rounded">CNS Reset</span>
                  </div>
               </div>
-           </div>
-        </div>
-
-        {/* Mental Health/Mindset Check-in */}
-        <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800 flex items-start gap-4">
-           <div className="p-3 bg-gray-800 rounded-xl text-gray-400"><Brain size={20} /></div>
-           <div>
-              <p className="font-bold text-sm mb-1">Mindset Journal</p>
-              <p className="text-xs text-gray-500 leading-relaxed font-medium">Clear the head trash. Take 2 minutes to write down what's on your mind before the day starts.</p>
            </div>
         </div>
 
