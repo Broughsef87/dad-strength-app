@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Dumbbell, Save, Home as HomeIcon, Timer } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Save, Home as HomeIcon, Timer, Activity } from 'lucide-react';
 
 interface WorkoutSet {
   id: string;
