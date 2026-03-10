@@ -3,7 +3,7 @@
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Brain, Target, PenLine, ArrowLeft } from 'lucide-react';
+import { Brain, Target, PenLine, ArrowLeft, Lock, Unlock, CheckCircle2, Circle, Save } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
 
@@ -11,12 +11,56 @@ export default function MindPage() {
   const [supabase] = useState(() => createClient());
   const router = useRouter();
   const [objectives, setObjectives] = useState(['', '', '']);
+  const [completedObjectives, setCompletedObjectives] = useState([false, false, false]);
+  const [lockedIn, setLockedIn] = useState(false);
   const [journal, setJournal] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    // Try to load today's objectives/journal from localStorage for persistence
+    const saved = localStorage.getItem('dad-strength-mind-state');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.date === new Date().toLocaleDateString()) {
+        setObjectives(data.objectives || ['', '', '']);
+        setCompletedObjectives(data.completedObjectives || [false, false, false]);
+        setLockedIn(data.lockedIn || false);
+        setJournal(data.journal || '');
+      }
+    }
   }, []);
+
+  const saveToLocal = (overrides = {}) => {
+    const state = {
+      date: new Date().toLocaleDateString(),
+      objectives,
+      completedObjectives,
+      lockedIn,
+      journal,
+      ...overrides
+    };
+    localStorage.setItem('dad-strength-mind-state', JSON.stringify(state));
+  };
+
+  const handleSaveJournal = async () => {
+    setIsSaving(true);
+    // For now, simulate a save and use localStorage. 
+    // In production, we'd use supabase.from('journals').upsert(...)
+    saveToLocal();
+    setTimeout(() => {
+      setIsSaving(false);
+      alert('Journal entry saved.');
+    }, 8000);
+  };
+
+  const toggleObjective = (index: number) => {
+    const next = [...completedObjectives];
+    next[index] = !next[index];
+    setCompletedObjectives(next);
+    saveToLocal({ completedObjectives: next });
+  };
 
   if (!mounted) {
     return null;
@@ -25,7 +69,7 @@ export default function MindPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 p-6">
       <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/dashboard')} className="p-2 bg-gray-900 rounded-xl text-gray-500">
+        <button onClick={() => router.push('/dashboard')} className="p-2 bg-gray-900 rounded-xl text-gray-500 hover:text-white transition-colors">
           <ArrowLeft size={20} />
         </button>
         <div className="flex items-center gap-3">
@@ -36,32 +80,73 @@ export default function MindPage() {
 
       <main className="max-w-md mx-auto space-y-8">
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-           <DeepWorkTimer />
+           <DeepWorkTimer availableObjectives={objectives} />
         </div>
 
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-           <div className="flex items-center gap-2 mb-6">
-              <Target size={18} className="text-indigo-500" />
-              <h3 className="font-bold text-lg uppercase tracking-tighter italic">Daily Objectives</h3>
+        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl relative overflow-hidden">
+           <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Target size={18} className="text-indigo-500" />
+                <h3 className="font-bold text-lg uppercase tracking-tighter italic">Daily Objectives</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setLockedIn(!lockedIn);
+                  saveToLocal({ lockedIn: !lockedIn });
+                }}
+                className={`p-2 rounded-lg transition-all ${lockedIn ? 'text-indigo-500 bg-indigo-500/10' : 'text-gray-600 bg-gray-800/50 hover:text-gray-400'}`}
+              >
+                {lockedIn ? <Lock size={16} /> : <Unlock size={16} />}
+              </button>
            </div>
+
            <div className="space-y-4">
               {objectives.map((obj, i) => (
-                <div key={i} className="flex items-center gap-4">
-                   <div className="text-xs font-black text-gray-700 w-6">0{i+1}</div>
-                   <input 
-                     type="text" 
-                     value={obj} 
-                     onChange={(e) => {
-                        const newObjs = [...objectives];
-                        newObjs[i] = e.target.value;
-                        setObjectives(newObjs);
-                     }}
-                     placeholder="Define objective..."
-                     className="flex-1 bg-transparent border-b border-gray-800 focus:border-indigo-500 text-sm text-white py-2 transition-colors outline-none"
-                   />
+                <div key={i} className="flex items-center gap-4 group">
+                   <div className="text-[10px] font-black text-gray-700 w-6 italic">0{i+1}</div>
+                   {lockedIn ? (
+                     <button 
+                       onClick={() => toggleObjective(i)}
+                       className="flex-1 flex items-center gap-3 py-2 text-left transition-all"
+                     >
+                       {completedObjectives[i] ? (
+                         <CheckCircle2 size={18} className="text-indigo-500 shrink-0" />
+                       ) : (
+                         <Circle size={18} className="text-gray-800 shrink-0 group-hover:text-gray-600" />
+                       )}
+                       <span className={`text-sm font-medium transition-all ${completedObjectives[i] ? 'text-gray-600 line-through' : 'text-gray-200'}`}>
+                         {obj || 'Undefined Objective'}
+                       </span>
+                     </button>
+                   ) : (
+                     <input 
+                       type="text" 
+                       value={obj} 
+                       onChange={(e) => {
+                          const newObjs = [...objectives];
+                          newObjs[i] = e.target.value;
+                          setObjectives(newObjs);
+                          saveToLocal({ objectives: newObjs });
+                       }}
+                       placeholder="Define objective..."
+                       className="flex-1 bg-transparent border-b border-gray-800 focus:border-indigo-500 text-sm text-white py-2 transition-colors outline-none"
+                     />
+                   )}
                 </div>
               ))}
            </div>
+
+           {!lockedIn && (
+              <button 
+                onClick={() => {
+                  setLockedIn(true);
+                  saveToLocal({ lockedIn: true });
+                }}
+                className="w-full mt-6 bg-indigo-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20"
+              >
+                Lock In Objectives
+              </button>
+           )}
         </div>
 
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
@@ -71,12 +156,30 @@ export default function MindPage() {
            </div>
            <textarea 
              value={journal}
-             onChange={(e) => setJournal(e.target.value)}
+             onChange={(e) => {
+               setJournal(e.target.value);
+               saveToLocal({ journal: e.target.value });
+             }}
              placeholder="What's on your mind? Capture the signal, ignore the noise..."
-             className="w-full bg-gray-950 border border-gray-800 rounded-2xl p-4 text-sm text-gray-300 h-64 resize-none outline-none italic focus:ring-1 focus:ring-indigo-500/50"
+             className="w-full bg-gray-950 border border-gray-800 rounded-2xl p-4 text-sm text-gray-300 h-64 resize-none outline-none italic focus:ring-1 focus:ring-indigo-500/50 transition-all"
            />
-           <button className="w-full mt-4 bg-gray-800 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
-              Save Entry
+           <button 
+             onClick={handleSaveJournal}
+             disabled={isSaving}
+             className={`w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+               isSaving 
+                 ? 'bg-gray-800 text-gray-600 cursor-not-allowed' 
+                 : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white'
+             }`}
+           >
+              {isSaving ? (
+                <>Saving...</>
+              ) : (
+                <>
+                  <Save size={14} />
+                  Save Entry
+                </>
+              )}
            </button>
         </div>
       </main>
