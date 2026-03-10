@@ -1,106 +1,54 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, Plus, Sparkles, Coffee, Utensils, Gift, MessageCircle } from 'lucide-react';
-
-interface Entry {
-  id: string;
-  type: string;
-  note: string;
-  timestamp: Date;
-}
-
-const TYPES = [
-  { label: 'Act of Service', icon: Utensils, color: 'text-blue-500', bg: 'bg-blue-50' },
-  { label: 'Quality Time', icon: Coffee, color: 'text-orange-500', bg: 'bg-orange-50' },
-  { label: 'Words', icon: MessageCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-  { label: 'Gift', icon: Gift, color: 'text-purple-500', bg: 'bg-purple-50' },
-];
+import { Heart, Plus, Users } from 'lucide-react';
 
 export default function RelationshipLedger() {
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [note, setNote] = useState('');
-  const [selectedType, setSelectedType] = useState(TYPES[0].label);
-
-  const addEntry = () => {
-    if (!note) return;
-    const newEntry: Entry = {
-      id: Math.random().toString(36).substring(2, 9),
-      type: selectedType,
-      note,
-      timestamp: new Date(),
-    };
-    setEntries([newEntry, ...entries]);
-    setNote('');
-  };
+  const [deposits, setDeposits] = useState(3);
+  const target = 5;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-        <h3 className="font-bold text-slate-800">Relationship Ledger</h3>
-      </div>
-
-      <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-100 space-y-3">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          {TYPES.map((t) => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.label}
-                onClick={() => setSelectedType(t.label)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all ${
-                  selectedType === t.label 
-                    ? `border-rose-200 ${t.bg} ${t.color}` 
-                    : 'border-slate-200 bg-white text-slate-500 hover:border-rose-200'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {t.label}
-              </button>
-            );
-          })}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Heart className="w-5 h-5 text-rose-500" />
+          <h3 className="font-bold text-white">Emotional Ledger</h3>
         </div>
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="What did you do today?"
-            className="flex-1 p-2.5 rounded-lg border border-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-sm"
-          />
-          <button
-            onClick={addEntry}
-            className="bg-rose-500 text-white p-2.5 rounded-lg hover:bg-rose-600 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+        <div className="flex -space-x-2">
+           <div className="w-6 h-6 rounded-full border-2 border-gray-950 bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-400">W</div>
+           <div className="w-6 h-6 rounded-full border-2 border-gray-950 bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-400">K</div>
         </div>
       </div>
 
-      <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-        {entries.length === 0 ? (
-          <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-xl">
-            <Sparkles className="w-6 h-6 text-rose-200 mx-auto mb-2" />
-            <p className="text-xs text-slate-400 italic">No deposits in the ledger yet.</p>
-          </div>
-        ) : (
-          entries.map((entry) => (
-            <div key={entry.id} className="p-3 bg-white border border-slate-100 rounded-lg flex flex-col gap-1">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase tracking-tighter text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">
-                  {entry.type}
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-              <p className="text-sm text-slate-700 font-medium">{entry.note}</p>
-            </div>
-          ))
-        )}
+      <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs text-gray-500 font-medium">Daily Relationship Deposits</p>
+          <span className="text-xs font-black text-rose-400 uppercase tracking-widest">{deposits}/{target}</span>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          {[...Array(target)].map((_, i) => (
+            <div 
+              key={i} 
+              className={`flex-1 h-2 rounded-full transition-all ${
+                i < deposits ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'bg-gray-800'
+              }`}
+            ></div>
+          ))}
+        </div>
+
+        <button 
+          onClick={() => setDeposits(prev => Math.min(prev + 1, target))}
+          className="w-full py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-700 hover:text-white transition-all group"
+        >
+          <Plus size={16} className="text-rose-500 group-hover:scale-125 transition-transform" />
+          RECORD DEPOSIT
+        </button>
       </div>
+
+      <p className="text-[10px] text-center text-gray-600 uppercase font-black tracking-widest">
+        The most important ROI is at home.
+      </p>
     </div>
   );
 }

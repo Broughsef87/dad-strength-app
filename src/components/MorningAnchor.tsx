@@ -1,72 +1,62 @@
 'use client';
 
 import { useState } from 'react';
-import { Sun, Battery, Brain, Activity, ArrowRight } from 'lucide-react';
+import { Anchor, CheckCircle2, Circle } from 'lucide-react';
+
+const TASKS = [
+  { id: 'hydrate', label: '16oz Water + Electrolytes' },
+  { id: 'move', label: '5 Min Mobility / Sun' },
+  { id: 'mind', label: 'Meditation / Prayer / Journal' },
+  { id: 'plan', label: 'Top 3 Objectives Set' },
+];
 
 export default function MorningAnchor() {
-  const [metrics, setMetrics] = useState({
-    sleep: 3,
-    stress: 3,
-    soreness: 3
-  });
+  const [completed, setCompleted] = useState<string[]>([]);
 
-  const updateMetric = (key: keyof typeof metrics, val: number) => {
-    setMetrics(prev => ({ ...prev, [key]: val }));
+  const toggle = (id: string) => {
+    setCompleted(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
   };
-
-  const score = metrics.sleep + (6 - metrics.stress) + (6 - metrics.soreness);
-  // Max score: 5 + 5 + 5 = 15
-  // Min score: 1 + 1 + 1 = 3
-  
-  const recommendation = score >= 10 
-    ? { path: 'Iron Path', color: 'text-blue-600', bg: 'bg-blue-50', desc: 'System is GO. Hit the heavy weights.' }
-    : { path: 'Living Room', color: 'text-emerald-600', bg: 'bg-emerald-50', desc: 'Focus on mobility and high reps today.' };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Sun className="w-5 h-5 text-yellow-500" />
-        <h3 className="font-bold text-slate-800">The Morning Anchor</h3>
+        <Anchor className="w-5 h-5 text-indigo-500" />
+        <h3 className="font-bold text-white">Morning Anchor</h3>
       </div>
 
-      <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-        {[
-          { key: 'sleep', label: 'Sleep Quality', icon: Battery },
-          { key: 'stress', label: 'Stress Level', icon: Brain },
-          { key: 'soreness', label: 'Body Soreness', icon: Activity },
-        ].map((m) => {
-          const Icon = m.icon;
-          const val = metrics[m.key as keyof typeof metrics];
-          return (
-            <div key={m.key} className="space-y-1">
-              <div className="flex justify-between text-xs font-bold text-slate-500 uppercase">
-                <div className="flex items-center gap-1">
-                  <Icon className="w-3 h-3" />
-                  {m.label}
-                </div>
-                <span>{val}/5</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="5"
-                value={val}
-                onChange={(e) => updateMetric(m.key as keyof typeof metrics, parseInt(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-            </div>
-          );
-        })}
+      <div className="space-y-2">
+        {TASKS.map((task) => (
+          <button
+            key={task.id}
+            onClick={() => toggle(task.id)}
+            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+              completed.includes(task.id)
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+                : 'bg-gray-900/50 border-gray-800 text-gray-400 hover:border-gray-700'
+            }`}
+          >
+            {completed.includes(task.id) ? (
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
+            ) : (
+              <Circle className="w-5 h-5 shrink-0" />
+            )}
+            <span className="text-sm font-bold tracking-tight">{task.label}</span>
+          </button>
+        ))}
       </div>
-
-      <div className={`p-4 rounded-xl border-2 border-dashed flex items-start gap-3 ${recommendation.bg} border-slate-200`}>
-        <div className="p-2 bg-white rounded-lg shadow-sm">
-           <ArrowRight className={`w-5 h-5 ${recommendation.color}`} />
+      
+      <div className="pt-2">
+        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">
+          <span>Morning Momentum</span>
+          <span>{Math.round((completed.length / TASKS.length) * 100)}%</span>
         </div>
-        <div>
-          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Recommendation</p>
-          <p className={`font-bold ${recommendation.color}`}>{recommendation.path} Warrior</p>
-          <p className="text-xs text-slate-500 leading-tight">{recommendation.desc}</p>
+        <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-indigo-500 transition-all duration-500"
+            style={{ width: `${(completed.length / TASKS.length) * 100}%` }}
+          ></div>
         </div>
       </div>
     </div>

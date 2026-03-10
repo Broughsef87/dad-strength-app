@@ -34,7 +34,6 @@ export default function WorkoutLogger() {
   const [reps, setReps] = useState<number | ''>('');
   const [sets, setSets] = useState<WorkoutSet[]>([]);
   
-  // Rest Timer State
   const [timeLeft, setTimeLeft] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
 
@@ -77,8 +76,6 @@ export default function WorkoutLogger() {
     setSets([...sets, newSet]);
     setWeight('');
     setReps('');
-    
-    // Start 90s rest timer
     startTimer(90);
   };
 
@@ -88,23 +85,23 @@ export default function WorkoutLogger() {
 
   return (
     <div className="space-y-6">
-      {/* Rest Timer Overlay/Header */}
+      {/* Rest Timer */}
       {timeLeft > 0 && (
-        <div className={`p-4 rounded-xl border-2 flex items-center justify-between transition-all ${
-          timeLeft <= 10 ? 'bg-red-50 border-red-200 animate-pulse' : 'bg-blue-50 border-blue-100'
+        <div className={`p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${
+          timeLeft <= 10 ? 'bg-red-500/10 border-red-500/50 animate-pulse' : 'bg-indigo-500/10 border-indigo-500/30'
         }`}>
           <div className="flex items-center gap-3">
-            <Timer className={`w-6 h-6 ${timeLeft <= 10 ? 'text-red-500' : 'text-blue-600'}`} />
+            <Timer className={`w-6 h-6 ${timeLeft <= 10 ? 'text-red-500' : 'text-indigo-400'}`} />
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase">Rest Timer</p>
-              <p className={`text-2xl font-mono font-bold ${timeLeft <= 10 ? 'text-red-600' : 'text-slate-800'}`}>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Rest Active</p>
+              <p className={`text-2xl font-mono font-black ${timeLeft <= 10 ? 'text-red-500' : 'text-white'}`}>
                 {formatTime(timeLeft)}
               </p>
             </div>
           </div>
           <button 
             onClick={() => setTimeLeft(0)}
-            className="text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-tight"
+            className="text-[10px] font-black text-gray-500 hover:text-white uppercase tracking-[0.2em]"
           >
             Skip
           </button>
@@ -120,35 +117,33 @@ export default function WorkoutLogger() {
               key={t}
               onClick={() => { setTrack(t); setExercise(''); }}
               type="button"
-              className={`p-3 rounded-xl border text-left transition-all ${
+              className={`p-4 rounded-2xl border text-left transition-all ${
                 track === t 
-                  ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' 
-                  : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
+                  ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10' 
+                  : 'border-gray-800 bg-gray-900/50 hover:border-gray-700'
               }`}
             >
-              <div className="flex items-center gap-2 font-bold text-sm text-slate-800 mb-1">
-                <TrackIcon className={`w-4 h-4 ${track === t ? 'text-blue-600' : 'text-slate-500'}`} />
+              <div className="flex items-center gap-2 font-black text-sm uppercase italic tracking-tighter mb-1">
+                <TrackIcon className={`w-4 h-4 ${track === t ? 'text-indigo-400' : 'text-gray-600'}`} />
                 {TRACKS[t].name}
               </div>
-              <div className="text-xs text-slate-500">{TRACKS[t].description}</div>
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{TRACKS[t].description}</div>
             </button>
           );
         })}
       </div>
 
-      <form onSubmit={addSet} className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex justify-between">
-            <span>Exercise</span>
-          </label>
-          <div className="flex flex-wrap gap-2 mb-2">
+      <form onSubmit={addSet} className="space-y-4 bg-gray-900/50 p-6 rounded-3xl border border-gray-800">
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Select Exercise</label>
+          <div className="flex flex-wrap gap-2">
             {activeTrack.exercises.map(ex => (
               <button
                 key={ex}
                 type="button"
                 onClick={() => setExercise(ex)}
-                className={`text-xs px-2 py-1 rounded-md border ${
-                  exercise === ex ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400'
+                className={`text-[10px] font-black px-3 py-1.5 rounded-lg border uppercase tracking-wider transition-all ${
+                  exercise === ex ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-800 text-gray-500 border-gray-700 hover:border-gray-600'
                 }`}
               >
                 {ex}
@@ -159,32 +154,32 @@ export default function WorkoutLogger() {
             type="text"
             value={exercise}
             onChange={(e) => setExercise(e.target.value)}
-            placeholder="e.g., Squat, Bench Press"
-            className="w-full p-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
+            placeholder="Manual Entry..."
+            className="w-full p-3 rounded-xl border border-gray-800 bg-gray-950 text-white placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             required
           />
         </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Weight (lbs)</label>
+            <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest">LBS</label>
             <input
               type="number"
               value={weight}
               onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
               placeholder="0"
-              className="w-full p-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
+              className="w-full p-3 rounded-xl border border-gray-800 bg-gray-950 text-white placeholder:text-gray-700"
               required
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Reps</label>
+            <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest">REPS</label>
             <input
               type="number"
               value={reps}
               onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
               placeholder="0"
-              className="w-full p-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
+              className="w-full p-3 rounded-xl border border-gray-800 bg-gray-950 text-white placeholder:text-gray-700"
               required
             />
           </div>
@@ -192,37 +187,37 @@ export default function WorkoutLogger() {
 
         <button 
           type="submit"
-          className="w-full bg-blue-600 text-white p-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
+          className="w-full bg-indigo-600 text-white p-3 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/20"
         >
           <Plus className="w-4 h-4" />
-          Add Set
+          Log Set
         </button>
       </form>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-          <Dumbbell className="w-4 h-4 text-blue-600" />
-          Active Session - {activeTrack.name}
+        <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] flex items-center gap-2">
+          <Activity className="w-4 h-4 text-indigo-500" />
+          Active Session
         </h3>
         
         {sets.length === 0 ? (
-          <p className="text-sm text-slate-400 italic text-center py-8 border-2 border-dashed border-slate-100 rounded-xl">
-            No sets logged yet. Time to hit the iron.
-          </p>
+          <div className="text-center py-12 border-2 border-dashed border-gray-900 rounded-3xl">
+             <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">Awaiting First Set...</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {[...sets].reverse().map((set) => (
               <div 
                 key={set.id}
-                className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-1"
+                className="flex items-center justify-between p-4 bg-gray-900/80 border border-gray-800 rounded-2xl group"
               >
-                <div className="flex flex-col">
-                  <span className="font-semibold text-slate-800">{set.exercise}</span>
-                  <span className="text-xs text-slate-500">{set.weight} lbs × {set.reps} reps</span>
+                <div>
+                  <p className="font-black text-sm text-white uppercase italic tracking-tighter">{set.exercise}</p>
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{set.weight} LBS x {set.reps} REPS</p>
                 </div>
                 <button 
                   onClick={() => removeSet(set.id)}
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-2 text-gray-700 hover:text-red-500 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -233,9 +228,9 @@ export default function WorkoutLogger() {
       </div>
 
       {sets.length > 0 && (
-        <button className="w-full border-2 border-blue-600 text-blue-600 p-2.5 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors mt-4">
+        <button className="w-full border border-indigo-500/30 bg-indigo-500/5 text-indigo-400 p-4 rounded-2xl font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-indigo-500 hover:text-white transition-all">
           <Save className="w-4 h-4" />
-          Complete Workout
+          Save Protocol
         </button>
       )}
     </div>

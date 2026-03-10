@@ -9,36 +9,35 @@ const MOCK_PRS = [
 
 export default function Leaderboard() {
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold flex items-center gap-2 text-white uppercase tracking-tighter italic">
           <Trophy className="w-5 h-5 text-yellow-500" />
-          Recent PRs & Wins
+          The Feed
         </h2>
-        <span className="text-xs font-semibold bg-blue-50 text-blue-600 px-3 py-1 rounded-full">
-          Live Feed
+        <span className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-500/20">
+          Global
         </span>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {MOCK_PRS.map((pr) => (
-          <div key={pr.id} className="flex items-start gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-            <div className={`p-2 rounded-lg ${pr.type === 'strength' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+          <div key={pr.id} className="flex items-start gap-4 p-4 rounded-xl border border-gray-800 bg-gray-950/50 hover:bg-gray-800 transition-all group">
+            <div className={`p-2 rounded-lg ${pr.type === 'strength' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-orange-500/10 text-orange-400'}`}>
               {pr.type === 'strength' ? <Dumbbell className="w-5 h-5" /> : <Flame className="w-5 h-5" />}
             </div>
             
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-slate-800 text-sm">{pr.name}</p>
-                <span className="text-xs text-slate-400">{pr.time}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-bold text-gray-200 text-sm">{pr.name}</p>
+                <span className="text-[10px] text-gray-600 font-bold">{pr.time}</span>
               </div>
-              <p className="text-sm text-slate-600 mt-1">
-                Hit a new PR on <span className="font-medium text-slate-800">{pr.exercise}</span>
+              <p className="text-xs text-gray-500 truncate">
+                PR: <span className="font-bold text-gray-300">{pr.exercise}</span>
               </p>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md bg-white border border-slate-200 text-slate-700 shadow-sm">
-                  <Target className="w-3 h-3 text-emerald-500" />
-                  {pr.weight ? `${pr.weight} lbs × ${pr.reps}` : pr.reps}
+              <div className="mt-2">
+                <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md bg-gray-900 border border-gray-800 text-indigo-400 uppercase tracking-widest">
+                  {pr.weight ? `${pr.weight} LBS x ${pr.reps}` : pr.reps}
                 </span>
               </div>
             </div>
@@ -46,8 +45,8 @@ export default function Leaderboard() {
         ))}
       </div>
 
-      <button className="w-full mt-6 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center gap-2">
-        View Full Leaderboard
+      <button className="w-full pt-2 text-[10px] font-black text-gray-600 hover:text-gray-400 transition-colors flex items-center justify-center gap-2 uppercase tracking-[0.3em]">
+        View Rankings
       </button>
     </div>
   );

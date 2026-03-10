@@ -1,96 +1,65 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Zap, Play, Square, Trophy, Clock } from 'lucide-react';
+import { Timer, Play, Pause, RotateCcw } from 'lucide-react';
 
 export default function DeepWorkTimer() {
+  const [timeLeft, setTimeLeft] = useState(90 * 60); // 90 minutes
   const [isActive, setIsActive] = useState(false);
-  const [seconds, setSeconds] = useState(0);
-  const [dailyTotal, setDailyTotal] = useState(0);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isActive) {
+    if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
-        setSeconds(s => s + 1);
+        setTimeLeft(prev => prev - 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive]);
+  }, [isActive, timeLeft]);
 
-  const toggle = () => {
-    if (isActive) {
-      setDailyTotal(prev => prev + seconds);
-      setSeconds(0);
-    }
-    setIsActive(!isActive);
+  const toggle = () => setIsActive(!isActive);
+  const reset = () => {
+    setIsActive(false);
+    setTimeLeft(90 * 60);
   };
 
-  const formatTime = (s: number) => {
-    const hrs = Math.floor(s / 3600);
-    const mins = Math.floor((s % 3600) / 60);
-    const secs = s % 60;
-    return `${hrs > 0 ? hrs + ':' : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatTotal = (s: number) => {
-    const mins = Math.floor(s / 60);
-    if (mins < 60) return `${mins}m`;
-    const hrs = (mins / 60).toFixed(1);
-    return `${hrs}h`;
-  };
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
-          <h3 className="font-bold text-slate-800">Nap-Squeeze</h3>
-        </div>
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-lg text-slate-500">
-          <Trophy className="w-3.5 h-3.5" />
-          <span className="text-[10px] font-black uppercase tracking-tight">Today: {formatTotal(dailyTotal)}</span>
-        </div>
+      <div className="flex items-center gap-2">
+        <Timer className="w-5 h-5 text-indigo-500" />
+        <h3 className="font-bold text-white">Deep Work</h3>
       </div>
 
-      <div className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-4 ${
-        isActive ? 'bg-amber-50 border-amber-200 shadow-inner' : 'bg-slate-50 border-slate-100'
-      }`}>
-        <div className="flex items-center gap-2 text-slate-400">
-           <Clock className="w-4 h-4" />
-           <span className="text-xs font-bold uppercase tracking-widest">Focus Session</span>
-        </div>
-        
-        <div className={`text-5xl font-mono font-black tabular-nums transition-colors ${
-          isActive ? 'text-amber-600' : 'text-slate-300'
-        }`}>
-          {formatTime(seconds)}
+      <div className="bg-gray-950 p-6 rounded-xl border border-gray-800 text-center">
+        <div className="text-5xl font-black text-white mb-6 font-mono tracking-tighter">
+          {minutes}:{seconds.toString().padStart(2, '0')}
         </div>
 
-        <button
-          onClick={toggle}
-          className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 ${
-            isActive 
-              ? 'bg-slate-900 text-white hover:bg-slate-800' 
-              : 'bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-200'
-          }`}
-        >
-          {isActive ? (
-            <>
-              <Square className="w-4 h-4 fill-white" />
-              Finish Squeeze
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-white" />
-              Start Squeeze
-            </>
-          )}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={toggle}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${
+              isActive 
+                ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' 
+                : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-500'
+            }`}
+          >
+            {isActive ? <Pause size={18} /> : <Play size={18} />}
+            {isActive ? 'PAUSE' : 'START SPRINT'}
+          </button>
+          <button
+            onClick={reset}
+            className="p-3 bg-gray-900 text-gray-500 border border-gray-800 rounded-lg hover:text-white transition-colors"
+          >
+            <RotateCcw size={18} />
+          </button>
+        </div>
       </div>
-
-      <p className="text-[10px] text-center text-slate-400 uppercase font-bold tracking-tight">
-        When the baby sleeps, the business grows.
+      <p className="text-[10px] text-center text-gray-600 uppercase font-black tracking-widest">
+        90 Minute Block // No Distractions
       </p>
     </div>
   );

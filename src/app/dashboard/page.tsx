@@ -3,9 +3,26 @@
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PlayCircle, Calendar, ArrowRight, User, Flame, Trophy, Dumbbell } from 'lucide-react'
+import { 
+  PlayCircle, 
+  Calendar, 
+  ArrowRight, 
+  Flame, 
+  Trophy, 
+  Dumbbell, 
+  Activity, 
+  ShieldCheck,
+  LayoutDashboard,
+  Settings,
+  Shield
+} from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
-import Leaderboard from './Leaderboard'
+import Leaderboard from '../../components/Leaderboard'
+import FuelStation from '../../components/FuelStation'
+import RelationshipLedger from '../../components/RelationshipLedger'
+import DeepWorkTimer from '../../components/DeepWorkTimer'
+import MorningAnchor from '../../components/MorningAnchor'
+import HandoffChecklist from '../../components/HandoffChecklist'
 import Logo from '../../components/Logo'
 
 export default function Dashboard() {
@@ -44,7 +61,7 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .order('weight_lbs', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       setStats({
         streak: Math.floor((count || 0) / 3),
@@ -62,164 +79,149 @@ export default function Dashboard() {
     router.push('/')
   }
 
-  const loadSampleWorkout = async () => {
-    setLoading(true);
-    const sampleWorkout = {
-      name: 'Dad Bod Demolisher (Sample)',
-      description: 'A 30-minute full-body circuit designed for dads short on time.',
-      exercises: [
-        { name: "Back Squat", sets: 3, reps: "8-10" },
-        { name: "Push-ups", sets: 3, reps: "AMRAP" },
-        { name: "Pull-ups", sets: 3, reps: "AMRAP" },
-        { name: "Plank", sets: 3, reps: "60s" }
-      ]
-    };
-    
-    await supabase.from('workouts').insert(sampleWorkout);
-    
-    // Reload dashboard data
-    const { data: newWorkout } = await supabase.from('workouts').select('*').limit(1).maybeSingle();
-    setWorkout(newWorkout);
-    setLoading(false);
-  }
-
   if (loading) {
-    return <div className="flex h-screen items-center justify-center bg-gray-950 text-white font-sans">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">Accessing Mission Control...</p>
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-950 text-white font-sans">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Accessing Mission Control...</p>
+        </div>
       </div>
-    </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans">
-      {/* HEADER */}
-      <header className="flex items-center justify-between border-b border-gray-800 bg-gray-900/50 p-4 backdrop-blur-md sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 md:pb-8">
+      {/* DESKTOP HEADER */}
+      <header className="hidden md:flex items-center justify-between border-b border-gray-900 bg-gray-950/80 p-6 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
-            <Logo className="w-5 h-5 text-white" />
+          <ShieldCheck className="w-8 h-8 text-indigo-500" />
+          <div className="font-black text-xl tracking-tighter italic">
+            FORGE OS <span className="text-gray-600 font-light">/ DAD STRENGTH</span>
           </div>
-          <span className="font-bold tracking-tight text-lg">DadStrength</span>
         </div>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={handleSignOut}
-            className="text-xs text-gray-500 hover:text-red-400 transition-colors uppercase font-bold tracking-wider"
-          >
-            Sign Out
-          </button>
-        </div>
+        <nav className="flex gap-8 font-bold uppercase tracking-widest text-[10px] text-gray-500">
+          <button className="text-white border-b-2 border-indigo-500 pb-1">Dashboard</button>
+          <button className="hover:text-gray-300">Protocol</button>
+          <button className="hover:text-gray-300">Equipment</button>
+          <button onClick={handleSignOut} className="text-red-900/50 hover:text-red-500">Sign Out</button>
+        </nav>
       </header>
 
-      {/* MAIN CONTENT */}
-      <main className="mx-auto max-w-md p-6 pb-24 space-y-8">
+      {/* MOBILE HEADER */}
+      <header className="md:hidden flex items-center justify-between p-6">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 rotate-3">
+             <span className="font-black text-xs">D</span>
+          </div>
+          <span className="font-black tracking-tighter text-lg italic uppercase">Mission Control</span>
+        </div>
+        <button onClick={handleSignOut} className="p-2 bg-gray-900 rounded-lg text-gray-500">
+          <Settings size={20} />
+        </button>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* WELCOME */}
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Welcome, Dad.</h1>
-          <p className="text-gray-500 text-sm font-medium">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-        </div>
-
-        {/* TODAY'S WORKOUT CARD */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 shadow-2xl shadow-indigo-500/20 ring-1 ring-white/20">
-          <div className="absolute top-0 right-0 -mr-6 -mt-6 h-32 w-32 rounded-full bg-white opacity-10 blur-3xl"></div>
-          
-          <div className="flex items-start justify-between relative z-10">
-            <div>
-              <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-[10px] font-bold text-white uppercase tracking-widest mb-4 backdrop-blur-sm">
-                Next Session
-              </span>
-              <h2 className="text-2xl font-black text-white leading-tight uppercase">
-                {workout?.name || 'No Programs'}
-              </h2>
-              <p className="text-indigo-100/80 text-sm mt-2 font-medium">
-                {workout?.description || 'Build your first workout routine to get started.'}
-              </p>
-            </div>
-            <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10">
-              <Dumbbell className="text-white" size={24} />
-            </div>
+        {/* LEFT COLUMN: Vitals */}
+        <div className="lg:col-span-4 space-y-8 order-2 lg:order-1">
+          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <FuelStation />
           </div>
-
-          <div className="mt-8 flex items-center gap-4 relative z-10">
-            {workout ? (
-              <button 
-                onClick={() => router.push(`/workout/${workout.id}`)}
-                className="flex-1 flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-indigo-900 hover:bg-indigo-50 transition-all active:scale-95 shadow-xl"
-              >
-                <PlayCircle size={20} />
-                START TRAINING
-              </button>
-            ) : (
-              <button 
-                onClick={loadSampleWorkout}
-                className="flex-1 flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-indigo-900 hover:bg-indigo-50 transition-all active:scale-95 shadow-xl"
-              >
-                <PlayCircle size={20} />
-                GENERATE SAMPLE
-              </button>
-            )}
+          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <RelationshipLedger />
+          </div>
+          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <Leaderboard />
           </div>
         </div>
 
-        {/* STATS / PROGRESS */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-2xl bg-gray-900 p-5 border border-gray-800 hover:border-gray-700 transition-colors">
-            <div className="flex items-center gap-2 mb-2 text-orange-500">
-               <Flame size={14} />
-               <p className="text-[10px] uppercase font-black tracking-widest">Streak</p>
-            </div>
-            <p className="text-2xl font-bold">{stats.streak} Days</p>
-          </div>
-          <div className="rounded-2xl bg-gray-900 p-5 border border-gray-800 hover:border-gray-700 transition-colors">
-             <div className="flex items-center gap-2 mb-2 text-indigo-400">
-                <Trophy size={14} />
-                <p className="text-[10px] uppercase font-black tracking-widest">Biggest Lift</p>
-             </div>
-             <p className="text-lg font-bold truncate">{stats.lastPR}</p>
-          </div>
-        </div>
-
-        <Leaderboard />
-
-        {/* RECENT ACTIVITY / BUTTONS */}
-        <div className="space-y-3">
-           <button 
-            onClick={() => router.push('/edit-program')}
-            className="w-full flex items-center justify-between p-5 rounded-2xl bg-gray-900 border border-gray-800 hover:bg-gray-800/50 transition-all group mb-3"
-           >
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-gray-800 flex items-center justify-center group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
-                  <Dumbbell size={20} />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm">Edit Program</p>
-                  <p className="text-xs text-gray-500">Customize your routine</p>
-                </div>
+        {/* CENTER COLUMN: Training & Productivity */}
+        <div className="lg:col-span-5 space-y-8 order-1 lg:order-2">
+          {/* ACTIVE WORKOUT CARD */}
+          <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 shadow-2xl shadow-indigo-500/20 ring-1 ring-white/10 group">
+            <div className="absolute top-0 right-0 -mr-6 -mt-6 h-32 w-32 rounded-full bg-white opacity-10 blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+            
+            <div className="flex items-start justify-between relative z-10 mb-8">
+              <div>
+                <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-white uppercase tracking-widest mb-4 backdrop-blur-sm border border-white/5">
+                  Protocol Active
+                </span>
+                <h2 className="text-3xl font-black text-white leading-tight uppercase tracking-tighter italic">
+                  {workout?.name || 'Load Program'}
+                </h2>
+                <p className="text-indigo-100/70 text-sm mt-2 font-medium max-w-[200px]">
+                  {workout?.description || 'Access the training library to deploy your first protocol.'}
+                </p>
               </div>
-              <ArrowRight size={18} className="text-gray-600 group-hover:text-white transition-colors" />
-           </button>
-           <button 
-            onClick={() => router.push('/history')}
-            className="w-full flex items-center justify-between p-5 rounded-2xl bg-gray-900 border border-gray-800 hover:bg-gray-800/50 transition-all group"
-           >
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-gray-800 flex items-center justify-center group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
-                  <Calendar size={20} />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm">Workout History</p>
-                  <p className="text-xs text-gray-500">View your past progress</p>
-                </div>
+              <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10 rotate-6 shadow-xl">
+                <Dumbbell className="text-white" size={28} />
               </div>
-              <ArrowRight size={18} className="text-gray-600 group-hover:text-white transition-colors" />
-           </button>
+            </div>
+
+            <div className="flex items-center gap-4 relative z-10">
+              <button 
+                onClick={() => workout ? router.push(`/workout/${workout.id}`) : router.push('/library')}
+                className="flex-1 flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-5 text-sm font-black text-indigo-950 hover:bg-indigo-50 transition-all active:scale-95 shadow-2xl uppercase tracking-tighter"
+              >
+                <PlayCircle size={22} />
+                {workout ? 'Deploy Training' : 'Browse Library'}
+              </button>
+            </div>
+          </div>
+
+          {/* QUICK STATS */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-3xl bg-gray-900 p-6 border border-gray-800 hover:border-gray-700 transition-all">
+              <div className="flex items-center gap-2 mb-2 text-orange-500">
+                <Flame size={16} />
+                <p className="text-[10px] uppercase font-black tracking-[0.2em]">Streak</p>
+              </div>
+              <p className="text-3xl font-black">{stats.streak} Days</p>
+            </div>
+            <div className="rounded-3xl bg-gray-900 p-6 border border-gray-800 hover:border-gray-700 transition-all">
+              <div className="flex items-center gap-2 mb-2 text-indigo-400">
+                <Trophy size={16} />
+                <p className="text-[10px] uppercase font-black tracking-[0.2em]">Biggest Lift</p>
+              </div>
+              <p className="text-xl font-black truncate">{stats.lastPR}</p>
+            </div>
+          </div>
+
+          {/* DEEP WORK */}
+          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <DeepWorkTimer />
+          </div>
         </div>
 
+        {/* RIGHT COLUMN: Anchors */}
+        <div className="lg:col-span-3 space-y-8 order-3">
+          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <MorningAnchor />
+          </div>
+
+          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <HandoffChecklist />
+          </div>
+
+          <div className="p-8 bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl border border-gray-800 relative overflow-hidden group">
+            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+               <Shield size={120} />
+            </div>
+            <h3 className="font-black text-xs uppercase tracking-widest text-gray-500 mb-4">System Status</h3>
+            <div className="flex items-center gap-3 mb-2">
+               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+               <span className="text-sm font-bold text-gray-300 tracking-tight">Biometrics Synced</span>
+            </div>
+            <div className="flex items-center gap-3 mb-6">
+               <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+               <span className="text-sm font-bold text-gray-300 tracking-tight">Recovery Optimal</span>
+            </div>
+            <p className="text-[10px] text-gray-500 font-medium italic">"The barrier to entry is high, but the reward is permanent."</p>
+          </div>
+        </div>
       </main>
 
-      {/* BOTTOM NAV (MOBILE) */}
       <BottomNav />
     </div>
   )
