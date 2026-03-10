@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlayCircle, Calendar, ArrowRight, User, Flame, Trophy, Dumbbell } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
+import Leaderboard from './Leaderboard'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -177,6 +178,8 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <Leaderboard />
+
         {/* RECENT ACTIVITY / BUTTONS */}
         <div className="space-y-3">
            <button 
@@ -218,4 +221,3 @@ export default function Dashboard() {
     </div>
   )
 }
-
