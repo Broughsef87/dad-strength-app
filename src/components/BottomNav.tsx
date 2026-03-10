@@ -1,37 +1,44 @@
-'use client'
+'use client';
 
-import { useRouter, usePathname } from 'next/navigation'
-import { PlayCircle, Calendar, Dumbbell, User, Apple, Moon } from 'lucide-react'
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  LayoutDashboard, 
+  Dumbbell, 
+  History, 
+  User, 
+  Shield 
+} from 'lucide-react';
+
+const NAV_ITEMS = [
+  { id: 'hq', label: 'HQ', path: '/dashboard', icon: Shield },
+  { id: 'train', label: 'Train', path: '/library', icon: Dumbbell },
+  { id: 'history', label: 'History', path: '/history', icon: History },
+  { id: 'profile', label: 'Profile', path: '/profile', icon: User },
+];
 
 export default function BottomNav() {
-  const router = useRouter()
-  const pathname = usePathname()
-
-  const navItems = [
-    { name: 'Train', path: '/dashboard', icon: <PlayCircle size={22} /> },
-    { name: 'Meals', path: '/nutrition', icon: <Apple size={22} /> },
-    { name: 'Library', path: '/library', icon: <Dumbbell size={22} /> },
-    { name: 'Recovery', path: '/recovery', icon: <Moon size={22} /> },
-    { name: 'Profile', path: '/profile', icon: <User size={22} /> },
-  ]
+  const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 w-full border-t border-gray-800 bg-gray-950/80 backdrop-blur-xl p-2 flex justify-around items-center z-20 pb-8 sm:pb-4 shadow-2xl">
-      {navItems.map((item) => {
-        const isActive = pathname === item.path
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-950 border-t border-gray-900 px-6 py-4 flex items-center justify-between z-50 backdrop-blur-md bg-gray-950/80">
+      {NAV_ITEMS.map((item) => {
+        const Icon = item.icon;
+        const isActive = pathname === item.path;
+        
         return (
-          <button 
-            key={item.name}
-            onClick={() => router.push(item.path)}
-            className={`flex flex-col items-center gap-1 p-2 transition-colors ${
-              isActive ? 'text-indigo-400' : 'text-gray-600 hover:text-gray-300'
+          <Link 
+            key={item.id} 
+            href={item.path}
+            className={`flex flex-col items-center gap-1 transition-all ${
+              isActive ? 'text-indigo-500 scale-110' : 'text-gray-600 hover:text-gray-400'
             }`}
           >
-            {item.icon}
-            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.name}</span>
-          </button>
-        )
+            <Icon size={20} className={isActive ? 'shadow-[0_0_15px_rgba(79,70,229,0.3)]' : ''} />
+            <span className="text-[8px] font-black uppercase tracking-widest">{item.label}</span>
+          </Link>
+        );
       })}
     </nav>
-  )
+  );
 }

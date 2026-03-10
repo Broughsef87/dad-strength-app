@@ -12,7 +12,6 @@ import {
   Dumbbell, 
   Activity, 
   ShieldCheck,
-  LayoutDashboard,
   Settings,
   Shield
 } from 'lucide-react'
@@ -23,7 +22,6 @@ import RelationshipLedger from '../../components/RelationshipLedger'
 import DeepWorkTimer from '../../components/DeepWorkTimer'
 import MorningAnchor from '../../components/MorningAnchor'
 import HandoffChecklist from '../../components/HandoffChecklist'
-import Logo from '../../components/Logo'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -101,7 +99,7 @@ export default function Dashboard() {
           </div>
         </div>
         <nav className="flex gap-8 font-bold uppercase tracking-widest text-[10px] text-gray-500">
-          <button className="text-white border-b-2 border-indigo-500 pb-1">Dashboard</button>
+          <button className="text-white border-b-2 border-indigo-500 pb-1">HQ</button>
           <button className="hover:text-gray-300">Protocol</button>
           <button className="hover:text-gray-300">Equipment</button>
           <button onClick={handleSignOut} className="text-red-900/50 hover:text-red-500">Sign Out</button>
@@ -112,7 +110,7 @@ export default function Dashboard() {
       <header className="md:hidden flex items-center justify-between p-6">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 rotate-3">
-             <span className="font-black text-xs">D</span>
+             <span className="font-black text-xs text-white">HQ</span>
           </div>
           <span className="font-black tracking-tighter text-lg italic uppercase">Mission Control</span>
         </div>
