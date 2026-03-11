@@ -3,17 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
+  Shield, 
+  Brain, 
   Dumbbell, 
-  History, 
-  User, 
-  Shield 
+  Flame 
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'hq', label: 'HQ', path: '/dashboard', icon: Shield },
-  { id: 'train', label: 'Train', path: '/library', icon: Dumbbell },
-  { id: 'history', label: 'History', path: '/history', icon: History },
-  { id: 'profile', label: 'Profile', path: '/profile', icon: User },
+  { id: 'mind', label: 'Mind', path: '/mind', icon: Brain },
+  { id: 'body', label: 'Body', path: '/body', icon: Dumbbell },
+  { id: 'spirit', label: 'Spirit', path: '/spirit', icon: Flame },
 ];
 
 export default function BottomNav() {

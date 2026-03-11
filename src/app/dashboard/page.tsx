@@ -104,9 +104,9 @@ export default function Dashboard() {
         </div>
         <nav className="flex gap-8 font-bold uppercase tracking-widest text-[10px] text-gray-500">
           <button className="text-white border-b-2 border-indigo-500 pb-1">HQ</button>
-          <button onClick={() => router.push('/mind')} className="hover:text-gray-300">Mind</button>
-          <button onClick={() => router.push('/body')} className="hover:text-gray-300">Body</button>
-          <button onClick={() => router.push('/spirit')} className="hover:text-gray-300">Spirit</button>
+          <button onClick={() => router.push('/library')} className="hover:text-gray-300">Train</button>
+          <button onClick={() => router.push('/history')} className="hover:text-gray-300">History</button>
+          <button onClick={() => router.push('/profile')} className="hover:text-gray-300">Profile</button>
           <button onClick={handleSignOut} className="text-red-900/50 hover:text-red-500">Sign Out</button>
         </nav>
       </header>

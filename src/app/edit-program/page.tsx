@@ -18,15 +18,17 @@ const EQUIPMENT_TRACKS = [
 ]
 
 const DURATION_WEEKS = [4, 5, 6]
+const FREQUENCY_DAYS = [3, 5]
 
 export default function EditProgram() {
   const router = useRouter()
   const [selectedFocus, setSelectedFocus] = useState('full')
   const [selectedTrack, setSelectedTrack] = useState('iron')
   const [selectedWeeks, setSelectedWeeks] = useState(4)
+  const [selectedFrequency, setSelectedFrequency] = useState(3)
 
   const handleSave = () => {
-    console.log('Saving program configuration...', { focus: selectedFocus, track: selectedTrack, weeks: selectedWeeks })
+    console.log('Saving program configuration...', { focus: selectedFocus, track: selectedTrack, weeks: selectedWeeks, frequency: selectedFrequency })
     // In a real app, this would update the user's active program in Supabase
     router.push('/dashboard')
   }
@@ -128,23 +130,47 @@ export default function EditProgram() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">3</div>
-            <label className="text-xs uppercase font-black tracking-[0.2em] text-gray-500">Cycle Duration</label>
+            <label className="text-xs uppercase font-black tracking-[0.2em] text-gray-500">Program Logic</label>
           </div>
           
-          <div className="flex bg-gray-900/50 p-1.5 rounded-2xl border border-gray-900">
-            {DURATION_WEEKS.map((weeks) => (
-              <button
-                key={weeks}
-                onClick={() => setSelectedWeeks(weeks)}
-                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                  selectedWeeks === weeks 
-                    ? 'bg-indigo-600 text-white shadow-lg' 
-                    : 'text-gray-600 hover:text-gray-400'
-                }`}
-              >
-                {weeks} Weeks
-              </button>
-            ))}
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 ml-1">Cycle Length</label>
+              <div className="flex bg-gray-900/50 p-1.5 rounded-2xl border border-gray-900">
+                {DURATION_WEEKS.map((weeks) => (
+                  <button
+                    key={weeks}
+                    onClick={() => setSelectedWeeks(weeks)}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                      selectedWeeks === weeks 
+                        ? 'bg-indigo-600 text-white shadow-lg' 
+                        : 'text-gray-600 hover:text-gray-400'
+                    }`}
+                  >
+                    {weeks} Weeks
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 ml-1">Weekly Frequency</label>
+              <div className="flex bg-gray-900/50 p-1.5 rounded-2xl border border-gray-900">
+                {FREQUENCY_DAYS.map((days) => (
+                  <button
+                    key={days}
+                    onClick={() => setSelectedFrequency(days)}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                      selectedFrequency === days 
+                        ? 'bg-indigo-600 text-white shadow-lg' 
+                        : 'text-gray-600 hover:text-gray-400'
+                    }`}
+                  >
+                    {days} Days / Wk
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 

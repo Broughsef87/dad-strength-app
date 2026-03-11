@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Anchor, CheckCircle2, Circle, Moon, Sun, PenLine, Target, Scissors, Heart, BookOpen } from 'lucide-react';
+import { Anchor, CheckCircle2, Circle, Moon, Sun, PenLine, Target, Scissors, Heart, BookOpen, Save } from 'lucide-react';
 
 interface RitualState {
   sleepHours: number;
@@ -21,15 +21,55 @@ export default function MorningAnchor() {
     objectives: ['', '', ''],
     familyPresent: false,
   });
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dad-strength-morning-anchor');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.date === new Date().toLocaleDateString()) {
+        setState(data.state);
+      }
+    }
+  }, []);
+
+  const saveState = (newState?: RitualState) => {
+    const data = {
+      date: new Date().toLocaleDateString(),
+      state: newState || state
+    };
+    localStorage.setItem('dad-strength-morning-anchor', JSON.stringify(data));
+    // Mirror objectives to the mind state for interconnection
+    const mindSaved = localStorage.getItem('dad-strength-mind-state');
+    const mindData = mindSaved ? JSON.parse(mindSaved) : { date: new Date().toLocaleDateString() };
+    if (mindData.date === new Date().toLocaleDateString()) {
+      localStorage.setItem('dad-strength-mind-state', JSON.stringify({
+        ...mindData,
+        objectives: (newState || state).objectives
+      }));
+    }
+  };
+
+  const handleManualSave = () => {
+    setIsSaving(true);
+    saveState();
+    setTimeout(() => {
+      setIsSaving(false);
+    }, 1000);
+  };
 
   const updateObjective = (index: number, value: string) => {
     const newObjectives = [...state.objectives];
     newObjectives[index] = value;
-    setState({ ...state, objectives: newObjectives });
+    const next = { ...state, objectives: newObjectives };
+    setState(next);
+    saveState(next);
   };
 
   const toggleRitual = (key: 'maintenance' | 'prayer' | 'familyPresent') => {
-    setState({ ...state, [key]: !state[key] });
+    const next = { ...state, [key]: !state[key] };
+    setState(next);
+    saveState(next);
   };
 
   return (
@@ -126,13 +166,26 @@ export default function MorningAnchor() {
 
         {/* JOURNAL */}
         <div className="bg-gray-950/50 p-4 rounded-2xl border border-gray-800">
-           <div className="flex items-center gap-2 mb-3">
-              <PenLine size={14} className="text-indigo-500" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Journal / Log</p>
+           <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <PenLine size={14} className="text-indigo-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Journal / Log</p>
+              </div>
+              <button 
+                onClick={handleManualSave}
+                disabled={isSaving}
+                className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-widest transition-all ${isSaving ? 'text-indigo-400' : 'text-gray-600 hover:text-indigo-400'}`}
+              >
+                {isSaving ? 'Saved' : <><Save size={12} /> Save</>}
+              </button>
            </div>
            <textarea 
              value={state.journal}
-             onChange={(e) => setState({...state, journal: e.target.value})}
+             onChange={(e) => {
+               const next = {...state, journal: e.target.value};
+               setState(next);
+               saveState(next);
+             }}
              placeholder="Gratitude, reflections, notes for the future..."
              className="w-full bg-transparent text-xs text-gray-400 h-20 resize-none outline-none italic"
            />
