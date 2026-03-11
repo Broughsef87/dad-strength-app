@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Brain, Target, PenLine, ArrowLeft, Lock, Unlock, CheckCircle2, Circle, Save } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
+import MindSqueeze from '../../components/MindSqueeze';
 
 export default function MindPage() {
   const [supabase] = useState(() => createClient());
@@ -81,6 +82,10 @@ export default function MindPage() {
       <main className="max-w-md mx-auto space-y-8">
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <DeepWorkTimer availableObjectives={objectives} />
+        </div>
+
+        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+           <MindSqueeze objectives={objectives} />
         </div>
 
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl relative overflow-hidden">
