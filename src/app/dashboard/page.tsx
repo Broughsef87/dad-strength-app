@@ -24,6 +24,7 @@ import RelationshipLedger from '../../components/RelationshipLedger'
 import DeepWorkTimer from '../../components/DeepWorkTimer'
 import MorningAnchor from '../../components/MorningAnchor'
 import AIMorningAnchor from '../../components/AIMorningAnchor'
+import MorningProtocol from '../../components/MorningProtocol'
 import HandoffChecklist from '../../components/HandoffChecklist'
 import EmpireWidget from '../../components/EmpireWidget'
 import Logo from '../../components/Logo'
@@ -262,15 +263,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Anchors */}
+        {/* RIGHT COLUMN: Morning Protocol */}
         <div className="lg:col-span-3 space-y-8 order-1 lg:order-3">
           <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-             <AIMorningAnchor
-               streak={stats.streak}
-               totalWorkouts={stats.totalWorkouts}
-               objectives={[]}
-               programName={workout?.name}
-             />
+            <MorningProtocol objectives={[]} />
           </div>
         </div>
       </main>
