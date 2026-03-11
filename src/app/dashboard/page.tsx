@@ -45,6 +45,23 @@ export default function Dashboard() {
       }
       setUser(user)
 
+      // Check if onboarding is needed (first-time user)
+      const onboardingComplete = typeof window !== 'undefined' ? localStorage.getItem('onboardingComplete') : null
+      const savedWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
+      if (!onboardingComplete && !savedWorkoutId) {
+        // Check if they have any logs — if not, they're brand new
+        const { count: logCount } = await supabase
+          .from('workout_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+        if (!logCount || logCount === 0) {
+          router.push('/onboarding')
+          return
+        }
+        // Has logs but no localStorage — mark onboarding done
+        if (typeof window !== 'undefined') localStorage.setItem('onboardingComplete', 'true')
+      }
+
       // Load user's active program (saved by edit-program page)
       const activeWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
       let workoutData = null
