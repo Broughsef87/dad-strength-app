@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Dumbbell, History as HistoryIcon, Calendar, ChevronDown, ChevronUp, Weight } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
+import WeeklyDebrief from '../../components/WeeklyDebrief'
 
 type LogEntry = {
   id: string
@@ -131,6 +132,19 @@ export default function History() {
       </header>
 
       <main className="p-4 space-y-4 max-w-md mx-auto pb-24">
+        {/* AI Weekly Debrief */}
+        <div className="bg-gray-900/50 rounded-3xl border border-gray-800 p-6 shadow-xl">
+          <WeeklyDebrief
+            weekSessions={sessions.filter(s => {
+              const d = new Date(s.date)
+              const now = new Date()
+              const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay())
+              return d >= startOfWeek
+            }).length}
+            totalVolume={sessions.reduce((sum, s) => sum + s.totalVolume, 0)}
+            streak={0}
+          />
+        </div>
         {sessions.length === 0 ? (
           <div className="text-center py-20 opacity-30">
             <HistoryIcon size={48} className="mx-auto mb-4" />

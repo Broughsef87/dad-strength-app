@@ -7,6 +7,7 @@ import { Dumbbell, ArrowLeft, Settings, PlayCircle, Plus, ChevronRight, Zap } fr
 import BottomNav from '../../components/BottomNav';
 import FuelStation from '../../components/FuelStation';
 import Leaderboard from '../../components/Leaderboard';
+import NapSqueeze from '../../components/NapSqueeze';
 
 type Workout = {
   id: string;
@@ -137,6 +138,11 @@ export default function BodyPage() {
               </button>
             </div>
           )}
+        </section>
+
+        {/* NAP-SQUEEZE AI */}
+        <section className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+          <NapSqueeze track="iron" />
         </section>
 
         {/* FUEL STATION */}
