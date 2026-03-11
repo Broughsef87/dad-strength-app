@@ -45,12 +45,30 @@ export default function Dashboard() {
       }
       setUser(user)
 
-      const { data: workoutData } = await supabase
-        .from('workouts')
-        .select('*')
-        .limit(1)
-        .maybeSingle()
-      
+      // Load user's active program (saved by edit-program page)
+      const activeWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
+      let workoutData = null
+      if (activeWorkoutId) {
+        const { data } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('id', activeWorkoutId)
+          .maybeSingle()
+        workoutData = data
+      }
+      // Fallback: grab the most recent workout if no active program set
+      if (!workoutData) {
+        const { data } = await supabase
+          .from('workouts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        workoutData = data
+        if (workoutData && typeof window !== 'undefined') {
+          localStorage.setItem('activeWorkoutId', workoutData.id)
+        }
+      }
       setWorkout(workoutData)
 
       // Fetch all completed log dates for streak calculation

@@ -10,35 +10,45 @@ ALTER TABLE workouts
 
 -- 2. Add unique constraint on workout_logs so upserts work correctly
 --    (prevents duplicate set entries per user/workout/exercise/set combo)
-ALTER TABLE workout_logs
-  ADD CONSTRAINT IF NOT EXISTS workout_logs_unique_set
-    UNIQUE (user_id, workout_id, exercise_name, set_number);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'workout_logs_unique_set'
+  ) THEN
+    ALTER TABLE workout_logs
+      ADD CONSTRAINT workout_logs_unique_set
+        UNIQUE (user_id, workout_id, exercise_name, set_number);
+  END IF;
+END $$;
 
 -- 3. Enable Row Level Security on both tables (required for Supabase auth)
 ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workout_logs ENABLE ROW LEVEL SECURITY;
 
 -- 4. RLS Policies for workout_logs: users can only see and edit their own logs
-CREATE POLICY IF NOT EXISTS "Users can view own logs"
-  ON workout_logs FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own logs' AND tablename = 'workout_logs') THEN
+    CREATE POLICY "Users can view own logs" ON workout_logs FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert own logs' AND tablename = 'workout_logs') THEN
+    CREATE POLICY "Users can insert own logs" ON workout_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update own logs' AND tablename = 'workout_logs') THEN
+    CREATE POLICY "Users can update own logs" ON workout_logs FOR UPDATE USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can delete own logs' AND tablename = 'workout_logs') THEN
+    CREATE POLICY "Users can delete own logs" ON workout_logs FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY IF NOT EXISTS "Users can insert own logs"
-  ON workout_logs FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can update own logs"
-  ON workout_logs FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can delete own logs"
-  ON workout_logs FOR DELETE
-  USING (auth.uid() = user_id);
-
--- 5. RLS Policies for workouts: publicly readable (shared templates), but protected for modifications
-CREATE POLICY IF NOT EXISTS "Workouts are publicly readable"
-  ON workouts FOR SELECT
-  USING (true);
+-- 5. RLS Policies for workouts: publicly readable (shared templates)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Workouts are publicly readable' AND tablename = 'workouts') THEN
+    CREATE POLICY "Workouts are publicly readable" ON workouts FOR SELECT USING (true);
+  END IF;
+END $$;
 
 -- ============================================================
 -- OPTIONAL (Future): User-specific program tracking
