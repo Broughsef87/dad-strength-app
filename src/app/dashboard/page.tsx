@@ -126,36 +126,8 @@ export default function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* LEFT COLUMN: Body / Vitals */}
+        {/* LEFT COLUMN: The Mission / Empire */}
         <div className="lg:col-span-4 space-y-8 order-3 lg:order-1">
-          <button 
-            onClick={() => router.push('/body')}
-            className="w-full bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl text-left hover:border-indigo-500 transition-colors group"
-          >
-             <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                   <Dumbbell className="w-5 h-5 text-indigo-500" />
-                   <span className="text-xs font-black uppercase tracking-widest text-gray-400">Body</span>
-                </div>
-                <ArrowRight size={14} className="text-gray-700 group-hover:text-white" />
-             </div>
-             <FuelStation />
-          </button>
-          
-          <button 
-            onClick={() => router.push('/spirit')}
-            className="w-full bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl text-left hover:border-indigo-500 transition-colors group"
-          >
-             <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                   <Flame className="w-5 h-5 text-indigo-500" />
-                   <span className="text-xs font-black uppercase tracking-widest text-gray-400">Spirit</span>
-                </div>
-                <ArrowRight size={14} className="text-gray-700 group-hover:text-white" />
-             </div>
-             <RelationshipLedger />
-          </button>
-          
           <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
              <EmpireWidget />
           </div>
@@ -165,7 +137,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* CENTER COLUMN: The Mission */}
+        {/* CENTER COLUMN: Tactical Action */}
         <div className="lg:col-span-5 space-y-8 order-2 lg:order-2">
           {/* ACTIVE WORKOUT CARD */}
           <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 shadow-2xl shadow-indigo-500/20 ring-1 ring-white/10 group">
@@ -224,47 +196,12 @@ export default function Dashboard() {
               <p className="text-xl font-black truncate">{stats.lastPR}</p>
             </div>
           </div>
-
-          {/* DEEP WORK (LINK TO MIND) */}
-          <button 
-            onClick={() => router.push('/mind')}
-            className="w-full bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl text-left hover:border-indigo-500 transition-colors group"
-          >
-             <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                   <Brain className="w-5 h-5 text-indigo-500" />
-                   <span className="text-xs font-black uppercase tracking-widest text-gray-400">Mind</span>
-                </div>
-                <ArrowRight size={14} className="text-gray-700 group-hover:text-white" />
-             </div>
-             <DeepWorkTimer />
-          </button>
         </div>
 
         {/* RIGHT COLUMN: Anchors */}
         <div className="lg:col-span-3 space-y-8 order-1 lg:order-3">
           <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
              <MorningAnchor />
-          </div>
-
-          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-             <HandoffChecklist />
-          </div>
-
-          <div className="p-8 bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl border border-gray-800 relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-               <Shield size={120} />
-            </div>
-            <h3 className="font-black text-xs uppercase tracking-widest text-gray-500 mb-4">System Status</h3>
-            <div className="flex items-center gap-3 mb-2">
-               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-               <span className="text-sm font-bold text-gray-300 tracking-tight">Biometrics Synced</span>
-            </div>
-            <div className="flex items-center gap-3 mb-6">
-               <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-               <span className="text-sm font-bold text-gray-300 tracking-tight">Recovery Optimal</span>
-            </div>
-            <p className="text-[10px] text-gray-500 font-medium italic">"The barrier to entry is high, but the reward is permanent."</p>
           </div>
         </div>
       </main>
