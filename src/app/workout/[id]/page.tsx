@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../../utils/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
 import { ChevronLeft, Edit3, Trophy } from 'lucide-react'
-import SetRow from '../../../components/SetRow'
+import ActiveSetRow from '../../../components/workout/ActiveSetRow'
+import RestTimer from '../../../components/workout/RestTimer'
 import WorkoutTimer from '../../../components/WorkoutTimer'
 
 type Exercise = {
@@ -33,6 +34,17 @@ export default function ActiveWorkout() {
   const [timerRunning, setTimerRunning] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [totalVolume, setTotalVolume] = useState(0)
+  const [restTime, setRestTime] = useState(0)
+
+  useEffect(() => {
+    let interval: any
+    if (restTime > 0) {
+      interval = setInterval(() => {
+        setRestTime((prev) => prev - 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [restTime])
 
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -111,7 +123,7 @@ export default function ActiveWorkout() {
     }))
     
     if (isNowCompleted) {
-      setTimer(0)
+      setRestTime(90) // 90 second rest
       setTimerRunning(true)
     }
 
@@ -187,6 +199,8 @@ export default function ActiveWorkout() {
       </header>
 
       <div className="p-4 space-y-6 max-w-md mx-auto">
+        <RestTimer timeLeft={restTime} onSkip={() => setRestTime(0)} />
+
         {workout?.exercises.map((exercise) => (
           <div key={exercise.id} className="bg-gray-900 rounded-3xl p-6 border border-gray-800 shadow-xl">
             <div className="flex justify-between items-start mb-6">
@@ -201,7 +215,7 @@ export default function ActiveWorkout() {
                 const key = `${exercise.id}-${i}`
                 const log = logs[key] || { weight: '', reps: '', completed: false }
                 return (
-                  <SetRow 
+                  <ActiveSetRow 
                     key={i}
                     index={i}
                     isDone={log.completed}

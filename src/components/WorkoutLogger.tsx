@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Dumbbell, Save, Home as HomeIcon, Timer, Activity } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Save, Home as HomeIcon, Activity } from 'lucide-react';
+import SetRow from './workout/SetRow';
+import RestTimer from './workout/RestTimer';
 
 interface WorkoutSet {
   id: string;
   exercise: string;
   weight: number;
   reps: number;
+  isDone?: boolean;
 }
 
 type TrainingTrack = 'full-gym' | 'minimal';
@@ -56,12 +59,6 @@ export default function WorkoutLogger() {
     setTimerActive(true);
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const addSet = (e: React.FormEvent) => {
     e.preventDefault();
     if (!exercise || weight === '' || reps === '') return;
@@ -71,6 +68,7 @@ export default function WorkoutLogger() {
       exercise,
       weight: Number(weight),
       reps: Number(reps),
+      isDone: true,
     };
 
     setSets([...sets, newSet]);
@@ -83,30 +81,16 @@ export default function WorkoutLogger() {
     setSets(sets.filter(set => set.id !== id));
   };
 
+  const toggleSet = (id: string) => {
+    setSets(sets.map(set => 
+      set.id === id ? { ...set, isDone: !set.isDone } : set
+    ));
+  };
+
   return (
     <div className="space-y-6">
       {/* Rest Timer */}
-      {timeLeft > 0 && (
-        <div className={`p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${
-          timeLeft <= 10 ? 'bg-red-500/10 border-red-500/50 animate-pulse' : 'bg-indigo-500/10 border-indigo-500/30'
-        }`}>
-          <div className="flex items-center gap-3">
-            <Timer className={`w-6 h-6 ${timeLeft <= 10 ? 'text-red-500' : 'text-indigo-400'}`} />
-            <div>
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Rest Active</p>
-              <p className={`text-2xl font-mono font-black ${timeLeft <= 10 ? 'text-red-500' : 'text-white'}`}>
-                {formatTime(timeLeft)}
-              </p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setTimeLeft(0)}
-            className="text-[10px] font-black text-gray-500 hover:text-white uppercase tracking-[0.2em]"
-          >
-            Skip
-          </button>
-        </div>
-      )}
+      <RestTimer timeLeft={timeLeft} onSkip={() => setTimeLeft(0)} />
 
       {/* Track Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
@@ -205,23 +189,15 @@ export default function WorkoutLogger() {
              <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">Awaiting First Set...</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {[...sets].reverse().map((set) => (
-              <div 
+          <div className="space-y-3">
+            {[...sets].reverse().map((set, idx) => (
+              <SetRow 
                 key={set.id}
-                className="flex items-center justify-between p-4 bg-gray-900/80 border border-gray-800 rounded-2xl group"
-              >
-                <div>
-                  <p className="font-black text-sm text-white uppercase italic tracking-tighter">{set.exercise}</p>
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{set.weight} LBS x {set.reps} REPS</p>
-                </div>
-                <button 
-                  onClick={() => removeSet(set.id)}
-                  className="p-2 text-gray-700 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+                set={set}
+                index={sets.length - 1 - idx}
+                onToggle={toggleSet}
+                onDelete={removeSet}
+              />
             ))}
           </div>
         )}
