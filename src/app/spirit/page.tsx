@@ -17,7 +17,22 @@ export default function SpiritPage() {
 
   useEffect(() => {
     setMounted(true);
+    // Restore daily reset state from localStorage
+    const saved = localStorage.getItem('dad-strength-spirit-state');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.date === new Date().toLocaleDateString()) {
+        setPrayerDone(data.prayerDone || false);
+      }
+    }
   }, []);
+
+  const saveSpiritState = (done: boolean) => {
+    localStorage.setItem('dad-strength-spirit-state', JSON.stringify({
+      date: new Date().toLocaleDateString(),
+      prayerDone: done,
+    }));
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -112,7 +127,7 @@ export default function SpiritPage() {
               </div>
 
               <button 
-                onClick={() => setPrayerDone(!prayerDone)}
+                onClick={() => { const next = !prayerDone; setPrayerDone(next); saveSpiritState(next); }}
                 className={`w-full flex flex-col items-center justify-center p-8 rounded-3xl border-2 transition-all gap-4 ${
                   prayerDone 
                     ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-2xl shadow-indigo-500/10' 
