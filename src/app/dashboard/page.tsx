@@ -26,6 +26,7 @@ import MorningAnchor from '../../components/MorningAnchor'
 import HandoffChecklist from '../../components/HandoffChecklist'
 import EmpireWidget from '../../components/EmpireWidget'
 import Logo from '../../components/Logo'
+import DailyQuote from '../../components/DailyQuote'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -178,6 +179,8 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
+
+          <DailyQuote />
 
           {/* QUICK STATS */}
           <div className="grid grid-cols-2 gap-4">
