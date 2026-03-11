@@ -5,7 +5,7 @@ export async function POST(req: Request) {
   const { weekSessions, totalVolume, topLift, journalEntries, streak, objectives } = await req.json()
 
   const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-2.5-pro'),
     prompt: `You are a strength and life coach for busy dads. Write a weekly debrief — honest, brief, motivating.
 
 This week's data:

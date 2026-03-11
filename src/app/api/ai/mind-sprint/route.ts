@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     : 'No objectives set yet'
 
   const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-2.5-pro'),
     prompt: `You are a productivity coach for busy dads with limited time windows. Generate a focused mental sprint protocol.
 
 Context:
