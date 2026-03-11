@@ -5,7 +5,7 @@ export async function POST(req: Request) {
   const { minutes, situation, track } = await req.json()
 
   const { text } = await generateText({
-    model: google('gemini-2.5-pro'),
+    model: google('gemini-2.5-flash'),
     prompt: `You are a strength coach for busy dads. Generate a practical, no-fluff workout.
 
 Context:

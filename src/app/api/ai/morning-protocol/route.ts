@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     : 'none set'
 
   const { text } = await generateText({
-    model: google('gemini-2.5-pro'),
+    model: google('gemini-2.5-flash'),
     prompt: `You are a morning routine coach for a Christian dad who wants to show up strong for his family and his mission. Build a personalized morning protocol.
 
 Context:
