@@ -1,62 +1,98 @@
 'use client'
 
-import { TrendingUp, DollarSign, Youtube, MonitorSmartphone, ArrowRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { TrendingUp, DollarSign, Youtube, MonitorSmartphone, ArrowRight, Target, Activity } from 'lucide-react'
 import Link from 'next/link'
 
-export default function EmpireWidget() {
-  // Mock data - in production, this would come from a DB
-  const stats = {
-    revenue: 125000,
-    target: 1000000,
-    youtube: 12450,
-    mrr: 2100
-  }
+const ICON_MAP = {
+  trending: TrendingUp,
+  dollar: DollarSign,
+  youtube: Youtube,
+  saas: MonitorSmartphone,
+  target: Target,
+  activity: Activity
+}
 
-  const percentage = Math.round((stats.revenue / stats.target) * 100)
+export default function EmpireWidget() {
+  const [mission, setMission] = useState({
+    title: 'The Empire',
+    primaryMetric: 'Operation: Freedom',
+    current: 125000,
+    target: 1000000,
+    unit: '$',
+    secondary1Label: 'Subs',
+    secondary1Value: '12,450',
+    secondary1Icon: 'youtube',
+    secondary2Label: 'MRR',
+    secondary2Value: '$2,100',
+    secondary2Icon: 'saas'
+  })
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dad-strength-mission-state')
+    if (saved) {
+      setMission(JSON.parse(saved))
+    }
+  }, [])
+
+  const percentage = Math.round((mission.current / mission.target) * 100)
+  const isCurrency = mission.unit === '$'
+  const displayCurrent = isCurrency ? `${(mission.current / 1000).toFixed(0)}K` : mission.current.toLocaleString()
+  const displayTarget = isCurrency ? `${(mission.target / 1000000).toFixed(0)}M` : mission.target.toLocaleString()
+
+  const S1Icon = ICON_MAP[mission.secondary1Icon as keyof typeof ICON_MAP] || TrendingUp
+  const S2Icon = ICON_MAP[mission.secondary2Icon as keyof typeof ICON_MAP] || MonitorSmartphone
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-indigo-500" />
-          <h3 className="font-black text-white uppercase tracking-tighter italic">The Empire</h3>
+          <h3 className="font-black text-white uppercase tracking-tighter italic">{mission.title}</h3>
         </div>
-        <Link href="/profile/empire" className="text-gray-600 hover:text-white transition-colors">
-          <ArrowRight size={16} />
+        <Link href="/profile/edit-mission" className="text-gray-600 hover:text-white transition-colors p-2 bg-gray-950 rounded-lg border border-gray-900">
+          <ArrowRight size={14} />
         </Link>
       </div>
 
-      {/* Operation Freedom Progress */}
-      <div className="bg-gray-950/50 p-4 rounded-2xl border border-gray-800">
-        <div className="flex justify-between items-end mb-2">
+      {/* Primary Target Progress */}
+      <div className="bg-gray-950/50 p-4 rounded-2xl border border-gray-800 shadow-inner">
+        <div className="flex justify-between items-end mb-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Operation: Freedom</p>
-            <p className="font-bold text-sm text-white">${(stats.revenue / 1000).toFixed(0)}K <span className="text-gray-600 text-[10px]">/ $1M</span></p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">{mission.primaryMetric}</p>
+            <p className="font-black text-xl text-white tracking-tighter tabular-nums">
+              {isCurrency && '$'}{displayCurrent} 
+              <span className="text-gray-700 text-xs ml-1 font-bold">/ {isCurrency && '$'}{displayTarget} {mission.unit !== '$' && mission.unit}</span>
+            </p>
           </div>
-          <span className="text-[10px] font-black text-indigo-400">{percentage}%</span>
+          <span className="text-xs font-black text-indigo-400 tabular-nums">{percentage}%</span>
         </div>
-        <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-800">
+        <div className="h-2 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-800 p-[1px]">
           <div 
-            className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(79,70,229,0.5)] transition-all duration-1000"
-            style={{ width: `${percentage}%` }}
+            className="h-full bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all duration-1000 ease-out rounded-full"
+            style={{ width: `${Math.min(percentage, 100)}%` }}
           ></div>
         </div>
       </div>
 
-      {/* Mini Stats */}
+      {/* Secondary Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800 flex items-center gap-3">
-          <Youtube size={16} className="text-red-500" />
-          <div>
-            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Subs</p>
-            <p className="text-xs font-bold text-white">{stats.youtube.toLocaleString()}</p>
+        <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800 flex items-center gap-3 group hover:border-indigo-500/30 transition-all">
+          <div className="p-2 bg-gray-900 rounded-lg">
+             <S1Icon size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest truncate">{mission.secondary1Label}</p>
+            <p className="text-xs font-black text-white tracking-tighter tabular-nums">{mission.secondary1Value}</p>
           </div>
         </div>
-        <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800 flex items-center gap-3">
-          <MonitorSmartphone size={16} className="text-indigo-400" />
-          <div>
-            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">MRR</p>
-            <p className="text-xs font-bold text-white">${stats.mrr.toLocaleString()}</p>
+        <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800 flex items-center gap-3 group hover:border-indigo-500/30 transition-all">
+          <div className="p-2 bg-gray-900 rounded-lg">
+             <S2Icon size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest truncate">{mission.secondary2Label}</p>
+            <p className="text-xs font-black text-white tracking-tighter tabular-nums">{mission.secondary2Value}</p>
           </div>
         </div>
       </div>

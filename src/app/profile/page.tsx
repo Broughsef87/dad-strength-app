@@ -49,14 +49,14 @@ export default function Profile() {
         {/* High-Level Navigation (Empire / Growth) */}
         <div className="grid grid-cols-2 gap-4">
            <button 
-            onClick={() => router.push('/profile/empire')}
+            onClick={() => router.push('/profile/edit-mission')}
             className="bg-gray-900 rounded-2xl p-5 border border-gray-800 hover:border-indigo-500/50 hover:bg-gray-800/50 transition-all flex flex-col items-center justify-center text-center group shadow-xl"
            >
              <div className="h-12 w-12 rounded-full bg-indigo-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <TrendingUp className="text-indigo-400" size={24} />
+                <Target className="text-indigo-400" size={24} />
              </div>
-             <p className="font-black text-sm uppercase tracking-widest text-white">The Empire</p>
-             <p className="text-[10px] text-gray-500 mt-1 font-bold tracking-wider">Business Goals</p>
+             <p className="font-black text-sm uppercase tracking-widest text-white italic">Edit Mission</p>
+             <p className="text-[10px] text-gray-500 mt-1 font-bold tracking-wider">Customize Goals</p>
            </button>
            
            <button 
@@ -66,7 +66,7 @@ export default function Profile() {
              <div className="h-12 w-12 rounded-full bg-pink-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                 <BookOpen className="text-pink-400" size={24} />
              </div>
-             <p className="font-black text-sm uppercase tracking-widest text-white">Growth</p>
+             <p className="font-black text-sm uppercase tracking-widest text-white italic">Growth</p>
              <p className="text-[10px] text-gray-500 mt-1 font-bold tracking-wider">Mindset & Family</p>
            </button>
         </div>
