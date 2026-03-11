@@ -53,22 +53,47 @@ export default function Dashboard() {
       
       setWorkout(workoutData)
 
-      const { count } = await supabase
+      // Fetch all completed log dates for streak calculation
+      const { data: logDates } = await supabase
         .from('workout_logs')
-        .select('*', { count: 'exact', head: true })
+        .select('created_at')
         .eq('user_id', user.id)
-      
+        .eq('completed', true)
+        .order('created_at', { ascending: false })
+
+      // Calculate real streak (consecutive days with at least one completed set)
+      const uniqueDays = Array.from(
+        new Set((logDates || []).map((l: any) => new Date(l.created_at).toDateString()))
+      )
+
+      let streak = 0
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      for (let i = 0; i < uniqueDays.length; i++) {
+        const dayDate = new Date(uniqueDays[i])
+        dayDate.setHours(0, 0, 0, 0)
+        const diffDays = Math.round((today.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24))
+        if (diffDays === i || (i === 0 && diffDays <= 1)) {
+          streak++
+        } else {
+          break
+        }
+      }
+
+      const totalWorkouts = uniqueDays.length
+
       const { data: prData } = await supabase
         .from('workout_logs')
         .select('exercise_name, weight_lbs')
         .eq('user_id', user.id)
+        .eq('completed', true)
         .order('weight_lbs', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       setStats({
-        streak: Math.floor((count || 0) / 3),
-        totalWorkouts: count || 0,
+        streak,
+        totalWorkouts,
         lastPR: prData ? `${prData.exercise_name} ${prData.weight_lbs}lbs` : 'None yet'
       })
 
