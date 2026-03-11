@@ -55,6 +55,8 @@ export default function NapSqueeze({ track = 'iron' }: { track?: string }) {
     if (!result) return
     setDeploying(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/'); return }
       const { data: workout, error: insertError } = await supabase
         .from('workouts')
         .insert({
@@ -62,6 +64,7 @@ export default function NapSqueeze({ track = 'iron' }: { track?: string }) {
           description: result.tagline,
           exercises: result.exercises,
           status: 'active',
+          user_id: user.id,
         })
         .select()
         .single()

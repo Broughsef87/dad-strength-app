@@ -35,6 +35,7 @@ export default function BodyPage() {
       const { data } = await supabase
         .from('workouts')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       setWorkouts(data || []);

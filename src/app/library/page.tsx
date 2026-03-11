@@ -57,6 +57,7 @@ export default function Library() {
           description: `Single-exercise session — ${ex.target}`,
           exercises: [{ name: ex.name, sets: 4, reps: '8-12' }],
           status: 'active',
+          user_id: user.id,
         })
         .select()
         .single()

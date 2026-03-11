@@ -132,6 +132,7 @@ export default function EditProgram() {
           description: workoutDesc,
           exercises: exercises,
           status: 'active',
+          user_id: user.id,
         })
         .select()
         .single()

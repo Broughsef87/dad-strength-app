@@ -126,6 +126,7 @@ export default function Onboarding() {
           description: `${frequency} days/week · Your first protocol`,
           exercises,
           status: 'active',
+          user_id: user.id,
         })
         .select()
         .single()

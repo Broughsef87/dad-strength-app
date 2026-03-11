@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [workout, setWorkout] = useState<any>(null)
   const [stats, setStats] = useState({ streak: 0, totalWorkouts: 0, lastPR: 'None yet' })
+  const [objectives, setObjectives] = useState<string[]>([])
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -46,6 +47,17 @@ export default function Dashboard() {
         return
       }
       setUser(user)
+
+      // Load today's objectives from Mind page localStorage
+      try {
+        const mindState = localStorage.getItem('dad-strength-mind-state')
+        if (mindState) {
+          const parsed = JSON.parse(mindState)
+          if (parsed.date === new Date().toLocaleDateString()) {
+            setObjectives(parsed.objectives?.filter(Boolean) || [])
+          }
+        }
+      } catch {}
 
       // Check if onboarding is needed (first-time user)
       const onboardingComplete = typeof window !== 'undefined' ? localStorage.getItem('onboardingComplete') : null
@@ -266,7 +278,7 @@ export default function Dashboard() {
         {/* RIGHT COLUMN: Morning Protocol */}
         <div className="lg:col-span-3 space-y-8 order-1 lg:order-3">
           <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-            <MorningProtocol objectives={[]} />
+            <MorningProtocol objectives={objectives} />
           </div>
         </div>
       </main>
