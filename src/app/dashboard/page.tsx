@@ -23,9 +23,12 @@ import FuelStation from '../../components/FuelStation'
 import RelationshipLedger from '../../components/RelationshipLedger'
 import DeepWorkTimer from '../../components/DeepWorkTimer'
 import MorningAnchor from '../../components/MorningAnchor'
+import AIMorningAnchor from '../../components/AIMorningAnchor'
+import MorningProtocol from '../../components/MorningProtocol'
 import HandoffChecklist from '../../components/HandoffChecklist'
 import EmpireWidget from '../../components/EmpireWidget'
 import Logo from '../../components/Logo'
+import DailyQuote from '../../components/DailyQuote'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -34,6 +37,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [workout, setWorkout] = useState<any>(null)
   const [stats, setStats] = useState({ streak: 0, totalWorkouts: 0, lastPR: 'None yet' })
+  const [objectives, setObjectives] = useState<string[]>([])
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -44,30 +48,101 @@ export default function Dashboard() {
       }
       setUser(user)
 
-      const { data: workoutData } = await supabase
-        .from('workouts')
-        .select('*')
-        .limit(1)
-        .maybeSingle()
-      
+      // Load today's objectives from Mind page localStorage
+      try {
+        const mindState = localStorage.getItem('dad-strength-mind-state')
+        if (mindState) {
+          const parsed = JSON.parse(mindState)
+          if (parsed.date === new Date().toLocaleDateString()) {
+            setObjectives(parsed.objectives?.filter(Boolean) || [])
+          }
+        }
+      } catch {}
+
+      // Check if onboarding is needed (first-time user)
+      const onboardingComplete = typeof window !== 'undefined' ? localStorage.getItem('onboardingComplete') : null
+      const savedWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
+      if (!onboardingComplete && !savedWorkoutId) {
+        // Check if they have any logs — if not, they're brand new
+        const { count: logCount } = await supabase
+          .from('workout_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+        if (!logCount || logCount === 0) {
+          router.push('/onboarding')
+          return
+        }
+        // Has logs but no localStorage — mark onboarding done
+        if (typeof window !== 'undefined') localStorage.setItem('onboardingComplete', 'true')
+      }
+
+      // Load user's active program (saved by edit-program page)
+      const activeWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
+      let workoutData = null
+      if (activeWorkoutId) {
+        const { data } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('id', activeWorkoutId)
+          .maybeSingle()
+        workoutData = data
+      }
+      // Fallback: grab the most recent workout if no active program set
+      if (!workoutData) {
+        const { data } = await supabase
+          .from('workouts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        workoutData = data
+        if (workoutData && typeof window !== 'undefined') {
+          localStorage.setItem('activeWorkoutId', workoutData.id)
+        }
+      }
       setWorkout(workoutData)
 
-      const { count } = await supabase
+      // Fetch all completed log dates for streak calculation
+      const { data: logDates } = await supabase
         .from('workout_logs')
-        .select('*', { count: 'exact', head: true })
+        .select('created_at')
         .eq('user_id', user.id)
-      
+        .eq('completed', true)
+        .order('created_at', { ascending: false })
+
+      // Calculate real streak (consecutive days with at least one completed set)
+      const uniqueDays = Array.from(
+        new Set((logDates || []).map((l: any) => new Date(l.created_at).toDateString()))
+      )
+
+      let streak = 0
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      for (let i = 0; i < uniqueDays.length; i++) {
+        const dayDate = new Date(uniqueDays[i])
+        dayDate.setHours(0, 0, 0, 0)
+        const diffDays = Math.round((today.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24))
+        if (diffDays === i || (i === 0 && diffDays <= 1)) {
+          streak++
+        } else {
+          break
+        }
+      }
+
+      const totalWorkouts = uniqueDays.length
+
       const { data: prData } = await supabase
         .from('workout_logs')
         .select('exercise_name, weight_lbs')
         .eq('user_id', user.id)
+        .eq('completed', true)
         .order('weight_lbs', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       setStats({
-        streak: Math.floor((count || 0) / 3),
-        totalWorkouts: count || 0,
+        streak,
+        totalWorkouts,
         lastPR: prData ? `${prData.exercise_name} ${prData.weight_lbs}lbs` : 'None yet'
       })
 
@@ -179,6 +254,8 @@ export default function Dashboard() {
             </div>
           </div>
 
+          <DailyQuote />
+
           {/* QUICK STATS */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-3xl bg-gray-900 p-6 border border-gray-800 hover:border-gray-700 transition-all">
@@ -198,10 +275,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Anchors */}
+        {/* RIGHT COLUMN: Morning Protocol */}
         <div className="lg:col-span-3 space-y-8 order-1 lg:order-3">
           <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-             <MorningAnchor />
+            <MorningProtocol objectives={objectives} />
           </div>
         </div>
       </main>

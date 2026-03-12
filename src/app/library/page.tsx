@@ -2,65 +2,190 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Search, Dumbbell, Play } from 'lucide-react'
+import { ChevronLeft, Search, PlayCircle, Dumbbell, Loader2, SlidersHorizontal } from 'lucide-react'
+import { createClient } from '../../utils/supabase/client'
 import BottomNav from '../../components/BottomNav'
+import EXERCISES from '../../data/exercises.json'
 
-const EXERCISES = [
-  { name: 'Back Squat', category: 'Legs', muscle: 'Quads/Glutes' },
-  { name: 'Deadlift', category: 'Back/Legs', muscle: 'Hams/Back' },
-  { name: 'Bench Press', category: 'Chest', muscle: 'Pectorals' },
-  { name: 'Overhead Press', category: 'Shoulders', muscle: 'Deltoids' },
-  { name: 'Pull Ups', category: 'Back', muscle: 'Lats' },
-  { name: 'RDL', category: 'Legs', muscle: 'Hamstrings' },
-  { name: 'Barbell Row', category: 'Back', muscle: 'Mid-Back' },
-  { name: 'Bulgarian Split Squat', category: 'Legs', muscle: 'Quads/Glutes' },
-  { name: 'Dips', category: 'Arms/Chest', muscle: 'Triceps/Chest' },
-]
+const CATEGORIES = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio']
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Chest:     'text-rose-400 bg-rose-500/10 border-rose-500/20',
+  Back:      'text-sky-400 bg-sky-500/10 border-sky-500/20',
+  Legs:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  Shoulders: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  Arms:      'text-purple-400 bg-purple-500/10 border-purple-500/20',
+  Core:      'text-orange-400 bg-orange-500/10 border-orange-500/20',
+  Cardio:    'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+}
+
+const MECHANIC_BADGE: Record<string, string> = {
+  Compound:  'text-indigo-400 bg-indigo-500/10',
+  Isolation: 'text-gray-400 bg-gray-800',
+  Isometric: 'text-teal-400 bg-teal-500/10',
+}
+
+type Exercise = typeof EXERCISES[0]
 
 export default function Library() {
   const router = useRouter()
+  const supabase = createClient()
   const [search, setSearch] = useState('')
+  const [activeCategory, setActiveCategory] = useState('All')
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [equipFilter, setEquipFilter] = useState<'all' | 'iron' | 'home'>('all')
 
-  const filtered = EXERCISES.filter(ex => 
-    ex.name.toLowerCase().includes(search.toLowerCase()) || 
-    ex.category.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = EXERCISES.filter((ex) => {
+    const matchSearch = ex.name.toLowerCase().includes(search.toLowerCase()) ||
+      ex.target.toLowerCase().includes(search.toLowerCase())
+    const matchCat = activeCategory === 'All' || ex.category === activeCategory
+    const matchEquip = equipFilter === 'all' || ex.equipment === equipFilter || ex.equipment === 'both'
+    return matchSearch && matchCat && matchEquip
+  })
+
+  const handleQuickStart = async (ex: Exercise) => {
+    setLoadingId(ex.id)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/'); return }
+
+      // Create a quick one-exercise workout in Supabase
+      const { data: workout, error } = await supabase
+        .from('workouts')
+        .insert({
+          name: `Quick: ${ex.name}`,
+          description: `Single-exercise session — ${ex.target}`,
+          exercises: [{ name: ex.name, sets: 4, reps: '8-12' }],
+          status: 'active',
+          user_id: user.id,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      localStorage.setItem('activeWorkoutId', workout.id)
+      router.push(`/workout/${workout.id}`)
+    } catch (err) {
+      console.error('Quick start failed:', err)
+      setLoadingId(null)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans p-4 pb-24">
-      <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white">
-          <ChevronLeft />
-        </button>
-        <h1 className="text-2xl font-black italic uppercase">Library</h1>
+    <div className="min-h-screen bg-gray-950 text-white font-sans pb-24">
+
+      {/* HEADER */}
+      <header className="sticky top-0 z-20 bg-gray-950/90 backdrop-blur-xl border-b border-gray-900 p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors">
+            <ChevronLeft size={22} />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-xl font-black italic uppercase tracking-tighter">Movement Library</h1>
+            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">{filtered.length} exercises</p>
+          </div>
+        </div>
+
+        {/* SEARCH */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+          <input
+            type="text"
+            placeholder="Search exercises or muscles..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-gray-900 border border-gray-800 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-gray-700 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+          />
+        </div>
+
+        {/* EQUIPMENT FILTER */}
+        <div className="flex gap-2 mb-3">
+          {(['all', 'iron', 'home'] as const).map((eq) => (
+            <button
+              key={eq}
+              onClick={() => setEquipFilter(eq)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+                equipFilter === eq
+                  ? 'bg-indigo-600 border-indigo-500 text-white'
+                  : 'bg-gray-900 border-gray-800 text-gray-500 hover:border-gray-700'
+              }`}
+            >
+              {eq === 'all' ? '🏋️ All' : eq === 'iron' ? '🔩 Iron Path' : '🏠 At Home'}
+            </button>
+          ))}
+        </div>
+
+        {/* CATEGORY TABS */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeCategory === cat
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                  : 'bg-gray-900 text-gray-500 hover:text-gray-300 border border-gray-800'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <div className="relative mb-8">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-        <input 
-          type="text" 
-          placeholder="Search exercises..."
-          className="w-full bg-gray-900 border-2 border-gray-800 rounded-2xl p-4 pl-12 focus:border-indigo-500 outline-none transition-all font-bold"
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      <div className="space-y-3 max-w-md mx-auto">
-        {filtered.map((ex, i) => (
-          <div key={i} className="bg-gray-900 border border-gray-800 p-5 rounded-2xl flex justify-between items-center group hover:border-indigo-500/50 transition-all shadow-lg">
-            <div>
-              <h3 className="font-black text-lg tracking-tight">{ex.name}</h3>
-              <div className="flex gap-2 mt-1">
-                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded">{ex.category}</span>
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest bg-gray-800 px-2 py-0.5 rounded">{ex.muscle}</span>
-              </div>
-            </div>
-            <div className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
-               <Play size={16} fill="currentColor" />
-            </div>
+      {/* EXERCISE LIST */}
+      <main className="p-4 space-y-3 max-w-md mx-auto">
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 opacity-30">
+            <Dumbbell size={40} className="mx-auto mb-3" />
+            <p className="text-sm font-bold uppercase tracking-widest">No exercises found.</p>
           </div>
-        ))}
-      </div>
+        ) : (
+          filtered.map((ex) => {
+            const catColor = CATEGORY_COLORS[ex.category] || 'text-gray-400 bg-gray-800 border-gray-700'
+            const mechBadge = MECHANIC_BADGE[ex.mechanic] || 'text-gray-400 bg-gray-800'
+            const isLoading = loadingId === ex.id
+
+            return (
+              <div
+                key={ex.id}
+                className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between group hover:border-gray-700 transition-all shadow-lg"
+              >
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center border flex-shrink-0 ${catColor}`}>
+                    <Dumbbell size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-black text-sm tracking-tight truncate">{ex.name}</p>
+                    <p className="text-[10px] text-gray-500 font-medium mt-0.5 truncate">{ex.target}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest ${mechBadge}`}>
+                        {ex.mechanic}
+                      </span>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest ${catColor}`}>
+                        {ex.category}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleQuickStart(ex)}
+                  disabled={!!loadingId}
+                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-[10px] font-black px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0 shadow-lg shadow-indigo-500/10"
+                >
+                  {isLoading
+                    ? <Loader2 size={14} className="animate-spin" />
+                    : <><PlayCircle size={14} /> Start</>
+                  }
+                </button>
+              </div>
+            )
+          })
+        )}
+      </main>
+
       <BottomNav />
     </div>
   )

@@ -3,19 +3,66 @@
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, TrendingUp, BookOpen } from 'lucide-react'
+import { LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, BookOpen, Dumbbell, Flame, Trophy } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 
 export default function Profile() {
   const router = useRouter()
   const supabase = createClient()
   const [user, setUser] = useState<any>(null)
-  
+  const [stats, setStats] = useState({ totalSessions: 0, totalVolume: 0, topLift: '', streak: 0 })
+  const [programName, setProgramName] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    const load = async () => {
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) { router.push('/'); return }
       setUser(data.user)
-    })
-  }, [supabase])
+
+      // Load real stats
+      const { data: logs } = await supabase
+        .from('workout_logs')
+        .select('created_at, weight_lbs, reps, exercise_name, workout_id')
+        .eq('user_id', data.user.id)
+        .eq('completed', true)
+        .order('created_at', { ascending: false })
+
+      if (logs) {
+        const uniqueDays = new Set(logs.map((l: any) => new Date(l.created_at).toDateString()))
+        const totalVolume = logs.reduce((sum: number, l: any) => sum + (l.weight_lbs || 0) * (l.reps || 0), 0)
+        const topLog = logs.reduce((best: any, l: any) =>
+          (l.weight_lbs || 0) > (best?.weight_lbs || 0) ? l : best, null)
+
+        // Streak
+        const days = Array.from(uniqueDays)
+        let streak = 0
+        const today = new Date(); today.setHours(0,0,0,0)
+        for (let i = 0; i < days.length; i++) {
+          const d = new Date(days[i]); d.setHours(0,0,0,0)
+          const diff = Math.round((today.getTime() - d.getTime()) / 86400000)
+          if (diff === i || (i === 0 && diff <= 1)) streak++; else break
+        }
+
+        setStats({
+          totalSessions: uniqueDays.size,
+          totalVolume: Math.round(totalVolume),
+          topLift: topLog ? `${topLog.exercise_name} · ${topLog.weight_lbs}lbs` : 'None yet',
+          streak,
+        })
+      }
+
+      // Load active program name
+      const activeId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
+      if (activeId) {
+        const { data: workout } = await supabase.from('workouts').select('name').eq('id', activeId).maybeSingle()
+        if (workout) setProgramName(workout.name)
+      }
+
+      setLoading(false)
+    }
+    load()
+  }, [router, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -71,19 +118,48 @@ export default function Profile() {
            </button>
         </div>
 
-        {/* Goals / Stats Summary */}
-        <div className="grid grid-cols-2 gap-4">
-           <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
-             <Target className="text-orange-500 mb-2" size={20} />
-             <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Current Goal</p>
-             <p className="font-bold text-sm mt-1">Recomp (Maintain Weight)</p>
-           </div>
-           <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
-             <Activity className="text-green-500 mb-2" size={20} />
-             <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Activity Level</p>
-             <p className="font-bold text-sm mt-1">3-4 Sessions / Wk</p>
-           </div>
-        </div>
+        {/* Real Stats */}
+        {loading ? (
+          <div className="grid grid-cols-2 gap-4">
+            {[1,2,3,4].map(i => <div key={i} className="bg-gray-900 rounded-2xl p-4 border border-gray-800 h-20 animate-pulse" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
+              <Flame className="text-orange-500 mb-2" size={20} />
+              <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Streak</p>
+              <p className="font-black text-2xl mt-1">{stats.streak} <span className="text-xs text-gray-500 font-bold">days</span></p>
+            </div>
+            <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
+              <Dumbbell className="text-indigo-400 mb-2" size={20} />
+              <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Sessions</p>
+              <p className="font-black text-2xl mt-1">{stats.totalSessions}</p>
+            </div>
+            <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
+              <Activity className="text-green-500 mb-2" size={20} />
+              <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Total Volume</p>
+              <p className="font-black text-lg mt-1">{stats.totalVolume.toLocaleString()} <span className="text-xs text-gray-500 font-bold">lbs</span></p>
+            </div>
+            <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
+              <Trophy className="text-yellow-500 mb-2" size={20} />
+              <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Top Lift</p>
+              <p className="font-bold text-xs mt-1 leading-snug">{stats.topLift}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Active Program */}
+        {programName && (
+          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-indigo-400 uppercase font-black tracking-widest">Active Protocol</p>
+              <p className="font-black text-sm mt-0.5">{programName}</p>
+            </div>
+            <button onClick={() => router.push('/edit-program')} className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors">
+              Change →
+            </button>
+          </div>
+        )}
 
         {/* Settings Links */}
         <div className="space-y-3">

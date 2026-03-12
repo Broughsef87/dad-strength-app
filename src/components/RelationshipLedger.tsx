@@ -9,10 +9,28 @@ interface Deposit {
   timestamp: string;
 }
 
+const STORAGE_KEY = 'dad-strength-relationship-ledger';
+const todayKey = () => new Date().toLocaleDateString();
+
+function loadDeposits(): Deposit[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return [];
+    const data = JSON.parse(saved);
+    if (data.date !== todayKey()) return [];
+    return data.deposits || [];
+  } catch { return []; }
+}
+
 export default function RelationshipLedger() {
-  const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [deposits, setDeposits] = useState<Deposit[]>(() => loadDeposits());
   const [inputText, setInputText] = useState('');
   const target = 5;
+
+  const persist = (next: Deposit[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), deposits: next }));
+  };
 
   const addDeposit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,12 +42,16 @@ export default function RelationshipLedger() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setDeposits(prev => [...prev, newDeposit].slice(-target)); // Keep last 'target' deposits
+    const next = [...deposits, newDeposit].slice(-target);
+    setDeposits(next);
+    persist(next);
     setInputText('');
   };
 
   const removeDeposit = (id: string) => {
-    setDeposits(prev => prev.filter(d => d.id !== id));
+    const next = deposits.filter(d => d.id !== id);
+    setDeposits(next);
+    persist(next);
   };
 
   return (

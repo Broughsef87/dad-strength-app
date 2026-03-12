@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Brain, Target, PenLine, ArrowLeft, Lock, Unlock, CheckCircle2, Circle, Save } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
+import MindSqueeze from '../../components/MindSqueeze';
 
 export default function MindPage() {
   const [supabase] = useState(() => createClient());
@@ -15,6 +16,7 @@ export default function MindPage() {
   const [lockedIn, setLockedIn] = useState(false);
   const [journal, setJournal] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -44,15 +46,14 @@ export default function MindPage() {
     localStorage.setItem('dad-strength-mind-state', JSON.stringify(state));
   };
 
-  const handleSaveJournal = async () => {
+  const handleSaveJournal = () => {
     setIsSaving(true);
-    // For now, simulate a save and use localStorage. 
-    // In production, we'd use supabase.from('journals').upsert(...)
     saveToLocal();
     setTimeout(() => {
       setIsSaving(false);
-      alert('Journal entry saved.');
-    }, 8000);
+      setSavedMsg(true);
+      setTimeout(() => setSavedMsg(false), 2500);
+    }, 300);
   };
 
   const toggleObjective = (index: number) => {
@@ -81,6 +82,10 @@ export default function MindPage() {
       <main className="max-w-md mx-auto space-y-8">
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <DeepWorkTimer availableObjectives={objectives} />
+        </div>
+
+        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+           <MindSqueeze objectives={objectives} />
         </div>
 
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl relative overflow-hidden">
@@ -167,19 +172,14 @@ export default function MindPage() {
              onClick={handleSaveJournal}
              disabled={isSaving}
              className={`w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-               isSaving 
-                 ? 'bg-gray-800 text-gray-600 cursor-not-allowed' 
+               savedMsg
+                 ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                 : isSaving
+                 ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
                  : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white'
              }`}
            >
-              {isSaving ? (
-                <>Saving...</>
-              ) : (
-                <>
-                  <Save size={14} />
-                  Save Entry
-                </>
-              )}
+              {savedMsg ? '✓ Entry Saved' : isSaving ? 'Saving...' : <><Save size={14} /> Save Entry</>}
            </button>
         </div>
       </main>
