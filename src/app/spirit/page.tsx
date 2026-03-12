@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Flame, Anchor, ArrowLeft, Sun, CheckCircle2, Timer, Play, Pause, RotateCcw } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import FamilyPulse from '../../components/FamilyPulse';
+import Brotherhood from '../../components/Brotherhood';
 
 export default function SpiritPage() {
   const [supabase] = useState(() => createClient());
@@ -76,6 +77,10 @@ export default function SpiritPage() {
       <main className="max-w-md mx-auto space-y-8">
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
            <FamilyPulse />
+        </div>
+
+        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+           <Brotherhood />
         </div>
 
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
