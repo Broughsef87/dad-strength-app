@@ -5,30 +5,18 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   PlayCircle, 
-  Calendar, 
-  ArrowRight, 
   Flame, 
   Trophy, 
   Dumbbell, 
-  Activity, 
   ShieldCheck,
-  LayoutDashboard,
-  Settings,
-  Shield,
-  Brain
+  Settings
 } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import Leaderboard from '../../components/Leaderboard'
-import FuelStation from '../../components/FuelStation'
-import RelationshipLedger from '../../components/RelationshipLedger'
-import DeepWorkTimer from '../../components/DeepWorkTimer'
-import MorningAnchor from '../../components/MorningAnchor'
-import AIMorningAnchor from '../../components/AIMorningAnchor'
-import MorningProtocol from '../../components/MorningProtocol'
-import HandoffChecklist from '../../components/HandoffChecklist'
 import EmpireWidget from '../../components/EmpireWidget'
-import Logo from '../../components/Logo'
 import DailyQuote from '../../components/DailyQuote'
+import MorningProtocol from '../../components/MorningProtocol'
+import MindVitals from '../../components/MindVitals'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -37,7 +25,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [workout, setWorkout] = useState<any>(null)
   const [stats, setStats] = useState({ streak: 0, totalWorkouts: 0, lastPR: 'None yet' })
-  const [objectives, setObjectives] = useState<string[]>([])
+  
+  // Mind Vitals State
+  const [deepWorkMinutes, setDeepWorkMinutes] = useState(0)
+  const [completedObjectives, setCompletedObjectives] = useState(0)
+  const [totalObjectives, setTotalObjectives] = useState(0)
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -48,35 +40,7 @@ export default function Dashboard() {
       }
       setUser(user)
 
-      // Load today's objectives from Mind page localStorage
-      try {
-        const mindState = localStorage.getItem('dad-strength-mind-state')
-        if (mindState) {
-          const parsed = JSON.parse(mindState)
-          if (parsed.date === new Date().toLocaleDateString()) {
-            setObjectives(parsed.objectives?.filter(Boolean) || [])
-          }
-        }
-      } catch {}
-
-      // Check if onboarding is needed (first-time user)
-      const onboardingComplete = typeof window !== 'undefined' ? localStorage.getItem('onboardingComplete') : null
-      const savedWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
-      if (!onboardingComplete && !savedWorkoutId) {
-        // Check if they have any logs — if not, they're brand new
-        const { count: logCount } = await supabase
-          .from('workout_logs')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-        if (!logCount || logCount === 0) {
-          router.push('/onboarding')
-          return
-        }
-        // Has logs but no localStorage — mark onboarding done
-        if (typeof window !== 'undefined') localStorage.setItem('onboardingComplete', 'true')
-      }
-
-      // Load user's active program (saved by edit-program page)
+      // Load user's active program
       const activeWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
       let workoutData = null
       if (activeWorkoutId) {
@@ -87,7 +51,7 @@ export default function Dashboard() {
           .maybeSingle()
         workoutData = data
       }
-      // Fallback: grab the most recent workout if no active program set
+      
       if (!workoutData) {
         const { data } = await supabase
           .from('workouts')
@@ -102,7 +66,7 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      // Fetch all completed log dates for streak calculation
+      // Fetch Stats & Streak
       const { data: logDates } = await supabase
         .from('workout_logs')
         .select('created_at')
@@ -110,7 +74,6 @@ export default function Dashboard() {
         .eq('completed', true)
         .order('created_at', { ascending: false })
 
-      // Calculate real streak (consecutive days with at least one completed set)
       const uniqueDays = Array.from(
         new Set((logDates || []).map((l: any) => new Date(l.created_at).toDateString()))
       )
@@ -129,8 +92,6 @@ export default function Dashboard() {
         }
       }
 
-      const totalWorkouts = uniqueDays.length
-
       const { data: prData } = await supabase
         .from('workout_logs')
         .select('exercise_name, weight_lbs')
@@ -142,9 +103,37 @@ export default function Dashboard() {
 
       setStats({
         streak,
-        totalWorkouts,
+        totalWorkouts: uniqueDays.length,
         lastPR: prData ? `${prData.exercise_name} ${prData.weight_lbs}lbs` : 'None yet'
       })
+
+      // FETCH MIND VITALS
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      const endOfToday = new Date()
+      endOfToday.setHours(23, 59, 59, 999)
+
+      const { data: deepWorkSessions } = await supabase
+        .from('deep_work_sessions')
+        .select('duration_minutes')
+        .eq('user_id', user.id)
+        .gte('created_at', startOfToday.toISOString())
+        .lte('created_at', endOfToday.toISOString())
+      
+      const totalMins = (deepWorkSessions || []).reduce((acc, session) => acc + (session.duration_minutes || 0), 0)
+      setDeepWorkMinutes(totalMins)
+
+      const { data: objectivesData } = await supabase
+        .from('daily_objectives')
+        .select('completed')
+        .eq('user_id', user.id)
+        .gte('created_at', startOfToday.toISOString())
+        .lte('created_at', endOfToday.toISOString())
+
+      if (objectivesData) {
+        setTotalObjectives(objectivesData.length)
+        setCompletedObjectives(objectivesData.filter(o => o.completed).length)
+      }
 
       setLoading(false)
     }
@@ -179,7 +168,7 @@ export default function Dashboard() {
         </div>
         <nav className="flex gap-8 font-bold uppercase tracking-widest text-[10px] text-gray-500">
           <button className="text-white border-b-2 border-indigo-500 pb-1">HQ</button>
-          <button onClick={() => router.push('/library')} className="hover:text-gray-300">Train</button>
+          <button onClick={() => router.push('/body')} className="hover:text-gray-300">Train</button>
           <button onClick={() => router.push('/history')} className="hover:text-gray-300">History</button>
           <button onClick={() => router.push('/profile')} className="hover:text-gray-300">Profile</button>
           <button onClick={handleSignOut} className="text-red-900/50 hover:text-red-500">Sign Out</button>
@@ -203,13 +192,8 @@ export default function Dashboard() {
         
         {/* LEFT COLUMN: The Mission / Empire */}
         <div className="lg:col-span-4 space-y-8 order-3 lg:order-1">
-          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-             <EmpireWidget />
-          </div>
-
-          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-             <Leaderboard />
-          </div>
+          <EmpireWidget />
+          <Leaderboard />
         </div>
 
         {/* CENTER COLUMN: Tactical Action */}
@@ -270,17 +254,21 @@ export default function Dashboard() {
                 <Trophy size={16} />
                 <p className="text-[10px] uppercase font-black tracking-[0.2em]">Biggest Lift</p>
               </div>
-              <p className="text-xl font-black truncate">{stats.lastPR}</p>
+              <p className="text-lg font-black truncate">{stats.lastPR}</p>
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Morning Protocol */}
+        {/* RIGHT COLUMN: Vitals / Protocol */}
         <div className="lg:col-span-3 space-y-8 order-1 lg:order-3">
-          <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-            <MorningProtocol objectives={objectives} />
-          </div>
+          <MorningProtocol />
+          <MindVitals 
+            deepWorkMinutes={deepWorkMinutes}
+            completedObjectives={completedObjectives}
+            totalObjectives={totalObjectives}
+          />
         </div>
+
       </main>
 
       <BottomNav />
