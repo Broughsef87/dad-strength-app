@@ -45,8 +45,8 @@ Rules:
     })
 
     return Response.json({ protocol })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to generate protocol:', error)
-    return Response.json({ error: 'Failed to generate protocol' }, { status: 500 })
+    return Response.json({ error: error?.message || 'Failed to generate protocol' }, { status: 500 })
   }
 }
