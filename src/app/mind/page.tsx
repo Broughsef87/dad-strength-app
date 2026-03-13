@@ -80,14 +80,6 @@ export default function MindPage() {
       </header>
 
       <main className="max-w-md mx-auto space-y-8">
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-           <DeepWorkTimer availableObjectives={objectives} />
-        </div>
-
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
-           <MindSqueeze objectives={objectives} />
-        </div>
-
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl relative overflow-hidden">
            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
@@ -152,6 +144,14 @@ export default function MindPage() {
                 Lock In Objectives
               </button>
            )}
+        </div>
+
+        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+           <DeepWorkTimer availableObjectives={objectives} />
+        </div>
+
+        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+           <MindSqueeze objectives={objectives} />
         </div>
 
         <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
