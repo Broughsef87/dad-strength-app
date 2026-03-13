@@ -20,6 +20,7 @@ export function createClient() {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
         getSession: async () => ({ data: { session: null }, error: null }),
+        signInWithOAuth: async () => ({ data: null, error: new Error('Supabase not configured') }),
         onAuthStateChange: () => ({ 
           data: { subscription: { unsubscribe: () => {} } },
           error: null 

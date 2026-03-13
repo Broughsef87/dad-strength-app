@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../../utils/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { ChevronLeft, Edit3, Trophy } from 'lucide-react'
+import { ChevronLeft, Edit3 } from 'lucide-react'
 import ActiveSetRow from '../../../components/workout/ActiveSetRow'
 import RestTimer from '../../../components/workout/RestTimer'
 import WorkoutTimer from '../../../components/WorkoutTimer'
+import ActiveSessionHeader from '../../../components/workout/ActiveSessionHeader'
+import ExerciseCard from '../../../components/workout/ExerciseCard'
+import WorkoutSummaryOverlay from '../../../components/workout/WorkoutSummaryOverlay'
 
 type Exercise = {
   id: string
@@ -176,6 +179,43 @@ export default function ActiveWorkout() {
     setTimerRunning(false)
   }
 
+  const isExerciseComplete = (exercise: Exercise) => {
+    return Array.from({ length: exercise.sets }).every((_, i) => {
+      const key = `${exercise.id}-${i}`
+      return logs[key]?.completed
+    })
+  }
+
+  const currentVolume = () => {
+    let volume = 0
+    if (!workout) return 0
+    for (const exercise of workout.exercises) {
+      for (let i = 0; i < exercise.sets; i++) {
+        const key = `${exercise.id}-${i}`
+        const log = logs[key]
+        if (log && log.completed) {
+          volume += (parseFloat(log.weight) || 0) * (parseInt(log.reps) || 0)
+        }
+      }
+    }
+    return volume
+  }
+
+  const getProgress = () => {
+    if (!workout) return 0
+    let totalSets = 0
+    let completedSets = 0
+    for (const exercise of workout.exercises) {
+      totalSets += exercise.sets
+      for (let i = 0; i < exercise.sets; i++) {
+        if (logs[`${exercise.id}-${i}`]?.completed) {
+          completedSets++
+        }
+      }
+    }
+    return totalSets > 0 ? (completedSets / totalSets) * 100 : 0
+  }
+
   if (loading) return <div className="flex h-screen items-center justify-center bg-gray-950 text-white font-sans">Loading...</div>
 
   return (
@@ -185,81 +225,64 @@ export default function ActiveWorkout() {
           <ChevronLeft />
         </button>
         <div className="text-center">
-          <h1 className="text-xs font-black uppercase tracking-widest text-gray-500">{workout?.name}</h1>
+          <h1 className="text-xs font-black uppercase tracking-widest text-gray-500">Live Session</h1>
           <WorkoutTimer seconds={timer} formatTime={formatTime} />
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => router.push(`/workout/${params?.id}/edit`)} className="p-2 text-gray-500 hover:text-white transition-colors">
             <Edit3 size={20} />
           </button>
-          <button onClick={finishWorkout} className="bg-green-600 hover:bg-green-500 text-white text-xs font-black px-4 py-2 rounded-full transition-all active:scale-95">
+          <button onClick={finishWorkout} className="bg-green-600 hover:bg-green-500 text-white text-[10px] font-black px-5 py-2.5 rounded-full transition-all active:scale-95 shadow-lg shadow-green-500/20">
             FINISH
           </button>
         </div>
       </header>
 
       <div className="p-4 space-y-6 max-w-md mx-auto">
+        <ActiveSessionHeader 
+          workoutName={workout?.name || 'Workout'} 
+          duration={formatTime(timer)} 
+          volume={currentVolume()} 
+          progress={getProgress()}
+        />
+
         <RestTimer timeLeft={restTime} onSkip={() => setRestTime(0)} />
 
         {workout?.exercises.map((exercise) => (
-          <div key={exercise.id} className="bg-gray-900 rounded-3xl p-6 border border-gray-800 shadow-xl">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="font-black text-xl tracking-tight">{exercise.name}</h3>
-                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mt-1">Target: {exercise.target_reps}</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {Array.from({ length: exercise.sets }).map((_, i) => {
-                const key = `${exercise.id}-${i}`
-                const log = logs[key] || { weight: '', reps: '', completed: false }
-                return (
-                  <ActiveSetRow 
-                    key={i}
-                    index={i}
-                    isDone={log.completed}
-                    weight={log.weight}
-                    reps={log.reps}
-                    onWeightChange={(val) => handleInputChange(exercise.id, i, 'weight', val)}
-                    onRepsChange={(val) => handleInputChange(exercise.id, i, 'reps', val)}
-                    onToggle={() => toggleSet(exercise, i)}
-                  />
-                )
-              })}
-            </div>
-          </div>
+          <ExerciseCard 
+            key={exercise.id} 
+            name={exercise.name} 
+            target={exercise.target_reps}
+            isCompleted={isExerciseComplete(exercise)}
+          >
+            {Array.from({ length: exercise.sets }).map((_, i) => {
+              const key = `${exercise.id}-${i}`
+              const log = logs[key] || { weight: '', reps: '', completed: false }
+              return (
+                <ActiveSetRow 
+                  key={i}
+                  index={i}
+                  isDone={log.completed}
+                  weight={log.weight}
+                  reps={log.reps}
+                  onWeightChange={(val) => handleInputChange(exercise.id, i, 'weight', val)}
+                  onRepsChange={(val) => handleInputChange(exercise.id, i, 'reps', val)}
+                  onToggle={() => toggleSet(exercise, i)}
+                />
+              )
+            })}
+          </ExerciseCard>
         ))}
       </div>
 
       {/* SUMMARY OVERLAY */}
       {showSummary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-gray-950/95 backdrop-blur-xl animate-in fade-in zoom-in duration-300">
-          <div className="bg-gray-900 border border-gray-800 rounded-[40px] p-8 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
-             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
-             <Trophy size={64} className="text-yellow-500 mx-auto mb-6 animate-bounce" />
-             <h2 className="text-3xl font-black mb-2">WORKOUT DONE</h2>
-             <p className="text-gray-400 font-medium mb-8">Another brick in the wall, Dad.</p>
-             
-             <div className="grid grid-cols-2 gap-4 mb-8 text-left">
-                <div className="bg-gray-800/50 p-4 rounded-2xl">
-                   <p className="text-[10px] font-black text-gray-500 uppercase">Total Volume</p>
-                   <p className="text-xl font-bold">{totalVolume.toLocaleString()} <span className="text-xs text-gray-500">lbs</span></p>
-                </div>
-                <div className="bg-gray-800/50 p-4 rounded-2xl">
-                   <p className="text-[10px] font-black text-gray-500 uppercase">Time</p>
-                   <p className="text-xl font-bold">{formatTime(timer)}</p>
-                </div>
-             </div>
-
-             <button 
-              onClick={() => router.push('/dashboard')}
-              className="w-full bg-white text-black font-black py-4 rounded-2xl hover:bg-gray-200 transition-all active:scale-95"
-             >
-               RETURN TO BASE
-             </button>
-          </div>
-        </div>
+        <WorkoutSummaryOverlay 
+          workoutName={workout?.name || 'Workout'}
+          totalVolume={totalVolume}
+          duration={formatTime(timer)}
+          onReturn={() => router.push('/dashboard')}
+        />
       )}
     </div>
   )

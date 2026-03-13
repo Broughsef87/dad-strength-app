@@ -22,17 +22,26 @@ export default function ActiveSetRow({
   onToggle
 }: ActiveSetRowProps) {
   return (
-    <div className={`grid grid-cols-12 gap-3 items-center transition-all duration-300 ${isDone ? 'opacity-30 scale-[0.98]' : ''}`}>
-      <div className="col-span-1 text-[10px] font-black text-gray-600 italic">
-        {index + 1}
+    <div className={`grid grid-cols-12 gap-3 items-center p-3 rounded-2xl transition-all duration-300 ${
+      isDone 
+        ? 'bg-green-500/10 border border-green-500/20 opacity-50' 
+        : 'bg-gray-800/20 border border-gray-800/50'
+    }`}>
+      <div className="col-span-1 flex flex-col items-center">
+        <span className="text-[8px] font-black text-gray-600 uppercase tracking-tighter">Set</span>
+        <span className={`text-sm font-black italic ${isDone ? 'text-green-500' : 'text-gray-400'}`}>
+          {index + 1}
+        </span>
       </div>
       
       <div className="col-span-4 relative">
         <input 
           type="number" 
+          inputMode="numeric"
           placeholder="LBS" 
+          disabled={isDone}
           value={weight}
-          className="w-full bg-gray-800 border-2 border-transparent focus:border-indigo-500 rounded-xl p-3 text-center font-bold text-white outline-none transition-all placeholder:text-gray-700"
+          className="w-full bg-gray-900/50 border-2 border-gray-800 focus:border-indigo-500 focus:bg-gray-900 rounded-xl p-3 text-center font-black text-white outline-none transition-all placeholder:text-gray-700 disabled:opacity-50"
           onChange={(e) => onWeightChange(e.target.value)}
         />
         {weight && !isDone && (
@@ -43,9 +52,11 @@ export default function ActiveSetRow({
       <div className="col-span-4 relative">
         <input 
           type="number" 
+          inputMode="numeric"
           placeholder="REPS" 
+          disabled={isDone}
           value={reps}
-          className="w-full bg-gray-800 border-2 border-transparent focus:border-indigo-500 rounded-xl p-3 text-center font-bold text-white outline-none transition-all placeholder:text-gray-700"
+          className="w-full bg-gray-900/50 border-2 border-gray-800 focus:border-indigo-500 focus:bg-gray-900 rounded-xl p-3 text-center font-black text-white outline-none transition-all placeholder:text-gray-700 disabled:opacity-50"
           onChange={(e) => onRepsChange(e.target.value)}
         />
         {reps && !isDone && (
@@ -58,7 +69,7 @@ export default function ActiveSetRow({
         className={`col-span-3 h-12 rounded-xl flex items-center justify-center transition-all ${
           isDone 
             ? 'bg-green-500 text-black shadow-lg shadow-green-500/20' 
-            : 'bg-gray-800 text-gray-500 hover:bg-gray-700 hover:text-white'
+            : 'bg-gray-900 border border-gray-800 text-gray-600 hover:text-white hover:border-indigo-500 transition-all active:scale-95'
         }`}
       >
         {isDone ? <CheckCircle2 size={24} strokeWidth={3} /> : <Circle size={24} strokeWidth={2} />}
