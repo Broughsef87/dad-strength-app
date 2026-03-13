@@ -17,6 +17,7 @@ import EmpireWidget from '../../components/EmpireWidget'
 import DailyQuote from '../../components/DailyQuote'
 import MorningProtocol from '../../components/MorningProtocol'
 import MindVitals from '../../components/MindVitals'
+import SpiritVitals from '../../components/SpiritVitals'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -267,6 +268,7 @@ export default function Dashboard() {
             completedObjectives={completedObjectives}
             totalObjectives={totalObjectives}
           />
+          <SpiritVitals />
         </div>
 
       </main>
