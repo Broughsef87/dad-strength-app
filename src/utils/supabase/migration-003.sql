@@ -22,5 +22,14 @@ CREATE POLICY "Users can manage own checkins" ON daily_checkins
 
 -- Also ensure user_profiles RLS exists
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "Users can manage own profile" ON user_profiles
-  FOR ALL USING (auth.uid() = id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'user_profiles'
+    AND policyname = 'Users can manage own profile'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Users can manage own profile" ON user_profiles FOR ALL USING (auth.uid() = id)';
+  END IF;
+END
+$$;
