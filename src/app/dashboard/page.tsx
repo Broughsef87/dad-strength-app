@@ -192,14 +192,20 @@ export default function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* LEFT COLUMN: The Mission / Empire */}
-        <div className="lg:col-span-4 space-y-8 order-3 lg:order-1">
+        {/* LEFT COLUMN: Empire + Vitals */}
+        <div className="lg:col-span-3 space-y-8 order-3 lg:order-1">
           <EmpireWidget />
-          <Leaderboard />
+          <BodyVitals />
+          <MindVitals 
+            deepWorkMinutes={deepWorkMinutes}
+            completedObjectives={completedObjectives}
+            totalObjectives={totalObjectives}
+          />
+          <SpiritVitals />
         </div>
 
-        {/* CENTER COLUMN: Tactical Action */}
-        <div className="lg:col-span-5 space-y-8 order-2 lg:order-2">
+        {/* CENTER COLUMN: Tactical Action + Leaderboard */}
+        <div className="lg:col-span-6 space-y-8 order-2 lg:order-2">
           {/* ACTIVE WORKOUT CARD */}
           <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 shadow-2xl shadow-indigo-500/20 ring-1 ring-white/10 group">
             <div className="absolute top-0 right-0 -mr-6 -mt-6 h-32 w-32 rounded-full bg-white opacity-10 blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -240,8 +246,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <DailyQuote />
-
           {/* QUICK STATS */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-3xl bg-gray-900 p-6 border border-gray-800 hover:border-gray-700 transition-all">
@@ -259,18 +263,14 @@ export default function Dashboard() {
               <p className="text-lg font-black truncate">{stats.lastPR}</p>
             </div>
           </div>
+
+          <Leaderboard />
         </div>
 
-        {/* RIGHT COLUMN: Vitals / Protocol */}
+        {/* RIGHT COLUMN: Protocol + Quote */}
         <div className="lg:col-span-3 space-y-8 order-1 lg:order-3">
           <MorningProtocol />
-          <MindVitals 
-            deepWorkMinutes={deepWorkMinutes}
-            completedObjectives={completedObjectives}
-            totalObjectives={totalObjectives}
-          />
-          <BodyVitals />
-          <SpiritVitals />
+          <DailyQuote />
         </div>
 
       </main>
