@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
   try {
     const { object: protocol } = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-1.5-flash'),
       system: `You are a morning routine coach for a Christian dad who wants to show up strong for his family and his mission. Build a personalized morning protocol.
 
 Rules:
