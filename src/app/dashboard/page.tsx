@@ -18,6 +18,7 @@ import DailyQuote from '../../components/DailyQuote'
 import MorningProtocol from '../../components/MorningProtocol'
 import MindVitals from '../../components/MindVitals'
 import SpiritVitals from '../../components/SpiritVitals'
+import BodyVitals from '../../components/BodyVitals'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -268,6 +269,7 @@ export default function Dashboard() {
             completedObjectives={completedObjectives}
             totalObjectives={totalObjectives}
           />
+          <BodyVitals />
           <SpiritVitals />
         </div>
 
