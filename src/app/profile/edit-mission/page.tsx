@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, TrendingUp, DollarSign, Youtube, MonitorSmartphone, Target, Activity } from 'lucide-react'
+import { createClient } from '../../../utils/supabase/client'
 
 const ICON_OPTIONS = [
   { id: 'trending', icon: TrendingUp, color: 'text-indigo-400' },
@@ -15,6 +16,7 @@ const ICON_OPTIONS = [
 
 export default function MissionEditor() {
   const router = useRouter()
+  const supabase = createClient()
   const [mounted, setMounted] = useState(false)
   
   const [mission, setMission] = useState({
@@ -32,15 +34,54 @@ export default function MissionEditor() {
   })
 
   useEffect(() => {
-    setMounted(true)
-    const saved = localStorage.getItem('dad-strength-mission-state')
-    if (saved) {
-      setMission(JSON.parse(saved))
-    }
-  }, [])
+    async function loadMission() {
+      setMounted(true)
+      
+      // Try Supabase first
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('mission_data')
+            .eq('id', user.id)
+            .single()
+          
+          if (profile?.mission_data) {
+            setMission(profile.mission_data as any)
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Error loading mission from Supabase:', err)
+      }
 
-  const handleSave = () => {
+      // Fallback to localStorage
+      const saved = localStorage.getItem('dad-strength-mission-state')
+      if (saved) {
+        setMission(JSON.parse(saved))
+      }
+    }
+    loadMission()
+  }, [supabase])
+
+  const handleSave = async () => {
+    // Save to localStorage (fallback)
     localStorage.setItem('dad-strength-mission-state', JSON.stringify(mission))
+    
+    // Save to Supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from('user_profiles').upsert({
+          id: user.id,
+          mission_data: mission
+        }, { onConflict: 'id' })
+      }
+    } catch (err) {
+      console.error('Error saving mission to Supabase:', err)
+    }
+
     router.push('/dashboard')
   }
 

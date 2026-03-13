@@ -42,6 +42,34 @@ export default function Dashboard() {
       }
       setUser(user)
 
+      // Sync/Check Onboarding Status
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      const onboardingCompleteLocal = typeof window !== 'undefined' ? localStorage.getItem('onboardingComplete') === 'true' : false
+      const onboardingCompleteDB = profile?.onboarding_complete || false
+
+      if (!onboardingCompleteLocal && !onboardingCompleteDB) {
+        router.push('/onboarding')
+        return
+      }
+
+      // Ensure profile exists and is updated if local is complete but DB isn't
+      if (onboardingCompleteLocal && !onboardingCompleteDB) {
+        const localConfig = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('activeProgramConfig') || '{}') : {}
+        await supabase.from('user_profiles').upsert({
+          id: user.id,
+          onboarding_complete: true,
+          active_program_config: localConfig
+        }, { onConflict: 'id' })
+      } else if (!profile) {
+        // Just ensure a profile row exists at minimum
+        await supabase.from('user_profiles').upsert({ id: user.id }, { onConflict: 'id' })
+      }
+
       // Load user's active program
       const activeWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
       let workoutData = null

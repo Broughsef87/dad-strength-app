@@ -18,7 +18,8 @@ export default function SpiritPage() {
 
   useEffect(() => {
     setMounted(true);
-    // Restore daily reset state from localStorage
+    const today = new Date().toISOString().split('T')[0];
+    // Restore from localStorage first (fast)
     const saved = localStorage.getItem('dad-strength-spirit-state');
     if (saved) {
       const data = JSON.parse(saved);
@@ -26,13 +27,39 @@ export default function SpiritPage() {
         setPrayerDone(data.prayerDone || false);
       }
     }
-  }, []);
+    // Fetch from Supabase (authoritative)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from('daily_checkins')
+        .select('spirit_state')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .single()
+        .then(({ data }) => {
+          if (data?.spirit_state) {
+            const ss = data.spirit_state as { prayerDone?: boolean };
+            setPrayerDone(ss.prayerDone || false);
+          }
+        });
+    });
+  }, [supabase]);
 
   const saveSpiritState = (done: boolean) => {
-    localStorage.setItem('dad-strength-spirit-state', JSON.stringify({
+    const state = {
       date: new Date().toLocaleDateString(),
       prayerDone: done,
-    }));
+    };
+    localStorage.setItem('dad-strength-spirit-state', JSON.stringify(state));
+    // Also persist to Supabase (background, silent)
+    const today = new Date().toISOString().split('T')[0];
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from('daily_checkins').upsert(
+        { user_id: user.id, date: today, spirit_state: state, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,date' }
+      ).then(() => {});
+    });
   };
 
   useEffect(() => {

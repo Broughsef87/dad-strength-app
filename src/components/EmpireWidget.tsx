@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { TrendingUp, DollarSign, Youtube, MonitorSmartphone, ArrowRight, Target, Activity } from 'lucide-react'
 import Link from 'next/link'
+import { createClient } from '../utils/supabase/client'
 
 const ICON_MAP = {
   trending: TrendingUp,
@@ -14,6 +15,7 @@ const ICON_MAP = {
 }
 
 export default function EmpireWidget() {
+  const supabase = createClient()
   const [mission, setMission] = useState({
     title: 'The Empire',
     primaryMetric: 'Operation: Freedom',
@@ -29,11 +31,34 @@ export default function EmpireWidget() {
   })
 
   useEffect(() => {
-    const saved = localStorage.getItem('dad-strength-mission-state')
-    if (saved) {
-      setMission(JSON.parse(saved))
+    async function loadMission() {
+      // Try Supabase first
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('mission_data')
+            .eq('id', user.id)
+            .single()
+          
+          if (profile?.mission_data) {
+            setMission(profile.mission_data as any)
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Error loading mission from Supabase:', err)
+      }
+
+      // Fallback to localStorage
+      const saved = localStorage.getItem('dad-strength-mission-state')
+      if (saved) {
+        setMission(JSON.parse(saved))
+      }
     }
-  }, [])
+    loadMission()
+  }, [supabase])
 
   const percentage = Math.round((mission.current / mission.target) * 100)
   const isCurrency = mission.unit === '$'

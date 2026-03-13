@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Dumbbell, Home as HomeIcon, LayoutPanelLeft, LayoutPanelTop,
@@ -110,6 +110,32 @@ export default function Onboarding() {
   const [frequency, setFrequency] = useState(3)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function checkOnboarding() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('onboarding_complete')
+            .eq('id', user.id)
+            .single()
+
+          if (profile?.onboarding_complete) {
+            router.push('/dashboard')
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Error checking onboarding status:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    checkOnboarding()
+  }, [router, supabase])
 
   const handleFinish = async () => {
     setSaving(true)
@@ -133,15 +159,32 @@ export default function Onboarding() {
 
       if (insertError) throw insertError
 
+      const activeProgramConfig = { focus, track, frequency }
+
+      // Sync to Supabase profile
+      await supabase.from('user_profiles').upsert({
+        id: user.id,
+        onboarding_complete: true,
+        active_program_config: activeProgramConfig
+      }, { onConflict: 'id' })
+
       localStorage.setItem('activeWorkoutId', newWorkout.id)
       localStorage.setItem('onboardingComplete', 'true')
-      localStorage.setItem('activeProgramConfig', JSON.stringify({ focus, track, frequency }))
+      localStorage.setItem('activeProgramConfig', JSON.stringify(activeProgramConfig))
 
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Try again.')
       setSaving(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+      </div>
+    )
   }
 
   return (
