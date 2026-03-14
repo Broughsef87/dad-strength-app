@@ -55,7 +55,7 @@ export default function FuelStation() {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          {[10, 25, 50].map((amount) => (
+          {[5, 10, 25].map((amount) => (
             <button
               key={amount}
               onClick={() => addProtein(amount)}

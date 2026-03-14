@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, PenLine, Target, Flame } from 'lucide-react'
 
-const TIME_OPTIONS = [15, 20, 30, 45]
+const TIME_OPTIONS = [5, 10, 20, 30]
 
 const BABY_NIGHTS = [
   { id: 'great',  label: 'Slept great',       emoji: '😴' },
