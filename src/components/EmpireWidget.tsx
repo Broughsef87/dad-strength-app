@@ -51,6 +51,11 @@ export default function EmpireWidget() {
         console.error('Error loading mission from Supabase:', err)
       }
 
+      // Fallback to localStorage
+      const saved = localStorage.getItem('dad-strength-mission-state')
+      if (saved) {
+        setMission(JSON.parse(saved))
+      }
     }
     loadMission()
   }, [supabase])
