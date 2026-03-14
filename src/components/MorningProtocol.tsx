@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, PenLine, Target, Flame } from 'lucide-react'
+import AmbientAudioPlayer from './AmbientAudioPlayer'
+import RecommendedReading from './RecommendedReading'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -290,6 +292,8 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
               {isExpanded && !isDone && (
                 <div className="px-5 pb-5 space-y-3 border-t border-gray-800/50 pt-4">
                   <p className="text-sm text-gray-400 leading-relaxed">{step.guidance}</p>
+                  {step.pillar === 'Meditation' && <AmbientAudioPlayer />}
+                  {step.pillar === 'Reading' && <RecommendedReading />}
                   <div className={`rounded-xl px-4 py-3 border ${colors}`}>
                     <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Focus Prompt</p>
                     <p className="text-sm font-bold italic">{step.prompt}</p>
