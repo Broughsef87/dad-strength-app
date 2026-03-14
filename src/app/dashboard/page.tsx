@@ -18,6 +18,7 @@ import DailyQuote from '../../components/DailyQuote'
 import MorningProtocol from '../../components/MorningProtocol'
 import MindVitals from '../../components/MindVitals'
 import SpiritVitals from '../../components/SpiritVitals'
+import AutomationHook from '../../components/AutomationHook'
 import BodyVitals from '../../components/BodyVitals'
 
 export default function Dashboard() {
@@ -223,6 +224,7 @@ export default function Dashboard() {
         {/* LEFT COLUMN: Empire + Vitals */}
         <div className="lg:col-span-3 space-y-8 order-3 lg:order-1">
           <EmpireWidget />
+          <AutomationHook />
           <BodyVitals />
           <MindVitals 
             deepWorkMinutes={deepWorkMinutes}

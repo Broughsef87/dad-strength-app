@@ -3,11 +3,11 @@ import { generateObject } from 'ai'
 import { z } from 'zod'
 
 export async function POST(req: Request) {
-  const { minutes, situation, track } = await req.json()
-
   try {
+    const { minutes, situation, track } = await req.json()
+
     const { object: workout } = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-1.5-flash'),
       system: `You are a strength coach for busy dads. Generate a practical, no-fluff workout.
 
 Rules:
@@ -33,6 +33,7 @@ Rules:
 
     return Response.json({ workout })
   } catch (error) {
+    console.error('AI Workout Error:', error);
     return Response.json({ error: 'Failed to generate workout' }, { status: 500 })
   }
 }

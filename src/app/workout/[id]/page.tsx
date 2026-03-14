@@ -38,16 +38,54 @@ export default function ActiveWorkout() {
   const [showSummary, setShowSummary] = useState(false)
   const [totalVolume, setTotalVolume] = useState(0)
   const [restTime, setRestTime] = useState(0)
+  const [isGraceMode, setIsGraceMode] = useState(false)
+
+  // PERSISTENCE: Save state to localStorage
+  useEffect(() => {
+    if (!workout || showSummary) return
+    const state = {
+      logs,
+      timer,
+      timerRunning: timerRunning && !isGraceMode,
+      isGraceMode,
+      lastUpdated: Date.now()
+    }
+    localStorage.setItem(`workout-state-${workout.id}`, JSON.stringify(state))
+  }, [logs, timer, timerRunning, isGraceMode, workout, showSummary])
+
+  // PERSISTENCE: Load state from localStorage
+  useEffect(() => {
+    if (workout) {
+      const saved = localStorage.getItem(`workout-state-${workout.id}`)
+      if (saved) {
+        try {
+          const { logs: savedLogs, timer: savedTimer, isGraceMode: savedGrace } = JSON.parse(saved)
+          setLogs(savedLogs || {})
+          setTimer(savedTimer || 0)
+          setIsGraceMode(savedGrace || false)
+          // If it was running or in grace mode, we keep the timer state logical
+          if (savedGrace) {
+            setTimerRunning(false)
+          } else {
+            // Check if it was recently active to decide if we resume timer
+            setTimerRunning(Object.keys(savedLogs || {}).length > 0)
+          }
+        } catch (e) {
+          console.error('Error parsing saved workout state', e)
+        }
+      }
+    }
+  }, [workout])
 
   useEffect(() => {
     let interval: any
-    if (restTime > 0) {
+    if (restTime > 0 && !isGraceMode) {
       interval = setInterval(() => {
         setRestTime((prev) => prev - 1)
       }, 1000)
     }
     return () => clearInterval(interval)
-  }, [restTime])
+  }, [restTime, isGraceMode])
 
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -76,13 +114,13 @@ export default function ActiveWorkout() {
 
   useEffect(() => {
     let interval: any
-    if (timerRunning) {
+    if (timerRunning && !isGraceMode) {
       interval = setInterval(() => {
         setTimer((prev) => prev + 1)
       }, 1000)
     }
     return () => clearInterval(interval)
-  }, [timerRunning])
+  }, [timerRunning, isGraceMode])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -244,6 +282,15 @@ export default function ActiveWorkout() {
           duration={formatTime(timer)} 
           volume={currentVolume()} 
           progress={getProgress()}
+          isPaused={isGraceMode}
+          onTogglePause={() => {
+            setIsGraceMode(!isGraceMode)
+            if (!isGraceMode) {
+              setTimerRunning(false)
+            } else {
+              setTimerRunning(true)
+            }
+          }}
         />
 
         <RestTimer timeLeft={restTime} onSkip={() => setRestTime(0)} />
@@ -265,9 +312,9 @@ export default function ActiveWorkout() {
                   isDone={log.completed}
                   weight={log.weight}
                   reps={log.reps}
-                  onWeightChange={(val) => handleInputChange(exercise.id, i, 'weight', val)}
-                  onRepsChange={(val) => handleInputChange(exercise.id, i, 'reps', val)}
-                  onToggle={() => toggleSet(exercise, i)}
+                  onWeightChange={(val) => !isGraceMode && handleInputChange(exercise.id, i, 'weight', val)}
+                  onRepsChange={(val) => !isGraceMode && handleInputChange(exercise.id, i, 'reps', val)}
+                  onToggle={() => !isGraceMode && toggleSet(exercise, i)}
                 />
               )
             })}

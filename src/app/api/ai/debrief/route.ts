@@ -3,12 +3,12 @@ import { generateObject } from 'ai'
 import { z } from 'zod'
 
 export async function POST(req: Request) {
-  const { weekSessions, totalVolume, topLift, journalEntries, streak, objectives } = await req.json()
-
   try {
+    const { weekSessions, totalVolume, topLift, journalEntries, streak, objectives } = await req.json()
+
     const { object: debrief } = await generateObject({
-      model: google('gemini-2.5-flash'),
-      system: `You are a strength and life coach for busy dads. Write a weekly debrief — honest, brief, motivating.
+      model: google('gemini-1.5-flash'),
+      system: `You are a strength and life coach for busy dads. Write a weekly debrief - honest, brief, motivating.
 Tone: like a coach who respects you. Direct. No fluff. Acknowledge the reality of being a dad with a young baby.`,
       prompt: `This week's data:
 - Training sessions completed: ${weekSessions}
@@ -21,13 +21,14 @@ Tone: like a coach who respects you. Direct. No fluff. Acknowledge the reality o
         headline: z.string().describe("one punchy headline summarizing the week"),
         summary: z.string().describe("2-3 sentences: honest assessment of the week"),
         win: z.string().describe("the single biggest win this week, specific if possible"),
-        focus: z.string().describe("one thing to focus on next week — specific and actionable"),
-        dadQuote: z.string().describe("one short quote or thought about fatherhood and strength — original, not cliche")
+        focus: z.string().describe("one thing to focus on next week - specific and actionable"),
+        dadQuote: z.string().describe("one short quote or thought about fatherhood and strength - original, not cliche")
       })
     })
 
     return Response.json({ debrief })
   } catch (error) {
+    console.error('AI Debrief Error:', error);
     return Response.json({ error: 'Failed to generate debrief' }, { status: 500 })
   }
 }
