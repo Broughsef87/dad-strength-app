@@ -1,4 +1,4 @@
-import TrainingProtocols from '@/components/body/TrainingProtocols';
+import BodyVitals from '@/components/BodyVitals';
 import NapSqueeze from '@/components/NapSqueeze';
 
 export default function BodyPage() {
@@ -13,7 +13,7 @@ export default function BodyPage() {
 
         <div className="space-y-12">
           {/* Active Workouts */}
-          <TrainingProtocols />
+          <BodyVitals />
 
           {/* Revenue Gate */}
           <NapSqueeze />
