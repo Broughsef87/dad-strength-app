@@ -1,5 +1,5 @@
-import BodyVitals from '@/components/BodyVitals';
-import NapSqueeze from '@/components/NapSqueeze';
+import BodyVitals from '../../components/BodyVitals';
+import NapSqueeze from '../../components/NapSqueeze';
 
 export default function BodyPage() {
   return (
