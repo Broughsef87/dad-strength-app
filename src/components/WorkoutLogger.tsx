@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Dumbbell, Save, Home as HomeIcon, Activity } from 'lucide-react';
 import SetRow from './workout/SetRow';
 import RestTimer from './workout/RestTimer';
+import ActiveSessionHeader from './workout/ActiveSessionHeader';
+import WorkoutSummaryOverlay from './workout/WorkoutSummaryOverlay';
 
 interface WorkoutSet {
   id: string;
@@ -36,6 +38,7 @@ export default function WorkoutLogger() {
   const [weight, setWeight] = useState<number | ''>('');
   const [reps, setReps] = useState<number | ''>('');
   const [sets, setSets] = useState<WorkoutSet[]>([]);
+  const [showSummary, setShowSummary] = useState(false);
   
   const [timeLeft, setTimeLeft] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
@@ -87,8 +90,17 @@ export default function WorkoutLogger() {
     ));
   };
 
+  const totalVolume = sets.reduce((acc, set) => acc + (set.isDone ? set.weight * set.reps : 0), 0);
+
   return (
     <div className="space-y-6">
+      <ActiveSessionHeader 
+        workoutName={activeTrack.name}
+        duration="12:45" // Mock duration for now
+        volume={totalVolume}
+        progress={(sets.filter(s => s.isDone).length / Math.max(sets.length, 1)) * 100}
+      />
+
       {/* Rest Timer */}
       <RestTimer timeLeft={timeLeft} onSkip={() => setTimeLeft(0)} />
 
@@ -208,6 +220,23 @@ export default function WorkoutLogger() {
           <Save className="w-4 h-4" />
           Save Protocol
         </button>
+      )}
+      <div className="flex gap-4 pt-4">
+        <button 
+          onClick={() => setShowSummary(true)}
+          className="flex-grow bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-500 transition-all active:scale-95 shadow-lg shadow-indigo-500/20 uppercase tracking-widest"
+        >
+          Finish Workout
+        </button>
+      </div>
+
+      {showSummary && (
+        <WorkoutSummaryOverlay 
+          workoutName={activeTrack.name}
+          totalVolume={totalVolume}
+          duration="42:15"
+          onReturn={() => setShowSummary(false)}
+        />
       )}
     </div>
   );

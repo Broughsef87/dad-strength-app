@@ -27,22 +27,26 @@ export default function SetRow({
 
   return (
     <div 
-      className={`group flex items-center gap-4 p-4 bg-gray-900/80 border border-gray-800 rounded-2xl transition-all duration-300 ${
-        isDone ? 'opacity-40 border-green-500/20 bg-green-500/5' : 'hover:border-gray-700'
-      }`}
+      className={`group flex items-center gap-4 p-4 bg-gray-900/80 border transition-all duration-300 ${
+        isDone 
+          ? 'border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.1)] scale-[1.01]' 
+          : 'border-gray-800 hover:border-gray-700'
+      } rounded-2xl`}
     >
-      <div className="flex-none w-6 h-6 flex items-center justify-center rounded-full bg-gray-800 text-[10px] font-black text-gray-500 italic">
+      <div className={`flex-none w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black italic transition-colors ${
+        isDone ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-500'
+      }`}>
         {index + 1}
       </div>
 
       <div className="flex-grow min-w-0">
-        <p className={`font-black text-sm uppercase italic tracking-tighter truncate ${isDone ? 'text-gray-500 line-through' : 'text-white'}`}>
+        <p className={`font-black text-sm uppercase italic tracking-tighter truncate transition-colors ${isDone ? 'text-indigo-100' : 'text-white'}`}>
           {set.exercise}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{set.weight} LBS</span>
+          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isDone ? 'text-indigo-300' : 'text-indigo-400'}`}>{set.weight} LBS</span>
           <span className="text-[8px] text-gray-700">/</span>
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{set.reps} REPS</span>
+          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isDone ? 'text-indigo-200/50' : 'text-gray-400'}`}>{set.reps} REPS</span>
         </div>
       </div>
 
@@ -52,7 +56,7 @@ export default function SetRow({
             onClick={() => onToggle(set.id)}
             className={`p-2 rounded-xl transition-all ${
               isDone 
-                ? 'bg-green-500/20 text-green-500' 
+                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' 
                 : 'bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700'
             }`}
           >
