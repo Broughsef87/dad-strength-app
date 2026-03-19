@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
@@ -38,7 +38,6 @@ export default function BodyVitals() {
       const monday = getMondayOfWeek(new Date())
       const sunday = getSundayOfWeek(monday)
 
-      // Sessions this week
       const { data: weekLogs } = await supabase
         .from('workout_logs')
         .select('created_at')
@@ -49,7 +48,6 @@ export default function BodyVitals() {
 
       setSessionsThisWeek(weekLogs?.length ?? 0)
 
-      // Streak: consecutive unique days with completed workouts
       const { data: allLogs } = await supabase
         .from('workout_logs')
         .select('created_at')
@@ -85,98 +83,80 @@ export default function BodyVitals() {
   const onTrack = sessionsThisWeek >= Math.floor(WEEKLY_TARGET * 0.5)
   const crushing = sessionsThisWeek >= WEEKLY_TARGET
 
-  const weekStatusColor = crushing
-    ? 'text-green-400'
-    : onTrack
-    ? 'text-yellow-400'
-    : 'text-red-400'
-
-  const weekStatusLabel = crushing
-    ? 'On Fire'
-    : onTrack
-    ? 'On Track'
-    : 'Behind'
-
-  const streakColor = streak >= 5 ? 'text-green-400' : streak >= 2 ? 'text-yellow-400' : 'text-muted-foreground'
-
   if (loading) {
     return (
-      <div className="bg-card/50 rounded-3xl p-6 border border-border animate-pulse">
-        <div className="h-4 bg-gray-800 rounded w-1/2 mb-4" />
-        <div className="h-8 bg-gray-800 rounded w-1/3" />
+      <div className="bg-card rounded-xl p-5 border border-border animate-pulse">
+        <div className="h-3 bg-muted rounded w-1/2 mb-3" />
+        <div className="h-7 bg-muted rounded w-1/3" />
       </div>
     )
   }
 
   return (
     <div
-      className="bg-card/50 rounded-3xl p-6 border border-border shadow-xl group hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
+      className="bg-card rounded-xl p-5 border border-border hover:border-foreground/20 transition-colors cursor-pointer group"
       onClick={() => router.push('/body')}
     >
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
-            <Dumbbell size={20} />
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 bg-brand/10 rounded-lg text-brand">
+            <Dumbbell size={16} />
           </div>
-          <h3 className="font-black italic uppercase tracking-tighter text-sm">Body Vitals</h3>
+          <h3 className="font-medium text-sm">Body Vitals</h3>
         </div>
-        <ChevronRight size={16} className="text-gray-600 group-hover:text-indigo-400 transition-colors" />
+        <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        {/* Sessions this week */}
-        <div className="bg-card rounded-2xl p-4 border border-border group-hover:bg-indigo-500/5 transition-colors">
-          <div className="flex items-center gap-2 mb-2 text-muted-foreground">
-            <TrendingUp size={14} />
-            <span className="text-[10px] uppercase font-black tracking-widest">This Week</span>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-background rounded-lg p-3.5 border border-border">
+          <div className="flex items-center gap-1.5 mb-2 text-muted-foreground">
+            <TrendingUp size={12} />
+            <span className="text-[9px] uppercase tracking-[0.12em] font-medium">This Week</span>
           </div>
-          <p className={`text-2xl font-black font-mono tracking-tighter ${weekStatusColor}`}>
-            {sessionsThisWeek}/{WEEKLY_TARGET}
+          <p className={`text-xl font-light tabular-nums ${crushing ? 'text-green-600' : onTrack ? 'text-yellow-600' : 'text-red-500'}`}>
+            {sessionsThisWeek}<span className="text-sm text-muted-foreground">/{WEEKLY_TARGET}</span>
           </p>
-          <p className="text-[10px] text-gray-600 mt-1 font-bold uppercase tracking-widest">
-            {weekStatusLabel}
+          <p className="text-[9px] text-muted-foreground mt-0.5 uppercase tracking-[0.1em]">
+            {crushing ? 'On fire' : onTrack ? 'On track' : 'Behind'}
           </p>
         </div>
 
-        {/* Streak */}
-        <div className="bg-card rounded-2xl p-4 border border-border group-hover:bg-indigo-500/5 transition-colors">
-          <div className="flex items-center gap-2 mb-2 text-muted-foreground">
-            <Flame size={14} />
-            <span className="text-[10px] uppercase font-black tracking-widest">Streak</span>
+        <div className="bg-background rounded-lg p-3.5 border border-border">
+          <div className="flex items-center gap-1.5 mb-2 text-muted-foreground">
+            <Flame size={12} />
+            <span className="text-[9px] uppercase tracking-[0.12em] font-medium">Streak</span>
           </div>
-          <p className={`text-2xl font-black font-mono tracking-tighter ${streakColor}`}>
+          <p className={`text-xl font-light tabular-nums ${streak >= 5 ? 'text-green-600' : streak >= 2 ? 'text-yellow-600' : 'text-foreground'}`}>
             {streak}
           </p>
-          <p className="text-[10px] text-gray-600 mt-1 font-bold uppercase tracking-widest">
-            {streak === 1 ? 'Day' : 'Days'}
+          <p className="text-[9px] text-muted-foreground mt-0.5 uppercase tracking-[0.1em]">
+            {streak === 1 ? 'day' : 'days'}
           </p>
         </div>
       </div>
 
-      {/* Status banner */}
       {crushing ? (
-        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3">
-          <CheckCircle size={14} className="text-green-400 shrink-0" />
-          <p className="text-[10px] font-black text-green-400 uppercase tracking-widest">
-            Weekly target hit. Dad strength is real.
+        <div className="p-3 bg-green-500/8 border border-green-500/20 rounded-lg flex items-center gap-2.5">
+          <CheckCircle size={12} className="text-green-600 shrink-0" />
+          <p className="text-[10px] text-green-600 uppercase tracking-[0.1em] font-medium">
+            Weekly target hit.
           </p>
         </div>
       ) : onTrack ? (
-        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center gap-3">
-          <Flame size={14} className="text-yellow-400 shrink-0" />
-          <p className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">
-            {WEEKLY_TARGET - sessionsThisWeek} more session{WEEKLY_TARGET - sessionsThisWeek !== 1 ? 's' : ''} to hit the week.
+        <div className="p-3 bg-yellow-500/8 border border-yellow-500/20 rounded-lg flex items-center gap-2.5">
+          <Flame size={12} className="text-yellow-600 shrink-0" />
+          <p className="text-[10px] text-yellow-600 uppercase tracking-[0.1em] font-medium">
+            {WEEKLY_TARGET - sessionsThisWeek} session{WEEKLY_TARGET - sessionsThisWeek !== 1 ? 's' : ''} to go.
           </p>
         </div>
       ) : (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3">
-          <AlertTriangle size={14} className="text-red-400 shrink-0" />
-          <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">
-            Behind on the week. No excuses.
+        <div className="p-3 bg-red-500/8 border border-red-500/20 rounded-lg flex items-center gap-2.5">
+          <AlertTriangle size={12} className="text-red-500 shrink-0" />
+          <p className="text-[10px] text-red-500 uppercase tracking-[0.1em] font-medium">
+            Behind on the week.
           </p>
         </div>
       )}
     </div>
   )
 }
-

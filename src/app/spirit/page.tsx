@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
@@ -19,7 +19,6 @@ export default function SpiritPage() {
   useEffect(() => {
     setMounted(true);
     const today = new Date().toISOString().split('T')[0];
-    // Restore from localStorage first (fast)
     const saved = localStorage.getItem('dad-strength-spirit-state');
     if (saved) {
       const data = JSON.parse(saved);
@@ -27,7 +26,6 @@ export default function SpiritPage() {
         setPrayerDone(data.prayerDone || false);
       }
     }
-    // Fetch from Supabase (authoritative)
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       supabase
@@ -46,12 +44,8 @@ export default function SpiritPage() {
   }, [supabase]);
 
   const saveSpiritState = (done: boolean) => {
-    const state = {
-      date: new Date().toLocaleDateString(),
-      prayerDone: done,
-    };
+    const state = { date: new Date().toLocaleDateString(), prayerDone: done };
     localStorage.setItem('dad-strength-spirit-state', JSON.stringify(state));
-    // Also persist to Supabase (background, silent)
     const today = new Date().toISOString().split('T')[0];
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
@@ -65,9 +59,7 @@ export default function SpiritPage() {
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (timerActive && timerSeconds > 0) {
-      interval = setInterval(() => {
-        setTimerSeconds(prev => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setTimerSeconds(prev => prev - 1), 1000);
     } else if (timerSeconds === 0) {
       setTimerActive(false);
     }
@@ -85,97 +77,95 @@ export default function SpiritPage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans pb-24 p-6">
+    <div className="min-h-screen bg-background text-foreground pb-24 p-6">
       <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/dashboard')} className="p-2 bg-card rounded-xl text-muted-foreground">
-          <ArrowLeft size={20} />
+        <button onClick={() => router.push('/dashboard')} className="p-2 border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft size={16} />
         </button>
         <div className="flex items-center gap-3">
-          <Flame className="w-8 h-8 text-indigo-500" />
-          <h1 className="font-black text-2xl tracking-tighter italic uppercase">Spirit</h1>
+          <Flame className="w-5 h-5 text-brand" />
+          <h1 className="font-light text-2xl tracking-tight">Spirit</h1>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto space-y-8">
-        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
-           <FamilyPulse />
+      <main className="max-w-md mx-auto space-y-6">
+
+        <div className="bg-card p-6 rounded-xl border border-border">
+          <FamilyPulse />
         </div>
 
-        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
-           <Brotherhood />
+        <div className="bg-card p-6 rounded-xl border border-border">
+          <Brotherhood />
         </div>
 
-        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
-           <div className="flex items-center gap-2 mb-6">
-              <Anchor size={18} className="text-indigo-500" />
-              <h3 className="font-bold text-lg uppercase tracking-tighter italic">Spiritual Reset</h3>
-           </div>
-           
-           <div className="space-y-6">
-              {/* Timer Display */}
-              {timerSeconds > 0 && (
-                <div className="bg-background p-6 rounded-2xl border border-indigo-500/20 text-center animate-in fade-in zoom-in duration-300">
-                  <div className="text-4xl font-black text-foreground mb-4 font-mono tracking-tighter tabular-nums">
-                    {formatTime(timerSeconds)}
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => setTimerActive(!timerActive)}
-                      className="flex-1 py-2 bg-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest"
-                    >
-                      {timerActive ? <Pause size={14} className="mx-auto" /> : <Play size={14} className="mx-auto" />}
-                    </button>
-                    <button 
-                      onClick={() => { setTimerSeconds(0); setTimerActive(false); }}
-                      className="px-4 py-2 bg-card rounded-lg text-muted-foreground"
-                    >
-                      <RotateCcw size={14} />
-                    </button>
-                  </div>
+        {/* Spiritual Reset */}
+        <div className="bg-card p-6 rounded-xl border border-border">
+          <div className="flex items-center gap-2 mb-6">
+            <Anchor size={16} className="text-brand" />
+            <h3 className="font-medium text-sm">Spiritual Reset</h3>
+          </div>
+
+          <div className="space-y-5">
+            {timerSeconds > 0 && (
+              <div className="bg-background p-5 rounded-xl border border-border text-center">
+                <div className="text-4xl font-light text-foreground mb-4 font-mono tabular-nums tracking-tight">
+                  {formatTime(timerSeconds)}
                 </div>
-              )}
-
-              {/* Reset Buttons */}
-              <div className="grid grid-cols-2 gap-4">
-                 <button 
-                   onClick={() => startTimer(5)}
-                   className="flex flex-col items-center gap-3 p-4 bg-card/50 border border-border rounded-2xl hover:border-indigo-500/30 transition-all group"
-                 >
-                    <Timer size={20} className="text-gray-600 group-hover:text-indigo-500" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">5 MIN PRAYER</span>
-                 </button>
-                 <button 
-                   onClick={() => startTimer(10)}
-                   className="flex flex-col items-center gap-3 p-4 bg-card/50 border border-border rounded-2xl hover:border-indigo-500/30 transition-all group"
-                 >
-                    <Timer size={20} className="text-gray-600 group-hover:text-indigo-500" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">10 MIN MEDITATION</span>
-                 </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTimerActive(!timerActive)}
+                    className="flex-1 py-2.5 bg-foreground text-background rounded-lg text-xs font-medium uppercase tracking-[0.1em]"
+                  >
+                    {timerActive ? <Pause size={14} className="mx-auto" /> : <Play size={14} className="mx-auto" />}
+                  </button>
+                  <button
+                    onClick={() => { setTimerSeconds(0); setTimerActive(false); }}
+                    className="px-4 py-2.5 border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                </div>
               </div>
+            )}
 
-              <button 
-                onClick={() => { const next = !prayerDone; setPrayerDone(next); saveSpiritState(next); }}
-                className={`w-full flex flex-col items-center justify-center p-8 rounded-3xl border-2 transition-all gap-4 ${
-                  prayerDone 
-                    ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-2xl shadow-indigo-500/10' 
-                    : 'bg-background/50 border-border text-gray-700 hover:border-gray-700 hover:text-muted-foreground'
-                }`}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => startTimer(5)}
+                className="flex flex-col items-center gap-2.5 p-4 bg-background border border-border rounded-xl hover:border-foreground/30 transition-colors group"
               >
-                  {prayerDone ? <CheckCircle2 size={32} /> : <Sun size={32} />}
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                    {prayerDone ? 'Daily Reset Logged' : 'Log Daily Reset'}
-                  </span>
+                <Timer size={18} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors">5 Min Prayer</span>
               </button>
-           </div>
+              <button
+                onClick={() => startTimer(10)}
+                className="flex flex-col items-center gap-2.5 p-4 bg-background border border-border rounded-xl hover:border-foreground/30 transition-colors group"
+              >
+                <Timer size={18} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors">10 Min Meditation</span>
+              </button>
+            </div>
 
-           <p className="mt-6 text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center leading-relaxed italic px-4">
-              "Quiet the noise to hear the signal. The legacy is built in the silence."
-           </p>
+            <button
+              onClick={() => { const next = !prayerDone; setPrayerDone(next); saveSpiritState(next); }}
+              className={`w-full flex flex-col items-center justify-center p-8 rounded-xl border-2 transition-all gap-3 ${
+                prayerDone
+                  ? 'bg-brand/5 border-brand/30 text-brand'
+                  : 'bg-background border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'
+              }`}
+            >
+              {prayerDone ? <CheckCircle2 size={28} /> : <Sun size={28} />}
+              <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                {prayerDone ? 'Daily Reset Logged' : 'Log Daily Reset'}
+              </span>
+            </button>
+          </div>
+
+          <p className="mt-5 text-[11px] text-muted-foreground text-center leading-relaxed italic px-4">
+            "Quiet the noise to hear the signal."
+          </p>
         </div>
       </main>
 
@@ -183,4 +173,3 @@ export default function SpiritPage() {
     </div>
   );
 }
-

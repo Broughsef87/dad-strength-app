@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, PenLine, Target, Flame } from 'lucide-react'
@@ -8,16 +8,16 @@ import RecommendedReading from './RecommendedReading'
 const TIME_OPTIONS = [5, 10, 20, 30]
 
 const BABY_NIGHTS = [
-  { id: 'great',  label: 'Slept great',       emoji: 'ðŸ˜´' },
-  { id: 'ok',     label: 'Decent night',       emoji: 'ðŸ™‚' },
-  { id: 'rough',  label: 'Rough night',        emoji: 'ðŸ˜®â€ðŸ’¨' },
-  { id: 'brutal', label: 'Up all night',       emoji: 'ðŸ’€' },
+  { id: 'great',  label: 'Slept great',       emoji: '😴' },
+  { id: 'ok',     label: 'Decent night',       emoji: '🙂' },
+  { id: 'rough',  label: 'Rough night',        emoji: '😮‍💨' },
+  { id: 'brutal', label: 'Up all night',       emoji: '💀' },
 ]
 
 const ENERGY_LEVELS = [
-  { id: 'high',   label: 'Ready to go',        emoji: 'ðŸ”¥' },
-  { id: 'medium', label: 'Getting there',      emoji: 'â˜•' },
-  { id: 'low',    label: 'Running on fumes',   emoji: 'ðŸŒ«ï¸' },
+  { id: 'high',   label: 'Ready to go',        emoji: '🔥' },
+  { id: 'medium', label: 'Getting there',      emoji: '☕' },
+  { id: 'low',    label: 'Running on fumes',   emoji: '🌫️' },
 ]
 
 const PILLAR_ICONS: Record<string, any> = {
@@ -28,10 +28,10 @@ const PILLAR_ICONS: Record<string, any> = {
 }
 
 const PILLAR_COLORS: Record<string, string> = {
-  'Prayer':          'text-orange-400 bg-orange-500/10 border-orange-500/20',
-  'Meditation':      'text-sky-400 bg-sky-500/10 border-sky-500/20',
-  'Reading':         'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  'Goals & Journal': 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+  'Prayer':          'text-brand bg-brand/10 border-brand/20',
+  'Meditation':      'text-sky-600 bg-sky-500/10 border-sky-500/20',
+  'Reading':         'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
+  'Goals & Journal': 'text-foreground bg-muted border-border',
 }
 
 type Step = {
@@ -63,7 +63,6 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   const [error, setError] = useState('')
   const [configured, setConfigured] = useState(false)
 
-  // Load cached protocol for today
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -119,7 +118,6 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
     next[i] = !next[i]
     setCompleted(next)
     if (protocol) saveCache(protocol, next)
-    // Auto-expand next incomplete step
     if (next[i] && i < (protocol?.steps.length || 0) - 1) {
       setExpanded(i + 1)
     }
@@ -129,24 +127,27 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   const totalSteps = protocol?.steps.length || 0
   const allDone = doneCount === totalSteps && totalSteps > 0
 
-  // Config screen
   if (!configured) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Sun size={18} className="text-orange-400" />
-          <h3 className="font-black text-lg uppercase italic tracking-tighter">Morning Protocol</h3>
+      <div className="space-y-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Sun size={14} className="text-brand" />
+            <span className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium">Morning Protocol</span>
+          </div>
+          <p className="text-xs text-muted-foreground font-light">Build your morning. Own your day.</p>
         </div>
-        <p className="text-xs text-muted-foreground font-medium -mt-4">Build your morning. Own your day.</p>
 
         {/* Time */}
         <div>
-          <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest block mb-3">How much time do you have?</label>
+          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How much time?</label>
           <div className="flex gap-2">
             {TIME_OPTIONS.map(t => (
               <button key={t} onClick={() => setMinutes(t)}
-                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                  minutes === t ? 'bg-indigo-600 text-foreground shadow-lg' : 'bg-gray-800 text-muted-foreground hover:text-gray-300'
+                className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                  minutes === t
+                    ? 'bg-foreground text-background'
+                    : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
                 }`}
               >{t}m</button>
             ))}
@@ -155,17 +156,17 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
         {/* Baby's night */}
         <div>
-          <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest block mb-3">How'd the baby sleep?</label>
+          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How'd the baby sleep?</label>
           <div className="grid grid-cols-2 gap-2">
             {BABY_NIGHTS.map(b => (
               <button key={b.id} onClick={() => setBabyNight(b.id)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all border ${
                   babyNight === b.id
-                    ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300'
-                    : 'bg-gray-800/50 border border-transparent text-muted-foreground hover:border-gray-700'
+                    ? 'bg-brand/5 border-brand/30 text-foreground'
+                    : 'bg-muted border-transparent text-muted-foreground hover:border-border'
                 }`}
               >
-                <span>{b.emoji}</span> {b.label}
+                <span>{b.emoji}</span> <span className="text-xs">{b.label}</span>
               </button>
             ))}
           </div>
@@ -173,55 +174,54 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
         {/* Energy */}
         <div>
-          <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest block mb-3">Your energy right now?</label>
+          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">Your energy right now?</label>
           <div className="space-y-2">
             {ENERGY_LEVELS.map(e => (
               <button key={e.id} onClick={() => setEnergy(e.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all border ${
                   energy === e.id
-                    ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300'
-                    : 'bg-gray-800/50 border border-transparent text-muted-foreground hover:border-gray-700'
+                    ? 'bg-brand/5 border-brand/30 text-foreground'
+                    : 'bg-muted border-transparent text-muted-foreground hover:border-border'
                 }`}
               >
-                <span>{e.emoji}</span> {e.label}
+                <span>{e.emoji}</span> <span className="text-xs">{e.label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {error && <p className="text-red-400 text-xs font-bold text-center">{error}</p>}
+        {error && <p className="text-red-500 text-xs text-center">{error}</p>}
 
         <button
           onClick={() => generate()}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-foreground font-black py-5 rounded-2xl uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-500/20 text-base"
+          className="w-full flex items-center justify-center gap-2 bg-foreground hover:opacity-90 disabled:opacity-50 text-background font-medium py-4 rounded-lg text-sm uppercase tracking-[0.1em] transition-all active:scale-[0.98]"
         >
           {loading
-            ? <><Loader2 size={18} className="animate-spin" /> Building Your Morning...</>
-            : <><Sun size={18} /> Build My Morning</>
+            ? <><Loader2 size={16} className="animate-spin" /> Building...</>
+            : <><Sun size={16} /> Build My Morning</>
           }
         </button>
       </div>
     )
   }
 
-  // Protocol view
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Sun size={16} className="text-orange-400" />
-            <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Morning Protocol</span>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Sun size={13} className="text-brand" />
+            <span className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium">Morning Protocol</span>
           </div>
-          <h3 className="font-black text-2xl italic uppercase tracking-tight leading-none">
+          <h3 className="font-light text-lg tracking-tight leading-tight">
             {protocol?.theme}
           </h3>
         </div>
         <button
           onClick={() => { setConfigured(false); setProtocol(null); setCompleted([]) }}
-          className="p-1.5 text-gray-600 hover:text-muted-foreground rounded-lg hover:bg-gray-800 transition-colors"
+          className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
           title="Rebuild"
         >
           <RefreshCw size={13} />
@@ -229,24 +229,24 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       </div>
 
       {/* Greeting */}
-      <p className="text-sm text-gray-300 font-medium leading-relaxed">{protocol?.greeting}</p>
+      <p className="text-sm text-muted-foreground font-light leading-relaxed">{protocol?.greeting}</p>
 
-      {/* Progress bar */}
+      {/* Progress */}
       <div className="space-y-1.5">
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Progress</span>
-          <span className="text-[10px] font-black text-indigo-400">{doneCount}/{totalSteps}</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Progress</span>
+          <span className="text-[10px] text-brand font-medium">{doneCount}/{totalSteps}</span>
         </div>
-        <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
           <div
-            className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+            className="h-full bg-brand rounded-full transition-all duration-500"
             style={{ width: totalSteps ? `${(doneCount / totalSteps) * 100}%` : '0%' }}
           />
         </div>
       </div>
 
       {/* Steps */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {protocol?.steps.map((step, i) => {
           const Icon = PILLAR_ICONS[step.pillar] || Sun
           const colors = PILLAR_COLORS[step.pillar] || PILLAR_COLORS['Prayer']
@@ -256,53 +256,51 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           return (
             <div
               key={i}
-              className={`rounded-2xl border overflow-hidden transition-all ${
+              className={`rounded-xl border overflow-hidden transition-all ${
                 isDone ? 'border-border opacity-60' : 'border-border'
               }`}
             >
-              {/* Step header */}
               <button
                 onClick={() => setExpanded(isExpanded ? null : i)}
-                className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-800/30 transition-all"
+                className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-muted/50 transition-colors"
               >
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleStep(i) }}
                   className="flex-shrink-0 transition-all"
                 >
                   {isDone
-                    ? <CheckCircle2 size={22} className="text-indigo-500" />
-                    : <Circle size={22} className="text-gray-700 hover:text-muted-foreground" />
+                    ? <CheckCircle2 size={18} className="text-brand" />
+                    : <Circle size={18} className="text-border hover:text-muted-foreground" />
                   }
                 </button>
-                <div className={`h-9 w-9 rounded-xl flex items-center justify-center border flex-shrink-0 ${colors}`}>
-                  <Icon size={16} />
+                <div className={`h-8 w-8 rounded-lg flex items-center justify-center border flex-shrink-0 ${colors}`}>
+                  <Icon size={14} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`font-black text-sm tracking-tight ${isDone ? 'line-through text-gray-600' : ''}`}>
+                  <p className={`font-medium text-sm ${isDone ? 'line-through text-muted-foreground' : ''}`}>
                     {step.title}
                   </p>
-                  <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-0.5">
-                    {step.pillar} Â· {step.minutes}m
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em] mt-0.5">
+                    {step.pillar} · {step.minutes}m
                   </p>
                 </div>
-                {isExpanded ? <ChevronUp size={16} className="text-gray-600 flex-shrink-0" /> : <ChevronDown size={16} className="text-gray-600 flex-shrink-0" />}
+                {isExpanded ? <ChevronUp size={14} className="text-muted-foreground flex-shrink-0" /> : <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />}
               </button>
 
-              {/* Expanded content */}
               {isExpanded && !isDone && (
-                <div className="px-5 pb-5 space-y-3 border-t border-border/50 pt-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">{step.guidance}</p>
+                <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+                  <p className="text-sm text-muted-foreground font-light leading-relaxed">{step.guidance}</p>
                   {step.pillar === 'Meditation' && <AmbientAudioPlayer />}
                   {step.pillar === 'Reading' && <RecommendedReading />}
-                  <div className={`rounded-xl px-4 py-3 border ${colors}`}>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Focus Prompt</p>
-                    <p className="text-sm font-bold italic">{step.prompt}</p>
+                  <div className={`rounded-lg px-4 py-3 border ${colors}`}>
+                    <p className="text-[10px] uppercase tracking-[0.1em] font-medium mb-1 opacity-70">Focus Prompt</p>
+                    <p className="text-sm font-light italic">{step.prompt}</p>
                   </div>
                   <button
                     onClick={() => toggleStep(i)}
-                    className="w-full bg-gray-800 hover:bg-gray-700 text-foreground font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all"
+                    className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs uppercase tracking-[0.1em] transition-all"
                   >
-                    Mark Complete âœ“
+                    Mark Complete ✓
                   </button>
                 </div>
               )}
@@ -311,14 +309,12 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         })}
       </div>
 
-      {/* Closing word */}
       {allDone && protocol?.closingWord && (
-        <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-5 text-center animate-in fade-in duration-500">
-          <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Morning Complete</p>
-          <p className="text-base font-black italic text-foreground leading-snug">{protocol.closingWord}</p>
+        <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 text-center">
+          <p className="text-[10px] text-brand uppercase tracking-[0.12em] font-medium mb-2">Morning Complete</p>
+          <p className="text-sm font-light text-foreground leading-snug">{protocol.closingWord}</p>
         </div>
       )}
     </div>
   )
 }
-

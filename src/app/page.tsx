@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { createClient } from '../utils/supabase/client';
 import { Auth } from '@supabase/auth-ui-react';
@@ -23,52 +23,57 @@ export default function Home() {
   }, [router, supabase.auth]);
 
   if (loading) {
-    return <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-muted-foreground font-mono text-xs uppercase tracking-widest">Checking Authorization...</p>
+    return (
+      <div className="flex h-screen items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-foreground border-t-transparent rounded-full animate-spin opacity-40" />
+          <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Loading...</p>
+        </div>
       </div>
-    </div>;
+    );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-24 text-foreground">
-      <div className="z-10 w-full max-w-md items-center justify-between font-mono text-sm lg:flex-col gap-8">
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-16 w-16 rounded-3xl bg-indigo-600 flex items-center justify-center mb-6 shadow-2xl shadow-indigo-500/20 rotate-3">
-             <span className="text-3xl font-black">D</span>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-8 text-foreground">
+      <div className="w-full max-w-sm space-y-8">
+
+        {/* Brand mark */}
+        <div className="flex flex-col items-center space-y-4">
+          <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-foreground">
+            <span className="text-background font-semibold text-lg">D</span>
           </div>
-          <h1 className="text-4xl font-black mb-2 text-center uppercase tracking-tighter italic">Dad Strength</h1>
-          <p className="text-muted-foreground text-center font-medium">
-            The Operating System for Modern Fatherhood.
-          </p>
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-light tracking-tight text-foreground">Dad Strength</h1>
+            <p className="text-sm text-muted-foreground font-light">
+              The Operating System for Modern Fatherhood.
+            </p>
+          </div>
         </div>
 
-        <div className="bg-card p-8 rounded-3xl shadow-2xl border border-border w-full">
+        {/* Auth card */}
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
           <Auth
             supabaseClient={supabase}
-            appearance={{ 
+            appearance={{
               theme: ThemeSupa,
               variables: {
                 default: {
                   colors: {
-                    brand: '#4f46e5',
-                    brandAccent: '#4338ca',
+                    brand: '#E8572A',
+                    brandAccent: '#c94a22',
                   },
                 },
               },
             }}
-            theme="dark"
             providers={['google']}
             redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined}
           />
         </div>
 
-        <p className="text-[10px] text-gray-600 uppercase font-black tracking-[0.3em] mt-12">
-          Forge OS // Dad Strength v2.0
+        <p className="text-center text-[10px] text-muted-foreground uppercase tracking-[0.2em]">
+          Forge OS · Dad Strength
         </p>
       </div>
     </div>
   );
 }
-

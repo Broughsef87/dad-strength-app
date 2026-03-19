@@ -1,12 +1,12 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Shield, 
-  Brain, 
-  Dumbbell, 
-  Flame 
+import {
+  Shield,
+  Brain,
+  Dumbbell,
+  Flame
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -20,25 +20,24 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-4 flex items-center justify-between z-[100] backdrop-blur-md bg-background/90">
+    <nav className="fixed bottom-0 left-0 right-0 bg-background/95 border-t border-border px-6 py-3 flex items-center justify-between z-[100] backdrop-blur-md">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.path;
-        
+
         return (
-          <Link 
-            key={item.id} 
+          <Link
+            key={item.id}
             href={item.path}
-            className={`flex flex-col items-center gap-1 transition-all ${
-              isActive ? 'text-indigo-500 scale-110' : 'text-gray-600 hover:text-muted-foreground'
+            className={`flex flex-col items-center gap-1.5 transition-all min-w-[48px] ${
+              isActive ? 'text-brand' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Icon size={20} className={isActive ? 'shadow-[0_0_15px_rgba(79,70,229,0.3)]' : ''} />
-            <span className="text-[8px] font-black uppercase tracking-widest">{item.label}</span>
+            <Icon size={18} />
+            <span className="text-[9px] uppercase tracking-[0.15em] font-medium">{item.label}</span>
           </Link>
         );
       })}
     </nav>
   );
 }
-

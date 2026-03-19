@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
@@ -20,7 +20,6 @@ export default function Profile() {
       if (!data.user) { router.push('/'); return }
       setUser(data.user)
 
-      // Load real stats
       const { data: logs } = await supabase
         .from('workout_logs')
         .select('created_at, weight_lbs, reps, exercise_name, workout_id')
@@ -34,7 +33,6 @@ export default function Profile() {
         const topLog = logs.reduce((best: any, l: any) =>
           (l.weight_lbs || 0) > (best?.weight_lbs || 0) ? l : best, null)
 
-        // Streak
         const days = Array.from(uniqueDays)
         let streak = 0
         const today = new Date(); today.setHours(0,0,0,0)
@@ -47,12 +45,11 @@ export default function Profile() {
         setStats({
           totalSessions: uniqueDays.size,
           totalVolume: Math.round(totalVolume),
-          topLift: topLog ? `${topLog.exercise_name} Â· ${topLog.weight_lbs}lbs` : 'None yet',
+          topLift: topLog ? `${topLog.exercise_name} · ${topLog.weight_lbs}lbs` : 'None yet',
           streak,
         })
       }
 
-      // Load active program name
       const activeId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
       if (activeId) {
         const { data: workout } = await supabase.from('workouts').select('name').eq('id', activeId).maybeSingle()
@@ -70,127 +67,126 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
-      <header className="flex items-center justify-between border-b border-border bg-card/50 p-6 backdrop-blur-md sticky top-0 z-10">
-        <h1 className="text-2xl font-black italic uppercase">Profile</h1>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="flex items-center justify-between border-b border-border bg-background/90 px-6 py-4 backdrop-blur-md sticky top-0 z-10">
+        <h1 className="text-xl font-light tracking-tight">Profile</h1>
         <button className="text-muted-foreground hover:text-foreground transition-colors">
-          <SettingsIcon size={24} />
+          <SettingsIcon size={18} />
         </button>
       </header>
 
-      <main className="max-w-md mx-auto p-6 pb-24 space-y-8">
-        
+      <main className="max-w-md mx-auto p-6 pb-24 space-y-6">
+
         {/* User Card */}
-        <div className="bg-card rounded-3xl p-6 border border-border flex items-center gap-6 shadow-xl relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-           <div className="h-16 w-16 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xl ring-4 ring-indigo-500/20 z-10">
-             {user?.email?.charAt(0).toUpperCase() || 'D'}
-           </div>
-           <div className="z-10">
-             <h2 className="font-black text-xl">{user?.email?.split('@')[0] || 'Dad Warrior'}</h2>
-             <p className="text-xs text-muted-foreground">{user?.email}</p>
-             <span className="inline-block mt-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded">Pro Member</span>
-           </div>
+        <div className="bg-card rounded-xl p-5 border border-border flex items-center gap-5">
+          <div className="h-14 w-14 rounded-full bg-foreground flex items-center justify-center font-medium text-lg text-background shrink-0">
+            {user?.email?.charAt(0).toUpperCase() || 'D'}
+          </div>
+          <div>
+            <h2 className="font-medium text-base">{user?.email?.split('@')[0] || 'Dad'}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
+            <span className="inline-block mt-2 text-[10px] font-medium text-brand uppercase tracking-[0.12em] bg-brand/10 px-2 py-0.5 rounded">Pro Member</span>
+          </div>
         </div>
 
-        {/* High-Level Navigation (Empire / Growth) */}
+        {/* Navigation */}
         <div className="grid grid-cols-2 gap-4">
-           <button 
+          <button
             onClick={() => router.push('/profile/edit-mission')}
-            className="bg-card rounded-2xl p-5 border border-border hover:border-indigo-500/50 hover:bg-gray-800/50 transition-all flex flex-col items-center justify-center text-center group shadow-xl"
-           >
-             <div className="h-12 w-12 rounded-full bg-indigo-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <Target className="text-indigo-400" size={24} />
-             </div>
-             <p className="font-black text-sm uppercase tracking-widest text-foreground italic">Edit Mission</p>
-             <p className="text-[10px] text-muted-foreground mt-1 font-bold tracking-wider">Customize Goals</p>
-           </button>
-           
-           <button 
+            className="bg-card rounded-xl p-5 border border-border hover:border-foreground/20 transition-colors flex flex-col items-center text-center group"
+          >
+            <div className="h-10 w-10 rounded-full bg-brand/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <Target className="text-brand" size={20} />
+            </div>
+            <p className="font-medium text-sm">Edit Mission</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">Customize Goals</p>
+          </button>
+
+          <button
             onClick={() => router.push('/profile/growth')}
-            className="bg-card rounded-2xl p-5 border border-border hover:border-indigo-500/50 hover:bg-gray-800/50 transition-all flex flex-col items-center justify-center text-center group shadow-xl"
-           >
-             <div className="h-12 w-12 rounded-full bg-pink-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <BookOpen className="text-pink-400" size={24} />
-             </div>
-             <p className="font-black text-sm uppercase tracking-widest text-foreground italic">Growth</p>
-             <p className="text-[10px] text-muted-foreground mt-1 font-bold tracking-wider">Mindset & Family</p>
-           </button>
+            className="bg-card rounded-xl p-5 border border-border hover:border-foreground/20 transition-colors flex flex-col items-center text-center group"
+          >
+            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <BookOpen className="text-foreground" size={20} />
+            </div>
+            <p className="font-medium text-sm">Growth</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">Mindset & Family</p>
+          </button>
         </div>
 
-        {/* Real Stats */}
+        {/* Stats */}
         {loading ? (
           <div className="grid grid-cols-2 gap-4">
-            {[1,2,3,4].map(i => <div key={i} className="bg-card rounded-2xl p-4 border border-border h-20 animate-pulse" />)}
+            {[1,2,3,4].map(i => <div key={i} className="bg-card rounded-xl p-4 border border-border h-20 animate-pulse" />)}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-card rounded-2xl p-4 border border-border">
-              <Flame className="text-orange-500 mb-2" size={20} />
-              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Streak</p>
-              <p className="font-black text-2xl mt-1">{stats.streak} <span className="text-xs text-muted-foreground font-bold">days</span></p>
+            <div className="bg-card rounded-xl p-4 border border-border">
+              <Flame className="text-brand mb-2" size={16} />
+              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Streak</p>
+              <p className="font-light text-2xl mt-1">{stats.streak} <span className="text-xs text-muted-foreground">days</span></p>
             </div>
-            <div className="bg-card rounded-2xl p-4 border border-border">
-              <Dumbbell className="text-indigo-400 mb-2" size={20} />
-              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Sessions</p>
-              <p className="font-black text-2xl mt-1">{stats.totalSessions}</p>
+            <div className="bg-card rounded-xl p-4 border border-border">
+              <Dumbbell className="text-muted-foreground mb-2" size={16} />
+              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Sessions</p>
+              <p className="font-light text-2xl mt-1">{stats.totalSessions}</p>
             </div>
-            <div className="bg-card rounded-2xl p-4 border border-border">
-              <Activity className="text-green-500 mb-2" size={20} />
-              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Total Volume</p>
-              <p className="font-black text-lg mt-1">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground font-bold">lbs</span></p>
+            <div className="bg-card rounded-xl p-4 border border-border">
+              <Activity className="text-green-600 mb-2" size={16} />
+              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Total Volume</p>
+              <p className="font-light text-xl mt-1">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
             </div>
-            <div className="bg-card rounded-2xl p-4 border border-border">
-              <Trophy className="text-yellow-500 mb-2" size={20} />
-              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Top Lift</p>
-              <p className="font-bold text-xs mt-1 leading-snug">{stats.topLift}</p>
+            <div className="bg-card rounded-xl p-4 border border-border">
+              <Trophy className="text-yellow-600 mb-2" size={16} />
+              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Top Lift</p>
+              <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>
             </div>
           </div>
         )}
 
         {/* Active Program */}
         {programName && (
-          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 flex items-center justify-between">
+          <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-indigo-400 uppercase font-black tracking-widest">Active Protocol</p>
-              <p className="font-black text-sm mt-0.5">{programName}</p>
+              <p className="text-[10px] text-brand uppercase tracking-[0.12em] font-medium">Active Protocol</p>
+              <p className="font-medium text-sm mt-0.5">{programName}</p>
             </div>
-            <button onClick={() => router.push('/edit-program')} className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors">
-              Change â†’
+            <button onClick={() => router.push('/edit-program')} className="text-[10px] font-medium text-brand uppercase tracking-[0.12em] hover:opacity-70 transition-opacity">
+              Change →
             </button>
           </div>
         )}
 
-        {/* Settings Links */}
-        <div className="space-y-3">
-          <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest pl-2">App Settings</h3>
-          
-          <button className="w-full flex items-center justify-between p-4 bg-card rounded-2xl border border-border hover:border-gray-700 hover:bg-gray-800/50 transition-all group">
-             <div className="flex items-center gap-4">
-                <div className="p-2 bg-gray-800 rounded-lg group-hover:text-indigo-400"><Bell size={18} /></div>
-                <div className="text-left">
-                  <p className="font-bold text-sm">Notifications</p>
-                  <p className="text-xs text-muted-foreground">Workout reminders & alerts</p>
-                </div>
-             </div>
+        {/* Settings */}
+        <div className="space-y-2">
+          <h3 className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-medium px-1">Settings</h3>
+
+          <button className="w-full flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-foreground/20 transition-colors">
+            <div className="p-2 bg-muted rounded-lg">
+              <Bell size={16} className="text-foreground" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-sm">Notifications</p>
+              <p className="text-xs text-muted-foreground">Workout reminders & alerts</p>
+            </div>
           </button>
 
-          <button className="w-full flex items-center justify-between p-4 bg-card rounded-2xl border border-border hover:border-gray-700 hover:bg-gray-800/50 transition-all group">
-             <div className="flex items-center gap-4">
-                <div className="p-2 bg-gray-800 rounded-lg group-hover:text-indigo-400"><Shield size={18} /></div>
-                <div className="text-left">
-                  <p className="font-bold text-sm">Privacy & Security</p>
-                  <p className="text-xs text-muted-foreground">Password, data export</p>
-                </div>
-             </div>
+          <button className="w-full flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-foreground/20 transition-colors">
+            <div className="p-2 bg-muted rounded-lg">
+              <Shield size={16} className="text-foreground" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-sm">Privacy & Security</p>
+              <p className="text-xs text-muted-foreground">Password, data export</p>
+            </div>
           </button>
         </div>
 
-        <button 
+        <button
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 p-4 mt-8 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-all font-bold text-sm uppercase tracking-widest"
+          className="w-full flex items-center justify-center gap-2 p-4 mt-4 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/5 transition-colors text-sm font-medium"
         >
-          <LogOut size={18} /> Sign Out
+          <LogOut size={16} /> Sign Out
         </button>
 
       </main>
