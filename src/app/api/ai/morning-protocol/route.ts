@@ -1,5 +1,6 @@
 import { google } from '@ai-sdk/google'
-import { generateText } from 'ai'
+import { generateObject } from 'ai'
+import { z } from 'zod'
 
 export async function POST(req: Request) {
   try {
@@ -10,33 +11,27 @@ export async function POST(req: Request) {
       return Response.json({ error: 'AI configuration missing' }, { status: 500 });
     }
 
-    const { text } = await generateText({
+    const { object: protocol } = await generateObject({
       model: google('gemini-1.5-flash'),
-      prompt: `You are a high-performance coach for busy dads. Based on the following user status, generate a morning protocol.
-      
-      Status:
+      system: `You are a high-performance coach for busy dads. Based on the user status, generate a morning protocol. Tone: Stoic, encouraging, direct. No fluff.`,
+      prompt: `Status:
       - Energy: ${energy}
       - Focus: ${focus}
       - Mood: ${mood}
-      - Body Status: ${bodyStatus}
-      
-      Return a JSON object with this exact structure:
-      {
-        "title": "A short, motivating title for today's protocol",
-        "primaryObjective": "The single most important goal for the morning",
-        "mindsetShift": "A one-sentence mental frame to adopt",
-        "actions": [
-          { "task": "specific action", "duration": "e.g. 5 min", "benefit": "why do this" }
-        ],
-        "warning": "One thing to avoid today"
-      }
-      
-      Tone: Stoic, encouraging, direct. No fluff. Use valid JSON only.`,
+      - Body Status: ${bodyStatus}`,
+      schema: z.object({
+        title: z.string().describe("A short, motivating title for today's protocol"),
+        primaryObjective: z.string().describe("The single most important goal for the morning"),
+        mindsetShift: z.string().describe("A one-sentence mental frame to adopt"),
+        actions: z.array(z.object({
+          task: z.string(),
+          duration: z.string(),
+          benefit: z.string()
+        })),
+        warning: z.string().describe("One thing to avoid today")
+      })
     })
 
-    console.log('Morning Protocol Raw Text:', text);
-    const cleaned = text.replace(/```json|```/g, '').trim()
-    const protocol = JSON.parse(cleaned)
     return Response.json({ protocol })
   } catch (error) {
     console.error('AI Morning Protocol Error:', error);
