@@ -12,7 +12,8 @@ const nextConfig = {
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true,
-  }
+  },
+  turbopack: {},
 };
 
 export default withPWA(nextConfig);
