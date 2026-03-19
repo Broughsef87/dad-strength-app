@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from 'next'
+﻿import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk } from 'next/font/google'
 import './globals.css'
 
@@ -30,3 +30,4 @@ export default function RootLayout({
     </html>
   )
 }
+
