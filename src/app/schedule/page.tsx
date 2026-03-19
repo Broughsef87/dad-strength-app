@@ -183,7 +183,7 @@ export default function Schedule() {
           </div>
           <div className="bg-card rounded-2xl p-4 border border-border text-center">
             <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">Volume</p>
-            <p className="font-black text-lg">{weekVolume > 0 ? `${(weekVolume/1000).toFixed(1)}k` : 'â€”'}</p>
+            <p className="font-black text-lg">{weekVolume > 0 ? `${(weekVolume/1000).toFixed(1)}k` : '—'}</p>
           </div>
         </div>
 
@@ -196,7 +196,7 @@ export default function Schedule() {
               <div>
                 <p className="font-black text-base">Session Complete</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {todayData.sessionCount} sets Â· {Math.round(todayData.volume).toLocaleString()} lbs
+                  {todayData.sessionCount} sets · {Math.round(todayData.volume).toLocaleString()} lbs
                 </p>
               </div>
             </div>
@@ -229,7 +229,7 @@ export default function Schedule() {
                 onClick={() => router.push('/edit-program')}
                 className="mt-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest border border-indigo-500/30 px-4 py-2 rounded-lg hover:bg-indigo-500/10 transition-colors"
               >
-                Set Up Program â†’
+                Set Up Program →
               </button>
             </div>
           )}

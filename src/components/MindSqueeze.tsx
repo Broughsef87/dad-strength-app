@@ -6,11 +6,11 @@ import { Brain, Clock, Loader2, Zap, Play, SkipForward, Lock } from 'lucide-reac
 const TIME_OPTIONS = [10, 20, 30, 45]
 
 const STATES = [
-  { id: 'focused',   label: 'Locked in',          emoji: 'ðŸŽ¯' },
-  { id: 'scattered', label: 'Scattered / distracted', emoji: 'ðŸŒ€' },
-  { id: 'tired',     label: 'Running on fumes',    emoji: 'ðŸ˜®â€ðŸ’¨' },
-  { id: 'anxious',   label: 'Anxious / overwhelmed', emoji: 'âš¡' },
-  { id: 'creative',  label: 'Creative energy',     emoji: 'ðŸ”¥' },
+  { id: 'focused',   label: 'Locked in',          emoji: '🎯' },
+  { id: 'scattered', label: 'Scattered / distracted', emoji: '🌀' },
+  { id: 'tired',     label: 'Running on fumes',    emoji: '😮‍💨' },
+  { id: 'anxious',   label: 'Anxious / overwhelmed', emoji: '⚡' },
+  { id: 'creative',  label: 'Creative energy',     emoji: '🔥' },
 ]
 
 const BLOCK_COLORS: Record<string, string> = {
@@ -122,7 +122,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
         <div className="bg-gray-800/30 rounded-2xl p-4 border border-border">
           <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">Pulling from your objectives</p>
           {objectives.filter(Boolean).map((o, i) => (
-            <p key={i} className="text-xs text-muted-foreground font-medium">Â· {o}</p>
+            <p key={i} className="text-xs text-muted-foreground font-medium">· {o}</p>
           ))}
         </div>
       )}
@@ -209,7 +209,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
                 disabled={activeBlock >= sprint.blocks.length - 1}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-foreground font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all"
               >
-                Next Block â†’
+                Next Block →
               </button>
               <button
                 onClick={() => { setActive(false); setActiveBlock(0) }}

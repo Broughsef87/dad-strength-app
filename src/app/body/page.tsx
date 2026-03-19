@@ -1,5 +1,6 @@
 import BodyVitals from '../../components/BodyVitals';
 import NapSqueeze from '../../components/NapSqueeze';
+import ProteinTracker from '../../components/ProteinTracker';
 import BottomNav from '../../components/BottomNav';
 
 export default function BodyPage() {
@@ -19,16 +20,7 @@ export default function BodyPage() {
 
           <section>
             <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">Metabolic Tracking</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-card border border-border rounded-xl p-5">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-2">Daily Protein</p>
-                <p className="text-2xl font-light">145<span className="text-sm text-brand ml-1">g</span></p>
-              </div>
-              <div className="bg-card border border-border rounded-xl p-5">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-2">Calorie Target</p>
-                <p className="text-2xl font-light">2,850</p>
-              </div>
-            </div>
+            <ProteinTracker />
           </section>
         </div>
       </div>

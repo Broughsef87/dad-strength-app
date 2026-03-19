@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dad-strength-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/broug/.openclaw/workspace/production/dad-strength-app/node_modules/next/dist/bin/next", "dev", "--port", "3002"],
+      "port": 3002
+    }
+  ]
+}

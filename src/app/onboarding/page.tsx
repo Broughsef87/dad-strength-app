@@ -90,7 +90,7 @@ const FOCUSES = [
 ]
 
 const TRACKS = [
-  { id: 'iron', name: 'Iron Path', icon: Dumbbell, desc: 'Full gym â€” barbells, racks, machines.' },
+  { id: 'iron', name: 'Iron Path', icon: Dumbbell, desc: 'Full gym — barbells, racks, machines.' },
   { id: 'home', name: 'At Home', icon: HomeIcon, desc: 'Dumbbells, bands, or bodyweight only.' },
 ]
 
@@ -148,8 +148,8 @@ export default function Onboarding() {
       const { data: newWorkout, error: insertError } = await supabase
         .from('workouts')
         .insert({
-          name: `${FOCUS_LABELS[focus]} Â· ${TRACK_LABELS[track]}`,
-          description: `${frequency} days/week Â· Your first protocol`,
+          name: `${FOCUS_LABELS[focus]} · ${TRACK_LABELS[track]}`,
+          description: `${frequency} days/week · Your first protocol`,
           exercises,
           status: 'active',
           user_id: user.id,
@@ -225,9 +225,9 @@ export default function Onboarding() {
 
             <div className="space-y-3 text-left bg-card/50 rounded-3xl p-6 border border-border w-full">
               {[
-                { icon: 'ðŸ’ª', text: 'Training protocols built for your life' },
-                { icon: 'ðŸ§ ', text: 'Mind tools: deep work, journaling, goals' },
-                { icon: 'ðŸ™', text: 'Spirit: prayer, meditation, relationships' },
+                { icon: '💪', text: 'Training protocols built for your life' },
+                { icon: '🧠', text: 'Mind tools: deep work, journaling, goals' },
+                { icon: '🙏', text: 'Spirit: prayer, meditation, relationships' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm font-medium text-gray-300">
                   <span className="text-xl">{item.icon}</span>
@@ -351,7 +351,7 @@ export default function Onboarding() {
                     {days} Days / Week
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">
-                    {days === 3 ? 'Mon / Wed / Fri â€” the dad-proof schedule.' : 'Mon / Tue / Thu / Fri / Sat â€” for the serious forge.'}
+                    {days === 3 ? 'Mon / Wed / Fri — the dad-proof schedule.' : 'Mon / Tue / Thu / Fri / Sat — for the serious forge.'}
                   </p>
                 </button>
               ))}
@@ -379,7 +379,7 @@ export default function Onboarding() {
                 {FOCUS_LABELS[focus]}<br />
                 <span className="text-indigo-400">{TRACK_LABELS[track]}</span>
               </h2>
-              <p className="text-muted-foreground text-sm mt-2">{frequency} days/week Â· Deploy anytime.</p>
+              <p className="text-muted-foreground text-sm mt-2">{frequency} days/week · Deploy anytime.</p>
             </div>
 
             <div className="bg-card/50 rounded-3xl border border-border p-5 space-y-3">

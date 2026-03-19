@@ -54,7 +54,7 @@ export default function Library() {
         .from('workouts')
         .insert({
           name: `Quick: ${ex.name}`,
-          description: `Single-exercise session â€” ${ex.target}`,
+          description: `Single-exercise session — ${ex.target}`,
           exercises: [{ name: ex.name, sets: 4, reps: '8-12' }],
           status: 'active',
           user_id: user.id,
@@ -111,7 +111,7 @@ export default function Library() {
                   : 'bg-card border-border text-muted-foreground hover:border-gray-700'
               }`}
             >
-              {eq === 'all' ? 'ðŸ‹ï¸ All' : eq === 'iron' ? 'ðŸ”© Iron Path' : 'ðŸ  At Home'}
+              {eq === 'all' ? '🏋️ All' : eq === 'iron' ? '🔩 Iron Path' : '🏠 At Home'}
             </button>
           ))}
         </div>

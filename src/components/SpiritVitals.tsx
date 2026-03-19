@@ -155,7 +155,7 @@ export default function SpiritVitals() {
           <AlertTriangle size={14} className="text-orange-400 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">
-              {overdueNames.join(', ')}{overdueCount > 2 ? ` +${overdueCount - 2} more` : ''} â€” Call someone.
+              {overdueNames.join(', ')}{overdueCount > 2 ? ` +${overdueCount - 2} more` : ''} — Call someone.
             </p>
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function SpiritVitals() {
         <div className="p-3 bg-gray-800/50 border border-gray-700 rounded-xl flex items-center gap-3">
           <Shield size={14} className="text-muted-foreground shrink-0" />
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-            No brothers added yet â†’ Spirit page
+            No brothers added yet → Spirit page
           </p>
         </div>
       )}

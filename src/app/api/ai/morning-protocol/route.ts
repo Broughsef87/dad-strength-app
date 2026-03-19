@@ -4,31 +4,40 @@ import { z } from 'zod'
 
 export async function POST(req: Request) {
   try {
-    const { energy, focus, mood, bodyStatus } = await req.json()
-    
+    const { minutes, babyNight, energy, objectives, dayOfWeek } = await req.json()
+
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GEMINI_API_KEY) {
       console.error('Missing Google/Gemini API key in environment');
       return Response.json({ error: 'AI configuration missing' }, { status: 500 });
     }
 
+    const hasObjectives = objectives?.filter(Boolean).length > 0
+    const objectivesList = hasObjectives
+      ? objectives.filter(Boolean).map((o: string, i: number) => `${i + 1}. ${o}`).join('\n')
+      : 'No objectives set'
+
     const { object: protocol } = await generateObject({
       model: google('gemini-1.5-flash'),
-      system: `You are a high-performance coach for busy dads. Based on the user status, generate a morning protocol. Tone: Stoic, encouraging, direct. No fluff.`,
-      prompt: `Status:
-      - Energy: ${energy}
-      - Focus: ${focus}
-      - Mood: ${mood}
-      - Body Status: ${bodyStatus}`,
+      system: `You are a high-performance coach for busy dads with young babies. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Goals & Journal. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
+      prompt: `Today is ${dayOfWeek}.
+Available time: ${minutes} minutes
+Baby's night: ${babyNight}
+Energy level: ${energy}
+Today's objectives:
+${objectivesList}
+
+Generate a morning protocol with exactly 4 steps — one for each pillar. Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading/Goals.`,
       schema: z.object({
-        title: z.string().describe("A short, motivating title for today's protocol"),
-        primaryObjective: z.string().describe("The single most important goal for the morning"),
-        mindsetShift: z.string().describe("A one-sentence mental frame to adopt"),
-        actions: z.array(z.object({
-          task: z.string(),
-          duration: z.string(),
-          benefit: z.string()
-        })),
-        warning: z.string().describe("One thing to avoid today")
+        theme: z.string().describe("A short, punchy theme for today's morning — e.g. 'The Quiet Before the War'"),
+        greeting: z.string().describe("1-2 sentence personal greeting acknowledging the baby's night and energy level. Direct, warm, stoic."),
+        steps: z.array(z.object({
+          pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Goals & Journal']),
+          minutes: z.number().describe('Minutes allocated to this pillar'),
+          title: z.string().describe('Short action title for this pillar'),
+          guidance: z.string().describe('2-3 sentence guidance for this block'),
+          prompt: z.string().describe('A single focus prompt or intention for this block'),
+        })).length(4),
+        closingWord: z.string().describe("One final sentence to send them into the day — stoic, motivating"),
       })
     })
 

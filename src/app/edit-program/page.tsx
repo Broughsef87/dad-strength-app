@@ -121,8 +121,8 @@ export default function EditProgram() {
       if (!user) { router.push('/'); return }
 
       const exercises = EXERCISE_SETS[selectedFocus][selectedTrack]
-      const workoutName = `${FOCUS_LABELS[selectedFocus]} Â· ${TRACK_LABELS[selectedTrack]}`
-      const workoutDesc = `${selectedWeeks}-week cycle Â· ${selectedFrequency} days/week`
+      const workoutName = `${FOCUS_LABELS[selectedFocus]} · ${TRACK_LABELS[selectedTrack]}`
+      const workoutDesc = `${selectedWeeks}-week cycle · ${selectedFrequency} days/week`
 
       // Insert new workout into Supabase
       const { data: newWorkout, error: insertError } = await supabase
@@ -299,9 +299,9 @@ export default function EditProgram() {
             <Calendar size={12} className="text-indigo-500" /> Protocol Preview
           </p>
           <p className="font-black text-lg italic tracking-tight mb-1">
-            {FOCUS_LABELS[selectedFocus]} Â· {TRACK_LABELS[selectedTrack]}
+            {FOCUS_LABELS[selectedFocus]} · {TRACK_LABELS[selectedTrack]}
           </p>
-          <p className="text-xs text-muted-foreground mb-4">{selectedWeeks}-week cycle Â· {selectedFrequency} days/week</p>
+          <p className="text-xs text-muted-foreground mb-4">{selectedWeeks}-week cycle · {selectedFrequency} days/week</p>
           <div className="space-y-2">
             {EXERCISE_SETS[selectedFocus][selectedTrack].map((ex, i) => (
               <div key={i} className="flex justify-between items-center text-xs">
