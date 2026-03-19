@@ -1,22 +1,79 @@
-@import "tailwindcss";
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  color-scheme: dark;
+@layer base {
+  :root {
+    /* Vuori / Apple / Mercedes - Industrial Bone (Light) */
+    --background: 60 14% 97%; /* #F8F8F6 Bone background */
+    --foreground: 240 6% 10%; /* zinc-900 text */
+    
+    --card: 0 0% 100%; /* Pure white cards for contrast */
+    --card-foreground: 240 6% 10%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 10%;
+    
+    --primary: 240 6% 10%; /* zinc-900 primary buttons */
+    --primary-foreground: 60 14% 97%; /* Bone text on buttons */
+    
+    --secondary: 240 5% 96%; /* zinc-100 */
+    --secondary-foreground: 240 6% 10%;
+    
+    --muted: 240 5% 96%; /* zinc-100 */
+    --muted-foreground: 240 4% 46%; /* zinc-500 */
+    
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 240 6% 90%; /* zinc-200 */
+    --input: 240 6% 90%;
+    --ring: 240 6% 10%;
+    
+    --radius: 0.75rem; /* Slightly rounder, modern Apple feel */
+  }
+
+  .dark {
+    /* Industrial Charcoal (Dark) */
+    --background: 240 10% 4%; /* zinc-950 */
+    --foreground: 60 14% 97%; /* Bone text */
+    
+    --card: 240 4% 10%; /* Slightly lighter than bg */
+    --card-foreground: 60 14% 97%;
+    
+    --popover: 240 4% 10%;
+    --popover-foreground: 60 14% 97%;
+    
+    --primary: 60 14% 97%; /* Bone buttons */
+    --primary-foreground: 240 10% 4%; /* Charcoal text */
+    
+    --secondary: 240 4% 16%; /* zinc-800 */
+    --secondary-foreground: 60 14% 97%;
+    
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%; /* zinc-400 */
+    
+    --accent: 240 4% 16%;
+    --accent-foreground: 60 14% 97%;
+    
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 240 4% 16%; /* zinc-800 */
+    --input: 240 4% 16%;
+    --ring: 240 5% 65%;
+  }
 }
 
-body {
-  background-color: #030712; /* gray-950 */
-  color: #ffffff;
-}
-
-/* Custom scrollbar for some UI elements if needed */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #374151;
-  border-radius: 10px;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
