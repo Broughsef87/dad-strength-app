@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { BookOpen, ExternalLink, CheckCircle2 } from 'lucide-react'
@@ -61,7 +61,7 @@ export default function RecommendedReading() {
 
   return (
     <div className="mt-4 space-y-3">
-      <p className="text-xs uppercase tracking-widest text-gray-500 font-black flex items-center gap-1.5">
+      <p className="text-xs uppercase tracking-widest text-muted-foreground font-black flex items-center gap-1.5">
         <BookOpen className="w-3.5 h-3.5" /> Recommended Reading
       </p>
 
@@ -71,13 +71,13 @@ export default function RecommendedReading() {
           <div
             key={book.id}
             className={`rounded-2xl border p-4 flex items-start justify-between gap-3 transition-all ${
-              active ? 'border-indigo-500/50 bg-indigo-950/30' : 'border-gray-800 bg-gray-900'
+              active ? 'border-indigo-500/50 bg-indigo-950/30' : 'border-border bg-card'
             }`}
           >
             <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold text-sm leading-tight">{book.title}</p>
+              <p className="text-foreground font-semibold text-sm leading-tight">{book.title}</p>
               <p className="text-indigo-400 text-xs mt-0.5">{book.author}</p>
-              <p className="text-gray-400 text-xs mt-1">{book.desc}</p>
+              <p className="text-muted-foreground text-xs mt-1">{book.desc}</p>
             </div>
 
             <div className="flex flex-col items-end gap-2 shrink-0">
@@ -85,7 +85,7 @@ export default function RecommendedReading() {
                 href={book.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-500 hover:text-indigo-400 transition-colors"
+                className="text-muted-foreground hover:text-indigo-400 transition-colors"
                 aria-label="Learn more"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -93,7 +93,7 @@ export default function RecommendedReading() {
               <button
                 onClick={() => toggleReading(book.id)}
                 title={active ? 'Currently reading' : 'Mark as reading'}
-                className={`transition-colors ${active ? 'text-emerald-400' : 'text-gray-700 hover:text-gray-400'}`}
+                className={`transition-colors ${active ? 'text-emerald-400' : 'text-gray-700 hover:text-muted-foreground'}`}
               >
                 <CheckCircle2 className="w-4 h-4" />
               </button>
@@ -103,10 +103,11 @@ export default function RecommendedReading() {
       })}
 
       {currentlyReading && (
-        <p className="text-xs text-gray-500 text-center">
-          ✅ Currently reading: <span className="text-indigo-400">{BOOKS.find(b => b.id === currentlyReading)?.title}</span>
+        <p className="text-xs text-muted-foreground text-center">
+          âœ… Currently reading: <span className="text-indigo-400">{BOOKS.find(b => b.id === currentlyReading)?.title}</span>
         </p>
       )}
     </div>
   )
 }
+

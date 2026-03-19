@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Brain, Clock, Loader2, Zap, Play, SkipForward, Lock } from 'lucide-react'
@@ -6,16 +6,16 @@ import { Brain, Clock, Loader2, Zap, Play, SkipForward, Lock } from 'lucide-reac
 const TIME_OPTIONS = [10, 20, 30, 45]
 
 const STATES = [
-  { id: 'focused',   label: 'Locked in',          emoji: '🎯' },
-  { id: 'scattered', label: 'Scattered / distracted', emoji: '🌀' },
-  { id: 'tired',     label: 'Running on fumes',    emoji: '😮‍💨' },
-  { id: 'anxious',   label: 'Anxious / overwhelmed', emoji: '⚡' },
-  { id: 'creative',  label: 'Creative energy',     emoji: '🔥' },
+  { id: 'focused',   label: 'Locked in',          emoji: 'ðŸŽ¯' },
+  { id: 'scattered', label: 'Scattered / distracted', emoji: 'ðŸŒ€' },
+  { id: 'tired',     label: 'Running on fumes',    emoji: 'ðŸ˜®â€ðŸ’¨' },
+  { id: 'anxious',   label: 'Anxious / overwhelmed', emoji: 'âš¡' },
+  { id: 'creative',  label: 'Creative energy',     emoji: 'ðŸ”¥' },
 ]
 
 const BLOCK_COLORS: Record<string, string> = {
   focus:      'border-indigo-500/30 bg-indigo-500/5 text-indigo-300',
-  transition: 'border-gray-700 bg-gray-800/40 text-gray-400',
+  transition: 'border-gray-700 bg-gray-800/40 text-muted-foreground',
   review:     'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
 }
 
@@ -75,7 +75,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
         <Brain size={18} className="text-indigo-500" />
         <h3 className="font-black text-lg uppercase italic tracking-tighter">Mind Squeeze</h3>
       </div>
-      <p className="text-xs text-gray-500 font-medium -mt-4">Stolen time. Optimized focus. Let's go.</p>
+      <p className="text-xs text-muted-foreground font-medium -mt-4">Stolen time. Optimized focus. Let's go.</p>
 
       {/* Time */}
       <div>
@@ -88,7 +88,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
               key={t}
               onClick={() => setMinutes(t)}
               className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                minutes === t ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-800 text-gray-500 hover:text-gray-300'
+                minutes === t ? 'bg-indigo-600 text-foreground shadow-lg' : 'bg-gray-800 text-muted-foreground hover:text-gray-300'
               }`}
             >
               {t}m
@@ -108,7 +108,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
               className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${
                 state === s.id
                   ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300'
-                  : 'bg-gray-800/50 border border-transparent text-gray-400 hover:border-gray-700'
+                  : 'bg-gray-800/50 border border-transparent text-muted-foreground hover:border-gray-700'
               }`}
             >
               <span>{s.emoji}</span> {s.label}
@@ -119,10 +119,10 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
 
       {/* Objectives preview */}
       {objectives.filter(Boolean).length > 0 && (
-        <div className="bg-gray-800/30 rounded-2xl p-4 border border-gray-800">
+        <div className="bg-gray-800/30 rounded-2xl p-4 border border-border">
           <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">Pulling from your objectives</p>
           {objectives.filter(Boolean).map((o, i) => (
-            <p key={i} className="text-xs text-gray-400 font-medium">· {o}</p>
+            <p key={i} className="text-xs text-muted-foreground font-medium">Â· {o}</p>
           ))}
         </div>
       )}
@@ -130,7 +130,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
       <button
         onClick={generate}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-500/20"
+        className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-500/20"
       >
         {loading
           ? <><Loader2 size={16} className="animate-spin" /> Building Sprint...</>
@@ -142,7 +142,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
 
       {/* Sprint result */}
       {sprint && (
-        <div className="bg-gray-900 rounded-3xl border border-indigo-500/20 p-6 space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-card rounded-3xl border border-indigo-500/20 p-6 space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
 
           {/* Header */}
           <div>
@@ -174,7 +174,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
                   }`}
                 >
                   <div className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 font-black text-xs ${
-                    isActive ? 'bg-indigo-500 text-white' : 'bg-gray-800/60 text-gray-500'
+                    isActive ? 'bg-indigo-500 text-foreground' : 'bg-gray-800/60 text-muted-foreground'
                   }`}>
                     {block.minutes}m
                   </div>
@@ -190,7 +190,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
             <Lock size={13} className="text-red-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-0.5">Do Not Touch</p>
-              <p className="text-xs text-gray-400 font-medium">{sprint.skip}</p>
+              <p className="text-xs text-muted-foreground font-medium">{sprint.skip}</p>
             </div>
           </div>
 
@@ -207,13 +207,13 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
               <button
                 onClick={() => setActiveBlock(b => Math.min(b + 1, sprint.blocks.length - 1))}
                 disabled={activeBlock >= sprint.blocks.length - 1}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-foreground font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all"
               >
-                Next Block →
+                Next Block â†’
               </button>
               <button
                 onClick={() => { setActive(false); setActiveBlock(0) }}
-                className="px-4 bg-gray-800 text-gray-400 font-black py-3 rounded-xl text-xs uppercase tracking-widest hover:bg-gray-700 transition-all"
+                className="px-4 bg-gray-800 text-muted-foreground font-black py-3 rounded-xl text-xs uppercase tracking-widest hover:bg-gray-700 transition-all"
               >
                 End
               </button>
@@ -224,3 +224,4 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
     </div>
   )
 }
+

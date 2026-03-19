@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Heart, Plus, Users, Trash2 } from 'lucide-react';
@@ -59,17 +59,17 @@ export default function RelationshipLedger() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Heart className="w-5 h-5 text-rose-500" />
-          <h3 className="font-bold text-white uppercase tracking-tighter italic">Relationship Ledger</h3>
+          <h3 className="font-bold text-foreground uppercase tracking-tighter italic">Relationship Ledger</h3>
         </div>
         <div className="flex -space-x-2">
-           <div className="w-6 h-6 rounded-full border-2 border-gray-950 bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-400">W</div>
-           <div className="w-6 h-6 rounded-full border-2 border-gray-950 bg-gray-800 flex items-center justify-center text-[8px] font-bold text-gray-400">K</div>
+           <div className="w-6 h-6 rounded-full border-2 border-gray-950 bg-gray-800 flex items-center justify-center text-[8px] font-bold text-muted-foreground">W</div>
+           <div className="w-6 h-6 rounded-full border-2 border-gray-950 bg-gray-800 flex items-center justify-center text-[8px] font-bold text-muted-foreground">K</div>
         </div>
       </div>
 
-      <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+      <div className="bg-card/50 p-4 rounded-xl border border-border">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Daily Deposits</p>
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Daily Deposits</p>
           <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">{deposits.length}/{target}</span>
         </div>
 
@@ -86,7 +86,7 @@ export default function RelationshipLedger() {
 
         <div className="space-y-3 mb-4">
           {deposits.map((d) => (
-            <div key={d.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-950/50 border border-gray-800 group animate-in fade-in slide-in-from-left-1">
+            <div key={d.id} className="flex items-center justify-between p-2 rounded-lg bg-background/50 border border-border group animate-in fade-in slide-in-from-left-1">
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-gray-300 font-medium truncate italic">"{d.text}"</p>
                 <p className="text-[8px] text-gray-600 font-black uppercase">{d.timestamp}</p>
@@ -107,11 +107,11 @@ export default function RelationshipLedger() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="What'd you do for her today?"
-            className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 pr-12 text-xs text-white placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
+            className="w-full bg-background border border-border rounded-xl p-3 pr-12 text-xs text-foreground placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
           />
           <button 
             type="submit"
-            className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-rose-500 text-white hover:bg-rose-400 transition-colors shadow-lg shadow-rose-500/20"
+            className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-rose-500 text-foreground hover:bg-rose-400 transition-colors shadow-lg shadow-rose-500/20"
           >
             <Plus size={16} />
           </button>
@@ -124,3 +124,4 @@ export default function RelationshipLedger() {
     </div>
   );
 }
+

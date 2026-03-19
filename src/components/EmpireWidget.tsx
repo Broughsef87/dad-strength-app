@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { TrendingUp, DollarSign, Youtube, MonitorSmartphone, ArrowRight, Target, Activity } from 'lucide-react'
@@ -68,26 +68,26 @@ export default function EmpireWidget() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-indigo-500" />
-          <h3 className="font-black text-white uppercase tracking-tighter italic">{mission.title}</h3>
+          <h3 className="font-black text-foreground uppercase tracking-tighter italic">{mission.title}</h3>
         </div>
-        <Link href="/profile/edit-mission" className="text-gray-600 hover:text-white transition-colors p-2 bg-gray-950 rounded-lg border border-gray-900">
+        <Link href="/profile/edit-mission" className="text-gray-600 hover:text-foreground transition-colors p-2 bg-background rounded-lg border border-border">
           <ArrowRight size={14} />
         </Link>
       </div>
 
       {/* Primary Target Progress */}
-      <div className="bg-gray-950/50 p-4 rounded-2xl border border-gray-800 shadow-inner">
+      <div className="bg-background/50 p-4 rounded-2xl border border-border shadow-inner">
         <div className="flex justify-between items-end mb-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">{mission.primaryMetric}</p>
-            <p className="font-black text-xl text-white tracking-tighter tabular-nums">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{mission.primaryMetric}</p>
+            <p className="font-black text-xl text-foreground tracking-tighter tabular-nums">
               {isCurrency && '$'}{displayCurrent} 
               <span className="text-gray-700 text-xs ml-1 font-bold">/ {isCurrency && '$'}{displayTarget} {mission.unit !== '$' && mission.unit}</span>
             </p>
           </div>
           <span className="text-xs font-black text-indigo-400 tabular-nums">{percentage}%</span>
         </div>
-        <div className="h-2 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-800 p-[1px]">
+        <div className="h-2 w-full bg-card rounded-full overflow-hidden border border-border p-[1px]">
           <div 
             className="h-full bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all duration-1000 ease-out rounded-full"
             style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -97,25 +97,26 @@ export default function EmpireWidget() {
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800 flex items-center gap-3 group hover:border-indigo-500/30 transition-all">
-          <div className="p-2 bg-gray-900 rounded-lg">
+        <div className="bg-background/50 p-3 rounded-xl border border-border flex items-center gap-3 group hover:border-indigo-500/30 transition-all">
+          <div className="p-2 bg-card rounded-lg">
              <S1Icon size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />
           </div>
           <div className="min-w-0">
-            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest truncate">{mission.secondary1Label}</p>
-            <p className="text-xs font-black text-white tracking-tighter tabular-nums">{mission.secondary1Value}</p>
+            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest truncate">{mission.secondary1Label}</p>
+            <p className="text-xs font-black text-foreground tracking-tighter tabular-nums">{mission.secondary1Value}</p>
           </div>
         </div>
-        <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800 flex items-center gap-3 group hover:border-indigo-500/30 transition-all">
-          <div className="p-2 bg-gray-900 rounded-lg">
+        <div className="bg-background/50 p-3 rounded-xl border border-border flex items-center gap-3 group hover:border-indigo-500/30 transition-all">
+          <div className="p-2 bg-card rounded-lg">
              <S2Icon size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />
           </div>
           <div className="min-w-0">
-            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest truncate">{mission.secondary2Label}</p>
-            <p className="text-xs font-black text-white tracking-tighter tabular-nums">{mission.secondary2Value}</p>
+            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest truncate">{mission.secondary2Label}</p>
+            <p className="text-xs font-black text-foreground tracking-tighter tabular-nums">{mission.secondary2Value}</p>
           </div>
         </div>
       </div>
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Bot, Send, Sparkles } from 'lucide-react';
@@ -23,7 +23,7 @@ export default function AutomationHook() {
   };
 
   return (
-    <div className="bg-gray-900/50 border border-indigo-500/20 rounded-3xl p-6 relative overflow-hidden group">
+    <div className="bg-card/50 border border-indigo-500/20 rounded-3xl p-6 relative overflow-hidden group">
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
         <Bot className="w-12 h-12 text-indigo-400" />
       </div>
@@ -33,15 +33,15 @@ export default function AutomationHook() {
           <div className="p-2 bg-indigo-500/20 rounded-lg">
             <Sparkles className="w-4 h-4 text-indigo-400" />
           </div>
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">The Mission</h2>
+          <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">The Mission</h2>
         </div>
 
-        <h3 className="text-xl font-black text-white mb-2 leading-tight">
+        <h3 className="text-xl font-black text-foreground mb-2 leading-tight">
           Automate the Boring,<br />
           Focus on the Meaningful.
         </h3>
         
-        <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+        <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
           What is one thing you wish you could automate today so you could spend more time with your family?
         </p>
 
@@ -56,11 +56,11 @@ export default function AutomationHook() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="e.g. Logging protein, scheduling emails..."
-              className="flex-1 bg-black/50 border border-gray-800 rounded-xl px-4 py-3 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500/50 transition-all"
+              className="flex-1 bg-black/50 border border-border rounded-xl px-4 py-3 text-xs text-foreground placeholder:text-gray-600 focus:outline-none focus:border-indigo-500/50 transition-all"
             />
             <button
               type="submit"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl transition-all active:scale-95"
+              className="bg-indigo-600 hover:bg-indigo-500 text-foreground p-3 rounded-xl transition-all active:scale-95"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -70,3 +70,4 @@ export default function AutomationHook() {
     </div>
   );
 }
+

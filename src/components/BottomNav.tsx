@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,7 +20,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-gray-950 border-t border-gray-900 px-6 py-4 flex items-center justify-between z-[100] backdrop-blur-md bg-gray-950/90">
+    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-4 flex items-center justify-between z-[100] backdrop-blur-md bg-background/90">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.path;
@@ -30,7 +30,7 @@ export default function BottomNav() {
             key={item.id} 
             href={item.path}
             className={`flex flex-col items-center gap-1 transition-all ${
-              isActive ? 'text-indigo-500 scale-110' : 'text-gray-600 hover:text-gray-400'
+              isActive ? 'text-indigo-500 scale-110' : 'text-gray-600 hover:text-muted-foreground'
             }`}
           >
             <Icon size={20} className={isActive ? 'shadow-[0_0_15px_rgba(79,70,229,0.3)]' : ''} />
@@ -41,3 +41,4 @@ export default function BottomNav() {
     </nav>
   );
 }
+

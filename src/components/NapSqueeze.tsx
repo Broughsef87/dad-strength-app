@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { Lock, Zap, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function NapSqueeze() {
   return (
-    <div className="bg-gray-900 border-2 border-indigo-500/30 rounded-[32px] overflow-hidden relative group">
+    <div className="bg-card border-2 border-indigo-500/30 rounded-[32px] overflow-hidden relative group">
       {/* Background Glow */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] -mr-16 -mt-16 group-hover:bg-indigo-500/20 transition-colors" />
       
@@ -16,15 +16,15 @@ export default function NapSqueeze() {
             </div>
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">Unlock The OS</span>
           </div>
-          <div className="px-3 py-1 bg-indigo-500 text-[10px] font-black uppercase tracking-widest text-white rounded-full">
+          <div className="px-3 py-1 bg-indigo-500 text-[10px] font-black uppercase tracking-widest text-foreground rounded-full">
             Limited Time
           </div>
         </div>
 
-        <h2 className="text-3xl font-black text-white tracking-tight mb-2 italic uppercase">
+        <h2 className="text-3xl font-black text-foreground tracking-tight mb-2 italic uppercase">
           Founder's Pass
         </h2>
-        <p className="text-gray-400 text-sm font-bold mb-8 leading-relaxed">
+        <p className="text-muted-foreground text-sm font-bold mb-8 leading-relaxed">
           Get the "Nap-Squeeze" productivity engine and all future premium protocols. One payment. Lifetime access.
         </p>
 
@@ -43,8 +43,8 @@ export default function NapSqueeze() {
         </div>
 
         <div className="flex items-baseline gap-2 mb-8">
-          <span className="text-4xl font-black text-white leading-none">$47</span>
-          <span className="text-sm font-bold text-gray-500 uppercase line-through">$149</span>
+          <span className="text-4xl font-black text-foreground leading-none">$47</span>
+          <span className="text-sm font-bold text-muted-foreground uppercase line-through">$149</span>
           <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-auto">One-Time Fee</span>
         </div>
 
@@ -54,10 +54,11 @@ export default function NapSqueeze() {
         </button>
 
         <div className="mt-6 flex items-center justify-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-gray-500" />
-          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Secure Stripe Checkout</span>
+          <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Secure Stripe Checkout</span>
         </div>
       </div>
     </div>
   );
 }
+

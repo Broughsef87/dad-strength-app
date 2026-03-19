@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Heart, Star, Plus, Trash2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -143,7 +143,7 @@ export default function FamilyPulse() {
 
   // Trend
   let TrendIcon = Minus;
-  let trendColor = 'text-gray-500';
+  let trendColor = 'text-muted-foreground';
   if (pulseScore !== null && lastWeekScore !== null) {
     if (pulseScore > lastWeekScore) { TrendIcon = TrendingUp; trendColor = 'text-emerald-400'; }
     else if (pulseScore < lastWeekScore) { TrendIcon = TrendingDown; trendColor = 'text-rose-400'; }
@@ -152,7 +152,7 @@ export default function FamilyPulse() {
   const weekLabel = (() => {
     const end = new Date(thisMonday.getTime() + 6 * 24 * 60 * 60 * 1000);
     const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `${fmt(thisMonday)} – ${fmt(end)}`;
+    return `${fmt(thisMonday)} â€“ ${fmt(end)}`;
   })();
 
   return (
@@ -161,23 +161,23 @@ export default function FamilyPulse() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Heart className="w-5 h-5 text-rose-500" />
-          <h3 className="font-black text-white uppercase tracking-tighter italic text-lg">Family Pulse</h3>
+          <h3 className="font-black text-foreground uppercase tracking-tighter italic text-lg">Family Pulse</h3>
         </div>
         <div className="flex items-center gap-2">
           {saving && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-600 animate-pulse">Saving…</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-gray-600 animate-pulse">Savingâ€¦</span>
           )}
-          <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">{weekLabel}</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{weekLabel}</span>
         </div>
       </div>
 
       {/* Pulse Score */}
-      <div className="bg-gray-950/80 rounded-2xl border border-gray-800 p-5 flex items-center gap-5">
+      <div className="bg-background/80 rounded-2xl border border-border p-5 flex items-center gap-5">
         <div className="flex-1">
-          <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Pulse Score</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Pulse Score</p>
           <div className="flex items-end gap-2">
-            <span className="text-5xl font-black tracking-tighter text-white leading-none">
-              {pulseScore !== null ? pulseScore.toFixed(1) : '—'}
+            <span className="text-5xl font-black tracking-tighter text-foreground leading-none">
+              {pulseScore !== null ? pulseScore.toFixed(1) : 'â€”'}
             </span>
             <span className="text-gray-600 font-black text-lg mb-1">/ 5</span>
           </div>
@@ -201,9 +201,9 @@ export default function FamilyPulse() {
       </div>
 
       {/* Marriage Vibe */}
-      <div className="bg-gray-900/40 rounded-2xl border border-gray-800 p-4 space-y-3">
+      <div className="bg-card/40 rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Marriage Vibe</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Marriage Vibe</p>
           <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">
             {current.marriage_vibe > 0 ? `${current.marriage_vibe}/5` : 'Not set'}
           </span>
@@ -229,9 +229,9 @@ export default function FamilyPulse() {
       </div>
 
       {/* Kid Connection */}
-      <div className="bg-gray-900/40 rounded-2xl border border-gray-800 p-4 space-y-3">
+      <div className="bg-card/40 rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Kid Connection</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Kid Connection</p>
           <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
             {current.kid_score > 0 ? `${current.kid_score}/5` : 'Not set'}
           </span>
@@ -257,10 +257,10 @@ export default function FamilyPulse() {
       </div>
 
       {/* Intentional Moments */}
-      <div className="bg-gray-900/40 rounded-2xl border border-gray-800 p-4 space-y-3">
+      <div className="bg-card/40 rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Intentional Moments</p>
-          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Intentional Moments</p>
+          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
             {current.moments.length}/5
           </span>
         </div>
@@ -271,7 +271,7 @@ export default function FamilyPulse() {
 
         <div className="space-y-2">
           {current.moments.map((m, i) => (
-            <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-gray-950/60 border border-gray-800 group animate-in fade-in slide-in-from-left-1">
+            <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-background/60 border border-border group animate-in fade-in slide-in-from-left-1">
               <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest w-4 shrink-0">{i + 1}</span>
               <p className="flex-1 text-xs text-gray-300 italic truncate">"{m}"</p>
               <button
@@ -291,11 +291,11 @@ export default function FamilyPulse() {
               value={momentInput}
               onChange={(e) => setMomentInput(e.target.value)}
               placeholder="What did you do together?"
-              className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 pr-12 text-xs text-white placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              className="w-full bg-background border border-border rounded-xl p-3 pr-12 text-xs text-foreground placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
             />
             <button
               type="submit"
-              className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
+              className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-indigo-600 text-foreground hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
             >
               <Plus size={16} />
             </button>
@@ -310,3 +310,4 @@ export default function FamilyPulse() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { CheckCircle2, Circle, Trash2 } from 'lucide-react';
 
@@ -27,26 +27,26 @@ export default function SetRow({
 
   return (
     <div 
-      className={`group flex items-center gap-4 p-4 bg-gray-900/80 border transition-all duration-300 ${
+      className={`group flex items-center gap-4 p-4 bg-card/80 border transition-all duration-300 ${
         isDone 
           ? 'border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.1)] scale-[1.01]' 
-          : 'border-gray-800 hover:border-gray-700'
+          : 'border-border hover:border-gray-700'
       } rounded-2xl`}
     >
       <div className={`flex-none w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black italic transition-colors ${
-        isDone ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-500'
+        isDone ? 'bg-indigo-500 text-foreground' : 'bg-gray-800 text-muted-foreground'
       }`}>
         {index + 1}
       </div>
 
       <div className="flex-grow min-w-0">
-        <p className={`font-black text-sm uppercase italic tracking-tighter truncate transition-colors ${isDone ? 'text-indigo-100' : 'text-white'}`}>
+        <p className={`font-black text-sm uppercase italic tracking-tighter truncate transition-colors ${isDone ? 'text-indigo-100' : 'text-foreground'}`}>
           {set.exercise}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
           <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isDone ? 'text-indigo-300' : 'text-indigo-400'}`}>{set.weight} LBS</span>
           <span className="text-[8px] text-gray-700">/</span>
-          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isDone ? 'text-indigo-200/50' : 'text-gray-400'}`}>{set.reps} REPS</span>
+          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isDone ? 'text-indigo-200/50' : 'text-muted-foreground'}`}>{set.reps} REPS</span>
         </div>
       </div>
 
@@ -56,8 +56,8 @@ export default function SetRow({
             onClick={() => onToggle(set.id)}
             className={`p-2 rounded-xl transition-all ${
               isDone 
-                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' 
-                : 'bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700'
+                ? 'bg-indigo-500 text-foreground shadow-lg shadow-indigo-500/30' 
+                : 'bg-gray-800 text-muted-foreground hover:text-foreground hover:bg-gray-700'
             }`}
           >
             {isDone ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
@@ -76,3 +76,4 @@ export default function SetRow({
     </div>
   );
 }
+

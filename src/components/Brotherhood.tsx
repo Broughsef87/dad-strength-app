@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { Handshake, Trash2, Plus, Shield } from 'lucide-react';
@@ -135,7 +135,7 @@ export default function Brotherhood() {
             return (
               <div
                 key={brother.id}
-                className="flex items-center gap-3 bg-gray-950/60 border border-gray-800 rounded-2xl px-4 py-3"
+                className="flex items-center gap-3 bg-background/60 border border-border rounded-2xl px-4 py-3"
               >
                 {/* Status Dot */}
                 <div
@@ -148,8 +148,8 @@ export default function Brotherhood() {
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-sm uppercase tracking-tight truncate">{brother.name}</p>
                   <p className={`text-[10px] font-bold uppercase tracking-widest ${overdue ? 'text-rose-400' : 'text-indigo-400'}`}>
-                    {overdue ? 'Overdue · ' : 'Solid · '}
-                    <span className="text-gray-500">{formatLastContact(brother.last_contacted_at)}</span>
+                    {overdue ? 'Overdue Â· ' : 'Solid Â· '}
+                    <span className="text-muted-foreground">{formatLastContact(brother.last_contacted_at)}</span>
                   </p>
                 </div>
 
@@ -157,7 +157,7 @@ export default function Brotherhood() {
                 <button
                   onClick={() => markContacted(brother.id)}
                   title="Mark Contacted Today"
-                  className="p-2 bg-gray-900 hover:bg-indigo-500/20 border border-gray-800 hover:border-indigo-500/40 rounded-xl transition-all text-gray-500 hover:text-indigo-400"
+                  className="p-2 bg-card hover:bg-indigo-500/20 border border-border hover:border-indigo-500/40 rounded-xl transition-all text-muted-foreground hover:text-indigo-400"
                 >
                   <Handshake size={15} />
                 </button>
@@ -166,7 +166,7 @@ export default function Brotherhood() {
                 <button
                   onClick={() => removeBrother(brother.id)}
                   title="Remove Brother"
-                  className="p-2 bg-gray-900 hover:bg-rose-500/10 border border-gray-800 hover:border-rose-500/30 rounded-xl transition-all text-gray-600 hover:text-rose-400"
+                  className="p-2 bg-card hover:bg-rose-500/10 border border-border hover:border-rose-500/30 rounded-xl transition-all text-gray-600 hover:text-rose-400"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -190,7 +190,7 @@ export default function Brotherhood() {
             onKeyDown={handleKeyDown}
             placeholder="Add a brother..."
             maxLength={40}
-            className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
           />
           <button
             onClick={addBrother}
@@ -209,3 +209,4 @@ export default function Brotherhood() {
     </div>
   );
 }
+

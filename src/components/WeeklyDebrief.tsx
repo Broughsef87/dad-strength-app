@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { Loader2, TrendingUp, RefreshCw, Trophy, Target, Flame } from 'lucide-react'
@@ -96,7 +96,7 @@ export default function WeeklyDebrief({
           <TrendingUp size={16} className="text-indigo-500" />
           <h3 className="font-black text-sm uppercase italic tracking-tighter">Weekly Debrief</h3>
         </div>
-        <button onClick={() => generate(true)} className="p-1.5 text-gray-600 hover:text-gray-400 rounded-lg hover:bg-gray-800 transition-colors">
+        <button onClick={() => generate(true)} className="p-1.5 text-gray-600 hover:text-muted-foreground rounded-lg hover:bg-gray-800 transition-colors">
           <RefreshCw size={13} />
         </button>
       </div>
@@ -105,33 +105,34 @@ export default function WeeklyDebrief({
       <p className="font-black text-2xl italic tracking-tight leading-none">{debrief.headline}</p>
 
       {/* Summary */}
-      <p className="text-sm text-gray-400 leading-relaxed">{debrief.summary}</p>
+      <p className="text-sm text-muted-foreground leading-relaxed">{debrief.summary}</p>
 
       {/* Win + Focus */}
       <div className="grid grid-cols-1 gap-3">
         <div className="bg-gray-800/40 rounded-2xl p-4 flex gap-3">
           <Trophy size={16} className="text-yellow-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Biggest Win</p>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Biggest Win</p>
             <p className="text-sm font-bold text-gray-200">{debrief.win}</p>
           </div>
         </div>
         <div className="bg-gray-800/40 rounded-2xl p-4 flex gap-3">
           <Target size={16} className="text-indigo-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Next Week Focus</p>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Next Week Focus</p>
             <p className="text-sm font-bold text-gray-200">{debrief.focus}</p>
           </div>
         </div>
       </div>
 
       {/* Dad quote */}
-      <div className="border-t border-gray-800 pt-4">
+      <div className="border-t border-border pt-4">
         <div className="flex gap-3">
           <Flame size={14} className="text-orange-500 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-500 italic leading-relaxed">{debrief.dadQuote}</p>
+          <p className="text-xs text-muted-foreground italic leading-relaxed">{debrief.dadQuote}</p>
         </div>
       </div>
     </div>
   )
 }
+

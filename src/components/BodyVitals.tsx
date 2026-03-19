@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
@@ -97,11 +97,11 @@ export default function BodyVitals() {
     ? 'On Track'
     : 'Behind'
 
-  const streakColor = streak >= 5 ? 'text-green-400' : streak >= 2 ? 'text-yellow-400' : 'text-gray-400'
+  const streakColor = streak >= 5 ? 'text-green-400' : streak >= 2 ? 'text-yellow-400' : 'text-muted-foreground'
 
   if (loading) {
     return (
-      <div className="bg-gray-900/50 rounded-3xl p-6 border border-gray-800 animate-pulse">
+      <div className="bg-card/50 rounded-3xl p-6 border border-border animate-pulse">
         <div className="h-4 bg-gray-800 rounded w-1/2 mb-4" />
         <div className="h-8 bg-gray-800 rounded w-1/3" />
       </div>
@@ -110,7 +110,7 @@ export default function BodyVitals() {
 
   return (
     <div
-      className="bg-gray-900/50 rounded-3xl p-6 border border-gray-800 shadow-xl group hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
+      className="bg-card/50 rounded-3xl p-6 border border-border shadow-xl group hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
       onClick={() => router.push('/body')}
     >
       <div className="flex items-center justify-between mb-6">
@@ -125,8 +125,8 @@ export default function BodyVitals() {
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Sessions this week */}
-        <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 group-hover:bg-indigo-500/5 transition-colors">
-          <div className="flex items-center gap-2 mb-2 text-gray-400">
+        <div className="bg-card rounded-2xl p-4 border border-border group-hover:bg-indigo-500/5 transition-colors">
+          <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <TrendingUp size={14} />
             <span className="text-[10px] uppercase font-black tracking-widest">This Week</span>
           </div>
@@ -139,8 +139,8 @@ export default function BodyVitals() {
         </div>
 
         {/* Streak */}
-        <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 group-hover:bg-indigo-500/5 transition-colors">
-          <div className="flex items-center gap-2 mb-2 text-gray-400">
+        <div className="bg-card rounded-2xl p-4 border border-border group-hover:bg-indigo-500/5 transition-colors">
+          <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <Flame size={14} />
             <span className="text-[10px] uppercase font-black tracking-widest">Streak</span>
           </div>
@@ -179,3 +179,4 @@ export default function BodyVitals() {
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { Timer, Play, Pause, RotateCcw, Baby } from 'lucide-react';
@@ -38,7 +38,7 @@ export default function DeepWorkTimer({ availableObjectives = [] }: DeepWorkTime
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Timer className="w-5 h-5 text-indigo-500" />
-          <h3 className="font-bold text-white italic uppercase tracking-tighter">Deep Work Sprint</h3>
+          <h3 className="font-bold text-foreground italic uppercase tracking-tighter">Deep Work Sprint</h3>
         </div>
         <div className="flex items-center gap-1 px-2 py-1 bg-indigo-500/10 rounded-full border border-indigo-500/20">
           <Baby size={10} className="text-indigo-400" />
@@ -46,20 +46,20 @@ export default function DeepWorkTimer({ availableObjectives = [] }: DeepWorkTime
         </div>
       </div>
 
-      <div className="bg-gray-950 p-6 rounded-2xl border border-gray-800 shadow-inner">
-        <div className="text-5xl font-black text-white mb-6 font-mono tracking-tighter tabular-nums flex justify-center items-baseline gap-1">
+      <div className="bg-background p-6 rounded-2xl border border-border shadow-inner">
+        <div className="text-5xl font-black text-foreground mb-6 font-mono tracking-tighter tabular-nums flex justify-center items-baseline gap-1">
           {minutes}<span className="text-gray-700 text-3xl">:</span>{seconds.toString().padStart(2, '0')}
         </div>
 
         {validObjectives.length > 0 && (
           <div className="mb-6">
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 text-center">
+            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 text-center">
               Focusing On:
             </label>
             <select 
               value={selectedObjective}
               onChange={(e) => setSelectedObjective(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-800 rounded-lg py-2 px-3 text-xs text-indigo-300 outline-none focus:border-indigo-500/50 appearance-none text-center cursor-pointer"
+              className="w-full bg-card border border-border rounded-lg py-2 px-3 text-xs text-indigo-300 outline-none focus:border-indigo-500/50 appearance-none text-center cursor-pointer"
             >
               <option value="">-- Select Objective --</option>
               {validObjectives.map((obj, i) => (
@@ -75,7 +75,7 @@ export default function DeepWorkTimer({ availableObjectives = [] }: DeepWorkTime
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black transition-all text-xs tracking-widest ${
               isActive 
                 ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' 
-                : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-500'
+                : 'bg-indigo-600 text-foreground shadow-lg shadow-indigo-500/20 hover:bg-indigo-500'
             }`}
           >
             {isActive ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}
@@ -83,7 +83,7 @@ export default function DeepWorkTimer({ availableObjectives = [] }: DeepWorkTime
           </button>
           <button
             onClick={reset}
-            className="p-3 bg-gray-900 text-gray-500 border border-gray-800 rounded-xl hover:text-white transition-colors"
+            className="p-3 bg-card text-muted-foreground border border-border rounded-xl hover:text-foreground transition-colors"
           >
             <RotateCcw size={18} />
           </button>
@@ -91,10 +91,11 @@ export default function DeepWorkTimer({ availableObjectives = [] }: DeepWorkTime
       </div>
 
       <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-3">
-        <p className="text-[9px] text-gray-400 font-medium leading-relaxed italic text-center">
+        <p className="text-[9px] text-muted-foreground font-medium leading-relaxed italic text-center">
           "The Nap-Squeeze: Baby is down. The clock is ticking. This is 90 minutes of pure execution. No noise, just the mission."
         </p>
       </div>
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Download, Share2, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
@@ -51,18 +51,18 @@ export default function StatCard({ type, stats, title, subtitle }: StatCardProps
             <div className="h-4 w-1 bg-indigo-500" />
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500">Forge OS / Archive</span>
           </div>
-          <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-none mb-1">
+          <h2 className="text-5xl font-black italic uppercase tracking-tighter text-foreground leading-none mb-1">
             {title}
           </h2>
-          <p className="text-sm font-bold uppercase tracking-widest text-gray-500">{subtitle}</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{subtitle}</p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 relative z-10">
           {stats.map((stat, i) => (
             <div key={i} className="border-l-2 border-white/20 pl-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">{stat.label}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{stat.label}</p>
               <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-black text-white tracking-tighter italic">{stat.value}</p>
+                <p className="text-4xl font-black text-foreground tracking-tighter italic">{stat.value}</p>
                 {stat.subtext && <p className="text-xs font-bold text-indigo-500 uppercase">{stat.subtext}</p>}
               </div>
             </div>
@@ -70,7 +70,7 @@ export default function StatCard({ type, stats, title, subtitle }: StatCardProps
         </div>
 
         <div className="flex justify-between items-end relative z-10">
-          <div className="text-[8px] font-black uppercase tracking-widest text-white/30">
+          <div className="text-[8px] font-black uppercase tracking-widest text-foreground/30">
             Authenticated Protocol // {new Date().toLocaleDateString()}
           </div>
           <div className="w-12 h-12 bg-white flex items-center justify-center">
@@ -87,10 +87,11 @@ export default function StatCard({ type, stats, title, subtitle }: StatCardProps
           <Share2 className="w-4 h-4" />
           Blast to Socials
         </button>
-        <button className="w-14 bg-gray-900 border border-gray-800 flex items-center justify-center hover:border-white transition-colors">
-          <Download className="w-4 h-4 text-white" />
+        <button className="w-14 bg-card border border-border flex items-center justify-center hover:border-white transition-colors">
+          <Download className="w-4 h-4 text-foreground" />
         </button>
       </div>
     </div>
   );
 }
+

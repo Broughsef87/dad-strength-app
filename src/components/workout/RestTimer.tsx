@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Timer, X } from 'lucide-react';
 
@@ -39,11 +39,11 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
         </div>
         
         <div>
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
             Protocol Rest
             {isLowTime && <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />}
           </p>
-          <p className={`text-3xl font-mono font-black tabular-nums leading-none ${isLowTime ? 'text-red-500' : 'text-white'}`}>
+          <p className={`text-3xl font-mono font-black tabular-nums leading-none ${isLowTime ? 'text-red-500' : 'text-foreground'}`}>
             {formatTime(timeLeft)}
           </p>
         </div>
@@ -51,13 +51,14 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
 
       <button 
         onClick={onSkip}
-        className="group relative z-10 p-2 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-gray-700 transition-all"
+        className="group relative z-10 p-2 rounded-xl bg-card/50 border border-border hover:border-gray-700 transition-all"
       >
         <div className="flex items-center gap-2 px-1">
-          <span className="text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Skip</span>
+          <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Skip</span>
           <X className="w-4 h-4 text-gray-600 group-hover:text-red-500 transition-colors" />
         </div>
       </button>
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
@@ -110,30 +110,30 @@ export default function History() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-950 text-white font-sans">
+      <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-widest">Loading history...</p>
+          <p className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest">Loading history...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans">
-      <header className="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-md border-b border-gray-800 p-4 flex items-center gap-4">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors">
+    <div className="min-h-screen bg-background text-foreground font-sans">
+      <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b border-border p-4 flex items-center gap-4">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft />
         </button>
         <div>
           <h1 className="text-xl font-black italic uppercase tracking-tighter">Battle Log</h1>
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{sessions.length} Sessions</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{sessions.length} Sessions</p>
         </div>
       </header>
 
       <main className="p-4 space-y-4 max-w-md mx-auto pb-24">
         {/* AI Weekly Debrief */}
-        <div className="bg-gray-900/50 rounded-3xl border border-gray-800 p-6 shadow-xl">
+        <div className="bg-card/50 rounded-3xl border border-border p-6 shadow-xl">
           <WeeklyDebrief
             weekSessions={sessions.filter(s => {
               const d = new Date(s.date)
@@ -149,7 +149,7 @@ export default function History() {
           <div className="text-center py-20 opacity-30">
             <HistoryIcon size={48} className="mx-auto mb-4" />
             <p className="text-sm font-bold uppercase tracking-widest">No workouts logged yet.</p>
-            <p className="text-xs text-gray-500 mt-2">Finish your first workout to see it here.</p>
+            <p className="text-xs text-muted-foreground mt-2">Finish your first workout to see it here.</p>
           </div>
         ) : (
           sessions.map((session) => {
@@ -160,7 +160,7 @@ export default function History() {
             })
 
             return (
-              <div key={sessionKey} className="bg-gray-900 rounded-3xl border border-gray-800 overflow-hidden shadow-xl">
+              <div key={sessionKey} className="bg-card rounded-3xl border border-border overflow-hidden shadow-xl">
                 {/* Session Header */}
                 <button
                   onClick={() => setExpanded(isExpanded ? null : sessionKey)}
@@ -173,24 +173,24 @@ export default function History() {
                     <div>
                       <p className="font-black text-base tracking-tight">{session.workout_name}</p>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                           <Calendar size={10} /> {dateLabel}
                         </span>
                         <span className="text-[10px] font-bold text-indigo-400 uppercase">{session.totalSets} sets</span>
                         {session.totalVolume > 0 && (
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">{session.totalVolume.toLocaleString()} lbs</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">{session.totalVolume.toLocaleString()} lbs</span>
                         )}
                       </div>
                     </div>
                   </div>
-                  <div className="text-gray-500 flex-shrink-0">
+                  <div className="text-muted-foreground flex-shrink-0">
                     {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                   </div>
                 </button>
 
                 {/* Exercise Breakdown */}
                 {isExpanded && (
-                  <div className="border-t border-gray-800 px-5 pb-5 pt-4 space-y-4">
+                  <div className="border-t border-border px-5 pb-5 pt-4 space-y-4">
                     {Object.entries(session.exercises).map(([exerciseName, sets]) => {
                       const bestSet = sets.reduce((best, s) =>
                         (s.weight_lbs || 0) > (best.weight_lbs || 0) ? s : best, sets[0])
@@ -198,14 +198,14 @@ export default function History() {
                         <div key={exerciseName}>
                           <div className="flex items-center justify-between mb-2">
                             <p className="font-black text-sm uppercase tracking-tight">{exerciseName}</p>
-                            <span className="text-[10px] font-bold text-gray-500">{sets.length} sets</span>
+                            <span className="text-[10px] font-bold text-muted-foreground">{sets.length} sets</span>
                           </div>
                           <div className="space-y-1.5">
                             {sets.map((s, i) => (
                               <div key={s.id} className="flex items-center justify-between bg-gray-800/50 rounded-xl px-4 py-2">
                                 <span className="text-[10px] font-black text-gray-600 uppercase w-8">S{s.set_number}</span>
                                 <span className="text-sm font-bold">{s.weight_lbs > 0 ? `${s.weight_lbs} lbs` : 'BW'}</span>
-                                <span className="text-sm font-bold text-indigo-400">× {s.reps}</span>
+                                <span className="text-sm font-bold text-indigo-400">Ã— {s.reps}</span>
                                 {s === bestSet && s.weight_lbs > 0 && (
                                   <span className="text-[10px] font-black text-yellow-500 uppercase">Top</span>
                                 )}
@@ -227,3 +227,4 @@ export default function History() {
     </div>
   )
 }
+

@@ -1,13 +1,13 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, Volume2 } from 'lucide-react'
 
 const TRACKS = [
-  { id: 'rain', label: '🌧 Rain', url: 'https://www.soundjay.com/nature/sounds/rain-01.mp3' },
-  { id: 'whitenoise', label: '🌬 White Noise', url: null }, // generated via Web Audio API
-  { id: 'forest', label: '🌲 Forest', url: 'https://www.soundjay.com/nature/sounds/forest-ambience-1.mp3' },
-  { id: 'silence', label: '🤫 Silence', url: 'silence' },
+  { id: 'rain', label: 'ðŸŒ§ Rain', url: 'https://www.soundjay.com/nature/sounds/rain-01.mp3' },
+  { id: 'whitenoise', label: 'ðŸŒ¬ White Noise', url: null }, // generated via Web Audio API
+  { id: 'forest', label: 'ðŸŒ² Forest', url: 'https://www.soundjay.com/nature/sounds/forest-ambience-1.mp3' },
+  { id: 'silence', label: 'ðŸ¤« Silence', url: 'silence' },
 ]
 
 export default function AmbientAudioPlayer() {
@@ -100,8 +100,8 @@ export default function AmbientAudioPlayer() {
   }
 
   return (
-    <div className="mt-4 rounded-2xl bg-gray-900 border border-gray-800 p-4 space-y-3">
-      <p className="text-xs uppercase tracking-widest text-gray-500 font-black">Ambient Sound</p>
+    <div className="mt-4 rounded-2xl bg-card border border-border p-4 space-y-3">
+      <p className="text-xs uppercase tracking-widest text-muted-foreground font-black">Ambient Sound</p>
 
       {/* Track selector */}
       <div className="flex flex-wrap gap-2">
@@ -111,8 +111,8 @@ export default function AmbientAudioPlayer() {
             onClick={() => handleTrackSelect(t.id)}
             className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
               activeTrack === t.id
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:border-indigo-500/30 hover:text-white'
+                ? 'bg-indigo-600 text-foreground'
+                : 'bg-gray-800 text-muted-foreground hover:border-indigo-500/30 hover:text-foreground'
             }`}
           >
             {t.label}
@@ -126,11 +126,11 @@ export default function AmbientAudioPlayer() {
           onClick={handlePlayPause}
           className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center transition-colors"
         >
-          {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white ml-0.5" />}
+          {isPlaying ? <Pause className="w-4 h-4 text-foreground" /> : <Play className="w-4 h-4 text-foreground ml-0.5" />}
         </button>
 
         <div className="flex items-center gap-2 flex-1">
-          <Volume2 className="w-4 h-4 text-gray-500 shrink-0" />
+          <Volume2 className="w-4 h-4 text-muted-foreground shrink-0" />
           <input
             type="range"
             min={0}
@@ -145,3 +145,4 @@ export default function AmbientAudioPlayer() {
     </div>
   )
 }
+

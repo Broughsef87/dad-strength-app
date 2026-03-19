@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
@@ -97,9 +97,9 @@ export default function MindPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 p-6">
+    <div className="min-h-screen bg-background text-foreground font-sans pb-24 p-6">
       <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/dashboard')} className="p-2 bg-gray-900 rounded-xl text-gray-500 hover:text-white transition-colors">
+        <button onClick={() => router.push('/dashboard')} className="p-2 bg-card rounded-xl text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft size={20} />
         </button>
         <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ export default function MindPage() {
       </header>
 
       <main className="max-w-md mx-auto space-y-8">
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl relative overflow-hidden">
+        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl relative overflow-hidden">
            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Target size={18} className="text-indigo-500" />
@@ -120,7 +120,7 @@ export default function MindPage() {
                   setLockedIn(!lockedIn);
                   saveToLocal({ lockedIn: !lockedIn });
                 }}
-                className={`p-2 rounded-lg transition-all ${lockedIn ? 'text-indigo-500 bg-indigo-500/10' : 'text-gray-600 bg-gray-800/50 hover:text-gray-400'}`}
+                className={`p-2 rounded-lg transition-all ${lockedIn ? 'text-indigo-500 bg-indigo-500/10' : 'text-gray-600 bg-gray-800/50 hover:text-muted-foreground'}`}
               >
                 {lockedIn ? <Lock size={16} /> : <Unlock size={16} />}
               </button>
@@ -155,7 +155,7 @@ export default function MindPage() {
                           saveToLocal({ objectives: newObjs });
                        }}
                        placeholder="Define objective..."
-                       className="flex-1 bg-transparent border-b border-gray-800 focus:border-indigo-500 text-sm text-white py-2 transition-colors outline-none"
+                       className="flex-1 bg-transparent border-b border-border focus:border-indigo-500 text-sm text-foreground py-2 transition-colors outline-none"
                      />
                    )}
                 </div>
@@ -168,22 +168,22 @@ export default function MindPage() {
                   setLockedIn(true);
                   saveToLocal({ lockedIn: true });
                 }}
-                className="w-full mt-6 bg-indigo-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20"
+                className="w-full mt-6 bg-indigo-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-foreground hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20"
               >
                 Lock In Objectives
               </button>
            )}
         </div>
 
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
            <DeepWorkTimer availableObjectives={objectives} />
         </div>
 
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
            <MindSqueeze objectives={objectives} />
         </div>
 
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
            <div className="flex items-center gap-2 mb-4">
               <PenLine size={18} className="text-indigo-500" />
               <h3 className="font-bold text-lg uppercase tracking-tighter italic">Journal</h3>
@@ -195,7 +195,7 @@ export default function MindPage() {
                saveToLocal({ journal: e.target.value });
              }}
              placeholder="What's on your mind? Capture the signal, ignore the noise..."
-             className="w-full bg-gray-950 border border-gray-800 rounded-2xl p-4 text-sm text-gray-300 h-64 resize-none outline-none italic focus:ring-1 focus:ring-indigo-500/50 transition-all"
+             className="w-full bg-background border border-border rounded-2xl p-4 text-sm text-gray-300 h-64 resize-none outline-none italic focus:ring-1 focus:ring-indigo-500/50 transition-all"
            />
            <button 
              onClick={handleSaveJournal}
@@ -205,10 +205,10 @@ export default function MindPage() {
                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
                  : isSaving
                  ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                 : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white'
+                 : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-foreground'
              }`}
            >
-              {savedMsg ? '✓ Entry Saved' : isSaving ? 'Saving...' : <><Save size={14} /> Save Entry</>}
+              {savedMsg ? 'âœ“ Entry Saved' : isSaving ? 'Saving...' : <><Save size={14} /> Save Entry</>}
            </button>
         </div>
       </main>
@@ -217,3 +217,4 @@ export default function MindPage() {
     </div>
   );
 }
+

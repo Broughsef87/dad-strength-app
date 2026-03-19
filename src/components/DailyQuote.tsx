@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 
@@ -35,13 +35,13 @@ export default function DailyQuote() {
   }, []);
 
   return (
-    <div className="rounded-2xl bg-gray-900/50 p-6 border border-gray-800/80 flex flex-col items-center justify-center text-center space-y-3 relative overflow-hidden">
+    <div className="rounded-2xl bg-card/50 p-6 border border-border/80 flex flex-col items-center justify-center text-center space-y-3 relative overflow-hidden">
       <div className="absolute -top-4 -left-2 text-gray-800/30 text-8xl font-serif pointer-events-none">"</div>
       <p className="text-gray-300 text-sm italic z-10 font-serif leading-relaxed px-2">
         {quote.text}
       </p>
       <p className="text-indigo-400/80 text-[10px] uppercase font-black tracking-widest z-10">
-        — {quote.author}
+        â€” {quote.author}
       </p>
     </div>
   );

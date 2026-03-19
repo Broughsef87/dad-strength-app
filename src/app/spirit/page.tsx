@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
@@ -90,9 +90,9 @@ export default function SpiritPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 p-6">
+    <div className="min-h-screen bg-background text-foreground font-sans pb-24 p-6">
       <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/dashboard')} className="p-2 bg-gray-900 rounded-xl text-gray-500">
+        <button onClick={() => router.push('/dashboard')} className="p-2 bg-card rounded-xl text-muted-foreground">
           <ArrowLeft size={20} />
         </button>
         <div className="flex items-center gap-3">
@@ -102,15 +102,15 @@ export default function SpiritPage() {
       </header>
 
       <main className="max-w-md mx-auto space-y-8">
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
            <FamilyPulse />
         </div>
 
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
            <Brotherhood />
         </div>
 
-        <div className="bg-gray-900/50 p-6 rounded-3xl border border-gray-800 shadow-xl">
+        <div className="bg-card/50 p-6 rounded-3xl border border-border shadow-xl">
            <div className="flex items-center gap-2 mb-6">
               <Anchor size={18} className="text-indigo-500" />
               <h3 className="font-bold text-lg uppercase tracking-tighter italic">Spiritual Reset</h3>
@@ -119,8 +119,8 @@ export default function SpiritPage() {
            <div className="space-y-6">
               {/* Timer Display */}
               {timerSeconds > 0 && (
-                <div className="bg-gray-950 p-6 rounded-2xl border border-indigo-500/20 text-center animate-in fade-in zoom-in duration-300">
-                  <div className="text-4xl font-black text-white mb-4 font-mono tracking-tighter tabular-nums">
+                <div className="bg-background p-6 rounded-2xl border border-indigo-500/20 text-center animate-in fade-in zoom-in duration-300">
+                  <div className="text-4xl font-black text-foreground mb-4 font-mono tracking-tighter tabular-nums">
                     {formatTime(timerSeconds)}
                   </div>
                   <div className="flex gap-2">
@@ -132,7 +132,7 @@ export default function SpiritPage() {
                     </button>
                     <button 
                       onClick={() => { setTimerSeconds(0); setTimerActive(false); }}
-                      className="px-4 py-2 bg-gray-900 rounded-lg text-gray-500"
+                      className="px-4 py-2 bg-card rounded-lg text-muted-foreground"
                     >
                       <RotateCcw size={14} />
                     </button>
@@ -144,14 +144,14 @@ export default function SpiritPage() {
               <div className="grid grid-cols-2 gap-4">
                  <button 
                    onClick={() => startTimer(5)}
-                   className="flex flex-col items-center gap-3 p-4 bg-gray-900/50 border border-gray-800 rounded-2xl hover:border-indigo-500/30 transition-all group"
+                   className="flex flex-col items-center gap-3 p-4 bg-card/50 border border-border rounded-2xl hover:border-indigo-500/30 transition-all group"
                  >
                     <Timer size={20} className="text-gray-600 group-hover:text-indigo-500" />
                     <span className="text-[10px] font-black uppercase tracking-widest">5 MIN PRAYER</span>
                  </button>
                  <button 
                    onClick={() => startTimer(10)}
-                   className="flex flex-col items-center gap-3 p-4 bg-gray-900/50 border border-gray-800 rounded-2xl hover:border-indigo-500/30 transition-all group"
+                   className="flex flex-col items-center gap-3 p-4 bg-card/50 border border-border rounded-2xl hover:border-indigo-500/30 transition-all group"
                  >
                     <Timer size={20} className="text-gray-600 group-hover:text-indigo-500" />
                     <span className="text-[10px] font-black uppercase tracking-widest">10 MIN MEDITATION</span>
@@ -163,7 +163,7 @@ export default function SpiritPage() {
                 className={`w-full flex flex-col items-center justify-center p-8 rounded-3xl border-2 transition-all gap-4 ${
                   prayerDone 
                     ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-2xl shadow-indigo-500/10' 
-                    : 'bg-gray-950/50 border-gray-800 text-gray-700 hover:border-gray-700 hover:text-gray-500'
+                    : 'bg-background/50 border-border text-gray-700 hover:border-gray-700 hover:text-muted-foreground'
                 }`}
               >
                   {prayerDone ? <CheckCircle2 size={32} /> : <Sun size={32} />}
@@ -183,3 +183,4 @@ export default function SpiritPage() {
     </div>
   );
 }
+

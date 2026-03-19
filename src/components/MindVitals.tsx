@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Brain, Timer, CheckCircle2, ChevronRight } from 'lucide-react'
 
@@ -18,7 +18,7 @@ export default function MindVitals({ deepWorkMinutes, completedObjectives, total
   const isDone = totalObjectives > 0 && completedObjectives >= totalObjectives
 
   return (
-    <div className="bg-gray-900/50 rounded-3xl p-6 border border-gray-800 shadow-xl group hover:border-indigo-500/30 transition-all duration-300">
+    <div className="bg-card/50 rounded-3xl p-6 border border-border shadow-xl group hover:border-indigo-500/30 transition-all duration-300">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
@@ -26,30 +26,30 @@ export default function MindVitals({ deepWorkMinutes, completedObjectives, total
           </div>
           <h3 className="font-black italic uppercase tracking-tighter text-sm">Mind Vitals</h3>
         </div>
-        <div className="px-2 py-1 rounded-md bg-gray-800/50 text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+        <div className="px-2 py-1 rounded-md bg-gray-800/50 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
           Live Data
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         {/* Deep Work */}
-        <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 group-hover:bg-indigo-500/5 transition-colors">
-          <div className="flex items-center gap-2 mb-2 text-gray-400">
+        <div className="bg-card rounded-2xl p-4 border border-border group-hover:bg-indigo-500/5 transition-colors">
+          <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <Timer size={14} />
             <span className="text-[10px] uppercase font-black tracking-widest">Deep Work</span>
           </div>
-          <p className="text-2xl font-black font-mono tracking-tighter text-white">
+          <p className="text-2xl font-black font-mono tracking-tighter text-foreground">
             {formatTime(deepWorkMinutes)}
           </p>
         </div>
 
         {/* Objectives */}
-        <div className="bg-gray-900 rounded-2xl p-4 border border-gray-800 group-hover:bg-indigo-500/5 transition-colors">
-          <div className="flex items-center gap-2 mb-2 text-gray-400">
+        <div className="bg-card rounded-2xl p-4 border border-border group-hover:bg-indigo-500/5 transition-colors">
+          <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <CheckCircle2 size={14} />
             <span className="text-[10px] uppercase font-black tracking-widest">Objectives</span>
           </div>
-          <p className="text-2xl font-black font-mono tracking-tighter text-white">
+          <p className="text-2xl font-black font-mono tracking-tighter text-foreground">
             {completedObjectives}/{totalObjectives}
           </p>
         </div>
@@ -75,3 +75,4 @@ export default function MindVitals({ deepWorkMinutes, completedObjectives, total
     </div>
   )
 }
+

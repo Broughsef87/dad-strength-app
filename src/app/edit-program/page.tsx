@@ -1,11 +1,11 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Dumbbell, Home as HomeIcon, LayoutPanelLeft, LayoutPanelTop, Layout, Zap, Calendar, Loader2 } from 'lucide-react'
 import { createClient } from '../../utils/supabase/client'
 
-// ─── Exercise Library by Focus + Track ───────────────────────────────────────
+// â”€â”€â”€ Exercise Library by Focus + Track â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const EXERCISE_SETS: Record<string, Record<string, { name: string; sets: number; reps: string }[]>> = {
   full: {
@@ -121,8 +121,8 @@ export default function EditProgram() {
       if (!user) { router.push('/'); return }
 
       const exercises = EXERCISE_SETS[selectedFocus][selectedTrack]
-      const workoutName = `${FOCUS_LABELS[selectedFocus]} · ${TRACK_LABELS[selectedTrack]}`
-      const workoutDesc = `${selectedWeeks}-week cycle · ${selectedFrequency} days/week`
+      const workoutName = `${FOCUS_LABELS[selectedFocus]} Â· ${TRACK_LABELS[selectedTrack]}`
+      const workoutDesc = `${selectedWeeks}-week cycle Â· ${selectedFrequency} days/week`
 
       // Insert new workout into Supabase
       const { data: newWorkout, error: insertError } = await supabase
@@ -157,11 +157,11 @@ export default function EditProgram() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans pb-12">
-      <header className="flex items-center justify-between border-b border-gray-800 bg-gray-900/50 p-4 backdrop-blur-md sticky top-0 z-10">
+    <div className="min-h-screen bg-background text-foreground font-sans pb-12">
+      <header className="flex items-center justify-between border-b border-border bg-card/50 p-4 backdrop-blur-md sticky top-0 z-10">
         <button
           onClick={() => router.back()}
-          className="text-gray-400 hover:text-white transition-colors p-1"
+          className="text-muted-foreground hover:text-foreground transition-colors p-1"
         >
           <ArrowLeft size={24} />
         </button>
@@ -169,7 +169,7 @@ export default function EditProgram() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-lg font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-foreground px-4 py-1.5 rounded-lg font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
         >
           {saving ? <><Loader2 size={12} className="animate-spin" /> Saving...</> : 'Save'}
         </button>
@@ -187,7 +187,7 @@ export default function EditProgram() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">1</div>
-            <label className="text-xs uppercase font-black tracking-[0.2em] text-gray-500">Select Your Focus</label>
+            <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground">Select Your Focus</label>
           </div>
           <div className="grid grid-cols-1 gap-3">
             {PROGRAM_FOCUSES.map((focus) => {
@@ -199,11 +199,11 @@ export default function EditProgram() {
                   onClick={() => setSelectedFocus(focus.id)}
                   className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
                     isSelected
-                      ? 'border-indigo-500 bg-indigo-500/10 text-white shadow-xl shadow-indigo-500/5'
-                      : 'border-gray-900 bg-gray-900/40 text-gray-500 hover:border-gray-800'
+                      ? 'border-indigo-500 bg-indigo-500/10 text-foreground shadow-xl shadow-indigo-500/5'
+                      : 'border-border bg-card/40 text-muted-foreground hover:border-border'
                   }`}
                 >
-                  <div className={`p-3 rounded-xl ${isSelected ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-600'}`}>
+                  <div className={`p-3 rounded-xl ${isSelected ? 'bg-indigo-500 text-foreground' : 'bg-gray-800 text-gray-600'}`}>
                     <Icon size={24} />
                   </div>
                   <div>
@@ -222,7 +222,7 @@ export default function EditProgram() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">2</div>
-            <label className="text-xs uppercase font-black tracking-[0.2em] text-gray-500">Choose Your Path</label>
+            <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground">Choose Your Path</label>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {EQUIPMENT_TRACKS.map((track) => {
@@ -234,11 +234,11 @@ export default function EditProgram() {
                   onClick={() => setSelectedTrack(track.id)}
                   className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 text-center transition-all ${
                     isSelected
-                      ? 'border-indigo-500 bg-indigo-500/10 text-white shadow-xl shadow-indigo-500/5'
-                      : 'border-gray-900 bg-gray-900/40 text-gray-500 hover:border-gray-800'
+                      ? 'border-indigo-500 bg-indigo-500/10 text-foreground shadow-xl shadow-indigo-500/5'
+                      : 'border-border bg-card/40 text-muted-foreground hover:border-border'
                   }`}
                 >
-                  <div className={`p-3 rounded-full ${isSelected ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-600'}`}>
+                  <div className={`p-3 rounded-full ${isSelected ? 'bg-indigo-500 text-foreground' : 'bg-gray-800 text-gray-600'}`}>
                     <Icon size={24} />
                   </div>
                   <h3 className={`font-black uppercase tracking-widest text-[10px] italic ${isSelected ? 'text-indigo-400' : 'text-gray-300'}`}>
@@ -255,18 +255,18 @@ export default function EditProgram() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">3</div>
-            <label className="text-xs uppercase font-black tracking-[0.2em] text-gray-500">Program Logic</label>
+            <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground">Program Logic</label>
           </div>
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 ml-1">Cycle Length</label>
-              <div className="flex bg-gray-900/50 p-1.5 rounded-2xl border border-gray-900">
+              <div className="flex bg-card/50 p-1.5 rounded-2xl border border-border">
                 {DURATION_WEEKS.map((weeks) => (
                   <button
                     key={weeks}
                     onClick={() => setSelectedWeeks(weeks)}
                     className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                      selectedWeeks === weeks ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-600 hover:text-gray-400'
+                      selectedWeeks === weeks ? 'bg-indigo-600 text-foreground shadow-lg' : 'text-gray-600 hover:text-muted-foreground'
                     }`}
                   >
                     {weeks} Weeks
@@ -276,13 +276,13 @@ export default function EditProgram() {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 ml-1">Weekly Frequency</label>
-              <div className="flex bg-gray-900/50 p-1.5 rounded-2xl border border-gray-900">
+              <div className="flex bg-card/50 p-1.5 rounded-2xl border border-border">
                 {FREQUENCY_DAYS.map((days) => (
                   <button
                     key={days}
                     onClick={() => setSelectedFrequency(days)}
                     className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                      selectedFrequency === days ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-600 hover:text-gray-400'
+                      selectedFrequency === days ? 'bg-indigo-600 text-foreground shadow-lg' : 'text-gray-600 hover:text-muted-foreground'
                     }`}
                   >
                     {days} Days / Wk
@@ -294,19 +294,19 @@ export default function EditProgram() {
         </section>
 
         {/* PREVIEW */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-3xl p-6">
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <div className="bg-card/50 border border-border rounded-3xl p-6">
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
             <Calendar size={12} className="text-indigo-500" /> Protocol Preview
           </p>
           <p className="font-black text-lg italic tracking-tight mb-1">
-            {FOCUS_LABELS[selectedFocus]} · {TRACK_LABELS[selectedTrack]}
+            {FOCUS_LABELS[selectedFocus]} Â· {TRACK_LABELS[selectedTrack]}
           </p>
-          <p className="text-xs text-gray-500 mb-4">{selectedWeeks}-week cycle · {selectedFrequency} days/week</p>
+          <p className="text-xs text-muted-foreground mb-4">{selectedWeeks}-week cycle Â· {selectedFrequency} days/week</p>
           <div className="space-y-2">
             {EXERCISE_SETS[selectedFocus][selectedTrack].map((ex, i) => (
               <div key={i} className="flex justify-between items-center text-xs">
                 <span className="text-gray-300 font-bold">{ex.name}</span>
-                <span className="text-indigo-400 font-black">{ex.sets}×{ex.reps}</span>
+                <span className="text-indigo-400 font-black">{ex.sets}Ã—{ex.reps}</span>
               </div>
             ))}
           </div>
@@ -316,3 +316,4 @@ export default function EditProgram() {
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Beef, Plus, RotateCcw } from 'lucide-react';
@@ -24,21 +24,21 @@ export default function FuelStation() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Beef className="w-5 h-5 text-red-500" />
-          <h3 className="font-bold text-white">Fuel Station</h3>
+          <h3 className="font-bold text-foreground">Fuel Station</h3>
         </div>
         <button 
           onClick={reset}
-          className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded-md transition-colors"
+          className="p-1.5 text-muted-foreground hover:text-gray-300 hover:bg-gray-800 rounded-md transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+      <div className="bg-card/50 p-4 rounded-xl border border-border">
         <div className="flex justify-between items-end mb-2">
           <div>
-            <span className="text-3xl font-black text-white">{protein}</span>
-            <span className="text-gray-500 font-bold ml-1">/ {target}g</span>
+            <span className="text-3xl font-black text-foreground">{protein}</span>
+            <span className="text-muted-foreground font-bold ml-1">/ {target}g</span>
           </div>
           <span className={`text-sm font-bold ${percentage >= 100 ? 'text-emerald-500' : 'text-indigo-400'}`}>
             {percentage}%
@@ -61,7 +61,7 @@ export default function FuelStation() {
               onClick={() => addProtein(amount)}
               className="flex flex-col items-center justify-center p-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-indigo-500 hover:bg-indigo-500/10 transition-all group"
             >
-              <Plus className="w-3 h-3 text-gray-500 group-hover:text-indigo-400 mb-1" />
+              <Plus className="w-3 h-3 text-muted-foreground group-hover:text-indigo-400 mb-1" />
               <span className="text-sm font-bold text-gray-300">{amount}g</span>
             </button>
           ))}
@@ -74,3 +74,4 @@ export default function FuelStation() {
     </div>
   );
 }
+

@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, Dumbbell, History, MoreHorizontal } from 'lucide-react';
 
 interface ActiveSetRowProps {
   index: number;
@@ -10,6 +10,8 @@ interface ActiveSetRowProps {
   onWeightChange: (val: string) => void;
   onRepsChange: (val: string) => void;
   onToggle: () => void;
+  previousWeight?: string;
+  previousReps?: string;
 }
 
 export default function ActiveSetRow({
@@ -19,61 +21,111 @@ export default function ActiveSetRow({
   reps,
   onWeightChange,
   onRepsChange,
-  onToggle
+  onToggle,
+  previousWeight,
+  previousReps
 }: ActiveSetRowProps) {
   return (
-    <div className={`grid grid-cols-12 gap-3 items-center p-3 rounded-2xl transition-all duration-300 ${
+    <div className={`group relative grid grid-cols-12 gap-3 items-center p-3 rounded-2xl transition-all duration-500 ${
       isDone 
-        ? 'bg-green-500/10 border border-green-500/20 opacity-50' 
-        : 'bg-gray-800/20 border border-gray-800/50'
+        ? 'bg-emerald-500/5 border border-emerald-500/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.02)]' 
+        : 'bg-gray-800/20 border border-border/40 hover:border-indigo-500/30 hover:bg-gray-800/30'
     }`}>
-      <div className="col-span-1 flex flex-col items-center">
-        <span className="text-[8px] font-black text-gray-600 uppercase tracking-tighter">Set</span>
-        <span className={`text-sm font-black italic ${isDone ? 'text-green-500' : 'text-gray-400'}`}>
+      {/* Set Number Indicator */}
+      <div className="col-span-1 flex flex-col items-center justify-center">
+        <span className={`text-[9px] font-black uppercase tracking-tighter mb-0.5 transition-colors ${
+          isDone ? 'text-emerald-500/50' : 'text-gray-600 group-hover:text-indigo-400/50'
+        }`}>
+          Set
+        </span>
+        <span className={`text-base font-black italic leading-none ${
+          isDone ? 'text-emerald-500' : 'text-muted-foreground group-hover:text-foreground'
+        }`}>
           {index + 1}
         </span>
       </div>
       
-      <div className="col-span-4 relative">
+      {/* Weight Input */}
+      <div className="col-span-4 relative group/input">
         <input 
           type="number" 
-          inputMode="numeric"
-          placeholder="LBS" 
+          inputMode="decimal"
+          placeholder={previousWeight || "0"} 
           disabled={isDone}
           value={weight}
-          className="w-full bg-gray-900/50 border-2 border-gray-800 focus:border-indigo-500 focus:bg-gray-900 rounded-xl p-3 text-center font-black text-white outline-none transition-all placeholder:text-gray-700 disabled:opacity-50"
+          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-black text-lg text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
+            isDone 
+              ? 'border-transparent' 
+              : 'border-border/50 focus:border-indigo-500 focus:bg-background focus:ring-4 focus:ring-indigo-500/10'
+          }`}
           onChange={(e) => onWeightChange(e.target.value)}
         />
         {weight && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-[8px] font-black px-1.5 rounded-full text-white uppercase tracking-tighter">Weight</span>
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-[8px] font-black px-2 py-0.5 rounded-full text-foreground uppercase tracking-widest shadow-lg shadow-indigo-600/20 animate-in fade-in zoom-in-75 duration-200">
+            LBS
+          </span>
+        )}
+        {previousWeight && !weight && !isDone && (
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/input:opacity-100 transition-opacity">
+                <History size={8} className="text-gray-600" />
+                <span className="text-[8px] font-bold text-gray-600">{previousWeight}</span>
+            </div>
         )}
       </div>
 
-      <div className="col-span-4 relative">
+      {/* Reps Input */}
+      <div className="col-span-4 relative group/input">
         <input 
           type="number" 
           inputMode="numeric"
-          placeholder="REPS" 
+          placeholder={previousReps || "0"} 
           disabled={isDone}
           value={reps}
-          className="w-full bg-gray-900/50 border-2 border-gray-800 focus:border-indigo-500 focus:bg-gray-900 rounded-xl p-3 text-center font-black text-white outline-none transition-all placeholder:text-gray-700 disabled:opacity-50"
+          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-black text-lg text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
+            isDone 
+              ? 'border-transparent' 
+              : 'border-border/50 focus:border-indigo-500 focus:bg-background focus:ring-4 focus:ring-indigo-500/10'
+          }`}
           onChange={(e) => onRepsChange(e.target.value)}
         />
         {reps && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-[8px] font-black px-1.5 rounded-full text-white uppercase tracking-tighter">Reps</span>
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-[8px] font-black px-2 py-0.5 rounded-full text-foreground uppercase tracking-widest shadow-lg shadow-indigo-600/20 animate-in fade-in zoom-in-75 duration-200">
+            REPS
+          </span>
+        )}
+        {previousReps && !reps && !isDone && (
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/input:opacity-100 transition-opacity">
+                <History size={8} className="text-gray-600" />
+                <span className="text-[8px] font-bold text-gray-600">{previousReps}</span>
+            </div>
         )}
       </div>
 
+      {/* Action Button */}
       <button 
         onClick={onToggle}
-        className={`col-span-3 h-12 rounded-xl flex items-center justify-center transition-all ${
+        className={`col-span-3 h-14 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
           isDone 
-            ? 'bg-green-500 text-black shadow-lg shadow-green-500/20' 
-            : 'bg-gray-900 border border-gray-800 text-gray-600 hover:text-white hover:border-indigo-500 transition-all active:scale-95'
+            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 rotate-0' 
+            : 'bg-card border border-border text-gray-700 hover:text-indigo-400 hover:border-indigo-500/50 hover:bg-gray-800 shadow-sm'
         }`}
       >
-        {isDone ? <CheckCircle2 size={24} strokeWidth={3} /> : <Circle size={24} strokeWidth={2} />}
+        {isDone ? (
+          <CheckCircle2 size={28} strokeWidth={3} className="animate-in zoom-in duration-300" />
+        ) : (
+          <Circle size={28} strokeWidth={2} />
+        )}
       </button>
+
+      {/* Previous Data Tooltip / Hint (Mobile Optimized) */}
+      {!isDone && !weight && !reps && previousWeight && (
+          <div className="absolute -left-1 top-1/2 -translate-y-1/2 -translate-x-full pr-2 hidden lg:block">
+              <div className="bg-gray-800 px-2 py-1 rounded-lg border border-gray-700 whitespace-nowrap">
+                  <p className="text-[8px] font-black text-muted-foreground uppercase">Last: {previousWeight}x{previousReps}</p>
+              </div>
+          </div>
+      )}
     </div>
   );
 }
+

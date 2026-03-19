@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
@@ -178,27 +178,27 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-950 text-white font-sans">
+      <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Accessing HQ...</p>
+          <p className="text-muted-foreground font-mono text-[10px] uppercase tracking-[0.3em]">Accessing HQ...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans pb-24 md:pb-8">
+    <div className="min-h-screen bg-background text-foreground font-sans pb-24 md:pb-8">
       {/* DESKTOP HEADER */}
-      <header className="hidden md:flex items-center justify-between border-b border-gray-900 bg-gray-950/80 p-6 backdrop-blur-md sticky top-0 z-50">
+      <header className="hidden md:flex items-center justify-between border-b border-border bg-background/80 p-6 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-8 h-8 text-indigo-500" />
           <div className="font-black text-xl tracking-tighter italic">
             FORGE OS <span className="text-gray-600 font-light">/ DAD STRENGTH</span>
           </div>
         </div>
-        <nav className="flex gap-8 font-bold uppercase tracking-widest text-[10px] text-gray-500">
-          <button className="text-white border-b-2 border-indigo-500 pb-1">HQ</button>
+        <nav className="flex gap-8 font-bold uppercase tracking-widest text-[10px] text-muted-foreground">
+          <button className="text-foreground border-b-2 border-indigo-500 pb-1">HQ</button>
           <button onClick={() => router.push('/body')} className="hover:text-gray-300">Train</button>
           <button onClick={() => router.push('/history')} className="hover:text-gray-300">History</button>
           <button onClick={() => router.push('/profile')} className="hover:text-gray-300">Profile</button>
@@ -214,7 +214,7 @@ export default function Dashboard() {
           </div>
           <span className="font-black tracking-tighter text-lg italic uppercase">HQ</span>
         </div>
-        <button onClick={() => router.push('/profile')} className="p-2 bg-gray-900 rounded-lg text-gray-500">
+        <button onClick={() => router.push('/profile')} className="p-2 bg-card rounded-lg text-muted-foreground">
           <Settings size={20} />
         </button>
       </header>
@@ -242,18 +242,18 @@ export default function Dashboard() {
             
             <div className="flex items-start justify-between relative z-10 mb-8">
               <div>
-                <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-white uppercase tracking-widest mb-4 backdrop-blur-sm border border-white/5">
+                <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[10px] font-black text-foreground uppercase tracking-widest mb-4 backdrop-blur-sm border border-white/5">
                   Protocol Active
                 </span>
-                <h2 className="text-3xl font-black text-white leading-tight uppercase tracking-tighter italic">
+                <h2 className="text-3xl font-black text-foreground leading-tight uppercase tracking-tighter italic">
                   {workout?.name || 'Load Program'}
                 </h2>
                 <p className="text-indigo-100/70 text-sm mt-2 font-medium max-w-[200px]">
                   {workout?.description || 'Access the training library to deploy your first protocol.'}
                 </p>
               </div>
-              <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10 rotate-6 shadow-xl">
-                <Dumbbell className="text-white" size={28} />
+              <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-border rotate-6 shadow-xl">
+                <Dumbbell className="text-foreground" size={28} />
               </div>
             </div>
 
@@ -268,7 +268,7 @@ export default function Dashboard() {
               
               <button 
                 onClick={() => router.push('/edit-program')}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-6 py-3 text-[10px] font-black text-white hover:bg-indigo-500/30 transition-all uppercase tracking-widest"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-6 py-3 text-[10px] font-black text-foreground hover:bg-indigo-500/30 transition-all uppercase tracking-widest"
               >
                 <Settings size={14} />
                 Change Program
@@ -278,14 +278,14 @@ export default function Dashboard() {
 
           {/* QUICK STATS */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-3xl bg-gray-900 p-6 border border-gray-800 hover:border-gray-700 transition-all">
+            <div className="rounded-3xl bg-card p-6 border border-border hover:border-gray-700 transition-all">
               <div className="flex items-center gap-2 mb-2 text-orange-500">
                 <Flame size={16} />
                 <p className="text-[10px] uppercase font-black tracking-[0.2em]">Streak</p>
               </div>
               <p className="text-3xl font-black">{stats.streak} Days</p>
             </div>
-            <div className="rounded-3xl bg-gray-900 p-6 border border-gray-800 hover:border-gray-700 transition-all">
+            <div className="rounded-3xl bg-card p-6 border border-border hover:border-gray-700 transition-all">
               <div className="flex items-center gap-2 mb-2 text-indigo-400">
                 <Trophy size={16} />
                 <p className="text-[10px] uppercase font-black tracking-[0.2em]">Biggest Lift</p>
@@ -309,3 +309,4 @@ export default function Dashboard() {
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -21,7 +21,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const MECHANIC_BADGE: Record<string, string> = {
   Compound:  'text-indigo-400 bg-indigo-500/10',
-  Isolation: 'text-gray-400 bg-gray-800',
+  Isolation: 'text-muted-foreground bg-gray-800',
   Isometric: 'text-teal-400 bg-teal-500/10',
 }
 
@@ -54,7 +54,7 @@ export default function Library() {
         .from('workouts')
         .insert({
           name: `Quick: ${ex.name}`,
-          description: `Single-exercise session — ${ex.target}`,
+          description: `Single-exercise session â€” ${ex.target}`,
           exercises: [{ name: ex.name, sets: 4, reps: '8-12' }],
           status: 'active',
           user_id: user.id,
@@ -73,12 +73,12 @@ export default function Library() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans pb-24">
+    <div className="min-h-screen bg-background text-foreground font-sans pb-24">
 
       {/* HEADER */}
-      <header className="sticky top-0 z-20 bg-gray-950/90 backdrop-blur-xl border-b border-gray-900 p-4">
+      <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-xl border-b border-border p-4">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft size={22} />
           </button>
           <div className="flex-1">
@@ -95,7 +95,7 @@ export default function Library() {
             placeholder="Search exercises or muscles..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-gray-700 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+            className="w-full bg-card border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-gray-700 focus:outline-none focus:border-indigo-500 transition-all font-medium"
           />
         </div>
 
@@ -107,11 +107,11 @@ export default function Library() {
               onClick={() => setEquipFilter(eq)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
                 equipFilter === eq
-                  ? 'bg-indigo-600 border-indigo-500 text-white'
-                  : 'bg-gray-900 border-gray-800 text-gray-500 hover:border-gray-700'
+                  ? 'bg-indigo-600 border-indigo-500 text-foreground'
+                  : 'bg-card border-border text-muted-foreground hover:border-gray-700'
               }`}
             >
-              {eq === 'all' ? '🏋️ All' : eq === 'iron' ? '🔩 Iron Path' : '🏠 At Home'}
+              {eq === 'all' ? 'ðŸ‹ï¸ All' : eq === 'iron' ? 'ðŸ”© Iron Path' : 'ðŸ  At Home'}
             </button>
           ))}
         </div>
@@ -124,8 +124,8 @@ export default function Library() {
               onClick={() => setActiveCategory(cat)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                 activeCategory === cat
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                  : 'bg-gray-900 text-gray-500 hover:text-gray-300 border border-gray-800'
+                  ? 'bg-indigo-600 text-foreground shadow-lg shadow-indigo-500/20'
+                  : 'bg-card text-muted-foreground hover:text-gray-300 border border-border'
               }`}
             >
               {cat}
@@ -143,14 +143,14 @@ export default function Library() {
           </div>
         ) : (
           filtered.map((ex) => {
-            const catColor = CATEGORY_COLORS[ex.category] || 'text-gray-400 bg-gray-800 border-gray-700'
-            const mechBadge = MECHANIC_BADGE[ex.mechanic] || 'text-gray-400 bg-gray-800'
+            const catColor = CATEGORY_COLORS[ex.category] || 'text-muted-foreground bg-gray-800 border-gray-700'
+            const mechBadge = MECHANIC_BADGE[ex.mechanic] || 'text-muted-foreground bg-gray-800'
             const isLoading = loadingId === ex.id
 
             return (
               <div
                 key={ex.id}
-                className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between group hover:border-gray-700 transition-all shadow-lg"
+                className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between group hover:border-gray-700 transition-all shadow-lg"
               >
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   <div className={`h-10 w-10 rounded-xl flex items-center justify-center border flex-shrink-0 ${catColor}`}>
@@ -158,7 +158,7 @@ export default function Library() {
                   </div>
                   <div className="min-w-0">
                     <p className="font-black text-sm tracking-tight truncate">{ex.name}</p>
-                    <p className="text-[10px] text-gray-500 font-medium mt-0.5 truncate">{ex.target}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate">{ex.target}</p>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest ${mechBadge}`}>
                         {ex.mechanic}
@@ -173,7 +173,7 @@ export default function Library() {
                 <button
                   onClick={() => handleQuickStart(ex)}
                   disabled={!!loadingId}
-                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-[10px] font-black px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0 shadow-lg shadow-indigo-500/10"
+                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-foreground text-[10px] font-black px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0 shadow-lg shadow-indigo-500/10"
                 >
                   {isLoading
                     ? <Loader2 size={14} className="animate-spin" />
@@ -190,3 +190,4 @@ export default function Library() {
     </div>
   )
 }
+

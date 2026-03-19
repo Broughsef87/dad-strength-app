@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, PenLine, Target, Flame } from 'lucide-react'
@@ -8,16 +8,16 @@ import RecommendedReading from './RecommendedReading'
 const TIME_OPTIONS = [5, 10, 20, 30]
 
 const BABY_NIGHTS = [
-  { id: 'great',  label: 'Slept great',       emoji: '😴' },
-  { id: 'ok',     label: 'Decent night',       emoji: '🙂' },
-  { id: 'rough',  label: 'Rough night',        emoji: '😮‍💨' },
-  { id: 'brutal', label: 'Up all night',       emoji: '💀' },
+  { id: 'great',  label: 'Slept great',       emoji: 'ðŸ˜´' },
+  { id: 'ok',     label: 'Decent night',       emoji: 'ðŸ™‚' },
+  { id: 'rough',  label: 'Rough night',        emoji: 'ðŸ˜®â€ðŸ’¨' },
+  { id: 'brutal', label: 'Up all night',       emoji: 'ðŸ’€' },
 ]
 
 const ENERGY_LEVELS = [
-  { id: 'high',   label: 'Ready to go',        emoji: '🔥' },
-  { id: 'medium', label: 'Getting there',      emoji: '☕' },
-  { id: 'low',    label: 'Running on fumes',   emoji: '🌫️' },
+  { id: 'high',   label: 'Ready to go',        emoji: 'ðŸ”¥' },
+  { id: 'medium', label: 'Getting there',      emoji: 'â˜•' },
+  { id: 'low',    label: 'Running on fumes',   emoji: 'ðŸŒ«ï¸' },
 ]
 
 const PILLAR_ICONS: Record<string, any> = {
@@ -137,7 +137,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           <Sun size={18} className="text-orange-400" />
           <h3 className="font-black text-lg uppercase italic tracking-tighter">Morning Protocol</h3>
         </div>
-        <p className="text-xs text-gray-500 font-medium -mt-4">Build your morning. Own your day.</p>
+        <p className="text-xs text-muted-foreground font-medium -mt-4">Build your morning. Own your day.</p>
 
         {/* Time */}
         <div>
@@ -146,7 +146,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
             {TIME_OPTIONS.map(t => (
               <button key={t} onClick={() => setMinutes(t)}
                 className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                  minutes === t ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-800 text-gray-500 hover:text-gray-300'
+                  minutes === t ? 'bg-indigo-600 text-foreground shadow-lg' : 'bg-gray-800 text-muted-foreground hover:text-gray-300'
                 }`}
               >{t}m</button>
             ))}
@@ -162,7 +162,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                   babyNight === b.id
                     ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300'
-                    : 'bg-gray-800/50 border border-transparent text-gray-400 hover:border-gray-700'
+                    : 'bg-gray-800/50 border border-transparent text-muted-foreground hover:border-gray-700'
                 }`}
               >
                 <span>{b.emoji}</span> {b.label}
@@ -180,7 +180,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                   energy === e.id
                     ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300'
-                    : 'bg-gray-800/50 border border-transparent text-gray-400 hover:border-gray-700'
+                    : 'bg-gray-800/50 border border-transparent text-muted-foreground hover:border-gray-700'
                 }`}
               >
                 <span>{e.emoji}</span> {e.label}
@@ -194,7 +194,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         <button
           onClick={() => generate()}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black py-5 rounded-2xl uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-500/20 text-base"
+          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-foreground font-black py-5 rounded-2xl uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-500/20 text-base"
         >
           {loading
             ? <><Loader2 size={18} className="animate-spin" /> Building Your Morning...</>
@@ -221,7 +221,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         </div>
         <button
           onClick={() => { setConfigured(false); setProtocol(null); setCompleted([]) }}
-          className="p-1.5 text-gray-600 hover:text-gray-400 rounded-lg hover:bg-gray-800 transition-colors"
+          className="p-1.5 text-gray-600 hover:text-muted-foreground rounded-lg hover:bg-gray-800 transition-colors"
           title="Rebuild"
         >
           <RefreshCw size={13} />
@@ -257,7 +257,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
             <div
               key={i}
               className={`rounded-2xl border overflow-hidden transition-all ${
-                isDone ? 'border-gray-800 opacity-60' : 'border-gray-800'
+                isDone ? 'border-border opacity-60' : 'border-border'
               }`}
             >
               {/* Step header */}
@@ -271,7 +271,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                 >
                   {isDone
                     ? <CheckCircle2 size={22} className="text-indigo-500" />
-                    : <Circle size={22} className="text-gray-700 hover:text-gray-500" />
+                    : <Circle size={22} className="text-gray-700 hover:text-muted-foreground" />
                   }
                 </button>
                 <div className={`h-9 w-9 rounded-xl flex items-center justify-center border flex-shrink-0 ${colors}`}>
@@ -282,7 +282,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                     {step.title}
                   </p>
                   <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-0.5">
-                    {step.pillar} · {step.minutes}m
+                    {step.pillar} Â· {step.minutes}m
                   </p>
                 </div>
                 {isExpanded ? <ChevronUp size={16} className="text-gray-600 flex-shrink-0" /> : <ChevronDown size={16} className="text-gray-600 flex-shrink-0" />}
@@ -290,8 +290,8 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
               {/* Expanded content */}
               {isExpanded && !isDone && (
-                <div className="px-5 pb-5 space-y-3 border-t border-gray-800/50 pt-4">
-                  <p className="text-sm text-gray-400 leading-relaxed">{step.guidance}</p>
+                <div className="px-5 pb-5 space-y-3 border-t border-border/50 pt-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">{step.guidance}</p>
                   {step.pillar === 'Meditation' && <AmbientAudioPlayer />}
                   {step.pillar === 'Reading' && <RecommendedReading />}
                   <div className={`rounded-xl px-4 py-3 border ${colors}`}>
@@ -300,9 +300,9 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                   </div>
                   <button
                     onClick={() => toggleStep(i)}
-                    className="w-full bg-gray-800 hover:bg-gray-700 text-white font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all"
+                    className="w-full bg-gray-800 hover:bg-gray-700 text-foreground font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all"
                   >
-                    Mark Complete ✓
+                    Mark Complete âœ“
                   </button>
                 </div>
               )}
@@ -315,9 +315,10 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       {allDone && protocol?.closingWord && (
         <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-5 text-center animate-in fade-in duration-500">
           <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Morning Complete</p>
-          <p className="text-base font-black italic text-white leading-snug">{protocol.closingWord}</p>
+          <p className="text-base font-black italic text-foreground leading-snug">{protocol.closingWord}</p>
         </div>
       )}
     </div>
   )
 }
+
