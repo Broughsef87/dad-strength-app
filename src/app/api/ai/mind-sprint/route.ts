@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       : 'No objectives set yet'
 
     const { object: sprint } = await generateObject({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash'),
       system: `You are a productivity coach for busy dads with limited time windows. Generate a focused mental sprint protocol.
 Rules:
 - Time blocks must add up to exactly the requested minutes
