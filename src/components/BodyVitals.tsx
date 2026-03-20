@@ -19,6 +19,7 @@ export default function BodyVitals() {
   const [sessionsThisWeek, setSessionsThisWeek] = useState(0)
   const [streak, setStreak] = useState(0)
   const [weeklyTarget, setWeeklyTarget] = useState(DEFAULT_WEEKLY_TARGET)
+  const [workoutId, setWorkoutId] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -34,6 +35,14 @@ export default function BodyVitals() {
       if (profile?.program_data?.frequency) {
         setWeeklyTarget(profile.program_data.frequency)
       }
+
+      const { data: workouts } = await supabase
+        .from('workouts')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+      if (workouts && workouts.length > 0) setWorkoutId(workouts[0].id)
 
       const monday = getMondayOfWeek(new Date())
       const sunday = getSundayOfWeek(monday)
@@ -97,7 +106,7 @@ export default function BodyVitals() {
       initial="hidden"
       animate="visible"
       className="bg-card rounded-xl p-5 border border-border hover:border-foreground/20 transition-colors cursor-pointer group active:scale-[0.98]"
-      onClick={() => router.push('/body')}
+      onClick={() => router.push(workoutId ? `/workout/${workoutId}` : '/body')}
     >
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
