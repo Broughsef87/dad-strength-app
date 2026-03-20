@@ -81,7 +81,7 @@ export default function WeeklyDebrief({
 
   if (loading) return (
     <div className="flex flex-col items-center gap-3 py-8">
-      <Loader2 size={20} className="animate-spin text-indigo-500" />
+      <Loader2 size={20} className="animate-spin text-brand" />
       <p className="text-xs font-black uppercase tracking-widest text-gray-600">Analyzing your week...</p>
     </div>
   )
@@ -98,7 +98,7 @@ export default function WeeklyDebrief({
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp size={16} className="text-indigo-500" />
+          <TrendingUp size={16} className="text-brand" />
           <h3 className="font-black text-sm uppercase italic tracking-tighter">Weekly Debrief</h3>
         </div>
         <button onClick={() => generate(true)} className="p-1.5 text-gray-600 hover:text-muted-foreground rounded-lg hover:bg-gray-800 transition-colors">
@@ -122,7 +122,7 @@ export default function WeeklyDebrief({
           </div>
         </div>
         <div className="bg-gray-800/40 rounded-2xl p-4 flex gap-3">
-          <Target size={16} className="text-indigo-400 flex-shrink-0 mt-0.5" />
+          <Target size={16} className="text-brand flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Next Week Focus</p>
             <p className="text-sm font-bold text-gray-200">{debrief.focus}</p>

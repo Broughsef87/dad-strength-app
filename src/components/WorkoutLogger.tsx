@@ -115,12 +115,12 @@ export default function WorkoutLogger() {
               type="button"
               className={`p-4 rounded-2xl border text-left transition-all ${
                 track === t 
-                  ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10' 
+                  ? 'border-brand bg-brand/10 shadow-lg shadow-brand/10' 
                   : 'border-border bg-card/50 hover:border-gray-700'
               }`}
             >
               <div className="flex items-center gap-2 font-black text-sm uppercase italic tracking-tighter mb-1">
-                <TrackIcon className={`w-4 h-4 ${track === t ? 'text-indigo-400' : 'text-gray-600'}`} />
+                <TrackIcon className={`w-4 h-4 ${track === t ? 'text-brand' : 'text-gray-600'}`} />
                 {TRACKS[t].name}
               </div>
               <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{TRACKS[t].description}</div>
@@ -139,7 +139,7 @@ export default function WorkoutLogger() {
                 type="button"
                 onClick={() => setExercise(ex)}
                 className={`text-[10px] font-black px-3 py-1.5 rounded-lg border uppercase tracking-wider transition-all ${
-                  exercise === ex ? 'bg-indigo-600 text-foreground border-indigo-500' : 'bg-gray-800 text-muted-foreground border-gray-700 hover:border-gray-600'
+                  exercise === ex ? 'bg-brand text-foreground border-brand' : 'bg-gray-800 text-muted-foreground border-gray-700 hover:border-gray-600'
                 }`}
               >
                 {ex}
@@ -151,7 +151,7 @@ export default function WorkoutLogger() {
             value={exercise}
             onChange={(e) => setExercise(e.target.value)}
             placeholder="Manual Entry..."
-            className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand"
             required
           />
         </div>
@@ -183,7 +183,7 @@ export default function WorkoutLogger() {
 
         <button 
           type="submit"
-          className="w-full bg-indigo-600 text-foreground p-3 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/20"
+          className="w-full bg-brand text-foreground p-3 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20"
         >
           <Plus className="w-4 h-4" />
           Log Set
@@ -192,7 +192,7 @@ export default function WorkoutLogger() {
 
       <div className="space-y-3">
         <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] flex items-center gap-2">
-          <Activity className="w-4 h-4 text-indigo-500" />
+          <Activity className="w-4 h-4 text-brand" />
           Active Session
         </h3>
         
@@ -216,7 +216,7 @@ export default function WorkoutLogger() {
       </div>
 
       {sets.length > 0 && (
-        <button className="w-full border border-indigo-500/30 bg-indigo-500/5 text-indigo-400 p-4 rounded-2xl font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-indigo-500 hover:text-foreground transition-all">
+        <button className="w-full border border-brand/30 bg-brand/5 text-brand p-4 rounded-2xl font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-brand/90 hover:text-foreground transition-all">
           <Save className="w-4 h-4" />
           Save Protocol
         </button>
@@ -224,7 +224,7 @@ export default function WorkoutLogger() {
       <div className="flex gap-4 pt-4">
         <button 
           onClick={() => setShowSummary(true)}
-          className="flex-grow bg-indigo-600 text-foreground font-black py-4 rounded-2xl hover:bg-indigo-500 transition-all active:scale-95 shadow-lg shadow-indigo-500/20 uppercase tracking-widest"
+          className="flex-grow bg-brand text-foreground font-black py-4 rounded-2xl hover:bg-brand/90 transition-all active:scale-95 shadow-lg shadow-brand/20 uppercase tracking-widest"
         >
           Finish Workout
         </button>

@@ -114,7 +114,7 @@ export default function Schedule() {
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-background">
-      <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
@@ -146,15 +146,15 @@ export default function Schedule() {
               </span>
               <div className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${
                 day.isToday
-                  ? 'bg-indigo-600 shadow-lg shadow-indigo-500/30'
+                  ? 'bg-brand shadow-lg shadow-brand/30'
                   : day.hasWorkout
-                  ? 'bg-indigo-500/20 border border-indigo-500/30'
+                  ? 'bg-brand/20 border border-brand/30'
                   : day.isPast
                   ? 'bg-card border border-border'
                   : 'bg-card/40 border border-border'
               }`}>
                 {day.hasWorkout ? (
-                  <CheckCircle2 size={14} className={day.isToday ? 'text-foreground' : 'text-indigo-400'} />
+                  <CheckCircle2 size={14} className={day.isToday ? 'text-foreground' : 'text-brand'} />
                 ) : (
                   <span className={`text-xs font-black ${day.isToday ? 'text-foreground' : 'text-gray-700'}`}>
                     {day.date.getDate()}
@@ -162,7 +162,7 @@ export default function Schedule() {
                 )}
               </div>
               {day.hasWorkout && !day.isToday && (
-                <span className="text-[8px] text-indigo-400 font-black">âœ“</span>
+                <span className="text-[8px] text-brand font-black">âœ“</span>
               )}
             </div>
           ))}
@@ -191,8 +191,8 @@ export default function Schedule() {
         <div>
           <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3">Today's Session</p>
           {todayData?.hasWorkout ? (
-            <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-3xl p-5 flex items-center gap-4">
-              <CheckCircle2 size={28} className="text-indigo-400 flex-shrink-0" />
+            <div className="bg-brand/10 border border-brand/30 rounded-3xl p-5 flex items-center gap-4">
+              <CheckCircle2 size={28} className="text-brand flex-shrink-0" />
               <div>
                 <p className="font-black text-base">Session Complete</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -203,20 +203,20 @@ export default function Schedule() {
           ) : activeWorkout ? (
             <div className="bg-card border border-border rounded-3xl p-5">
               <div className="flex items-center gap-4 mb-4">
-                <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-                  <Dumbbell size={20} className="text-indigo-400" />
+                <div className="h-12 w-12 rounded-2xl bg-brand/10 flex items-center justify-center flex-shrink-0">
+                  <Dumbbell size={20} className="text-brand" />
                 </div>
                 <div>
                   <p className="font-black text-base tracking-tight">{activeWorkout.name}</p>
                   <p className="text-xs text-muted-foreground">{activeWorkout.description}</p>
-                  <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">
+                  <p className="text-[10px] text-brand font-bold uppercase tracking-widest mt-1">
                     {activeWorkout.exercises?.length || 0} exercises
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => router.push(`/workout/${activeWorkout.id}`)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-indigo-500/20"
+                className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-brand/20"
               >
                 <PlayCircle size={16} /> Start Session
               </button>
@@ -227,7 +227,7 @@ export default function Schedule() {
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">No program active</p>
               <button
                 onClick={() => router.push('/edit-program')}
-                className="mt-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest border border-indigo-500/30 px-4 py-2 rounded-lg hover:bg-indigo-500/10 transition-colors"
+                className="mt-4 text-[10px] font-black text-brand uppercase tracking-widest border border-brand/30 px-4 py-2 rounded-lg hover:bg-brand/10 transition-colors"
               >
                 Set Up Program →
               </button>
@@ -243,7 +243,7 @@ export default function Schedule() {
               {weekDays.filter(d => d.hasWorkout).map((day, i) => (
                 <div key={i} className="flex items-center justify-between bg-card rounded-2xl px-4 py-3 border border-border">
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 size={16} className="text-indigo-400" />
+                    <CheckCircle2 size={16} className="text-brand" />
                     <div>
                       <p className="font-black text-sm">{DAY_LABELS[day.date.getDay()]} {day.date.getDate()}</p>
                       <p className="text-[10px] text-gray-600 font-bold">{day.sessionCount} sets</p>

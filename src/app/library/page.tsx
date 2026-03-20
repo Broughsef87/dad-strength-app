@@ -16,11 +16,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   Shoulders: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
   Arms:      'text-purple-400 bg-purple-500/10 border-purple-500/20',
   Core:      'text-orange-400 bg-orange-500/10 border-orange-500/20',
-  Cardio:    'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+  Cardio:    'text-brand bg-brand/10 border-brand/20',
 }
 
 const MECHANIC_BADGE: Record<string, string> = {
-  Compound:  'text-indigo-400 bg-indigo-500/10',
+  Compound:  'text-brand bg-brand/10',
   Isolation: 'text-muted-foreground bg-gray-800',
   Isometric: 'text-teal-400 bg-teal-500/10',
 }
@@ -95,7 +95,7 @@ export default function Library() {
             placeholder="Search exercises or muscles..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-gray-700 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+            className="w-full bg-card border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-gray-700 focus:outline-none focus:border-brand transition-all font-medium"
           />
         </div>
 
@@ -107,7 +107,7 @@ export default function Library() {
               onClick={() => setEquipFilter(eq)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
                 equipFilter === eq
-                  ? 'bg-indigo-600 border-indigo-500 text-foreground'
+                  ? 'bg-brand border-brand text-foreground'
                   : 'bg-card border-border text-muted-foreground hover:border-gray-700'
               }`}
             >
@@ -124,7 +124,7 @@ export default function Library() {
               onClick={() => setActiveCategory(cat)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                 activeCategory === cat
-                  ? 'bg-indigo-600 text-foreground shadow-lg shadow-indigo-500/20'
+                  ? 'bg-brand text-foreground shadow-lg shadow-brand/20'
                   : 'bg-card text-muted-foreground hover:text-gray-300 border border-border'
               }`}
             >
@@ -173,7 +173,7 @@ export default function Library() {
                 <button
                   onClick={() => handleQuickStart(ex)}
                   disabled={!!loadingId}
-                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-foreground text-[10px] font-black px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0 shadow-lg shadow-indigo-500/10"
+                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-foreground text-[10px] font-black px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
                 >
                   {isLoading
                     ? <Loader2 size={14} className="animate-spin" />

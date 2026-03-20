@@ -111,8 +111,8 @@ export default function AmbientAudioPlayer() {
             onClick={() => handleTrackSelect(t.id)}
             className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
               activeTrack === t.id
-                ? 'bg-indigo-600 text-foreground'
-                : 'bg-gray-800 text-muted-foreground hover:border-indigo-500/30 hover:text-foreground'
+                ? 'bg-brand text-foreground'
+                : 'bg-gray-800 text-muted-foreground hover:border-brand/30 hover:text-foreground'
             }`}
           >
             {t.label}
@@ -124,7 +124,7 @@ export default function AmbientAudioPlayer() {
       <div className="flex items-center gap-4">
         <button
           onClick={handlePlayPause}
-          className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center transition-colors"
+          className="w-10 h-10 rounded-full bg-brand hover:bg-brand/90 flex items-center justify-center transition-colors"
         >
           {isPlaying ? <Pause className="w-4 h-4 text-foreground" /> : <Play className="w-4 h-4 text-foreground ml-0.5" />}
         </button>
@@ -138,7 +138,7 @@ export default function AmbientAudioPlayer() {
             step={0.05}
             value={volume}
             onChange={e => handleVolume(parseFloat(e.target.value))}
-            className="flex-1 accent-indigo-500 h-1.5 rounded-full cursor-pointer"
+            className="flex-1 accent-brand h-1.5 rounded-full cursor-pointer"
           />
         </div>
       </div>

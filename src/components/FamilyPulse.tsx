@@ -182,7 +182,7 @@ export default function FamilyPulse() {
             <span className="text-gray-600 font-black text-lg mb-1">/ 5</span>
           </div>
           {!hasAnyData && (
-            <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mt-1">Rate below to start</p>
+            <p className="text-[9px] text-brand font-black uppercase tracking-widest mt-1">Rate below to start</p>
           )}
         </div>
 
@@ -232,7 +232,7 @@ export default function FamilyPulse() {
       <div className="bg-card/40 rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Kid Connection</p>
-          <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+          <span className="text-[9px] font-black text-brand uppercase tracking-widest">
             {current.kid_score > 0 ? `${current.kid_score}/5` : 'Not set'}
           </span>
         </div>
@@ -247,7 +247,7 @@ export default function FamilyPulse() {
                 size={22}
                 className={`transition-all ${
                   n <= current.kid_score
-                    ? 'text-indigo-400 fill-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.5)]'
+                    ? 'text-brand fill-brand drop-shadow-[0_0_6px_rgba(232,87,42,0.5)]'
                     : 'text-gray-700'
                 }`}
               />
@@ -272,7 +272,7 @@ export default function FamilyPulse() {
         <div className="space-y-2">
           {current.moments.map((m, i) => (
             <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-background/60 border border-border group animate-in fade-in slide-in-from-left-1">
-              <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest w-4 shrink-0">{i + 1}</span>
+              <span className="text-[9px] font-black text-brand uppercase tracking-widest w-4 shrink-0">{i + 1}</span>
               <p className="flex-1 text-xs text-gray-300 italic truncate">"{m}"</p>
               <button
                 onClick={() => removeMoment(i)}
@@ -291,11 +291,11 @@ export default function FamilyPulse() {
               value={momentInput}
               onChange={(e) => setMomentInput(e.target.value)}
               placeholder="What did you do together?"
-              className="w-full bg-background border border-border rounded-xl p-3 pr-12 text-xs text-foreground placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              className="w-full bg-background border border-border rounded-xl p-3 pr-12 text-xs text-foreground placeholder:text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand/50"
             />
             <button
               type="submit"
-              className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-indigo-600 text-foreground hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
+              className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-brand text-foreground hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20"
             >
               <Plus size={16} />
             </button>

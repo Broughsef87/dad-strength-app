@@ -6,10 +6,10 @@ import { ArrowLeft, Save, TrendingUp, DollarSign, Youtube, MonitorSmartphone, Ta
 import { createClient } from '../../../utils/supabase/client'
 
 const ICON_OPTIONS = [
-  { id: 'trending', icon: TrendingUp, color: 'text-indigo-400' },
+  { id: 'trending', icon: TrendingUp, color: 'text-brand' },
   { id: 'dollar', icon: DollarSign, color: 'text-green-400' },
   { id: 'youtube', icon: Youtube, color: 'text-red-500' },
-  { id: 'saas', icon: MonitorSmartphone, color: 'text-indigo-400' },
+  { id: 'saas', icon: MonitorSmartphone, color: 'text-brand' },
   { id: 'target', icon: Target, color: 'text-orange-400' },
   { id: 'activity', icon: Activity, color: 'text-blue-400' }
 ]
@@ -98,7 +98,7 @@ export default function MissionEditor() {
         </div>
         <button 
           onClick={handleSave}
-          className="bg-indigo-600 hover:bg-indigo-500 text-foreground px-4 py-1.5 rounded-lg font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 text-foreground px-4 py-1.5 rounded-lg font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
         >
           <Save size={14} /> Save
         </button>
@@ -116,7 +116,7 @@ export default function MissionEditor() {
                   type="text" 
                   value={mission.title}
                   onChange={(e) => setMission({...mission, title: e.target.value})}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground font-bold focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground font-bold focus:border-brand outline-none transition-all"
                   placeholder="e.g. The Empire / My Vision"
                 />
              </div>
@@ -126,7 +126,7 @@ export default function MissionEditor() {
                   type="text" 
                   value={mission.primaryMetric}
                   onChange={(e) => setMission({...mission, primaryMetric: e.target.value})}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground font-bold focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground font-bold focus:border-brand outline-none transition-all"
                   placeholder="e.g. Operation: Freedom"
                 />
              </div>
@@ -144,7 +144,7 @@ export default function MissionEditor() {
                      type="number" 
                      value={mission.current}
                      onChange={(e) => setMission({...mission, current: parseFloat(e.target.value)})}
-                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground font-bold focus:border-indigo-500 outline-none transition-all"
+                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground font-bold focus:border-brand outline-none transition-all"
                    />
                 </div>
                 <div>
@@ -153,7 +153,7 @@ export default function MissionEditor() {
                      type="number" 
                      value={mission.target}
                      onChange={(e) => setMission({...mission, target: parseFloat(e.target.value)})}
-                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground font-bold focus:border-indigo-500 outline-none transition-all"
+                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground font-bold focus:border-brand outline-none transition-all"
                    />
                 </div>
              </div>
@@ -166,7 +166,7 @@ export default function MissionEditor() {
                        onClick={() => setMission({...mission, unit: u})}
                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
                          mission.unit === u 
-                           ? 'bg-indigo-600 border-indigo-500 text-foreground' 
+                           ? 'bg-brand border-brand text-foreground' 
                            : 'bg-background border-border text-gray-600 hover:text-muted-foreground'
                        }`}
                      >
@@ -193,7 +193,7 @@ export default function MissionEditor() {
                          type="text" 
                          value={mission[prefix + 'Label' as keyof typeof mission]}
                          onChange={(e) => setMission({...mission, [prefix + 'Label']: e.target.value})}
-                         className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs text-foreground font-bold focus:border-indigo-500 outline-none transition-all"
+                         className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs text-foreground font-bold focus:border-brand outline-none transition-all"
                          placeholder="e.g. Subscribers"
                        />
                     </div>
@@ -203,7 +203,7 @@ export default function MissionEditor() {
                          type="text" 
                          value={mission[prefix + 'Value' as keyof typeof mission]}
                          onChange={(e) => setMission({...mission, [prefix + 'Value']: e.target.value})}
-                         className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs text-foreground font-bold focus:border-indigo-500 outline-none transition-all"
+                         className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs text-foreground font-bold focus:border-brand outline-none transition-all"
                          placeholder="e.g. 12,450"
                        />
                     </div>
@@ -218,7 +218,7 @@ export default function MissionEditor() {
                            <button
                              key={opt.id}
                              onClick={() => setMission({...mission, [prefix + 'Icon']: opt.id})}
-                             className={`p-2 rounded-lg transition-all ${isSelected ? 'bg-indigo-500/20 text-indigo-400' : 'text-gray-700 hover:text-muted-foreground'}`}
+                             className={`p-2 rounded-lg transition-all ${isSelected ? 'bg-brand/20 text-brand' : 'text-gray-700 hover:text-muted-foreground'}`}
                            >
                              <Icon size={18} />
                            </button>

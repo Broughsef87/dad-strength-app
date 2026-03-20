@@ -96,7 +96,7 @@ export default function EditProgram() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-foreground px-4 py-1.5 rounded-lg font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed text-foreground px-4 py-1.5 rounded-lg font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
         >
           {saving ? <><Loader2 size={12} className="animate-spin" /> Saving...</> : 'Save'}
         </button>
@@ -113,7 +113,7 @@ export default function EditProgram() {
         {/* STEP 1: FOCUS */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">1</div>
+            <div className="w-6 h-6 rounded-full bg-brand/20 text-brand flex items-center justify-center text-[10px] font-black border border-brand/30">1</div>
             <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground">Select Your Focus</label>
           </div>
           <div className="grid grid-cols-1 gap-3">
@@ -126,15 +126,15 @@ export default function EditProgram() {
                   onClick={() => setSelectedFocus(focus.id)}
                   className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
                     isSelected
-                      ? 'border-indigo-500 bg-indigo-500/10 text-foreground shadow-xl shadow-indigo-500/5'
+                      ? 'border-brand bg-brand/10 text-foreground shadow-xl shadow-brand/5'
                       : 'border-border bg-card/40 text-muted-foreground hover:border-border'
                   }`}
                 >
-                  <div className={`p-3 rounded-xl ${isSelected ? 'bg-indigo-500 text-foreground' : 'bg-gray-800 text-gray-600'}`}>
+                  <div className={`p-3 rounded-xl ${isSelected ? 'bg-brand text-foreground' : 'bg-gray-800 text-gray-600'}`}>
                     <Icon size={24} />
                   </div>
                   <div>
-                    <h3 className={`font-black uppercase tracking-tight italic ${isSelected ? 'text-indigo-400' : 'text-gray-300'}`}>
+                    <h3 className={`font-black uppercase tracking-tight italic ${isSelected ? 'text-brand' : 'text-gray-300'}`}>
                       {focus.name}
                     </h3>
                     <p className="text-[10px] font-medium text-gray-600 leading-tight mt-0.5">{focus.desc}</p>
@@ -148,7 +148,7 @@ export default function EditProgram() {
         {/* STEP 2: TRACK */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">2</div>
+            <div className="w-6 h-6 rounded-full bg-brand/20 text-brand flex items-center justify-center text-[10px] font-black border border-brand/30">2</div>
             <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground">Choose Your Path</label>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -161,14 +161,14 @@ export default function EditProgram() {
                   onClick={() => setSelectedTrack(track.id)}
                   className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 text-center transition-all ${
                     isSelected
-                      ? 'border-indigo-500 bg-indigo-500/10 text-foreground shadow-xl shadow-indigo-500/5'
+                      ? 'border-brand bg-brand/10 text-foreground shadow-xl shadow-brand/5'
                       : 'border-border bg-card/40 text-muted-foreground hover:border-border'
                   }`}
                 >
-                  <div className={`p-3 rounded-full ${isSelected ? 'bg-indigo-500 text-foreground' : 'bg-gray-800 text-gray-600'}`}>
+                  <div className={`p-3 rounded-full ${isSelected ? 'bg-brand text-foreground' : 'bg-gray-800 text-gray-600'}`}>
                     <Icon size={24} />
                   </div>
-                  <h3 className={`font-black uppercase tracking-widest text-[10px] italic ${isSelected ? 'text-indigo-400' : 'text-gray-300'}`}>
+                  <h3 className={`font-black uppercase tracking-widest text-[10px] italic ${isSelected ? 'text-brand' : 'text-gray-300'}`}>
                     {track.name}
                   </h3>
                   <p className="text-[10px] text-gray-600">{track.desc}</p>
@@ -181,7 +181,7 @@ export default function EditProgram() {
         {/* STEP 3: PROGRAM LOGIC */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black border border-indigo-500/30">3</div>
+            <div className="w-6 h-6 rounded-full bg-brand/20 text-brand flex items-center justify-center text-[10px] font-black border border-brand/30">3</div>
             <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground">Program Logic</label>
           </div>
           <div className="space-y-6">
@@ -193,7 +193,7 @@ export default function EditProgram() {
                     key={weeks}
                     onClick={() => setSelectedWeeks(weeks)}
                     className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                      selectedWeeks === weeks ? 'bg-indigo-600 text-foreground shadow-lg' : 'text-gray-600 hover:text-muted-foreground'
+                      selectedWeeks === weeks ? 'bg-brand text-foreground shadow-lg' : 'text-gray-600 hover:text-muted-foreground'
                     }`}
                   >
                     {weeks} Weeks
@@ -209,7 +209,7 @@ export default function EditProgram() {
                     key={days}
                     onClick={() => setSelectedFrequency(days)}
                     className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                      selectedFrequency === days ? 'bg-indigo-600 text-foreground shadow-lg' : 'text-gray-600 hover:text-muted-foreground'
+                      selectedFrequency === days ? 'bg-brand text-foreground shadow-lg' : 'text-gray-600 hover:text-muted-foreground'
                     }`}
                   >
                     {days} Days / Wk
@@ -223,7 +223,7 @@ export default function EditProgram() {
         {/* PREVIEW */}
         <div className="bg-card/50 border border-border rounded-3xl p-6">
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
-            <Calendar size={12} className="text-indigo-500" /> Protocol Preview
+            <Calendar size={12} className="text-brand" /> Protocol Preview
           </p>
           <p className="font-black text-lg italic tracking-tight mb-1">
             {FOCUS_LABELS[selectedFocus]} · {TRACK_LABELS[selectedTrack]}

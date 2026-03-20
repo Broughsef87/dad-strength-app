@@ -110,7 +110,7 @@ export default function Brotherhood() {
     <div>
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
-        <Shield size={18} className="text-indigo-500" />
+        <Shield size={18} className="text-brand" />
         <h3 className="font-black text-lg uppercase tracking-tighter italic">The Brotherhood</h3>
         {overdueCount > 0 && (
           <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
@@ -140,14 +140,14 @@ export default function Brotherhood() {
                 {/* Status Dot */}
                 <div
                   className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                    overdue ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]' : 'bg-indigo-500 shadow-[0_0_6px_rgba(99,102,241,0.6)]'
+                    overdue ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]' : 'bg-brand shadow-[0_0_6px_rgba(99,102,241,0.6)]'
                   }`}
                 />
 
                 {/* Name + Status */}
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-sm uppercase tracking-tight truncate">{brother.name}</p>
-                  <p className={`text-[10px] font-bold uppercase tracking-widest ${overdue ? 'text-rose-400' : 'text-indigo-400'}`}>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${overdue ? 'text-rose-400' : 'text-brand'}`}>
                     {overdue ? 'Overdue · ' : 'Solid · '}
                     <span className="text-muted-foreground">{formatLastContact(brother.last_contacted_at)}</span>
                   </p>
@@ -157,7 +157,7 @@ export default function Brotherhood() {
                 <button
                   onClick={() => markContacted(brother.id)}
                   title="Mark Contacted Today"
-                  className="p-2 bg-card hover:bg-indigo-500/20 border border-border hover:border-indigo-500/40 rounded-xl transition-all text-muted-foreground hover:text-indigo-400"
+                  className="p-2 bg-card hover:bg-brand/20 border border-border hover:border-brand/40 rounded-xl transition-all text-muted-foreground hover:text-brand"
                 >
                   <Handshake size={15} />
                 </button>
@@ -190,12 +190,12 @@ export default function Brotherhood() {
             onKeyDown={handleKeyDown}
             placeholder="Add a brother..."
             maxLength={40}
-            className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-gray-600 focus:outline-none focus:border-brand/50 transition-colors"
           />
           <button
             onClick={addBrother}
             disabled={!newName.trim() || adding}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest"
+            className="px-4 py-2.5 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest"
           >
             <Plus size={14} />
             Add

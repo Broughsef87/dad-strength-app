@@ -40,7 +40,7 @@ export default function FuelStation() {
             <span className="text-3xl font-black text-foreground">{protein}</span>
             <span className="text-muted-foreground font-bold ml-1">/ {target}g</span>
           </div>
-          <span className={`text-sm font-bold ${percentage >= 100 ? 'text-emerald-500' : 'text-indigo-400'}`}>
+          <span className={`text-sm font-bold ${percentage >= 100 ? 'text-emerald-500' : 'text-brand'}`}>
             {percentage}%
           </span>
         </div>
@@ -48,7 +48,7 @@ export default function FuelStation() {
         <div className="w-full bg-gray-800 rounded-full h-3 mb-6 overflow-hidden">
           <div 
             className={`h-full transition-all duration-500 ease-out ${
-              percentage >= 100 ? 'bg-emerald-500' : 'bg-indigo-600'
+              percentage >= 100 ? 'bg-emerald-500' : 'bg-brand'
             }`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
           ></div>
@@ -59,9 +59,9 @@ export default function FuelStation() {
             <button
               key={amount}
               onClick={() => addProtein(amount)}
-              className="flex flex-col items-center justify-center p-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-indigo-500 hover:bg-indigo-500/10 transition-all group"
+              className="flex flex-col items-center justify-center p-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-brand hover:bg-brand/10 transition-all group"
             >
-              <Plus className="w-3 h-3 text-muted-foreground group-hover:text-indigo-400 mb-1" />
+              <Plus className="w-3 h-3 text-muted-foreground group-hover:text-brand mb-1" />
               <span className="text-sm font-bold text-gray-300">{amount}g</span>
             </button>
           ))}

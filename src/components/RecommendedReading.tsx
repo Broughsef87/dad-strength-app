@@ -71,12 +71,12 @@ export default function RecommendedReading() {
           <div
             key={book.id}
             className={`rounded-2xl border p-4 flex items-start justify-between gap-3 transition-all ${
-              active ? 'border-indigo-500/50 bg-indigo-950/30' : 'border-border bg-card'
+              active ? 'border-brand/50 bg-brand/30' : 'border-border bg-card'
             }`}
           >
             <div className="flex-1 min-w-0">
               <p className="text-foreground font-semibold text-sm leading-tight">{book.title}</p>
-              <p className="text-indigo-400 text-xs mt-0.5">{book.author}</p>
+              <p className="text-brand text-xs mt-0.5">{book.author}</p>
               <p className="text-muted-foreground text-xs mt-1">{book.desc}</p>
             </div>
 
@@ -85,7 +85,7 @@ export default function RecommendedReading() {
                 href={book.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-indigo-400 transition-colors"
+                className="text-muted-foreground hover:text-brand transition-colors"
                 aria-label="Learn more"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -104,7 +104,7 @@ export default function RecommendedReading() {
 
       {currentlyReading && (
         <p className="text-xs text-muted-foreground text-center">
-          âœ… Currently reading: <span className="text-indigo-400">{BOOKS.find(b => b.id === currentlyReading)?.title}</span>
+          âœ… Currently reading: <span className="text-brand">{BOOKS.find(b => b.id === currentlyReading)?.title}</span>
         </p>
       )}
     </div>

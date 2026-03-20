@@ -58,7 +58,7 @@ export default function BusinessGoals() {
            {/* SaaS App */}
            <div className="bg-card rounded-2xl p-4 border border-border group hover:border-gray-700 transition-colors">
              <div className="flex justify-between items-start mb-4">
-                <MonitorSmartphone className="text-indigo-400" size={20} />
+                <MonitorSmartphone className="text-brand" size={20} />
                 <TrendingUp size={14} className="text-green-500" />
              </div>
              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">App MRR</p>
@@ -70,7 +70,7 @@ export default function BusinessGoals() {
         {/* Active Projects / Funnels */}
         <div className="space-y-4">
            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest pl-2 flex items-center gap-2">
-              <Briefcase size={14} className="text-indigo-400" />
+              <Briefcase size={14} className="text-brand" />
               Active Sprints
            </h3>
            
@@ -79,14 +79,14 @@ export default function BusinessGoals() {
               <div className="flex justify-between items-center group cursor-pointer hover:bg-gray-800/50 p-2 rounded-xl transition-all -m-2">
                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center">
-                       <MonitorSmartphone size={18} className="text-indigo-400" />
+                       <MonitorSmartphone size={18} className="text-brand" />
                     </div>
                     <div>
                        <h4 className="font-bold text-sm">Dad Strength App MVP</h4>
                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">In Development</p>
                     </div>
                  </div>
-                 <span className="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded">V1.0</span>
+                 <span className="text-xs font-mono text-brand bg-brand/10 px-2 py-1 rounded">V1.0</span>
               </div>
 
               <div className="w-full h-[1px] bg-gray-800"></div>

@@ -123,7 +123,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
         <button 
           onClick={saveWorkout} 
           disabled={saving}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black px-4 py-2 rounded-full transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 text-white text-xs font-black px-4 py-2 rounded-full transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
         >
           {saving ? 'SAVING...' : <><Save size={14} /> SAVE</>}
         </button>
@@ -139,7 +139,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
               type="text" 
               value={workout?.name || ''}
               onChange={(e) => handleWorkoutChange('name', e.target.value)}
-              className="w-full bg-gray-800 border-2 border-transparent focus:border-indigo-500 rounded-xl p-3 font-bold text-white outline-none transition-all"
+              className="w-full bg-gray-800 border-2 border-transparent focus:border-brand rounded-xl p-3 font-bold text-white outline-none transition-all"
             />
           </div>
           <div>
@@ -148,7 +148,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
               type="text" 
               value={workout?.description || ''}
               onChange={(e) => handleWorkoutChange('description', e.target.value)}
-              className="w-full bg-gray-800 border-2 border-transparent focus:border-indigo-500 rounded-xl p-3 font-medium text-gray-300 outline-none transition-all text-sm"
+              className="w-full bg-gray-800 border-2 border-transparent focus:border-brand rounded-xl p-3 font-medium text-gray-300 outline-none transition-all text-sm"
             />
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
             <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Exercises</h2>
             <button 
               onClick={addExercise}
-              className="text-indigo-400 text-xs font-black hover:text-indigo-300 flex items-center gap-1 uppercase tracking-wider"
+              className="text-brand text-xs font-black hover:text-brand flex items-center gap-1 uppercase tracking-wider"
             >
               <Plus size={14} /> Add New
             </button>
@@ -181,7 +181,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
                     type="text" 
                     value={exercise.name}
                     onChange={(e) => handleExerciseChange(index, 'name', e.target.value)}
-                    className="w-full bg-gray-800 border-2 border-transparent focus:border-indigo-500 rounded-xl p-3 font-bold text-white outline-none transition-all"
+                    className="w-full bg-gray-800 border-2 border-transparent focus:border-brand rounded-xl p-3 font-bold text-white outline-none transition-all"
                     placeholder="e.g. Squat"
                   />
                 </div>
@@ -193,7 +193,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
                       type="number" 
                       value={exercise.sets}
                       onChange={(e) => handleExerciseChange(index, 'sets', e.target.value)}
-                      className="w-full bg-gray-800 border-2 border-transparent focus:border-indigo-500 rounded-xl p-3 font-bold text-white text-center outline-none transition-all"
+                      className="w-full bg-gray-800 border-2 border-transparent focus:border-brand rounded-xl p-3 font-bold text-white text-center outline-none transition-all"
                     />
                   </div>
                   <div>
@@ -202,7 +202,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
                       type="text" 
                       value={exercise.target_reps}
                       onChange={(e) => handleExerciseChange(index, 'target_reps', e.target.value)}
-                      className="w-full bg-gray-800 border-2 border-transparent focus:border-indigo-500 rounded-xl p-3 font-bold text-white text-center outline-none transition-all"
+                      className="w-full bg-gray-800 border-2 border-transparent focus:border-brand rounded-xl p-3 font-bold text-white text-center outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -212,7 +212,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
 
           <button 
             onClick={addExercise}
-            className="w-full py-4 rounded-2xl border-2 border-dashed border-gray-800 text-gray-500 hover:border-indigo-500 hover:text-indigo-400 transition-all font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl border-2 border-dashed border-gray-800 text-gray-500 hover:border-brand hover:text-brand transition-all font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2"
           >
             <Plus size={18} /> Add Exercise
           </button>

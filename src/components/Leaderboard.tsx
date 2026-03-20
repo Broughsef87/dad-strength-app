@@ -15,7 +15,7 @@ export default function Leaderboard() {
           <Trophy className="w-5 h-5 text-yellow-500" />
           The Feed
         </h2>
-        <span className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-500/20">
+        <span className="text-[10px] font-black bg-brand/10 text-brand px-3 py-1 rounded-full uppercase tracking-widest border border-brand/20">
           Global
         </span>
       </div>
@@ -23,7 +23,7 @@ export default function Leaderboard() {
       <div className="space-y-3">
         {MOCK_PRS.map((pr) => (
           <div key={pr.id} className="flex items-start gap-4 p-4 rounded-xl border border-border bg-background/50 hover:bg-gray-800 transition-all group">
-            <div className={`p-2 rounded-lg ${pr.type === 'strength' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-orange-500/10 text-orange-400'}`}>
+            <div className={`p-2 rounded-lg ${pr.type === 'strength' ? 'bg-brand/10 text-brand' : 'bg-orange-500/10 text-orange-400'}`}>
               {pr.type === 'strength' ? <Dumbbell className="w-5 h-5" /> : <Flame className="w-5 h-5" />}
             </div>
             
@@ -36,7 +36,7 @@ export default function Leaderboard() {
                 PR: <span className="font-bold text-gray-300">{pr.exercise}</span>
               </p>
               <div className="mt-2">
-                <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md bg-card border border-border text-indigo-400 uppercase tracking-widest">
+                <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md bg-card border border-border text-brand uppercase tracking-widest">
                   {pr.weight ? `${pr.weight} LBS x ${pr.reps}` : pr.reps}
                 </span>
               </div>
