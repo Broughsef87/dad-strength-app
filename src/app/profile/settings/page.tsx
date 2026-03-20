@@ -181,7 +181,9 @@ export default function Settings() {
               </div>
             </button>
           </div>
-          <p className="text-xs text-muted-foreground px-1">Push notifications require browser permission when available.</p>
+          <p className="text-xs text-muted-foreground px-1">
+            Preferences saved locally. Native push notifications coming soon.
+          </p>
         </section>
 
         {/* Data & Privacy */}

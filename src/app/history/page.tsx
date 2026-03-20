@@ -214,10 +214,32 @@ export default function History() {
           />
         </div>
         {sessions.length === 0 ? (
-          <div className="text-center py-20 opacity-30">
-            <HistoryIcon size={48} className="mx-auto mb-4" />
-            <p className="text-sm font-bold uppercase tracking-widest">No workouts logged yet.</p>
-            <p className="text-xs text-muted-foreground mt-2">Finish your first workout to see it here.</p>
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+            {/* Icon with glow */}
+            <div className="relative mb-8">
+              <div className="absolute inset-0 rounded-full bg-brand/20 blur-2xl scale-150" />
+              <div className="relative h-20 w-20 rounded-2xl bg-card border border-border flex items-center justify-center mx-auto">
+                <Dumbbell size={36} className="text-brand" strokeWidth={1.5} />
+              </div>
+            </div>
+
+            {/* Copy */}
+            <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-brand mb-3">Battle Log Empty</p>
+            <h2 className="text-2xl font-black tracking-tighter text-foreground mb-3 leading-tight">
+              THE LOG IS EMPTY.
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mb-8">
+              Iron only counts when it's recorded. Every rep, every set — this is where your legacy is built.
+            </p>
+
+            {/* CTA */}
+            <button
+              onClick={() => router.push('/body')}
+              className="flex items-center gap-2 bg-brand text-white font-black text-xs uppercase tracking-[0.15em] px-8 py-4 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97]"
+            >
+              <Dumbbell size={14} />
+              Start First Session
+            </button>
           </div>
         ) : (
           <>

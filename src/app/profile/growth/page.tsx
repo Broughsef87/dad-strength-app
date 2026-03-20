@@ -302,6 +302,14 @@ export default function PersonalGrowth() {
                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/40 transition-colors placeholder:text-muted-foreground"
               />
             </div>
+            {!book.title && !book.author && (
+              <div className="flex items-center gap-3 p-3 bg-brand/5 border border-brand/10 rounded-lg">
+                <BookOpen size={14} className="text-brand/60 shrink-0" />
+                <p className="text-xs text-muted-foreground italic">
+                  "The man who reads leads." — Add the book you're currently working through.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground uppercase tracking-[0.1em] font-medium block mb-1">Current Chapter</label>

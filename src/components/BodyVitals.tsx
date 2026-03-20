@@ -159,6 +159,13 @@ export default function BodyVitals() {
             {weeklyTarget - sessionsThisWeek} session{weeklyTarget - sessionsThisWeek !== 1 ? 's' : ''} to go.
           </p>
         </div>
+      ) : sessionsThisWeek === 0 ? (
+        <div className="p-3 bg-brand/5 border border-brand/15 rounded-lg flex items-center gap-2.5">
+          <Dumbbell size={12} className="text-brand shrink-0" />
+          <p className="text-xs text-brand uppercase tracking-[0.1em] font-medium">
+            The iron waits. First session starts the streak.
+          </p>
+        </div>
       ) : (
         <div className="p-3 bg-red-500/8 border border-red-500/20 rounded-lg flex items-center gap-2.5">
           <AlertTriangle size={12} className="text-red-500 shrink-0" />
