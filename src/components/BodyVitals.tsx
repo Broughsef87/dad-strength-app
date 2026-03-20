@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
-import { Dumbbell, Flame, TrendingUp, ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Dumbbell, Flame, ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { getMondayOfWeek, getSundayOfWeek, toLocalDateString, calcStreak } from '../lib/utils'
+import CircularProgress from './ui/CircularProgress'
+import { useCountUp } from '../hooks/useCountUp'
+import { motion } from 'framer-motion'
+import { fadeUp } from './ui/motion'
 
 const DEFAULT_WEEKLY_TARGET = 4
 
@@ -72,6 +76,12 @@ export default function BodyVitals() {
   const onTrack = sessionsThisWeek >= Math.floor(weeklyTarget * 0.5)
   const crushing = sessionsThisWeek >= weeklyTarget
 
+  const streakDisplay = useCountUp(streak)
+  const sessionsDisplay = useCountUp(sessionsThisWeek)
+
+  const streakPercent = Math.min((streak / 7) * 100, 100)
+  const sessionsPercent = Math.min((sessionsThisWeek / weeklyTarget) * 100, 100)
+
   if (loading) {
     return (
       <div className="bg-card rounded-xl p-5 border border-border animate-pulse">
@@ -82,45 +92,56 @@ export default function BodyVitals() {
   }
 
   return (
-    <div
-      className="bg-card rounded-xl p-5 border border-border hover:border-foreground/20 transition-colors cursor-pointer group"
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      className="bg-card rounded-xl p-5 border border-border hover:border-foreground/20 transition-colors cursor-pointer group active:scale-[0.98]"
       onClick={() => router.push('/body')}
     >
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 bg-brand/10 rounded-lg text-brand">
-            <Dumbbell size={16} />
+            <Dumbbell size={16} strokeWidth={1.5} />
           </div>
           <h3 className="font-medium text-sm">Body Vitals</h3>
         </div>
         <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-background rounded-lg p-3.5 border border-border">
-          <div className="flex items-center gap-1.5 mb-2 text-muted-foreground">
-            <TrendingUp size={12} />
-            <span className="text-xs uppercase tracking-[0.12em] font-medium">This Week</span>
+      <div className="flex items-center justify-around mb-4 py-2">
+        <div className="flex flex-col items-center gap-2">
+          <CircularProgress
+            value={streakPercent}
+            size={72}
+            strokeWidth={5}
+            color="hsl(16 80% 54%)"
+            trackColor="hsl(240 5% 90%)"
+            label={`${streakDisplay}`}
+            sublabel="days"
+          />
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Flame size={10} strokeWidth={1.5} />
+            <span className="text-[9px] uppercase tracking-[0.1em] font-medium">Streak</span>
           </div>
-          <p className={`text-xl font-light tabular-nums ${crushing ? 'text-green-600' : onTrack ? 'text-yellow-600' : 'text-red-500'}`}>
-            {sessionsThisWeek}<span className="text-sm text-muted-foreground">/{weeklyTarget}</span>
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5 uppercase tracking-[0.1em]">
-            {crushing ? 'On fire' : onTrack ? 'On track' : 'Behind'}
-          </p>
         </div>
 
-        <div className="bg-background rounded-lg p-3.5 border border-border">
-          <div className="flex items-center gap-1.5 mb-2 text-muted-foreground">
-            <Flame size={12} />
-            <span className="text-xs uppercase tracking-[0.12em] font-medium">Streak</span>
+        <div className="w-px h-16 bg-border" />
+
+        <div className="flex flex-col items-center gap-2">
+          <CircularProgress
+            value={sessionsPercent}
+            size={72}
+            strokeWidth={5}
+            color={crushing ? 'hsl(142 76% 36%)' : onTrack ? 'hsl(48 96% 53%)' : 'hsl(16 80% 54%)'}
+            trackColor="hsl(240 5% 90%)"
+            label={`${sessionsDisplay}/${weeklyTarget}`}
+            sublabel="sessions"
+          />
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Dumbbell size={10} strokeWidth={1.5} />
+            <span className="text-[9px] uppercase tracking-[0.1em] font-medium">This Week</span>
           </div>
-          <p className={`text-xl font-light tabular-nums ${streak >= 5 ? 'text-green-600' : streak >= 2 ? 'text-yellow-600' : 'text-foreground'}`}>
-            {streak}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5 uppercase tracking-[0.1em]">
-            {streak === 1 ? 'day' : 'days'}
-          </p>
         </div>
       </div>
 
@@ -146,6 +167,6 @@ export default function BodyVitals() {
           </p>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

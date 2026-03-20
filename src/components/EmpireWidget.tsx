@@ -1,9 +1,11 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { TrendingUp, DollarSign, Youtube, MonitorSmartphone, ArrowRight, Target, Activity } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '../utils/supabase/client'
+import { motion } from 'framer-motion'
+import { fadeUp } from './ui/motion'
 
 const ICON_MAP = {
   trending: TrendingUp,
@@ -41,7 +43,7 @@ export default function EmpireWidget() {
             .select('mission_data')
             .eq('id', user.id)
             .single()
-          
+
           if (profile?.mission_data) {
             setMission(profile.mission_data as any)
             return
@@ -64,14 +66,19 @@ export default function EmpireWidget() {
   const S2Icon = ICON_MAP[mission.secondary2Icon as keyof typeof ICON_MAP] || MonitorSmartphone
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      className="space-y-4"
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-brand" />
+          <TrendingUp className="w-5 h-5 text-brand" strokeWidth={1.5} />
           <h3 className="font-black text-foreground uppercase tracking-tighter italic">{mission.title}</h3>
         </div>
         <Link href="/profile/edit-mission" className="text-muted-foreground hover:text-foreground transition-colors p-2 bg-background rounded-lg border border-border">
-          <ArrowRight size={14} />
+          <ArrowRight size={14} strokeWidth={1.5} />
         </Link>
       </div>
 
@@ -88,35 +95,42 @@ export default function EmpireWidget() {
           <span className={`text-xs font-black tabular-nums ${percentage > 100 ? 'text-green-500' : 'text-brand'}`}>{percentage}%</span>
         </div>
         <div className="h-2 w-full bg-card rounded-full overflow-hidden border border-border p-[1px]">
-          <div
-            className={`h-full transition-all duration-1000 ease-out rounded-full ${percentage > 100 ? 'bg-green-500' : 'bg-brand'}`}
-            style={{ width: `${Math.min(percentage, 100)}%` }}
-          ></div>
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(percentage, 100)}%` }}
+            transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.3 }}
+            className={`h-full rounded-full ${percentage > 100 ? 'bg-green-500' : 'bg-brand'}`}
+          />
         </div>
       </div>
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-background/50 p-3 rounded-xl border border-border flex items-center gap-3 group hover:border-brand/30 transition-all">
+        <motion.div
+          whileHover={{ y: -1 }}
+          className="bg-background/50 p-3 rounded-xl border border-border flex items-center gap-3 group hover:border-brand/30 transition-all"
+        >
           <div className="p-2 bg-card rounded-lg">
-             <S1Icon size={16} className="text-brand group-hover:text-brand/80 transition-colors" />
+             <S1Icon size={16} strokeWidth={1.5} className="text-brand group-hover:text-brand/80 transition-colors" />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-black text-muted-foreground uppercase tracking-widest truncate">{mission.secondary1Label}</p>
             <p className="text-xs font-black text-foreground tracking-tighter tabular-nums">{mission.secondary1Value}</p>
           </div>
-        </div>
-        <div className="bg-background/50 p-3 rounded-xl border border-border flex items-center gap-3 group hover:border-brand/30 transition-all">
+        </motion.div>
+        <motion.div
+          whileHover={{ y: -1 }}
+          className="bg-background/50 p-3 rounded-xl border border-border flex items-center gap-3 group hover:border-brand/30 transition-all"
+        >
           <div className="p-2 bg-card rounded-lg">
-             <S2Icon size={16} className="text-brand group-hover:text-brand/80 transition-colors" />
+             <S2Icon size={16} strokeWidth={1.5} className="text-brand group-hover:text-brand/80 transition-colors" />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-black text-muted-foreground uppercase tracking-widest truncate">{mission.secondary2Label}</p>
             <p className="text-xs font-black text-foreground tracking-tighter tabular-nums">{mission.secondary2Value}</p>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }
-

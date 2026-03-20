@@ -1,3 +1,7 @@
+'use client'
+
+import { motion } from 'framer-motion'
+import { staggerContainer, fadeUp } from '../../components/ui/motion'
 import BodyVitals from '../../components/BodyVitals';
 import NapSqueeze from '../../components/NapSqueeze';
 import ProteinTracker from '../../components/ProteinTracker';
@@ -13,16 +17,27 @@ export default function BodyPage() {
           <h1 className="text-3xl font-light tracking-tight">Body</h1>
         </div>
 
-        <div className="space-y-6">
-          <BodyVitals />
+        <motion.div
+          className="space-y-6"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
+          <motion.div variants={fadeUp}>
+            <BodyVitals />
+          </motion.div>
 
-          <NapSqueeze />
+          <motion.div variants={fadeUp}>
+            <NapSqueeze />
+          </motion.div>
 
-          <section>
-            <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">Metabolic Tracking</h3>
-            <ProteinTracker />
-          </section>
-        </div>
+          <motion.div variants={fadeUp}>
+            <section>
+              <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">Metabolic Tracking</h3>
+              <ProteinTracker />
+            </section>
+          </motion.div>
+        </motion.div>
       </div>
 
       <BottomNav />

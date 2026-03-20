@@ -10,6 +10,8 @@ import {
   Dumbbell,
   Settings
 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { staggerContainer, fadeUp } from '../../components/ui/motion'
 import BottomNav from '../../components/BottomNav'
 import Leaderboard from '../../components/Leaderboard'
 import EmpireWidget from '../../components/EmpireWidget'
@@ -19,6 +21,9 @@ import MindVitals from '../../components/MindVitals'
 import SpiritVitals from '../../components/SpiritVitals'
 import AutomationHook from '../../components/AutomationHook'
 import BodyVitals from '../../components/BodyVitals'
+import TrainingHeatmap from '../../components/TrainingHeatmap'
+import Logo from '../../components/Logo'
+import { useCountUp } from '../../hooks/useCountUp'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -169,6 +174,8 @@ export default function Dashboard() {
     router.push('/')
   }
 
+  const streakDisplay = useCountUp(stats.streak)
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-foreground">
@@ -186,8 +193,8 @@ export default function Dashboard() {
       {/* DESKTOP HEADER */}
       <header className="hidden md:flex items-center justify-between border-b border-border bg-background/90 px-8 py-4 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="h-7 w-7 rounded-lg bg-foreground flex items-center justify-center">
-            <span className="text-background font-semibold text-xs">D</span>
+          <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center p-1.5">
+            <Logo className="w-full h-full" color="hsl(60 14% 97%)" />
           </div>
           <span className="font-light text-base tracking-tight">
             Dad Strength <span className="text-muted-foreground">/ Forge OS</span>
@@ -205,8 +212,8 @@ export default function Dashboard() {
       {/* MOBILE HEADER */}
       <header className="md:hidden flex items-center justify-between px-6 pt-6 pb-2">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
-            <span className="text-background font-semibold text-sm">D</span>
+          <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center p-1.5">
+            <Logo className="w-full h-full" color="hsl(60 14% 97%)" />
           </div>
           <span className="font-light text-base tracking-tight">Dad Strength</span>
         </div>
@@ -218,23 +225,43 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-6 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* LEFT COLUMN */}
-        <div className="lg:col-span-3 space-y-6 order-3 lg:order-1">
-          <EmpireWidget />
-          <AutomationHook />
-          <BodyVitals />
-          <MindVitals
-            deepWorkMinutes={deepWorkMinutes}
-            completedObjectives={completedObjectives}
-            totalObjectives={totalObjectives}
-          />
-          <SpiritVitals />
-        </div>
+        <motion.div
+          className="lg:col-span-3 space-y-6 order-3 lg:order-1"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
+          <motion.div variants={fadeUp} custom={0}>
+            <EmpireWidget />
+          </motion.div>
+          <motion.div variants={fadeUp} custom={1}>
+            <AutomationHook />
+          </motion.div>
+          <motion.div variants={fadeUp} custom={2}>
+            <BodyVitals />
+          </motion.div>
+          <motion.div variants={fadeUp} custom={3}>
+            <MindVitals
+              deepWorkMinutes={deepWorkMinutes}
+              completedObjectives={completedObjectives}
+              totalObjectives={totalObjectives}
+            />
+          </motion.div>
+          <motion.div variants={fadeUp} custom={4}>
+            <SpiritVitals />
+          </motion.div>
+        </motion.div>
 
         {/* CENTER COLUMN */}
-        <div className="lg:col-span-6 space-y-6 order-2 lg:order-2">
+        <motion.div
+          className="lg:col-span-6 space-y-6 order-2 lg:order-2"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
 
           {/* ACTIVE WORKOUT CARD */}
-          <div className="rounded-xl bg-foreground p-6 relative overflow-hidden">
+          <motion.div variants={fadeUp} custom={0} className="rounded-xl bg-foreground p-6 relative overflow-hidden">
             <div className="absolute top-4 right-4 opacity-5">
               <Dumbbell size={80} />
             </div>
@@ -253,32 +280,36 @@ export default function Dashboard() {
             </div>
 
             <div className="flex flex-col gap-2.5 relative z-10">
-              <button
+              <motion.button
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => workout ? router.push(`/workout/${workout.id}`) : router.push('/body')}
                 className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-background px-6 py-3.5 text-sm font-medium text-foreground hover:bg-background/90 transition-all active:scale-[0.98]"
               >
                 <PlayCircle size={18} />
                 {workout ? 'Start Training' : 'Browse Programs'}
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/edit-program')}
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-white/5 border border-white/10 px-6 py-2.5 text-xs text-background/60 hover:bg-white/10 hover:text-background/80 transition-all uppercase tracking-[0.1em]"
               >
                 <Settings size={12} />
                 Change Program
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
 
           {/* QUICK STATS */}
-          <div className="grid grid-cols-2 gap-4">
+          <motion.div variants={fadeUp} custom={1} className="grid grid-cols-2 gap-4">
             <div className="rounded-xl bg-card border border-border p-5 hover:border-foreground/20 transition-colors">
               <div className="flex items-center gap-2 mb-3 text-brand">
                 <Flame size={14} />
                 <p className="text-[10px] uppercase tracking-[0.15em] font-medium">Streak</p>
               </div>
-              <p className="text-2xl font-light tabular-nums">{stats.streak} <span className="text-sm text-muted-foreground">days</span></p>
+              <p className="text-2xl font-light tabular-nums">{streakDisplay} <span className="text-sm text-muted-foreground">days</span></p>
             </div>
             <div className="rounded-xl bg-card border border-border p-5 hover:border-foreground/20 transition-colors">
               <div className="flex items-center gap-2 mb-3 text-muted-foreground">
@@ -287,16 +318,32 @@ export default function Dashboard() {
               </div>
               <p className="text-sm font-medium truncate leading-relaxed">{stats.lastPR}</p>
             </div>
-          </div>
+          </motion.div>
 
-          <Leaderboard />
-        </div>
+          {/* TRAINING HEATMAP */}
+          <motion.div variants={fadeUp} custom={2} className="rounded-xl bg-card border border-border p-5">
+            <TrainingHeatmap />
+          </motion.div>
+
+          <motion.div variants={fadeUp} custom={3}>
+            <Leaderboard />
+          </motion.div>
+        </motion.div>
 
         {/* RIGHT COLUMN */}
-        <div className="lg:col-span-3 space-y-6 order-1 lg:order-3">
-          <MorningProtocol />
-          <DailyQuote />
-        </div>
+        <motion.div
+          className="lg:col-span-3 space-y-6 order-1 lg:order-3"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
+          <motion.div variants={fadeUp} custom={0}>
+            <MorningProtocol />
+          </motion.div>
+          <motion.div variants={fadeUp} custom={1}>
+            <DailyQuote />
+          </motion.div>
+        </motion.div>
 
       </main>
 

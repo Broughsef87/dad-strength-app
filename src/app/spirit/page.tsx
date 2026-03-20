@@ -1,5 +1,7 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { staggerContainer, fadeUp } from '../../components/ui/motion';
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -115,18 +117,24 @@ export default function SpiritPage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto space-y-6">
+      <main className="max-w-md mx-auto">
+        <motion.div
+          className="space-y-6"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
 
-        <div className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
           <FamilyPulse />
-        </div>
+        </motion.div>
 
-        <div className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
           <Brotherhood />
-        </div>
+        </motion.div>
 
         {/* Spiritual Reset */}
-        <div className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
           <div className="flex items-center gap-2 mb-6">
             <Anchor size={16} className="text-brand" />
             <h3 className="font-medium text-sm">Spiritual Reset</h3>
@@ -190,7 +198,9 @@ export default function SpiritPage() {
           <p className="mt-5 text-[11px] text-muted-foreground text-center leading-relaxed italic px-4">
             "Quiet the noise to hear the signal."
           </p>
-        </div>
+        </motion.div>
+
+        </motion.div>
       </main>
 
       <BottomNav />

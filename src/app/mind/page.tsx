@@ -1,5 +1,7 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { staggerContainer, fadeUp } from '../../components/ui/motion';
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -103,10 +105,16 @@ export default function MindPage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto space-y-6">
+      <main className="max-w-md mx-auto">
+        <motion.div
+          className="space-y-6"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
 
         {/* Objectives */}
-        <div className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Target size={16} className="text-brand" />
@@ -202,18 +210,18 @@ export default function MindPage() {
               </button>
             </div>
           )}
-        </div>
+        </motion.div>
 
-        <div className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
           <DeepWorkTimer availableObjectives={objectives} />
-        </div>
+        </motion.div>
 
-        <div className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
           <MindSqueeze objectives={objectives} />
-        </div>
+        </motion.div>
 
         {/* Journal */}
-        <div className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
           <div className="flex items-center gap-2 mb-4">
             <PenLine size={16} className="text-brand" />
             <h3 className="font-medium text-sm">Journal</h3>
@@ -240,7 +248,9 @@ export default function MindPage() {
           >
             {savedMsg ? '✓ Entry Saved' : isSaving ? 'Saving...' : <><Save size={12} /> Save Entry</>}
           </button>
-        </div>
+        </motion.div>
+
+        </motion.div>
       </main>
 
       <BottomNav />

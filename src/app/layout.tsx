@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
+import PageTransition from '../components/PageTransition'
 
-const inter = Inter({
+const geist = Geist({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-geist',
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+})
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
+  weight: ['400', '500'],
 })
 
 export const metadata: Metadata = {
@@ -28,8 +36,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
+      <body className={geist.className}>
+        <PageTransition>{children}</PageTransition>
+      </body>
     </html>
   )
 }
