@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Timer, X } from 'lucide-react';
 
@@ -21,23 +21,23 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
 
   return (
     <div className={`relative overflow-hidden p-5 rounded-3xl border-2 flex items-center justify-between transition-all duration-500 ${
-      isLowTime 
-        ? 'bg-red-500/10 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]' 
-        : 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.05)]'
+      isLowTime
+        ? 'bg-red-500/10 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+        : 'bg-brand/10 border-brand/30 shadow-[0_0_20px_hsl(16_80%_54%/0.05)]'
     }`}>
       {/* Background Progress Bar */}
-      <div 
+      <div
         className={`absolute bottom-0 left-0 h-1 transition-all duration-1000 ease-linear ${
-          isLowTime ? 'bg-red-500' : 'bg-indigo-500'
+          isLowTime ? 'bg-red-500' : 'bg-brand'
         }`}
         style={{ width: `${progress}%` }}
       />
 
       <div className="flex items-center gap-4 relative z-10">
-        <div className={`p-3 rounded-2xl ${isLowTime ? 'bg-red-500/20 animate-pulse' : 'bg-indigo-500/20'}`}>
-          <Timer className={`w-6 h-6 ${isLowTime ? 'text-red-500' : 'text-indigo-400'}`} />
+        <div className={`p-3 rounded-2xl ${isLowTime ? 'bg-red-500/20 animate-pulse' : 'bg-brand/10'}`}>
+          <Timer className={`w-6 h-6 ${isLowTime ? 'text-red-500' : 'text-brand'}`} />
         </div>
-        
+
         <div>
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
             Protocol Rest
@@ -49,7 +49,7 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
         </div>
       </div>
 
-      <button 
+      <button
         onClick={onSkip}
         className="group relative z-10 p-2 rounded-xl bg-card/50 border border-border hover:border-gray-700 transition-all"
       >

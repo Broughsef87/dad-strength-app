@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { CheckCircle2, Circle, AlertCircle, TrendingUp, Sparkles, ChevronRight, Activity, Zap, History } from 'lucide-react';
 
@@ -11,23 +11,23 @@ interface ExerciseCardProps {
   intensityScore?: number;
 }
 
-export default function ExerciseCard({ 
-  name, 
-  target, 
-  isCompleted, 
+export default function ExerciseCard({
+  name,
+  target,
+  isCompleted,
   children,
   lastPerformed = "Yesterday",
   intensityScore = 88
 }: ExerciseCardProps) {
   return (
     <div className={`group relative bg-card border-2 rounded-[40px] transition-all duration-700 overflow-hidden ${
-      isCompleted 
-        ? 'border-emerald-500/40 bg-emerald-500/[0.02] shadow-[0_15px_40px_-10px_rgba(16,185,129,0.1)]' 
-        : 'border-border/80 hover:border-indigo-500/40 shadow-2xl'
+      isCompleted
+        ? 'border-emerald-500/40 bg-emerald-500/[0.02] shadow-[0_15px_40px_-10px_rgba(16,185,129,0.1)]'
+        : 'border-border/80 hover:border-brand/40 shadow-2xl'
     }`}>
       {/* Dynamic Background Element */}
       {!isCompleted && (
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] rounded-full -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors duration-700" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 blur-[50px] rounded-full -mr-16 -mt-16 group-hover:bg-brand/10 transition-colors duration-700" />
       )}
 
       {/* Exercise Header Section */}
@@ -46,20 +46,20 @@ export default function ExerciseCard({
                 <CheckCircle2 size={18} className="text-emerald-400" strokeWidth={3} />
               </div>
             ) : (
-                <div className="bg-gray-800/50 p-1 rounded-lg border border-gray-700 group-hover:border-indigo-500/30 transition-all">
-                    <ChevronRight size={14} className="text-gray-600 group-hover:text-indigo-400 transition-colors" />
+                <div className="bg-gray-800/50 p-1 rounded-lg border border-gray-700 group-hover:border-brand/30 transition-all">
+                    <ChevronRight size={14} className="text-gray-600 group-hover:text-brand transition-colors" />
                 </div>
             )}
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-brand/10 border border-brand/20 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+              <span className="text-[10px] font-black text-brand uppercase tracking-widest">
                 TARGET: {target}
               </span>
             </div>
-            
+
             {!isCompleted && (
               <div className="flex items-center gap-1 px-2.5 py-1 bg-gray-800/50 rounded-full border border-gray-700/50">
                 <History size={10} className="text-muted-foreground" />
@@ -70,10 +70,10 @@ export default function ExerciseCard({
             )}
           </div>
         </div>
-        
+
         {!isCompleted && (
           <div className="flex flex-col items-end">
-            <div className="flex items-center gap-1.5 text-indigo-400/80 mb-1.5">
+            <div className="flex items-center gap-1.5 text-brand/80 mb-1.5">
                 <Zap size={14} className="animate-pulse" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Intensity</span>
             </div>
@@ -90,7 +90,7 @@ export default function ExerciseCard({
           <div className="px-8 flex items-center gap-4 mb-2">
               <div className="flex-1 h-px bg-gradient-to-r from-gray-800 via-gray-700 to-transparent" />
               <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity duration-500">
-                  <Activity size={10} className="text-indigo-400" />
+                  <Activity size={10} className="text-brand" />
                   <span className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.3em]">Load Matrix</span>
               </div>
           </div>
@@ -114,7 +114,7 @@ export default function ExerciseCard({
       ) : (
           <div className="px-8 pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
               <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-indigo-500/30 w-1/3 rounded-full" />
+                  <div className="h-full bg-brand/30 w-1/3 rounded-full" />
               </div>
           </div>
       )}

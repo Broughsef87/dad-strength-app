@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { CheckCircle2, Circle, Dumbbell, History, MoreHorizontal } from 'lucide-react';
 
@@ -27,14 +27,14 @@ export default function ActiveSetRow({
 }: ActiveSetRowProps) {
   return (
     <div className={`group relative grid grid-cols-12 gap-3 items-center p-3 rounded-2xl transition-all duration-500 ${
-      isDone 
-        ? 'bg-emerald-500/5 border border-emerald-500/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.02)]' 
-        : 'bg-gray-800/20 border border-border/40 hover:border-indigo-500/30 hover:bg-gray-800/30'
+      isDone
+        ? 'bg-emerald-500/5 border border-emerald-500/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.02)]'
+        : 'bg-gray-800/20 border border-border/40 hover:border-brand/30 hover:bg-gray-800/30'
     }`}>
       {/* Set Number Indicator */}
       <div className="col-span-1 flex flex-col items-center justify-center">
         <span className={`text-[9px] font-black uppercase tracking-tighter mb-0.5 transition-colors ${
-          isDone ? 'text-emerald-500/50' : 'text-gray-600 group-hover:text-indigo-400/50'
+          isDone ? 'text-emerald-500/50' : 'text-gray-600 group-hover:text-brand/50'
         }`}>
           Set
         </span>
@@ -44,24 +44,24 @@ export default function ActiveSetRow({
           {index + 1}
         </span>
       </div>
-      
+
       {/* Weight Input */}
       <div className="col-span-4 relative group/input">
-        <input 
-          type="number" 
+        <input
+          type="number"
           inputMode="decimal"
-          placeholder={previousWeight || "0"} 
+          placeholder={previousWeight || "0"}
           disabled={isDone}
           value={weight}
           className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-black text-lg text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
-            isDone 
-              ? 'border-transparent' 
-              : 'border-border/50 focus:border-indigo-500 focus:bg-background focus:ring-4 focus:ring-indigo-500/10'
+            isDone
+              ? 'border-transparent'
+              : 'border-border/50 focus:border-brand focus:bg-background focus:ring-4 focus:ring-brand/10'
           }`}
           onChange={(e) => onWeightChange(e.target.value)}
         />
         {weight && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-[8px] font-black px-2 py-0.5 rounded-full text-foreground uppercase tracking-widest shadow-lg shadow-indigo-600/20 animate-in fade-in zoom-in-75 duration-200">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-black px-2 py-0.5 rounded-full text-foreground uppercase tracking-widest shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
             LBS
           </span>
         )}
@@ -75,21 +75,21 @@ export default function ActiveSetRow({
 
       {/* Reps Input */}
       <div className="col-span-4 relative group/input">
-        <input 
-          type="number" 
+        <input
+          type="number"
           inputMode="numeric"
-          placeholder={previousReps || "0"} 
+          placeholder={previousReps || "0"}
           disabled={isDone}
           value={reps}
           className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-black text-lg text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
-            isDone 
-              ? 'border-transparent' 
-              : 'border-border/50 focus:border-indigo-500 focus:bg-background focus:ring-4 focus:ring-indigo-500/10'
+            isDone
+              ? 'border-transparent'
+              : 'border-border/50 focus:border-brand focus:bg-background focus:ring-4 focus:ring-brand/10'
           }`}
           onChange={(e) => onRepsChange(e.target.value)}
         />
         {reps && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-[8px] font-black px-2 py-0.5 rounded-full text-foreground uppercase tracking-widest shadow-lg shadow-indigo-600/20 animate-in fade-in zoom-in-75 duration-200">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-black px-2 py-0.5 rounded-full text-foreground uppercase tracking-widest shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
             REPS
           </span>
         )}
@@ -102,12 +102,12 @@ export default function ActiveSetRow({
       </div>
 
       {/* Action Button */}
-      <button 
+      <button
         onClick={onToggle}
         className={`col-span-3 h-14 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-          isDone 
-            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 rotate-0' 
-            : 'bg-card border border-border text-gray-700 hover:text-indigo-400 hover:border-indigo-500/50 hover:bg-gray-800 shadow-sm'
+          isDone
+            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 rotate-0'
+            : 'bg-card border border-border text-gray-700 hover:text-brand hover:border-brand/50 hover:bg-gray-800 shadow-sm'
         }`}
       >
         {isDone ? (

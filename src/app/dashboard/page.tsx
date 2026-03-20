@@ -261,55 +261,63 @@ export default function Dashboard() {
         >
 
           {/* ACTIVE WORKOUT CARD */}
-          <motion.div variants={fadeUp} custom={0} className="rounded-xl bg-foreground p-6 relative overflow-hidden">
-            <div className="absolute top-4 right-4 opacity-5">
-              <Dumbbell size={80} />
-            </div>
+          <motion.div variants={fadeUp} custom={0}>
+            <div className="relative">
+              <div className="absolute inset-0 rounded-xl bg-brand/20 blur-2xl scale-95 translate-y-2" />
+              <div className="relative rounded-xl bg-foreground p-6 overflow-hidden">
+                <div className="absolute top-4 right-4 opacity-5">
+                  <Dumbbell size={80} />
+                </div>
 
-            <div className="relative z-10 mb-6">
-              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-background/50 font-medium mb-3">
-                <span className="w-1 h-1 rounded-full bg-brand inline-block" />
-                Active Protocol
-              </span>
-              <h2 className="text-2xl font-light text-background leading-tight tracking-tight">
-                {workout?.name || 'Load Program'}
-              </h2>
-              <p className="text-background/50 text-sm mt-1.5 font-light">
-                {workout?.description || 'Access the training library to deploy your first protocol.'}
-              </p>
-            </div>
+                <div className="relative z-10 mb-6">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-background/50 font-medium mb-3">
+                    <span className="w-1 h-1 rounded-full bg-brand inline-block" />
+                    Active Protocol
+                  </span>
+                  <h2 className="text-2xl font-light text-background leading-tight tracking-tight">
+                    {workout?.name || 'Load Program'}
+                  </h2>
+                  <p className="text-background/50 text-sm mt-1.5 font-light">
+                    {workout?.description || 'Access the training library to deploy your first protocol.'}
+                  </p>
+                </div>
 
-            <div className="flex flex-col gap-2.5 relative z-10">
-              <motion.button
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => workout ? router.push(`/workout/${workout.id}`) : router.push('/body')}
-                className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-background px-6 py-3.5 text-sm font-medium text-foreground hover:bg-background/90 transition-all active:scale-[0.98]"
-              >
-                <PlayCircle size={18} />
-                {workout ? 'Start Training' : 'Browse Programs'}
-              </motion.button>
+                <div className="flex flex-col gap-2.5 relative z-10">
+                  <motion.button
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => workout ? router.push(`/workout/${workout.id}`) : router.push('/body')}
+                    className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-background px-6 py-3.5 text-sm font-medium text-foreground hover:bg-background/90 transition-all active:scale-[0.98]"
+                  >
+                    <PlayCircle size={18} />
+                    {workout ? 'Start Training' : 'Browse Programs'}
+                  </motion.button>
 
-              <motion.button
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => router.push('/edit-program')}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-white/5 border border-white/10 px-6 py-2.5 text-xs text-background/60 hover:bg-white/10 hover:text-background/80 transition-all uppercase tracking-[0.1em]"
-              >
-                <Settings size={12} />
-                Change Program
-              </motion.button>
+                  <motion.button
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => router.push('/edit-program')}
+                    className="w-full flex items-center justify-center gap-2 rounded-lg bg-white/5 border border-white/10 px-6 py-2.5 text-xs text-background/60 hover:bg-white/10 hover:text-background/80 transition-all uppercase tracking-[0.1em]"
+                  >
+                    <Settings size={12} />
+                    Change Program
+                  </motion.button>
+                </div>
+              </div>
             </div>
           </motion.div>
 
           {/* QUICK STATS */}
           <motion.div variants={fadeUp} custom={1} className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl bg-card border border-border p-5 hover:border-foreground/20 transition-colors">
+            <div className="rounded-xl bg-card border border-border p-5 hover:border-brand/30 transition-colors group">
               <div className="flex items-center gap-2 mb-3 text-brand">
                 <Flame size={14} />
                 <p className="text-[10px] uppercase tracking-[0.15em] font-medium">Streak</p>
               </div>
-              <p className="text-2xl font-light tabular-nums">{streakDisplay} <span className="text-sm text-muted-foreground">days</span></p>
+              <p className="text-5xl font-black tabular-nums leading-none">{streakDisplay}<span className="text-lg text-muted-foreground font-light ml-1">days</span></p>
+              {stats.streak === 0 && (
+                <p className="text-[9px] text-muted-foreground/50 uppercase tracking-[0.1em] mt-1">Start today.</p>
+              )}
             </div>
             <div className="rounded-xl bg-card border border-border p-5 hover:border-foreground/20 transition-colors">
               <div className="flex items-center gap-2 mb-3 text-muted-foreground">

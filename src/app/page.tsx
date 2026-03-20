@@ -35,24 +35,43 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-8 text-foreground">
-      <div className="w-full max-w-sm space-y-8">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[hsl(240_10%_4%)] p-8">
+      {/* Ambient background glow */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-1/3 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[hsl(16_80%_54%/0.07)] blur-[120px]" />
+        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-[hsl(16_80%_54%/0.04)] blur-[80px]" />
+      </div>
 
+      {/* Subtle grid texture */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.015]"
+        style={{
+          backgroundImage: `linear-gradient(hsl(60 14% 97%) 1px, transparent 1px), linear-gradient(90deg, hsl(60 14% 97%) 1px, transparent 1px)`,
+          backgroundSize: '60px 60px',
+        }}
+      />
+
+      <div className="relative z-10 w-full max-w-sm space-y-10">
         {/* Brand mark */}
-        <div className="flex flex-col items-center space-y-4">
-          <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-foreground p-3">
-            <Logo className="w-full h-full" color="hsl(var(--background))" />
+        <div className="flex flex-col items-center space-y-5">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-2xl bg-[hsl(16_80%_54%/0.3)] blur-xl" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[hsl(240_4%_10%)] border border-[hsl(240_4%_20%)] p-3.5 shadow-2xl">
+              <Logo className="w-full h-full" color="hsl(16 80% 54%)" />
+            </div>
           </div>
-          <div className="text-center space-y-1">
-            <h1 className="text-2xl font-light tracking-tight text-foreground">Dad Strength</h1>
-            <p className="text-sm text-muted-foreground font-light">
-              The Operating System for Modern Fatherhood.
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-black tracking-tighter text-[hsl(60_14%_97%)]">
+              DAD STRENGTH
+            </h1>
+            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[hsl(240_5%_55%)]">
+              Forge OS · The Operating System for Modern Fatherhood
             </p>
           </div>
         </div>
 
         {/* Auth card */}
-        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+        <div className="rounded-2xl border border-[hsl(240_4%_16%)] bg-[hsl(240_4%_10%)] p-6 shadow-2xl">
           <Auth
             supabaseClient={supabase}
             appearance={{
@@ -62,6 +81,14 @@ export default function Home() {
                   colors: {
                     brand: '#E8572A',
                     brandAccent: '#c94a22',
+                    inputBackground: 'hsl(240 10% 4%)',
+                    inputBorder: 'hsl(240 4% 20%)',
+                    inputText: 'hsl(60 14% 97%)',
+                    inputPlaceholder: 'hsl(240 5% 45%)',
+                    inputLabelText: 'hsl(240 5% 65%)',
+                    messageText: 'hsl(240 5% 65%)',
+                    anchorTextColor: 'hsl(16 80% 54%)',
+                    dividerBackground: 'hsl(240 4% 16%)',
                   },
                 },
               },
@@ -71,8 +98,8 @@ export default function Home() {
           />
         </div>
 
-        <p className="text-center text-xs text-muted-foreground uppercase tracking-[0.2em]">
-          Forge OS · Dad Strength
+        <p className="text-center text-[10px] font-medium text-[hsl(240_5%_35%)] uppercase tracking-[0.25em]">
+          Forge OS · Dad Strength · Built for the Iron Path
         </p>
       </div>
     </div>
