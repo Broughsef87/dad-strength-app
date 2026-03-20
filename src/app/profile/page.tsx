@@ -3,7 +3,7 @@
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, BookOpen, Dumbbell, Flame, Trophy, Moon, Sun } from 'lucide-react'
+import { LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, BookOpen, Dumbbell, Flame, Trophy, Pencil, Check, X } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 
 export default function Profile() {
@@ -13,38 +13,28 @@ export default function Profile() {
   const [stats, setStats] = useState({ totalSessions: 0, totalVolume: 0, topLift: '', streak: 0 })
   const [programName, setProgramName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isDark, setIsDark] = useState(false)
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('dad-strength-theme')
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-      setIsDark(true)
-    } else if (savedTheme === 'light') {
-      document.documentElement.classList.remove('dark')
-      setIsDark(false)
-    } else {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    }
-  }, [])
-
-  const toggleDarkMode = () => {
-    const next = !isDark
-    setIsDark(next)
-    if (next) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('dad-strength-theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('dad-strength-theme', 'light')
-    }
-  }
+  const [displayName, setDisplayName] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [savingName, setSavingName] = useState(false)
 
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase.auth.getUser()
       if (!data.user) { router.push('/'); return }
       setUser(data.user)
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('display_name')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+      if (profile?.display_name) {
+        setDisplayName(profile.display_name)
+      } else {
+        setDisplayName(data.user.email?.split('@')[0] || 'Dad')
+      }
 
       const { data: logs } = await supabase
         .from('workout_logs')
@@ -92,11 +82,23 @@ export default function Profile() {
     router.push('/')
   }
 
+  const handleSaveName = async () => {
+    if (!user) return
+    setSavingName(true)
+    await supabase.from('user_profiles').upsert({ id: user.id, display_name: nameInput }, { onConflict: 'id' })
+    setDisplayName(nameInput)
+    setEditingName(false)
+    setSavingName(false)
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="flex items-center justify-between border-b border-border bg-background/90 px-6 py-4 backdrop-blur-md sticky top-0 z-10">
         <h1 className="text-xl font-light tracking-tight">Profile</h1>
-        <button className="text-muted-foreground hover:text-foreground transition-colors">
+        <button
+          onClick={() => router.push('/profile/settings')}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
           <SettingsIcon size={18} />
         </button>
       </header>
@@ -108,10 +110,44 @@ export default function Profile() {
           <div className="h-14 w-14 rounded-full bg-foreground flex items-center justify-center font-medium text-lg text-background shrink-0">
             {user?.email?.charAt(0).toUpperCase() || 'D'}
           </div>
-          <div>
-            <h2 className="font-medium text-base">{user?.email?.split('@')[0] || 'Dad'}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
-            <span className="inline-block mt-2 text-[10px] font-medium text-brand uppercase tracking-[0.12em] bg-brand/10 px-2 py-0.5 rounded">Pro Member</span>
+          <div className="flex-1 min-w-0">
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="flex-1 bg-muted border border-border rounded-lg px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:border-brand min-w-0"
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={savingName}
+                  className="p-1.5 text-green-500 hover:text-green-400 transition-colors disabled:opacity-50"
+                >
+                  <Check size={16} />
+                </button>
+                <button
+                  onClick={() => setEditingName(false)}
+                  className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h2 className="font-medium text-base truncate">{displayName}</h2>
+                <button
+                  onClick={() => { setNameInput(displayName); setEditingName(true) }}
+                  className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                >
+                  <Pencil size={13} />
+                </button>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{user?.email}</p>
+            <span className="inline-block mt-2 text-xs font-medium text-brand uppercase tracking-[0.12em] bg-brand/10 px-2 py-0.5 rounded">Pro Member</span>
           </div>
         </div>
 
@@ -125,7 +161,7 @@ export default function Profile() {
               <Target className="text-brand" size={20} />
             </div>
             <p className="font-medium text-sm">Edit Mission</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">Customize Goals</p>
+            <p className="text-xs text-muted-foreground mt-0.5 tracking-wide">Customize Goals</p>
           </button>
 
           <button
@@ -136,7 +172,7 @@ export default function Profile() {
               <BookOpen className="text-foreground" size={20} />
             </div>
             <p className="font-medium text-sm">Growth</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">Mindset & Family</p>
+            <p className="text-xs text-muted-foreground mt-0.5 tracking-wide">Mindset & Family</p>
           </button>
         </div>
 
@@ -149,22 +185,22 @@ export default function Profile() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-card rounded-xl p-4 border border-border">
               <Flame className="text-brand mb-2" size={16} />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Streak</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Streak</p>
               <p className="font-light text-2xl mt-1">{stats.streak} <span className="text-xs text-muted-foreground">days</span></p>
             </div>
             <div className="bg-card rounded-xl p-4 border border-border">
               <Dumbbell className="text-muted-foreground mb-2" size={16} />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Sessions</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Sessions</p>
               <p className="font-light text-2xl mt-1">{stats.totalSessions}</p>
             </div>
             <div className="bg-card rounded-xl p-4 border border-border">
               <Activity className="text-green-600 mb-2" size={16} />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Total Volume</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Total Volume</p>
               <p className="font-light text-xl mt-1">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
             </div>
             <div className="bg-card rounded-xl p-4 border border-border">
               <Trophy className="text-yellow-600 mb-2" size={16} />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Top Lift</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Top Lift</p>
               <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>
             </div>
           </div>
@@ -174,10 +210,10 @@ export default function Profile() {
         {programName && (
           <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-brand uppercase tracking-[0.12em] font-medium">Active Protocol</p>
+              <p className="text-xs text-brand uppercase tracking-[0.12em] font-medium">Active Protocol</p>
               <p className="font-medium text-sm mt-0.5">{programName}</p>
             </div>
-            <button onClick={() => router.push('/edit-program')} className="text-[10px] font-medium text-brand uppercase tracking-[0.12em] hover:opacity-70 transition-opacity">
+            <button onClick={() => router.push('/edit-program')} className="text-xs font-medium text-brand uppercase tracking-[0.12em] hover:opacity-70 transition-opacity">
               Change →
             </button>
           </div>
@@ -185,9 +221,12 @@ export default function Profile() {
 
         {/* Settings */}
         <div className="space-y-2">
-          <h3 className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-medium px-1">Settings</h3>
+          <h3 className="text-xs text-muted-foreground uppercase tracking-[0.15em] font-medium px-1">Settings</h3>
 
-          <button className="w-full flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-foreground/20 transition-colors">
+          <button
+            onClick={() => router.push('/profile/settings')}
+            className="w-full flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-foreground/20 transition-colors"
+          >
             <div className="p-2 bg-muted rounded-lg">
               <Bell size={16} className="text-foreground" />
             </div>
@@ -198,22 +237,9 @@ export default function Profile() {
           </button>
 
           <button
-            onClick={toggleDarkMode}
+            onClick={() => router.push('/profile/settings')}
             className="w-full flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-foreground/20 transition-colors"
           >
-            <div className="p-2 bg-muted rounded-lg">
-              {isDark ? <Sun size={16} className="text-foreground" /> : <Moon size={16} className="text-foreground" />}
-            </div>
-            <div className="text-left flex-1">
-              <p className="font-medium text-sm">Appearance</p>
-              <p className="text-xs text-muted-foreground">{isDark ? 'Dark mode' : 'Light mode'}</p>
-            </div>
-            <div className={`w-10 h-5 rounded-full transition-colors relative ${isDark ? 'bg-brand' : 'bg-muted'}`}>
-              <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-background shadow transition-all ${isDark ? 'left-5' : 'left-0.5'}`} />
-            </div>
-          </button>
-
-          <button className="w-full flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-foreground/20 transition-colors">
             <div className="p-2 bg-muted rounded-lg">
               <Shield size={16} className="text-foreground" />
             </div>

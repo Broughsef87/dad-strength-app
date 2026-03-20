@@ -40,6 +40,7 @@ export default function ActiveWorkout() {
   const [totalVolume, setTotalVolume] = useState(0)
   const [restTime, setRestTime] = useState(0)
   const [isGraceMode, setIsGraceMode] = useState(false)
+  const [userId, setUserId] = useState('')
 
   // PERSISTENCE: Save state to localStorage
   useEffect(() => {
@@ -186,6 +187,7 @@ export default function ActiveWorkout() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    setUserId(user.id)
 
     // Calculate final volume for summary
     let volume = 0
@@ -329,6 +331,8 @@ export default function ActiveWorkout() {
           workoutName={workout?.name || 'Workout'}
           totalVolume={totalVolume}
           duration={formatTime(timer)}
+          workoutId={workout?.id || ''}
+          userId={userId}
           onReturn={() => router.push('/dashboard')}
         />
       )}

@@ -69,6 +69,7 @@ export default function History() {
   const [allLogs, setAllLogs] = useState<LogEntry[]>([])
   const [workoutNames, setWorkoutNames] = useState<Record<string, string>>({})
   const [userId, setUserId] = useState<string | null>(null)
+  const [sessionNotes, setSessionNotes] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -116,6 +117,18 @@ export default function History() {
         const firstKey = `${new Date(sorted[0].date).toDateString()}__${sorted[0].workout_id}`
         setExpanded(firstKey)
       }
+
+      const { data: checkins } = await supabase
+        .from('daily_checkins')
+        .select('workout_notes')
+        .eq('user_id', user.id)
+        .not('workout_notes', 'is', null)
+      const allNotes: Record<string, string> = {}
+      for (const c of checkins || []) {
+        Object.assign(allNotes, c.workout_notes || {})
+      }
+      setSessionNotes(allNotes)
+
       setLoading(false)
     }
     fetchHistory()
@@ -271,6 +284,12 @@ export default function History() {
                           </div>
                         )
                       })}
+                      {sessionNotes[session.workout_id] && (
+                        <div className="mt-4 pt-4 border-t border-border">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">Session Note</p>
+                          <p className="text-sm text-foreground leading-relaxed">{sessionNotes[session.workout_id]}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
