@@ -3,7 +3,7 @@
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Brain, Target, PenLine, ArrowLeft, Lock, Unlock, CheckCircle2, Circle, Save } from 'lucide-react';
+import { Brain, Target, PenLine, ArrowLeft, Lock, Unlock, CheckCircle2, Circle, Save, Plus, X } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
 import MindSqueeze from '../../components/MindSqueeze';
@@ -12,7 +12,7 @@ export default function MindPage() {
   const [supabase] = useState(() => createClient());
   const router = useRouter();
   const [objectives, setObjectives] = useState(['', '', '']);
-  const [completedObjectives, setCompletedObjectives] = useState([false, false, false]);
+  const [completedObjectives, setCompletedObjectives] = useState<boolean[]>([false, false, false]);
   const [lockedIn, setLockedIn] = useState(false);
   const [journal, setJournal] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -123,10 +123,12 @@ export default function MindPage() {
             </button>
           </div>
 
-          <div className="space-y-4">
+            <div className="space-y-4">
             {objectives.map((obj, i) => (
               <div key={i} className="flex items-center gap-4 group">
-                <div className="text-[10px] text-muted-foreground w-5 font-medium tabular-nums">0{i + 1}</div>
+                <div className="text-xs text-muted-foreground w-5 font-medium tabular-nums shrink-0">
+                  {String(i + 1).padStart(2, '0')}
+                </div>
                 {lockedIn ? (
                   <button
                     onClick={() => toggleObjective(i)}
@@ -155,20 +157,50 @@ export default function MindPage() {
                     className="flex-1 bg-transparent border-b border-border focus:border-foreground text-sm text-foreground py-1.5 transition-colors outline-none placeholder:text-muted-foreground"
                   />
                 )}
+                {!lockedIn && objectives.length > 1 && (
+                  <button
+                    onClick={() => {
+                      const newObjs = objectives.filter((_, idx) => idx !== i);
+                      const newCompleted = completedObjectives.filter((_, idx) => idx !== i);
+                      setObjectives(newObjs);
+                      setCompletedObjectives(newCompleted);
+                      saveToLocal({ objectives: newObjs, completedObjectives: newCompleted });
+                    }}
+                    className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
 
           {!lockedIn && (
-            <button
-              onClick={() => {
-                setLockedIn(true);
-                saveToLocal({ lockedIn: true });
-              }}
-              className="w-full mt-6 bg-foreground text-background py-3 rounded-lg text-xs font-medium uppercase tracking-[0.1em] hover:opacity-90 transition-opacity"
-            >
-              Lock In Objectives
-            </button>
+            <div className="mt-4 space-y-3">
+              {objectives.length < 5 && (
+                <button
+                  onClick={() => {
+                    const newObjs = [...objectives, ''];
+                    const newCompleted = [...completedObjectives, false];
+                    setObjectives(newObjs);
+                    setCompletedObjectives(newCompleted);
+                    saveToLocal({ objectives: newObjs, completedObjectives: newCompleted });
+                  }}
+                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Plus size={14} /> Add Objective
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setLockedIn(true);
+                  saveToLocal({ lockedIn: true });
+                }}
+                className="w-full bg-foreground text-background py-3 rounded-lg text-xs font-medium uppercase tracking-[0.1em] hover:opacity-90 transition-opacity"
+              >
+                Lock In Objectives
+              </button>
+            </div>
           )}
         </div>
 

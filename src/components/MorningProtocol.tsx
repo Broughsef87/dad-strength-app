@@ -29,8 +29,8 @@ const PILLAR_ICONS: Record<string, any> = {
 
 const PILLAR_COLORS: Record<string, string> = {
   'Prayer':          'text-brand bg-brand/10 border-brand/20',
-  'Meditation':      'text-sky-600 bg-sky-500/10 border-sky-500/20',
-  'Reading':         'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
+  'Meditation':      'text-foreground bg-muted border-border',
+  'Reading':         'text-foreground bg-muted border-border',
   'Goals & Journal': 'text-foreground bg-muted border-border',
 }
 
@@ -190,7 +190,12 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           </div>
         </div>
 
-        {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+        {error && (
+          <div className="flex items-center justify-center gap-2">
+            <p className="text-red-500 text-xs">{error}</p>
+            <button onClick={() => generate()} className="text-brand hover:underline text-xs">Try Again</button>
+          </div>
+        )}
 
         <button
           onClick={() => generate()}

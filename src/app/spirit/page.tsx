@@ -77,7 +77,31 @@ export default function SpiritPage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (!mounted) return null;
+  if (!mounted) return (
+    <div className="min-h-screen bg-background text-foreground pb-24 p-6">
+      <header className="flex items-center gap-4 mb-8">
+        <div className="p-2 border border-border rounded-lg w-8 h-8 bg-muted animate-pulse" />
+        <div className="h-7 w-24 bg-muted rounded animate-pulse" />
+      </header>
+      <main className="max-w-md mx-auto space-y-6">
+        <div className="bg-card rounded-xl p-6 border border-border animate-pulse space-y-3">
+          <div className="h-4 bg-muted rounded w-1/3" />
+          <div className="h-3 bg-muted rounded w-2/3" />
+          <div className="h-3 bg-muted rounded w-1/2" />
+        </div>
+        <div className="bg-card rounded-xl p-6 border border-border animate-pulse space-y-3">
+          <div className="h-4 bg-muted rounded w-1/3" />
+          <div className="h-3 bg-muted rounded w-2/3" />
+          <div className="h-3 bg-muted rounded w-1/2" />
+        </div>
+        <div className="bg-card rounded-xl p-6 border border-border animate-pulse space-y-3">
+          <div className="h-4 bg-muted rounded w-1/3" />
+          <div className="h-3 bg-muted rounded w-2/3" />
+          <div className="h-3 bg-muted rounded w-1/2" />
+        </div>
+      </main>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 p-6">
@@ -137,14 +161,14 @@ export default function SpiritPage() {
                 className="flex flex-col items-center gap-2.5 p-4 bg-background border border-border rounded-xl hover:border-foreground/30 transition-colors group"
               >
                 <Timer size={18} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors">5 Min Prayer</span>
+                <span className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors">5 Min Prayer</span>
               </button>
               <button
                 onClick={() => startTimer(10)}
                 className="flex flex-col items-center gap-2.5 p-4 bg-background border border-border rounded-xl hover:border-foreground/30 transition-colors group"
               >
                 <Timer size={18} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors">10 Min Meditation</span>
+                <span className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors">10 Min Meditation</span>
               </button>
             </div>
 
@@ -157,7 +181,7 @@ export default function SpiritPage() {
               }`}
             >
               {prayerDone ? <CheckCircle2 size={28} /> : <Sun size={28} />}
-              <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+              <span className="text-xs font-medium uppercase tracking-[0.12em]">
                 {prayerDone ? 'Daily Reset Logged' : 'Log Daily Reset'}
               </span>
             </button>

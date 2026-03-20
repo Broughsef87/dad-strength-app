@@ -36,6 +36,7 @@ export default function ActiveWorkout() {
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false)
   const [totalVolume, setTotalVolume] = useState(0)
   const [restTime, setRestTime] = useState(0)
   const [isGraceMode, setIsGraceMode] = useState(false)
@@ -270,7 +271,7 @@ export default function ActiveWorkout() {
           <button onClick={() => router.push(`/workout/${params?.id}/edit`)} className="p-2 text-gray-500 hover:text-white transition-colors">
             <Edit3 size={20} />
           </button>
-          <button onClick={finishWorkout} className="bg-green-600 hover:bg-green-500 text-white text-[10px] font-black px-5 py-2.5 rounded-full transition-all active:scale-95 shadow-lg shadow-green-500/20">
+          <button onClick={() => setShowFinishConfirm(true)} className="bg-green-600 hover:bg-green-500 text-white text-xs font-black px-5 py-2.5 rounded-full transition-all active:scale-95 shadow-lg shadow-green-500/20">
             FINISH
           </button>
         </div>
@@ -324,12 +325,36 @@ export default function ActiveWorkout() {
 
       {/* SUMMARY OVERLAY */}
       {showSummary && (
-        <WorkoutSummaryOverlay 
+        <WorkoutSummaryOverlay
           workoutName={workout?.name || 'Workout'}
           totalVolume={totalVolume}
           duration={formatTime(timer)}
           onReturn={() => router.push('/dashboard')}
         />
+      )}
+
+      {/* FINISH CONFIRM OVERLAY */}
+      {showFinishConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 w-full max-w-sm text-center space-y-6 shadow-2xl">
+            <h2 className="text-xl font-black uppercase tracking-tight text-white">Finish Workout?</h2>
+            <p className="text-sm text-gray-400">This will log your session and end the timer.</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => { setShowFinishConfirm(false); finishWorkout() }}
+                className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3.5 rounded-xl text-sm uppercase tracking-widest transition-all active:scale-95"
+              >
+                Yes, I'm Done
+              </button>
+              <button
+                onClick={() => setShowFinishConfirm(false)}
+                className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-black py-3.5 rounded-xl text-sm uppercase tracking-widest transition-all"
+              >
+                Keep Going
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

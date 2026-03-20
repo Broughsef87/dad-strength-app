@@ -14,7 +14,14 @@
       "Skill(update-config:*)",
       "Bash(python3 -c \":*)",
       "Bash(node -e \":*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Read(//c/Users/broug/.openclaw/workspace/production/dad-strength-app/**)",
+      "Bash(ls -la .env*)",
+      "Bash(curl -s -X POST http://localhost:3002/api/ai/morning-protocol -H \"Content-Type: application/json\" -d '{\"\"\"\"minutes\"\"\"\":20,\"\"\"\"babyNight\"\"\"\":\"\"\"\"Decent night\"\"\"\",\"\"\"\"energy\"\"\"\":\"\"\"\"Getting there\"\"\"\",\"\"\"\"objectives\"\"\"\":[],\"\"\"\"dayOfWeek\"\"\"\":\"\"\"\"Thursday\"\"\"\"}')",
+      "Bash(curl -s \"https://generativelanguage.googleapis.com/v1beta/models?key=REDACTED\")",
+      "Bash(curl -s https://generativelanguage.googleapis.com/v1beta/models?key=REDACTED)",
+      "Bash(curl -s -X POST http://localhost:3002/api/ai/mind-sprint -H \"Content-Type: application/json\" -d '{\"\"\"\"minutes\"\"\"\":20,\"\"\"\"state\"\"\"\":\"\"\"\"Locked in\"\"\"\",\"\"\"\"objectives\"\"\"\":[]}')",
+      "Bash(grep -n 'showFinishConfirm' src/app/workout/[id]/page.tsx)"
     ]
   }
 }

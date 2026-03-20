@@ -3,7 +3,7 @@
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, BookOpen, Dumbbell, Flame, Trophy } from 'lucide-react'
+import { LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, BookOpen, Dumbbell, Flame, Trophy, Moon, Sun } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 
 export default function Profile() {
@@ -13,6 +13,32 @@ export default function Profile() {
   const [stats, setStats] = useState({ totalSessions: 0, totalVolume: 0, topLift: '', streak: 0 })
   const [programName, setProgramName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('dad-strength-theme')
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+      setIsDark(true)
+    } else if (savedTheme === 'light') {
+      document.documentElement.classList.remove('dark')
+      setIsDark(false)
+    } else {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+  }, [])
+
+  const toggleDarkMode = () => {
+    const next = !isDark
+    setIsDark(next)
+    if (next) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('dad-strength-theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('dad-strength-theme', 'light')
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -168,6 +194,22 @@ export default function Profile() {
             <div className="text-left">
               <p className="font-medium text-sm">Notifications</p>
               <p className="text-xs text-muted-foreground">Workout reminders & alerts</p>
+            </div>
+          </button>
+
+          <button
+            onClick={toggleDarkMode}
+            className="w-full flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-foreground/20 transition-colors"
+          >
+            <div className="p-2 bg-muted rounded-lg">
+              {isDark ? <Sun size={16} className="text-foreground" /> : <Moon size={16} className="text-foreground" />}
+            </div>
+            <div className="text-left flex-1">
+              <p className="font-medium text-sm">Appearance</p>
+              <p className="text-xs text-muted-foreground">{isDark ? 'Dark mode' : 'Light mode'}</p>
+            </div>
+            <div className={`w-10 h-5 rounded-full transition-colors relative ${isDark ? 'bg-brand' : 'bg-muted'}`}>
+              <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-background shadow transition-all ${isDark ? 'left-5' : 'left-0.5'}`} />
             </div>
           </button>
 

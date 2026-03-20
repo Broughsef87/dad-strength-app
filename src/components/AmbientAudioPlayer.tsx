@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, Volume2 } from 'lucide-react'
 
 const TRACKS = [
-  { id: 'rain', label: 'ðŸŒ§ Rain', url: 'https://www.soundjay.com/nature/sounds/rain-01.mp3' },
-  { id: 'whitenoise', label: 'ðŸŒ¬ White Noise', url: null }, // generated via Web Audio API
-  { id: 'forest', label: 'ðŸŒ² Forest', url: 'https://www.soundjay.com/nature/sounds/forest-ambience-1.mp3' },
+  { id: 'rain', label: '🌧 Rain', url: 'https://www.soundjay.com/nature/sounds/rain-01.mp3' },
+  { id: 'whitenoise', label: '🌬 White Noise', url: null }, // generated via Web Audio API
+  { id: 'forest', label: '🌲 Forest', url: 'https://www.soundjay.com/nature/sounds/forest-ambience-1.mp3' },
   { id: 'silence', label: '🤫 Silence', url: 'silence' },
 ]
 

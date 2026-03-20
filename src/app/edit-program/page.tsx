@@ -306,7 +306,7 @@ export default function EditProgram() {
             {EXERCISE_SETS[selectedFocus][selectedTrack].map((ex, i) => (
               <div key={i} className="flex justify-between items-center text-xs">
                 <span className="text-gray-300 font-bold">{ex.name}</span>
-                <span className="text-indigo-400 font-black">{ex.sets}Ã—{ex.reps}</span>
+                <span className="text-brand font-black">{ex.sets}×{ex.reps}</span>
               </div>
             ))}
           </div>

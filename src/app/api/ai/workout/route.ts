@@ -1,8 +1,22 @@
 import { google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { z } from 'zod'
+import { NextResponse } from 'next/server'
 
-export async function POST(req: Request) {
+const rateLimitMap = new Map<string, number[]>()
+const RATE_LIMIT = 10
+const RATE_WINDOW = 60 * 1000
+
+export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
+  const now = Date.now()
+  const timestamps = (rateLimitMap.get(ip) ?? []).filter(t => now - t < RATE_WINDOW)
+  if (timestamps.length >= RATE_LIMIT) {
+    return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
+  }
+  rateLimitMap.set(ip, [...timestamps, now])
+
+  const req = request
   try {
     const { minutes, situation, track } = await req.json()
 

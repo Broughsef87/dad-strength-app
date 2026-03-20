@@ -148,7 +148,7 @@ export default function Brotherhood() {
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-sm uppercase tracking-tight truncate">{brother.name}</p>
                   <p className={`text-[10px] font-bold uppercase tracking-widest ${overdue ? 'text-rose-400' : 'text-indigo-400'}`}>
-                    {overdue ? 'Overdue Â· ' : 'Solid Â· '}
+                    {overdue ? 'Overdue · ' : 'Solid · '}
                     <span className="text-muted-foreground">{formatLastContact(brother.last_contacted_at)}</span>
                   </p>
                 </div>

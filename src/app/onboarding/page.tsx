@@ -387,7 +387,7 @@ export default function Onboarding() {
               {EXERCISE_SETS[focus][track].map((ex, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
                   <span className="font-bold text-gray-200">{ex.name}</span>
-                  <span className="font-black text-indigo-400">{ex.sets}Ã—{ex.reps}</span>
+                  <span className="font-black text-brand">{ex.sets}×{ex.reps}</span>
                 </div>
               ))}
             </div>

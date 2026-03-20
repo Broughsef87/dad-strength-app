@@ -152,7 +152,7 @@ export default function FamilyPulse() {
   const weekLabel = (() => {
     const end = new Date(thisMonday.getTime() + 6 * 24 * 60 * 60 * 1000);
     const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `${fmt(thisMonday)} â€“ ${fmt(end)}`;
+    return `${fmt(thisMonday)} – ${fmt(end)}`;
   })();
 
   return (
@@ -165,7 +165,7 @@ export default function FamilyPulse() {
         </div>
         <div className="flex items-center gap-2">
           {saving && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-600 animate-pulse">Savingâ€¦</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-gray-600 animate-pulse">Saving…</span>
           )}
           <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{weekLabel}</span>
         </div>
@@ -177,7 +177,7 @@ export default function FamilyPulse() {
           <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Pulse Score</p>
           <div className="flex items-end gap-2">
             <span className="text-5xl font-black tracking-tighter text-foreground leading-none">
-              {pulseScore !== null ? pulseScore.toFixed(1) : 'â€”'}
+              {pulseScore !== null ? pulseScore.toFixed(1) : '–'}
             </span>
             <span className="text-gray-600 font-black text-lg mb-1">/ 5</span>
           </div>

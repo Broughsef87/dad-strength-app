@@ -82,11 +82,16 @@ export default function WeeklyDebrief({
   if (loading) return (
     <div className="flex flex-col items-center gap-3 py-8">
       <Loader2 size={20} className="animate-spin text-indigo-500" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Analyzing your week...</p>
+      <p className="text-xs font-black uppercase tracking-widest text-gray-600">Analyzing your week...</p>
     </div>
   )
 
-  if (error) return <p className="text-xs text-red-400 font-bold text-center py-4">{error}</p>
+  if (error) return (
+    <div className="flex items-center justify-center gap-2 py-4">
+      <p className="text-xs text-red-400 font-bold">{error}</p>
+      <button onClick={() => generate(true)} className="text-brand hover:underline text-xs">Try Again</button>
+    </div>
+  )
   if (!debrief) return null
 
   return (
@@ -112,14 +117,14 @@ export default function WeeklyDebrief({
         <div className="bg-gray-800/40 rounded-2xl p-4 flex gap-3">
           <Trophy size={16} className="text-yellow-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Biggest Win</p>
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Biggest Win</p>
             <p className="text-sm font-bold text-gray-200">{debrief.win}</p>
           </div>
         </div>
         <div className="bg-gray-800/40 rounded-2xl p-4 flex gap-3">
           <Target size={16} className="text-indigo-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Next Week Focus</p>
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Next Week Focus</p>
             <p className="text-sm font-bold text-gray-200">{debrief.focus}</p>
           </div>
         </div>
