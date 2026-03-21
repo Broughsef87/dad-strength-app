@@ -10,6 +10,7 @@ interface WorkoutSummaryOverlayProps {
   duration: string;
   workoutId: string;
   userId: string;
+  newPRs?: Array<{exercise: string, weight: number, reps: number}>;
   onReturn: () => void;
 }
 
@@ -19,6 +20,7 @@ export default function WorkoutSummaryOverlay({
   duration,
   workoutId,
   userId,
+  newPRs,
   onReturn
 }: WorkoutSummaryOverlayProps) {
   const supabase = createClient();
@@ -88,6 +90,23 @@ export default function WorkoutSummaryOverlay({
                 </div>
               </div>
             </div>
+
+            {newPRs && newPRs.length > 0 && (
+              <div className="mb-6 p-5 bg-yellow-400/10 border border-yellow-400/30 rounded-3xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🏆</span>
+                  <p className="text-xs font-black uppercase tracking-[0.3em] text-yellow-400">New Personal Records</p>
+                </div>
+                <div className="space-y-2">
+                  {newPRs.map((pr, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <p className="text-sm font-black text-foreground uppercase tracking-tight">{pr.exercise}</p>
+                      <p className="text-sm font-black text-yellow-400">{pr.weight} lbs × {pr.reps}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4 pt-6 border-t border-border">
               {/* Session Note */}

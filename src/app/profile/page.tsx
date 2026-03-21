@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, BookOpen, Dumbbell, Flame, Trophy, Pencil, Check, X } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
+import DadScore from '../../components/DadScore'
 
 export default function Profile() {
   const router = useRouter()
@@ -175,6 +176,8 @@ export default function Profile() {
             <p className="text-xs text-muted-foreground mt-0.5 tracking-wide">Mindset & Family</p>
           </button>
         </div>
+
+        <DadScore />
 
         {/* Stats */}
         {loading ? (

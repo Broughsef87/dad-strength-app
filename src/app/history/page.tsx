@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, Dumbbell, History as HistoryIcon, Calendar, ChevronDown, ChevronUp, Weight } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import WeeklyDebrief from '../../components/WeeklyDebrief'
+import WeeklyMissionBrief from '../../components/WeeklyMissionBrief'
 
 type LogEntry = {
   id: string
@@ -200,6 +201,11 @@ export default function History() {
       </header>
 
       <main className="p-4 space-y-4 max-w-md mx-auto pb-24">
+        {/* Weekly Mission Brief */}
+        <div>
+          <WeeklyMissionBrief />
+        </div>
+
         {/* AI Weekly Debrief */}
         <div className="bg-card/50 rounded-3xl border border-border p-6 shadow-xl">
           <WeeklyDebrief

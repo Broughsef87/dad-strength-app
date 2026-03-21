@@ -9,6 +9,7 @@ import { Flame, Anchor, ArrowLeft, Sun, CheckCircle2, Timer, Play, Pause, Rotate
 import BottomNav from '../../components/BottomNav';
 import FamilyPulse from '../../components/FamilyPulse';
 import Brotherhood from '../../components/Brotherhood';
+import BabySleepTracker from '../../components/BabySleepTracker';
 
 export default function SpiritPage() {
   const [supabase] = useState(() => createClient());
@@ -124,6 +125,10 @@ export default function SpiritPage() {
           animate="visible"
           variants={staggerContainer}
         >
+
+        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+          <BabySleepTracker />
+        </motion.div>
 
         <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
           <FamilyPulse />

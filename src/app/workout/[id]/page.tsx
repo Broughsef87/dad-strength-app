@@ -41,6 +41,8 @@ export default function ActiveWorkout() {
   const [restTime, setRestTime] = useState(0)
   const [isGraceMode, setIsGraceMode] = useState(false)
   const [userId, setUserId] = useState('')
+  const [historicalMaxes, setHistoricalMaxes] = useState<Record<string, number>>({})
+  const [newPRs, setNewPRs] = useState<Array<{exercise: string, weight: number, reps: number}>>([])
 
   // PERSISTENCE: Save state to localStorage
   useEffect(() => {
@@ -106,6 +108,24 @@ export default function ActiveWorkout() {
           target_reps: ex.reps
         }))
         setWorkout({ ...data, exercises: exercisesWithIds })
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setUserId(user.id)
+          const { data: allLogs } = await supabase
+            .from('workout_logs')
+            .select('exercise_name, weight_lbs')
+            .eq('user_id', user.id)
+            .eq('completed', true)
+          if (allLogs) {
+            const maxes: Record<string, number> = {}
+            for (const log of allLogs) {
+              if (log.exercise_name && (log.weight_lbs || 0) > (maxes[log.exercise_name] || 0)) {
+                maxes[log.exercise_name] = log.weight_lbs || 0
+              }
+            }
+            setHistoricalMaxes(maxes)
+          }
+        }
       }
       setLoading(false)
     }
@@ -172,6 +192,21 @@ export default function ActiveWorkout() {
 
     // Persist to Supabase
     await syncSetToSupabase(exercise.name, setIndex, isNowCompleted)
+
+    if (isNowCompleted) {
+      const logKey = `${exercise.id}-${setIndex}`
+      const currentLog = logs[logKey] || {}
+      const newWeight = parseFloat(currentLog.weight) || 0
+      const newReps = parseInt(currentLog.reps) || 0
+      const historicalMax = historicalMaxes[exercise.name] || 0
+      if (newWeight > 0 && newWeight > historicalMax) {
+        setNewPRs(prev => {
+          const filtered = prev.filter(p => p.exercise !== exercise.name)
+          return [...filtered, { exercise: exercise.name, weight: newWeight, reps: newReps }]
+        })
+        setHistoricalMaxes(prev => ({ ...prev, [exercise.name]: newWeight }))
+      }
+    }
   }
 
   const handleInputChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
@@ -309,12 +344,13 @@ export default function ActiveWorkout() {
               const key = `${exercise.id}-${i}`
               const log = logs[key] || { weight: '', reps: '', completed: false }
               return (
-                <ActiveSetRow 
+                <ActiveSetRow
                   key={i}
                   index={i}
                   isDone={log.completed}
                   weight={log.weight}
                   reps={log.reps}
+                  isPR={log.completed && newPRs.some(pr => pr.exercise === exercise.name && parseFloat(log.weight) >= pr.weight)}
                   onWeightChange={(val) => !isGraceMode && handleInputChange(exercise.id, i, 'weight', val)}
                   onRepsChange={(val) => !isGraceMode && handleInputChange(exercise.id, i, 'reps', val)}
                   onToggle={() => !isGraceMode && toggleSet(exercise, i)}
@@ -333,6 +369,7 @@ export default function ActiveWorkout() {
           duration={formatTime(timer)}
           workoutId={workout?.id || ''}
           userId={userId}
+          newPRs={newPRs}
           onReturn={() => router.push('/dashboard')}
         />
       )}

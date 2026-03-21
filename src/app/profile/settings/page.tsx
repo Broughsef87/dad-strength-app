@@ -13,6 +13,7 @@ export default function Settings() {
   const [isDark, setIsDark] = useState(false)
   const [notifWorkout, setNotifWorkout] = useState(false)
   const [notifCheckin, setNotifCheckin] = useState(false)
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null)
   const [exportLoading, setExportLoading] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
   const [resetSent, setResetSent] = useState(false)
@@ -34,6 +35,9 @@ export default function Settings() {
 
     setNotifWorkout(localStorage.getItem('dad-strength-notif-workout') === 'true')
     setNotifCheckin(localStorage.getItem('dad-strength-notif-checkin') === 'true')
+    if ('Notification' in window) {
+      setNotifPermission(Notification.permission)
+    }
 
     const loadEmail = async () => {
       const { data } = await supabase.auth.getUser()
@@ -54,16 +58,40 @@ export default function Settings() {
     }
   }
 
-  const toggleNotifWorkout = () => {
+  const scheduleNotification = (type: 'workout' | 'checkin') => {
+    // Show an immediate confirmation notification
+    if (Notification.permission === 'granted') {
+      new Notification('Dad Strength', {
+        body: type === 'workout'
+          ? 'Workout reminders enabled. You\'ll get a daily nudge to train.'
+          : 'Check-in reminders enabled. Reflect each evening.',
+        icon: '/icons/icon-192x192.png',
+      })
+    }
+  }
+
+  const toggleNotifWorkout = async () => {
     const next = !notifWorkout
     setNotifWorkout(next)
     localStorage.setItem('dad-strength-notif-workout', String(next))
+    if (next && 'Notification' in window) {
+      const permission = await Notification.requestPermission()
+      if (permission === 'granted') {
+        scheduleNotification('workout')
+      }
+    }
   }
 
-  const toggleNotifCheckin = () => {
+  const toggleNotifCheckin = async () => {
     const next = !notifCheckin
     setNotifCheckin(next)
     localStorage.setItem('dad-strength-notif-checkin', String(next))
+    if (next && 'Notification' in window) {
+      const permission = await Notification.requestPermission()
+      if (permission === 'granted') {
+        scheduleNotification('checkin')
+      }
+    }
   }
 
   const handleExportData = async () => {
@@ -184,6 +212,16 @@ export default function Settings() {
           <p className="text-xs text-muted-foreground px-1">
             Preferences saved locally. Native push notifications coming soon.
           </p>
+          {notifPermission === 'denied' && (
+            <p className="text-xs text-red-500/70 px-1">
+              Notifications blocked by browser. Enable in browser settings to receive reminders.
+            </p>
+          )}
+          {notifPermission === 'granted' && (
+            <p className="text-xs text-green-600/70 px-1">
+              ✓ Browser notifications enabled.
+            </p>
+          )}
         </section>
 
         {/* Data & Privacy */}

@@ -7,6 +7,7 @@ interface ActiveSetRowProps {
   isDone: boolean;
   weight: string;
   reps: string;
+  isPR?: boolean;
   onWeightChange: (val: string) => void;
   onRepsChange: (val: string) => void;
   onToggle: () => void;
@@ -19,6 +20,7 @@ export default function ActiveSetRow({
   isDone,
   weight,
   reps,
+  isPR,
   onWeightChange,
   onRepsChange,
   onToggle,
@@ -124,6 +126,11 @@ export default function ActiveSetRow({
                   <p className="text-[8px] font-black text-muted-foreground uppercase">Last: {previousWeight}x{previousReps}</p>
               </div>
           </div>
+      )}
+      {isDone && isPR && (
+        <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg shadow-yellow-400/30 animate-in zoom-in duration-300 z-10">
+          PR
+        </div>
       )}
     </div>
   );

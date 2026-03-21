@@ -24,6 +24,7 @@ import BodyVitals from '../../components/BodyVitals'
 import TrainingHeatmap from '../../components/TrainingHeatmap'
 import Logo from '../../components/Logo'
 import { useCountUp } from '../../hooks/useCountUp'
+import DailyForge from '../../components/DailyForge'
 
 export default function Dashboard() {
   const supabase = createClient()
@@ -189,6 +190,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 md:pb-8">
+      <DailyForge />
 
       {/* DESKTOP HEADER */}
       <header className="hidden md:flex items-center justify-between border-b border-border bg-background/90 px-8 py-4 backdrop-blur-md sticky top-0 z-50">
