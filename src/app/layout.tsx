@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
+import { UserProvider } from '../contexts/UserContext'
 
 const geist = Geist({
   subsets: ['latin'],
@@ -38,7 +39,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable} dark`}>
       <body className={geist.className}>
-        <PageTransition>{children}</PageTransition>
+        <UserProvider>
+          <PageTransition>{children}</PageTransition>
+        </UserProvider>
       </body>
     </html>
   )

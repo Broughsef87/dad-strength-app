@@ -1,17 +1,19 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { useUser } from '../contexts/UserContext'
 import { toLocalDateString } from '../lib/utils'
 import { motion } from 'framer-motion'
 
 export default function TrainingHeatmap() {
   const supabase = createClient()
+  const { user, loading: userLoading } = useUser()
   const [trainedDays, setTrainedDays] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (userLoading) return
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
@@ -27,7 +29,7 @@ export default function TrainingHeatmap() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [user, userLoading])
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()

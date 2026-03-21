@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { Heart, Shield, AlertTriangle, ChevronRight, Flame } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '../contexts/UserContext'
 
 interface Brother {
   id: string
@@ -34,6 +35,7 @@ function toISODate(date: Date): string {
 export default function SpiritVitals() {
   const supabase = createClient()
   const router = useRouter()
+  const { user, loading: userLoading } = useUser()
   const [loading, setLoading] = useState(true)
   const [familyScore, setFamilyScore] = useState<number | null>(null)
   const [overdueCount, setOverdueCount] = useState(0)
@@ -42,7 +44,6 @@ export default function SpiritVitals() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
 
       const thisMonday = getMondayOfWeek(new Date())
@@ -79,7 +80,7 @@ export default function SpiritVitals() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [user])
 
   const scoreColor = (score: number | null) => {
     if (!score) return 'text-muted-foreground'

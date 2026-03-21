@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { useUser } from '../contexts/UserContext'
 import { Dumbbell, Flame, ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { getMondayOfWeek, getSundayOfWeek, toLocalDateString, calcStreak } from '../lib/utils'
@@ -14,6 +15,7 @@ const DEFAULT_WEEKLY_TARGET = 4
 
 export default function BodyVitals() {
   const supabase = createClient()
+  const { user, loading: userLoading } = useUser()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [sessionsThisWeek, setSessionsThisWeek] = useState(0)
@@ -22,8 +24,8 @@ export default function BodyVitals() {
   const [workoutId, setWorkoutId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (userLoading) return
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
 
       // Try to pull weekly target from user profile
@@ -80,7 +82,7 @@ export default function BodyVitals() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [user, userLoading])
 
   const onTrack = sessionsThisWeek >= Math.floor(weeklyTarget * 0.5)
   const crushing = sessionsThisWeek >= weeklyTarget

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { TrendingUp, DollarSign, Youtube, MonitorSmartphone, ArrowRight, Target, Activity } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '../utils/supabase/client'
+import { useUser } from '../contexts/UserContext'
 import { motion } from 'framer-motion'
 import { fadeUp } from './ui/motion'
 
@@ -18,6 +19,7 @@ const ICON_MAP = {
 
 export default function EmpireWidget() {
   const supabase = createClient()
+  const { user, loading: userLoading } = useUser()
   const [mission, setMission] = useState({
     title: 'The Empire',
     primaryMetric: 'Operation: Freedom',
@@ -36,7 +38,6 @@ export default function EmpireWidget() {
     async function loadMission() {
       // Try Supabase first
       try {
-        const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           const { data: profile } = await supabase
             .from('user_profiles')
@@ -55,7 +56,7 @@ export default function EmpireWidget() {
 
     }
     loadMission()
-  }, [supabase])
+  }, [user])
 
   const percentage = Math.round((mission.current / mission.target) * 100)
   const isCurrency = mission.unit === '$'

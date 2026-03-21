@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { useUser } from '../contexts/UserContext'
 import { X, ChevronRight, Sun, Heart, Target } from 'lucide-react'
 
 const STORAGE_KEY = 'dad-strength-daily-forge'
@@ -17,6 +18,7 @@ type ForgeData = {
 
 export default function DailyForge({ onComplete }: { onComplete?: () => void }) {
   const [supabase] = useState(() => createClient())
+  const { user } = useUser()
   const [show, setShow] = useState(false)
   const [step, setStep] = useState(1)
   const [sleepQuality, setSleepQuality] = useState(3)
@@ -53,7 +55,6 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const todayISO = new Date().toISOString().split('T')[0]
         await supabase.from('daily_checkins').upsert(

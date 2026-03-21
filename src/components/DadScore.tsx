@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { useUser } from '../contexts/UserContext'
 import { Shield, ChevronRight } from 'lucide-react'
 import { getMondayOfWeek, getSundayOfWeek, toLocalDateString } from '../lib/utils'
 
@@ -31,13 +32,13 @@ function getGradeColor(grade: string): string {
 
 export default function DadScore() {
   const [supabase] = useState(() => createClient())
+  const { user, loading: userLoading } = useUser()
   const [score, setScore] = useState<ScoreBreakdown | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { calculate() }, [])
+  useEffect(() => { calculate() }, [user])
 
   const calculate = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
     const monday = getMondayOfWeek(new Date())

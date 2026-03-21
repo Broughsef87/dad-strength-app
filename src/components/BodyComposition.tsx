@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { useUser } from '../contexts/UserContext'
 import { Scale, TrendingDown, TrendingUp, Minus } from 'lucide-react'
 
 type BodyEntry = {
@@ -12,6 +13,7 @@ type BodyEntry = {
 
 export default function BodyComposition() {
   const [supabase] = useState(() => createClient())
+  const { user, loading: userLoading } = useUser()
   const [entries, setEntries] = useState<BodyEntry[]>([])
   const [weight, setWeight] = useState('')
   const [waist, setWaist] = useState('')
@@ -23,10 +25,9 @@ export default function BodyComposition() {
 
   useEffect(() => {
     loadEntries()
-  }, [])
+  }, [user])
 
   const loadEntries = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
     const { data: profile } = await supabase
@@ -50,7 +51,6 @@ export default function BodyComposition() {
       waist: waist ? parseFloat(waist) : undefined,
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: profile } = await supabase
         .from('user_profiles')

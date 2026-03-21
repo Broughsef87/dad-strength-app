@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Handshake, Trash2, Plus, Shield } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
+import { useUser } from '../contexts/UserContext';
 
 interface Brother {
   id: string;
@@ -31,20 +32,17 @@ function formatLastContact(lastContacted: string | null): string {
 
 export default function Brotherhood() {
   const [supabase] = useState(() => createClient());
+  const { user, loading: userLoading } = useUser();
   const [brothers, setBrothers] = useState<Brother[]>([]);
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const userId = user?.id ?? null;
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
-      await loadBrothers(user?.id ?? null);
-    };
-    init();
-  }, []);
+    if (userLoading) return;
+    loadBrothers(userId);
+  }, [user, userLoading]);
 
   const loadBrothers = async (uid: string | null) => {
     setLoading(true);

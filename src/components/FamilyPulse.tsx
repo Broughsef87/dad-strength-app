@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Heart, Star, Plus, Trash2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
+import { useUser } from '../contexts/UserContext';
 
 interface PulseData {
   marriage_vibe: number;
@@ -33,7 +34,8 @@ function getPulseScore(data: PulseData): number | null {
 
 export default function FamilyPulse() {
   const [supabase] = useState(() => createClient());
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useUser();
+  const userId = user?.id ?? null;
 
   const [current, setCurrent] = useState<PulseData>({ marriage_vibe: 0, kid_score: 0, moments: [] });
   const [lastWeekScore, setLastWeekScore] = useState<number | null>(null);
@@ -44,13 +46,6 @@ export default function FamilyPulse() {
 
   const thisMonday = getMondayOfWeek(new Date());
   const lastMonday = getMondayOfWeek(new Date(thisMonday.getTime() - 7 * 24 * 60 * 60 * 1000));
-
-  // Load user
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data?.user?.id ?? null);
-    });
-  }, [supabase]);
 
   // Load this week + last week from Supabase
   useEffect(() => {
@@ -88,7 +83,7 @@ export default function FamilyPulse() {
 
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, user]);
 
   // Debounced save
   const scheduleSave = useCallback((data: PulseData) => {

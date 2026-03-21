@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { useUser } from '../contexts/UserContext'
 import { Moon, AlertTriangle, Zap, Baby } from 'lucide-react'
 
 type SleepEntry = {
@@ -19,6 +20,7 @@ const QUALITY_COLORS = {
 
 export default function BabySleepTracker() {
   const [supabase] = useState(() => createClient())
+  const { user, loading: userLoading } = useUser()
   const [entries, setEntries] = useState<SleepEntry[]>([])
   const [babyQuality, setBabyQuality] = useState<SleepEntry['babyQuality']>('ok')
   const [personalHours, setPersonalHours] = useState('')
@@ -28,10 +30,9 @@ export default function BabySleepTracker() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [user])
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
     const { data } = await supabase
@@ -60,7 +61,6 @@ export default function BabySleepTracker() {
       personalHours: parseFloat(personalHours) || 0,
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: profile } = await supabase
         .from('user_profiles')
