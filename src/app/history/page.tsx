@@ -7,6 +7,7 @@ import { ChevronLeft, Dumbbell, History as HistoryIcon, Calendar, ChevronDown, C
 import BottomNav from '../../components/BottomNav'
 import WeeklyDebrief from '../../components/WeeklyDebrief'
 import WeeklyMissionBrief from '../../components/WeeklyMissionBrief'
+import QuarterlyReview from '../../components/QuarterlyReview'
 
 type LogEntry = {
   id: string
@@ -204,6 +205,11 @@ export default function History() {
       </header>
 
       <main className="p-4 space-y-4 max-w-md mx-auto pb-28">
+        {/* Quarterly Review */}
+        <div>
+          <QuarterlyReview />
+        </div>
+
         {/* Weekly Mission Brief */}
         <div>
           <WeeklyMissionBrief />

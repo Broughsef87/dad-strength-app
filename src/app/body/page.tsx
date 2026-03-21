@@ -5,7 +5,9 @@ import { staggerContainer, fadeUp } from '../../components/ui/motion'
 import BodyVitals from '../../components/BodyVitals';
 import NapSqueeze from '../../components/NapSqueeze';
 import ProteinTracker from '../../components/ProteinTracker';
+import NutritionPeriodization from '../../components/NutritionPeriodization';
 import BodyComposition from '../../components/BodyComposition';
+import StrengthCalc from '../../components/StrengthCalc';
 import BottomNav from '../../components/BottomNav';
 
 export default function BodyPage() {
@@ -43,10 +45,18 @@ export default function BodyPage() {
           </motion.div>
 
           <motion.div variants={fadeUp}>
+            <NutritionPeriodization />
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
             <section>
               <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">Body Composition</h3>
               <BodyComposition />
             </section>
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <StrengthCalc />
           </motion.div>
         </motion.div>
       </div>

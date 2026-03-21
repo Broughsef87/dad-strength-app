@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { LogOut, Settings as SettingsIcon, Bell, Shield, Activity, Target, BookOpen, Dumbbell, Flame, Trophy, Pencil, Check, X } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import DadScore from '../../components/DadScore'
+import DadOfMonth from '../../components/DadOfMonth'
+import StreakShield from '../../components/StreakShield'
 
 export default function Profile() {
   const router = useRouter()
@@ -181,6 +183,10 @@ export default function Profile() {
         </div>
 
         <DadScore />
+
+        <DadOfMonth />
+
+        <StreakShield />
 
         {/* Stats */}
         {loading ? (
