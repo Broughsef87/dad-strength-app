@@ -34,21 +34,21 @@ export default function ProteinTracker() {
   const remaining = Math.max(GOAL - grams, 0)
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+    <div className="glass-card rounded-xl p-5 space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Daily Protein</p>
         <button onClick={reset} className="text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">Reset</button>
       </div>
 
       <div className="flex items-end gap-1.5">
-        <p className="text-3xl font-light">{grams}</p>
+        <p className="text-3xl font-light stat-num">{grams}</p>
         <span className="text-sm text-brand mb-1">g</span>
         <span className="text-xs text-muted-foreground mb-1.5 ml-1">/ {GOAL}g goal</span>
       </div>
 
       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
         <div
-          className="h-full bg-brand rounded-full transition-all duration-300"
+          className="h-full bg-brand rounded-full transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>

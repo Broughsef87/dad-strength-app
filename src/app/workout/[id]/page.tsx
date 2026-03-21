@@ -295,13 +295,13 @@ export default function ActiveWorkout() {
   if (loading) return <div className="flex h-screen items-center justify-center bg-gray-950 text-white font-sans">Loading...</div>
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white pb-24 font-sans">
-      <header className="sticky top-0 z-20 bg-gray-900/90 backdrop-blur-xl border-b border-gray-800 p-4 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-950 text-white pb-28 font-sans">
+      <header className="sticky top-0 z-20 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 p-4 flex items-center justify-between">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white">
           <ChevronLeft />
         </button>
         <div className="text-center">
-          <h1 className="text-xs font-black uppercase tracking-widest text-gray-500">Live Session</h1>
+          <h1 className="text-xs font-black uppercase tracking-widest text-gray-400">Live Session</h1>
           <WorkoutTimer seconds={timer} formatTime={formatTime} />
         </div>
         <div className="flex items-center gap-2">

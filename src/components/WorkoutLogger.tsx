@@ -129,7 +129,7 @@ export default function WorkoutLogger() {
         })}
       </div>
 
-      <form onSubmit={addSet} className="space-y-4 bg-card/50 p-6 rounded-3xl border border-border">
+      <form onSubmit={addSet} className="space-y-4 glass-card p-6 rounded-3xl border border-border">
         <div className="space-y-3">
           <label className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Select Exercise</label>
           <div className="flex flex-wrap gap-2">

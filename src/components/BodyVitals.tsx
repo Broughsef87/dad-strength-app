@@ -105,7 +105,7 @@ export default function BodyVitals() {
       variants={fadeUp}
       initial="hidden"
       animate="visible"
-      className="bg-card rounded-xl p-5 border border-border hover:border-foreground/20 transition-colors cursor-pointer group active:scale-[0.98]"
+      className="glass-card rounded-xl p-5 cursor-pointer group active:scale-[0.98] transition-all duration-300 hover:border-brand/25"
       onClick={() => router.push(workoutId ? `/workout/${workoutId}` : '/body')}
     >
       <div className="flex items-center justify-between mb-5">
@@ -122,10 +122,10 @@ export default function BodyVitals() {
         <div className="flex flex-col items-center gap-2">
           <CircularProgress
             value={streakPercent}
-            size={72}
-            strokeWidth={5}
+            size={80}
+            strokeWidth={6}
             color="hsl(16 80% 54%)"
-            trackColor="hsl(240 5% 90%)"
+            trackColor="hsl(240 5% 16%)"
             label={`${streakDisplay}`}
             sublabel="days"
           />
@@ -140,10 +140,10 @@ export default function BodyVitals() {
         <div className="flex flex-col items-center gap-2">
           <CircularProgress
             value={sessionsPercent}
-            size={72}
-            strokeWidth={5}
+            size={80}
+            strokeWidth={6}
             color={crushing ? 'hsl(142 76% 36%)' : onTrack ? 'hsl(48 96% 53%)' : 'hsl(16 80% 54%)'}
-            trackColor="hsl(240 5% 90%)"
+            trackColor="hsl(240 5% 16%)"
             label={`${sessionsDisplay}/${weeklyTarget}`}
             sublabel="sessions"
           />
@@ -155,7 +155,7 @@ export default function BodyVitals() {
       </div>
 
       {crushing ? (
-        <div className="p-3 bg-green-500/8 border border-green-500/20 rounded-lg flex items-center gap-2.5">
+        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-2.5">
           <CheckCircle size={12} className="text-green-600 shrink-0" />
           <p className="text-xs text-green-600 uppercase tracking-[0.1em] font-medium">
             Weekly target hit.
@@ -169,7 +169,7 @@ export default function BodyVitals() {
           </p>
         </div>
       ) : sessionsThisWeek === 0 ? (
-        <div className="p-3 bg-brand/5 border border-brand/15 rounded-lg flex items-center gap-2.5">
+        <div className="p-3 bg-brand/8 border border-brand/20 rounded-lg flex items-center gap-2.5">
           <Dumbbell size={12} className="text-brand shrink-0" />
           <p className="text-xs text-brand uppercase tracking-[0.1em] font-medium">
             The iron waits. First session starts the streak.

@@ -189,8 +189,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24 md:pb-8">
+    <div className="min-h-screen bg-background text-foreground pb-28 md:pb-8 relative">
       <DailyForge />
+
+      {/* Ambient background mesh */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
+        <div className="absolute -top-[30%] -right-[15%] w-[60vw] h-[60vw] rounded-full bg-brand/6 blur-[120px]" />
+        <div className="absolute top-[60%] -left-[10%] w-[40vw] h-[40vw] rounded-full bg-brand/3 blur-[100px]" />
+      </div>
 
       {/* DESKTOP HEADER */}
       <header className="hidden md:flex items-center justify-between border-b border-border bg-background/90 px-8 py-4 backdrop-blur-md sticky top-0 z-50">
@@ -264,8 +270,8 @@ export default function Dashboard() {
 
           {/* ACTIVE WORKOUT CARD */}
           <motion.div variants={fadeUp} custom={0}>
-            <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-brand/20 blur-2xl scale-95 translate-y-2" />
+            <div className="relative group">
+              <div className="absolute inset-0 rounded-xl bg-brand/25 blur-3xl scale-95 translate-y-3 transition-all duration-500 group-hover:scale-100 group-hover:blur-2xl" />
               <div className="relative rounded-xl bg-foreground p-6 overflow-hidden">
                 <div className="absolute top-4 right-4 opacity-5">
                   <Dumbbell size={80} />
@@ -311,15 +317,18 @@ export default function Dashboard() {
 
           {/* QUICK STATS */}
           <motion.div variants={fadeUp} custom={1} className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl bg-card border border-border p-5 hover:border-brand/30 transition-colors group">
-              <div className="flex items-center gap-2 mb-3 text-brand">
-                <Flame size={14} />
-                <p className="text-[10px] uppercase tracking-[0.15em] font-medium">Streak</p>
+            <div className="rounded-xl bg-card border border-border p-5 hover:border-brand/30 transition-all duration-300 group relative overflow-hidden shine-on-hover">
+              <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent rounded-xl" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3 text-brand">
+                  <Flame size={14} />
+                  <p className="text-[10px] uppercase tracking-[0.15em] font-medium">Streak</p>
+                </div>
+                <p className="text-5xl font-black tabular-nums leading-none stat-num">{streakDisplay}<span className="text-lg text-muted-foreground font-light ml-1">days</span></p>
+                {stats.streak === 0 && (
+                  <p className="text-[9px] text-muted-foreground/50 uppercase tracking-[0.1em] mt-1">Start today.</p>
+                )}
               </div>
-              <p className="text-5xl font-black tabular-nums leading-none">{streakDisplay}<span className="text-lg text-muted-foreground font-light ml-1">days</span></p>
-              {stats.streak === 0 && (
-                <p className="text-[9px] text-muted-foreground/50 uppercase tracking-[0.1em] mt-1">Start today.</p>
-              )}
             </div>
             <div className="rounded-xl bg-card border border-border p-5 hover:border-foreground/20 transition-colors">
               <div className="flex items-center gap-2 mb-3 text-muted-foreground">
@@ -331,7 +340,7 @@ export default function Dashboard() {
           </motion.div>
 
           {/* TRAINING HEATMAP */}
-          <motion.div variants={fadeUp} custom={2} className="rounded-xl bg-card border border-border p-5">
+          <motion.div variants={fadeUp} custom={2} className="rounded-xl bg-card border border-border p-5 hover:border-brand/20 transition-colors">
             <TrainingHeatmap />
           </motion.div>
 

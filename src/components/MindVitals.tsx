@@ -18,7 +18,7 @@ export default function MindVitals({ deepWorkMinutes, completedObjectives, total
   const isDone = totalObjectives > 0 && completedObjectives >= totalObjectives
 
   return (
-    <div className="bg-card rounded-xl p-5 border border-border hover:border-foreground/20 transition-colors group">
+    <div className="glass-card rounded-xl p-5 transition-colors group">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 bg-brand/10 rounded-lg text-brand">

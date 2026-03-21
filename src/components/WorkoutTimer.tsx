@@ -9,7 +9,7 @@ interface WorkoutTimerProps {
 
 export default function WorkoutTimer({ seconds, formatTime }: WorkoutTimerProps) {
   return (
-    <div className="flex items-center justify-center gap-1 text-lg font-black font-mono text-brand">
+    <div className="flex items-center justify-center gap-1 text-xl font-black stat-num text-brand">
       <Clock size={16} className="mr-1" />
       {formatTime(seconds)}
     </div>

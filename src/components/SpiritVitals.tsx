@@ -106,7 +106,7 @@ export default function SpiritVitals() {
 
   return (
     <div
-      className="bg-card/50 rounded-3xl p-6 border border-border shadow-xl group hover:border-purple-500/30 transition-all duration-300 cursor-pointer"
+      className="glass-card rounded-3xl p-6 shadow-xl group hover:border-purple-500/30 transition-all duration-300 cursor-pointer"
       onClick={() => router.push('/spirit')}
     >
       <div className="flex items-center justify-between mb-6">

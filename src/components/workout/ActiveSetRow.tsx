@@ -55,7 +55,7 @@ export default function ActiveSetRow({
           placeholder={previousWeight || "0"}
           disabled={isDone}
           value={weight}
-          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-black text-lg text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
+          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-black text-xl stat-num text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
             isDone
               ? 'border-transparent'
               : 'border-border/50 focus:border-brand focus:bg-background focus:ring-4 focus:ring-brand/10'
@@ -83,7 +83,7 @@ export default function ActiveSetRow({
           placeholder={previousReps || "0"}
           disabled={isDone}
           value={reps}
-          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-black text-lg text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
+          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-black text-xl stat-num text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
             isDone
               ? 'border-transparent'
               : 'border-border/50 focus:border-brand focus:bg-background focus:ring-4 focus:ring-brand/10'

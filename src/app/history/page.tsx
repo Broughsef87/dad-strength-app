@@ -190,6 +190,9 @@ export default function History() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
+        <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-brand/5 blur-[100px]" />
+      </div>
       <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b border-border p-4 flex items-center gap-4">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft />
@@ -200,7 +203,7 @@ export default function History() {
         </div>
       </header>
 
-      <main className="p-4 space-y-4 max-w-md mx-auto pb-24">
+      <main className="p-4 space-y-4 max-w-md mx-auto pb-28">
         {/* Weekly Mission Brief */}
         <div>
           <WeeklyMissionBrief />

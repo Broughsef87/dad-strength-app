@@ -81,7 +81,7 @@ export default function SpiritPage() {
   };
 
   if (!mounted) return (
-    <div className="min-h-screen bg-background text-foreground pb-24 p-6">
+    <div className="min-h-screen bg-background text-foreground pb-28 p-6">
       <header className="flex items-center gap-4 mb-8">
         <div className="p-2 border border-border rounded-lg w-8 h-8 bg-muted animate-pulse" />
         <div className="h-7 w-24 bg-muted rounded animate-pulse" />
@@ -107,7 +107,10 @@ export default function SpiritPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24 p-6">
+    <div className="min-h-screen bg-background text-foreground pb-28 p-6">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
+        <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full opacity-50 blur-[100px]" style={{ background: 'radial-gradient(circle, hsl(142 70% 45% / 0.07) 0%, transparent 70%)' }} />
+      </div>
       <header className="flex items-center gap-4 mb-8">
         <button onClick={() => router.push('/dashboard')} className="p-2 border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft size={16} />

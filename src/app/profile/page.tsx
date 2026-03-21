@@ -94,6 +94,9 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
+        <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-brand/5 blur-[100px]" />
+      </div>
       <header className="flex items-center justify-between border-b border-border bg-background/90 px-6 py-4 backdrop-blur-md sticky top-0 z-10">
         <h1 className="text-xl font-light tracking-tight">Profile</h1>
         <button
@@ -104,7 +107,7 @@ export default function Profile() {
         </button>
       </header>
 
-      <main className="max-w-md mx-auto p-6 pb-24 space-y-6">
+      <main className="max-w-md mx-auto p-6 pb-28 space-y-6">
 
         {/* User Card */}
         <div className="bg-card rounded-xl p-5 border border-border flex items-center gap-5">
@@ -186,22 +189,22 @@ export default function Profile() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-card rounded-xl p-4 border border-border">
+            <div className="glass-card rounded-xl p-4 border border-border">
               <Flame className="text-brand mb-2" size={16} />
               <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Streak</p>
               <p className="font-light text-2xl mt-1">{stats.streak} <span className="text-xs text-muted-foreground">days</span></p>
             </div>
-            <div className="bg-card rounded-xl p-4 border border-border">
+            <div className="glass-card rounded-xl p-4 border border-border">
               <Dumbbell className="text-muted-foreground mb-2" size={16} />
               <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Sessions</p>
               <p className="font-light text-2xl mt-1">{stats.totalSessions}</p>
             </div>
-            <div className="bg-card rounded-xl p-4 border border-border">
+            <div className="glass-card rounded-xl p-4 border border-border">
               <Activity className="text-green-600 mb-2" size={16} />
               <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Total Volume</p>
               <p className="font-light text-xl mt-1">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
             </div>
-            <div className="bg-card rounded-xl p-4 border border-border">
+            <div className="glass-card rounded-xl p-4 border border-border">
               <Trophy className="text-yellow-600 mb-2" size={16} />
               <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Top Lift</p>
               <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>

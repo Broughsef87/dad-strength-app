@@ -60,7 +60,7 @@ export default function WorkoutSummaryOverlay({
         {/* Decorative Elements */}
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-brand/20 blur-[100px] rounded-full animate-pulse" />
 
-        <div className="bg-card border border-border rounded-[48px] p-8 text-center shadow-2xl relative overflow-hidden">
+        <div className="glass-card rounded-[48px] p-8 text-center shadow-2xl relative overflow-hidden">
           {/* Top Accent */}
           <div className="absolute top-0 left-0 w-full h-2 bg-brand shadow-[0_2px_10px_rgba(0,0,0,0.2)]" />
 
@@ -74,17 +74,17 @@ export default function WorkoutSummaryOverlay({
             <p className="text-brand text-xs font-black uppercase tracking-widest mb-10">Session Data Logged</p>
 
             <div className="mb-10 space-y-4">
-              <div className="bg-muted border border-border rounded-3xl p-6 transform hover:scale-[1.02] transition-transform">
+              <div className="glass-card rounded-3xl p-6 transform hover:scale-[1.02] transition-transform">
                 <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Total Volume</p>
-                <p className="text-4xl font-black text-foreground">{totalVolume.toLocaleString()}<span className="text-sm text-brand ml-1 italic">LBS</span></p>
+                <p className="text-4xl font-black stat-num text-foreground">{totalVolume.toLocaleString()}<span className="text-sm text-brand ml-1 italic">LBS</span></p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-muted border border-border rounded-3xl p-4">
+                <div className="glass-card rounded-3xl p-4">
                   <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Duration</p>
-                  <p className="text-xl font-black text-foreground font-mono">{duration}</p>
+                  <p className="text-xl font-black stat-num text-foreground">{duration}</p>
                 </div>
-                <div className="bg-muted border border-border rounded-3xl p-4">
+                <div className="glass-card rounded-3xl p-4">
                   <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Rank</p>
                   <p className="text-xl font-black text-brand italic">OVR-99</p>
                 </div>
@@ -94,7 +94,7 @@ export default function WorkoutSummaryOverlay({
             {newPRs && newPRs.length > 0 && (
               <div className="mb-6 p-5 bg-yellow-400/10 border border-yellow-400/30 rounded-3xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">🏆</span>
+                  <span className="text-xl font-black">🏆</span>
                   <p className="text-xs font-black uppercase tracking-[0.3em] text-yellow-400">New Personal Records</p>
                 </div>
                 <div className="space-y-2">

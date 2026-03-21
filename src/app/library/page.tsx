@@ -73,7 +73,7 @@ export default function Library() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans pb-24">
+    <div className="min-h-screen bg-background text-foreground font-sans pb-28">
 
       {/* HEADER */}
       <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-xl border-b border-border p-4">

@@ -10,10 +10,13 @@ import BottomNav from '../../components/BottomNav';
 
 export default function BodyPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24">
+    <div className="min-h-screen bg-background text-foreground pb-28">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
+        <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-brand/5 blur-[100px]" />
+      </div>
       <div className="max-w-md mx-auto px-6 pt-10">
 
-        <div className="mb-8">
+        <div className="relative z-10 mb-8">
           <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-medium mb-2">Physical</p>
           <h1 className="text-3xl font-light tracking-tight">Body</h1>
         </div>
