@@ -90,6 +90,36 @@ const PROGRAMS = [
 
 type ProgramSlug = typeof PROGRAMS[number]['slug']
 
+const CALIBRATION_LIFTS: Record<string, Array<{ key: string; label: string; hint: string; unit: 'lbs' | 'reps' }>> = {
+  'dad-strong': [
+    { key: 'bench', label: 'Barbell Bench Press', hint: '5 clean reps at this weight', unit: 'lbs' },
+    { key: 'squat', label: 'Barbell Back Squat', hint: '5 clean reps at this weight', unit: 'lbs' },
+    { key: 'deadlift', label: 'Deadlift', hint: '3-5 clean reps at this weight', unit: 'lbs' },
+    { key: 'row', label: 'Barbell Row', hint: '5 clean reps at this weight', unit: 'lbs' },
+  ],
+  'the-squeeze': [
+    { key: 'pushups', label: 'Push-ups', hint: 'Max reps in one set right now', unit: 'reps' },
+    { key: 'pullups', label: 'Pull-ups (or Rows)', hint: 'Max reps in one set right now', unit: 'reps' },
+    { key: 'squats', label: 'Bodyweight Squats', hint: 'Max reps in one set right now', unit: 'reps' },
+  ],
+  'shredded-home': [
+    { key: 'db_press', label: 'DB Press (each hand)', hint: '10 clean reps at this weight', unit: 'lbs' },
+    { key: 'db_row', label: 'DB Row (each hand)', hint: '10 clean reps at this weight', unit: 'lbs' },
+    { key: 'db_rdl', label: 'DB Romanian Deadlift (each)', hint: '12 clean reps at this weight', unit: 'lbs' },
+  ],
+  'golden-era': [
+    { key: 'bench', label: 'Barbell Bench Press', hint: '8 clean reps at this weight', unit: 'lbs' },
+    { key: 'squat', label: 'Barbell Back Squat', hint: '8 clean reps at this weight', unit: 'lbs' },
+    { key: 'deadlift', label: 'Deadlift', hint: '5 clean reps at this weight', unit: 'lbs' },
+    { key: 'row', label: 'Barbell Row', hint: '8 clean reps at this weight', unit: 'lbs' },
+  ],
+  'hybrid-athlete': [
+    { key: 'bench', label: 'Barbell Bench Press', hint: '5 clean reps at this weight', unit: 'lbs' },
+    { key: 'squat', label: 'Barbell Back Squat', hint: '5 clean reps at this weight', unit: 'lbs' },
+    { key: 'deadlift', label: 'Deadlift', hint: '5 clean reps at this weight', unit: 'lbs' },
+  ],
+}
+
 const HOME_EQUIPMENT = [
   { key: 'dumbbells', label: 'Dumbbells', icon: '🏋️' },
   { key: 'kettlebell', label: 'Kettlebell', icon: '🔔' },
@@ -118,7 +148,7 @@ function formatDate(date: Date): string {
 
 // ── Step types ────────────────────────────────────────────────────────────────
 
-type Step = 1 | 2 | 3 | 4 | 5
+type Step = 1 | 2 | 3 | 4 | 5 | 6
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -153,6 +183,9 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
   // Step 4
   const [weeks, setWeeks] = useState<4 | 5 | 6 | null>(null)
+
+  // Step 5
+  const [calibrationWeights, setCalibrationWeights] = useState<Record<string, string>>({})
 
   const selectedProgram = PROGRAMS.find(p => p.slug === selectedSlug) ?? null
 
@@ -193,7 +226,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
   }
 
   function goNext() {
-    setStep(prev => (prev < 5 ? ((prev + 1) as Step) : prev))
+    setStep(prev => (prev < 6 ? ((prev + 1) as Step) : prev))
   }
 
   function toggleEquipment(key: string) {
@@ -219,6 +252,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
     }
 
     localStorage.setItem('dad-strength-active-program', JSON.stringify(data))
+    localStorage.setItem('dad-strength-calibration-weights', JSON.stringify(calibrationWeights))
 
     if (user) {
       supabase
@@ -234,6 +268,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
             preferences: {
               gymType: effectiveGymType,
               weeks,
+              calibrationWeights,
             },
           },
           { onConflict: 'user_id' },
@@ -250,7 +285,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const TOTAL_STEPS = 5
+  const TOTAL_STEPS = 6
   const nextMonday = getNextMonday()
 
   return (
@@ -298,7 +333,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
               </div>
 
               <div className="px-5 pt-3 pb-24">
-                {/* Back button (steps 2–5) */}
+                {/* Back button (steps 2–6) */}
                 {step > 1 && (
                   <button
                     onClick={goBack}
@@ -627,8 +662,59 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                   </div>
                 )}
 
-                {/* ── Step 5: Confirmation ── */}
-                {step === 5 && selectedProgram && effectiveDays && weeks && (
+                {/* ── Step 5: Starting Weights ── */}
+                {step === 5 && selectedProgram && (
+                  <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div>
+                      <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-1">
+                        Starting Weights
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Enter what you can currently lift — Week 1 uses these as your baseline
+                      </p>
+                    </div>
+
+                    {/* Calibration info box */}
+                    <div className="bg-brand/5 border border-brand/20 rounded-xl p-3 text-sm text-muted-foreground">
+                      🎯 <strong className="text-foreground">Week 1 is your calibration week.</strong> The AI locks in your weights based on what you enter here, then adjusts automatically from Week 2 based on your actual performance.
+                    </div>
+
+                    <div className="space-y-3">
+                      {(CALIBRATION_LIFTS[selectedProgram.slug] ?? []).map(({ key, label, hint, unit }) => (
+                        <div key={key} className="glass-card rounded-xl p-4 border border-border/50">
+                          <label className="block text-xs font-black uppercase tracking-wider mb-1">{label}</label>
+                          <p className="text-[10px] text-muted-foreground mb-3">{hint}</p>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              placeholder={unit === 'lbs' ? '135' : '10'}
+                              value={calibrationWeights[key] ?? ''}
+                              onChange={e => setCalibrationWeights(prev => ({ ...prev, [key]: e.target.value }))}
+                              className="flex-1 bg-background border border-border rounded-lg px-4 py-3 text-lg font-black stat-num text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand transition-colors"
+                            />
+                            <span className="text-sm font-black text-muted-foreground uppercase tracking-wider w-8">{unit}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Skip option */}
+                    <p className="text-center text-[10px] text-muted-foreground">
+                      Not sure? Leave blank and adjust during your first session.
+                    </p>
+
+                    <button
+                      onClick={goNext}
+                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Step 6: Confirmation ── */}
+                {step === 6 && selectedProgram && effectiveDays && weeks && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     {/* Program hero */}
                     <div className="flex flex-col items-center text-center gap-2 pt-2 pb-4">

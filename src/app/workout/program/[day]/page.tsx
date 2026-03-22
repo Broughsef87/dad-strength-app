@@ -266,6 +266,9 @@ export default function ProgramWorkoutPage() {
   // Completion
   const [sessionComplete, setSessionComplete] = useState(false)
 
+  // Calibration week
+  const [isCalibrationWeek, setIsCalibrationWeek] = useState(false)
+
   // ── Timer ────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -313,6 +316,7 @@ export default function ProgramWorkoutPage() {
           setCoachNote(existing.ai_reasoning ?? '')
           setWeekTheme(existing.week_theme ?? '')
           setSavedWorkoutId(existing.id)
+          setIsCalibrationWeek(existing.week_number === 1)
           setExerciseLogs(initExerciseLogs(exercises))
           setPageState('ready')
           return
@@ -327,6 +331,9 @@ export default function ProgramWorkoutPage() {
           .limit(100)
 
         // 4. Call AI generation API
+        const calibrationRaw = localStorage.getItem('dad-strength-calibration-weights')
+        const calibrationWeights = calibrationRaw ? JSON.parse(calibrationRaw) : {}
+
         const res = await fetch('/api/ai/program-generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -340,6 +347,7 @@ export default function ProgramWorkoutPage() {
               equipment: prog.equipment ?? {},
             },
             recentLogs: recentLogs ?? [],
+            calibrationWeights,
           }),
         })
 
@@ -374,6 +382,7 @@ export default function ProgramWorkoutPage() {
         setDayName(currentDayData.dayName)
         setCoachNote(generated.coachNote)
         setWeekTheme(generated.weekTheme)
+        setIsCalibrationWeek(generated.isCalibrationWeek ?? prog.currentWeek === 1)
         setExerciseLogs(initExerciseLogs(currentDayData.exercises))
         setPageState('ready')
       } catch (err) {
@@ -572,6 +581,19 @@ export default function ProgramWorkoutPage() {
           <div className="mx-4 mb-3 max-w-md mx-auto">
             <div className="bg-brand/5 border-l-2 border-brand rounded-r-lg px-3 py-2">
               <p className="text-xs text-muted-foreground italic leading-relaxed">{coachNote}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Calibration week banner */}
+        {isCalibrationWeek && (
+          <div className="mx-4 mb-2 bg-brand/10 border border-brand/30 rounded-xl p-3 flex gap-2.5">
+            <span className="text-lg">🎯</span>
+            <div>
+              <p className="text-xs font-black text-brand uppercase tracking-wider mb-0.5">Calibration Week</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                These weights are your baseline. Focus on form and honest RIR — Week 2 weights will be optimized from your results today.
+              </p>
             </div>
           </div>
         )}

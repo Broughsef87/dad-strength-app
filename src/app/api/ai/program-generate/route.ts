@@ -88,10 +88,45 @@ export async function POST(request: Request) {
   rateLimitMap.set(ip, [...timestamps, now])
 
   try {
-    const { userId, weekNumber, programSlug, userProfile, recentLogs } = await request.json()
+    const { userId, weekNumber, programSlug, userProfile, recentLogs, calibrationWeights } = await request.json() as {
+      userId: string
+      weekNumber: number
+      programSlug: string
+      userProfile?: Record<string, unknown>
+      recentLogs?: unknown[]
+      calibrationWeights?: Record<string, number>
+    }
 
     if (!userId || !weekNumber || !programSlug) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
+    }
+
+    // Derive accessory weights from main lift calibration weights
+    function deriveAccessoryWeights(cw: Record<string, number>) {
+      const bench = cw.bench || 0
+      const squat = cw.squat || 0
+      const deadlift = cw.deadlift || 0
+      const row = cw.row || 0
+
+      return {
+        // Chest accessories
+        incline_db_press: Math.round((bench * 0.35) / 5) * 5,
+        cable_flyes: Math.round((bench * 0.15) / 5) * 5,
+        jm_press: Math.round((bench * 0.45) / 5) * 5,
+        skull_crushers: Math.round((bench * 0.35) / 5) * 5,
+        // Back accessories
+        lat_pulldown: Math.round((row * 0.85) / 5) * 5,
+        seated_cable_row: Math.round((row * 0.75) / 5) * 5,
+        straight_arm_pulldown: Math.round((row * 0.3) / 5) * 5,
+        // Leg accessories
+        leg_press: Math.round((squat * 1.5) / 5) * 5,
+        romanian_deadlift: Math.round((deadlift * 0.5) / 5) * 5,
+        good_morning: Math.round((squat * 0.3) / 5) * 5,
+        // Small muscles (rough estimates)
+        curl: Math.round((row * 0.2) / 5) * 5,
+        tricep_pushdown: Math.round((bench * 0.2) / 5) * 5,
+        calf_raise: Math.round((squat * 0.4) / 5) * 5,
+      }
     }
 
     const template = PROGRAM_TEMPLATES[programSlug]
@@ -161,7 +196,7 @@ PROGRESSION RULES (follow these exactly):
 3. If rir_actual = target RIR (on target): keep weight. If they hit the top of the rep range, add 2.5 lbs.
 4. If rir_actual < target RIR (too hard): keep weight or reduce 5-10%.
 5. If completed=false on any set: reduce weight 10% for that exercise.
-6. For week 1 with no history, suggest conservative starting weights based on training age:
+6. For week 1 with no history and no calibration data, suggest conservative starting weights based on training age:
    - beginner: empty bar or very light weight, technique focus
    - intermediate: moderate working weights (e.g., bench ~135 lbs, squat ~155 lbs, deadlift ~185 lbs)
    - advanced: near-max programming with heavier starting points
@@ -174,7 +209,36 @@ OUTPUT RULES:
 - weekTheme should be concise: e.g. "Foundation Week", "Week 3 — Adding Load", "Deload Week".
 - Set targetWeight to 0 for bodyweight exercises.
 - Ensure every exercise from the template is included in each day.
-- deloadRecommended should be true if the user has 4+ consecutive weeks of logged data showing fatigue indicators (rir_actual consistently below target or failed sets).`,
+- deloadRecommended should be true if the user has 4+ consecutive weeks of logged data showing fatigue indicators (rir_actual consistently below target or failed sets).${
+        weekNumber === 1 && calibrationWeights && Object.keys(calibrationWeights).length > 0
+          ? `
+
+CALIBRATION WEEK RULES (Week 1 only):
+- This is the user's calibration week. Do NOT try to guess weights based on training age.
+- Use the calibration weights EXACTLY as the starting point for primary lifts.
+- For primary lifts: use the calibration weight directly as targetWeight.
+- For accessory lifts: use the derived accessory weights provided below.
+- Set ALL sets to the SAME weight for each exercise (no wave loading in Week 1).
+- The weekTheme should be "Calibration Week"
+- The coachNote should explain: "Week 1 is about locking in your baselines. Use exactly these weights, focus on form, and hit the target RIR. We'll start pushing load in Week 2."
+
+Calibration weights entered by user:
+${JSON.stringify(calibrationWeights)}
+
+Derived accessory weights (use these for accessories):
+${JSON.stringify(deriveAccessoryWeights(calibrationWeights))}`
+          : weekNumber === 1
+          ? `
+
+WEEK 1 - NO CALIBRATION DATA:
+User did not enter starting weights. Suggest conservative starter weights based on training age:
+- Beginner: very light (bar + 25s for compounds)
+- Intermediate: moderate (bar + 45-90s for compounds)
+- Advanced: moderate-heavy (bar + 90-135s for compounds)
+Add a note on each exercise: "Adjust this weight to achieve the target RIR — these are estimates."
+Set weekTheme to "Calibration Week" regardless.`
+          : ''
+      }`,
       prompt,
       schema: z.object({
         weekNumber: z.number(),
@@ -198,6 +262,7 @@ OUTPUT RULES:
         })),
         deloadRecommended: z.boolean(),
         deloadReason: z.string().optional().describe('Why a deload is recommended, if applicable'),
+        isCalibrationWeek: z.boolean(),
       }),
     })
 
