@@ -90,7 +90,7 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
   if (!show) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm p-4 pb-24">
       <div className="w-full max-w-sm bg-card border border-border rounded-3xl p-7 shadow-2xl animate-in slide-in-from-bottom-8 duration-500">
 
         {/* Header */}
