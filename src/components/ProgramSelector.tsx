@@ -22,7 +22,8 @@ export interface ActiveProgramData {
 export interface ProgramSelectorProps {
   activeSlug?: string | null
   onProgramSelected?: (data: ActiveProgramData) => void
-  autoOpen?: boolean
+  isOpen?: boolean
+  onClose?: () => void
 }
 
 // ── Program data ──────────────────────────────────────────────────────────────
@@ -120,15 +121,15 @@ type Step = 1 | 2 | 3 | 4 | 5
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ProgramSelector({ activeSlug, onProgramSelected, autoOpen }: ProgramSelectorProps) {
+export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen, onClose }: ProgramSelectorProps) {
   const supabase = createClient()
   const { user } = useUser()
 
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    if (autoOpen) setOpen(true)
-  }, [autoOpen])
+    if (isOpen !== undefined) setOpen(isOpen)
+  }, [isOpen])
   const [step, setStep] = useState<Step>(1)
 
   // Step 1
@@ -182,6 +183,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, autoOpe
 
   function closeSheet() {
     setOpen(false)
+    onClose?.()
   }
 
   function goBack() {

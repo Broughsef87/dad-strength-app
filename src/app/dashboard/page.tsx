@@ -374,11 +374,11 @@ export default function Dashboard() {
       <BottomNav />
 
       {/* Program selector sheet — triggered by Change Program */}
-      {showProgramSelector && (
-        <ProgramSelector
-          onProgramSelected={() => setShowProgramSelector(false)}
-        />
-      )}
+      <ProgramSelector
+        isOpen={showProgramSelector}
+        onClose={() => setShowProgramSelector(false)}
+        onProgramSelected={() => setShowProgramSelector(false)}
+      />
     </div>
   )
 }
