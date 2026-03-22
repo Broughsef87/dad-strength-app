@@ -158,7 +158,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected }: Progr
 
   const effectiveGymType = autoGymType ?? gymType
 
-  const lockedDays = selectedProgram && 'lockedDays' in selectedProgram
+  const lockedDays: number | null = selectedProgram && 'lockedDays' in selectedProgram
     ? (selectedProgram as typeof PROGRAMS[1]).lockedDays
     : null
 
@@ -229,7 +229,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected }: Progr
           },
           { onConflict: 'user_id' },
         )
-        .then(({ error }) => {
+        .then(({ error }: { error: { message: string } | null }) => {
           if (error) console.error('Failed to save program to Supabase:', error)
         })
     }
