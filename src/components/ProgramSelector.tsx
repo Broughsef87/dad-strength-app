@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
@@ -22,6 +22,7 @@ export interface ActiveProgramData {
 export interface ProgramSelectorProps {
   activeSlug?: string | null
   onProgramSelected?: (data: ActiveProgramData) => void
+  autoOpen?: boolean
 }
 
 // ── Program data ──────────────────────────────────────────────────────────────
@@ -119,11 +120,15 @@ type Step = 1 | 2 | 3 | 4 | 5
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ProgramSelector({ activeSlug, onProgramSelected }: ProgramSelectorProps) {
+export default function ProgramSelector({ activeSlug, onProgramSelected, autoOpen }: ProgramSelectorProps) {
   const supabase = createClient()
   const { user } = useUser()
 
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (autoOpen) setOpen(true)
+  }, [autoOpen])
   const [step, setStep] = useState<Step>(1)
 
   // Step 1
@@ -245,19 +250,6 @@ export default function ProgramSelector({ activeSlug, onProgramSelected }: Progr
 
   return (
     <>
-      {/* Trigger */}
-      <div className="glass-card rounded-2xl p-5 border border-border/50">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-3">
-          Training Program
-        </p>
-        <button
-          onClick={openSheet}
-          className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-brand/20"
-        >
-          Choose Your Program →
-        </button>
-      </div>
-
       {/* Bottom sheet */}
       <AnimatePresence>
         {open && (

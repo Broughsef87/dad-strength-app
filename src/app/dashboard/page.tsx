@@ -22,6 +22,7 @@ import SpiritVitals from '../../components/SpiritVitals'
 import AutomationHook from '../../components/AutomationHook'
 import BodyVitals from '../../components/BodyVitals'
 import ActiveProgram from '../../components/ActiveProgram'
+import ProgramSelector from '../../components/ProgramSelector'
 import TrainingHeatmap from '../../components/TrainingHeatmap'
 import Logo from '../../components/Logo'
 import { useCountUp } from '../../hooks/useCountUp'
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [workout, setWorkout] = useState<any>(null)
+  const [showProgramSelector, setShowProgramSelector] = useState(false)
   const [stats, setStats] = useState({ streak: 0, totalWorkouts: 0, lastPR: 'None yet' })
 
   // Mind Vitals State
@@ -249,9 +251,6 @@ export default function Dashboard() {
           <motion.div variants={fadeUp} custom={2}>
             <BodyVitals />
           </motion.div>
-          <motion.div variants={fadeUp} custom={3}>
-            <ActiveProgram />
-          </motion.div>
           <motion.div variants={fadeUp} custom={4}>
             <MindVitals
               deepWorkMinutes={deepWorkMinutes}
@@ -298,22 +297,24 @@ export default function Dashboard() {
                   <motion.button
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => workout ? router.push(`/workout/${workout.id}`) : router.push('/body')}
+                    onClick={() => workout ? router.push(`/workout/${workout.id}`) : setShowProgramSelector(true)}
                     className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-background px-6 py-3.5 text-sm font-medium text-foreground hover:bg-background/90 transition-all active:scale-[0.98]"
                   >
                     <PlayCircle size={18} />
-                    {workout ? 'Start Training' : 'Browse Programs'}
+                    {workout ? 'Start Training' : 'Choose Program'}
                   </motion.button>
 
-                  <motion.button
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => router.push('/edit-program')}
-                    className="w-full flex items-center justify-center gap-2 rounded-lg bg-white/5 border border-white/10 px-6 py-2.5 text-xs text-background/60 hover:bg-white/10 hover:text-background/80 transition-all uppercase tracking-[0.1em]"
-                  >
-                    <Settings size={12} />
-                    Change Program
-                  </motion.button>
+                  {workout && (
+                    <motion.button
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setShowProgramSelector(true)}
+                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-white/5 border border-white/10 px-6 py-2.5 text-xs text-background/60 hover:bg-white/10 hover:text-background/80 transition-all uppercase tracking-[0.1em]"
+                    >
+                      <Settings size={12} />
+                      Change Program
+                    </motion.button>
+                  )}
                 </div>
               </div>
             </div>
@@ -371,6 +372,13 @@ export default function Dashboard() {
       </main>
 
       <BottomNav />
+
+      {/* Program selector sheet — triggered by Change Program */}
+      {showProgramSelector && (
+        <ProgramSelector
+          onProgramSelected={() => setShowProgramSelector(false)}
+        />
+      )}
     </div>
   )
 }
