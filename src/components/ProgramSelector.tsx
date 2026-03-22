@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
 
@@ -124,6 +125,7 @@ type Step = 1 | 2 | 3 | 4 | 5
 export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen, onClose }: ProgramSelectorProps) {
   const supabase = createClient()
   const { user } = useUser()
+  const router = useRouter()
 
   const [open, setOpen] = useState(false)
 
@@ -243,6 +245,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
     closeSheet()
     onProgramSelected?.(data)
+    router.push('/workout/program/1')
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────

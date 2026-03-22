@@ -35,6 +35,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [workout, setWorkout] = useState<any>(null)
   const [showProgramSelector, setShowProgramSelector] = useState(false)
+  const [activeProgram, setActiveProgram] = useState<any>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('dad-strength-active-program')
+      if (raw) setActiveProgram(JSON.parse(raw))
+    }
+  }, [])
   const [stats, setStats] = useState({ streak: 0, totalWorkouts: 0, lastPR: 'None yet' })
 
   // Mind Vitals State
@@ -297,11 +305,19 @@ export default function Dashboard() {
                   <motion.button
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => workout ? router.push(`/workout/${workout.id}`) : setShowProgramSelector(true)}
+                    onClick={() => {
+                      if (activeProgram) {
+                        router.push('/workout/program/1')
+                      } else if (workout) {
+                        router.push(`/workout/${workout.id}`)
+                      } else {
+                        setShowProgramSelector(true)
+                      }
+                    }}
                     className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-background px-6 py-3.5 text-sm font-medium text-foreground hover:bg-background/90 transition-all active:scale-[0.98]"
                   >
                     <PlayCircle size={18} />
-                    {workout ? 'Start Training' : 'Choose Program'}
+                    {activeProgram ? 'Start Training' : workout ? 'Start Training' : 'Choose Program'}
                   </motion.button>
 
                   {workout && (
