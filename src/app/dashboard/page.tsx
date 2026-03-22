@@ -21,6 +21,7 @@ import MindVitals from '../../components/MindVitals'
 import SpiritVitals from '../../components/SpiritVitals'
 import AutomationHook from '../../components/AutomationHook'
 import BodyVitals from '../../components/BodyVitals'
+import ActiveProgram from '../../components/ActiveProgram'
 import TrainingHeatmap from '../../components/TrainingHeatmap'
 import Logo from '../../components/Logo'
 import { useCountUp } from '../../hooks/useCountUp'
@@ -249,13 +250,16 @@ export default function Dashboard() {
             <BodyVitals />
           </motion.div>
           <motion.div variants={fadeUp} custom={3}>
+            <ActiveProgram />
+          </motion.div>
+          <motion.div variants={fadeUp} custom={4}>
             <MindVitals
               deepWorkMinutes={deepWorkMinutes}
               completedObjectives={completedObjectives}
               totalObjectives={totalObjectives}
             />
           </motion.div>
-          <motion.div variants={fadeUp} custom={4}>
+          <motion.div variants={fadeUp} custom={5}>
             <SpiritVitals />
           </motion.div>
         </motion.div>

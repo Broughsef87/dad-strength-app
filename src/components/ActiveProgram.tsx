@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Dumbbell, ChevronDown, ChevronUp, CheckCircle2, Clock,
   PlayCircle, RefreshCcw, BarChart2
@@ -62,6 +63,7 @@ const STATUS_CONFIG: Record<DayStatus, { label: string; color: string; Icon: Rea
 }
 
 export default function ActiveProgram() {
+  const router = useRouter()
   const supabase = createClient()
   const { user } = useUser()
   const [program, setProgram] = useState<ActiveProgramData | null>(null)
@@ -139,9 +141,27 @@ export default function ActiveProgram() {
       current === 'not_started' ? 'in_progress' :
       current === 'in_progress' ? 'complete' :
       'not_started'
-    const updated = { ...weekProgress, [dayIndex]: next }
-    setWeekProgress(updated)
-    saveWeekProgress(weekKey, updated)
+    const newProgress = { ...weekProgress, [dayIndex]: next }
+    setWeekProgress(newProgress)
+    saveWeekProgress(weekKey, newProgress)
+
+    // When all days are marked complete, increment current_week
+    if (next === 'complete' && program) {
+      const allDone = Object.values(newProgress).filter(v => v === 'complete').length === program.daysCount
+      if (allDone && user) {
+        const newWeek = (program.currentWeek || 1) + 1
+        // Update localStorage
+        const updated = { ...program, currentWeek: newWeek }
+        localStorage.setItem('dad-strength-active-program', JSON.stringify(updated))
+        setProgram(updated)
+        // Update Supabase
+        supabase.from('user_programs')
+          .update({ current_week: newWeek })
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .then(({ error }) => { if (error) console.error(error) })
+      }
+    }
   }
 
   const completedCount = Object.values(weekProgress).filter(s => s === 'complete').length
@@ -301,7 +321,13 @@ export default function ActiveProgram() {
                         {label}
                       </span>
                       <button
-                        onClick={() => cycleStatus(i)}
+                        onClick={() => {
+                          if (status === 'not_started') {
+                            router.push(`/workout/program/${i + 1}`)
+                          } else {
+                            cycleStatus(i)
+                          }
+                        }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
                           status === 'complete'
                             ? 'bg-green-500/15 text-green-500 border border-green-500/30 hover:bg-green-500/25'
@@ -315,7 +341,7 @@ export default function ActiveProgram() {
                         ) : status === 'in_progress' ? (
                           <><PlayCircle size={9} strokeWidth={2.5} /> Active</>
                         ) : (
-                          <><PlayCircle size={9} strokeWidth={2.5} /> Start</>
+                          <><PlayCircle size={9} strokeWidth={2.5} /> Start Session</>
                         )}
                       </button>
                     </div>
