@@ -219,10 +219,10 @@ export default function ActiveProgram() {
             <Dumbbell size={16} strokeWidth={1.5} />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5 font-display">
               Active Program
             </p>
-            <h3 className="font-black text-base uppercase italic tracking-tight leading-tight truncate">
+            <h3 className="font-black text-base uppercase italic tracking-[0.06em] leading-tight truncate font-display">
               {program.name}
               <span className="text-muted-foreground font-medium normal-case italic text-sm">
                 {' '}— Week {program.currentWeek}
@@ -247,7 +247,7 @@ export default function ActiveProgram() {
       {/* Week progress bar (always visible) */}
       <div className="px-5 pb-3">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[9px] uppercase tracking-widest font-medium text-muted-foreground">
+          <span className="text-[9px] uppercase tracking-widest font-medium text-muted-foreground font-display">
             Week {program.currentWeek} Progress
           </span>
           <span className="text-[9px] font-black text-brand">{completedCount}/{totalDays} days</span>
@@ -354,16 +354,16 @@ export default function ActiveProgram() {
             <div className="px-5 py-4 border-t border-border/30 mt-2 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="text-center">
-                  <p className="text-lg font-black text-brand leading-none">{completedCount}</p>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5">Done</p>
+                  <p className="text-lg font-black text-brand leading-none font-display">{completedCount}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5 font-display">Done</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-black text-foreground leading-none">{totalDays - completedCount}</p>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5">Left</p>
+                  <p className="text-lg font-black text-foreground leading-none font-display">{totalDays - completedCount}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5 font-display">Left</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-black text-foreground leading-none">{program.currentWeek}</p>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5">Week</p>
+                  <p className="text-lg font-black text-foreground leading-none font-display">{program.currentWeek}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5 font-display">Week</p>
                 </div>
               </div>
 

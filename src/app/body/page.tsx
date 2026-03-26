@@ -20,8 +20,8 @@ export default function BodyPage() {
       <div className="max-w-md mx-auto px-6 pt-10">
 
         <div className="relative z-10 mb-8">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-medium mb-2">Physical</p>
-          <h1 className="text-3xl font-light tracking-tight">Body</h1>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-medium mb-2 font-display">Physical</p>
+          <h1 className="text-3xl font-light tracking-[0.08em]">Body</h1>
         </div>
 
         <motion.div
@@ -44,7 +44,7 @@ export default function BodyPage() {
 
           <motion.div variants={fadeUp}>
             <section>
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">Metabolic Tracking</h3>
+              <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4 font-display">Metabolic Tracking</h3>
               <ProteinTracker />
             </section>
           </motion.div>
@@ -55,7 +55,7 @@ export default function BodyPage() {
 
           <motion.div variants={fadeUp}>
             <section>
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4">Body Composition</h3>
+              <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4 font-display">Body Composition</h3>
               <BodyComposition />
             </section>
           </motion.div>

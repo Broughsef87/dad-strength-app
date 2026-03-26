@@ -117,7 +117,7 @@ export default function SpiritPage() {
         </button>
         <div className="flex items-center gap-3">
           <Flame className="w-5 h-5 text-brand" />
-          <h1 className="font-light text-2xl tracking-tight">Spirit</h1>
+          <h1 className="font-light text-2xl tracking-[0.08em]">Spirit</h1>
         </div>
       </header>
 

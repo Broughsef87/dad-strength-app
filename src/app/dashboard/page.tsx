@@ -293,7 +293,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="relative z-10 mb-6">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-background/50 font-medium mb-3">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-background/50 font-medium mb-3 font-display">
                     <span className="w-1 h-1 rounded-full bg-brand inline-block" />
                     Active Protocol
                   </span>
@@ -347,7 +347,7 @@ export default function Dashboard() {
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-3 text-brand">
                   <Flame size={14} />
-                  <p className="text-[10px] uppercase tracking-[0.15em] font-medium">Streak</p>
+                  <p className="text-[10px] uppercase tracking-[0.15em] font-medium font-display">Streak</p>
                 </div>
                 <p className="text-5xl font-black tabular-nums leading-none stat-num">{streakDisplay}<span className="text-lg text-muted-foreground font-light ml-1">days</span></p>
                 {stats.streak === 0 && (
@@ -358,7 +358,7 @@ export default function Dashboard() {
             <div className="rounded-xl bg-card border border-border p-5 hover:border-foreground/20 transition-colors">
               <div className="flex items-center gap-2 mb-3 text-muted-foreground">
                 <Trophy size={14} />
-                <p className="text-[10px] uppercase tracking-[0.15em] font-medium">Top Lift</p>
+                <p className="text-[10px] uppercase tracking-[0.15em] font-medium font-display">Top Lift</p>
               </div>
               <p className="text-sm font-medium truncate leading-relaxed">{stats.lastPR}</p>
             </div>

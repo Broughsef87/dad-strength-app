@@ -134,15 +134,15 @@ export default function DadScore() {
           <div className="p-1.5 bg-brand/10 rounded-lg">
             <Shield size={15} strokeWidth={1.5} className="text-brand" />
           </div>
-          <h3 className="font-medium text-sm">Dad Score</h3>
+          <h3 className="font-medium text-sm font-display tracking-[0.06em]">Dad Score</h3>
         </div>
         <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">This Week</span>
       </div>
 
       <div className="flex items-end gap-3">
-        <p className="text-5xl font-black tabular-nums leading-none">{score.total}</p>
+        <p className="text-5xl font-black tabular-nums leading-none font-display">{score.total}</p>
         <div className="mb-1">
-          <p className={`text-sm font-black uppercase tracking-tight ${gradeColor}`}>{score.grade}</p>
+          <p className={`text-sm font-black uppercase tracking-[0.08em] font-display ${gradeColor}`}>{score.grade}</p>
           <p className="text-[10px] text-muted-foreground">/ 100</p>
         </div>
       </div>

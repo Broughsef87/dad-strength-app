@@ -100,7 +100,7 @@ export default function Profile() {
         <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-brand/5 blur-[100px]" />
       </div>
       <header className="flex items-center justify-between border-b border-border bg-background/90 px-6 py-4 backdrop-blur-md sticky top-0 z-10">
-        <h1 className="text-xl font-light tracking-tight">Profile</h1>
+        <h1 className="text-xl font-light tracking-[0.08em]">Profile</h1>
         <button
           onClick={() => router.push('/profile/settings')}
           className="text-muted-foreground hover:text-foreground transition-colors"
@@ -197,22 +197,22 @@ export default function Profile() {
           <div className="grid grid-cols-2 gap-4">
             <div className="glass-card rounded-xl p-4 border border-border">
               <Flame className="text-brand mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Streak</p>
-              <p className="font-light text-2xl mt-1">{stats.streak} <span className="text-xs text-muted-foreground">days</span></p>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium font-display">Streak</p>
+              <p className="font-light text-2xl mt-1 font-display">{stats.streak} <span className="text-xs text-muted-foreground">days</span></p>
             </div>
             <div className="glass-card rounded-xl p-4 border border-border">
               <Dumbbell className="text-muted-foreground mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Sessions</p>
-              <p className="font-light text-2xl mt-1">{stats.totalSessions}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium font-display">Sessions</p>
+              <p className="font-light text-2xl mt-1 font-display">{stats.totalSessions}</p>
             </div>
             <div className="glass-card rounded-xl p-4 border border-border">
               <Activity className="text-green-600 mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Total Volume</p>
-              <p className="font-light text-xl mt-1">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium font-display">Total Volume</p>
+              <p className="font-light text-xl mt-1 font-display">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
             </div>
             <div className="glass-card rounded-xl p-4 border border-border">
               <Trophy className="text-yellow-600 mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium">Top Lift</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium font-display">Top Lift</p>
               <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function Profile() {
         {programName && (
           <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-brand uppercase tracking-[0.12em] font-medium">Active Protocol</p>
+              <p className="text-xs text-brand uppercase tracking-[0.12em] font-medium font-display">Active Protocol</p>
               <p className="font-medium text-sm mt-0.5">{programName}</p>
             </div>
             <button onClick={() => router.push('/edit-program')} className="text-xs font-medium text-brand uppercase tracking-[0.12em] hover:opacity-70 transition-opacity">
@@ -233,7 +233,7 @@ export default function Profile() {
 
         {/* Settings */}
         <div className="space-y-2">
-          <h3 className="text-xs text-muted-foreground uppercase tracking-[0.15em] font-medium px-1">Settings</h3>
+          <h3 className="text-xs text-muted-foreground uppercase tracking-[0.15em] font-medium px-1 font-display">Settings</h3>
 
           <button
             onClick={() => router.push('/profile/settings')}

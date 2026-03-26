@@ -104,7 +104,7 @@ export default function MindPage() {
         </button>
         <div className="flex items-center gap-3">
           <Brain className="w-5 h-5 text-brand" />
-          <h1 className="font-light text-2xl tracking-tight">Mind</h1>
+          <h1 className="font-light text-2xl tracking-[0.08em]">Mind</h1>
         </div>
       </header>
 

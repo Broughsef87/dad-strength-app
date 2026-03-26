@@ -115,7 +115,7 @@ export default function BodyVitals() {
           <div className="p-1.5 bg-brand/10 rounded-lg text-brand">
             <Dumbbell size={16} strokeWidth={1.5} />
           </div>
-          <h3 className="font-medium text-sm">Body Vitals</h3>
+          <h3 className="font-medium text-sm font-display tracking-[0.06em]">Body Vitals</h3>
         </div>
         <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>
@@ -133,7 +133,7 @@ export default function BodyVitals() {
           />
           <div className="flex items-center gap-1 text-muted-foreground">
             <Flame size={10} strokeWidth={1.5} />
-            <span className="text-[9px] uppercase tracking-[0.1em] font-medium">Streak</span>
+            <span className="text-[9px] uppercase tracking-[0.1em] font-medium font-display">Streak</span>
           </div>
         </div>
 
@@ -151,7 +151,7 @@ export default function BodyVitals() {
           />
           <div className="flex items-center gap-1 text-muted-foreground">
             <Dumbbell size={10} strokeWidth={1.5} />
-            <span className="text-[9px] uppercase tracking-[0.1em] font-medium">This Week</span>
+            <span className="text-[9px] uppercase tracking-[0.1em] font-medium font-display">This Week</span>
           </div>
         </div>
       </div>

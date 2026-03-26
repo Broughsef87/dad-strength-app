@@ -41,7 +41,7 @@ export default function TrainingHeatmap() {
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">7-Day Training</p>
+      <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium font-display">7-Day Training</p>
       <div className="flex items-center gap-1.5">
         {days.map((day, i) => {
           const key = toLocalDateString(day)

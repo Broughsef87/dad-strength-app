@@ -43,7 +43,7 @@ export default function BottomNav() {
               style={isActive ? { filter: 'drop-shadow(0 0 6px hsl(16 80% 54% / 0.6))' } : undefined}
             />
             <span
-              className={`relative z-10 text-[9px] uppercase tracking-[0.12em] font-medium transition-colors duration-200 ${
+              className={`relative z-10 text-[9px] uppercase tracking-[0.12em] font-medium transition-colors duration-200 font-display ${
                 isActive ? 'text-brand' : 'text-muted-foreground'
               }`}
             >

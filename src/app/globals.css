@@ -141,7 +141,12 @@
   }
 
   /* Tighter, bolder headings by default */
-  h1, h2, h3, h4 {
+  h1, h2, h3 {
+    font-family: var(--font-orbitron, 'Arial Black', sans-serif);
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  h4 {
     letter-spacing: -0.025em;
     font-weight: 700;
   }
@@ -222,6 +227,12 @@
 }
 .spirit-glow {
   box-shadow: 0 0 30px hsl(142 70% 45% / 0.15), 0 4px 16px hsl(0 0% 0% / 0.2);
+}
+
+/* Display / heading font utility */
+.font-display {
+  font-family: var(--font-orbitron, 'Arial Black', sans-serif);
+  letter-spacing: 0.06em;
 }
 
 /* Stat numbers — monospace, tight */
