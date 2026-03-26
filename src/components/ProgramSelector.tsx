@@ -29,15 +29,39 @@ export interface ProgramSelectorProps {
 
 // ── Program data ──────────────────────────────────────────────────────────────
 
-const PROGRAMS = [
+interface Program {
+  slug: string
+  name: string
+  tagline: string
+  description: string
+  vibe: string
+  icon: string
+  gymTypes: readonly ('commercial' | 'home')[]
+  availableDays: readonly number[]
+  lockedDays?: number
+  comingSoon?: boolean
+}
+
+const PROGRAMS: readonly Program[] = [
   {
     slug: 'dad-strong',
-    name: 'Dad Strong',
+    name: 'Dad Strong 5',
     tagline: 'Old Man Strength',
     description:
       'Functional power meets iron discipline. Carry all the groceries in one trip. Move the couch solo. Build the kind of strength that actually matters.',
     vibe: 'Strength + Function',
     icon: '🏋️',
+    gymTypes: ['commercial', 'home'],
+    availableDays: [3, 5],
+  },
+  {
+    slug: 'hybrid-athlete',
+    name: 'Hybrid Athlete',
+    tagline: 'Built Different',
+    description:
+      'Bodybuilding + HIIT + circuits. CrossFit energy, bodybuilder physique. For the competitive dads who need a challenge.',
+    vibe: 'Power + Conditioning',
+    icon: '⚔️',
     gymTypes: ['commercial', 'home'],
     availableDays: [3, 5],
   },
@@ -54,8 +78,8 @@ const PROGRAMS = [
     lockedDays: 3,
   },
   {
-    slug: 'shredded-home',
-    name: 'Shredded from Home',
+    slug: 'home-shred',
+    name: 'Home Shred',
     tagline: 'Garage Gains',
     description:
       'Calisthenics-first with dumbbells and kettlebells. High reps, circuits, HIIT. Look shredded without leaving your garage.',
@@ -63,6 +87,7 @@ const PROGRAMS = [
     icon: '🔥',
     gymTypes: ['home'],
     availableDays: [3, 5],
+    comingSoon: true,
   },
   {
     slug: 'golden-era',
@@ -74,21 +99,11 @@ const PROGRAMS = [
     icon: '🏆',
     gymTypes: ['commercial'],
     availableDays: [3, 5],
+    comingSoon: true,
   },
-  {
-    slug: 'hybrid-athlete',
-    name: 'Hybrid Athlete',
-    tagline: 'Built Different',
-    description:
-      'Bodybuilding + HIIT + circuits. CrossFit energy, bodybuilder physique. For the competitive dads who need a challenge.',
-    vibe: 'Power + Conditioning',
-    icon: '⚔️',
-    gymTypes: ['commercial', 'home'],
-    availableDays: [3, 5],
-  },
-] as const
+]
 
-type ProgramSlug = typeof PROGRAMS[number]['slug']
+type ProgramSlug = string
 
 const CALIBRATION_LIFTS: Record<string, Array<{ key: string; label: string; hint: string; unit: 'lbs' | 'reps' }>> = {
   'dad-strong': [
@@ -102,7 +117,7 @@ const CALIBRATION_LIFTS: Record<string, Array<{ key: string; label: string; hint
     { key: 'pullups', label: 'Pull-ups (or Rows)', hint: 'Max reps in one set right now', unit: 'reps' },
     { key: 'squats', label: 'Bodyweight Squats', hint: 'Max reps in one set right now', unit: 'reps' },
   ],
-  'shredded-home': [
+  'home-shred': [
     { key: 'db_press', label: 'DB Press (each hand)', hint: '10 clean reps at this weight', unit: 'lbs' },
     { key: 'db_row', label: 'DB Row (each hand)', hint: '10 clean reps at this weight', unit: 'lbs' },
     { key: 'db_rdl', label: 'DB Romanian Deadlift (each)', hint: '12 clean reps at this weight', unit: 'lbs' },
@@ -199,9 +214,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
   const effectiveGymType = autoGymType ?? gymType
 
-  const lockedDays: number | null = selectedProgram && 'lockedDays' in selectedProgram
-    ? (selectedProgram as typeof PROGRAMS[1]).lockedDays
-    : null
+  const lockedDays: number | null = selectedProgram?.lockedDays ?? null
 
   const effectiveDays = lockedDays ?? days
 
@@ -359,16 +372,25 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                       {PROGRAMS.map((program) => {
                         const isSelected = selectedSlug === program.slug
                         const isActive = activeSlug?.startsWith(program.slug)
+                        const isComingSoon = !!program.comingSoon
                         return (
                           <button
                             key={program.slug}
-                            onClick={() => setSelectedSlug(program.slug)}
-                            className={`w-full text-left glass-card rounded-2xl p-4 border transition-all duration-200 active:scale-[0.98] ${
-                              isSelected
-                                ? 'border-brand bg-brand/5'
-                                : 'border-border/50 hover:border-brand/30'
+                            onClick={() => !isComingSoon && setSelectedSlug(program.slug)}
+                            disabled={isComingSoon}
+                            className={`relative w-full text-left glass-card rounded-2xl p-4 border transition-all duration-200 ${
+                              isComingSoon
+                                ? 'opacity-40 pointer-events-none cursor-not-allowed border-border/50'
+                                : isSelected
+                                ? 'border-brand bg-brand/5 active:scale-[0.98]'
+                                : 'border-border/50 hover:border-brand/30 active:scale-[0.98]'
                             }`}
                           >
+                            {isComingSoon && (
+                              <span className="absolute top-3 right-3 text-[9px] font-display tracking-[0.12em] px-2 py-0.5 rounded-full bg-surface-3 text-text-muted border border-border/40">
+                                COMING SOON
+                              </span>
+                            )}
                             <div className="flex items-start justify-between gap-3 mb-2">
                               <div className="flex items-center gap-3 min-w-0">
                                 <span className="text-xl flex-shrink-0">{program.icon}</span>
@@ -388,9 +410,11 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                                   </p>
                                 </div>
                               </div>
-                              <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 rounded-full px-2.5 py-1 whitespace-nowrap">
-                                {program.vibe}
-                              </span>
+                              {!isComingSoon && (
+                                <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 rounded-full px-2.5 py-1 whitespace-nowrap">
+                                  {program.vibe}
+                                </span>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground leading-relaxed">
                               {program.description}
