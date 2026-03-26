@@ -8,7 +8,8 @@ import {
   Flame,
   Trophy,
   Dumbbell,
-  Settings
+  Settings,
+  ChevronRight
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
@@ -338,6 +339,23 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+          </motion.div>
+
+          {/* SHORT ON TIME — The Squeeze */}
+          <motion.div variants={fadeUp} custom={0.5}>
+            <button
+              onClick={() => router.push('/workout/squeeze')}
+              className="w-full glass-card p-4 flex items-center justify-between group rounded-xl"
+            >
+              <div>
+                <p className="text-xs font-display tracking-[0.1em] text-text-muted uppercase">SHORT ON TIME?</p>
+                <p className="font-display text-sm tracking-wide text-text-primary mt-0.5">The Squeeze — ~18 min</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Any equipment</span>
+                <ChevronRight className="w-4 h-4 text-brand group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </button>
           </motion.div>
 
           {/* QUICK STATS */}
