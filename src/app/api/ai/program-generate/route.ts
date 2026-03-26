@@ -7,6 +7,56 @@ const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 5
 const RATE_WINDOW = 60 * 1000
 
+const DAD_STRONG_3 = {
+  name: "Dad Strong 3",
+  daysPerWeek: 3,
+  days: [
+    {
+      dayNumber: 1,
+      dayName: "Push",
+      exercises: [
+        { name: "Barbell Bench Press", sets: 4, repMin: 5, repMax: 8, perSetRir: [3, 3, 3, 2], movementPattern: "push_horizontal", setOrder: 1 },
+        { name: "Incline DB Press", sets: 2, repMin: 6, repMax: 10, perSetRir: [3, 3], movementPattern: "push_horizontal", setOrder: 2 },
+        { name: "Cable Flyes", sets: 2, repMin: 6, repMax: 10, perSetRir: [4, 3], movementPattern: "push_fly", setOrder: 3 },
+        { name: "Barbell OHP", sets: 2, repMin: 6, repMax: 10, perSetRir: [3, 3], movementPattern: "push_vertical", setOrder: 4 },
+        { name: "EZ Bar Skull Crushers", sets: 3, repMin: 6, repMax: 10, perSetRir: [3, 3, 3], movementPattern: "push_tricep", setOrder: 5 },
+        { name: "Cable Triceps Pushdown", sets: 2, repMin: 6, repMax: 10, perSetRir: [4, 4], movementPattern: "push_tricep", setOrder: 6 },
+        { name: "DB Lateral Raise", sets: 3, repMin: 6, repMax: 10, perSetRir: [4, 3, 3], movementPattern: "isolation_shoulder", setOrder: 7 },
+        { name: "Farmer's Carry", sets: 3, repMin: 50, repMax: 50, perSetRir: [3, 3, 3], movementPattern: "gpp_carry", setOrder: 8, notes: "50 yds per set" },
+        { name: "Sled Push / Prowler", sets: 3, repMin: 30, repMax: 30, perSetRir: [3, 3, 2], movementPattern: "gpp_push", setOrder: 9, notes: "30 yds per set" },
+      ]
+    },
+    {
+      dayNumber: 2,
+      dayName: "Legs",
+      exercises: [
+        { name: "Barbell Back Squat", sets: 4, repMin: 4, repMax: 6, perSetRir: [3, 3, 3, 2], movementPattern: "squat", setOrder: 1 },
+        { name: "Leg Press", sets: 2, repMin: 6, repMax: 10, perSetRir: [4, 4], movementPattern: "squat", setOrder: 2 },
+        { name: "Leg Extension", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 3, 3], movementPattern: "isolation_quad", setOrder: 3 },
+        { name: "Barbell Bulgarian Split Squat", sets: 2, repMin: 6, repMax: 10, perSetRir: [3, 3], movementPattern: "squat_unilateral", setOrder: 4 },
+        { name: "Lying Leg Curls", sets: 2, repMin: 6, repMax: 10, perSetRir: [3, 3], movementPattern: "isolation_hamstring", setOrder: 5 },
+        { name: "Standing Calf Raise", sets: 3, repMin: 6, repMax: 10, perSetRir: [4, 4, 4], movementPattern: "isolation_calf", setOrder: 6 },
+        { name: "Hip Abduction Machine", sets: 2, repMin: 15, repMax: 20, perSetRir: [4, 3], movementPattern: "gpp_hip", setOrder: 7 },
+      ]
+    },
+    {
+      dayNumber: 3,
+      dayName: "Pull",
+      exercises: [
+        { name: "Deadlift", sets: 5, repMin: 5, repMax: 5, perSetRir: [4, 4, 3, 3, 3], movementPattern: "hinge", setOrder: 1 },
+        { name: "Barbell Good Morning", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "hinge", setOrder: 2 },
+        { name: "Barbell Rows", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "pull_horizontal", setOrder: 3 },
+        { name: "Lat Pulldown", sets: 2, repMin: 12, repMax: 15, perSetRir: [4, 3], movementPattern: "pull_vertical", setOrder: 4 },
+        { name: "Seated Cable Rows", sets: 2, repMin: 15, repMax: 20, perSetRir: [4, 3], movementPattern: "pull_horizontal", setOrder: 5 },
+        { name: "EZ Bar Curls", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 4, 3], movementPattern: "isolation_bicep", setOrder: 6 },
+        { name: "Alternating DB Curls", sets: 2, repMin: 12, repMax: 15, perSetRir: [4, 3], movementPattern: "isolation_bicep", setOrder: 7 },
+        { name: "Face Pulls", sets: 3, repMin: 15, repMax: 20, perSetRir: [4, 4, 3], movementPattern: "pull_rear_delt", setOrder: 8 },
+        { name: "Battle Ropes", sets: 3, repMin: 45, repMax: 45, perSetRir: [4, 4, 3], movementPattern: "gpp_conditioning", setOrder: 9, notes: "45 sec per set" },
+      ]
+    },
+  ]
+}
+
 const DAD_STRONG_5 = {
   name: "Dad Strong",
   daysPerWeek: 5,
@@ -74,8 +124,133 @@ const DAD_STRONG_5 = {
   ]
 }
 
+const HYBRID_3 = {
+  name: "Hybrid 3",
+  daysPerWeek: 3,
+  days: [
+    {
+      dayNumber: 1,
+      dayName: "Upper Body Strength",
+      exercises: [
+        { name: "Barbell Bench Press", sets: 4, repMin: 4, repMax: 6, perSetRir: [3, 3, 3, 2], movementPattern: "push_horizontal", setOrder: 1 },
+        { name: "Barbell Rows", sets: 4, repMin: 4, repMax: 6, perSetRir: [3, 3, 3, 2], movementPattern: "pull_horizontal", setOrder: 2 },
+        { name: "Barbell OHP", sets: 3, repMin: 6, repMax: 10, perSetRir: [3, 3, 3], movementPattern: "push_vertical", setOrder: 3 },
+        { name: "Weighted Pull-Ups", sets: 3, repMin: 6, repMax: 8, perSetRir: [3, 3, 2], movementPattern: "pull_vertical", setOrder: 4 },
+        { name: "Incline DB Press", sets: 2, repMin: 8, repMax: 12, perSetRir: [3, 3], movementPattern: "push_horizontal", setOrder: 5 },
+        { name: "Seated Cable Rows", sets: 2, repMin: 10, repMax: 12, perSetRir: [3, 3], movementPattern: "pull_horizontal", setOrder: 6 },
+        { name: "Face Pulls", sets: 3, repMin: 15, repMax: 20, perSetRir: [4, 4, 3], movementPattern: "pull_rear_delt", setOrder: 7 },
+        { name: "DB Lateral Raise", sets: 3, repMin: 12, repMax: 15, perSetRir: [4, 3, 3], movementPattern: "isolation_shoulder", setOrder: 8 },
+        { name: "EZ Bar Curls", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 3, 3], movementPattern: "isolation_bicep", setOrder: 9 },
+        { name: "Cable Triceps Pushdown", sets: 2, repMin: 10, repMax: 12, perSetRir: [4, 3], movementPattern: "push_tricep", setOrder: 10 },
+      ]
+    },
+    {
+      dayNumber: 2,
+      dayName: "Legs + Metabolic Conditioning",
+      exercises: [
+        { name: "Barbell Back Squat", sets: 4, repMin: 4, repMax: 6, perSetRir: [3, 3, 3, 2], movementPattern: "squat", setOrder: 1 },
+        { name: "Romanian Deadlift", sets: 3, repMin: 8, repMax: 10, perSetRir: [3, 3, 3], movementPattern: "hinge", setOrder: 2 },
+        { name: "KB Front Rack Lunge", sets: 3, repMin: 8, repMax: 8, perSetRir: [3, 3, 3], movementPattern: "squat_unilateral", setOrder: 3, notes: "8 reps each leg" },
+        { name: "Nordic Curl / GHR", sets: 2, repMin: 5, repMax: 8, perSetRir: [3, 3], movementPattern: "isolation_hamstring", setOrder: 4 },
+        { name: "Standing Calf Raise", sets: 3, repMin: 10, repMax: 15, perSetRir: [4, 4, 4], movementPattern: "isolation_calf", setOrder: 5 },
+        { name: "KB Swings", sets: 3, repMin: 15, repMax: 15, perSetRir: [2, 2, 2], movementPattern: "gpp_conditioning", setOrder: 6, notes: "3 rounds, 15 reps — load by feel, RPE 8" },
+        { name: "Row / Bike / Run", sets: 3, repMin: 400, repMax: 400, perSetRir: [2, 2, 2], movementPattern: "gpp_cardio", setOrder: 7, notes: "3 rounds, 400m — RPE 8" },
+      ]
+    },
+    {
+      dayNumber: 3,
+      dayName: "GPP / Strongman + Full Body",
+      exercises: [
+        { name: "Deadlift", sets: 5, repMin: 3, repMax: 5, perSetRir: [3, 3, 3, 2, 2], movementPattern: "hinge", setOrder: 1 },
+        { name: "Farmer's Carry", sets: 4, repMin: 50, repMax: 50, perSetRir: [3, 3, 2, 2], movementPattern: "gpp_carry", setOrder: 2, notes: "50 yds per set — load by feel, RPE 7-8" },
+        { name: "Sled Push / Prowler", sets: 4, repMin: 20, repMax: 20, perSetRir: [2, 2, 2, 2], movementPattern: "gpp_push", setOrder: 3, notes: "20 yds per set — RPE 8" },
+        { name: "Axle Bar / Log Press", sets: 3, repMin: 5, repMax: 8, perSetRir: [3, 3, 2], movementPattern: "push_vertical", setOrder: 4 },
+        { name: "Sandbag Clean / KB Clean", sets: 4, repMin: 5, repMax: 5, perSetRir: [3, 3, 3, 3], movementPattern: "gpp_power", setOrder: 5, notes: "Load by feel, RPE 7" },
+        { name: "Atlas Stone / Sandbag Loads", sets: 3, repMin: 1, repMax: 1, perSetRir: [2, 2, 2], movementPattern: "gpp_strongman", setOrder: 6, notes: "3 loads — RPE 8" },
+        { name: "DB/KB Hang Power Clean Finisher", sets: 3, repMin: 8, repMax: 8, perSetRir: [2, 2, 2], movementPattern: "gpp_power", setOrder: 7, notes: "3 rounds, RPE 8" },
+        { name: "Row / Bike / Run", sets: 3, repMin: 200, repMax: 200, perSetRir: [2, 2, 2], movementPattern: "gpp_cardio", setOrder: 8, notes: "3 rounds, 200m — RPE 8" },
+      ]
+    },
+  ]
+}
+
+const HYBRID_5 = {
+  name: "Hybrid 5",
+  daysPerWeek: 5,
+  days: [
+    {
+      dayNumber: 1,
+      dayName: "Bodybuilding Push",
+      exercises: [
+        { name: "Barbell Bench Press", sets: 3, repMin: 5, repMax: 8, perSetRir: [3, 3, 2], movementPattern: "push_horizontal", setOrder: 1 },
+        { name: "Incline DB Press", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_horizontal", setOrder: 2 },
+        { name: "Cable Flyes", sets: 3, repMin: 12, repMax: 15, perSetRir: [4, 3, 3], movementPattern: "push_fly", setOrder: 3 },
+        { name: "Barbell OHP", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_vertical", setOrder: 4 },
+        { name: "DB Lateral Raise", sets: 3, repMin: 12, repMax: 15, perSetRir: [4, 3, 3], movementPattern: "isolation_shoulder", setOrder: 5 },
+        { name: "Dips (Triceps)", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 6 },
+        { name: "KB/DB Push Press Explosive", sets: 3, repMin: 5, repMax: 8, perSetRir: [3, 3, 3], movementPattern: "push_power", setOrder: 7 },
+      ]
+    },
+    {
+      dayNumber: 2,
+      dayName: "Metabolic Conditioning",
+      exercises: [
+        { name: "DB/KB Hang Power Clean", sets: 4, repMin: 5, repMax: 5, perSetRir: [3, 3, 3, 3], movementPattern: "gpp_power", setOrder: 1, notes: "Strength primer — RPE 7" },
+        { name: "Row / Bike / Run Circuit", sets: 4, repMin: 500, repMax: 500, perSetRir: [2, 2, 2, 2], movementPattern: "gpp_cardio", setOrder: 2, notes: "4 rounds, 500m — RPE 8" },
+        { name: "KB Swings", sets: 4, repMin: 15, repMax: 15, perSetRir: [2, 2, 2, 2], movementPattern: "gpp_conditioning", setOrder: 3, notes: "4 rounds, 15 reps — RPE 8" },
+        { name: "Goblet Squat", sets: 4, repMin: 12, repMax: 12, perSetRir: [3, 3, 3, 3], movementPattern: "squat", setOrder: 4, notes: "4 rounds, 12 reps" },
+        { name: "DB Push Press", sets: 4, repMin: 10, repMax: 10, perSetRir: [3, 3, 3, 3], movementPattern: "push_vertical", setOrder: 5, notes: "4 rounds, 10 reps" },
+        { name: "Box Jumps", sets: 3, repMin: 8, repMax: 8, perSetRir: [2, 2, 2], movementPattern: "gpp_power", setOrder: 6, notes: "RPE 8" },
+        { name: "Burpees", sets: 3, repMin: 10, repMax: 10, perSetRir: [2, 2, 2], movementPattern: "gpp_conditioning", setOrder: 7, notes: "RPE 8" },
+      ]
+    },
+    {
+      dayNumber: 3,
+      dayName: "Functional Legs + Conditioning",
+      exercises: [
+        { name: "Barbell Back Squat", sets: 4, repMin: 4, repMax: 6, perSetRir: [3, 3, 3, 2], movementPattern: "squat", setOrder: 1 },
+        { name: "Romanian Deadlift", sets: 3, repMin: 8, repMax: 10, perSetRir: [3, 3, 3], movementPattern: "hinge", setOrder: 2 },
+        { name: "KB Front Rack Lunge", sets: 3, repMin: 8, repMax: 8, perSetRir: [3, 3, 3], movementPattern: "squat_unilateral", setOrder: 3, notes: "8 reps each leg" },
+        { name: "Weighted Box Step-Up", sets: 3, repMin: 10, repMax: 10, perSetRir: [3, 3, 3], movementPattern: "squat_unilateral", setOrder: 4, notes: "10 reps each leg" },
+        { name: "Nordic Curl / GHR", sets: 3, repMin: 5, repMax: 8, perSetRir: [3, 3, 3], movementPattern: "isolation_hamstring", setOrder: 5 },
+        { name: "KB Swing Finisher", sets: 3, repMin: 20, repMax: 20, perSetRir: [2, 2, 2], movementPattern: "gpp_conditioning", setOrder: 6, notes: "RPE 8" },
+        { name: "Row / Bike / Run", sets: 3, repMin: 250, repMax: 250, perSetRir: [2, 2, 2], movementPattern: "gpp_cardio", setOrder: 7, notes: "3 intervals, 250m — RPE 8" },
+      ]
+    },
+    {
+      dayNumber: 4,
+      dayName: "GPP / Strongman",
+      exercises: [
+        { name: "Deadlift", sets: 5, repMin: 3, repMax: 5, perSetRir: [3, 3, 3, 2, 2], movementPattern: "hinge", setOrder: 1 },
+        { name: "Farmer's Carry", sets: 4, repMin: 50, repMax: 50, perSetRir: [3, 3, 2, 2], movementPattern: "gpp_carry", setOrder: 2, notes: "50 yds per set — load by feel, RPE 7-8" },
+        { name: "Trap Bar Carry", sets: 3, repMin: 40, repMax: 40, perSetRir: [3, 3, 3], movementPattern: "gpp_carry", setOrder: 3, notes: "40 yds per set — RPE 7" },
+        { name: "Sled Push / Prowler", sets: 4, repMin: 20, repMax: 20, perSetRir: [2, 2, 2, 2], movementPattern: "gpp_push", setOrder: 4, notes: "20 yds per set — RPE 8" },
+        { name: "Sandbag Clean / KB Clean", sets: 4, repMin: 5, repMax: 5, perSetRir: [3, 3, 3, 3], movementPattern: "gpp_power", setOrder: 5, notes: "Load by feel, RPE 7" },
+        { name: "Axle Bar / Log Press", sets: 3, repMin: 5, repMax: 8, perSetRir: [3, 3, 2], movementPattern: "push_vertical", setOrder: 6 },
+        { name: "Atlas Stone / Sandbag Loads", sets: 3, repMin: 1, repMax: 1, perSetRir: [2, 2, 2], movementPattern: "gpp_strongman", setOrder: 7, notes: "3 loads — RPE 8" },
+      ]
+    },
+    {
+      dayNumber: 5,
+      dayName: "Bodybuilding Pull",
+      exercises: [
+        { name: "Barbell Rows", sets: 3, repMin: 5, repMax: 8, perSetRir: [3, 3, 2], movementPattern: "pull_horizontal", setOrder: 1 },
+        { name: "Weighted Pull-Ups", sets: 3, repMin: 5, repMax: 8, perSetRir: [3, 3, 2], movementPattern: "pull_vertical", setOrder: 2 },
+        { name: "Wide Grip Lat Pulldown", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 3, 3], movementPattern: "pull_vertical", setOrder: 3 },
+        { name: "Seated Cable Rows", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "pull_horizontal", setOrder: 4 },
+        { name: "Face Pulls", sets: 3, repMin: 15, repMax: 20, perSetRir: [4, 4, 3], movementPattern: "pull_rear_delt", setOrder: 5 },
+        { name: "EZ Bar Curls", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 3, 3], movementPattern: "isolation_bicep", setOrder: 6 },
+        { name: "Hammer Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [4, 3, 3], movementPattern: "isolation_bicep", setOrder: 7 },
+      ]
+    },
+  ]
+}
+
 const PROGRAM_TEMPLATES: Record<string, typeof DAD_STRONG_5> = {
+  'dad-strong-3': DAD_STRONG_3,
   'dad-strong-5': DAD_STRONG_5,
+  'hybrid-3': HYBRID_3,
+  'hybrid-5': HYBRID_5,
 }
 
 export async function POST(request: Request) {
@@ -129,7 +304,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const template = PROGRAM_TEMPLATES[programSlug]
+    const template = PROGRAM_TEMPLATES[programSlug] ?? PROGRAM_TEMPLATES['dad-strong-5']
     if (!template) {
       return NextResponse.json({ error: `Unknown program: ${programSlug}` }, { status: 400 })
     }
@@ -189,6 +364,10 @@ Generate a complete week of programmed workouts for week ${weekNumber}.
     const { object: program } = await generateObject({
       model: google('gemini-2.5-flash'),
       system: `You are an experienced strength coach programming for busy dads. You are data-driven, direct, and brief — no fluff. You write like a coach talking to someone with limited time and real responsibilities.
+
+PROGRAM CHARACTER:
+- Dad Strong (dad-strong-3, dad-strong-5): Strength + bodybuilding hybrid with linear progression. Compound-first, accessories follow. Progress weights methodically each week.
+- Hybrid (hybrid-3, hybrid-5): Functional strength + GPP. Carries, loaded conditioning, and strongman movements are core to this program. For GPP/strongman days (Farmer's Carry, Sled Push, Atlas Stone, etc.): no RIR targets — use RPE 7-8, load by feel, focus on quality movement and effort. Do not program targetWeight for GPP carries/sleds — set to 0 and note "load by feel".
 
 PROGRESSION RULES (follow these exactly):
 1. For each exercise, find the user's last logged weight, reps, and rir_actual from the provided logs.

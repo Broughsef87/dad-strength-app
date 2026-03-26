@@ -55,7 +55,7 @@ const PROGRAMS: readonly Program[] = [
     availableDays: [3, 5],
   },
   {
-    slug: 'hybrid-athlete',
+    slug: 'hybrid',
     name: 'Hybrid Athlete',
     tagline: 'Built Different',
     description:
@@ -128,10 +128,11 @@ const CALIBRATION_LIFTS: Record<string, Array<{ key: string; label: string; hint
     { key: 'deadlift', label: 'Deadlift', hint: '5 clean reps at this weight', unit: 'lbs' },
     { key: 'row', label: 'Barbell Row', hint: '8 clean reps at this weight', unit: 'lbs' },
   ],
-  'hybrid-athlete': [
+  'hybrid': [
     { key: 'bench', label: 'Barbell Bench Press', hint: '5 clean reps at this weight', unit: 'lbs' },
     { key: 'squat', label: 'Barbell Back Squat', hint: '5 clean reps at this weight', unit: 'lbs' },
     { key: 'deadlift', label: 'Deadlift', hint: '5 clean reps at this weight', unit: 'lbs' },
+    { key: 'row', label: 'Barbell Row', hint: '5 clean reps at this weight', unit: 'lbs' },
   ],
 }
 
