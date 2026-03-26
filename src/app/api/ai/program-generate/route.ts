@@ -67,34 +67,37 @@ const DAD_STRONG_5 = {
       exercises: [
         { name: "Barbell Bench Press", sets: 3, repMin: 5, repMax: 8, perSetRir: [3, 3, 2], movementPattern: "push_horizontal", setOrder: 1 },
         { name: "Incline DB Press", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_horizontal", setOrder: 2 },
-        { name: "Cable Flyes", sets: 2, repMin: 12, repMax: 15, perSetRir: [2, 1], movementPattern: "push_fly", setOrder: 3 },
-        { name: "JM Press", sets: 2, repMin: 6, repMax: 10, perSetRir: [4, 4], movementPattern: "push_tricep", setOrder: 4 },
-        { name: "Skull Crushers", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_tricep", setOrder: 5 },
-        { name: "Cable Triceps Pushdown (Bar)", sets: 3, repMin: 6, repMax: 10, perSetRir: [4, 4, 4], movementPattern: "push_tricep", setOrder: 6 }
+        { name: "Cable Flyes", sets: 2, repMin: 12, repMax: 15, perSetRir: [4, 3], movementPattern: "push_fly", setOrder: 3 },
+        { name: "Close-Grip Bench Press", sets: 2, repMin: 6, repMax: 10, perSetRir: [4, 4], movementPattern: "push_tricep", setOrder: 4 },
+        { name: "EZ Bar Skull Crushers", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_tricep", setOrder: 5 },
+        { name: "Cable Triceps Pushdown (Bar)", sets: 3, repMin: 6, repMax: 10, perSetRir: [4, 4, 4], movementPattern: "push_tricep", setOrder: 6 },
+        { name: "Farmer's Carry", sets: 3, repMin: 50, repMax: 50, perSetRir: [3, 3, 3], movementPattern: "gpp", setOrder: 7, notes: "50 yds per set" },
       ]
     },
     {
       dayNumber: 2,
       dayName: "Legs - Quad Focused",
       exercises: [
-        { name: "Barbell Back Squat (High Bar)", sets: 3, repMin: 5, repMax: 5, perSetRir: [3, 3, 3], movementPattern: "squat", setOrder: 1 },
+        { name: "Barbell Back Squat (High Bar)", sets: 4, repMin: 5, repMax: 5, perSetRir: [3, 3, 3, 2], movementPattern: "squat", setOrder: 1 },
         { name: "Bulgarian Split Squat", sets: 2, repMin: 8, repMax: 12, perSetRir: [2, 2], movementPattern: "squat_unilateral", setOrder: 2 },
         { name: "Leg Press", sets: 2, repMin: 5, repMax: 8, perSetRir: [4, 4], movementPattern: "squat", setOrder: 3 },
         { name: "Leg Extension", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 3, 2], movementPattern: "isolation_quad", setOrder: 4 },
         { name: "Hamstring Curl", sets: 2, repMin: 6, repMax: 10, perSetRir: [3, 3], movementPattern: "isolation_hamstring", setOrder: 5 },
-        { name: "Standing Calf Raise", sets: 3, repMin: 6, repMax: 10, perSetRir: [4, 4, 4], movementPattern: "isolation_calf", setOrder: 6 }
+        { name: "Standing Calf Raise", sets: 3, repMin: 6, repMax: 10, perSetRir: [4, 4, 4], movementPattern: "isolation_calf", setOrder: 6 },
+        { name: "Sled Push / Prowler", sets: 3, repMin: 30, repMax: 30, perSetRir: [3, 3, 2], movementPattern: "gpp", setOrder: 7, notes: "30 yds per set" },
       ]
     },
     {
       dayNumber: 3,
-      dayName: "Arms",
+      dayName: "Shoulders and Arms",
       exercises: [
-        { name: "Chin Ups", sets: 3, repMin: 5, repMax: 10, perSetRir: [3, 3, 2], movementPattern: "pull_vertical", setOrder: 1, notes: "Use assistance if needed" },
-        { name: "Alternating DB Curl", sets: 3, repMin: 12, repMax: 15, perSetRir: [4, 4, 4], movementPattern: "isolation_bicep", setOrder: 2 },
-        { name: "Hammer Curl", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "isolation_bicep", setOrder: 3 },
-        { name: "Dips (Triceps Focused)", sets: 2, repMin: 5, repMax: 10, perSetRir: [2, 2], movementPattern: "push_tricep", setOrder: 4 },
-        { name: "Behind Head Triceps Extension", sets: 2, repMin: 15, repMax: 20, perSetRir: [3, 2], movementPattern: "push_tricep", setOrder: 5 },
-        { name: "Cable Triceps Pushdown (Rope)", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 4, 4], movementPattern: "push_tricep", setOrder: 6 }
+        { name: "Barbell Overhead Press", sets: 3, repMin: 5, repMax: 10, perSetRir: [3, 3, 2], movementPattern: "push_vertical", setOrder: 1 },
+        { name: "DB Lateral Raise", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "isolation_shoulder", setOrder: 2 },
+        { name: "Alternating DB Curls", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_bicep", setOrder: 3 },
+        { name: "Hammer Curl", sets: 2, repMin: 5, repMax: 10, perSetRir: [4, 3], movementPattern: "isolation_bicep", setOrder: 4 },
+        { name: "Dips (Triceps Focused)", sets: 2, repMin: 5, repMax: 15, perSetRir: [3, 2], movementPattern: "push_tricep", setOrder: 5 },
+        { name: "Cable Triceps Pushdown (Rope)", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_tricep", setOrder: 6 },
+        { name: "Waiter's Walk (overhead carry)", sets: 3, repMin: 40, repMax: 40, perSetRir: [3, 3, 3], movementPattern: "gpp", setOrder: 7, notes: "40 yds per set" },
       ]
     },
     {
@@ -103,22 +106,24 @@ const DAD_STRONG_5 = {
       exercises: [
         { name: "Deadlift", sets: 6, repMin: 3, repMax: 3, perSetRir: [4, 4, 4, 3, 3, 3], movementPattern: "hinge", setOrder: 1 },
         { name: "Barbell Good Morning", sets: 3, repMin: 6, repMax: 8, perSetRir: [3, 3, 3], movementPattern: "hinge", setOrder: 2 },
-        { name: "DB Stiff Legged Deadlift", sets: 2, repMin: 12, repMax: 15, perSetRir: [2, 4], movementPattern: "hinge", setOrder: 3 },
+        { name: "DB Stiff Legged Deadlift", sets: 2, repMin: 12, repMax: 15, perSetRir: [4, 3], movementPattern: "hinge", setOrder: 3 },
         { name: "Hip Abduction Machine", sets: 3, repMin: 15, repMax: 20, perSetRir: [4, 4, 4], movementPattern: "isolation_hip", setOrder: 4 },
-        { name: "Walking Lunges", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "squat_unilateral", setOrder: 5 },
-        { name: "Back Extension", sets: 4, repMin: 12, repMax: 15, perSetRir: [4, 4, 4, 4], movementPattern: "hinge_extension", setOrder: 6 }
+        { name: "Walking Lunges", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "gpp", setOrder: 5 },
+        { name: "Back Extension Machine", sets: 4, repMin: 12, repMax: 15, perSetRir: [4, 4, 4, 4], movementPattern: "hinge_extension", setOrder: 6 },
+        { name: "Trap Bar Carry", sets: 3, repMin: 50, repMax: 50, perSetRir: [3, 3, 3], movementPattern: "gpp", setOrder: 7, notes: "50 yds per set" },
       ]
     },
     {
       dayNumber: 5,
       dayName: "Pulling",
       exercises: [
-        { name: "Barbell Rows", sets: 3, repMin: 5, repMax: 5, perSetRir: [2, 2, 3], movementPattern: "pull_horizontal", setOrder: 1 },
+        { name: "Barbell Rows", sets: 3, repMin: 5, repMax: 5, perSetRir: [3, 3, 2], movementPattern: "pull_horizontal", setOrder: 1 },
         { name: "Wide Grip Lat Pulldown", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 3, 3], movementPattern: "pull_vertical", setOrder: 2 },
-        { name: "Seated Cable Row", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "pull_horizontal", setOrder: 3 },
-        { name: "Straight Arm Lat Pulldown", sets: 2, repMin: 15, repMax: 20, perSetRir: [4, 2], movementPattern: "pull_vertical", setOrder: 4 },
+        { name: "Kroc Rows (use straps if possible)", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "pull_horizontal", setOrder: 3 },
+        { name: "Straight Arm Lat Pulldown", sets: 2, repMin: 15, repMax: 20, perSetRir: [4, 3], movementPattern: "pull_vertical", setOrder: 4 },
         { name: "EZ Bar Curls", sets: 3, repMin: 8, repMax: 12, perSetRir: [4, 4, 4], movementPattern: "isolation_bicep", setOrder: 5 },
-        { name: "Cable Curls", sets: 2, repMin: 12, repMax: 15, perSetRir: [3, 3], movementPattern: "isolation_bicep", setOrder: 6 }
+        { name: "Cable Curls", sets: 2, repMin: 12, repMax: 15, perSetRir: [3, 3], movementPattern: "isolation_bicep", setOrder: 6 },
+        { name: "Battle Ropes", sets: 3, repMin: 30, repMax: 30, perSetRir: [2, 2, 2], movementPattern: "gpp", setOrder: 7, notes: "30 sec per set" },
       ]
     }
   ]
