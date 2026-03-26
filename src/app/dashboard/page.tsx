@@ -212,11 +212,12 @@ export default function Dashboard() {
       {/* DESKTOP HEADER */}
       <header className="hidden md:flex items-center justify-between border-b border-border bg-background/90 px-8 py-4 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center p-1.5">
-            <Logo className="w-full h-full" color="hsl(60 14% 97%)" />
-          </div>
-          <span className="font-light text-base tracking-tight">
-            Dad Strength <span className="text-muted-foreground">/ Forge OS</span>
+          <Logo className="w-9 h-9" />
+          <span
+            className="font-black text-base tracking-[0.08em] uppercase text-foreground"
+            style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
+          >
+            Dad Strength
           </span>
         </div>
         <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
@@ -231,10 +232,13 @@ export default function Dashboard() {
       {/* MOBILE HEADER */}
       <header className="md:hidden flex items-center justify-between px-6 pt-6 pb-2">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center p-1.5">
-            <Logo className="w-full h-full" color="hsl(60 14% 97%)" />
-          </div>
-          <span className="font-light text-base tracking-tight">Dad Strength</span>
+          <Logo className="w-9 h-9" />
+          <span
+            className="font-black text-base tracking-[0.08em] uppercase"
+            style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
+          >
+            Dad Strength
+          </span>
         </div>
         <button onClick={() => router.push('/profile')} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
           <Settings size={16} />

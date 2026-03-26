@@ -55,17 +55,23 @@ export default function Home() {
         {/* Brand mark */}
         <div className="flex flex-col items-center space-y-5">
           <div className="relative">
-            <div className="absolute inset-0 rounded-2xl bg-[hsl(16_80%_54%/0.3)] blur-xl" />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[hsl(240_4%_10%)] border border-[hsl(240_4%_20%)] p-3.5 shadow-2xl">
-              <Logo className="w-full h-full" color="hsl(16 80% 54%)" />
+            <div className="absolute inset-0 rounded-3xl bg-[hsl(16_80%_54%/0.25)] blur-2xl scale-110" />
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-[hsl(220_30%_8%)] border border-[hsl(220_20%_18%)] p-3 shadow-2xl">
+              <Logo className="w-full h-full" />
             </div>
           </div>
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-black tracking-tighter text-[hsl(60_14%_97%)]">
-              DAD STRENGTH
+            <h1
+              className="text-3xl font-black tracking-[0.12em] text-[hsl(60_14%_97%)] uppercase"
+              style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
+            >
+              Dad Strength
             </h1>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-[hsl(240_5%_55%)]">
-              Forge OS · The Operating System for Modern Fatherhood
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[hsl(16_80%_54%)]">
+              Lift More · Miss Less
+            </p>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-[hsl(240_5%_40%)]">
+              The Operating System for Modern Fatherhood
             </p>
           </div>
         </div>

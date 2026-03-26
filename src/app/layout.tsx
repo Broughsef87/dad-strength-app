@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Orbitron } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
 import { UserProvider } from '../contexts/UserContext'
@@ -14,6 +14,12 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-geist-mono',
   weight: ['400', '500'],
+})
+
+const orbitron = Orbitron({
+  subsets: ['latin'],
+  variable: '--font-orbitron',
+  weight: ['700', '900'],
 })
 
 export const metadata: Metadata = {
@@ -37,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} dark`}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${orbitron.variable} dark`}>
       <body className={geist.className}>
         <UserProvider>
           <PageTransition>{children}</PageTransition>
