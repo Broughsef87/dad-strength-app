@@ -44,7 +44,7 @@ FROM day, (VALUES
   ('Close-Grip Bench Press',      'push_tricep',     4, 2, 6,  10, '{4,4}'::int[],     NULL, '{"db": "close grip DB press", "bw": "diamond push ups"}'::jsonb),
   ('EZ Bar Skull Crushers',       'push_tricep',     5, 3, 8,  12, '{3,3,3}'::int[],   NULL, '{"db": "DB skull crushers", "bw": "bodyweight dips (off bench if no dip bar)"}'::jsonb),
   ('Cable Triceps Pushdown (Bar)','push_tricep',     6, 3, 6,  10, '{4,4,4}'::int[],   NULL, '{"db": "single arm db triceps extension", "bw": "bodyweight triceps extension"}'::jsonb),
-  ('Farmer''s Carry',             'gpp',             7, 3, NULL, NULL, '{3,3,3}'::int[], '3 sets 50 yds', NULL)
+  ('Farmer''s Carry',             'gpp',             7, 3, 0, 0, '{3,3,3}'::int[], '3 sets 50 yds', NULL)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 
@@ -63,7 +63,7 @@ FROM day, (VALUES
   ('Leg Extension',                 'isolation_quad',     4, 3, 8,  12, '{4,3,2}'::int[],    NULL, '{"bw": "sissy squat or wall sit hold", "band": "banded leg extension"}'::jsonb),
   ('Hamstring Curl',                'isolation_hamstring',5, 2, 6,  10, '{3,3}'::int[],      NULL, '{"bw": "Nordic curl or lying towel leg curl", "band": "banded leg curl"}'::jsonb),
   ('Standing Calf Raise',           'isolation_calf',     6, 3, 6,  10, '{4,4,4}'::int[],    NULL, '{"bw": "single-leg BW calf raise"}'::jsonb),
-  ('Sled Push / Prowler',           'gpp',                7, 3, NULL, NULL, '{3,3,2}'::int[], '3 sets of 30 yds', '{"db": "DB prowler drag (use resistance band)", "bw": "sprint 40 yds"}'::jsonb)
+  ('Sled Push / Prowler',           'gpp',                7, 3, 0, 0, '{3,3,2}'::int[], '3 sets of 30 yds', '{"db": "DB prowler drag (use resistance band)", "bw": "sprint 40 yds"}'::jsonb)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 
@@ -82,7 +82,7 @@ FROM day, (VALUES
   ('Hammer Curl',                     'isolation_bicep',    4, 2, 5,  10, '{4,3}'::int[],     NULL, NULL),
   ('Dips (Triceps Focused)',          'push_tricep',        5, 2, 5,  15, '{3,2}'::int[],     NULL, '{"bw": "bench dips", "band": "band dips (assisted)"}'::jsonb),
   ('Cable Triceps Pushdown (Rope)',   'push_tricep',        6, 3, 8,  12, '{3,3,3}'::int[],   NULL, '{"db": "DB overhead tricep extension", "bw": "close-grip push ups", "band": "band tricep pushdown"}'::jsonb),
-  ('Waiter''s Walk (overhead carry)', 'gpp',                7, 3, NULL, NULL, '{3,3,3}'::int[], '3 sets of 40 yds', '{"db": "single DB overhead carry", "bw": "BW overhead walk (light book/plate)"}'::jsonb)
+  ('Waiter''s Walk (overhead carry)', 'gpp',                7, 3, 0, 0, '{3,3,3}'::int[], '3 sets of 40 yds', '{"db": "single DB overhead carry", "bw": "BW overhead walk (light book/plate)"}'::jsonb)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 
@@ -101,7 +101,7 @@ FROM day, (VALUES
   ('Hip Abduction Machine',     'isolation_hip',    4, 3, 15, 20, '{4,4,4}'::int[],         NULL,              '{"bw": "lying BW hip abduction", "band": "banded hip abduction"}'::jsonb),
   ('Walking Lunges',            'gpp',              5, 3, 8,  12, '{3,3,2}'::int[],         NULL,              '{"db": "DB walking lunges"}'::jsonb),
   ('Back Extension Machine',    'hinge_extension',  6, 4, 12, 15, '{4,4,4,4}'::int[],       NULL,              '{"bw": "superman hold or GHR"}'::jsonb),
-  ('Trap Bar Carry',            'gpp',              7, 3, NULL, NULL, '{3,3,3}'::int[],     '3 sets 50 yds',   '{"db": "DB farmer carry", "bw": "BW walking carry (heavy backpack)"}'::jsonb)
+  ('Trap Bar Carry',            'gpp',              7, 3, 0, 0, '{3,3,3}'::int[],     '3 sets 50 yds',   '{"db": "DB farmer carry", "bw": "BW walking carry (heavy backpack)"}'::jsonb)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 
@@ -120,7 +120,7 @@ FROM day, (VALUES
   ('Straight Arm Lat Pulldown',    'pull_vertical',   4, 2, 15, 20, '{4,3}'::int[],     NULL, '{"db": "DB straight arm pullover", "band": "band straight arm pulldown"}'::jsonb),
   ('EZ Bar Curls',                 'isolation_bicep', 5, 3, 8,  12, '{4,4,4}'::int[],   NULL, '{"db": "DB curls", "bw": "chin ups", "band": "band curls"}'::jsonb),
   ('Cable Curls',                  'isolation_bicep', 6, 2, 12, 15, '{3,3}'::int[],     NULL, '{"db": "DB curls", "band": "band curls"}'::jsonb),
-  ('Battle Ropes',                 'gpp',             7, 3, NULL, NULL, '{2,2,2}'::int[], '3 sets of 30 seconds', '{"band": "resistance band slams", "bw": "BW jump rope or box jumps"}'::jsonb)
+  ('Battle Ropes',                 'gpp',             7, 3, 0, 0, '{2,2,2}'::int[], '3 sets of 30 seconds', '{"band": "resistance band slams", "bw": "BW jump rope or box jumps"}'::jsonb)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 

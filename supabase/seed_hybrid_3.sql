@@ -64,7 +64,7 @@ FROM day, (VALUES
   ('Nordic Curl / GHR',             'isolation_hamstring',4, 2, 5,    8,    '{3,3}'::int[],      NULL,               '{"bw": "BW Nordic Curl (assisted ok)"}'::jsonb),
   ('Standing Calf Raise',           'isolation_calf',     5, 3, 10,   15,   '{4,4,4}'::int[],    NULL,               '{"bw": "Single-Leg BW Calf Raise"}'::jsonb),
   ('KB Swings — Metcon Finisher',   'hinge',              6, 3, 15,   15,   '{2,2,2}'::int[],    '3 rounds',         '{"db": "DB Swings", "bw": "Banded Hip Hinge", "band": "Banded Swings"}'::jsonb),
-  ('Row 400m / Bike 800m / Run 400m','cardio',            7, 3, NULL, NULL, '{2,2,2}'::int[],    '3 rounds — paired with KB rounds', '{"bw": "Run 400m or 40 Jumping Jacks"}'::jsonb)
+  ('Row 400m / Bike 800m / Run 400m','cardio',            7, 3, 0, 0, '{2,2,2}'::int[],    '3 rounds — paired with KB rounds', '{"bw": "Run 400m or 40 Jumping Jacks"}'::jsonb)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 
@@ -78,13 +78,13 @@ INSERT INTO program_exercises (id, day_id, exercise_name, movement_pattern, set_
 SELECT gen_random_uuid(), day.id, e.exercise_name, e.movement_pattern, e.set_order, e.sets, e.rep_min, e.rep_max, e.per_set_rir, e.notes, e.substitutions
 FROM day, (VALUES
   ('Deadlift (heavy)',                    'hinge',          1, 5, 3,    5,    '{3,3,3,2,2}'::int[],  NULL,               '{"db": "DB Deadlift", "bw": "BW Romanian Hinge"}'::jsonb),
-  ('Farmer''s Carry',                     'carry',          2, 4, NULL, NULL, '{3,3,2,2}'::int[],    '50 yds',           '{"db": "DB Farmer Carry", "bw": "Heavy Backpack Carry"}'::jsonb),
-  ('Sled Push / Prowler',                 'carry',          3, 4, NULL, NULL, '{2,2,2,2}'::int[],    '20 yds',           '{"bw": "Sprint Intervals 40 Yds"}'::jsonb),
+  ('Farmer''s Carry',                     'carry',          2, 4, 0, 0, '{3,3,2,2}'::int[],    '50 yds',           '{"db": "DB Farmer Carry", "bw": "Heavy Backpack Carry"}'::jsonb),
+  ('Sled Push / Prowler',                 'carry',          3, 4, 0, 0, '{2,2,2,2}'::int[],    '20 yds',           '{"bw": "Sprint Intervals 40 Yds"}'::jsonb),
   ('Axle Bar / Log Press',                'push_vertical',  4, 3, 5,    8,    '{3,3,2}'::int[],      NULL,               '{"db": "DB OHP (heavy)", "bw": "Pike Push Ups", "band": "Band Overhead Press"}'::jsonb),
   ('Sandbag Clean / KB Clean',            'hinge',          5, 4, 5,    5,    '{3,3,3,3}'::int[],    NULL,               '{"db": "DB Clean", "bw": "Med Ball Slam"}'::jsonb),
-  ('Atlas Stone / Sandbag Loads',         'carry',          6, 3, NULL, NULL, '{2,2,2}'::int[],      '3 loads or 30 yds carry', '{"bw": "Bear Hug Carry or Heavy Sandbag"}'::jsonb),
+  ('Atlas Stone / Sandbag Loads',         'carry',          6, 3, 0, 0, '{2,2,2}'::int[],      '3 loads or 30 yds carry', '{"bw": "Bear Hug Carry or Heavy Sandbag"}'::jsonb),
   ('DB/KB Hang Power Clean (finisher)',   'hinge',          7, 3, 8,    8,    '{2,2,2}'::int[],      '3 rounds',         '{"db": "DB Power Clean", "bw": "Jump Squat"}'::jsonb),
-  ('Row 250m / Bike 500m / Run 200m',    'cardio',         8, 3, NULL, NULL, '{2,2,2}'::int[],      '3 rounds — paired with cleans', '{"bw": "Run 200m or 25 Jumping Jacks"}'::jsonb)
+  ('Row 250m / Bike 500m / Run 200m',    'cardio',         8, 3, 0, 0, '{2,2,2}'::int[],      '3 rounds — paired with cleans', '{"bw": "Run 200m or 25 Jumping Jacks"}'::jsonb)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 

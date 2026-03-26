@@ -43,8 +43,8 @@ FROM day, (VALUES
   ('EZ Bar Skull Crushers',       'push_tricep',       5, 3, 6,    10,   '{3,3,3}'::int[],     NULL,         '{"db": "DB Skull Crushers", "bw": "Bodyweight Dips (off bench if no dip bar)"}'::jsonb),
   ('Cable Triceps Pushdown (Bar)','push_tricep',       6, 2, 6,    10,   '{4,4}'::int[],       NULL,         '{"db": "Single Arm DB Triceps Extension", "bw": "Bodyweight Triceps Extension"}'::jsonb),
   ('DB Lateral Raise',            'push_shoulder',     7, 3, 6,    10,   '{4,3,3}'::int[],     NULL,         '{"band": "Single Arm Lateral Band Raise"}'::jsonb),
-  ('Farmer''s Carry',             'carry',             8, 3, NULL, NULL, '{3,3,3}'::int[],     '50 yds',     NULL),
-  ('Sled Push / Prowler',         'carry',             9, 3, NULL, NULL, '{3,3,2}'::int[],     '30 yds',     '{"db": "DB Prowler Drag (use resistance band)", "bw": "Sprint 40 Yds"}'::jsonb)
+  ('Farmer''s Carry',             'carry',             8, 3, 0, 0, '{3,3,3}'::int[],     '50 yds',     NULL),
+  ('Sled Push / Prowler',         'carry',             9, 3, 0, 0, '{3,3,2}'::int[],     '30 yds',     '{"db": "DB Prowler Drag (use resistance band)", "bw": "Sprint 40 Yds"}'::jsonb)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 
@@ -84,7 +84,7 @@ FROM day, (VALUES
   ('EZ Bar Curls',              'isolation_bicep',  6, 3, 8,    12,   '{4,4,3}'::int[],       NULL,               '{"bw": "DB Curls"}'::jsonb),
   ('Alternating DB Curls',      'isolation_bicep',  7, 2, 12,   15,   '{4,3}'::int[],         NULL,               '{"band": "Band Curls"}'::jsonb),
   ('Face Pulls',                'pull_rear_delt',   8, 3, 15,   20,   '{4,4,3}'::int[],       NULL,               '{"db": "DB Rear Delt Fly", "band": "Band Face Pull", "cable": "Cable Face Pull"}'::jsonb),
-  ('Battle Ropes',              'carry',            9, 3, NULL, NULL, '{4,4,3}'::int[],       '45 seconds',       NULL)
+  ('Battle Ropes',              'carry',            9, 3, 0, 0, '{4,4,3}'::int[],       '45 seconds',       NULL)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 
