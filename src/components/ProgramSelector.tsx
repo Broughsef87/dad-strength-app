@@ -68,9 +68,9 @@ const PROGRAMS: readonly Program[] = [
   {
     slug: 'the-squeeze',
     name: 'The Squeeze',
-    tagline: 'Maintenance Mode',
+    tagline: 'Short on time. Never short on effort.',
     description:
-      '15-20 minute sessions. No equipment. No excuses. When life is in total chaos, this keeps the habit alive and the joints moving.',
+      '15-20 minute sessions. Any equipment, any place. When life is in total chaos, this keeps the habit alive and the body moving.',
     vibe: 'Minimal + Consistent',
     icon: '⚡',
     gymTypes: ['commercial', 'home'],
