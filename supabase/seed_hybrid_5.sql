@@ -82,7 +82,7 @@ FROM day, (VALUES
   ('Weighted Box Step-Up',           'squat_unilateral',   4, 3, 10, 10, '{3,3,3}'::int[],    'each leg',         '{"db": "DB Step-Up", "bw": "BW Step-Up"}'::jsonb),
   ('Nordic Curl / GHR',              'isolation_hamstring',5, 3, 5,  8,  '{3,3,3}'::int[],    NULL,               '{"bw": "BW Nordic Curl (assisted ok)"}'::jsonb),
   ('KB Swing (finisher)',            'hinge',              6, 3, 20, 20, '{2,2,2}'::int[],    NULL,               '{"db": "DB Swing", "bw": "Banded Hip Hinge", "band": "Banded Swing"}'::jsonb),
-  ('Row 250m / Bike 500m / Run 200m','cardio',             7, 3, NULL,NULL,'{2,2,2}'::int[],  '3 intervals — paired with KB sets', '{"bw": "Run 200m or 30 Jumping Jacks"}'::jsonb)
+  ('Row 250m / Bike 500m / Run 200m','cardio',             7, 3, 0, 0, '{2,2,2}'::int[],  '3 intervals — paired with KB sets', '{"bw": "Run 200m or 30 Jumping Jacks"}'::jsonb)
 ) AS e(exercise_name, movement_pattern, set_order, sets, rep_min, rep_max, per_set_rir, notes, substitutions)
 ON CONFLICT DO NOTHING;
 
