@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Flame, Anchor, ArrowLeft, Sun, CheckCircle2, Timer, Play, Pause, RotateCcw } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
+import AppHeader from '../../components/AppHeader';
 import FamilyPulse from '../../components/FamilyPulse';
 import Brotherhood from '../../components/Brotherhood';
 import BabySleepTracker from '../../components/BabySleepTracker';
@@ -81,12 +82,9 @@ export default function SpiritPage() {
   };
 
   if (!mounted) return (
-    <div className="min-h-screen bg-background text-foreground pb-28 p-6">
-      <header className="flex items-center gap-4 mb-8">
-        <div className="p-2 border border-border rounded-lg w-8 h-8 bg-muted animate-pulse" />
-        <div className="h-7 w-24 bg-muted rounded animate-pulse" />
-      </header>
-      <main className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-background text-foreground pb-28">
+      <AppHeader />
+      <main className="max-w-md mx-auto px-6 pt-4 space-y-6">
         <div className="bg-card rounded-xl p-6 border border-border animate-pulse space-y-3">
           <div className="h-4 bg-muted rounded w-1/3" />
           <div className="h-3 bg-muted rounded w-2/3" />
@@ -107,21 +105,16 @@ export default function SpiritPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-28 p-6">
+    <div className="min-h-screen bg-background text-foreground pb-28">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
         <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full opacity-50 blur-[100px]" style={{ background: 'radial-gradient(circle, hsl(142 70% 45% / 0.07) 0%, transparent 70%)' }} />
       </div>
-      <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/dashboard')} className="p-2 border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft size={16} />
-        </button>
-        <div className="flex items-center gap-3">
-          <Flame className="w-5 h-5 text-brand" />
-          <h1 className="font-light text-2xl tracking-[0.08em]">Spirit</h1>
+      <AppHeader />
+      <main className="max-w-md mx-auto px-6 pt-4">
+        <div className="mb-6">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-medium mb-2 font-display">Relationships</p>
+          <h1 className="text-3xl font-light tracking-[0.08em]">Spirit</h1>
         </div>
-      </header>
-
-      <main className="max-w-md mx-auto">
         <motion.div
           className="space-y-6"
           initial="hidden"

@@ -10,6 +10,7 @@ import NutritionPeriodization from '../../components/NutritionPeriodization';
 import BodyComposition from '../../components/BodyComposition';
 import StrengthCalc from '../../components/StrengthCalc';
 import BottomNav from '../../components/BottomNav';
+import AppHeader from '../../components/AppHeader';
 
 export default function BodyPage() {
   return (
@@ -17,7 +18,8 @@ export default function BodyPage() {
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
         <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-brand/5 blur-[100px]" />
       </div>
-      <div className="max-w-md mx-auto px-6 pt-10">
+      <AppHeader active="train" />
+      <div className="max-w-md mx-auto px-6 pt-6">
 
         <div className="relative z-10 mb-8">
           <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-medium mb-2 font-display">Physical</p>

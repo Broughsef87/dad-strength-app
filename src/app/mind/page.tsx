@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Brain, Target, PenLine, ArrowLeft, Lock, Unlock, CheckCircle2, Circle, Save, Plus, X } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
+import AppHeader from '../../components/AppHeader';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
 import MindSqueeze from '../../components/MindSqueeze';
 
@@ -94,21 +95,16 @@ export default function MindPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-28 p-6">
+    <div className="min-h-screen bg-background text-foreground pb-28">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
         <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full opacity-50 blur-[100px]" style={{ background: 'radial-gradient(circle, hsl(258 90% 60% / 0.08) 0%, transparent 70%)' }} />
       </div>
-      <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/dashboard')} className="p-2 border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft size={16} />
-        </button>
-        <div className="flex items-center gap-3">
-          <Brain className="w-5 h-5 text-brand" />
-          <h1 className="font-light text-2xl tracking-[0.08em]">Mind</h1>
+      <AppHeader />
+      <main className="max-w-md mx-auto px-6 pt-4">
+        <div className="mb-6">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-medium mb-2 font-display">Mental</p>
+          <h1 className="text-3xl font-light tracking-[0.08em]">Mind</h1>
         </div>
-      </header>
-
-      <main className="max-w-md mx-auto">
         <motion.div
           className="space-y-6"
           initial="hidden"
