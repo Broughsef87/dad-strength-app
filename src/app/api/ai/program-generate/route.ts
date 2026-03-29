@@ -398,18 +398,25 @@ OUTPUT RULES:
           ? `
 
 CALIBRATION WEEK RULES (Week 1 only):
-- This is the user's calibration week. Do NOT try to guess weights based on training age.
-- Use the calibration weights EXACTLY as the starting point for primary lifts.
-- For primary lifts: use the calibration weight directly as targetWeight.
-- For accessory lifts: use the derived accessory weights provided below.
-- Set ALL sets to the SAME weight for each exercise (no wave loading in Week 1).
+- This is the user's calibration week.
+- The calibration weights entered by the user are their REP MAXES — the most they can lift for the given rep range with ZERO reps in reserve (RIR 0). They are NOT working weights.
+- You MUST back-calculate working weights from these rep maxes based on the target RIR for each set.
+- Formula: targetWeight = calibrationWeight × (1 - (targetRIR × 0.033)), then round to nearest 5 lbs.
+  - RIR 0: use 100% of calibration weight
+  - RIR 1: use ~97% of calibration weight
+  - RIR 2: use ~93% of calibration weight
+  - RIR 3: use ~90% of calibration weight
+  - RIR 4: use ~87% of calibration weight
+- Example: bench calibration = 255 (5RM), set targets RIR 3 → 255 × 0.90 = 230 lbs
+- For accessory lifts: apply the same RIR-based reduction to the derived accessory weights below.
+- Set ALL sets to the SAME calculated weight for each exercise (no wave loading in Week 1).
 - The weekTheme should be "Calibration Week"
-- The coachNote should explain: "Week 1 is about locking in your baselines. Use exactly these weights, focus on form, and hit the target RIR. We'll start pushing load in Week 2."
+- The coachNote should explain: "Week 1 is calibration. These weights are calculated from your rep maxes — they should feel challenging but controlled. Hit the target RIR honestly. Week 2 loads are built from what you report today."
 
-Calibration weights entered by user:
+Calibration weights entered by user (these are REP MAXES, not working weights):
 ${JSON.stringify(calibrationWeights)}
 
-Derived accessory weights (use these for accessories):
+Derived accessory weights based on rep maxes (apply RIR reduction to these too):
 ${JSON.stringify(deriveAccessoryWeights(calibrationWeights))}`
           : weekNumber === 1
           ? `

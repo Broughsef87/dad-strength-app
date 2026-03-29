@@ -107,10 +107,10 @@ type ProgramSlug = string
 
 const CALIBRATION_LIFTS: Record<string, Array<{ key: string; label: string; hint: string; unit: 'lbs' | 'reps' }>> = {
   'dad-strong': [
-    { key: 'bench', label: 'Barbell Bench Press', hint: '5 clean reps at this weight', unit: 'lbs' },
-    { key: 'squat', label: 'Barbell Back Squat', hint: '5 clean reps at this weight', unit: 'lbs' },
-    { key: 'deadlift', label: 'Deadlift', hint: '3-5 clean reps at this weight', unit: 'lbs' },
-    { key: 'row', label: 'Barbell Row', hint: '5 clean reps at this weight', unit: 'lbs' },
+    { key: 'bench', label: 'Barbell Bench Press', hint: 'Max weight for 5 reps — nothing left after', unit: 'lbs' },
+    { key: 'squat', label: 'Barbell Back Squat', hint: 'Max weight for 5 reps — nothing left after', unit: 'lbs' },
+    { key: 'deadlift', label: 'Deadlift', hint: 'Max weight for 3-5 reps — nothing left after', unit: 'lbs' },
+    { key: 'row', label: 'Barbell Row', hint: 'Max weight for 5 reps — nothing left after', unit: 'lbs' },
   ],
   'the-squeeze': [
     { key: 'pushups', label: 'Push-ups', hint: 'Max reps in one set right now', unit: 'reps' },
@@ -692,16 +692,16 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div>
                       <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-1">
-                        Starting Weights
+                        Your Rep Maxes
                       </h2>
                       <p className="text-xs text-muted-foreground">
-                        Enter what you can currently lift — Week 1 uses these as your baseline
+                        Enter the most you can lift for the given reps — your actual max, nothing left in the tank
                       </p>
                     </div>
 
                     {/* Calibration info box */}
                     <div className="bg-brand/5 border border-brand/20 rounded-xl p-3 text-sm text-muted-foreground">
-                      🎯 <strong className="text-foreground">Week 1 is your calibration week.</strong> The AI locks in your weights based on what you enter here, then adjusts automatically from Week 2 based on your actual performance.
+                      🎯 <strong className="text-foreground">Enter your true rep maxes.</strong> The AI will automatically calculate your working weights from these — Week 1 sessions will feel challenging but controlled. Weights adjust from Week 2 based on your actual performance.
                     </div>
 
                     <div className="space-y-3">
