@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, PenLine, Target, Flame } from 'lucide-react'
+import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame } from 'lucide-react'
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
 
@@ -21,17 +21,15 @@ const ENERGY_LEVELS = [
 ]
 
 const PILLAR_ICONS: Record<string, any> = {
-  'Prayer':          Flame,
-  'Meditation':      Sun,
-  'Reading':         BookOpen,
-  'Goals & Journal': PenLine,
+  'Prayer':     Flame,
+  'Meditation': Sun,
+  'Reading':    BookOpen,
 }
 
 const PILLAR_COLORS: Record<string, string> = {
-  'Prayer':          'text-brand bg-brand/10 border-brand/20',
-  'Meditation':      'text-foreground bg-muted border-border',
-  'Reading':         'text-foreground bg-muted border-border',
-  'Goals & Journal': 'text-foreground bg-muted border-border',
+  'Prayer':     'text-brand bg-brand/10 border-brand/20',
+  'Meditation': 'text-foreground bg-muted border-border',
+  'Reading':    'text-foreground bg-muted border-border',
 }
 
 type Step = {

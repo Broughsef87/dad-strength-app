@@ -225,35 +225,6 @@ export default function MindPage() {
           <MindSqueeze objectives={objectives} />
         </motion.div>
 
-        {/* Journal */}
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <PenLine size={16} className="text-brand" />
-            <h3 className="font-medium text-sm">Journal</h3>
-          </div>
-          <textarea
-            value={journal}
-            onChange={(e) => {
-              setJournal(e.target.value);
-              saveToLocal({ journal: e.target.value });
-            }}
-            placeholder="What's on your mind? Capture the signal, ignore the noise..."
-            className="w-full bg-background border border-border rounded-lg p-4 text-sm text-foreground h-48 resize-none outline-none focus:border-foreground/40 transition-colors placeholder:text-muted-foreground"
-          />
-          <button
-            onClick={handleSaveJournal}
-            disabled={isSaving}
-            className={`w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-medium uppercase tracking-[0.1em] transition-all ${
-              savedMsg
-                ? 'bg-green-500/10 text-green-600 border border-green-500/20'
-                : isSaving
-                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-muted text-foreground hover:bg-foreground hover:text-background'
-            }`}
-          >
-            {savedMsg ? '✓ Entry Saved' : isSaving ? 'Saving...' : <><Save size={12} /> Save Entry</>}
-          </button>
-        </motion.div>
 
         </motion.div>
       </main>
