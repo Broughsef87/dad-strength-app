@@ -179,26 +179,34 @@ export default function ActiveProgram() {
     )
   }
 
-  // No program — show change program or selector inline
-  if (!program || showChangeProgram) {
+  // No program — show a prompt card + open the selector sheet
+  if (!program) {
     return (
-      <div className="space-y-4">
-        {showChangeProgram && program && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground font-medium">Select a new program</p>
-            <button
-              onClick={() => setShowChangeProgram(false)}
-              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cancel
-            </button>
+      <>
+        <div className="glass-card rounded-2xl border border-border/50 p-6 text-center space-y-4">
+          <div className="p-3 bg-brand/10 rounded-xl w-fit mx-auto">
+            <Dumbbell size={24} className="text-brand" strokeWidth={1.5} />
           </div>
-        )}
+          <div>
+            <h3 className="font-black text-base uppercase italic tracking-tight mb-1">No Program Active</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Choose a program to start tracking your training.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowChangeProgram(true)}
+            className="w-full bg-brand hover:bg-brand/90 text-foreground font-black py-3 rounded-xl uppercase tracking-widest text-sm transition-all active:scale-95"
+          >
+            Choose a Program
+          </button>
+        </div>
         <ProgramSelector
-          activeSlug={program?.slug ?? null}
+          activeSlug={null}
+          isOpen={showChangeProgram}
+          onClose={() => setShowChangeProgram(false)}
           onProgramSelected={handleProgramSelected}
         />
-      </div>
+      </>
     )
   }
 
@@ -378,6 +386,14 @@ export default function ActiveProgram() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Program selector sheet — always mounted, controlled by showChangeProgram */}
+      <ProgramSelector
+        activeSlug={program.slug}
+        isOpen={showChangeProgram}
+        onClose={() => setShowChangeProgram(false)}
+        onProgramSelected={handleProgramSelected}
+      />
     </div>
   )
 }
