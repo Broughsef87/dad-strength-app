@@ -10,6 +10,7 @@ import BottomNav from '../../components/BottomNav';
 import AppHeader from '../../components/AppHeader';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
 import MindSqueeze from '../../components/MindSqueeze';
+import MorningProtocol from '../../components/MorningProtocol';
 
 export default function MindPage() {
   const [supabase] = useState(() => createClient());
@@ -111,6 +112,11 @@ export default function MindPage() {
           animate="visible"
           variants={staggerContainer}
         >
+
+        {/* Morning Protocol */}
+        <motion.div variants={fadeUp}>
+          <MorningProtocol />
+        </motion.div>
 
         {/* Objectives */}
         <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
