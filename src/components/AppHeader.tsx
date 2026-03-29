@@ -39,12 +39,17 @@ export default function AppHeader({ active }: AppHeaderProps) {
           className="flex items-center gap-3"
         >
           <Logo className="w-9 h-9" />
-          <span
-            className="font-black text-base tracking-[0.08em] uppercase text-foreground"
-            style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
-          >
-            Dad Strength
-          </span>
+          <div className="flex flex-col leading-none">
+            <span
+              className="font-black text-base tracking-[0.08em] uppercase text-foreground"
+              style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
+            >
+              Dad Strength
+            </span>
+            <span className="text-[9px] tracking-[0.15em] text-muted-foreground uppercase mt-0.5">
+              by Forge OS
+            </span>
+          </div>
         </button>
         <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
           {navItem('HQ', '/dashboard', 'hq')}
@@ -67,12 +72,17 @@ export default function AppHeader({ active }: AppHeaderProps) {
           className="flex items-center gap-2.5"
         >
           <Logo className="w-9 h-9" />
-          <span
-            className="font-black text-base tracking-[0.08em] uppercase"
-            style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
-          >
-            Dad Strength
-          </span>
+          <div className="flex flex-col leading-none">
+            <span
+              className="font-black text-base tracking-[0.08em] uppercase"
+              style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
+            >
+              Dad Strength
+            </span>
+            <span className="text-[9px] tracking-[0.15em] text-muted-foreground uppercase mt-0.5">
+              by Forge OS
+            </span>
+          </div>
         </button>
         <button
           onClick={() => router.push('/profile')}

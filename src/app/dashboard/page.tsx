@@ -217,9 +217,14 @@ export default function Dashboard() {
       <header className="hidden md:flex items-center justify-between border-b border-border bg-background/90 px-8 py-4 backdrop-blur-md sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <Logo className="w-9 h-9" />
-          <span className="font-black text-base tracking-[0.08em] uppercase text-foreground" style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}>
-            Dad Strength
-          </span>
+          <div className="flex flex-col leading-none">
+            <span className="font-black text-base tracking-[0.08em] uppercase text-foreground" style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}>
+              Dad Strength
+            </span>
+            <span className="text-[9px] tracking-[0.15em] text-muted-foreground uppercase mt-0.5">
+              by Forge OS
+            </span>
+          </div>
         </div>
         <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
           <button className="text-foreground font-medium">HQ</button>
