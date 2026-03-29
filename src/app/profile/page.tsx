@@ -279,6 +279,10 @@ export default function Profile() {
           <LogOut size={16} /> Sign Out
         </button>
 
+        <p className="text-center text-[10px] tracking-[0.15em] text-muted-foreground/50 uppercase mt-6">
+          Dad Strength · Powered by Forge OS
+        </p>
+
       </main>
 
       <BottomNav />
