@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     const { object: protocol } = await generateObject({
       model: google('gemini-2.5-flash'),
-      system: `You are a high-performance coach for busy dads. Generate a morning protocol built around 3 pillars: Prayer, Meditation, and Reading. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
+      system: `You are a high-performance coach for busy dads. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Gratitude. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
       prompt: `Today is ${dayOfWeek}.
 Available time: ${minutes} minutes
 Sleep quality: ${babyNight}
@@ -40,17 +40,17 @@ Energy level: ${energy}
 Today's objectives:
 ${objectivesList}
 
-Generate a morning protocol with exactly 3 steps — one for each pillar. Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading.`,
+Generate a morning protocol with exactly 4 steps — one for each pillar (Prayer, Meditation, Reading, Gratitude). Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading. Always end with Gratitude. For the Gratitude step, the guidance should encourage writing 3 things they're grateful for.`,
       schema: z.object({
         theme: z.string().describe("A short, punchy theme for today's morning — e.g. 'The Quiet Before the War'"),
         greeting: z.string().describe("1-2 sentence personal greeting acknowledging sleep quality and energy level. Direct, warm, stoic."),
         steps: z.array(z.object({
-          pillar: z.enum(['Prayer', 'Meditation', 'Reading']),
+          pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Gratitude']),
           minutes: z.number().describe('Minutes allocated to this pillar'),
           title: z.string().describe('Short action title for this pillar'),
           guidance: z.string().describe('2-3 sentence guidance for this block'),
           prompt: z.string().describe('A single focus prompt or intention for this block'),
-        })).length(3),
+        })).length(4),
         closingWord: z.string().describe("One final sentence to send them into the day — stoic, motivating"),
       })
     })

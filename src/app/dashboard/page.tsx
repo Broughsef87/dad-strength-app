@@ -13,6 +13,7 @@ import {
   Moon,
   Footprints,
   Zap,
+  Sun,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
@@ -369,6 +370,25 @@ export default function Dashboard() {
           {/* CARD 2: DAILY OBJECTIVES */}
           <motion.div variants={fadeUp} custom={1}>
             <DailyObjectivesCard />
+          </motion.div>
+
+          {/* MORNING PROTOCOL SHORTCUT */}
+          <motion.div variants={fadeUp} custom={1.5}>
+            <button
+              onClick={() => router.push('/mind')}
+              className="w-full glass-card p-4 flex items-center justify-between group rounded-xl"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
+                  <Sun size={16} className="text-brand" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-display tracking-[0.1em] text-muted-foreground uppercase">Morning Protocol</p>
+                  <p className="font-display text-sm tracking-wide text-foreground mt-0.5">Build your morning</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-brand group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+            </button>
           </motion.div>
 
           {/* CARD 3: DAD SCORE */}

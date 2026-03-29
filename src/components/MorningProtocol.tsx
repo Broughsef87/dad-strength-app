@@ -1,35 +1,37 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame } from 'lucide-react'
+import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame, Heart } from 'lucide-react'
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
-const BABY_NIGHTS = [
-  { id: 'great',  label: 'Slept great',       emoji: '😴' },
-  { id: 'ok',     label: 'Decent night',       emoji: '🙂' },
-  { id: 'rough',  label: 'Rough night',        emoji: '😮‍💨' },
-  { id: 'brutal', label: 'Up all night',       emoji: '💀' },
+const SLEEP_QUALITY = [
+  { id: 'great',  label: 'Slept great',     emoji: '😴' },
+  { id: 'ok',     label: 'Decent night',    emoji: '🙂' },
+  { id: 'rough',  label: 'Rough night',     emoji: '😮‍💨' },
+  { id: 'brutal', label: 'Up all night',    emoji: '💀' },
 ]
 
 const ENERGY_LEVELS = [
-  { id: 'high',   label: 'Ready to go',        emoji: '🔥' },
-  { id: 'medium', label: 'Getting there',      emoji: '☕' },
-  { id: 'low',    label: 'Running on fumes',   emoji: '🌫️' },
+  { id: 'high',   label: 'Ready to go',     emoji: '🔥' },
+  { id: 'medium', label: 'Getting there',   emoji: '☕' },
+  { id: 'low',    label: 'Running on fumes',emoji: '🌫️' },
 ]
 
 const PILLAR_ICONS: Record<string, any> = {
-  'Prayer':     Flame,
-  'Meditation': Sun,
-  'Reading':    BookOpen,
+  'Prayer':    Flame,
+  'Meditation':Sun,
+  'Reading':   BookOpen,
+  'Gratitude': Heart,
 }
 
 const PILLAR_COLORS: Record<string, string> = {
-  'Prayer':     'text-brand bg-brand/10 border-brand/20',
-  'Meditation': 'text-foreground bg-muted border-border',
-  'Reading':    'text-foreground bg-muted border-border',
+  'Prayer':    'text-brand bg-brand/10 border-brand/20',
+  'Meditation':'text-foreground bg-muted border-border',
+  'Reading':   'text-foreground bg-muted border-border',
+  'Gratitude': 'text-green-500 bg-green-500/10 border-green-500/20',
 }
 
 type Step = {
@@ -52,7 +54,7 @@ const todayKey = () => new Date().toLocaleDateString()
 
 export default function MorningProtocol({ objectives = [] }: { objectives?: string[] }) {
   const [minutes, setMinutes] = useState(20)
-  const [babyNight, setBabyNight] = useState('ok')
+  const [sleep, setSleep] = useState('ok')
   const [energy, setEnergy] = useState('medium')
   const [loading, setLoading] = useState(false)
   const [protocol, setProtocol] = useState<Protocol | null>(null)
@@ -60,6 +62,8 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   const [expanded, setExpanded] = useState<number | null>(0)
   const [error, setError] = useState('')
   const [configured, setConfigured] = useState(false)
+  // Gratitude entries: 3 text inputs
+  const [gratitude, setGratitude] = useState(['', '', ''])
 
   useEffect(() => {
     try {
@@ -69,17 +73,18 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         if (data.date === todayKey()) {
           setProtocol(data.protocol)
           setCompleted(data.completed || new Array(data.protocol.steps.length).fill(false))
+          setGratitude(data.gratitude || ['', '', ''])
           setConfigured(true)
         }
       }
     } catch {}
   }, [])
 
-  const saveCache = (p: Protocol, c: boolean[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c }))
+  const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g }))
   }
 
-  const generate = async (force = false) => {
+  const generate = async () => {
     setLoading(true)
     setError('')
     try {
@@ -89,7 +94,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           minutes,
-          babyNight: BABY_NIGHTS.find(b => b.id === babyNight)?.label,
+          sleepQuality: SLEEP_QUALITY.find(s => s.id === sleep)?.label,
           energy: ENERGY_LEVELS.find(e => e.id === energy)?.label,
           objectives,
           dayOfWeek,
@@ -99,11 +104,13 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       if (data.error) throw new Error(data.error)
       const fresh = data.protocol as Protocol
       const freshCompleted = new Array(fresh.steps.length).fill(false)
+      const freshGratitude = ['', '', '']
       setProtocol(fresh)
       setCompleted(freshCompleted)
+      setGratitude(freshGratitude)
       setExpanded(0)
       setConfigured(true)
-      saveCache(fresh, freshCompleted)
+      saveCache(fresh, freshCompleted, freshGratitude)
     } catch {
       setError('Failed to generate. Try again.')
     } finally {
@@ -115,16 +122,24 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
     const next = [...completed]
     next[i] = !next[i]
     setCompleted(next)
-    if (protocol) saveCache(protocol, next)
+    if (protocol) saveCache(protocol, next, gratitude)
     if (next[i] && i < (protocol?.steps.length || 0) - 1) {
       setExpanded(i + 1)
     }
+  }
+
+  const updateGratitude = (i: number, val: string) => {
+    const next = [...gratitude]
+    next[i] = val
+    setGratitude(next)
+    if (protocol) saveCache(protocol, completed, next)
   }
 
   const doneCount = completed.filter(Boolean).length
   const totalSteps = protocol?.steps.length || 0
   const allDone = doneCount === totalSteps && totalSteps > 0
 
+  // ── Config screen ──────────────────────────────────────────────────────────
   if (!configured) {
     return (
       <div className="space-y-5">
@@ -152,19 +167,19 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           </div>
         </div>
 
-        {/* Baby's night */}
+        {/* Sleep quality */}
         <div>
-          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How'd the baby sleep?</label>
+          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How'd you sleep?</label>
           <div className="grid grid-cols-2 gap-2">
-            {BABY_NIGHTS.map(b => (
-              <button key={b.id} onClick={() => setBabyNight(b.id)}
+            {SLEEP_QUALITY.map(s => (
+              <button key={s.id} onClick={() => setSleep(s.id)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all border ${
-                  babyNight === b.id
+                  sleep === s.id
                     ? 'bg-brand/5 border-brand/30 text-foreground'
                     : 'bg-muted border-transparent text-muted-foreground hover:border-border'
                 }`}
               >
-                <span>{b.emoji}</span> <span className="text-xs">{b.label}</span>
+                <span>{s.emoji}</span> <span className="text-xs">{s.label}</span>
               </button>
             ))}
           </div>
@@ -209,6 +224,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
     )
   }
 
+  // ── Active protocol ────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -218,12 +234,10 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
             <Sun size={13} className="text-brand" />
             <span className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium">Morning Protocol</span>
           </div>
-          <h3 className="font-light text-lg tracking-tight leading-tight">
-            {protocol?.theme}
-          </h3>
+          <h3 className="font-light text-lg tracking-tight leading-tight">{protocol?.theme}</h3>
         </div>
         <button
-          onClick={() => { setConfigured(false); setProtocol(null); setCompleted([]) }}
+          onClick={() => { setConfigured(false); setProtocol(null); setCompleted([]); setGratitude(['', '', '']) }}
           className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
           title="Rebuild"
         >
@@ -255,13 +269,12 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           const colors = PILLAR_COLORS[step.pillar] || PILLAR_COLORS['Prayer']
           const isExpanded = expanded === i
           const isDone = completed[i]
+          const isGratitude = step.pillar === 'Gratitude'
 
           return (
             <div
               key={i}
-              className={`rounded-xl border overflow-hidden transition-all ${
-                isDone ? 'border-border opacity-60' : 'border-border'
-              }`}
+              className={`rounded-xl border overflow-hidden transition-all ${isDone ? 'border-border opacity-60' : 'border-border'}`}
             >
               <button
                 onClick={() => setExpanded(isExpanded ? null : i)}
@@ -287,18 +300,47 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                     {step.pillar} · {step.minutes}m
                   </p>
                 </div>
-                {isExpanded ? <ChevronUp size={14} className="text-muted-foreground flex-shrink-0" /> : <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />}
+                {isExpanded
+                  ? <ChevronUp size={14} className="text-muted-foreground flex-shrink-0" />
+                  : <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
+                }
               </button>
 
               {isExpanded && !isDone && (
                 <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
                   <p className="text-sm text-muted-foreground font-light leading-relaxed">{step.guidance}</p>
+
                   {step.pillar === 'Meditation' && <AmbientAudioPlayer />}
                   {step.pillar === 'Reading' && <RecommendedReading />}
-                  <div className={`rounded-lg px-4 py-3 border ${colors}`}>
-                    <p className="text-[10px] uppercase tracking-[0.1em] font-medium mb-1 opacity-70">Focus Prompt</p>
-                    <p className="text-sm font-light italic">{step.prompt}</p>
-                  </div>
+
+                  {/* Gratitude — 3 text inputs */}
+                  {isGratitude ? (
+                    <div className="space-y-2">
+                      <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">3 things you're grateful for</p>
+                      {[0, 1, 2].map(j => (
+                        <div key={j} className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground font-medium w-4">{j + 1}.</span>
+                          <input
+                            type="text"
+                            value={gratitude[j]}
+                            onChange={e => updateGratitude(j, e.target.value)}
+                            placeholder={
+                              j === 0 ? 'My family...' :
+                              j === 1 ? 'My health...' :
+                              'This moment...'
+                            }
+                            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-green-500/50 transition-colors"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={`rounded-lg px-4 py-3 border ${colors}`}>
+                      <p className="text-[10px] uppercase tracking-[0.1em] font-medium mb-1 opacity-70">Focus Prompt</p>
+                      <p className="text-sm font-light italic">{step.prompt}</p>
+                    </div>
+                  )}
+
                   <button
                     onClick={() => toggleStep(i)}
                     className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs uppercase tracking-[0.1em] transition-all"
