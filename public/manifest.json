@@ -1,24 +1,43 @@
 {
-  "name": "Dad Strength App",
-  "short_name": "DadStrength",
-  "description": "Functional fitness and health for busy fathers.",
+  "id": "/",
+  "name": "Dad Strength",
+  "short_name": "Dad Strength",
+  "description": "The Dad OS. Build strength, lead your family, reclaim your life.",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#030712",
-  "theme_color": "#4f46e5",
+  "theme_color": "#030712",
   "orientation": "portrait",
+  "categories": ["health", "fitness", "lifestyle"],
   "icons": [
     {
-      "src": "/icon512_maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon512_rounded.png",
-      "sizes": "512x512",
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Training",
+      "short_name": "Train",
+      "description": "Jump into today's workout",
+      "url": "/body",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Morning Protocol",
+      "short_name": "Morning",
+      "description": "Run your morning protocol",
+      "url": "/mind",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     }
   ]
 }
