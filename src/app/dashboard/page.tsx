@@ -308,10 +308,14 @@ export default function Dashboard() {
                       Active Protocol
                     </span>
                     <h2 className="text-2xl font-light text-background leading-tight tracking-tight">
-                      {workout?.name || 'Load Program'}
+                      {activeProgram
+                        ? activeProgram.name.replace(/\s+[35]$/, '')
+                        : workout?.name || 'Load Program'}
                     </h2>
                     <p className="text-background/50 text-sm mt-1.5 font-light">
-                      {workout?.description || 'Access the training library to deploy your first protocol.'}
+                      {activeProgram
+                        ? `Week ${activeProgram.currentWeek} · ${activeProgram.daysCount} days/week`
+                        : workout?.description || 'Access the training library to deploy your first protocol.'}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2.5 relative z-10">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../utils/supabase/client'
@@ -45,7 +45,7 @@ interface Program {
 const PROGRAMS: readonly Program[] = [
   {
     slug: 'dad-strong',
-    name: 'Dad Strong 5',
+    name: 'Dad Strong',
     tagline: 'Old Man Strength',
     description:
       'Functional power meets iron discipline. Carry all the groceries in one trip. Move the couch solo. Build the kind of strength that actually matters.',
@@ -107,10 +107,11 @@ type ProgramSlug = string
 
 const CALIBRATION_LIFTS: Record<string, Array<{ key: string; label: string; hint: string; unit: 'lbs' | 'reps' }>> = {
   'dad-strong': [
-    { key: 'bench', label: 'Barbell Bench Press', hint: 'Max weight for 5 reps — nothing left after', unit: 'lbs' },
-    { key: 'squat', label: 'Barbell Back Squat', hint: 'Max weight for 5 reps — nothing left after', unit: 'lbs' },
-    { key: 'deadlift', label: 'Deadlift', hint: 'Max weight for 3-5 reps — nothing left after', unit: 'lbs' },
-    { key: 'row', label: 'Barbell Row', hint: 'Max weight for 5 reps — nothing left after', unit: 'lbs' },
+    { key: 'bench', label: 'Barbell Bench Press', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'squat', label: 'Barbell Back Squat', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'deadlift', label: 'Deadlift', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'ohp', label: 'Overhead Press', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'row', label: 'Barbell Row', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
   ],
   'the-squeeze': [
     { key: 'pushups', label: 'Push-ups', hint: 'Max reps in one set right now', unit: 'reps' },
@@ -118,21 +119,23 @@ const CALIBRATION_LIFTS: Record<string, Array<{ key: string; label: string; hint
     { key: 'squats', label: 'Bodyweight Squats', hint: 'Max reps in one set right now', unit: 'reps' },
   ],
   'home-shred': [
-    { key: 'db_press', label: 'DB Press (each hand)', hint: '10 clean reps at this weight', unit: 'lbs' },
-    { key: 'db_row', label: 'DB Row (each hand)', hint: '10 clean reps at this weight', unit: 'lbs' },
-    { key: 'db_rdl', label: 'DB Romanian Deadlift (each)', hint: '12 clean reps at this weight', unit: 'lbs' },
+    { key: 'db_press', label: 'DB Press 1RM (each hand)', hint: 'Max single rep estimate', unit: 'lbs' },
+    { key: 'db_row', label: 'DB Row 1RM (each hand)', hint: 'Max single rep estimate', unit: 'lbs' },
+    { key: 'db_rdl', label: 'DB Romanian Deadlift 1RM (each)', hint: 'Max single rep estimate', unit: 'lbs' },
   ],
   'golden-era': [
-    { key: 'bench', label: 'Barbell Bench Press', hint: '8 clean reps at this weight', unit: 'lbs' },
-    { key: 'squat', label: 'Barbell Back Squat', hint: '8 clean reps at this weight', unit: 'lbs' },
-    { key: 'deadlift', label: 'Deadlift', hint: '5 clean reps at this weight', unit: 'lbs' },
-    { key: 'row', label: 'Barbell Row', hint: '8 clean reps at this weight', unit: 'lbs' },
+    { key: 'bench', label: 'Barbell Bench Press', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'squat', label: 'Barbell Back Squat', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'deadlift', label: 'Deadlift', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'ohp', label: 'Overhead Press', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'row', label: 'Barbell Row', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
   ],
   'hybrid': [
-    { key: 'bench', label: 'Barbell Bench Press', hint: '5 clean reps at this weight', unit: 'lbs' },
-    { key: 'squat', label: 'Barbell Back Squat', hint: '5 clean reps at this weight', unit: 'lbs' },
-    { key: 'deadlift', label: 'Deadlift', hint: '5 clean reps at this weight', unit: 'lbs' },
-    { key: 'row', label: 'Barbell Row', hint: '5 clean reps at this weight', unit: 'lbs' },
+    { key: 'bench', label: 'Barbell Bench Press', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'squat', label: 'Barbell Back Squat', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'deadlift', label: 'Deadlift', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'ohp', label: 'Overhead Press', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
+    { key: 'row', label: 'Barbell Row', hint: 'Best weight you can lift for 5 clean reps', unit: 'lbs' },
   ],
 }
 
@@ -174,10 +177,18 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
   const router = useRouter()
 
   const [open, setOpen] = useState(false)
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen !== undefined) setOpen(isOpen)
   }, [isOpen])
+
+  // Reset scroll to top whenever sheet opens
+  useEffect(() => {
+    if (open && sheetRef.current) {
+      sheetRef.current.scrollTop = 0
+    }
+  }, [open])
   const [step, setStep] = useState<Step>(1)
 
   // Step 1
@@ -265,8 +276,21 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
       dayNames: [],
     }
 
+    // Convert 5RM entries to 1RM using Epley formula (5RM × 1.167)
+    const currentLifts = CALIBRATION_LIFTS[selectedProgram.slug] ?? []
+    const oneRepMaxes: Record<string, number> = {}
+    for (const [key, value] of Object.entries(calibrationWeights)) {
+      const lift = currentLifts.find(l => l.key === key)
+      const num = parseFloat(value) || 0
+      if (lift?.unit === 'lbs' && num > 0) {
+        oneRepMaxes[key] = Math.round((num * 1.167) / 2.5) * 2.5
+      } else {
+        oneRepMaxes[key] = num
+      }
+    }
+
     localStorage.setItem('dad-strength-active-program', JSON.stringify(data))
-    localStorage.setItem('dad-strength-calibration-weights', JSON.stringify(calibrationWeights))
+    localStorage.setItem('dad-strength-one-rep-maxes', JSON.stringify(oneRepMaxes))
 
     if (user) {
       supabase
@@ -323,6 +347,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 32, stiffness: 360 }}
+              ref={sheetRef}
               className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border rounded-t-3xl max-h-[90vh] overflow-y-auto"
             >
               {/* Drag handle */}
@@ -692,16 +717,16 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div>
                       <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-1">
-                        Your Rep Maxes
+                        Your Starting Weights
                       </h2>
                       <p className="text-xs text-muted-foreground">
-                        Enter the most you can lift for the given reps — your actual max, nothing left in the tank
+                        Enter the most weight you can lift for 5 solid reps. We handle the math from there.
                       </p>
                     </div>
 
                     {/* Calibration info box */}
                     <div className="bg-brand/5 border border-brand/20 rounded-xl p-3 text-sm text-muted-foreground">
-                      🎯 <strong className="text-foreground">Enter your true rep maxes.</strong> The AI will automatically calculate your working weights from these — Week 1 sessions will feel challenging but controlled. Weights adjust from Week 2 based on your actual performance.
+                      🎯 <strong className="text-foreground">Use your 5-rep max — not your true max.</strong> We convert these numbers automatically so your first workout starts at the right intensity. You always pick the exact weight on the day — we just give you a smart starting point.
                     </div>
 
                     <div className="space-y-3">

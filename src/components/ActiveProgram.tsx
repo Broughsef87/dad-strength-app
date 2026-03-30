@@ -231,7 +231,7 @@ export default function ActiveProgram() {
               Active Program
             </p>
             <h3 className="font-black text-base uppercase italic tracking-[0.06em] leading-tight truncate font-display">
-              {program.name}
+              {program.name.replace(/\s+[35]$/, '')}
               <span className="text-muted-foreground font-medium normal-case italic text-sm">
                 {' '}— Week {program.currentWeek}
               </span>

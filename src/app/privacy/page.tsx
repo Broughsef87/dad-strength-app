@@ -5,7 +5,7 @@ export const metadata = {
 
 export default function PrivacyPolicy() {
   const lastUpdated = 'March 29, 2025'
-  const contactEmail = 'support@dadstrength.app'
+  const contactEmail = 'dad.strength@the-forge-agency.com'
 
   return (
     <div className="min-h-screen bg-background text-foreground">

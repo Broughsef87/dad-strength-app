@@ -258,6 +258,121 @@ const PROGRAM_TEMPLATES: Record<string, typeof DAD_STRONG_5> = {
   'hybrid-5': HYBRID_5,
 }
 
+// ── Muscle group mapping ─────────────────────────────────────────────────────
+
+const MOVEMENT_TO_MUSCLE: Record<string, string | null> = {
+  push_horizontal: 'chest',
+  push_fly: 'chest',
+  push_vertical: 'shoulders',
+  isolation_shoulder: 'shoulders',
+  push_tricep: 'triceps',
+  push_power: 'shoulders',
+  pull_horizontal: 'back',
+  pull_vertical: 'back',
+  pull_rear_delt: 'back',
+  isolation_bicep: 'biceps',
+  squat: 'quads',
+  squat_unilateral: 'quads',
+  isolation_quad: 'quads',
+  hinge: 'hamstrings',
+  hinge_extension: 'hamstrings',
+  isolation_hamstring: 'hamstrings',
+  isolation_calf: 'calves',
+  isolation_hip: 'glutes',
+  gpp_hip: 'glutes',
+  gpp: null,
+  gpp_carry: null,
+  gpp_push: null,
+  gpp_conditioning: null,
+  gpp_cardio: null,
+  gpp_power: null,
+  gpp_strongman: null,
+}
+
+const COMPOUND_PATTERNS = new Set([
+  'push_horizontal', 'push_vertical', 'pull_horizontal', 'pull_vertical',
+  'squat', 'squat_unilateral', 'hinge',
+])
+
+// ── Epley-based weight recommendation ────────────────────────────────────────
+
+function epleyWeight(oneRM: number, targetReps: number, targetRir: number): number {
+  // Effective reps = reps you could do at this weight = targetReps + targetRir
+  const effectiveReps = targetReps + targetRir
+  if (effectiveReps <= 1) return oneRM
+  const weight = oneRM / (1 + effectiveReps / 30)
+  return Math.round(weight / 2.5) * 2.5
+}
+
+function get1RMForExercise(
+  name: string,
+  pattern: string,
+  oneRepMaxes: Record<string, number>
+): number {
+  const n = name.toLowerCase()
+  const bench = oneRepMaxes.bench || 0
+  const squat = oneRepMaxes.squat || 0
+  const deadlift = oneRepMaxes.deadlift || 0
+  const ohp = oneRepMaxes.ohp || 0
+  const row = oneRepMaxes.row || 0
+
+  // Direct matches
+  if (n.includes('bench press') && !n.includes('incline') && !n.includes('db')) return bench
+  if ((n.includes('back squat') || n === 'squat') && !n.includes('goblet') && !n.includes('hack')) return squat
+  if (n.includes('deadlift') && !n.includes('romanian') && !n.includes('stiff')) return deadlift
+  if (n.includes('overhead press') || n.includes('ohp') || n.includes('barbell ohp')) return ohp
+  if (n.includes('barbell row') || n.includes('barbell rows')) return row
+
+  // Derivatives by pattern
+  if (pattern === 'push_horizontal') return Math.round(bench * 0.6 / 2.5) * 2.5   // DB press ~60% bench 1RM
+  if (pattern === 'push_fly') return Math.round(bench * 0.3 / 2.5) * 2.5
+  if (pattern === 'push_vertical') return ohp || Math.round(bench * 0.65 / 2.5) * 2.5
+  if (pattern === 'push_tricep') return Math.round(bench * 0.45 / 2.5) * 2.5
+  if (pattern === 'pull_horizontal') return Math.round(row * 0.9 / 2.5) * 2.5
+  if (pattern === 'pull_vertical') return Math.round(row * 0.75 / 2.5) * 2.5
+  if (pattern === 'pull_rear_delt') return Math.round(row * 0.25 / 2.5) * 2.5
+  if (pattern === 'isolation_bicep') return Math.round(row * 0.22 / 2.5) * 2.5
+  if (pattern === 'isolation_shoulder') return Math.round(ohp * 0.3 / 2.5) * 2.5
+  if (pattern === 'squat') return Math.round(squat * 1.4 / 5) * 5  // leg press
+  if (pattern === 'squat_unilateral') return Math.round(squat * 0.5 / 2.5) * 2.5
+  if (pattern === 'isolation_quad') return Math.round(squat * 0.35 / 2.5) * 2.5
+  if (pattern === 'hinge') return Math.round(deadlift * 0.55 / 2.5) * 2.5
+  if (pattern === 'hinge_extension') return Math.round(deadlift * 0.35 / 2.5) * 2.5
+  if (pattern === 'isolation_hamstring') return Math.round(deadlift * 0.25 / 2.5) * 2.5
+  if (pattern === 'isolation_calf') return Math.round(squat * 0.55 / 5) * 5
+  if (pattern === 'isolation_hip') return Math.round(squat * 0.3 / 2.5) * 2.5
+
+  return 0
+}
+
+function calcRecommendedWeight(
+  name: string,
+  pattern: string,
+  targetReps: number,
+  targetRir: number,
+  lastWeekWeight: number | null,
+  lastWeekRir: number | null,
+  oneRepMaxes: Record<string, number>
+): number {
+  const isCompound = COMPOUND_PATTERNS.has(pattern)
+
+  if (lastWeekWeight === null) {
+    // Week 1 — derive from 1RM
+    const rm = get1RMForExercise(name, pattern, oneRepMaxes)
+    if (!rm) return 0
+    return epleyWeight(rm, targetReps, targetRir)
+  }
+
+  // Week 2+ — adjust from last week's actual
+  if (lastWeekRir === 0) {
+    // Hit true failure → add weight
+    return lastWeekWeight + (isCompound ? 5 : 2.5)
+  }
+
+  // Otherwise weight stays same; AI changes RIR target
+  return lastWeekWeight
+}
+
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
   const now = Date.now()
@@ -268,45 +383,21 @@ export async function POST(request: Request) {
   rateLimitMap.set(ip, [...timestamps, now])
 
   try {
-    const { userId, weekNumber, programSlug, userProfile, recentLogs, calibrationWeights } = await request.json() as {
+    const {
+      userId, weekNumber, programSlug, userProfile,
+      recentLogs, oneRepMaxes, muscleGroupFeedback
+    } = await request.json() as {
       userId: string
       weekNumber: number
       programSlug: string
       userProfile?: Record<string, unknown>
-      recentLogs?: unknown[]
-      calibrationWeights?: Record<string, number>
+      recentLogs?: Array<{ exercise_name: string; weight: number; reps: number; rir_actual: number | null; completed: boolean; created_at: string }>
+      oneRepMaxes?: Record<string, number>
+      muscleGroupFeedback?: Array<{ week_number: number; muscle_group: string; volume_rating: string; pump_rating: string; pain_rating: string }>
     }
 
     if (!userId || !weekNumber || !programSlug) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
-    }
-
-    // Derive accessory weights from main lift calibration weights
-    function deriveAccessoryWeights(cw: Record<string, number>) {
-      const bench = cw.bench || 0
-      const squat = cw.squat || 0
-      const deadlift = cw.deadlift || 0
-      const row = cw.row || 0
-
-      return {
-        // Chest accessories
-        incline_db_press: Math.round((bench * 0.35) / 5) * 5,
-        cable_flyes: Math.round((bench * 0.15) / 5) * 5,
-        jm_press: Math.round((bench * 0.45) / 5) * 5,
-        skull_crushers: Math.round((bench * 0.35) / 5) * 5,
-        // Back accessories
-        lat_pulldown: Math.round((row * 0.85) / 5) * 5,
-        seated_cable_row: Math.round((row * 0.75) / 5) * 5,
-        straight_arm_pulldown: Math.round((row * 0.3) / 5) * 5,
-        // Leg accessories
-        leg_press: Math.round((squat * 1.5) / 5) * 5,
-        romanian_deadlift: Math.round((deadlift * 0.5) / 5) * 5,
-        good_morning: Math.round((squat * 0.3) / 5) * 5,
-        // Small muscles (rough estimates)
-        curl: Math.round((row * 0.2) / 5) * 5,
-        tricep_pushdown: Math.round((bench * 0.2) / 5) * 5,
-        calf_raise: Math.round((squat * 0.4) / 5) * 5,
-      }
     }
 
     const template = PROGRAM_TEMPLATES[programSlug] ?? PROGRAM_TEMPLATES['dad-strong-5']
@@ -314,150 +405,172 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Unknown program: ${programSlug}` }, { status: 400 })
     }
 
-    // ── Build log summary per exercise ─────────────────────────────────────
-    const logsByExercise: Record<string, Array<{
-      weight: number
-      reps: number
-      rir_actual: number | null
-      completed: boolean
-      logged_at: string
-    }>> = {}
+    const rms = oneRepMaxes ?? {}
 
+    // ── Build log summary per exercise ──────────────────────────────────────
+    type LogEntry = { exercise_name: string; weight: number; reps: number; rir_actual: number | null; completed: boolean; created_at: string }
+    const logsByExercise: Record<string, LogEntry[]> = {}
     for (const log of (recentLogs || [])) {
-      if (!logsByExercise[log.exercise]) {
-        logsByExercise[log.exercise] = []
-      }
-      logsByExercise[log.exercise].push(log)
+      const key = log.exercise_name
+      if (!logsByExercise[key]) logsByExercise[key] = []
+      logsByExercise[key].push(log)
     }
 
-    // Summarize last session per exercise
+    // Last session per exercise
     const exerciseSummaryLines: string[] = []
+    const lastSessionByExercise: Record<string, { weight: number; reps: number; rir_actual: number | null }> = {}
     for (const [exercise, logs] of Object.entries(logsByExercise)) {
-      const sorted = logs.sort((a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime())
-      const lastSessionDate = sorted[0].logged_at.split('T')[0]
-      const lastSession = sorted.filter(l => l.logged_at.startsWith(lastSessionDate))
+      const sorted = logs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      const lastDate = sorted[0].created_at.split('T')[0]
+      const lastSession = sorted.filter(l => l.created_at.startsWith(lastDate))
+      // Store last set's data for weight recommendation
+      const lastSet = lastSession[lastSession.length - 1]
+      lastSessionByExercise[exercise] = { weight: lastSet.weight, reps: lastSet.reps, rir_actual: lastSet.rir_actual }
       const setLines = lastSession.map((s, i) =>
-        `  Set ${i + 1}: ${s.weight}lbs x ${s.reps} reps, RIR logged=${s.rir_actual ?? 'not logged'}, completed=${s.completed}`
+        `  Set ${i + 1}: ${s.weight}lbs × ${s.reps} reps, RIR=${s.rir_actual ?? 'not logged'}, completed=${s.completed}`
       ).join('\n')
-      exerciseSummaryLines.push(`${exercise} (last session: ${lastSessionDate}):\n${setLines}`)
+      exerciseSummaryLines.push(`${exercise} (${lastDate}):\n${setLines}`)
     }
+
+    // ── Muscle group feedback context ───────────────────────────────────────
+    const feedbackLines: string[] = []
+    const painByMuscle: Record<string, number> = {} // muscle → consecutive weeks with pain
+    for (const fb of (muscleGroupFeedback || [])) {
+      feedbackLines.push(
+        `Week ${fb.week_number} — ${fb.muscle_group}: volume=${fb.volume_rating}, pump=${fb.pump_rating}, pain=${fb.pain_rating}`
+      )
+      if (fb.pain_rating !== 'none') {
+        painByMuscle[fb.muscle_group] = (painByMuscle[fb.muscle_group] || 0) + 1
+      }
+    }
+    const painFlags = Object.entries(painByMuscle)
+      .filter(([, count]) => count >= 2)
+      .map(([muscle]) => muscle)
 
     const hasHistory = exerciseSummaryLines.length > 0
     const logContext = hasHistory
-      ? `RECENT TRAINING LOGS (last 2 weeks):\n${exerciseSummaryLines.join('\n\n')}`
-      : `RECENT TRAINING LOGS: None — this is the user's first week on this program.`
+      ? `RECENT TRAINING LOGS:\n${exerciseSummaryLines.join('\n\n')}`
+      : `RECENT TRAINING LOGS: None — Week 1, user's first session.`
 
-    const templateJson = JSON.stringify(template, null, 2)
+    const feedbackContext = feedbackLines.length > 0
+      ? `MUSCLE GROUP FEEDBACK (from previous sessions):\n${feedbackLines.join('\n')}`
+      : ''
+
+    const painContext = painFlags.length > 0
+      ? `PAIN FLAGS (2+ consecutive weeks): ${painFlags.join(', ')} — reduce volume and note to consider exercise swap`
+      : ''
 
     const prompt = `
 PROGRAM TEMPLATE:
-${templateJson}
+${JSON.stringify(template, null, 2)}
 
 USER PROFILE:
 - Training age: ${userProfile?.trainingAge ?? 'intermediate'}
 - Primary goal: ${userProfile?.primaryGoal ?? 'strength'}
-- Equipment available: ${userProfile?.equipment ? Object.entries(userProfile.equipment).filter(([, v]) => v).map(([k]) => k).join(', ') || 'standard gym' : 'standard gym'}
+- Equipment: ${userProfile?.equipment ? Object.entries(userProfile.equipment as Record<string,unknown>).filter(([, v]) => v).map(([k]) => k).join(', ') || 'standard gym' : 'standard gym'}
 
 WEEK: ${weekNumber}
 
 ${logContext}
 
+${feedbackContext}
+
+${painContext}
+
 Generate a complete week of programmed workouts for week ${weekNumber}.
 `.trim()
 
     // ── Generate AI program ─────────────────────────────────────────────────
-    const { object: program } = await generateObject({
+    const { object: aiProgram } = await generateObject({
       model: google('gemini-2.5-flash'),
-      system: `You are an experienced strength coach programming for busy dads. You are data-driven, direct, and brief — no fluff. You write like a coach talking to someone with limited time and real responsibilities.
+      system: `You are an experienced strength coach programming for busy dads. Data-driven, direct, zero fluff.
+
+CRITICAL: Do NOT prescribe specific weights. The system calculates recommended weights automatically.
+Your job is to prescribe: exercise name, movementPattern, sets count, targetReps, and targetRir only.
 
 PROGRAM CHARACTER:
-- Dad Strong (dad-strong-3, dad-strong-5): Strength + bodybuilding hybrid with linear progression. Compound-first, accessories follow. Progress weights methodically each week.
-- Hybrid (hybrid-3, hybrid-5): Functional strength + GPP. Carries, loaded conditioning, and strongman movements are core to this program. For GPP/strongman days (Farmer's Carry, Sled Push, Atlas Stone, etc.): no RIR targets — use RPE 7-8, load by feel, focus on quality movement and effort. Do not program targetWeight for GPP carries/sleds — set to 0 and note "load by feel".
+- Dad Strong: strength + hypertrophy hybrid. Compound-first. Linear RIR progression.
+- Hybrid: functional strength + GPP. For GPP movements (carries, sleds, conditioning): set targetRir to 0 and add note "load by feel, RPE 7-8".
 
-PROGRESSION RULES (follow these exactly):
-1. For each exercise, find the user's last logged weight, reps, and rir_actual from the provided logs.
-2. If rir_actual > target RIR (too easy): increase weight — 5 lbs for isolation movements, 10 lbs for compound movements.
-3. If rir_actual = target RIR (on target): keep weight. If they hit the top of the rep range, add 2.5 lbs.
-4. If rir_actual < target RIR (too hard): keep weight or reduce 5-10%.
-5. If completed=false on any set: reduce weight 10% for that exercise.
-6. For week 1 with no history and no calibration data, suggest conservative starting weights based on training age:
-   - beginner: empty bar or very light weight, technique focus
-   - intermediate: moderate working weights (e.g., bench ~135 lbs, squat ~155 lbs, deadlift ~185 lbs)
-   - advanced: near-max programming with heavier starting points
-7. For week 1 new users: add a note like "Start conservative — we'll dial in your weights over the first 2 sessions"
+PROGRESSION RULES:
+Week 1 (no history): start all exercises at RIR 3-4. Rep ranges as per template. weekTheme = "Week 1 — Find Your Baseline".
 
-OUTPUT RULES:
-- Always reference actual numbers from logs when explaining progression decisions in progressionNote.
-- Keep progressionNote brief: one sentence max. Example: "Up from 185x5 last week — hit top of range with RIR 4."
-- coachNote should be 1-2 sentences max. Direct. References what the data shows or what to focus on this week.
-- weekTheme should be concise: e.g. "Foundation Week", "Week 3 — Adding Load", "Deload Week".
-- Set targetWeight to 0 for bodyweight exercises.
-- Ensure every exercise from the template is included in each day.
-- deloadRecommended should be true if the user has 4+ consecutive weeks of logged data showing fatigue indicators (rir_actual consistently below target or failed sets).${
-        weekNumber === 1 && calibrationWeights && Object.keys(calibrationWeights).length > 0
-          ? `
+Week 2+ per exercise:
+- rir_actual was ABOVE target (felt easy): reduce targetRir by 1 next week (same reps, user will use same weight and work harder)
+- rir_actual matched target: keep targetRir same; if they hit TOP of rep range → note it in progressionNote
+- rir_actual was BELOW target (too hard): increase targetRir by 1
+- rir_actual = 0 (true failure): server adds weight automatically; reset targetRir to 2 next week
+- completed=false on any set: increase targetRir by 2 (back off)
 
-CALIBRATION WEEK RULES (Week 1 only):
-- This is the user's calibration week.
-- The calibration weights entered by the user are their REP MAXES — the most they can lift for the given rep range with ZERO reps in reserve (RIR 0). They are NOT working weights.
-- You MUST back-calculate working weights from these rep maxes based on the target RIR for each set.
-- Formula: targetWeight = calibrationWeight × (1 - (targetRIR × 0.033)), then round to nearest 5 lbs.
-  - RIR 0: use 100% of calibration weight
-  - RIR 1: use ~97% of calibration weight
-  - RIR 2: use ~93% of calibration weight
-  - RIR 3: use ~90% of calibration weight
-  - RIR 4: use ~87% of calibration weight
-- Example: bench calibration = 255 (5RM), set targets RIR 3 → 255 × 0.90 = 230 lbs
-- For accessory lifts: apply the same RIR-based reduction to the derived accessory weights below.
-- Set ALL sets to the SAME calculated weight for each exercise (no wave loading in Week 1).
-- The weekTheme should be "Calibration Week"
-- The coachNote should explain: "Week 1 is calibration. These weights are calculated from your rep maxes — they should feel challenging but controlled. Hit the target RIR honestly. Week 2 loads are built from what you report today."
+Volume adjustments from muscle group feedback:
+- volume="not_enough": add 1 working set to the primary compound for that muscle
+- volume="too_much" or "bit_much": remove 1 set or increase targetRir by 1
+- pump="good" or "skin_splitting" AND volume="about_right": reduce targetRir by 1 (capitalize on adaptation)
+- pain="mild" once: no change, note it
+- pain flag active (2+ weeks): reduce volume 1 set, increase targetRir by 1, add progressionNote "Consider exercise swap"
 
-Calibration weights entered by user (these are REP MAXES, not working weights):
-${JSON.stringify(calibrationWeights)}
+Deload week (last week of program OR early trigger): reduce sets by ~40%, increase all targetRir by 2-3.
 
-Derived accessory weights based on rep maxes (apply RIR reduction to these too):
-${JSON.stringify(deriveAccessoryWeights(calibrationWeights))}`
-          : weekNumber === 1
-          ? `
-
-WEEK 1 - NO CALIBRATION DATA:
-User did not enter starting weights. Suggest conservative starter weights based on training age:
-- Beginner: very light (bar + 25s for compounds)
-- Intermediate: moderate (bar + 45-90s for compounds)
-- Advanced: moderate-heavy (bar + 90-135s for compounds)
-Add a note on each exercise: "Adjust this weight to achieve the target RIR — these are estimates."
-Set weekTheme to "Calibration Week" regardless.`
-          : ''
-      }`,
+OUTPUT:
+- progressionNote: one sentence max referencing actual data. e.g. "RIR 4 last week vs target 3 — tightening to RIR 2."
+- coachNote: 1-2 sentences, data-referenced, direct.
+- weekTheme: short label, e.g. "Week 3 — Tightening the Vice"
+- movementPattern: must match exactly from template data (e.g. push_horizontal, squat, hinge, isolation_bicep)
+- Ensure every exercise from the template appears in each day.`,
       prompt,
       schema: z.object({
         weekNumber: z.number(),
         programName: z.string(),
-        weekTheme: z.string().describe('Short label for this week, e.g. "Foundation Week" or "Push Week 3 — Adding Load"'),
-        coachNote: z.string().describe('1-2 sentences from the coach on what to focus on this week, referencing actual data'),
+        weekTheme: z.string(),
+        coachNote: z.string(),
         days: z.array(z.object({
           dayNumber: z.number(),
           dayName: z.string(),
           exercises: z.array(z.object({
             name: z.string(),
+            movementPattern: z.string().describe('Must match template movementPattern exactly'),
             sets: z.array(z.object({
               setNumber: z.number(),
-              targetWeight: z.number().describe('Weight in lbs. Use 0 for bodyweight exercises.'),
               targetReps: z.number(),
               targetRir: z.number(),
-              notes: z.string().optional().describe('e.g. "increase from last week" or "start conservative"'),
+              notes: z.string().optional(),
             })),
-            progressionNote: z.string().optional().describe('One sentence explaining why weight changed or stayed the same vs last week'),
+            progressionNote: z.string().optional(),
           })),
         })),
         deloadRecommended: z.boolean(),
-        deloadReason: z.string().optional().describe('Why a deload is recommended, if applicable'),
+        deloadReason: z.string().optional(),
         isCalibrationWeek: z.boolean(),
       }),
     })
 
-    return NextResponse.json({ program })
+    // ── Server-side: inject recommendedWeight per set ───────────────────────
+    const programWithWeights = {
+      ...aiProgram,
+      days: aiProgram.days.map(day => ({
+        ...day,
+        exercises: day.exercises.map(ex => {
+          const lastData = lastSessionByExercise[ex.name] ?? null
+          return {
+            ...ex,
+            sets: ex.sets.map(set => ({
+              ...set,
+              recommendedWeight: calcRecommendedWeight(
+                ex.name,
+                ex.movementPattern,
+                set.targetReps,
+                set.targetRir,
+                lastData?.weight ?? null,
+                lastData?.rir_actual ?? null,
+                rms
+              ),
+            })),
+          }
+        }),
+      })),
+    }
+
+    return NextResponse.json({ program: programWithWeights })
   } catch (error) {
     console.error('Program Generate Error:', error)
     return NextResponse.json({ error: 'Failed to generate program. Try again.' }, { status: 500 })
