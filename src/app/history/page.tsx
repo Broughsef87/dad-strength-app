@@ -3,75 +3,52 @@
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Dumbbell, History as HistoryIcon, Calendar, ChevronDown, ChevronUp, Weight } from 'lucide-react'
+import { ChevronLeft, Dumbbell, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import WeeklyDebrief from '../../components/WeeklyDebrief'
 import WeeklyMissionBrief from '../../components/WeeklyMissionBrief'
 import QuarterlyReview from '../../components/QuarterlyReview'
 
-type LogEntry = {
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type GeneratedWorkout = {
   id: string
-  workout_id: string
+  week_number: number
+  day_number: number
+  day_name: string
+  week_theme?: string
+  ai_reasoning?: string
+  generated_at: string
+}
+
+type WorkoutLog = {
+  id: string
   exercise_name: string
-  set_number: number
-  weight_lbs: number
+  weight: number
   reps: number
+  rir_actual: number | null
   completed: boolean
+  generated_workout_id: string
   created_at: string
 }
 
-type SessionGroup = {
-  date: string
-  workout_id: string
-  workout_name?: string
-  exercises: Record<string, LogEntry[]>
+type SessionSummary = {
+  workout: GeneratedWorkout
+  logs: WorkoutLog[]
+  completedSets: number
   totalVolume: number
-  totalSets: number
 }
 
-const PAGE_SIZE = 50
-
-function buildSessions(logs: LogEntry[], workoutNames: Record<string, string>): SessionGroup[] {
-  const sessionMap: Record<string, SessionGroup> = {}
-  for (const log of logs) {
-    const dateKey = new Date(log.created_at).toDateString()
-    const sessionKey = `${dateKey}__${log.workout_id}`
-    if (!sessionMap[sessionKey]) {
-      sessionMap[sessionKey] = {
-        date: log.created_at,
-        workout_id: log.workout_id,
-        workout_name: workoutNames[log.workout_id] || 'Custom Workout',
-        exercises: {},
-        totalVolume: 0,
-        totalSets: 0,
-      }
-    }
-    const session = sessionMap[sessionKey]
-    if (!session.exercises[log.exercise_name]) {
-      session.exercises[log.exercise_name] = []
-    }
-    session.exercises[log.exercise_name].push(log)
-    session.totalVolume += (log.weight_lbs || 0) * (log.reps || 0)
-    session.totalSets++
-  }
-  return Object.values(sessionMap).sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  )
-}
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function History() {
   const supabase = createClient()
   const router = useRouter()
-  const [sessions, setSessions] = useState<SessionGroup[]>([])
+
+  const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [offset, setOffset] = useState(0)
-  const [allLogs, setAllLogs] = useState<LogEntry[]>([])
-  const [workoutNames, setWorkoutNames] = useState<Record<string, string>>({})
-  const [userId, setUserId] = useState<string | null>(null)
-  const [sessionNotes, setSessionNotes] = useState<Record<string, string>>({})
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(new Set())
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -80,127 +57,144 @@ export default function History() {
         router.push('/')
         return
       }
-      setUserId(user.id)
 
-      const { data, error } = await supabase
-        .from('workout_logs')
-        .select('*')
+      // 1. Fetch generated_workouts ordered by generated_at desc
+      const { data: workouts, error: wErr } = await supabase
+        .from('generated_workouts')
+        .select('id, week_number, day_number, day_name, week_theme, ai_reasoning, generated_at')
         .eq('user_id', user.id)
-        .eq('completed', true)
-        .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE)
+        .order('generated_at', { ascending: false })
+        .limit(100)
 
-      if (error) {
-        console.error('Error fetching history:', error)
+      if (wErr) {
+        console.error('Error fetching generated_workouts:', wErr)
         setLoading(false)
         return
       }
 
-      const logs = data || []
-      setHasMore(logs.length === PAGE_SIZE)
-      setOffset(logs.length)
-      setAllLogs(logs)
-
-      const wIds = Array.from(new Set(logs.map((l: LogEntry) => l.workout_id).filter(Boolean)))
-      let names: Record<string, string> = {}
-      if (wIds.length > 0) {
-        const { data: workouts } = await supabase
-          .from('workouts')
-          .select('id, name')
-          .in('id', wIds)
-        ;(workouts || []).forEach((w: any) => { names[w.id] = w.name })
-      }
-      setWorkoutNames(names)
-
-      const sorted = buildSessions(logs, names)
-      setSessions(sorted)
-
-      if (sorted.length > 0) {
-        const firstKey = `${new Date(sorted[0].date).toDateString()}__${sorted[0].workout_id}`
-        setExpanded(firstKey)
+      const allWorkouts: GeneratedWorkout[] = workouts ?? []
+      if (allWorkouts.length === 0) {
+        setLoading(false)
+        return
       }
 
-      const { data: checkins } = await supabase
-        .from('daily_checkins')
-        .select('workout_notes')
-        .eq('user_id', user.id)
-        .not('workout_notes', 'is', null)
-      const allNotes: Record<string, string> = {}
-      for (const c of checkins || []) {
-        Object.assign(allNotes, c.workout_notes || {})
+      const workoutIds = allWorkouts.map((w) => w.id)
+
+      // 2. Fetch workout_logs for those workout IDs
+      const { data: logs, error: lErr } = await supabase
+        .from('workout_logs')
+        .select('id, exercise_name, weight, reps, rir_actual, completed, generated_workout_id, created_at')
+        .in('generated_workout_id', workoutIds)
+        .order('created_at', { ascending: true })
+
+      if (lErr) {
+        console.error('Error fetching workout_logs:', lErr)
+        setLoading(false)
+        return
       }
-      setSessionNotes(allNotes)
+
+      const allLogs: WorkoutLog[] = logs ?? []
+
+      // 3. Group logs by workout id
+      const logsByWorkoutId: Record<string, WorkoutLog[]> = {}
+      for (const log of allLogs) {
+        if (!logsByWorkoutId[log.generated_workout_id]) {
+          logsByWorkoutId[log.generated_workout_id] = []
+        }
+        logsByWorkoutId[log.generated_workout_id].push(log)
+      }
+
+      // 4. Build sessions — only include workouts with at least 1 completed log
+      const built: SessionSummary[] = []
+      for (const workout of allWorkouts) {
+        const wLogs = logsByWorkoutId[workout.id] ?? []
+        const hasCompleted = wLogs.some((l) => l.completed)
+        if (!hasCompleted) continue
+
+        const completedSets = wLogs.filter((l) => l.completed).length
+        const totalVolume = wLogs
+          .filter((l) => l.completed)
+          .reduce((sum, l) => sum + (l.weight || 0) * (l.reps || 0), 0)
+
+        built.push({ workout, logs: wLogs, completedSets, totalVolume })
+      }
+
+      setSessions(built)
+
+      // Auto-expand most recent week
+      if (built.length > 0) {
+        const maxWeek = Math.max(...built.map((s) => s.workout.week_number))
+        setExpandedWeeks(new Set([maxWeek]))
+      }
 
       setLoading(false)
     }
+
     fetchHistory()
   }, [router, supabase])
 
-  const loadMore = async () => {
-    if (!userId || loadingMore) return
-    setLoadingMore(true)
+  // ── Group by week ──────────────────────────────────────────────────────────────
 
-    const { data, error } = await supabase
-      .from('workout_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('completed', true)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1)
+  const weekNumbers = Array.from(new Set(sessions.map((s) => s.workout.week_number))).sort(
+    (a, b) => b - a
+  )
 
-    if (error) {
-      console.error('Error loading more:', error)
-      setLoadingMore(false)
-      return
-    }
-
-    const newLogs = data || []
-    setHasMore(newLogs.length === PAGE_SIZE)
-    setOffset(prev => prev + newLogs.length)
-
-    const combined = [...allLogs, ...newLogs]
-    setAllLogs(combined)
-
-    // Fetch workout names for any new workout IDs
-    const existingIds = new Set(Object.keys(workoutNames))
-    const newIds = Array.from(new Set(newLogs.map((l: LogEntry) => l.workout_id).filter(Boolean))).filter(id => !existingIds.has(id as string))
-    let updatedNames = { ...workoutNames }
-    if (newIds.length > 0) {
-      const { data: workouts } = await supabase
-        .from('workouts')
-        .select('id, name')
-        .in('id', newIds)
-      ;(workouts || []).forEach((w: any) => { updatedNames[w.id] = w.name })
-      setWorkoutNames(updatedNames)
-    }
-
-    setSessions(buildSessions(combined, updatedNames))
-    setLoadingMore(false)
+  const sessionsByWeek: Record<number, SessionSummary[]> = {}
+  for (const s of sessions) {
+    const w = s.workout.week_number
+    if (!sessionsByWeek[w]) sessionsByWeek[w] = []
+    sessionsByWeek[w].push(s)
   }
+
+  const toggleWeek = (week: number) => {
+    setExpandedWeeks((prev) => {
+      const next = new Set(prev)
+      next.has(week) ? next.delete(week) : next.add(week)
+      return next
+    })
+  }
+
+  const toggleSession = (id: string) => {
+    setExpandedSessions((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  // ── Loading ────────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground font-mono text-xs uppercase tracking-widest">Loading history...</p>
         </div>
       </div>
     )
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
         <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-brand/5 blur-[100px]" />
       </div>
+
       <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b border-border p-4 flex items-center gap-4">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors">
+        <button
+          onClick={() => router.back()}
+          className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
           <ChevronLeft />
         </button>
         <div>
           <h1 className="text-xl font-black italic uppercase tracking-tighter">Battle Log</h1>
-          <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{sessions.length} Sessions</p>
+          <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">
+            {sessions.length} Sessions
+          </p>
         </div>
       </header>
 
@@ -217,37 +211,25 @@ export default function History() {
 
         {/* AI Weekly Debrief */}
         <div className="bg-card/50 rounded-3xl border border-border p-6 shadow-xl">
-          <WeeklyDebrief
-            weekSessions={sessions.filter(s => {
-              const d = new Date(s.date)
-              const now = new Date()
-              const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay())
-              return d >= startOfWeek
-            }).length}
-            totalVolume={sessions.reduce((sum, s) => sum + s.totalVolume, 0)}
-            streak={0}
-          />
+          <WeeklyDebrief />
         </div>
+
+        {/* Empty state */}
         {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-            {/* Icon with glow */}
             <div className="relative mb-8">
               <div className="absolute inset-0 rounded-full bg-brand/20 blur-2xl scale-150" />
               <div className="relative h-20 w-20 rounded-2xl bg-card border border-border flex items-center justify-center mx-auto">
                 <Dumbbell size={36} className="text-brand" strokeWidth={1.5} />
               </div>
             </div>
-
-            {/* Copy */}
             <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-brand mb-3">Battle Log Empty</p>
             <h2 className="text-2xl font-black tracking-tighter text-foreground mb-3 leading-tight">
               THE LOG IS EMPTY.
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mb-8">
-              Iron only counts when it's recorded. Every rep, every set — this is where your legacy is built.
+              Iron only counts when it&apos;s recorded. Every rep, every set — this is where your legacy is built.
             </p>
-
-            {/* CTA */}
             <button
               onClick={() => router.push('/body')}
               className="flex items-center gap-2 bg-brand text-white font-black text-xs uppercase tracking-[0.15em] px-8 py-4 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97]"
@@ -258,90 +240,159 @@ export default function History() {
           </div>
         ) : (
           <>
-            {sessions.map((session) => {
-              const sessionKey = `${new Date(session.date).toDateString()}__${session.workout_id}`
-              const isExpanded = expanded === sessionKey
-              const dateLabel = new Date(session.date).toLocaleDateString('en-US', {
-                weekday: 'short', month: 'short', day: 'numeric'
-              })
+            {weekNumbers.map((weekNum) => {
+              const weekSessions = sessionsByWeek[weekNum] ?? []
+              const isWeekExpanded = expandedWeeks.has(weekNum)
+              const weekTheme = weekSessions[0]?.workout.week_theme
+
+              // Aggregate week stats
+              const weekCompletedSets = weekSessions.reduce((s, x) => s + x.completedSets, 0)
+              const weekVolume = weekSessions.reduce((s, x) => s + x.totalVolume, 0)
 
               return (
-                <div key={sessionKey} className="bg-card rounded-3xl border border-border overflow-hidden shadow-xl">
-                  {/* Session Header */}
+                <div key={weekNum} className="space-y-2">
+                  {/* Week header */}
                   <button
-                    onClick={() => setExpanded(isExpanded ? null : sessionKey)}
-                    className="w-full flex items-center justify-between p-5 hover:bg-muted/50 transition-all"
+                    onClick={() => toggleWeek(weekNum)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-card/60 rounded-2xl border border-border/60 hover:bg-muted/40 transition-all"
                   >
-                    <div className="flex items-center gap-4 text-left">
-                      <div className="h-12 w-12 rounded-2xl bg-brand/10 flex items-center justify-center flex-shrink-0">
-                        <Dumbbell size={20} className="text-brand" />
+                    <div className="text-left">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-black text-brand uppercase tracking-[0.15em]">
+                          Week {weekNum}
+                        </p>
+                        {weekTheme && (
+                          <span className="text-xs text-muted-foreground font-bold">· {weekTheme}</span>
+                        )}
                       </div>
-                      <div>
-                        <p className="font-black text-base tracking-tight">{session.workout_name}</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
-                            <Calendar size={10} /> {dateLabel}
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          {weekSessions.length} session{weekSessions.length !== 1 ? 's' : ''}
+                        </span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          {weekCompletedSets} sets
+                        </span>
+                        {weekVolume > 0 && (
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            {weekVolume >= 1000
+                              ? `${(weekVolume / 1000).toFixed(1)}k`
+                              : weekVolume}{' '}
+                            lbs
                           </span>
-                          <span className="text-xs font-bold text-brand uppercase">{session.totalSets} sets</span>
-                          {session.totalVolume > 0 && (
-                            <span className="text-xs font-bold text-muted-foreground uppercase">{session.totalVolume.toLocaleString()} lbs</span>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
                     <div className="text-muted-foreground flex-shrink-0">
-                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      {isWeekExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                   </button>
 
-                  {/* Exercise Breakdown */}
-                  {isExpanded && (
-                    <div className="border-t border-border px-5 pb-5 pt-4 space-y-4">
-                      {Object.entries(session.exercises).map(([exerciseName, sets]) => {
-                        const bestSet = sets.reduce((best, s) =>
-                          (s.weight_lbs || 0) > (best.weight_lbs || 0) ? s : best, sets[0])
+                  {/* Sessions within week */}
+                  {isWeekExpanded && (
+                    <div className="space-y-2 pl-2">
+                      {weekSessions.map((session) => {
+                        const { workout, logs, completedSets, totalVolume } = session
+                        const isExpanded = expandedSessions.has(workout.id)
+                        const dateLabel = new Date(workout.generated_at).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        })
+
+                        // Group completed logs by exercise name for display
+                        const completedLogs = logs.filter((l) => l.completed)
+                        const byExercise: Record<string, WorkoutLog[]> = {}
+                        for (const l of completedLogs) {
+                          if (!byExercise[l.exercise_name]) byExercise[l.exercise_name] = []
+                          byExercise[l.exercise_name].push(l)
+                        }
+
                         return (
-                          <div key={exerciseName}>
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="font-black text-sm uppercase tracking-tight">{exerciseName}</p>
-                              <span className="text-xs font-bold text-muted-foreground">{sets.length} sets</span>
-                            </div>
-                            <div className="space-y-1.5">
-                              {sets.map((s, i) => (
-                                <div key={s.id} className="flex items-center justify-between bg-muted rounded-xl px-4 py-2">
-                                  <span className="text-xs font-black text-muted-foreground uppercase w-8">S{s.set_number}</span>
-                                  <span className="text-sm font-bold">{s.weight_lbs > 0 ? `${s.weight_lbs} lbs` : 'BW'}</span>
-                                  <span className="text-sm font-bold text-brand">× {s.reps}</span>
-                                  {s === bestSet && s.weight_lbs > 0 && (
-                                    <span className="text-xs font-black text-yellow-500 uppercase">Top</span>
-                                  )}
+                          <div
+                            key={workout.id}
+                            className="bg-card rounded-2xl border border-border overflow-hidden shadow-lg"
+                          >
+                            {/* Session header */}
+                            <button
+                              onClick={() => toggleSession(workout.id)}
+                              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-all"
+                            >
+                              <div className="flex items-center gap-3 text-left">
+                                <div className="h-10 w-10 rounded-xl bg-brand/10 flex items-center justify-center flex-shrink-0">
+                                  <Dumbbell size={16} className="text-brand" />
                                 </div>
-                              ))}
-                            </div>
+                                <div>
+                                  <p className="font-black text-sm tracking-tight">
+                                    Day {workout.day_number}
+                                    {workout.day_name ? ` — ${workout.day_name}` : ''}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                                      <Calendar size={9} /> {dateLabel}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-brand uppercase">
+                                      {completedSets} sets
+                                    </span>
+                                    {totalVolume > 0 && (
+                                      <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                        {totalVolume >= 1000
+                                          ? `${(totalVolume / 1000).toFixed(1)}k`
+                                          : totalVolume}{' '}
+                                        lbs
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-muted-foreground flex-shrink-0">
+                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              </div>
+                            </button>
+
+                            {/* Exercise breakdown */}
+                            {isExpanded && (
+                              <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
+                                {Object.entries(byExercise).map(([exerciseName, sets]) => (
+                                  <div key={exerciseName}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <p className="font-black text-xs uppercase tracking-tight">{exerciseName}</p>
+                                      <span className="text-[10px] font-bold text-muted-foreground">
+                                        {sets.length} sets
+                                      </span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      {sets.map((s, i) => (
+                                        <div
+                                          key={s.id}
+                                          className="flex items-center justify-between bg-muted rounded-xl px-3 py-2"
+                                        >
+                                          <span className="text-[10px] font-black text-muted-foreground uppercase w-6">
+                                            S{i + 1}
+                                          </span>
+                                          <span className="text-sm font-bold">
+                                            {s.weight > 0 ? `${s.weight} lbs` : 'BW'}
+                                          </span>
+                                          <span className="text-sm font-bold text-brand">× {s.reps}</span>
+                                          {s.rir_actual !== null && (
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                              RIR {s.rir_actual}
+                                            </span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )
                       })}
-                      {sessionNotes[session.workout_id] && (
-                        <div className="mt-4 pt-4 border-t border-border">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">Session Note</p>
-                          <p className="text-sm text-foreground leading-relaxed">{sessionNotes[session.workout_id]}</p>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
               )
             })}
-
-            {hasMore && (
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                className="w-full py-3 border border-border rounded-xl text-sm text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors disabled:opacity-50"
-              >
-                {loadingMore ? 'Loading...' : 'Load More'}
-              </button>
-            )}
           </>
         )}
       </main>

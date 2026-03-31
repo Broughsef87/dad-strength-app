@@ -528,6 +528,9 @@ export default function ProgramWorkoutPage() {
   // Exercise swap modal
   const [swapModal, setSwapModal] = useState<SwapModal | null>(null)
 
+  // Finish session confirmation
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false)
+
   // Prevent re-initialization when auth re-emits
   const hasInitializedRef = useRef(false)
 
@@ -590,7 +593,7 @@ export default function ProgramWorkoutPage() {
         // 1. Read active program from localStorage
         const raw = localStorage.getItem('dad-strength-active-program')
         if (!raw) {
-          router.push('/body')
+          window.location.assign('/body')
           return
         }
         const prog: ActiveProgram = JSON.parse(raw)
@@ -974,6 +977,47 @@ export default function ProgramWorkoutPage() {
     setSwapModal(null)
   }, [swapModal])
 
+  // ── Finish Session ─────────────────────────────────────────────────────────────
+
+  const handleFinishSession = useCallback(async () => {
+    if (!user) return
+
+    // Save any un-logged (idle or logging) sets to Supabase with completed=false
+    const saveTasks: Promise<unknown>[] = []
+    for (const ex of exerciseLogs) {
+      for (const s of ex.sets) {
+        if (s.status === 'idle' || s.status === 'logging') {
+          const w = s.actualWeight > 0 ? s.actualWeight : s.recommendedWeight
+          saveTasks.push(
+            supabase.from('workout_logs').insert({
+              user_id: user.id,
+              exercise_name: ex.name,
+              weight: w,
+              reps: s.actualReps,
+              rir_actual: null,
+              completed: false,
+              generated_workout_id: savedWorkoutId,
+              created_at: new Date().toISOString(),
+            })
+          )
+        }
+      }
+    }
+    try {
+      await Promise.all(saveTasks)
+    } catch (e) {
+      console.error('Failed to save partial sets on finish:', e)
+    }
+
+    // Clear WIP localStorage
+    if (program) {
+      const wipKey = `dad-strength-wip-day${dayNumber}-week${program.currentWeek}-${program.slug}`
+      localStorage.removeItem(wipKey)
+    }
+
+    window.location.assign('/body')
+  }, [user, supabase, exerciseLogs, savedWorkoutId, program, dayNumber])
+
   // ── Derived stats ──────────────────────────────────────────────────────────────
 
   const totalSets = exerciseLogs.reduce((acc, ex) => acc + ex.sets.length, 0)
@@ -1002,7 +1046,7 @@ export default function ProgramWorkoutPage() {
   }
 
   if (pageState === 'error' && !usedFallback) {
-    return <ErrorScreen onBack={() => router.push('/body')} />
+    return <ErrorScreen onBack={() => window.location.assign('/body')} />
   }
 
   return (
@@ -1011,7 +1055,7 @@ export default function ProgramWorkoutPage() {
       <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-4 py-3 max-w-md mx-auto">
           <button
-            onClick={() => router.push('/body')}
+            onClick={() => window.location.assign('/body')}
             className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft size={22} />
@@ -1094,7 +1138,7 @@ export default function ProgramWorkoutPage() {
               </div>
             </div>
             <button
-              onClick={() => router.push('/body')}
+              onClick={() => window.location.assign('/body')}
               className="w-full py-3.5 rounded-xl bg-brand text-white font-black text-sm uppercase tracking-widest active:scale-95 brand-glow"
             >
               Back to Program
@@ -1169,6 +1213,39 @@ export default function ProgramWorkoutPage() {
           )
         })}
 
+        {/* Finish Session */}
+        {exerciseLogs.length > 0 && !sessionComplete && (
+          <div className="pt-2 pb-4">
+            {showFinishConfirm ? (
+              <div className="glass-card rounded-2xl p-4 border border-border/50 space-y-3">
+                <p className="text-sm font-bold text-foreground text-center">End session early?</p>
+                <p className="text-xs text-muted-foreground text-center">Your logged sets are already saved.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setShowFinishConfirm(false)}
+                    className="py-3 rounded-xl border border-border/60 text-muted-foreground text-xs font-bold uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    Keep Going
+                  </button>
+                  <button
+                    onClick={handleFinishSession}
+                    className="py-3 rounded-xl bg-brand/10 border border-brand/40 text-brand text-xs font-bold uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    Yes, Finish
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowFinishConfirm(true)}
+                className="w-full py-3.5 rounded-xl border border-border/60 text-muted-foreground text-sm font-bold uppercase tracking-widest active:scale-95 transition-all"
+              >
+                Finish Session
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Empty state */}
         {exerciseLogs.length === 0 && pageState !== 'loading' && (
           <div className="glass-card rounded-2xl p-8 text-center space-y-3">
@@ -1179,7 +1256,7 @@ export default function ProgramWorkoutPage() {
               Check your program settings and try again.
             </p>
             <button
-              onClick={() => router.push('/body')}
+              onClick={() => window.location.assign('/body')}
               className="px-5 py-2.5 rounded-xl bg-brand text-white text-xs font-black uppercase tracking-widest active:scale-95"
             >
               Back to Program
