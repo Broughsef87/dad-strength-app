@@ -324,23 +324,24 @@ function get1RMForExercise(
   if (n.includes('barbell row') || n.includes('barbell rows')) return row
 
   // Derivatives by pattern
-  if (pattern === 'push_horizontal') return Math.round(bench * 0.6 / 2.5) * 2.5   // DB press ~60% bench 1RM
-  if (pattern === 'push_fly') return Math.round(bench * 0.3 / 2.5) * 2.5
-  if (pattern === 'push_vertical') return ohp || Math.round(bench * 0.65 / 2.5) * 2.5
-  if (pattern === 'push_tricep') return Math.round(bench * 0.45 / 2.5) * 2.5
-  if (pattern === 'pull_horizontal') return Math.round(row * 0.9 / 2.5) * 2.5
-  if (pattern === 'pull_vertical') return Math.round(row * 0.75 / 2.5) * 2.5
-  if (pattern === 'pull_rear_delt') return Math.round(row * 0.25 / 2.5) * 2.5
-  if (pattern === 'isolation_bicep') return Math.round(row * 0.22 / 2.5) * 2.5
-  if (pattern === 'isolation_shoulder') return Math.round(ohp * 0.3 / 2.5) * 2.5
-  if (pattern === 'squat') return Math.round(squat * 1.4 / 5) * 5  // leg press
-  if (pattern === 'squat_unilateral') return Math.round(squat * 0.5 / 2.5) * 2.5
-  if (pattern === 'isolation_quad') return Math.round(squat * 0.35 / 2.5) * 2.5
-  if (pattern === 'hinge') return Math.round(deadlift * 0.55 / 2.5) * 2.5
-  if (pattern === 'hinge_extension') return Math.round(deadlift * 0.35 / 2.5) * 2.5
-  if (pattern === 'isolation_hamstring') return Math.round(deadlift * 0.25 / 2.5) * 2.5
-  if (pattern === 'isolation_calf') return Math.round(squat * 0.55 / 5) * 5
-  if (pattern === 'isolation_hip') return Math.round(squat * 0.3 / 2.5) * 2.5
+  // Note: DB/cable weights are per-hand. Ratios tuned for realistic starting weights.
+  if (pattern === 'push_horizontal') return Math.round(bench * 0.33 / 2.5) * 2.5  // DB press per hand ~33% of barbell 1RM
+  if (pattern === 'push_fly') return Math.round(bench * 0.16 / 2.5) * 2.5          // DB/cable fly, lighter
+  if (pattern === 'push_vertical') return ohp || Math.round(bench * 0.60 / 2.5) * 2.5
+  if (pattern === 'push_tricep') return Math.round(bench * 0.30 / 2.5) * 2.5       // skull crushers/pushdowns total load
+  if (pattern === 'pull_horizontal') return Math.round(row * 0.85 / 2.5) * 2.5    // cable/machine row similar to barbell
+  if (pattern === 'pull_vertical') return Math.round(row * 0.70 / 2.5) * 2.5      // lat pulldown
+  if (pattern === 'pull_rear_delt') return Math.round(row * 0.18 / 2.5) * 2.5     // face pulls / rear delt flies
+  if (pattern === 'isolation_bicep') return Math.round(row * 0.16 / 2.5) * 2.5    // curls per hand
+  if (pattern === 'isolation_shoulder') return Math.round((ohp || bench * 0.60) * 0.18 / 2.5) * 2.5  // lateral raise per hand
+  if (pattern === 'squat') return Math.round(squat * 1.3 / 5) * 5                 // leg press
+  if (pattern === 'squat_unilateral') return Math.round(squat * 0.40 / 2.5) * 2.5 // split squat / lunge per hand
+  if (pattern === 'isolation_quad') return Math.round(squat * 0.30 / 2.5) * 2.5   // leg extension stack
+  if (pattern === 'hinge') return Math.round(deadlift * 0.50 / 2.5) * 2.5         // RDL / good morning
+  if (pattern === 'hinge_extension') return Math.round(deadlift * 0.30 / 2.5) * 2.5
+  if (pattern === 'isolation_hamstring') return Math.round(deadlift * 0.20 / 2.5) * 2.5  // leg curl stack
+  if (pattern === 'isolation_calf') return Math.round(squat * 0.45 / 5) * 5
+  if (pattern === 'isolation_hip') return Math.round(squat * 0.25 / 2.5) * 2.5
 
   return 0
 }

@@ -242,12 +242,14 @@ function SetRow({
   onRepsChange,
   onLog,
   onRirSelect,
+  onSkip,
 }: {
   setLog: SetLog
   onWeightChange: (val: number) => void
   onRepsChange: (val: number) => void
   onLog: () => void
   onRirSelect: (rir: number) => void
+  onSkip: () => void
 }) {
   const isDone = setLog.status === 'done'
   const isLogging = setLog.status === 'logging'
@@ -341,6 +343,12 @@ function SetRow({
               </button>
             ))}
           </div>
+          <button
+            onClick={onSkip}
+            className="w-full text-center text-xs text-muted-foreground/60 py-1 hover:text-muted-foreground transition-colors"
+          >
+            Skip this set
+          </button>
         </div>
       )}
     </div>
@@ -531,12 +539,27 @@ export default function ProgramWorkoutPage() {
     }
   }, [])
 
+  // ── Screen sleep / visibility protection ─────────────────────────────────────
+  // Refresh auth session when user returns to the app (screen wake / tab switch)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.auth.getSession()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [supabase])
+
   // ── Data fetch / AI generation ────────────────────────────────────────────────
 
   useEffect(() => {
     if (userLoading) return
     if (!user) {
-      router.push('/login')
+      // Don't redirect mid-workout — session may be briefly null on screen wake
+      if (exerciseLogs.length === 0 && pageState === 'loading') {
+        router.push('/login')
+      }
       return
     }
 
@@ -766,11 +789,29 @@ export default function ProgramWorkoutPage() {
     )
   }, [])
 
+  const handleSkip = useCallback((exIndex: number, setIndex: number) => {
+    setExerciseLogs((prev) =>
+      prev.map((ex, ei) => {
+        if (ei !== exIndex) return ex
+        return {
+          ...ex,
+          sets: ex.sets.map((s, si) =>
+            si === setIndex ? { ...s, actualRir: null, status: 'done' as SetStatus } : s
+          ),
+        }
+      })
+    )
+  }, [])
+
   const handleRirSelect = useCallback(
     async (exIndex: number, setIndex: number, rir: number) => {
       if (!user) return
 
       let updatedSet: SetLog | null = null
+
+      // Capture current weight/reps BEFORE state update for auto-fill
+      const loggedWeight = exerciseLogs[exIndex]?.sets[setIndex]?.actualWeight ?? 0
+      const loggedReps = exerciseLogs[exIndex]?.sets[setIndex]?.actualReps ?? 0
 
       setExerciseLogs((prev) =>
         prev.map((ex, ei) => {
@@ -778,9 +819,19 @@ export default function ProgramWorkoutPage() {
           return {
             ...ex,
             sets: ex.sets.map((s, si) => {
-              if (si !== setIndex) return s
-              updatedSet = { ...s, actualRir: rir, status: 'done' as SetStatus }
-              return updatedSet
+              if (si === setIndex) {
+                updatedSet = { ...s, actualRir: rir, status: 'done' as SetStatus }
+                return updatedSet
+              }
+              // Auto-fill all subsequent idle sets with the same weight/reps
+              if (si > setIndex && s.status === 'idle') {
+                return {
+                  ...s,
+                  actualWeight: loggedWeight > 0 ? loggedWeight : s.recommendedWeight,
+                  actualReps: loggedReps > 0 ? loggedReps : s.targetReps,
+                }
+              }
+              return s
             }),
           }
         })
@@ -1054,6 +1105,7 @@ export default function ProgramWorkoutPage() {
                       onRepsChange={(val) => handleRepsChange(exIndex, setIndex, val)}
                       onLog={() => handleLog(exIndex, setIndex)}
                       onRirSelect={(rir) => handleRirSelect(exIndex, setIndex, rir)}
+                      onSkip={() => handleSkip(exIndex, setIndex)}
                     />
                   ))}
                 </div>
