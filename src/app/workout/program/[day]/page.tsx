@@ -528,6 +528,9 @@ export default function ProgramWorkoutPage() {
   // Exercise swap modal
   const [swapModal, setSwapModal] = useState<SwapModal | null>(null)
 
+  // Prevent re-initialization when auth re-emits
+  const hasInitializedRef = useRef(false)
+
   // ── Timer ─────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -551,17 +554,36 @@ export default function ProgramWorkoutPage() {
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [supabase])
 
+  // ── Persist in-progress workout to localStorage ───────────────────────────────
+  useEffect(() => {
+    if (exerciseLogs.length === 0 || !program) return
+    const key = `dad-strength-wip-day${dayNumber}-week${program.currentWeek}-${program.slug}`
+    localStorage.setItem(key, JSON.stringify({
+      exerciseLogs,
+      dayName,
+      coachNote,
+      weekTheme,
+      savedWorkoutId,
+      isCalibrationWeek,
+      ts: Date.now(),
+    }))
+  }, [exerciseLogs]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Data fetch / AI generation ────────────────────────────────────────────────
 
   useEffect(() => {
     if (userLoading) return
     if (!user) {
       // Don't redirect mid-workout — session may be briefly null on screen wake
-      if (exerciseLogs.length === 0 && pageState === 'loading') {
+      if (!hasInitializedRef.current) {
         router.push('/login')
       }
       return
     }
+
+    // Prevent re-initialization when Supabase re-emits auth (the #1 cause of data loss)
+    if (hasInitializedRef.current) return
+    hasInitializedRef.current = true
 
     const run = async () => {
       try {
@@ -574,7 +596,27 @@ export default function ProgramWorkoutPage() {
         const prog: ActiveProgram = JSON.parse(raw)
         setProgram(prog)
 
-        // 2. Read 1RMs from localStorage (support both key names)
+        // 2. Restore in-progress workout if it exists (survives screen sleep / back navigation)
+        const wipKey = `dad-strength-wip-day${dayNumber}-week${prog.currentWeek}-${prog.slug}`
+        const wipRaw = localStorage.getItem(wipKey)
+        if (wipRaw) {
+          try {
+            const wip = JSON.parse(wipRaw)
+            const ageHours = (Date.now() - (wip.ts ?? 0)) / 3600000
+            if (ageHours < 6 && Array.isArray(wip.exerciseLogs) && wip.exerciseLogs.length > 0) {
+              setDayName(wip.dayName ?? '')
+              setCoachNote(wip.coachNote ?? '')
+              setWeekTheme(wip.weekTheme ?? '')
+              setSavedWorkoutId(wip.savedWorkoutId ?? null)
+              setIsCalibrationWeek(wip.isCalibrationWeek ?? false)
+              setExerciseLogs(wip.exerciseLogs)
+              setPageState('ready')
+              return
+            }
+          } catch { /* ignore corrupt data */ }
+        }
+
+        // 4. Read 1RMs from localStorage (support both key names)
         const rmsRaw =
           localStorage.getItem('dad-strength-one-rep-maxes') ||
           localStorage.getItem('dad-strength-calibration-weights')
@@ -716,6 +758,11 @@ export default function ProgramWorkoutPage() {
       setSessionComplete(true)
       setPendingFeedback(null)
       if (timerRef.current) clearInterval(timerRef.current)
+      // Clear in-progress state — session is done
+      if (program) {
+        const wipKey = `dad-strength-wip-day${dayNumber}-week${program.currentWeek}-${program.slug}`
+        localStorage.removeItem(wipKey)
+      }
       return
     }
 
