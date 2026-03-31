@@ -43,8 +43,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${orbitron.variable} dark`}>
-      <body className={geist.className}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${orbitron.variable} dark overflow-x-hidden`}>
+      <body className={`${geist.className} overflow-x-hidden`}>
         <UserProvider>
           <PageTransition>{children}</PageTransition>
         </UserProvider>
