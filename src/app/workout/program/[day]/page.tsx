@@ -282,6 +282,9 @@ export default function ProgramWorkoutPage() {
   // Skip workout confirmation dialog
   const [showSkipConfirm, setShowSkipConfirm] = useState(false)
 
+  // Prevent re-initialization when Supabase re-emits auth
+  const hasInitializedRef = useRef(false)
+
   // ── Timer ────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -293,14 +296,28 @@ export default function ProgramWorkoutPage() {
     }
   }, [])
 
+  // ── Persist in-progress workout to localStorage on every change ──────────────
+  useEffect(() => {
+    if (exerciseLogs.length === 0 || !program) return
+    const key = `dad-strength-wip-day${dayNumber}-week${program.currentWeek}-${program.slug}`
+    localStorage.setItem(key, JSON.stringify({
+      exerciseLogs, dayName, coachNote, weekTheme, savedWorkoutId, isCalibrationWeek,
+      ts: Date.now(),
+    }))
+  }, [exerciseLogs]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Data fetch / AI generation ────────────────────────────────────────────────
 
   useEffect(() => {
     if (userLoading) return
     if (!user) {
-      router.push('/login')
+      if (!hasInitializedRef.current) window.location.assign('/login')
       return
     }
+
+    // Guard: only initialize once — prevents Supabase re-auth from wiping live data
+    if (hasInitializedRef.current) return
+    hasInitializedRef.current = true
 
     const run = async () => {
       try {
@@ -313,7 +330,27 @@ export default function ProgramWorkoutPage() {
         const prog: ActiveProgram = JSON.parse(raw)
         setProgram(prog)
 
-        // 2. Check for existing generated workout
+        // 2. Restore in-progress workout if it exists (survives screen sleep / app close)
+        const wipKey = `dad-strength-wip-day${dayNumber}-week${prog.currentWeek}-${prog.slug}`
+        const wipRaw = localStorage.getItem(wipKey)
+        if (wipRaw) {
+          try {
+            const wip = JSON.parse(wipRaw)
+            const ageHours = (Date.now() - (wip.ts ?? 0)) / 3_600_000
+            if (ageHours < 6 && Array.isArray(wip.exerciseLogs) && wip.exerciseLogs.length > 0) {
+              setDayName(wip.dayName ?? '')
+              setCoachNote(wip.coachNote ?? '')
+              setWeekTheme(wip.weekTheme ?? '')
+              setSavedWorkoutId(wip.savedWorkoutId ?? null)
+              setIsCalibrationWeek(wip.isCalibrationWeek ?? false)
+              setExerciseLogs(wip.exerciseLogs)
+              setPageState('ready')
+              return
+            }
+          } catch { /* ignore corrupt data */ }
+        }
+
+        // 3. Check for existing generated workout
         const { data: existing } = await supabase
           .from('generated_workouts')
           .select('*')
@@ -429,11 +466,11 @@ export default function ProgramWorkoutPage() {
   useEffect(() => {
     if (exerciseLogs.length === 0) return
     const allDone = exerciseLogs.every((ex) => ex.sets.every((s) => s.status === 'done'))
-    if (allDone) {
+    if (allDone && !sessionComplete) {
       setSessionComplete(true)
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [exerciseLogs])
+  }, [exerciseLogs, sessionComplete])
 
   // ── Set interactions ──────────────────────────────────────────────────────────
 
@@ -568,6 +605,40 @@ export default function ProgramWorkoutPage() {
     window.location.assign('/body')
   }, [])
 
+  const handleFinishSession = useCallback(async () => {
+    if (!user) return
+
+    // Save any sets not yet logged (idle/logging) as completed=false
+    const saveTasks: Promise<unknown>[] = []
+    for (const ex of exerciseLogs) {
+      for (const s of ex.sets) {
+        if (s.status === 'idle' || s.status === 'logging') {
+          saveTasks.push(
+            supabase.from('workout_logs').insert({
+              user_id: user.id,
+              exercise_name: ex.name,
+              weight: s.actualWeight > 0 ? s.actualWeight : s.targetWeight,
+              reps: s.actualReps,
+              rir_actual: null,
+              completed: false,
+              generated_workout_id: savedWorkoutId,
+              created_at: new Date().toISOString(),
+            })
+          )
+        }
+      }
+    }
+    try { await Promise.all(saveTasks) } catch (e) { console.error('Failed to save partial sets:', e) }
+
+    // Clear WIP cache — session is officially submitted
+    if (program) {
+      const wipKey = `dad-strength-wip-day${dayNumber}-week${program.currentWeek}-${program.slug}`
+      localStorage.removeItem(wipKey)
+    }
+
+    window.location.assign('/body')
+  }, [user, supabase, exerciseLogs, savedWorkoutId, program, dayNumber])
+
   // ── Derived stats ─────────────────────────────────────────────────────────────
 
   const totalSets = exerciseLogs.reduce((acc, ex) => acc + ex.sets.length, 0)
@@ -688,10 +759,10 @@ export default function ProgramWorkoutPage() {
               </div>
             </div>
             <button
-              onClick={() => router.push('/body')}
+              onClick={handleFinishSession}
               className="w-full py-3.5 rounded-xl bg-brand text-white font-black text-sm uppercase tracking-widest active:scale-95 brand-glow"
             >
-              Back to Program
+              Submit Workout
             </button>
           </div>
         </div>
@@ -767,20 +838,26 @@ export default function ProgramWorkoutPage() {
       </div>
 
       {/* ── Sticky Footer ─────────────────────────────────────────────────────── */}
-      {!sessionComplete && exerciseLogs.length > 0 && (
+      {exerciseLogs.length > 0 && (
         <div className="fixed bottom-0 inset-x-0 z-30 bg-background/95 backdrop-blur-xl border-t border-border px-4 py-3 safe-area-pb">
           <div className="max-w-md mx-auto flex gap-3">
+            {!sessionComplete && (
+              <button
+                onClick={() => setShowSkipConfirm(true)}
+                className="flex-1 py-3 rounded-xl border border-border/60 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-border active:scale-95 transition-all"
+              >
+                Skip Workout
+              </button>
+            )}
             <button
-              onClick={() => setShowSkipConfirm(true)}
-              className="flex-1 py-3 rounded-xl border border-border/60 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-border active:scale-95 transition-all"
+              onClick={handleFinishSession}
+              className={`py-3 rounded-xl text-white text-xs font-black uppercase tracking-widest active:scale-95 brand-glow transition-all ${
+                sessionComplete
+                  ? 'flex-1 bg-brand scale-105'
+                  : 'flex-1 bg-brand/80'
+              }`}
             >
-              Skip Workout
-            </button>
-            <button
-              onClick={() => window.location.assign('/body')}
-              className="flex-1 py-3 rounded-xl bg-brand text-white text-xs font-black uppercase tracking-widest active:scale-95 brand-glow"
-            >
-              Finish — {doneSets}/{totalSets} Sets
+              {sessionComplete ? 'Submit Workout 💪' : `Finish — ${doneSets}/${totalSets} Sets`}
             </button>
           </div>
         </div>
