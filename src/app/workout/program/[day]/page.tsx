@@ -135,6 +135,7 @@ function SetRow({
   onRepsChange,
   onLog,
   onRirSelect,
+  onSkip,
 }: {
   exerciseIndex: number
   setLog: SetLog
@@ -142,6 +143,7 @@ function SetRow({
   onRepsChange: (val: number) => void
   onLog: () => void
   onRirSelect: (rir: number) => void
+  onSkip: () => void
 }) {
   const isDone = setLog.status === 'done'
   const isLogging = setLog.status === 'logging'
@@ -167,8 +169,9 @@ function SetRow({
         <div className="flex items-center gap-1 flex-1">
           <input
             type="number"
+            min="0"
             value={setLog.actualWeight === 0 ? '' : setLog.actualWeight}
-            onChange={(e) => onWeightChange(parseFloat(e.target.value) || 0)}
+            onChange={(e) => onWeightChange(Math.max(0, parseFloat(e.target.value) || 0))}
             disabled={isDone}
             placeholder={setLog.targetWeight === 0 ? 'BW' : String(setLog.targetWeight)}
             className="stat-num w-16 bg-transparent text-sm font-bold text-foreground text-center outline-none border-b border-border/60 focus:border-brand py-0.5 disabled:opacity-60"
@@ -180,8 +183,9 @@ function SetRow({
         <div className="flex items-center gap-1 flex-1">
           <input
             type="number"
+            min="0"
             value={setLog.actualReps}
-            onChange={(e) => onRepsChange(parseInt(e.target.value) || 0)}
+            onChange={(e) => onRepsChange(Math.max(0, parseInt(e.target.value) || 0))}
             disabled={isDone}
             className="stat-num w-10 bg-transparent text-sm font-bold text-foreground text-center outline-none border-b border-border/60 focus:border-brand py-0.5 disabled:opacity-60"
           />
@@ -227,6 +231,12 @@ function SetRow({
               </button>
             ))}
           </div>
+          <button
+            onClick={onSkip}
+            className="w-full text-center text-xs text-muted-foreground/60 py-1 hover:text-muted-foreground transition-colors"
+          >
+            Skip this set
+          </button>
         </div>
       )}
     </div>
@@ -268,6 +278,9 @@ export default function ProgramWorkoutPage() {
 
   // Calibration week
   const [isCalibrationWeek, setIsCalibrationWeek] = useState(false)
+
+  // Skip workout confirmation dialog
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false)
 
   // ── Timer ────────────────────────────────────────────────────────────────────
 
@@ -516,6 +529,45 @@ export default function ProgramWorkoutPage() {
     [user, supabase, exerciseLogs, savedWorkoutId]
   )
 
+  const handleSkip = useCallback((exIndex: number, setIndex: number) => {
+    setExerciseLogs((prev) =>
+      prev.map((ex, ei) => {
+        if (ei !== exIndex) return ex
+        return {
+          ...ex,
+          sets: ex.sets.map((s, si) =>
+            si === setIndex ? { ...s, actualRir: null, status: 'done' as SetStatus } : s
+          ),
+        }
+      })
+    )
+  }, [])
+
+  const handleAddSet = useCallback((exIndex: number) => {
+    setExerciseLogs((prev) =>
+      prev.map((ex, ei) => {
+        if (ei !== exIndex) return ex
+        const lastSet = ex.sets[ex.sets.length - 1]
+        const newSet: SetLog = {
+          setNumber: ex.sets.length + 1,
+          targetWeight: lastSet?.targetWeight ?? 0,
+          targetReps: lastSet?.targetReps ?? 8,
+          targetRir: lastSet?.targetRir ?? 3,
+          actualWeight: lastSet?.actualWeight ?? lastSet?.targetWeight ?? 0,
+          actualReps: lastSet?.actualReps ?? lastSet?.targetReps ?? 8,
+          actualRir: null,
+          status: 'idle' as SetStatus,
+        }
+        return { ...ex, sets: [...ex.sets, newSet] }
+      })
+    )
+  }, [])
+
+  const handleSkipWorkout = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    window.location.assign('/body')
+  }, [])
+
   // ── Derived stats ─────────────────────────────────────────────────────────────
 
   const totalSets = exerciseLogs.reduce((acc, ex) => acc + ex.sets.length, 0)
@@ -677,9 +729,20 @@ export default function ProgramWorkoutPage() {
                     onRepsChange={(val) => handleRepsChange(exIndex, setIndex, val)}
                     onLog={() => handleLog(exIndex, setIndex)}
                     onRirSelect={(rir) => handleRirSelect(exIndex, setIndex, rir)}
+                    onSkip={() => handleSkip(exIndex, setIndex)}
                   />
                 ))}
               </div>
+
+              {/* Add set button */}
+              {!exDone && (
+                <button
+                  onClick={() => handleAddSet(exIndex)}
+                  className="w-full py-2 rounded-xl border border-dashed border-border/60 text-xs font-bold text-muted-foreground hover:border-brand hover:text-brand transition-colors active:scale-95"
+                >
+                  + Add Set
+                </button>
+              )}
             </div>
           )
         })}
@@ -702,6 +765,62 @@ export default function ProgramWorkoutPage() {
           </div>
         )}
       </div>
+
+      {/* ── Sticky Footer ─────────────────────────────────────────────────────── */}
+      {!sessionComplete && exerciseLogs.length > 0 && (
+        <div className="fixed bottom-0 inset-x-0 z-30 bg-background/95 backdrop-blur-xl border-t border-border px-4 py-3 safe-area-pb">
+          <div className="max-w-md mx-auto flex gap-3">
+            <button
+              onClick={() => setShowSkipConfirm(true)}
+              className="flex-1 py-3 rounded-xl border border-border/60 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-border active:scale-95 transition-all"
+            >
+              Skip Workout
+            </button>
+            <button
+              onClick={() => window.location.assign('/body')}
+              className="flex-1 py-3 rounded-xl bg-brand text-white text-xs font-black uppercase tracking-widest active:scale-95 brand-glow"
+            >
+              Finish — {doneSets}/{totalSets} Sets
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Skip Workout Confirmation ──────────────────────────────────────────── */}
+      {showSkipConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowSkipConfirm(false)}
+        >
+          <div
+            className="w-full max-w-md bg-background rounded-t-3xl p-6 pb-10 space-y-4 animate-float-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center space-y-1">
+              <p className="text-base font-black uppercase tracking-tight text-foreground">
+                Skip Today&apos;s Workout?
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Your progress won&apos;t be saved. The AI coach will account for the missed session next week.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSkipConfirm(false)}
+                className="flex-1 py-3.5 rounded-xl border border-border/60 text-sm font-black uppercase tracking-widest text-muted-foreground active:scale-95"
+              >
+                Keep Going
+              </button>
+              <button
+                onClick={handleSkipWorkout}
+                className="flex-1 py-3.5 rounded-xl bg-destructive/90 text-white text-sm font-black uppercase tracking-widest active:scale-95"
+              >
+                Skip It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
