@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { z } from 'zod'
+import { createClient } from '../../../../utils/supabase/server'
+
+export const dynamic = 'force-dynamic'
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 5
@@ -15,6 +18,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
   }
   rateLimitMap.set(ip, [...timestamps, now])
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     const { weekObjective, familyIntention, trainingFocus, weekNumber } = await request.json()

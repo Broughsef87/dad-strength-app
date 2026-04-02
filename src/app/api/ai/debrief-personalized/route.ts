@@ -2,7 +2,9 @@ import { google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '../../../../utils/supabase/server'
+
+export const dynamic = 'force-dynamic'
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 3
@@ -17,21 +19,20 @@ export async function POST(request: Request) {
   }
   rateLimitMap.set(ip, [...timestamps, now])
 
-  try {
-    const { userId, weekStart, weekEnd, userInputs } = await request.json()
+  // ── Auth: validate session server-side, never trust userId from body ──────
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const userId = user.id  // always use server-verified id
 
-    if (!userId || !weekStart || !weekEnd) {
+  try {
+    const { weekStart, weekEnd, userInputs } = await request.json()
+
+    if (!weekStart || !weekEnd) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
     }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: 'Supabase not configured.' }, { status: 500 })
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
 
     // ── Query workout_logs: distinct session days for the week ──────────────
     const { data: workoutLogs } = await supabase

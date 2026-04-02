@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createAdminClient } from '../../../../utils/supabase/admin'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-03-25.dahlia' as any,
-})
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 })
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2026-03-25.dahlia' as any,
+  })
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+
   const body = await req.text()
   const sig = req.headers.get('stripe-signature')!
 

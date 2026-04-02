@@ -13,7 +13,6 @@ import {
   Moon,
   Footprints,
   Zap,
-  Sun,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
@@ -217,14 +216,9 @@ export default function Dashboard() {
       <header className="hidden md:flex items-center justify-between border-b border-border bg-background/90 px-8 py-4 backdrop-blur-md sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <Logo className="w-9 h-9" />
-          <div className="flex flex-col leading-none">
-            <span className="font-black text-base tracking-[0.08em] uppercase text-foreground" style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}>
-              Dad Strength
-            </span>
-            <span className="text-[9px] tracking-[0.15em] text-muted-foreground uppercase mt-0.5">
-              by Forge OS
-            </span>
-          </div>
+          <span className="font-black text-base tracking-[0.08em] uppercase text-foreground" style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}>
+            Dad Strength
+          </span>
         </div>
         <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
           <button className="text-foreground font-medium">HQ</button>
@@ -239,14 +233,9 @@ export default function Dashboard() {
       <header className="md:hidden flex items-center justify-between px-6 pt-6 pb-2">
         <div className="flex items-center gap-2.5">
           <Logo className="w-9 h-9" />
-          <div className="flex flex-col leading-none">
-            <span className="font-black text-base tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}>
-              Dad Strength
-            </span>
-            <span className="text-[9px] tracking-[0.15em] text-muted-foreground uppercase mt-0.5">
-              by Forge OS
-            </span>
-          </div>
+          <span className="font-black text-base tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}>
+            Dad Strength
+          </span>
         </div>
         <div className="flex items-center gap-2">
           {!isPro && !subLoading && (
@@ -308,14 +297,10 @@ export default function Dashboard() {
                       Active Protocol
                     </span>
                     <h2 className="text-2xl font-light text-background leading-tight tracking-tight">
-                      {activeProgram
-                        ? activeProgram.name.replace(/\s+[35]$/, '')
-                        : workout?.name || 'Load Program'}
+                      {workout?.name || 'Load Program'}
                     </h2>
                     <p className="text-background/50 text-sm mt-1.5 font-light">
-                      {activeProgram
-                        ? `Week ${activeProgram.currentWeek} · ${activeProgram.daysCount} days/week`
-                        : workout?.description || 'Access the training library to deploy your first protocol.'}
+                      {workout?.description || 'Access the training library to deploy your first protocol.'}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2.5 relative z-10">
@@ -384,25 +369,6 @@ export default function Dashboard() {
           {/* CARD 2: DAILY OBJECTIVES */}
           <motion.div variants={fadeUp} custom={1}>
             <DailyObjectivesCard />
-          </motion.div>
-
-          {/* MORNING PROTOCOL SHORTCUT */}
-          <motion.div variants={fadeUp} custom={1.5}>
-            <button
-              onClick={() => router.push('/mind')}
-              className="w-full glass-card p-4 flex items-center justify-between group rounded-xl"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
-                  <Sun size={16} className="text-brand" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-display tracking-[0.1em] text-muted-foreground uppercase">Morning Protocol</p>
-                  <p className="font-display text-sm tracking-wide text-foreground mt-0.5">Build your morning</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-brand group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
-            </button>
           </motion.div>
 
           {/* CARD 3: DAD SCORE */}
