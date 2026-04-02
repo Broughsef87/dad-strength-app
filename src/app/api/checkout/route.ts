@@ -22,7 +22,18 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { priceId, mode } = body // mode: 'subscription' or 'payment' (for founder pass)
+    const { priceId, mode } = body
+
+    // Whitelist allowed price IDs server-side — never trust raw client input for billing
+    const allowedPriceIds = new Set([
+      process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID,
+      process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID,
+      process.env.NEXT_PUBLIC_STRIPE_FOUNDER_PRICE_ID,
+    ].filter(Boolean))
+
+    if (!priceId || !allowedPriceIds.has(priceId)) {
+      return NextResponse.json({ error: 'Invalid price ID.' }, { status: 400 })
+    }
 
     // Get or create Stripe customer
     const { data: profile } = await supabase
@@ -51,7 +62,8 @@ export async function POST(req: NextRequest) {
       }, { onConflict: 'id' })
     }
 
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // Build redirect URLs from env var, not the spoofable Origin header
+    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
