@@ -97,14 +97,11 @@ export default function MindPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
-        <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full opacity-50 blur-[100px]" style={{ background: 'radial-gradient(circle, hsl(258 90% 60% / 0.08) 0%, transparent 70%)' }} />
-      </div>
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4">
         <div className="mb-6">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-medium mb-2 font-display">Mental</p>
-          <h1 className="text-3xl font-light tracking-[0.08em]">Mind</h1>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Mental</p>
+          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Mind</h1>
         </div>
         <motion.div
           className="space-y-6"
@@ -119,7 +116,7 @@ export default function MindPage() {
         </motion.div>
 
         {/* Objectives */}
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Target size={16} className="text-brand" />
@@ -209,7 +206,7 @@ export default function MindPage() {
                   setLockedIn(true);
                   saveToLocal({ lockedIn: true });
                 }}
-                className="w-full bg-foreground text-background py-3 rounded-lg text-xs font-medium uppercase tracking-[0.1em] hover:opacity-90 transition-opacity"
+                className="w-full bg-brand text-background py-3 rounded-md text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/90 transition-colors brand-glow"
               >
                 Lock In Objectives
               </button>
@@ -217,14 +214,43 @@ export default function MindPage() {
           )}
         </motion.div>
 
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <DeepWorkTimer availableObjectives={objectives} />
         </motion.div>
 
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <MindSqueeze objectives={objectives} />
         </motion.div>
 
+        {/* Journal */}
+        <motion.div variants={fadeUp} className="ds-card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <PenLine size={16} className="text-brand" />
+            <h3 className="font-medium text-sm">Journal</h3>
+          </div>
+          <textarea
+            value={journal}
+            onChange={(e) => {
+              setJournal(e.target.value);
+              saveToLocal({ journal: e.target.value });
+            }}
+            placeholder="What's on your mind? Capture the signal, ignore the noise..."
+            className="w-full bg-background border border-border rounded-lg p-4 text-sm text-foreground h-48 resize-none outline-none focus:border-foreground/40 transition-colors placeholder:text-muted-foreground"
+          />
+          <button
+            onClick={handleSaveJournal}
+            disabled={isSaving}
+            className={`w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-medium uppercase tracking-[0.1em] transition-all ${
+              savedMsg
+                ? 'bg-green-500/10 text-green-600 border border-green-500/20'
+                : isSaving
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : 'bg-muted text-foreground hover:bg-foreground hover:text-background'
+            }`}
+          >
+            {savedMsg ? '✓ Entry Saved' : isSaving ? 'Saving...' : <><Save size={12} /> Save Entry</>}
+          </button>
+        </motion.div>
 
         </motion.div>
       </main>

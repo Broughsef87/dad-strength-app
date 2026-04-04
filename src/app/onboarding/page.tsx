@@ -143,7 +143,7 @@ export default function Onboarding() {
             </div>
 
             <div>
-              <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-3 leading-none">
+              <h1 className="text-4xl font-display tracking-[0.06em] uppercase mb-3 leading-none">
                 Welcome to<br />Dad Strength.
               </h1>
               <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
@@ -151,7 +151,7 @@ export default function Onboarding() {
               </p>
             </div>
 
-            <div className="space-y-3 text-left bg-card/50 rounded-3xl p-6 border border-border w-full">
+            <div className="space-y-3 text-left card-base p-6 w-full">
               {[
                 { icon: '💪', text: 'Training protocols built for your life' },
                 { icon: '🧠', text: 'Mind tools: deep work, journaling, goals' },
@@ -166,7 +166,7 @@ export default function Onboarding() {
 
             <button
               onClick={() => setStep('focus')}
-              className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 text-foreground font-black py-5 rounded-2xl text-base uppercase tracking-widest transition-all active:scale-95 shadow-2xl shadow-brand/20"
+              className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 text-background font-semibold py-5 rounded-md text-base uppercase tracking-wider transition-all active:scale-95 brand-glow"
             >
               Let's Build Your Protocol <ChevronRight size={20} />
             </button>
@@ -178,7 +178,7 @@ export default function Onboarding() {
           <div className="w-full space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div>
               <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">Step 1 of 3</p>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">What's your focus?</h2>
+              <h2 className="text-3xl font-display tracking-[0.06em] uppercase">What's your focus?</h2>
               <p className="text-muted-foreground text-sm mt-1">Pick the area you want to prioritize.</p>
             </div>
             <div className="space-y-3">
@@ -189,15 +189,15 @@ export default function Onboarding() {
                   <button
                     key={f.id}
                     onClick={() => setFocus(f.id)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+                    className={`w-full flex items-center gap-4 p-4 rounded-md border-2 text-left transition-all ${
                       isSelected ? 'border-brand bg-brand/10' : 'border-border bg-card/40 hover:border-gray-700'
                     }`}
                   >
-                    <div className={`p-3 rounded-xl flex-shrink-0 ${isSelected ? 'bg-brand text-foreground' : 'bg-gray-800 text-muted-foreground'}`}>
+                    <div className={`p-3 rounded-xl flex-shrink-0 ${isSelected ? 'bg-brand text-foreground' : 'bg-muted text-muted-foreground'}`}>
                       <Icon size={22} />
                     </div>
                     <div>
-                      <p className={`font-black uppercase italic tracking-tight ${isSelected ? 'text-brand' : 'text-gray-200'}`}>{f.name}</p>
+                      <p className={`font-black uppercase italic tracking-tight ${isSelected ? 'text-brand' : 'text-foreground'}`}>{f.name}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">{f.desc}</p>
                     </div>
                   </button>
@@ -206,7 +206,7 @@ export default function Onboarding() {
             </div>
             <button
               onClick={() => setStep('track')}
-              className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+              className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
             >
               Next <ChevronRight size={18} />
             </button>
@@ -218,7 +218,7 @@ export default function Onboarding() {
           <div className="w-full space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div>
               <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">Step 2 of 3</p>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Where do you train?</h2>
+              <h2 className="text-3xl font-display tracking-[0.06em] uppercase">Where do you train?</h2>
               <p className="text-muted-foreground text-sm mt-1">This sets your equipment and exercise selection.</p>
             </div>
             <div className="grid grid-cols-1 gap-4">
@@ -233,11 +233,11 @@ export default function Onboarding() {
                       isSelected ? 'border-brand bg-brand/10' : 'border-border bg-card/40 hover:border-gray-700'
                     }`}
                   >
-                    <div className={`p-4 rounded-2xl flex-shrink-0 ${isSelected ? 'bg-brand text-foreground' : 'bg-gray-800 text-muted-foreground'}`}>
+                    <div className={`p-4 rounded-2xl flex-shrink-0 ${isSelected ? 'bg-brand text-foreground' : 'bg-muted text-muted-foreground'}`}>
                       <Icon size={28} />
                     </div>
                     <div>
-                      <p className={`font-black text-xl uppercase italic tracking-tight ${isSelected ? 'text-brand' : 'text-gray-200'}`}>{t.name}</p>
+                      <p className={`font-black text-xl uppercase italic tracking-tight ${isSelected ? 'text-brand' : 'text-foreground'}`}>{t.name}</p>
                       <p className="text-xs text-muted-foreground mt-1 font-medium">{t.desc}</p>
                     </div>
                   </button>
@@ -245,12 +245,12 @@ export default function Onboarding() {
               })}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setStep('focus')} className="flex-1 py-4 rounded-2xl border border-border text-muted-foreground font-black text-xs uppercase tracking-widest hover:border-gray-700 transition-all">
+              <button onClick={() => setStep('focus')} className="flex-1 py-4 rounded-md border border-border text-muted-foreground font-semibold text-xs uppercase tracking-wider hover:border-foreground/20 transition-all">
                 Back
               </button>
               <button
                 onClick={() => setStep('frequency')}
-                className="flex-[2] flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+                className="flex-[2] flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
               >
                 Next <ChevronRight size={18} />
               </button>
@@ -263,7 +263,7 @@ export default function Onboarding() {
           <div className="w-full space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div>
               <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">Step 3 of 3</p>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">How many days<br />per week?</h2>
+              <h2 className="text-3xl font-display tracking-[0.06em] uppercase">How many days<br />per week?</h2>
               <p className="text-muted-foreground text-sm mt-1">Be realistic. Consistency beats perfection.</p>
             </div>
             <div className="space-y-4">
@@ -275,7 +275,7 @@ export default function Onboarding() {
                     frequency === days ? 'border-brand bg-brand/10' : 'border-border bg-card/40 hover:border-gray-700'
                   }`}
                 >
-                  <p className={`font-black text-2xl italic uppercase tracking-tight ${frequency === days ? 'text-brand' : 'text-gray-200'}`}>
+                  <p className={`font-black text-2xl italic uppercase tracking-tight ${frequency === days ? 'text-brand' : 'text-foreground'}`}>
                     {days} Days / Week
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">
@@ -285,12 +285,12 @@ export default function Onboarding() {
               ))}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setStep('track')} className="flex-1 py-4 rounded-2xl border border-border text-muted-foreground font-black text-xs uppercase tracking-widest hover:border-gray-700 transition-all">
+              <button onClick={() => setStep('track')} className="flex-1 py-4 rounded-md border border-border text-muted-foreground font-semibold text-xs uppercase tracking-wider hover:border-foreground/20 transition-all">
                 Back
               </button>
               <button
                 onClick={() => setStep('confirm')}
-                className="flex-[2] flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+                className="flex-[2] flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
               >
                 Preview <ChevronRight size={18} />
               </button>
@@ -303,18 +303,18 @@ export default function Onboarding() {
           <div className="w-full space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div>
               <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">Your Protocol</p>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
+              <h2 className="text-3xl font-display tracking-[0.06em] uppercase leading-none">
                 {FOCUS_LABELS[focus]}<br />
                 <span className="text-brand">{TRACK_LABELS[track]}</span>
               </h2>
               <p className="text-muted-foreground text-sm mt-2">{frequency} days/week · Deploy anytime.</p>
             </div>
 
-            <div className="bg-card/50 rounded-3xl border border-border p-5 space-y-3">
+            <div className="bg-card/50 card-base p-5 space-y-3">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Exercises</p>
               {EXERCISE_SETS[focus][track].map((ex, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
-                  <span className="font-bold text-gray-200">{ex.name}</span>
+                  <span className="font-bold text-foreground">{ex.name}</span>
                   <span className="font-black text-brand">{ex.sets}×{ex.reps}</span>
                 </div>
               ))}
@@ -329,7 +329,7 @@ export default function Onboarding() {
             <button
               onClick={handleFinish}
               disabled={saving}
-              className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-black py-5 rounded-2xl text-base uppercase tracking-widest transition-all active:scale-95 shadow-2xl shadow-brand/20"
+              className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 disabled:opacity-50 text-background font-semibold py-5 rounded-md text-base uppercase tracking-wider transition-all active:scale-95 brand-glow"
             >
               {saving
                 ? <><Loader2 size={18} className="animate-spin" /> Building Protocol...</>
@@ -337,7 +337,7 @@ export default function Onboarding() {
               }
             </button>
 
-            <button onClick={() => setStep('frequency')} className="w-full text-center text-xs text-gray-600 font-bold uppercase tracking-widest hover:text-muted-foreground transition-colors">
+            <button onClick={() => setStep('frequency')} className="w-full text-center text-xs text-muted-foreground font-bold uppercase tracking-widest hover:text-muted-foreground transition-colors">
               â† Go Back
             </button>
           </div>

@@ -183,7 +183,7 @@ export default function History() {
         <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-brand/5 blur-[100px]" />
       </div>
 
-      <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b border-border p-4 flex items-center gap-4">
+      <header className="sticky top-0 z-20 bg-surface-2 border-b border-border p-4 flex items-center gap-4">
         <button
           onClick={() => router.back()}
           className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -191,8 +191,8 @@ export default function History() {
           <ChevronLeft />
         </button>
         <div>
-          <h1 className="text-xl font-black italic uppercase tracking-tighter">Battle Log</h1>
-          <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">
+          <h1 className="font-display text-3xl tracking-[0.1em] uppercase leading-none">Battle Log</h1>
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.18em] font-display mt-0.5">
             {sessions.length} Sessions
           </p>
         </div>
@@ -210,7 +210,7 @@ export default function History() {
         </div>
 
         {/* AI Weekly Debrief */}
-        <div className="bg-card/50 rounded-3xl border border-border p-6 shadow-xl">
+        <div className="ds-card p-6">
           <WeeklyDebrief />
         </div>
 
@@ -218,21 +218,21 @@ export default function History() {
         {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
             <div className="relative mb-8">
-              <div className="absolute inset-0 rounded-full bg-brand/20 blur-2xl scale-150" />
+              <div className="absolute inset-0 rounded-full bg-brand/10 scale-150" />
               <div className="relative h-20 w-20 rounded-2xl bg-card border border-border flex items-center justify-center mx-auto">
                 <Dumbbell size={36} className="text-brand" strokeWidth={1.5} />
               </div>
             </div>
             <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-brand mb-3">Battle Log Empty</p>
-            <h2 className="text-2xl font-black tracking-tighter text-foreground mb-3 leading-tight">
-              THE LOG IS EMPTY.
+            <h2 className="font-display text-4xl tracking-[0.08em] text-foreground mb-3 leading-none">
+              The Log Is Empty.
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mb-8">
               Iron only counts when it&apos;s recorded. Every rep, every set — this is where your legacy is built.
             </p>
             <button
               onClick={() => router.push('/body')}
-              className="flex items-center gap-2 bg-brand text-white font-black text-xs uppercase tracking-[0.15em] px-8 py-4 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97]"
+              className="flex items-center gap-2 bg-brand text-background font-semibold text-xs uppercase tracking-[0.14em] px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow"
             >
               <Dumbbell size={14} />
               Start First Session
@@ -254,7 +254,7 @@ export default function History() {
                   {/* Week header */}
                   <button
                     onClick={() => toggleWeek(weekNum)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-card/60 rounded-2xl border border-border/60 hover:bg-muted/40 transition-all"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-card/60 rounded-md border border-border/60 hover:bg-muted/40 transition-all"
                   >
                     <div className="text-left">
                       <div className="flex items-center gap-2">
@@ -310,7 +310,7 @@ export default function History() {
                         return (
                           <div
                             key={workout.id}
-                            className="bg-card rounded-2xl border border-border overflow-hidden shadow-lg"
+                            className="card-base overflow-hidden"
                           >
                             {/* Session header */}
                             <button

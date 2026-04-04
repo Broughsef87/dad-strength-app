@@ -36,94 +36,105 @@
   --color-brand: hsl(var(--brand));
   --color-brand-muted: hsl(var(--brand-muted));
 
+  /* Steel chrome midtone */
+  --color-steel: hsl(var(--steel));
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  --font-sans: var(--font-geist, ui-sans-serif, system-ui, sans-serif);
-  --font-mono: var(--font-geist-mono, ui-monospace, monospace);
-  --font-display: var(--font-orbitron, 'Arial Black', sans-serif);
+  /* Typography system */
+  --font-sans: var(--font-space-grotesk, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-space-mono, ui-monospace, monospace);
+  --font-display: var(--font-bebas, 'Arial Black', sans-serif);
 }
 
 @layer base {
   :root {
-    /* Forge OS — Bone Light */
-    --background: 60 14% 97%;
-    --foreground: 240 6% 10%;
+    /* Light mode — kept for compatibility */
+    --background: 222 21% 7%;
+    --foreground: 210 24% 80%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 6% 10%;
+    --card: 220 31% 11%;
+    --card-foreground: 210 24% 80%;
 
-    /* 3-tier surfaces */
-    --surface-1: 60 14% 97%;
-    --surface-2: 0 0% 100%;
-    --surface-3: 0 0% 98%;
+    --surface-1: 222 21% 7%;
+    --surface-2: 224 31% 10%;
+    --surface-3: 220 31% 11%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 10%;
+    --popover: 220 31% 11%;
+    --popover-foreground: 210 24% 80%;
 
-    --primary: 240 6% 10%;
-    --primary-foreground: 60 14% 97%;
+    --primary: 210 24% 80%;
+    --primary-foreground: 222 21% 7%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 10%;
+    --secondary: 214 33% 25%;
+    --secondary-foreground: 210 24% 80%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 214 33% 16%;
+    --muted-foreground: 213 22% 52%;
 
-    --accent: 240 5% 96%;
-    --accent-foreground: 240 6% 10%;
+    --accent: 214 33% 16%;
+    --accent-foreground: 210 24% 80%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 240 6% 10%;
+    --border: 214 35% 18%;
+    --input: 214 35% 18%;
+    --ring: 38 90% 41%;
 
-    --brand: 16 80% 54%;
-    --brand-muted: 16 80% 54% / 0.12;
+    /* AMG Amber — the earned accent */
+    --brand: 38 90% 41%;
+    --brand-muted: 38 90% 41% / 0.12;
 
-    --radius: 0.75rem;
+    /* Steel chrome midtone */
+    --steel: 213 22% 52%;
+
+    --radius: 0.375rem;
   }
 
   .dark {
-    /* Industrial Charcoal */
-    --background: 240 10% 4%;
-    --foreground: 60 14% 97%;
+    /* Deep Navy-Charcoal — Dad Strength locked direction */
+    --background: 222 21% 7%;       /* #0D0F14 */
+    --foreground: 210 24% 80%;      /* #C0CCD8 */
 
-    --card: 240 4% 10%;
-    --card-foreground: 60 14% 97%;
+    --card: 220 31% 11%;            /* #141A26 — visible blue-slate */
+    --card-foreground: 210 24% 80%;
 
     /* 3-tier surfaces */
-    --surface-1: 240 10% 4%;
-    --surface-2: 240 4% 10%;
-    --surface-3: 240 4% 14%;
+    --surface-1: 222 21% 7%;        /* #0D0F14 — base */
+    --surface-2: 224 31% 10%;       /* #111520 — header/footer bands */
+    --surface-3: 220 31% 11%;       /* #141A26 — card surfaces */
 
-    --popover: 240 4% 10%;
-    --popover-foreground: 60 14% 97%;
+    --popover: 220 31% 11%;
+    --popover-foreground: 210 24% 80%;
 
-    --primary: 60 14% 97%;
-    --primary-foreground: 240 10% 4%;
+    --primary: 210 24% 80%;
+    --primary-foreground: 222 21% 7%;
 
-    --secondary: 240 4% 16%;
-    --secondary-foreground: 60 14% 97%;
+    --secondary: 214 33% 16%;
+    --secondary-foreground: 210 24% 80%;
 
-    --muted: 240 4% 16%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 214 33% 14%;
+    --muted-foreground: 213 22% 42%;  /* #6A82A0 range — steel chrome */
 
-    --accent: 240 4% 16%;
-    --accent-foreground: 60 14% 97%;
+    --accent: 214 33% 16%;
+    --accent-foreground: 210 24% 80%;
 
-    --destructive: 0 62% 30%;
+    --destructive: 0 62% 38%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-    --ring: 240 5% 65%;
+    --border: 214 35% 18%;          /* #1E2C3E — cool steel border */
+    --input: 220 31% 11%;
+    --ring: 38 90% 41%;
 
-    --brand: 16 80% 54%;
-    --brand-muted: 16 80% 54% / 0.15;
+    /* AMG Amber — earned sparingly */
+    --brand: 38 90% 41%;            /* #C8820A */
+    --brand-muted: 38 90% 41% / 0.10;
+
+    /* Steel chrome midtone */
+    --steel: 213 22% 52%;           /* #6A82A0 */
   }
 
   * {
@@ -139,17 +150,24 @@
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     text-rendering: optimizeLegibility;
+    /* Subtle brushed-steel texture on the base layer */
+    background-image: repeating-linear-gradient(
+      -38deg,
+      transparent 0, transparent 3px,
+      rgba(100, 140, 210, 0.018) 3px, rgba(100, 140, 210, 0.018) 4px
+    );
   }
 
-  /* Tighter, bolder headings by default */
+  /* Display headings: Bebas Neue — architectural, not gym-aggressive */
   h1, h2, h3 {
-    font-family: var(--font-orbitron, 'Arial Black', sans-serif);
+    font-family: var(--font-bebas, 'Arial Black', sans-serif);
     letter-spacing: 0.06em;
-    font-weight: 700;
+    font-weight: 400;
   }
   h4 {
-    letter-spacing: -0.025em;
-    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+    font-family: var(--font-sans);
   }
 
   /* Smooth transitions on interactive elements */
@@ -165,7 +183,7 @@
   }
 }
 
-/* Shimmer skeleton animation */
+/* Shimmer skeleton */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -183,73 +201,133 @@
   border-radius: 0.5rem;
 }
 
-/* Glow effect for brand elements */
+/* Amber glow — earned, used only on CTA and brand moments */
 .brand-glow {
-  box-shadow: 0 0 20px hsl(var(--brand) / 0.15), 0 0 60px hsl(var(--brand) / 0.05);
+  box-shadow: 0 0 20px hsl(var(--brand) / 0.2), 0 0 48px hsl(var(--brand) / 0.08);
 }
 
-/* Card elevation tiers */
+/* ── Card system ────────────────────────────────────────────── */
+
+/* Base card: blue-slate surface, cool steel border */
 .card-base {
-  background: hsl(var(--surface-2));
+  background: hsl(var(--surface-3));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
 }
 
+/* Elevated card: same but with chrome shimmer top edge */
 .card-elevated {
   background: hsl(var(--surface-3));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
-  box-shadow: 0 4px 24px hsl(var(--foreground) / 0.04), 0 1px 4px hsl(var(--foreground) / 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+.card-elevated::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 15%; right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--steel) / 0.4) 30%,
+    hsl(var(--steel) / 0.6) 50%,
+    hsl(var(--steel) / 0.4) 70%,
+    transparent
+  );
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
-/* ── Premium Glass Morphism ─────────────────────────────── */
+/* Signature Dad Strength card: amber left border, steel shimmer top */
+.ds-card {
+  background: hsl(var(--surface-3));
+  border: 1px solid hsl(var(--border));
+  border-left: 2px solid hsl(var(--brand));
+  border-radius: var(--radius);
+  position: relative;
+}
+.ds-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 12%; right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--steel) / 0.3) 25%,
+    hsl(var(--steel) / 0.5) 50%,
+    hsl(var(--steel) / 0.3) 75%,
+    transparent
+  );
+}
+
+/* Legacy glass-card — repurposed as flat steel card (no blur) */
 .glass-card {
-  background: hsl(var(--card) / 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid hsl(var(--border) / 0.5);
-  box-shadow:
-    0 8px 32px hsl(0 0% 0% / 0.3),
-    0 2px 8px hsl(0 0% 0% / 0.2),
-    inset 0 1px 0 hsl(255 100% 100% / 0.05);
+  background: hsl(var(--surface-3));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
 }
 
-/* Stronger glow for hero elements */
+/* Stronger amber glow for hero CTA */
 .brand-glow-lg {
   box-shadow:
-    0 0 40px hsl(var(--brand) / 0.3),
-    0 0 100px hsl(var(--brand) / 0.1),
-    0 4px 16px hsl(0 0% 0% / 0.3);
+    0 0 32px hsl(var(--brand) / 0.28),
+    0 0 80px hsl(var(--brand) / 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
-/* Section-specific accent glows */
+/* Section-specific accent glows — keeping for Mind/Spirit pages */
 .mind-glow {
-  box-shadow: 0 0 30px hsl(258 90% 60% / 0.15), 0 4px 16px hsl(0 0% 0% / 0.2);
+  box-shadow: 0 0 30px hsl(258 90% 60% / 0.12), 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 .spirit-glow {
-  box-shadow: 0 0 30px hsl(142 70% 45% / 0.15), 0 4px 16px hsl(0 0% 0% / 0.2);
+  box-shadow: 0 0 30px hsl(142 70% 45% / 0.12), 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Display / heading font utility */
+/* Display font utility — Bebas Neue */
 .font-display {
-  font-family: var(--font-orbitron, 'Arial Black', sans-serif);
+  font-family: var(--font-bebas, 'Arial Black', sans-serif);
   letter-spacing: 0.06em;
 }
 
-/* Stat numbers — monospace, tight */
+/* Stat numbers — Space Mono, tabular */
 .stat-num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
-/* Gradient border accent (top edge only) */
-.accent-border-top {
-  border-top: 1px solid hsl(var(--brand) / 0.4);
+/* Steel label utility — small caps style */
+.steel-label {
+  font-family: var(--font-sans);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: hsl(var(--steel));
 }
 
-/* Subtle noise texture overlay for depth */
+/* Amber hairline border top — for header bands */
+.amber-border-top {
+  position: relative;
+}
+.amber-border-top::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    hsl(var(--brand) / 0.5) 20%,
+    hsl(var(--brand)) 40%,
+    hsl(38 95% 55%) 50%,
+    hsl(var(--brand)) 60%,
+    hsl(var(--brand) / 0.5) 80%,
+    transparent 100%
+  );
+}
+
+/* Grain noise overlay */
 .noise-overlay {
   position: relative;
 }
@@ -259,12 +337,12 @@
   inset: 0;
   border-radius: inherit;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  opacity: 0.025;
+  opacity: 0.04;
   pointer-events: none;
   z-index: 1;
 }
 
-/* Animated brand pulse ring */
+/* Amber pulse for active brand moments */
 @keyframes brand-pulse {
   0%, 100% { box-shadow: 0 0 0 0 hsl(var(--brand) / 0.4); }
   50% { box-shadow: 0 0 0 8px hsl(var(--brand) / 0); }
@@ -273,7 +351,7 @@
   animation: brand-pulse 2.5s ease-in-out infinite;
 }
 
-/* Float-up entry for premium reveal */
+/* Float-up entry */
 @keyframes float-up {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
@@ -282,7 +360,7 @@
   animation: float-up 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* Shine sweep for active elements */
+/* Shine sweep */
 @keyframes shine {
   0% { transform: translateX(-100%) skewX(-15deg); }
   100% { transform: translateX(200%) skewX(-15deg); }
@@ -295,10 +373,15 @@
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, hsl(255 100% 100% / 0.06) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
   transform: translateX(-100%) skewX(-15deg);
   transition: none;
 }
 .shine-on-hover:hover::before {
   animation: shine 0.5s ease forwards;
+}
+
+/* Accent border top — legacy name kept */
+.accent-border-top {
+  border-top: 1px solid hsl(var(--brand) / 0.3);
 }

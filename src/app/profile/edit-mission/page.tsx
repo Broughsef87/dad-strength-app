@@ -89,7 +89,7 @@ export default function MissionEditor() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans pb-24">
-      <header className="flex items-center justify-between border-b border-border bg-card/50 p-6 backdrop-blur-md sticky top-0 z-10">
+      <header className="flex items-center justify-between border-b border-border bg-surface-2 p-6 sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft size={24} />

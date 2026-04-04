@@ -55,12 +55,9 @@ export default function WorkoutSummaryOverlay({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/95 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/98 animate-in fade-in duration-500 overflow-y-auto">
       <div className="w-full max-w-sm relative my-8 animate-in zoom-in-95 slide-in-from-bottom-10 duration-700 ease-out">
-        {/* Decorative Elements */}
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-brand/20 blur-[100px] rounded-full animate-pulse" />
-
-        <div className="glass-card rounded-[48px] p-8 text-center shadow-2xl relative overflow-hidden">
+        <div className="ds-card p-8 text-center relative overflow-hidden">
           {/* Top Accent */}
           <div className="absolute top-0 left-0 w-full h-2 bg-brand shadow-[0_2px_10px_rgba(0,0,0,0.2)]" />
 

@@ -80,7 +80,7 @@ export default function MissionPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
-      <header className="flex items-center gap-4 border-b border-border bg-background/90 px-6 py-4 backdrop-blur-md sticky top-0 z-10">
+      <header className="flex items-center gap-4 border-b border-border bg-surface-2 px-6 py-4 sticky top-0 z-10">
         <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft size={24} />
         </button>

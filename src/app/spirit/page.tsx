@@ -85,17 +85,17 @@ export default function SpiritPage() {
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4 space-y-6">
-        <div className="bg-card rounded-xl p-6 border border-border animate-pulse space-y-3">
+        <div className="ds-card p-6 animate-pulse space-y-3">
           <div className="h-4 bg-muted rounded w-1/3" />
           <div className="h-3 bg-muted rounded w-2/3" />
           <div className="h-3 bg-muted rounded w-1/2" />
         </div>
-        <div className="bg-card rounded-xl p-6 border border-border animate-pulse space-y-3">
+        <div className="ds-card p-6 animate-pulse space-y-3">
           <div className="h-4 bg-muted rounded w-1/3" />
           <div className="h-3 bg-muted rounded w-2/3" />
           <div className="h-3 bg-muted rounded w-1/2" />
         </div>
-        <div className="bg-card rounded-xl p-6 border border-border animate-pulse space-y-3">
+        <div className="ds-card p-6 animate-pulse space-y-3">
           <div className="h-4 bg-muted rounded w-1/3" />
           <div className="h-3 bg-muted rounded w-2/3" />
           <div className="h-3 bg-muted rounded w-1/2" />
@@ -106,14 +106,11 @@ export default function SpiritPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
-        <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full opacity-50 blur-[100px]" style={{ background: 'radial-gradient(circle, hsl(142 70% 45% / 0.07) 0%, transparent 70%)' }} />
-      </div>
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4">
         <div className="mb-6">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-medium mb-2 font-display">Relationships</p>
-          <h1 className="text-3xl font-light tracking-[0.08em]">Spirit</h1>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Relationships</p>
+          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Spirit</h1>
         </div>
         <motion.div
           className="space-y-6"
@@ -122,20 +119,20 @@ export default function SpiritPage() {
           variants={staggerContainer}
         >
 
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <BabySleepTracker />
         </motion.div>
 
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <FamilyPulse />
         </motion.div>
 
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <Brotherhood />
         </motion.div>
 
         {/* Spiritual Reset */}
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <div className="flex items-center gap-2 mb-6">
             <Anchor size={16} className="text-brand" />
             <h3 className="font-medium text-sm">Spiritual Reset</h3>

@@ -114,7 +114,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white pb-24 font-sans">
-      <header className="sticky top-0 z-20 bg-gray-900/90 backdrop-blur-xl border-b border-gray-800 p-4 flex items-center justify-between">
+      <header className="sticky top-0 z-20 bg-surface-2 border-b border-border p-4 flex items-center justify-between">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white flex items-center gap-1">
           <ChevronLeft size={20} />
           <span className="text-sm font-bold">Cancel</span>

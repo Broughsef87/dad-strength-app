@@ -26,18 +26,10 @@ import { useSubscription } from '../../hooks/useSubscription'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 
-// Determines whether today is a training day based on program frequency
 function isTodayTrainingDay(frequency: number): boolean {
-  const dayOfWeek = new Date().getDay() // 0=Sun,1=Mon,...,6=Sat
-  if (frequency >= 5) {
-    // Mon–Fri
-    return dayOfWeek >= 1 && dayOfWeek <= 5
-  }
-  if (frequency === 4) {
-    // Mon/Tue/Thu/Fri
-    return [1, 2, 4, 5].includes(dayOfWeek)
-  }
-  // 3 days: Mon/Wed/Fri
+  const dayOfWeek = new Date().getDay()
+  if (frequency >= 5) return dayOfWeek >= 1 && dayOfWeek <= 5
+  if (frequency === 4) return [1, 2, 4, 5].includes(dayOfWeek)
   return [1, 3, 5].includes(dayOfWeek)
 }
 
@@ -51,22 +43,21 @@ function RestDayCard() {
   const tip = REST_DAY_TIPS[new Date().getDay() % REST_DAY_TIPS.length]
   const Icon = tip.icon
   return (
-    <div className="relative rounded-xl bg-card border border-border p-6 overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-brand/3 rounded-full blur-3xl -mr-10 -mt-10" />
-      <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-3 font-display">
-        <span className="w-1 h-1 rounded-full bg-muted-foreground inline-block" />
+    <div className="ds-card p-6 overflow-hidden">
+      <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-4 font-display">
+        <span className="w-1 h-1 bg-muted-foreground inline-block" />
         Rest Day
       </span>
       <div className="flex items-start gap-4">
-        <div className="p-3 bg-brand/10 rounded-xl shrink-0">
-          <Icon size={20} className="text-brand" />
+        <div className="p-3 bg-brand/10 border border-brand/20 rounded-md shrink-0">
+          <Icon size={18} className="text-brand" />
         </div>
         <div>
-          <h2 className="text-lg font-black italic uppercase tracking-tight leading-none mb-1">{tip.title}</h2>
+          <h2 className="text-2xl text-foreground leading-none mb-2">{tip.title}</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">{tip.body}</p>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border/50 italic">
+      <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border italic">
         "Strong dads raise strong kids." — rest is part of the protocol.
       </p>
     </div>
@@ -88,7 +79,6 @@ export default function Dashboard() {
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
 
   useEffect(() => {
-    // Check for post-upgrade redirect
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       if (params.get('upgrade') === 'success') {
@@ -137,7 +127,6 @@ export default function Dashboard() {
         await supabase.from('user_profiles').upsert({ id: user.id }, { onConflict: 'id' })
       }
 
-      // Load active workout
       const activeWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
       let workoutData = null
       if (activeWorkoutId) {
@@ -151,7 +140,6 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      // Streak
       const { data: logDates } = await supabase
         .from('workout_logs')
         .select('created_at')
@@ -168,7 +156,6 @@ export default function Dashboard() {
         if (diff === i || (i === 0 && diff <= 1)) s++; else break
       }
       setStreak(s)
-
       setLoading(false)
     }
     loadDashboard()
@@ -183,8 +170,8 @@ export default function Dashboard() {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-foreground border-t-transparent rounded-full animate-spin opacity-30" />
-          <p className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Loading...</p>
+          <div className="w-6 h-6 border border-brand border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em] font-display">Loading</p>
         </div>
       </div>
     )
@@ -200,40 +187,34 @@ export default function Dashboard() {
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -40, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-brand text-foreground text-center text-xs font-black uppercase tracking-widest py-3 px-4"
+          className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display tracking-[0.2em] uppercase py-3 px-4"
         >
-          ⚡ Welcome to Dad Strong+ — all features unlocked.
+          Welcome to Dad Strong+ — All Features Unlocked
         </motion.div>
       )}
 
-      {/* Ambient background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
-        <div className="absolute -top-[30%] -right-[15%] w-[60vw] h-[60vw] rounded-full bg-brand/6 blur-[120px]" />
-        <div className="absolute top-[60%] -left-[10%] w-[40vw] h-[40vw] rounded-full bg-brand/3 blur-[100px]" />
-      </div>
-
       {/* DESKTOP HEADER */}
-      <header className="hidden md:flex items-center justify-between border-b border-border bg-background/90 px-8 py-4 backdrop-blur-md sticky top-0 z-40">
+      <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-4 sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <Logo className="w-9 h-9" />
-          <span className="font-black text-base tracking-[0.08em] uppercase text-foreground" style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}>
+          <Logo className="w-8 h-8" />
+          <span className="font-display text-lg tracking-[0.1em] uppercase text-foreground">
             Dad Strength
           </span>
         </div>
-        <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
-          <button className="text-foreground font-medium">HQ</button>
+        <nav className="flex gap-8 text-[10px] text-muted-foreground uppercase tracking-[0.14em]">
+          <button className="text-brand font-semibold">HQ</button>
           <button onClick={() => router.push('/body')} className="hover:text-foreground transition-colors">Train</button>
           <button onClick={() => router.push('/history')} className="hover:text-foreground transition-colors">History</button>
           <button onClick={() => router.push('/profile')} className="hover:text-foreground transition-colors">Profile</button>
-          <button onClick={handleSignOut} className="text-red-500/60 hover:text-red-500 transition-colors">Sign Out</button>
+          <button onClick={handleSignOut} className="text-destructive/60 hover:text-destructive transition-colors">Sign Out</button>
         </nav>
       </header>
 
       {/* MOBILE HEADER */}
-      <header className="md:hidden flex items-center justify-between px-6 pt-6 pb-2">
+      <header className="md:hidden flex items-center justify-between px-5 pt-6 pb-2">
         <div className="flex items-center gap-2.5">
-          <Logo className="w-9 h-9" />
-          <span className="font-black text-base tracking-[0.08em] uppercase" style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}>
+          <Logo className="w-8 h-8" />
+          <span className="font-display text-xl tracking-[0.08em] uppercase text-foreground">
             Dad Strength
           </span>
         </div>
@@ -241,137 +222,129 @@ export default function Dashboard() {
           {!isPro && !subLoading && (
             <button
               onClick={() => setShowUpgrade(true)}
-              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-brand border border-brand/30 bg-brand/5 px-3 py-1.5 rounded-full hover:bg-brand/10 transition-colors"
+              className="flex items-center gap-1.5 text-[9px] font-display uppercase tracking-[0.16em] text-brand border border-brand/30 bg-brand/8 px-3 py-1.5 rounded-md hover:bg-brand/15 transition-colors"
             >
               <Zap size={10} /> Upgrade
             </button>
           )}
-          <button onClick={() => router.push('/profile')} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors">
-            <Settings size={16} />
+          <button
+            onClick={() => router.push('/profile')}
+            className="p-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-brand/30 transition-colors"
+          >
+            <Settings size={15} />
           </button>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-6 pt-6 space-y-5">
+      <main className="max-w-lg mx-auto px-5 pt-5 space-y-4">
 
-        {/* Greeting */}
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-medium">
+        {/* Date + greeting */}
+        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
-          <h1 className="text-2xl font-black italic uppercase tracking-tight mt-0.5 leading-none">
-            {isTrainingDay ? "Train Day." : "Rest Day."}
+          <h1 className="text-4xl text-foreground leading-none mt-1">
+            {isTrainingDay ? 'Train Day.' : 'Rest Day.'}
             {streak > 0 && (
-              <span className="text-brand ml-2 inline-flex items-center gap-1 text-lg">
-                <Flame size={16} className="inline" /> {streak}
+              <span className="text-brand ml-3 inline-flex items-center gap-1 text-2xl">
+                <Flame size={18} className="inline" strokeWidth={1.5} />
+                <span className="stat-num">{streak}</span>
               </span>
             )}
           </h1>
         </motion.div>
 
         <motion.div
-          className="space-y-5"
+          className="space-y-4"
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
         >
-
-          {/* FIRST WEEK CHECKLIST — shown until complete or dismissed */}
+          {/* First week checklist */}
           <motion.div variants={fadeUp} custom={-0.5}>
             <FirstWeekChecklist />
           </motion.div>
 
-          {/* CARD 1: TODAY'S MISSION */}
+          {/* TODAY'S MISSION */}
           <motion.div variants={fadeUp} custom={0}>
             {isTrainingDay ? (
-              // Training day — active workout card
-              <div className="relative group">
-                <div className="absolute inset-0 rounded-xl bg-brand/25 blur-3xl scale-95 translate-y-3 transition-all duration-500 group-hover:scale-100 group-hover:blur-2xl" />
-                <div className="relative rounded-xl bg-foreground p-6 overflow-hidden">
-                  <div className="absolute top-4 right-4 opacity-5">
-                    <Dumbbell size={80} />
-                  </div>
-                  <div className="relative z-10 mb-5">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-background/50 font-medium mb-3 font-display">
-                      <span className="w-1 h-1 rounded-full bg-brand inline-block" />
-                      Active Protocol
-                    </span>
-                    <h2 className="text-2xl font-light text-background leading-tight tracking-tight">
+              <div className="ds-card p-6 overflow-hidden">
+                <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-4 font-display">
+                  <span className="w-1 h-1 bg-brand inline-block" />
+                  Active Protocol
+                </span>
+                <div className="flex items-start justify-between mb-5">
+                  <div>
+                    <h2 className="text-3xl text-foreground leading-none mb-2">
                       {workout?.name || 'Load Program'}
                     </h2>
-                    <p className="text-background/50 text-sm mt-1.5 font-light">
-                      {workout?.description || 'Access the training library to deploy your first protocol.'}
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {workout?.description || 'Deploy your first training protocol.'}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2.5 relative z-10">
+                  <Dumbbell size={28} className="text-muted-foreground/20 shrink-0 mt-1" strokeWidth={1} />
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      if (activeProgram) router.push('/workout/program/1')
+                      else if (workout) router.push(`/workout/${workout.id}`)
+                      else setShowProgramSelector(true)
+                    }}
+                    className="w-full flex items-center justify-center gap-2.5 rounded-md bg-brand px-6 py-3.5 text-sm font-semibold text-background hover:bg-brand/90 transition-all brand-glow uppercase tracking-[0.1em]"
+                    style={{ borderRadius: '6px' }}
+                  >
+                    <PlayCircle size={16} strokeWidth={2} />
+                    {activeProgram || workout ? 'Start Training' : 'Choose Program'}
+                  </motion.button>
+                  {workout && (
                     <motion.button
-                      whileHover={{ y: -2 }}
                       whileTap={{ scale: 0.97 }}
-                      onClick={() => {
-                        if (activeProgram) router.push('/workout/program/1')
-                        else if (workout) router.push(`/workout/${workout.id}`)
-                        else setShowProgramSelector(true)
-                      }}
-                      className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-background px-6 py-3.5 text-sm font-medium text-foreground hover:bg-background/90 transition-all active:scale-[0.98]"
+                      onClick={() => setShowProgramSelector(true)}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-[0.12em] border border-border hover:border-brand/30 font-semibold"
+                      style={{ borderRadius: '6px' }}
                     >
-                      <PlayCircle size={18} />
-                      {activeProgram || workout ? 'Start Training' : 'Choose Program'}
+                      <Settings size={11} /> Change Program
                     </motion.button>
-                    {workout && (
-                      <motion.button
-                        whileHover={{ y: -2 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => setShowProgramSelector(true)}
-                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-white/5 border border-white/10 px-6 py-2.5 text-xs text-background/60 hover:bg-white/10 hover:text-background/80 transition-all uppercase tracking-[0.1em]"
-                      >
-                        <Settings size={12} /> Change Program
-                      </motion.button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             ) : (
-              // Rest day card
               <RestDayCard />
             )}
           </motion.div>
 
-          {/* The Squeeze — always visible, gated for free users after 3 sessions */}
+          {/* The Squeeze */}
           <motion.div variants={fadeUp} custom={0.5}>
             <button
-              onClick={() => {
-                if (isPro) {
-                  router.push('/workout/squeeze')
-                } else {
-                  setShowUpgrade(true)
-                }
-              }}
-              className="w-full glass-card p-4 flex items-center justify-between group rounded-xl"
+              onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
+              className="w-full ds-card p-4 flex items-center justify-between group"
             >
               <div>
-                <p className="text-xs font-display tracking-[0.1em] text-text-muted uppercase">Short on time?</p>
-                <p className="font-display text-sm tracking-wide text-text-primary mt-0.5">
+                <p className="text-[9px] font-display tracking-[0.14em] text-muted-foreground uppercase mb-0.5">Short on time?</p>
+                <p className="font-display text-xl tracking-wide text-foreground leading-none">
                   The Squeeze
-                  <span className="text-muted-foreground font-normal ml-1.5 text-xs">18-min workout</span>
-                  {!isPro && <span className="ml-2 text-[9px] bg-brand/10 text-brand px-1.5 py-0.5 rounded-full uppercase tracking-widest font-black">Pro</span>}
+                  <span className="text-muted-foreground font-sans text-xs font-normal ml-2 tracking-normal">18 min</span>
+                  {!isPro && <span className="ml-2 text-[8px] bg-brand/10 text-brand px-1.5 py-0.5 uppercase tracking-widest font-semibold font-sans" style={{ borderRadius: '3px' }}>Pro</span>}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 {isPro
-                  ? <span className="text-xs text-muted-foreground">Any equipment</span>
-                  : <Zap size={14} className="text-brand" />
+                  ? <span className="text-[10px] text-muted-foreground">Any equipment</span>
+                  : <Zap size={13} className="text-brand" strokeWidth={1.5} />
                 }
-                <ChevronRight className="w-4 h-4 text-brand group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-4 h-4 text-brand group-hover:translate-x-0.5 transition-transform" strokeWidth={1.5} />
               </div>
             </button>
           </motion.div>
 
-          {/* CARD 2: DAILY OBJECTIVES */}
+          {/* Daily Objectives */}
           <motion.div variants={fadeUp} custom={1}>
             <DailyObjectivesCard />
           </motion.div>
 
-          {/* CARD 3: DAD SCORE */}
+          {/* Dad Score */}
           <motion.div variants={fadeUp} custom={2}>
             <DadScore />
           </motion.div>
