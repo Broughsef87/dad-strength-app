@@ -292,20 +292,27 @@ export default function ActiveWorkout() {
     return totalSets > 0 ? (completedSets / totalSets) * 100 : 0
   }
 
-  if (loading) return <div className="flex h-screen items-center justify-center bg-gray-950 text-white font-sans">Loading...</div>
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-5 h-5 border border-brand border-t-transparent rounded-full animate-spin" />
+        <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em] font-display">Loading</p>
+      </div>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white pb-28 font-sans">
+    <div className="min-h-screen bg-background text-foreground pb-28 font-sans">
       <header className="sticky top-0 z-20 bg-surface-2 border-b border-border p-4 flex items-center justify-between">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
           <ChevronLeft />
         </button>
         <div className="text-center">
-          <h1 className="text-xs font-black uppercase tracking-widest text-gray-400">Live Session</h1>
+          <h1 className="text-xs font-black uppercase tracking-widest text-muted-foreground font-display">Live Session</h1>
           <WorkoutTimer seconds={timer} formatTime={formatTime} />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => router.push(`/workout/${params?.id}/edit`)} className="p-2 text-gray-500 hover:text-white transition-colors">
+          <button onClick={() => router.push(`/workout/${params?.id}/edit`)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
             <Edit3 size={20} />
           </button>
           <button onClick={() => setShowFinishConfirm(true)} className="bg-green-600 hover:bg-green-500 text-white text-xs font-black px-5 py-2.5 rounded-full transition-all active:scale-95 shadow-lg shadow-green-500/20">
@@ -376,20 +383,20 @@ export default function ActiveWorkout() {
 
       {/* FINISH CONFIRM OVERLAY */}
       {showFinishConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 w-full max-w-sm text-center space-y-6 shadow-2xl">
-            <h2 className="text-xl font-black uppercase tracking-tight text-white">Finish Workout?</h2>
-            <p className="text-sm text-gray-400">This will log your session and end the timer.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6" style={{ backdropFilter: 'none' }}>
+          <div className="ds-card p-8 w-full max-w-sm text-center space-y-6 shadow-2xl">
+            <h2 className="font-display text-3xl tracking-[0.08em] uppercase text-foreground">Finish Workout?</h2>
+            <p className="text-sm text-muted-foreground">This will log your session and end the timer.</p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => { setShowFinishConfirm(false); finishWorkout() }}
-                className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3.5 rounded-xl text-sm uppercase tracking-widest transition-all active:scale-95"
+                className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3.5 rounded-md text-sm uppercase tracking-widest transition-all active:scale-95"
               >
                 Yes, I'm Done
               </button>
               <button
                 onClick={() => setShowFinishConfirm(false)}
-                className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-black py-3.5 rounded-xl text-sm uppercase tracking-widest transition-all"
+                className="w-full bg-muted hover:bg-muted/70 text-muted-foreground font-black py-3.5 rounded-md text-sm uppercase tracking-widest transition-all"
               >
                 Keep Going
               </button>

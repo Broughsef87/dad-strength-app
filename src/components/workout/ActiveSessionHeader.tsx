@@ -22,7 +22,7 @@ export default function ActiveSessionHeader({
   predictedVolume
 }: ActiveSessionHeaderProps) {
   return (
-    <div className={`group relative bg-card/40 border-2 overflow-hidden transition-all duration-700 backdrop-blur-3xl p-6 rounded-[32px] mb-8 ${
+    <div className={`group relative bg-surface-3 border-2 overflow-hidden transition-all duration-700 p-6 rounded-xl mb-8 ${
       isPaused
         ? 'border-amber-500/30 bg-amber-500/[0.03] shadow-[0_0_40px_rgba(245,158,11,0.05)]'
         : 'border-border shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]'
@@ -64,7 +64,7 @@ export default function ActiveSessionHeader({
           className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-90 ${
             isPaused
               ? 'bg-amber-500 border-amber-400 text-black shadow-[0_8px_25px_rgba(245,158,11,0.3)] hover:bg-amber-400'
-              : 'bg-gray-800/40 border-gray-700/50 text-muted-foreground hover:border-amber-500/50 hover:text-amber-400 hover:bg-amber-500/5'
+              : 'bg-muted border-border text-muted-foreground hover:border-amber-500/50 hover:text-amber-400 hover:bg-amber-500/5'
           }`}
         >
           {isPaused ? (
@@ -91,7 +91,7 @@ export default function ActiveSessionHeader({
                 {isPaused ? 'Monitoring Parent Duty' : 'Executing Functional Cycle'}
             </p>
             {!isPaused && (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-800/80 border border-gray-700 rounded-md">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-muted border border-border rounded-md">
                     <TrendingUp size={10} className="text-brand" />
                     <span className="text-[9px] font-black text-brand">UP 8%</span>
                 </div>
@@ -101,7 +101,7 @@ export default function ActiveSessionHeader({
 
         <div className="flex gap-8 items-center">
           <div className="relative group/stat text-right">
-            <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1.5 group-hover/stat:text-brand/70 transition-colors">Session Time</p>
+            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 group-hover/stat:text-brand/70 transition-colors">Session Time</p>
             <div className="flex items-baseline justify-end gap-1.5">
                 <Timer size={14} className={`mb-0.5 ${isPaused ? 'text-amber-400' : 'text-brand/50'}`} />
                 <p className={`text-2xl font-mono font-black tabular-nums transition-all ${
@@ -110,10 +110,10 @@ export default function ActiveSessionHeader({
             </div>
           </div>
 
-          <div className="w-px h-10 bg-gray-800" />
+          <div className="w-px h-10 bg-border" />
 
           <div className="relative group/stat text-right">
-            <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1.5 group-hover/stat:text-emerald-400/70 transition-colors">Load Moved</p>
+            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 group-hover/stat:text-emerald-400/70 transition-colors">Load Moved</p>
             <div className="flex items-baseline justify-end gap-1">
                 <p className="text-3xl font-black text-foreground leading-none tracking-tight">
                     {volume.toLocaleString()}
