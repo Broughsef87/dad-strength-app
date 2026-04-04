@@ -51,46 +51,50 @@
 
 @layer base {
   :root {
-    /* ── Light mode — Vuori linen palette ──────────────────────────── */
-    --background: 36 28% 94%;          /* #F5F1EB — warm linen canvas    */
-    --foreground: 228 18% 13%;         /* #1B1E2B — dark navy ink         */
+    /* ── Light mode: Linen × Steel ─────────────────────────────────
+       Warm linen canvas for the body, cool steel-slate for all
+       surfaces and cards — same warm/cool tension as dark mode.      */
 
-    --card: 36 22% 91%;                /* #EDE8DF — slightly richer linen */
-    --card-foreground: 228 18% 13%;
+    --background: 38 22% 95%;          /* #F3EFE9 — warm linen           */
+    --foreground: 222 32% 11%;         /* #131826 — rich navy ink        */
 
-    /* 3-tier surfaces — each step slightly darker/warmer */
-    --surface-1: 36 28% 94%;           /* base canvas */
-    --surface-2: 36 20% 89%;           /* #E7E1D8 — header/footer bands  */
-    --surface-3: 36 17% 86%;           /* #DDD7CE — card surfaces         */
+    /* Cards / elements float as cool steel against warm linen bg */
+    --card: 214 18% 93%;               /* #E3EAF2 — cool steel-linen     */
+    --card-foreground: 222 32% 11%;
 
-    --popover: 36 22% 91%;
-    --popover-foreground: 228 18% 13%;
+    /* 3-tier surfaces — warm base, cool raised elements */
+    --surface-1: 38 22% 95%;           /* #F3EFE9 — warm linen (body)    */
+    --surface-2: 214 22% 88%;          /* #D2DCE8 — cool slate nav bars  */
+    --surface-3: 214 18% 93%;          /* #E3EAF2 — cool steel cards     */
 
-    --primary: 228 18% 13%;
-    --primary-foreground: 36 28% 94%;
+    --popover: 214 18% 93%;
+    --popover-foreground: 222 32% 11%;
 
-    --secondary: 36 13% 86%;
-    --secondary-foreground: 228 18% 13%;
+    --primary: 222 32% 11%;
+    --primary-foreground: 38 22% 95%;
 
-    --muted: 36 14% 88%;               /* #E3DDDB — muted fill            */
-    --muted-foreground: 220 9% 44%;    /* #696E78 — warm slate gray       */
+    --secondary: 214 14% 90%;
+    --secondary-foreground: 222 32% 11%;
 
-    --accent: 36 13% 87%;
-    --accent-foreground: 228 18% 13%;
+    --muted: 214 14% 90%;              /* #DAEAF4-ish — cool muted fill  */
+    --muted-foreground: 215 18% 40%;   /* #55677C — steel blue-grey      */
+
+    --accent: 214 14% 90%;
+    --accent-foreground: 222 32% 11%;
 
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 36 11% 82%;              /* #D4CDC9 — warm linen border     */
-    --input: 36 20% 91%;
+    --border: 214 22% 80%;             /* #BDCAD8 — cool steel border    */
+    --input: 214 18% 93%;
     --ring: 38 90% 41%;
 
-    /* AMG Amber — earned accent (unchanged across modes) */
+    /* AMG Amber — earned accent, unchanged across modes */
     --brand: 38 90% 41%;               /* #C8820A */
     --brand-muted: 38 90% 41% / 0.12;
 
-    /* Steel — slightly warmer/darker on light bg */
-    --steel: 213 14% 48%;              /* #6A7988 */
+    /* Steel — same hue as dark mode steel */
+    --steel: 214 22% 52%;              /* #6A82A0 */
 
     --radius: 0.375rem;
   }
@@ -151,17 +155,17 @@
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     text-rendering: optimizeLegibility;
-    /* Light mode: subtle linen weave texture */
+    /* Light mode: linen weave with cool undertone */
     background-image:
       repeating-linear-gradient(
         -38deg,
         transparent 0, transparent 4px,
-        rgba(160, 130, 80, 0.055) 4px, rgba(160, 130, 80, 0.055) 5px
+        rgba(100, 130, 170, 0.04) 4px, rgba(100, 130, 170, 0.04) 5px
       ),
       repeating-linear-gradient(
         52deg,
-        transparent 0, transparent 4px,
-        rgba(160, 130, 80, 0.03) 4px, rgba(160, 130, 80, 0.03) 5px
+        transparent 0, transparent 5px,
+        rgba(160, 130, 80, 0.035) 5px, rgba(160, 130, 80, 0.035) 6px
       );
   }
 
@@ -281,6 +285,27 @@
   background: hsl(var(--surface-3));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
+}
+
+/* ── Light mode elevation ────────────────────────────────────────
+   Dark mode relies on darkness for depth. Light mode needs shadows
+   to lift elements off the linen canvas.                         */
+:root .ds-card {
+  box-shadow:
+    0 1px 2px hsl(214 40% 40% / 0.08),
+    0 4px 16px hsl(214 40% 40% / 0.07),
+    0 1px 0 hsl(214 22% 100% / 0.7) inset;
+}
+:root .card-base {
+  box-shadow: 0 1px 3px hsl(214 40% 40% / 0.08);
+}
+:root .card-elevated {
+  box-shadow:
+    0 2px 8px hsl(214 40% 40% / 0.10),
+    0 8px 32px hsl(214 40% 40% / 0.08);
+}
+:root .glass-card {
+  box-shadow: 0 1px 3px hsl(214 40% 40% / 0.07);
 }
 
 /* Stronger amber glow for hero CTA */

@@ -93,7 +93,25 @@ export default function MindPage() {
     saveToLocal({ completedObjectives: next });
   };
 
-  if (!mounted) return null;
+  if (!mounted) return (
+    <div className="min-h-screen bg-background text-foreground pb-28">
+      <AppHeader />
+      <main className="max-w-md mx-auto px-6 pt-4 space-y-6">
+        <div className="mb-6">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Mental</p>
+          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Mind</h1>
+        </div>
+        {[1,2,3].map(i => (
+          <div key={i} className="ds-card p-6 animate-pulse space-y-3">
+            <div className="h-4 bg-muted rounded w-1/3" />
+            <div className="h-3 bg-muted rounded w-2/3" />
+            <div className="h-3 bg-muted rounded w-1/2" />
+          </div>
+        ))}
+      </main>
+      <BottomNav />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28">
