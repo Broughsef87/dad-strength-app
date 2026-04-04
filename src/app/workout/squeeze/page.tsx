@@ -167,7 +167,7 @@ function A1BlockView({ block }: { block: A1Block }) {
   }
 
   return (
-    <div className="glass-card rounded-2xl p-4 space-y-4">
+    <div className="card-base p-4 space-y-4">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
@@ -314,7 +314,7 @@ function A2BlockView({ block }: { block: A2Block }) {
   }, [restCountdown])
 
   return (
-    <div className="glass-card rounded-2xl p-4 space-y-4">
+    <div className="card-base p-4 space-y-4">
       <div>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-display font-black text-brand uppercase tracking-[0.15em]">A2</span>
@@ -404,7 +404,7 @@ function FinisherBlockView({ block }: { block: FinisherBlock }) {
   }, [])
 
   return (
-    <div className="glass-card rounded-2xl p-4 space-y-4">
+    <div className="card-base p-4 space-y-4">
       <div className="text-center">
         <span className="font-display text-sm font-black text-brand uppercase tracking-[0.2em]">
           FINISHER
@@ -514,7 +514,7 @@ function CircuitBlockView({ block }: { block: CircuitBlock }) {
   }, [startTime])
 
   return (
-    <div className="glass-card rounded-2xl p-4 space-y-4">
+    <div className="card-base p-4 space-y-4">
       <div>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-display font-black text-brand uppercase tracking-[0.15em]">CIRCUIT</span>
@@ -566,7 +566,7 @@ function CircuitBlockView({ block }: { block: CircuitBlock }) {
 
 function RecoveryBlockView({ block }: { block: RecoveryBlock }) {
   return (
-    <div className="glass-card rounded-2xl p-4 space-y-4">
+    <div className="card-base p-4 space-y-4">
       <div>
         <span className="text-xs font-display font-black text-brand uppercase tracking-[0.15em]">RECOVERY</span>
         <p className="text-xs text-muted-foreground mt-1">{block.label}</p>
@@ -601,7 +601,7 @@ function CompleteScreen({
 }) {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12 gap-6 animate-float-up">
-      <div className="glass-card rounded-2xl p-6 w-full max-w-sm text-center space-y-4 accent-border-top brand-glow">
+      <div className="card-base p-6 w-full max-w-sm text-center space-y-4 brand-glow">
         <p className="font-display text-2xl font-black uppercase tracking-tight text-brand">
           Squeezed.
         </p>
@@ -780,7 +780,7 @@ export default function SqueezePage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-28 font-sans">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-border">
+      <header className="sticky top-0 z-20 bg-surface-2 border-b border-border">
         <div className="flex items-center justify-between px-4 py-3 max-w-md mx-auto">
           <button
             onClick={() => router.push('/dashboard')}

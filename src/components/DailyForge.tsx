@@ -76,7 +76,7 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
           key={n}
           onClick={() => onChange(n)}
           className={`w-10 h-10 rounded-full font-black text-sm transition-all active:scale-90 ${
-            n <= value ? 'bg-brand text-white shadow-lg shadow-brand/30 scale-105' : 'bg-muted text-muted-foreground'
+            n <= value ? 'bg-brand text-background shadow-lg shadow-brand/30 scale-105' : 'bg-muted text-muted-foreground'
           }`}
         >
           {n}
@@ -90,14 +90,14 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
   if (!show) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm p-4 pb-24">
-      <div className="w-full max-w-sm bg-card border border-border rounded-3xl p-7 shadow-2xl animate-in slide-in-from-bottom-8 duration-500">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 pb-24">
+      <div className="w-full max-w-sm bg-surface-2 border border-border rounded-xl p-7 shadow-2xl animate-in slide-in-from-bottom-8 duration-500">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-7">
           <div>
             <p className="text-[10px] uppercase tracking-[0.25em] text-brand font-medium">Daily Forge</p>
-            <h2 className="text-xl font-black tracking-tighter text-foreground">Morning Check-In</h2>
+            <h2 className="font-display text-2xl tracking-[0.08em] uppercase text-foreground">Morning Check-In</h2>
           </div>
           <button onClick={() => setShow(false)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
             <X size={16} />
@@ -147,7 +147,7 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
               onChange={e => setTodayFocus(e.target.value)}
               placeholder="One thing that moves the needle..."
               rows={4}
-              className="w-full bg-background border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none focus:border-brand transition-colors"
+              className="w-full bg-background border border-border rounded-md px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none focus:border-brand transition-colors"
             />
             <p className="text-[10px] text-muted-foreground italic">One objective. Not three. Not five. One.</p>
           </div>
@@ -166,7 +166,7 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
               onChange={e => setFamilyIntention(e.target.value)}
               placeholder="One intentional act for the people who matter most..."
               rows={4}
-              className="w-full bg-background border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none focus:border-brand transition-colors"
+              className="w-full bg-background border border-border rounded-md px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none focus:border-brand transition-colors"
             />
             <p className="text-[10px] text-muted-foreground italic">&quot;The quality of your life is the quality of your relationships.&quot;</p>
           </div>
@@ -177,7 +177,7 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
           {step > 1 && (
             <button
               onClick={() => setStep(s => s - 1)}
-              className="px-5 py-3 border border-border rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="px-5 py-3 border border-border rounded-md text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Back
             </button>
@@ -185,7 +185,7 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
           {step < 3 ? (
             <button
               onClick={() => setStep(s => s + 1)}
-              className="flex-1 flex items-center justify-center gap-2 bg-brand text-white font-black text-sm py-3 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97]"
+              className="flex-1 flex items-center justify-center gap-2 bg-brand text-background font-semibold text-sm py-3 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow"
             >
               Next <ChevronRight size={16} />
             </button>
@@ -193,7 +193,7 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
             <button
               onClick={handleComplete}
               disabled={saving}
-              className="flex-1 bg-brand text-white font-black text-sm py-3 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50"
+              className="flex-1 bg-brand text-background font-semibold text-sm py-3 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow disabled:opacity-50"
             >
               {saving ? 'Locking in...' : 'Lock In & Forge'}
             </button>

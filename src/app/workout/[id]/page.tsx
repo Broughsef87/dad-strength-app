@@ -296,7 +296,7 @@ export default function ActiveWorkout() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white pb-28 font-sans">
-      <header className="sticky top-0 z-20 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 p-4 flex items-center justify-between">
+      <header className="sticky top-0 z-20 bg-surface-2 border-b border-border p-4 flex items-center justify-between">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 hover:text-white">
           <ChevronLeft />
         </button>
@@ -376,7 +376,7 @@ export default function ActiveWorkout() {
 
       {/* FINISH CONFIRM OVERLAY */}
       {showFinishConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 w-full max-w-sm text-center space-y-6 shadow-2xl">
             <h2 className="text-xl font-black uppercase tracking-tight text-white">Finish Workout?</h2>
             <p className="text-sm text-gray-400">This will log your session and end the timer.</p>

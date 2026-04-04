@@ -191,16 +191,13 @@ export default function History() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
-        <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-brand/5 blur-[100px]" />
-      </div>
-      <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b border-border p-4 flex items-center gap-4">
+      <header className="sticky top-0 z-20 bg-surface-2 border-b border-border p-4 flex items-center gap-4">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft />
         </button>
         <div>
-          <h1 className="text-xl font-black italic uppercase tracking-tighter">Battle Log</h1>
-          <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{sessions.length} Sessions</p>
+          <h1 className="font-display text-3xl tracking-[0.1em] uppercase leading-none">Battle Log</h1>
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.18em] font-display mt-0.5">{sessions.length} Sessions</p>
         </div>
       </header>
 
@@ -216,7 +213,7 @@ export default function History() {
         </div>
 
         {/* AI Weekly Debrief */}
-        <div className="bg-card/50 rounded-3xl border border-border p-6 shadow-xl">
+        <div className="ds-card p-6">
           <WeeklyDebrief
             weekSessions={sessions.filter(s => {
               const d = new Date(s.date)
@@ -240,8 +237,8 @@ export default function History() {
 
             {/* Copy */}
             <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-brand mb-3">Battle Log Empty</p>
-            <h2 className="text-2xl font-black tracking-tighter text-foreground mb-3 leading-tight">
-              THE LOG IS EMPTY.
+            <h2 className="font-display text-4xl tracking-[0.08em] text-foreground mb-3 leading-none">
+              The Log Is Empty.
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mb-8">
               Iron only counts when it's recorded. Every rep, every set — this is where your legacy is built.
@@ -250,7 +247,7 @@ export default function History() {
             {/* CTA */}
             <button
               onClick={() => router.push('/body')}
-              className="flex items-center gap-2 bg-brand text-white font-black text-xs uppercase tracking-[0.15em] px-8 py-4 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97]"
+              className="flex items-center gap-2 bg-brand text-background font-semibold text-xs uppercase tracking-[0.14em] px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow"
             >
               <Dumbbell size={14} />
               Start First Session
@@ -266,7 +263,7 @@ export default function History() {
               })
 
               return (
-                <div key={sessionKey} className="bg-card rounded-3xl border border-border overflow-hidden shadow-xl">
+                <div key={sessionKey} className="card-base overflow-hidden">
                   {/* Session Header */}
                   <button
                     onClick={() => setExpanded(isExpanded ? null : sessionKey)}
@@ -308,7 +305,7 @@ export default function History() {
                             </div>
                             <div className="space-y-1.5">
                               {sets.map((s, i) => (
-                                <div key={s.id} className="flex items-center justify-between bg-muted rounded-xl px-4 py-2">
+                                <div key={s.id} className="flex items-center justify-between bg-surface-2 rounded-md px-4 py-2">
                                   <span className="text-xs font-black text-muted-foreground uppercase w-8">S{s.set_number}</span>
                                   <span className="text-sm font-bold">{s.weight_lbs > 0 ? `${s.weight_lbs} lbs` : 'BW'}</span>
                                   <span className="text-sm font-bold text-brand">× {s.reps}</span>

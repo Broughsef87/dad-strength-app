@@ -85,7 +85,7 @@ export default function EditProgram() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans pb-12">
-      <header className="flex items-center justify-between border-b border-border bg-card/50 p-4 backdrop-blur-md sticky top-0 z-10">
+      <header className="flex items-center justify-between border-b border-border bg-surface-2 p-4 sticky top-0 z-10">
         <button
           onClick={() => router.back()}
           className="text-muted-foreground hover:text-foreground transition-colors p-1"

@@ -95,16 +95,13 @@ export default function MindPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28 p-6">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
-        <div className="absolute -top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full opacity-50 blur-[100px]" style={{ background: 'radial-gradient(circle, hsl(258 90% 60% / 0.08) 0%, transparent 70%)' }} />
-      </div>
       <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/dashboard')} className="p-2 border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={() => router.push('/dashboard')} className="p-2 border border-border rounded-md text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft size={16} />
         </button>
         <div className="flex items-center gap-3">
           <Brain className="w-5 h-5 text-brand" />
-          <h1 className="font-light text-2xl tracking-[0.08em]">Mind</h1>
+          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Mind</h1>
         </div>
       </header>
 
@@ -117,7 +114,7 @@ export default function MindPage() {
         >
 
         {/* Objectives */}
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Target size={16} className="text-brand" />
@@ -207,7 +204,7 @@ export default function MindPage() {
                   setLockedIn(true);
                   saveToLocal({ lockedIn: true });
                 }}
-                className="w-full bg-foreground text-background py-3 rounded-lg text-xs font-medium uppercase tracking-[0.1em] hover:opacity-90 transition-opacity"
+                className="w-full bg-brand text-background py-3 rounded-md text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/90 transition-colors brand-glow"
               >
                 Lock In Objectives
               </button>
@@ -215,16 +212,16 @@ export default function MindPage() {
           )}
         </motion.div>
 
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <DeepWorkTimer availableObjectives={objectives} />
         </motion.div>
 
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <MindSqueeze objectives={objectives} />
         </motion.div>
 
         {/* Journal */}
-        <motion.div variants={fadeUp} className="bg-card p-6 rounded-xl border border-border">
+        <motion.div variants={fadeUp} className="ds-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <PenLine size={16} className="text-brand" />
             <h3 className="font-medium text-sm">Journal</h3>

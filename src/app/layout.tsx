@@ -1,25 +1,25 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono, Orbitron } from 'next/font/google'
+import { Bebas_Neue, Space_Grotesk, Space_Mono } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
 import { UserProvider } from '../contexts/UserContext'
 
-const geist = Geist({
+const bebasNeue = Bebas_Neue({
   subsets: ['latin'],
-  variable: '--font-geist',
-  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-bebas',
+  weight: ['400'],
 })
 
-const geistMono = Geist_Mono({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  variable: '--font-geist-mono',
-  weight: ['400', '500'],
+  variable: '--font-space-grotesk',
+  weight: ['300', '400', '500', '600', '700'],
 })
 
-const orbitron = Orbitron({
+const spaceMono = Space_Mono({
   subsets: ['latin'],
-  variable: '--font-orbitron',
-  weight: ['700', '900'],
+  variable: '--font-space-mono',
+  weight: ['400', '700'],
 })
 
 export const metadata: Metadata = {
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#E8572A',
+  themeColor: '#0D0F14',
 }
 
 export default function RootLayout({
@@ -43,8 +43,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${orbitron.variable} dark`}>
-      <body className={geist.className}>
+    <html lang="en" className={`${bebasNeue.variable} ${spaceGrotesk.variable} ${spaceMono.variable} dark`}>
+      <body className={spaceGrotesk.className}>
         <UserProvider>
           <PageTransition>{children}</PageTransition>
         </UserProvider>

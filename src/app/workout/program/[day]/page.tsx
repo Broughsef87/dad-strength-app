@@ -95,7 +95,7 @@ function LoadingScreen() {
         </div>
       </div>
       <div className="text-center space-y-2">
-        <p className="text-base font-black uppercase tracking-widest text-foreground">
+        <p className="font-display text-2xl tracking-[0.12em] uppercase text-foreground">
           Building Your Session
         </p>
         <p className="text-sm text-muted-foreground">
@@ -111,7 +111,7 @@ function ErrorScreen({ onBack }: { onBack: () => void }) {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-6 text-center">
       <div className="text-4xl">⚠️</div>
       <div className="space-y-2">
-        <p className="text-base font-black uppercase tracking-tight text-foreground">
+        <p className="font-display text-2xl tracking-[0.1em] uppercase text-foreground">
           Generation Failed
         </p>
         <p className="text-sm text-muted-foreground">
@@ -120,7 +120,7 @@ function ErrorScreen({ onBack }: { onBack: () => void }) {
       </div>
       <button
         onClick={onBack}
-        className="px-6 py-3 rounded-xl bg-brand text-white font-black text-sm uppercase tracking-widest active:scale-95"
+        className="px-6 py-3 rounded-md bg-brand text-background font-semibold text-sm uppercase tracking-[0.1em] active:scale-95 brand-glow"
       >
         Go Back
       </button>
@@ -150,7 +150,7 @@ function SetRow({
 
   return (
     <div
-      className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+      className={`rounded-md border transition-all duration-200 overflow-hidden ${
         isDone
           ? 'bg-emerald-500/5 border-emerald-500/20'
           : isLogging
@@ -207,7 +207,7 @@ function SetRow({
         ) : (
           <button
             onClick={onLog}
-            className="w-14 text-xs font-black uppercase tracking-widest px-2 py-1.5 rounded-lg bg-brand text-white active:scale-95 shrink-0"
+            className="w-14 text-xs font-semibold uppercase tracking-wider px-2 py-1.5 rounded-md bg-brand text-background active:scale-95 shrink-0"
           >
             LOG
           </button>
@@ -225,7 +225,7 @@ function SetRow({
               <button
                 key={rir}
                 onClick={() => onRirSelect(rir)}
-                className="py-3 rounded-xl text-sm font-black border border-border/60 bg-surface-2 hover:border-brand hover:bg-brand/10 hover:text-brand active:scale-95 transition-all"
+                className="py-3 rounded-md text-sm font-semibold border border-border/60 bg-surface-2 hover:border-brand hover:bg-brand/10 hover:text-brand active:scale-95 transition-all"
               >
                 {rir === 3 ? '3+' : rir}
               </button>
@@ -669,7 +669,7 @@ export default function ProgramWorkoutPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-28 font-sans">
       {/* ── Sticky Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-border">
+      <header className="sticky top-0 z-20 bg-surface-2 border-b border-border">
         <div className="flex items-center justify-between px-4 py-3 max-w-md mx-auto">
           {/* Back */}
           <button
@@ -681,7 +681,7 @@ export default function ProgramWorkoutPage() {
 
           {/* Center: day name + week badge */}
           <div className="text-center flex-1 px-2">
-            <p className="text-sm font-black uppercase tracking-tight text-foreground leading-none">
+            <p className="font-display text-xl tracking-[0.08em] uppercase text-foreground leading-none">
               Day {dayNumber}
               {dayName ? ` — ${dayName}` : ''}
             </p>
@@ -736,9 +736,9 @@ export default function ProgramWorkoutPage() {
       {/* ── Session Complete Banner ────────────────────────────────────────────── */}
       {sessionComplete && (
         <div className="mx-4 mt-4 max-w-md mx-auto animate-float-up">
-          <div className="glass-card rounded-2xl p-6 text-center space-y-4 accent-border-top brand-glow">
-            <p className="text-2xl font-black uppercase tracking-tight text-brand">
-              Session Complete 💪
+          <div className="ds-card p-6 text-center space-y-4 brand-glow">
+            <p className="font-display text-4xl tracking-[0.1em] uppercase text-brand">
+              Session Complete
             </p>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-0.5">
@@ -760,7 +760,7 @@ export default function ProgramWorkoutPage() {
             </div>
             <button
               onClick={handleFinishSession}
-              className="w-full py-3.5 rounded-xl bg-brand text-white font-black text-sm uppercase tracking-widest active:scale-95 brand-glow"
+              className="w-full py-3.5 rounded-md bg-brand text-background font-semibold text-sm uppercase tracking-[0.1em] active:scale-95 brand-glow"
             >
               Submit Workout
             </button>
@@ -775,13 +775,13 @@ export default function ProgramWorkoutPage() {
           return (
             <div
               key={exIndex}
-              className={`glass-card rounded-2xl p-4 space-y-3 transition-all duration-200 ${
+              className={`card-base p-4 space-y-3 transition-all duration-200 ${
                 exDone ? 'opacity-75' : ''
               }`}
             >
               {/* Exercise header */}
               <div>
-                <h3 className="text-base font-black uppercase tracking-tight text-foreground">
+                <h3 className="font-display text-2xl tracking-[0.06em] uppercase text-foreground leading-none">
                   {ex.name}
                 </h3>
                 {ex.progressionNote && (
@@ -809,7 +809,7 @@ export default function ProgramWorkoutPage() {
               {!exDone && (
                 <button
                   onClick={() => handleAddSet(exIndex)}
-                  className="w-full py-2 rounded-xl border border-dashed border-border/60 text-xs font-bold text-muted-foreground hover:border-brand hover:text-brand transition-colors active:scale-95"
+                  className="w-full py-2 rounded-md border border-dashed border-border/60 text-xs font-semibold text-muted-foreground hover:border-brand hover:text-brand transition-colors active:scale-95"
                 >
                   + Add Set
                 </button>
@@ -820,7 +820,7 @@ export default function ProgramWorkoutPage() {
 
         {/* Empty state if fallback failed to load exercises */}
         {exerciseLogs.length === 0 && pageState !== 'loading' && (
-          <div className="glass-card rounded-2xl p-8 text-center space-y-3">
+          <div className="card-base p-8 text-center space-y-3">
             <p className="text-sm font-black uppercase tracking-tight text-muted-foreground">
               No exercises loaded
             </p>
@@ -829,7 +829,7 @@ export default function ProgramWorkoutPage() {
             </p>
             <button
               onClick={() => router.push('/body')}
-              className="px-5 py-2.5 rounded-xl bg-brand text-white text-xs font-black uppercase tracking-widest active:scale-95"
+              className="px-5 py-2.5 rounded-md bg-brand text-background text-xs font-semibold uppercase tracking-wider active:scale-95 brand-glow"
             >
               Back to Program
             </button>
@@ -839,19 +839,19 @@ export default function ProgramWorkoutPage() {
 
       {/* ── Sticky Footer ─────────────────────────────────────────────────────── */}
       {exerciseLogs.length > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-30 bg-background/95 backdrop-blur-xl border-t border-border px-4 py-3 safe-area-pb">
+        <div className="fixed bottom-0 inset-x-0 z-30 bg-surface-2 border-t border-border px-4 py-3 safe-area-pb">
           <div className="max-w-md mx-auto flex gap-3">
             {!sessionComplete && (
               <button
                 onClick={() => setShowSkipConfirm(true)}
-                className="flex-1 py-3 rounded-xl border border-border/60 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-border active:scale-95 transition-all"
+                className="flex-1 py-3 rounded-md border border-border/60 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-border active:scale-95 transition-all"
               >
                 Skip Workout
               </button>
             )}
             <button
               onClick={handleFinishSession}
-              className={`py-3 rounded-xl text-white text-xs font-black uppercase tracking-widest active:scale-95 brand-glow transition-all ${
+              className={`py-3 rounded-md text-background text-xs font-semibold uppercase tracking-wider active:scale-95 brand-glow transition-all ${
                 sessionComplete
                   ? 'flex-1 bg-brand scale-105'
                   : 'flex-1 bg-brand/80'
@@ -866,15 +866,15 @@ export default function ProgramWorkoutPage() {
       {/* ── Skip Workout Confirmation ──────────────────────────────────────────── */}
       {showSkipConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70"
           onClick={() => setShowSkipConfirm(false)}
         >
           <div
-            className="w-full max-w-md bg-background rounded-t-3xl p-6 pb-10 space-y-4 animate-float-up"
+            className="w-full max-w-md bg-surface-2 rounded-t-xl p-6 pb-10 space-y-4 animate-float-up border-t border-border"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center space-y-1">
-              <p className="text-base font-black uppercase tracking-tight text-foreground">
+              <p className="font-display text-3xl tracking-[0.08em] uppercase text-foreground">
                 Skip Today&apos;s Workout?
               </p>
               <p className="text-sm text-muted-foreground">
@@ -884,13 +884,13 @@ export default function ProgramWorkoutPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowSkipConfirm(false)}
-                className="flex-1 py-3.5 rounded-xl border border-border/60 text-sm font-black uppercase tracking-widest text-muted-foreground active:scale-95"
+                className="flex-1 py-3.5 rounded-md border border-border/60 text-sm font-semibold uppercase tracking-wider text-muted-foreground active:scale-95"
               >
                 Keep Going
               </button>
               <button
                 onClick={handleSkipWorkout}
-                className="flex-1 py-3.5 rounded-xl bg-destructive/90 text-white text-sm font-black uppercase tracking-widest active:scale-95"
+                className="flex-1 py-3.5 rounded-md bg-destructive/90 text-foreground text-sm font-semibold uppercase tracking-wider active:scale-95"
               >
                 Skip It
               </button>

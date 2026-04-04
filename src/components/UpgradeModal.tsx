@@ -75,13 +75,13 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70"
             onClick={onClose}
           />
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-md bg-card border border-border rounded-2xl overflow-hidden"
+            className="relative w-full max-w-md bg-surface-2 border border-border rounded-xl overflow-hidden"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
@@ -101,7 +101,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium">Dad Strong+</p>
-                  <h2 className="text-lg font-black uppercase italic tracking-tight">Unlock Everything</h2>
+                  <h2 className="font-display text-2xl tracking-[0.08em] uppercase">Unlock Everything</h2>
                 </div>
               </div>
               {trigger && (
@@ -127,7 +127,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               <button
                 onClick={() => handleCheckout('monthly')}
                 disabled={!!loading}
-                className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:border-brand/40 bg-muted/30 hover:bg-brand/5 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-between p-4 rounded-md border border-border hover:border-brand/40 bg-muted/30 hover:bg-brand/5 transition-all disabled:opacity-50"
               >
                 <div className="text-left">
                   <p className="font-bold text-sm">Monthly</p>
@@ -145,9 +145,9 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               <button
                 onClick={() => handleCheckout('yearly')}
                 disabled={!!loading}
-                className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-brand bg-brand/10 hover:bg-brand/15 transition-all disabled:opacity-50 relative"
+                className="w-full flex items-center justify-between p-4 rounded-md border-2 border-brand bg-brand/10 hover:bg-brand/15 transition-all disabled:opacity-50 relative"
               >
-                <div className="absolute -top-2.5 left-4 bg-brand text-foreground text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                <div className="absolute -top-2.5 left-4 bg-brand text-background text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-sm">
                   Best Value
                 </div>
                 <div className="text-left">
@@ -178,7 +178,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               <button
                 onClick={() => handleCheckout('founder')}
                 disabled={!!loading}
-                className="w-full flex items-center justify-between p-4 rounded-xl border border-border/50 hover:border-foreground/20 bg-muted/20 hover:bg-muted/40 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-between p-4 rounded-md border border-border/50 hover:border-foreground/20 bg-muted/20 hover:bg-muted/40 transition-all disabled:opacity-50"
               >
                 <div className="flex items-center gap-2.5 text-left">
                   <Shield size={14} className="text-brand shrink-0" />

@@ -123,7 +123,7 @@ export default function Schedule() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans pb-28">
       {/* HEADER */}
-      <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-xl border-b border-border p-4 flex items-center gap-3">
+      <header className="sticky top-0 z-20 bg-surface-2 border-b border-border p-4 flex items-center gap-3">
         <button onClick={() => router.push('/dashboard')} className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft size={22} />
         </button>

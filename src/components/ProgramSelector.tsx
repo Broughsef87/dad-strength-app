@@ -313,7 +313,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-black/70 z-40"
               onClick={closeSheet}
             />
 
@@ -323,7 +323,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 32, stiffness: 360 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border rounded-t-3xl max-h-[90vh] overflow-y-auto"
+              className="fixed bottom-0 left-0 right-0 z-50 bg-surface-2 border-t border-border rounded-t-xl max-h-[90vh] overflow-y-auto"
             >
               {/* Drag handle */}
               <div className="flex justify-center pt-3 pb-1">
@@ -361,7 +361,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                 {step === 1 && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div>
-                      <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-1">
+                      <h2 className="text-2xl font-display tracking-[0.08em] uppercase mb-1">
                         Choose Your Program
                       </h2>
                       <p className="text-xs text-muted-foreground">
@@ -379,7 +379,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                             key={program.slug}
                             onClick={() => !isComingSoon && setSelectedSlug(program.slug)}
                             disabled={isComingSoon}
-                            className={`relative w-full text-left glass-card rounded-2xl p-4 border transition-all duration-200 ${
+                            className={`relative w-full text-left card-base p-4 transition-all duration-200 ${
                               isComingSoon
                                 ? 'opacity-40 pointer-events-none cursor-not-allowed border-border/50'
                                 : isSelected
@@ -397,11 +397,11 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                                 <span className="text-xl flex-shrink-0">{program.icon}</span>
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-lg font-black uppercase italic tracking-tight leading-tight">
+                                    <span className="text-lg font-display tracking-[0.06em] uppercase leading-tight">
                                       {program.name}
                                     </span>
                                     {isActive && (
-                                      <span className="text-[9px] uppercase tracking-widest font-black bg-brand/15 text-brand border border-brand/30 rounded-full px-2 py-0.5">
+                                      <span className="text-[9px] uppercase tracking-widest font-black bg-brand/15 text-brand border border-brand/30 rounded-sm px-2 py-0.5">
                                         Active
                                       </span>
                                     )}
@@ -412,7 +412,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                                 </div>
                               </div>
                               {!isComingSoon && (
-                                <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 rounded-full px-2.5 py-1 whitespace-nowrap">
+                                <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 rounded-sm px-2.5 py-1 whitespace-nowrap">
                                   {program.vibe}
                                 </span>
                               )}
@@ -428,7 +428,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     <button
                       onClick={goNext}
                       disabled={!selectedSlug}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
                     >
                       Next →
                     </button>
@@ -439,7 +439,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                 {step === 2 && selectedProgram && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div>
-                      <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-1">
+                      <h2 className="text-2xl font-display tracking-[0.08em] uppercase mb-1">
                         Your Setup
                       </h2>
                       {autoGymType && (
@@ -455,7 +455,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                       <button
                         onClick={() => setGymType('commercial')}
                         disabled={!!autoGymType && autoGymType !== 'commercial'}
-                        className={`flex flex-col items-center gap-2 p-5 rounded-2xl border transition-all active:scale-95 ${
+                        className={`flex flex-col items-center gap-2 p-5 rounded-md border transition-all active:scale-95 ${
                           effectiveGymType === 'commercial'
                             ? 'border-brand bg-brand/10 text-foreground'
                             : autoGymType && autoGymType !== 'commercial'
@@ -476,7 +476,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                       <button
                         onClick={() => setGymType('home')}
                         disabled={!!autoGymType && autoGymType !== 'home'}
-                        className={`flex flex-col items-center gap-2 p-5 rounded-2xl border transition-all active:scale-95 ${
+                        className={`flex flex-col items-center gap-2 p-5 rounded-md border transition-all active:scale-95 ${
                           effectiveGymType === 'home'
                             ? 'border-brand bg-brand/10 text-foreground'
                             : autoGymType && autoGymType !== 'home'
@@ -514,7 +514,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                                 <button
                                   key={key}
                                   onClick={() => toggleEquipment(key)}
-                                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-all active:scale-[0.98] ${
+                                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-md border transition-all active:scale-[0.98] ${
                                     checked
                                       ? 'bg-brand/10 border-brand/40 text-foreground'
                                       : 'bg-card/60 border-border text-muted-foreground hover:border-brand/30'
@@ -546,7 +546,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     <button
                       onClick={goNext}
                       disabled={!effectiveGymType}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
                     >
                       Next →
                     </button>
@@ -557,7 +557,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                 {step === 3 && selectedProgram && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div>
-                      <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-1">
+                      <h2 className="text-2xl font-display tracking-[0.08em] uppercase mb-1">
                         Your Schedule
                       </h2>
                       {lockedDays && (
@@ -573,7 +573,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                         <button
                           onClick={() => setDays(3)}
                           disabled={!!lockedDays && lockedDays !== 3}
-                          className={`w-full text-left flex items-center justify-between p-5 rounded-2xl border transition-all active:scale-[0.98] ${
+                          className={`w-full text-left flex items-center justify-between p-5 rounded-md border transition-all active:scale-[0.98] ${
                             effectiveDays === 3
                               ? 'border-brand bg-brand/10'
                               : 'border-border/50 hover:border-brand/30'
@@ -598,7 +598,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                         <button
                           onClick={() => setDays(5)}
                           disabled={!!lockedDays && lockedDays !== 5}
-                          className={`w-full text-left flex items-center justify-between p-5 rounded-2xl border transition-all active:scale-[0.98] ${
+                          className={`w-full text-left flex items-center justify-between p-5 rounded-md border transition-all active:scale-[0.98] ${
                             effectiveDays === 5
                               ? 'border-brand bg-brand/10'
                               : 'border-border/50 hover:border-brand/30'
@@ -622,7 +622,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     <button
                       onClick={goNext}
                       disabled={!effectiveDays}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
                     >
                       Next →
                     </button>
@@ -633,7 +633,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                 {step === 4 && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div>
-                      <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-1">
+                      <h2 className="text-2xl font-display tracking-[0.08em] uppercase mb-1">
                         How Long?
                       </h2>
                       <p className="text-xs text-muted-foreground">
@@ -680,7 +680,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     <button
                       onClick={goNext}
                       disabled={!weeks}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
                     >
                       Lock It In →
                     </button>
@@ -691,7 +691,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                 {step === 5 && selectedProgram && (
                   <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div>
-                      <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-1">
+                      <h2 className="text-2xl font-display tracking-[0.08em] uppercase mb-1">
                         Starting Weights
                       </h2>
                       <p className="text-xs text-muted-foreground">
@@ -731,7 +731,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
                     <button
                       onClick={goNext}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95"
+                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
                     >
                       Next →
                     </button>
@@ -744,7 +744,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     {/* Program hero */}
                     <div className="flex flex-col items-center text-center gap-2 pt-2 pb-4">
                       <span className="text-5xl">{selectedProgram.icon}</span>
-                      <h2 className="text-2xl font-black italic uppercase tracking-tighter">
+                      <h2 className="text-2xl font-display tracking-[0.08em] uppercase">
                         {selectedProgram.name}
                       </h2>
                       <p className="text-xs text-muted-foreground">{selectedProgram.tagline}</p>
