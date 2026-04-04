@@ -5,14 +5,15 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '../../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Moon, Sun, Bell, Shield, Download, Lock, Check, Loader2 } from 'lucide-react'
+import { ArrowLeft, Moon, Sun, Bell, Shield, Download, Lock, Check, Loader2, Monitor } from 'lucide-react'
 import BottomNav from '../../../components/BottomNav'
+import { useTheme, type Theme } from '../../../contexts/ThemeContext'
 
 export default function Settings() {
   const router = useRouter()
   const supabase = createClient()
 
-  const [isDark, setIsDark] = useState(false)
+  const { theme, setTheme } = useTheme()
   const [notifWorkout, setNotifWorkout] = useState(false)
   const [notifCheckin, setNotifCheckin] = useState(false)
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null)
@@ -24,17 +25,6 @@ export default function Settings() {
   const [showPasswordForm, setShowPasswordForm] = useState(false)
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('dad-strength-theme')
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-      setIsDark(true)
-    } else if (savedTheme === 'light') {
-      document.documentElement.classList.remove('dark')
-      setIsDark(false)
-    } else {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    }
-
     setNotifWorkout(localStorage.getItem('dad-strength-notif-workout') === 'true')
     setNotifCheckin(localStorage.getItem('dad-strength-notif-checkin') === 'true')
     if ('Notification' in window) {
@@ -47,18 +37,6 @@ export default function Settings() {
     }
     loadEmail()
   }, [supabase])
-
-  const toggleDarkMode = () => {
-    const next = !isDark
-    setIsDark(next)
-    if (next) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('dad-strength-theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('dad-strength-theme', 'light')
-    }
-  }
 
   const scheduleNotification = (type: 'workout' | 'checkin') => {
     // Show an immediate confirmation notification
@@ -156,22 +134,36 @@ export default function Settings() {
         {/* Appearance */}
         <section className="space-y-3">
           <h2 className="text-xs text-muted-foreground uppercase tracking-[0.15em] font-medium px-1">Appearance</h2>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <button
-              onClick={toggleDarkMode}
-              className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
-            >
-              <div className="p-2 bg-muted rounded-lg">
-                {isDark ? <Sun size={16} className="text-foreground" /> : <Moon size={16} className="text-foreground" />}
+          <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Theme</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {theme === 'auto' ? 'Follows your device' : theme === 'dark' ? 'Dark mode' : 'Light mode'}
+                </p>
               </div>
-              <div className="text-left flex-1">
-                <p className="font-medium text-sm">Dark Mode</p>
-                <p className="text-xs text-muted-foreground">{isDark ? 'Dark mode on' : 'Light mode on'}</p>
-              </div>
-              <div className={`w-10 h-5 rounded-full transition-colors relative ${isDark ? 'bg-brand' : 'bg-muted'}`}>
-                <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-background shadow transition-all ${isDark ? 'left-5' : 'left-0.5'}`} />
-              </div>
-            </button>
+            </div>
+            {/* iOS-style 3-segment pill */}
+            <div className="flex rounded-lg bg-muted p-1 gap-0.5">
+              {([
+                { value: 'auto' as Theme, label: 'Auto', Icon: Monitor },
+                { value: 'light' as Theme, label: 'Light', Icon: Sun },
+                { value: 'dark' as Theme, label: 'Dark', Icon: Moon },
+              ] as const).map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
+                    theme === value
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon size={13} />
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 

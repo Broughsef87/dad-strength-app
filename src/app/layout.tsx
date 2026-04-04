@@ -3,6 +3,7 @@ import { Bebas_Neue, Space_Grotesk, Space_Mono } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
 import { UserProvider } from '../contexts/UserContext'
+import { ThemeProvider } from '../contexts/ThemeContext'
 
 const bebasNeue = Bebas_Neue({
   subsets: ['latin'],
@@ -68,11 +69,25 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${spaceGrotesk.variable} ${spaceMono.variable} dark overflow-x-hidden`}>
+    <html lang="en" className={`${bebasNeue.variable} ${spaceGrotesk.variable} ${spaceMono.variable} overflow-x-hidden`}>
+      <head>
+        {/* FOUC prevention: apply theme class before first paint */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            try{
+              var t=localStorage.getItem('dad-strength-theme');
+              var dark=t==='dark'||((!t||t==='auto')&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+              if(dark)document.documentElement.classList.add('dark');
+            }catch(e){}
+          })();
+        `}} />
+      </head>
       <body className={`${spaceGrotesk.className} overflow-x-hidden`}>
-        <UserProvider>
-          <PageTransition>{children}</PageTransition>
-        </UserProvider>
+        <ThemeProvider>
+          <UserProvider>
+            <PageTransition>{children}</PageTransition>
+          </UserProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

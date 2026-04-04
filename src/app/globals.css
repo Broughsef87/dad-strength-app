@@ -51,45 +51,46 @@
 
 @layer base {
   :root {
-    /* Light mode — kept for compatibility */
-    --background: 222 21% 7%;
-    --foreground: 210 24% 80%;
+    /* ── Light mode — Vuori linen palette ──────────────────────────── */
+    --background: 36 28% 94%;          /* #F5F1EB — warm linen canvas    */
+    --foreground: 228 18% 13%;         /* #1B1E2B — dark navy ink         */
 
-    --card: 220 31% 11%;
-    --card-foreground: 210 24% 80%;
+    --card: 36 22% 91%;                /* #EDE8DF — slightly richer linen */
+    --card-foreground: 228 18% 13%;
 
-    --surface-1: 222 21% 7%;
-    --surface-2: 224 31% 10%;
-    --surface-3: 220 31% 11%;
+    /* 3-tier surfaces — each step slightly darker/warmer */
+    --surface-1: 36 28% 94%;           /* base canvas */
+    --surface-2: 36 20% 89%;           /* #E7E1D8 — header/footer bands  */
+    --surface-3: 36 17% 86%;           /* #DDD7CE — card surfaces         */
 
-    --popover: 220 31% 11%;
-    --popover-foreground: 210 24% 80%;
+    --popover: 36 22% 91%;
+    --popover-foreground: 228 18% 13%;
 
-    --primary: 210 24% 80%;
-    --primary-foreground: 222 21% 7%;
+    --primary: 228 18% 13%;
+    --primary-foreground: 36 28% 94%;
 
-    --secondary: 214 33% 25%;
-    --secondary-foreground: 210 24% 80%;
+    --secondary: 36 13% 86%;
+    --secondary-foreground: 228 18% 13%;
 
-    --muted: 214 33% 16%;
-    --muted-foreground: 213 22% 52%;
+    --muted: 36 14% 88%;               /* #E3DDDB — muted fill            */
+    --muted-foreground: 220 9% 44%;    /* #696E78 — warm slate gray       */
 
-    --accent: 214 33% 16%;
-    --accent-foreground: 210 24% 80%;
+    --accent: 36 13% 87%;
+    --accent-foreground: 228 18% 13%;
 
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 214 35% 18%;
-    --input: 214 35% 18%;
+    --border: 36 11% 82%;              /* #D4CDC9 — warm linen border     */
+    --input: 36 20% 91%;
     --ring: 38 90% 41%;
 
-    /* AMG Amber — the earned accent */
-    --brand: 38 90% 41%;
+    /* AMG Amber — earned accent (unchanged across modes) */
+    --brand: 38 90% 41%;               /* #C8820A */
     --brand-muted: 38 90% 41% / 0.12;
 
-    /* Steel chrome midtone */
-    --steel: 213 22% 52%;
+    /* Steel — slightly warmer/darker on light bg */
+    --steel: 213 14% 48%;              /* #6A7988 */
 
     --radius: 0.375rem;
   }
@@ -150,7 +151,22 @@
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     text-rendering: optimizeLegibility;
-    /* Subtle brushed-steel texture on the base layer */
+    /* Light mode: subtle linen weave texture */
+    background-image:
+      repeating-linear-gradient(
+        -38deg,
+        transparent 0, transparent 4px,
+        rgba(160, 130, 80, 0.055) 4px, rgba(160, 130, 80, 0.055) 5px
+      ),
+      repeating-linear-gradient(
+        52deg,
+        transparent 0, transparent 4px,
+        rgba(160, 130, 80, 0.03) 4px, rgba(160, 130, 80, 0.03) 5px
+      );
+  }
+
+  /* Dark mode: brushed steel stripe */
+  .dark body {
     background-image: repeating-linear-gradient(
       -38deg,
       transparent 0, transparent 3px,
