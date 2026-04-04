@@ -9,9 +9,6 @@ import {
   Settings,
   ChevronRight,
   Dumbbell,
-  BatteryLow,
-  Moon,
-  Footprints,
   Zap,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -26,42 +23,28 @@ import { useSubscription } from '../../hooks/useSubscription'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 
-function isTodayTrainingDay(frequency: number): boolean {
-  const dayOfWeek = new Date().getDay()
-  if (frequency >= 5) return dayOfWeek >= 1 && dayOfWeek <= 5
-  if (frequency === 4) return [1, 2, 4, 5].includes(dayOfWeek)
-  return [1, 3, 5].includes(dayOfWeek)
+function getCurrentWeekKey(): string {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString().split('T')[0]
 }
 
-const REST_DAY_TIPS = [
-  { icon: Moon, title: 'Prioritize Sleep', body: 'Aim for 7–9 hrs. Recovery happens when you rest, not when you grind.' },
-  { icon: Footprints, title: 'Active Recovery', body: '20-min walk with your kids. Movement without intensity.' },
-  { icon: BatteryLow, title: 'Mobility Work', body: 'Spend 10 mins on hips and thoracic spine. Your future self thanks you.' },
-]
-
-function RestDayCard() {
-  const tip = REST_DAY_TIPS[new Date().getDay() % REST_DAY_TIPS.length]
-  const Icon = tip.icon
-  return (
-    <div className="ds-card p-6 overflow-hidden">
-      <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-4 font-display">
-        <span className="w-1 h-1 bg-muted-foreground inline-block" />
-        Rest Day
-      </span>
-      <div className="flex items-start gap-4">
-        <div className="p-3 bg-brand/10 border border-brand/20 rounded-md shrink-0">
-          <Icon size={18} className="text-brand" />
-        </div>
-        <div>
-          <h2 className="text-2xl text-foreground leading-none mb-2">{tip.title}</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">{tip.body}</p>
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border italic">
-        "Strong dads raise strong kids." — rest is part of the protocol.
-      </p>
-    </div>
-  )
+function getNextWorkoutDay(daysCount: number): number {
+  try {
+    const weekKey = getCurrentWeekKey()
+    const raw = localStorage.getItem(`dad-strength-week-progress-${weekKey}`)
+    if (raw) {
+      const progress = JSON.parse(raw)
+      for (let i = 0; i < daysCount; i++) {
+        if (progress[i] !== 'complete') return i + 1
+      }
+      // All days complete — start week fresh at Day 1
+    }
+  } catch {}
+  return 1
 }
 
 export default function Dashboard() {
@@ -75,7 +58,6 @@ export default function Dashboard() {
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [activeProgram, setActiveProgram] = useState<any>(null)
   const [streak, setStreak] = useState(0)
-  const [isTrainingDay, setIsTrainingDay] = useState(true)
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
 
   useEffect(() => {
@@ -94,7 +76,6 @@ export default function Dashboard() {
       if (raw) {
         const program = JSON.parse(raw)
         setActiveProgram(program)
-        setIsTrainingDay(isTodayTrainingDay(program.frequency || 3))
       }
     }
   }, [])
@@ -244,7 +225,7 @@ export default function Dashboard() {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
           <h1 className="text-4xl text-foreground leading-none mt-1">
-            {isTrainingDay ? 'Train Day.' : 'Rest Day.'}
+            Train Day.
             {streak > 0 && (
               <span className="text-brand ml-3 inline-flex items-center gap-1 text-2xl">
                 <Flame size={18} className="inline" strokeWidth={1.5} />
@@ -267,52 +248,54 @@ export default function Dashboard() {
 
           {/* TODAY'S MISSION */}
           <motion.div variants={fadeUp} custom={0}>
-            {isTrainingDay ? (
-              <div className="ds-card p-6 overflow-hidden">
-                <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-4 font-display">
-                  <span className="w-1 h-1 bg-brand inline-block" />
-                  Active Protocol
-                </span>
-                <div className="flex items-start justify-between mb-5">
-                  <div>
-                    <h2 className="text-3xl text-foreground leading-none mb-2">
-                      {workout?.name || 'Load Program'}
-                    </h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {workout?.description || 'Deploy your first training protocol.'}
-                    </p>
-                  </div>
-                  <Dumbbell size={28} className="text-muted-foreground/20 shrink-0 mt-1" strokeWidth={1} />
+            <div className="ds-card p-6 overflow-hidden">
+              <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-4 font-display">
+                <span className="w-1 h-1 bg-brand inline-block" />
+                Active Protocol
+              </span>
+              <div className="flex items-start justify-between mb-5">
+                <div>
+                  <h2 className="text-3xl text-foreground leading-none mb-2">
+                    {workout?.name || 'Load Program'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {workout?.description || 'Deploy your first training protocol.'}
+                  </p>
                 </div>
-                <div className="flex flex-col gap-2.5">
+                <Dumbbell size={28} className="text-muted-foreground/20 shrink-0 mt-1" strokeWidth={1} />
+              </div>
+              <div className="flex flex-col gap-2.5">
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    if (activeProgram) {
+                      const daysCount = activeProgram.daysCount || activeProgram.frequency || 3
+                      const nextDay = getNextWorkoutDay(daysCount)
+                      router.push(`/workout/program/${nextDay}`)
+                    } else if (workout) {
+                      router.push(`/workout/${workout.id}`)
+                    } else {
+                      setShowProgramSelector(true)
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2.5 rounded-md bg-brand px-6 py-3.5 text-sm font-semibold text-background hover:bg-brand/90 transition-all brand-glow uppercase tracking-[0.1em]"
+                  style={{ borderRadius: '6px' }}
+                >
+                  <PlayCircle size={16} strokeWidth={2} />
+                  {activeProgram || workout ? 'Start Training' : 'Choose Program'}
+                </motion.button>
+                {(activeProgram || workout) && (
                   <motion.button
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => {
-                      if (activeProgram) router.push('/workout/program/1')
-                      else if (workout) router.push(`/workout/${workout.id}`)
-                      else setShowProgramSelector(true)
-                    }}
-                    className="w-full flex items-center justify-center gap-2.5 rounded-md bg-brand px-6 py-3.5 text-sm font-semibold text-background hover:bg-brand/90 transition-all brand-glow uppercase tracking-[0.1em]"
+                    onClick={() => setShowProgramSelector(true)}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-[0.12em] border border-border hover:border-brand/30 font-semibold"
                     style={{ borderRadius: '6px' }}
                   >
-                    <PlayCircle size={16} strokeWidth={2} />
-                    {activeProgram || workout ? 'Start Training' : 'Choose Program'}
+                    <Settings size={11} /> Change Program
                   </motion.button>
-                  {workout && (
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setShowProgramSelector(true)}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-[0.12em] border border-border hover:border-brand/30 font-semibold"
-                      style={{ borderRadius: '6px' }}
-                    >
-                      <Settings size={11} /> Change Program
-                    </motion.button>
-                  )}
-                </div>
+                )}
               </div>
-            ) : (
-              <RestDayCard />
-            )}
+            </div>
           </motion.div>
 
           {/* The Squeeze */}

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Dumbbell, ChevronDown, ChevronUp, CheckCircle2, Clock,
-  PlayCircle, RefreshCcw, BarChart2
+  PlayCircle, RefreshCcw, BarChart2, RotateCcw
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ProgramSelector from './ProgramSelector'
@@ -328,14 +328,9 @@ export default function ActiveProgram() {
                         <StatusIcon size={9} strokeWidth={2.5} />
                         {label}
                       </span>
+                      {/* Navigate to workout — always available for all statuses */}
                       <button
-                        onClick={() => {
-                          if (status === 'not_started') {
-                            router.push(`/workout/program/${i + 1}`)
-                          } else {
-                            cycleStatus(i)
-                          }
-                        }}
+                        onClick={() => router.push(`/workout/program/${i + 1}`)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
                           status === 'complete'
                             ? 'bg-green-500/15 text-green-500 border border-green-500/30 hover:bg-green-500/25'
@@ -345,13 +340,23 @@ export default function ActiveProgram() {
                         }`}
                       >
                         {status === 'complete' ? (
-                          <><CheckCircle2 size={9} strokeWidth={2.5} /> Done</>
+                          <><CheckCircle2 size={9} strokeWidth={2.5} /> Edit</>
                         ) : status === 'in_progress' ? (
-                          <><PlayCircle size={9} strokeWidth={2.5} /> Active</>
+                          <><PlayCircle size={9} strokeWidth={2.5} /> Resume</>
                         ) : (
-                          <><PlayCircle size={9} strokeWidth={2.5} /> Start Session</>
+                          <><PlayCircle size={9} strokeWidth={2.5} /> Start</>
                         )}
                       </button>
+                      {/* Manual status reset — only shown for in-progress or complete */}
+                      {status !== 'not_started' && (
+                        <button
+                          onClick={() => cycleStatus(i)}
+                          title="Reset status"
+                          className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <RotateCcw size={11} strokeWidth={2} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
