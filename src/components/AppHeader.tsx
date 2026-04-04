@@ -33,13 +33,13 @@ export default function AppHeader({ active }: AppHeaderProps) {
   return (
     <>
       {/* DESKTOP */}
-      <header className="hidden md:flex items-center justify-between border-b border-border bg-background/90 px-8 py-4 backdrop-blur-md sticky top-0 z-40">
+      <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-4 sticky top-0 z-40">
         <Link href="/dashboard" className="flex items-center gap-3">
           <Logo className="w-9 h-9" />
           <div className="flex flex-col leading-none">
             <span
               className="font-black text-base tracking-[0.08em] uppercase text-foreground"
-              style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
+              style={{ fontFamily: 'var(--font-bebas, "Arial Black", sans-serif)' }}
             >
               Dad Strength
             </span>
@@ -69,7 +69,7 @@ export default function AppHeader({ active }: AppHeaderProps) {
           <div className="flex flex-col leading-none">
             <span
               className="font-black text-base tracking-[0.08em] uppercase"
-              style={{ fontFamily: 'var(--font-orbitron, "Arial Black", sans-serif)' }}
+              style={{ fontFamily: 'var(--font-bebas, "Arial Black", sans-serif)' }}
             >
               Dad Strength
             </span>
