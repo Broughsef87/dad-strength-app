@@ -33,20 +33,19 @@ export default function AppHeader({ active }: AppHeaderProps) {
   return (
     <>
       {/* DESKTOP */}
-      <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-4 sticky top-0 z-40">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <Logo className="w-9 h-9" />
-          <div className="flex flex-col leading-none">
-            <span
-              className="font-black text-base tracking-[0.08em] uppercase text-foreground"
-              style={{ fontFamily: 'var(--font-bebas, "Arial Black", sans-serif)' }}
-            >
-              Dad Strength
-            </span>
-            <span className="text-[9px] tracking-[0.15em] text-muted-foreground uppercase mt-0.5">
-              by Forge OS
-            </span>
-          </div>
+      <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-3.5 sticky top-0 z-40">
+        <Link href="/dashboard">
+          {/* Use suite horizontal lockup — dark/light variants */}
+          <img
+            src="/logo-suite/ds_horizontal_dark.svg"
+            alt="Dad Strength"
+            className="h-11 w-auto dark:block hidden"
+          />
+          <img
+            src="/logo-suite/ds_horizontal_light.svg"
+            alt="Dad Strength"
+            className="h-11 w-auto dark:hidden block"
+          />
         </Link>
         <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
           {navItem('HQ', '/dashboard', 'hq')}

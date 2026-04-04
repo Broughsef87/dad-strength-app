@@ -5,7 +5,6 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Logo from '../components/Logo';
 
 export default function Home() {
   const supabase = createClient();
@@ -36,26 +35,20 @@ export default function Home() {
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background p-8">
 
       <div className="relative z-10 w-full max-w-sm space-y-10">
-        {/* Brand mark */}
-        <div className="flex flex-col items-center space-y-5">
-          <div className="relative">
-            {/* Amber hairline halo — not a blob, just a ring */}
-            <div className="absolute inset-0 rounded-2xl border border-brand/20 scale-110" />
-            <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-2 border border-border p-3 shadow-2xl">
-              <Logo className="w-full h-full" />
-            </div>
-          </div>
-          <div className="text-center space-y-2">
-            <h1 className="text-4xl tracking-[0.1em] text-foreground uppercase font-display">
-              Dad Strength
-            </h1>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-brand">
-              Lift More · Miss Less
-            </p>
-            <p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-              The Operating System for Modern Fatherhood
-            </p>
-          </div>
+        {/* Brand lockup — stacked suite asset, dark/light aware */}
+        <div className="flex flex-col items-center">
+          <img
+            src="/logo-suite/ds_stacked_dark.svg"
+            alt="Dad Strength"
+            className="w-56 h-auto dark:block hidden drop-shadow-2xl"
+            draggable={false}
+          />
+          <img
+            src="/logo-suite/ds_stacked_light.svg"
+            alt="Dad Strength"
+            className="w-56 h-auto dark:hidden block drop-shadow-2xl"
+            draggable={false}
+          />
         </div>
 
         {/* Auth card */}

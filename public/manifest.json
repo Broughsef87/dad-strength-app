@@ -7,21 +7,39 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
-  "background_color": "#030712",
-  "theme_color": "#030712",
+  "background_color": "#0D0F14",
+  "theme_color": "#0D0F14",
   "orientation": "portrait",
   "categories": ["health", "fitness", "lifestyle"],
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/logo-suite/ds_app_icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-suite/ds_app_icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-suite/ds_app_icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable-512x512.png",
-      "sizes": "512x512",
+      "src": "/logo-suite/ds_app_icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-suite/ds_app_icon.png",
+      "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "maskable"
     }
@@ -32,14 +50,14 @@
       "short_name": "Train",
       "description": "Jump into today's workout",
       "url": "/body",
-      "icons": [{ "src": "/icons/icon-512x512.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/logo-suite/ds_app_icon.png", "sizes": "1024x1024" }]
     },
     {
       "name": "Morning Protocol",
       "short_name": "Morning",
       "description": "Run your morning protocol",
       "url": "/mind",
-      "icons": [{ "src": "/icons/icon-512x512.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/logo-suite/ds_app_icon.png", "sizes": "1024x1024" }]
     }
   ],
   "screenshots": [

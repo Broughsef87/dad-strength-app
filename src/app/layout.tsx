@@ -26,10 +26,35 @@ export const metadata: Metadata = {
   title: 'Dad Strength',
   description: 'The Operating System for Modern Fatherhood.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/logo-suite/ds_app_icon.svg',
+    apple: '/logo-suite/ds_app_icon.png',
+    shortcut: '/logo-suite/ds_app_icon.png',
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Dad Strength',
+    startupImage: '/logo-suite/ds_app_icon.png',
+  },
+  openGraph: {
+    title: 'Dad Strength',
+    description: 'The Operating System for Modern Fatherhood.',
+    type: 'website',
+    images: [
+      {
+        url: '/logo-suite/ds_banner_dark.png',
+        width: 1500,
+        height: 500,
+        alt: 'Dad Strength — The OS for Modern Fatherhood',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Dad Strength',
+    description: 'The Operating System for Modern Fatherhood.',
+    images: ['/logo-suite/ds_banner_dark.png'],
   },
 }
 
