@@ -35,14 +35,14 @@ export default function AppHeader({ active }: AppHeaderProps) {
       {/* DESKTOP */}
       <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-3.5 sticky top-0 z-40">
         <Link href="/dashboard">
-          {/* Use suite horizontal lockup — dark/light variants */}
+          {/* PNG lockups — fonts baked in at export time */}
           <img
-            src="/logo-suite/ds_horizontal_dark.svg"
+            src="/logo-suite/ds_horizontal_dark.png"
             alt="Dad Strength"
             className="h-11 w-auto dark:block hidden"
           />
           <img
-            src="/logo-suite/ds_horizontal_light.svg"
+            src="/logo-suite/ds_horizontal_light.png"
             alt="Dad Strength"
             className="h-11 w-auto dark:hidden block"
           />

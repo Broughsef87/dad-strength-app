@@ -37,14 +37,15 @@ export default function Home() {
       <div className="relative z-10 w-full max-w-sm space-y-10">
         {/* Brand lockup — stacked suite asset, dark/light aware */}
         <div className="flex flex-col items-center">
+          {/* PNG lockups — fonts baked in at export time */}
           <img
-            src="/logo-suite/ds_stacked_dark.svg"
+            src="/logo-suite/ds_stacked_dark.png"
             alt="Dad Strength"
             className="w-56 h-auto dark:block hidden drop-shadow-2xl"
             draggable={false}
           />
           <img
-            src="/logo-suite/ds_stacked_light.svg"
+            src="/logo-suite/ds_stacked_light.png"
             alt="Dad Strength"
             className="w-56 h-auto dark:hidden block drop-shadow-2xl"
             draggable={false}
