@@ -663,7 +663,7 @@ export default function ProgramWorkoutPage() {
   }
 
   if (pageState === 'error' && !usedFallback) {
-    return <ErrorScreen onBack={() => router.push('/body')} />
+    return <ErrorScreen onBack={() => router.back()} />
   }
 
   return (
@@ -673,7 +673,7 @@ export default function ProgramWorkoutPage() {
         <div className="flex items-center justify-between px-4 py-3 max-w-md mx-auto">
           {/* Back */}
           <button
-            onClick={() => router.push('/body')}
+            onClick={() => router.back()}
             className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft size={22} />

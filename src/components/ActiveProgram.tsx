@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Dumbbell, ChevronDown, ChevronUp, CheckCircle2, Clock,
-  PlayCircle, RefreshCcw, BarChart2, RotateCcw
+  PlayCircle, RefreshCcw, BarChart2, RotateCcw, Zap
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ProgramSelector from './ProgramSelector'
@@ -27,6 +27,13 @@ type DayStatus = 'not_started' | 'in_progress' | 'complete'
 
 interface WeekProgress {
   [dayIndex: number]: DayStatus
+}
+
+function getNextWorkoutDay(daysCount: number, weekKey: string, progress: WeekProgress): number {
+  for (let i = 0; i < daysCount; i++) {
+    if (progress[i] !== 'complete') return i + 1
+  }
+  return 1 // all done — loop back
 }
 
 function getMondayOfWeek(date: Date): Date {
@@ -361,6 +368,21 @@ export default function ActiveProgram() {
                   </div>
                 )
               })}
+            </div>
+
+            {/* Start Training CTA */}
+            <div className="px-5 pt-3 pb-1">
+              <button
+                onClick={() => {
+                  if (!program) return
+                  const nextDay = getNextWorkoutDay(program.daysCount, weekKey, weekProgress)
+                  router.push(`/workout/program/${nextDay}`)
+                }}
+                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-md bg-brand text-background text-sm font-semibold uppercase tracking-[0.1em] active:scale-95 brand-glow transition-all hover:bg-brand/90"
+              >
+                <Zap size={14} strokeWidth={2} />
+                {completedCount === totalDays ? 'Start Next Week' : completedCount > 0 ? 'Continue Training' : 'Start Training'}
+              </button>
             </div>
 
             {/* Stats row */}
