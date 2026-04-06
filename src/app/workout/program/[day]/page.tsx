@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ChevronLeft, Check } from 'lucide-react'
+import { ChevronLeft, Check, MoreVertical, X, ArrowUp, ArrowDown, Plus, SkipForward, Trash2 } from 'lucide-react'
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
 
@@ -39,7 +39,8 @@ type ActiveProgram = {
 
 type GeneratedSet = {
   setNumber: number
-  targetWeight: number
+  targetWeight?: number       // legacy field name
+  recommendedWeight?: number  // current API field name
   targetReps: number
   targetRir: number
   notes?: string
@@ -69,16 +70,20 @@ function initExerciseLogs(exercises: GeneratedExercise[]): ExerciseLog[] {
   return exercises.map((ex) => ({
     name: ex.name,
     progressionNote: ex.progressionNote,
-    sets: ex.sets.map((s) => ({
-      setNumber: s.setNumber,
-      targetWeight: s.targetWeight,
-      targetReps: s.targetReps,
-      targetRir: s.targetRir,
-      actualWeight: s.targetWeight,
-      actualReps: s.targetReps,
-      actualRir: null,
-      status: 'idle' as SetStatus,
-    })),
+    sets: ex.sets.map((s) => {
+      // API emits recommendedWeight; legacy cache rows may have targetWeight
+      const weight = s.recommendedWeight ?? s.targetWeight ?? 0
+      return {
+        setNumber: s.setNumber,
+        targetWeight: weight,
+        targetReps: s.targetReps,
+        targetRir: s.targetRir,
+        actualWeight: weight,
+        actualReps: s.targetReps,
+        actualRir: null,
+        status: 'idle' as SetStatus,
+      }
+    }),
   }))
 }
 
@@ -282,6 +287,9 @@ export default function ProgramWorkoutPage() {
   // Skip workout confirmation dialog
   const [showSkipConfirm, setShowSkipConfirm] = useState(false)
 
+  // Exercise context menu
+  const [menuExIndex, setMenuExIndex] = useState<number | null>(null)
+
   // Prevent re-initialization when Supabase re-emits auth
   const hasInitializedRef = useRef(false)
 
@@ -381,8 +389,8 @@ export default function ProgramWorkoutPage() {
           .limit(100)
 
         // 4. Call AI generation API
-        const calibrationRaw = localStorage.getItem('dad-strength-calibration-weights')
-        const calibrationWeights = calibrationRaw ? JSON.parse(calibrationRaw) : {}
+        const oneRepMaxesRaw = localStorage.getItem('dad-strength-one-rep-maxes')
+        const oneRepMaxes = oneRepMaxesRaw ? JSON.parse(oneRepMaxesRaw) : {}
 
         const res = await fetch('/api/ai/program-generate', {
           method: 'POST',
@@ -397,7 +405,7 @@ export default function ProgramWorkoutPage() {
               equipment: prog.equipment ?? {},
             },
             recentLogs: recentLogs ?? [],
-            calibrationWeights,
+            oneRepMaxes,
           }),
         })
 
@@ -600,6 +608,31 @@ export default function ProgramWorkoutPage() {
     )
   }, [])
 
+  const handleMoveUp = useCallback((exIndex: number) => {
+    if (exIndex === 0) return
+    setExerciseLogs((prev) => {
+      const next = [...prev]
+      ;[next[exIndex - 1], next[exIndex]] = [next[exIndex], next[exIndex - 1]]
+      return next
+    })
+    setMenuExIndex(null)
+  }, [])
+
+  const handleMoveDown = useCallback((exIndex: number) => {
+    setExerciseLogs((prev) => {
+      if (exIndex >= prev.length - 1) return prev
+      const next = [...prev]
+      ;[next[exIndex], next[exIndex + 1]] = [next[exIndex + 1], next[exIndex]]
+      return next
+    })
+    setMenuExIndex(null)
+  }, [])
+
+  const handleRemoveExercise = useCallback((exIndex: number) => {
+    setExerciseLogs((prev) => prev.filter((_, i) => i !== exIndex))
+    setMenuExIndex(null)
+  }, [])
+
   const handleSkipWorkout = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     window.location.assign('/body')
@@ -780,13 +813,21 @@ export default function ProgramWorkoutPage() {
               }`}
             >
               {/* Exercise header */}
-              <div>
-                <h3 className="font-display text-2xl tracking-[0.06em] uppercase text-foreground leading-none">
-                  {ex.name}
-                </h3>
-                {ex.progressionNote && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{ex.progressionNote}</p>
-                )}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display text-2xl tracking-[0.06em] uppercase text-foreground leading-none">
+                    {ex.name}
+                  </h3>
+                  {ex.progressionNote && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{ex.progressionNote}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setMenuExIndex(exIndex)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-3 border border-border text-muted-foreground hover:text-foreground hover:border-brand/30 transition-colors flex-shrink-0"
+                >
+                  <MoreVertical size={15} />
+                </button>
               </div>
 
               {/* Set rows */}
@@ -861,6 +902,66 @@ export default function ProgramWorkoutPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Exercise Context Menu ─────────────────────────────────────────────── */}
+      {menuExIndex !== null && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            onClick={() => setMenuExIndex(null)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface-2 border-t border-border rounded-t-2xl animate-float-up">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Exercise</p>
+                <p className="font-display tracking-[0.06em] uppercase text-sm text-foreground">
+                  {exerciseLogs[menuExIndex]?.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setMenuExIndex(null)}
+                className="w-7 h-7 rounded-lg bg-surface-3 border border-border flex items-center justify-center text-muted-foreground"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="px-4 py-3 space-y-1 max-w-md mx-auto pb-8">
+              {/* Reorder + set controls */}
+              <div className="ds-card overflow-hidden divide-y divide-border">
+                <button onClick={() => handleAddSet(menuExIndex)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-foreground hover:bg-surface-3 transition-colors">
+                  <Plus size={16} className="flex-shrink-0" /> Add Set
+                </button>
+                <button onClick={() => { handleSkip(menuExIndex, exerciseLogs[menuExIndex]?.sets.findIndex(s => s.status !== 'done') ?? 0); setMenuExIndex(null) }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-foreground hover:bg-surface-3 transition-colors">
+                  <SkipForward size={16} className="flex-shrink-0" /> Skip Next Set
+                </button>
+              </div>
+              <div className="ds-card overflow-hidden divide-y divide-border">
+                <button onClick={() => handleMoveUp(menuExIndex)}
+                  disabled={menuExIndex === 0}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-foreground hover:bg-surface-3 transition-colors disabled:opacity-40">
+                  <ArrowUp size={16} className="flex-shrink-0" /> Move Up
+                </button>
+                <button onClick={() => handleMoveDown(menuExIndex)}
+                  disabled={menuExIndex >= exerciseLogs.length - 1}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-foreground hover:bg-surface-3 transition-colors disabled:opacity-40">
+                  <ArrowDown size={16} className="flex-shrink-0" /> Move Down
+                </button>
+              </div>
+              <div className="ds-card overflow-hidden">
+                <button onClick={() => handleRemoveExercise(menuExIndex)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-red-400 hover:bg-red-500/5 transition-colors">
+                  <Trash2 size={16} className="flex-shrink-0" /> Remove Exercise
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── Skip Workout Confirmation ──────────────────────────────────────────── */}
