@@ -450,10 +450,11 @@ function get1RMForExercise(
   if (n.includes('barbell row') || n.includes('barbell rows')) return row
 
   // Derivatives by pattern
-  // Note: DB/cable weights are per-hand. Ratios tuned for realistic starting weights.
-  if (pattern === 'push_horizontal') return Math.round(bench * 0.33 / 2.5) * 2.5  // DB press per hand ~33% of barbell 1RM
-  if (pattern === 'push_fly') return Math.round(bench * 0.16 / 2.5) * 2.5          // DB/cable fly, lighter
-  if (pattern === 'push_vertical') return ohp || Math.round(bench * 0.60 / 2.5) * 2.5
+  // DB weights are per-hand. Rule: DB = 75% of barbell total / 2 per hand (0.375x).
+  // Example: 100 lb bench → 37.5 lb DB press each hand.
+  if (pattern === 'push_horizontal') return Math.round(bench * 0.375 / 2.5) * 2.5  // DB press per hand — 75% of barbell / 2
+  if (pattern === 'push_fly') return Math.round(bench * 0.16 / 2.5) * 2.5          // DB/cable fly — much lighter, not a direct barbell derivative
+  if (pattern === 'push_vertical') return Math.round((ohp || bench * 0.60) * 0.375 / 2.5) * 2.5  // DB OHP per hand — 75% of barbell OHP / 2
   if (pattern === 'push_tricep') return Math.round(bench * 0.30 / 2.5) * 2.5       // skull crushers/pushdowns total load
   if (pattern === 'pull_horizontal') return Math.round(row * 0.85 / 2.5) * 2.5    // cable/machine row similar to barbell
   if (pattern === 'pull_vertical') return Math.round(row * 0.70 / 2.5) * 2.5      // lat pulldown
