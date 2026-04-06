@@ -397,21 +397,43 @@ export default function ProgramWorkoutPage() {
         const oneRepMaxesRaw = localStorage.getItem('dad-strength-one-rep-maxes')
         const oneRepMaxes = oneRepMaxesRaw ? JSON.parse(oneRepMaxesRaw) : {}
 
-        const res = await fetch('/api/ai/program-generate', {
+        // Detect custom god programs (adonis-*, ares-*, hercules-*)
+        const isCustomProgram = /^(adonis|ares|hercules)-\d+$/.test(prog.slug)
+        const customConfigRaw = localStorage.getItem('dad-strength-custom-config')
+        const customConfig = customConfigRaw ? JSON.parse(customConfigRaw) : {}
+
+        const apiEndpoint = isCustomProgram
+          ? '/api/ai/custom-program-generate'
+          : '/api/ai/program-generate'
+
+        const apiBody = isCustomProgram
+          ? {
+              userId: user.id,
+              god: customConfig.god ?? prog.slug.split('-')[0],
+              focusGroups: customConfig.focusGroups ?? [],
+              daysPerWeek: prog.daysCount,
+              weekNumber: prog.currentWeek,
+              gymType: customConfig.gymType ?? 'commercial',
+              recentLogs: recentLogs ?? [],
+              oneRepMaxes,
+            }
+          : {
+              userId: user.id,
+              weekNumber: prog.currentWeek,
+              programSlug: prog.slug,
+              userProfile: {
+                trainingAge: prog.trainingAge ?? 'intermediate',
+                primaryGoal: prog.primaryGoal ?? 'strength',
+                equipment: prog.equipment ?? {},
+              },
+              recentLogs: recentLogs ?? [],
+              oneRepMaxes,
+            }
+
+        const res = await fetch(apiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user.id,
-            weekNumber: prog.currentWeek,
-            programSlug: prog.slug,
-            userProfile: {
-              trainingAge: prog.trainingAge ?? 'intermediate',
-              primaryGoal: prog.primaryGoal ?? 'strength',
-              equipment: prog.equipment ?? {},
-            },
-            recentLogs: recentLogs ?? [],
-            oneRepMaxes,
-          }),
+          body: JSON.stringify(apiBody),
         })
 
         if (!res.ok) {

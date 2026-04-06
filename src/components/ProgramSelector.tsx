@@ -457,6 +457,19 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     >
                       Next →
                     </button>
+
+                    <div className="relative flex items-center gap-3">
+                      <div className="flex-1 h-px bg-border/40" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">or</span>
+                      <div className="flex-1 h-px bg-border/40" />
+                    </div>
+
+                    <button
+                      onClick={() => { closeSheet(); router.push('/build') }}
+                      className="w-full flex items-center justify-center gap-2 border border-brand/30 hover:border-brand/60 bg-brand/5 hover:bg-brand/10 text-brand font-black text-sm py-4 rounded-md uppercase tracking-widest transition-all active:scale-95"
+                    >
+                      ✨ Build Custom Program
+                    </button>
                   </div>
                 )}
 
