@@ -1018,32 +1018,58 @@ export default function ProgramWorkoutPage() {
                 />
               </div>
             </div>
-            {/* Exercise list */}
-            <div className="overflow-y-auto flex-1 px-4 pb-8 space-y-1">
-              {EXERCISES
-                .filter(ex =>
-                  !replaceSearch ||
+            {/* Muscle group filter chips */}
+            {(() => {
+              const currentEx = exerciseLogs[replaceExIndex]
+              const matched = EXERCISES.find(e => e.name.toLowerCase() === currentEx?.name.toLowerCase())
+              const autoSubcat = (matched as Record<string,string> | undefined)?.subcategory || matched?.category || null
+              const filtered = EXERCISES.filter(ex => {
+                const subcat = (ex as Record<string,string>).subcategory || ex.category
+                const matchesGroup = !autoSubcat || replaceSearch || subcat === autoSubcat
+                const matchesSearch = !replaceSearch ||
                   ex.name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
                   ex.target.toLowerCase().includes(replaceSearch.toLowerCase()) ||
-                  ((ex as Record<string,string>).subcategory || '').toLowerCase().includes(replaceSearch.toLowerCase())
-                )
-                .map((ex) => (
-                  <button
-                    key={ex.id}
-                    onClick={() => handleReplaceExercise(replaceExIndex, ex.name)}
-                    className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-3/50 border border-border/50 hover:border-brand/40 hover:bg-brand/5 transition-all active:scale-[0.98]"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{ex.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{ex.target}</p>
+                  subcat.toLowerCase().includes(replaceSearch.toLowerCase())
+                return matchesGroup && matchesSearch
+              })
+              return (
+                <>
+                  {autoSubcat && !replaceSearch && (
+                    <div className="px-4 pb-2 flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[10px] text-brand bg-brand/10 border border-brand/20 px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider">
+                        {autoSubcat}
+                      </span>
+                      <button
+                        onClick={() => setReplaceSearch(' ')}
+                        className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Show all →
+                      </button>
                     </div>
-                    <span className="text-[10px] text-muted-foreground bg-surface-2 border border-border px-2 py-0.5 rounded-full flex-shrink-0">
-                      {(ex as Record<string,string>).subcategory || ex.category}
-                    </span>
-                  </button>
-                ))
-              }
-            </div>
+                  )}
+                  <div className="overflow-y-auto flex-1 px-4 pb-8 space-y-1">
+                    {filtered.map((ex) => (
+                      <button
+                        key={ex.id}
+                        onClick={() => handleReplaceExercise(replaceExIndex, ex.name)}
+                        className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-3/50 border border-border/50 hover:border-brand/40 hover:bg-brand/5 transition-all active:scale-[0.98]"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{ex.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{ex.target}</p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground bg-surface-2 border border-border px-2 py-0.5 rounded-full flex-shrink-0">
+                          {(ex as Record<string,string>).subcategory || ex.category}
+                        </span>
+                      </button>
+                    ))}
+                    {filtered.length === 0 && (
+                      <p className="text-center text-sm text-muted-foreground py-8">No exercises found</p>
+                    )}
+                  </div>
+                </>
+              )
+            })()}
           </div>
         </>
       )}
