@@ -7,16 +7,38 @@ import { createClient } from '../../utils/supabase/client'
 import BottomNav from '../../components/BottomNav'
 import EXERCISES from '../../data/exercises.json'
 
-const CATEGORIES = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio']
+const CATEGORIES = ['All', 'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Core', 'Full Body']
+
+// Map display tab → subcategory / category in the data
+const CATEGORY_FILTER: Record<string, { field: 'category' | 'subcategory'; value: string }> = {
+  Chest:      { field: 'subcategory', value: 'Chest' },
+  Back:       { field: 'subcategory', value: 'Back' },
+  Shoulders:  { field: 'subcategory', value: 'Shoulders' },
+  Biceps:     { field: 'subcategory', value: 'Biceps' },
+  Triceps:    { field: 'subcategory', value: 'Triceps' },
+  Quads:      { field: 'subcategory', value: 'Quads' },
+  Hamstrings: { field: 'subcategory', value: 'Hamstrings' },
+  Glutes:     { field: 'subcategory', value: 'Glutes' },
+  Calves:     { field: 'subcategory', value: 'Calves' },
+  Core:       { field: 'subcategory', value: 'Core' },
+  'Full Body':{ field: 'subcategory', value: 'Full Body' },
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Chest:     'text-rose-400 bg-rose-500/10 border-rose-500/20',
-  Back:      'text-sky-400 bg-sky-500/10 border-sky-500/20',
-  Legs:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  Shoulders: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  Arms:      'text-purple-400 bg-purple-500/10 border-purple-500/20',
-  Core:      'text-orange-400 bg-orange-500/10 border-orange-500/20',
-  Cardio:    'text-brand bg-brand/10 border-brand/20',
+  Chest:      'text-rose-400 bg-rose-500/10 border-rose-500/20',
+  Back:       'text-sky-400 bg-sky-500/10 border-sky-500/20',
+  Shoulders:  'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  Biceps:     'text-purple-400 bg-purple-500/10 border-purple-500/20',
+  Triceps:    'text-violet-400 bg-violet-500/10 border-violet-500/20',
+  Quads:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  Hamstrings: 'text-teal-400 bg-teal-500/10 border-teal-500/20',
+  Glutes:     'text-green-400 bg-green-500/10 border-green-500/20',
+  Calves:     'text-lime-400 bg-lime-500/10 border-lime-500/20',
+  Core:       'text-orange-400 bg-orange-500/10 border-orange-500/20',
+  'Full Body':'text-brand bg-brand/10 border-brand/20',
+  Arms:       'text-purple-400 bg-purple-500/10 border-purple-500/20',
+  Legs:       'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  Cardio:     'text-brand bg-brand/10 border-brand/20',
 }
 
 const MECHANIC_BADGE: Record<string, string> = {
@@ -38,7 +60,15 @@ export default function Library() {
   const filtered = EXERCISES.filter((ex) => {
     const matchSearch = ex.name.toLowerCase().includes(search.toLowerCase()) ||
       ex.target.toLowerCase().includes(search.toLowerCase())
-    const matchCat = activeCategory === 'All' || ex.category === activeCategory
+    let matchCat = activeCategory === 'All'
+    if (!matchCat) {
+      const rule = CATEGORY_FILTER[activeCategory]
+      if (rule) {
+        matchCat = (ex as Record<string, string>)[rule.field] === rule.value
+      } else {
+        matchCat = ex.category === activeCategory
+      }
+    }
     const matchEquip = equipFilter === 'all' || ex.equipment === equipFilter || ex.equipment === 'both'
     return matchSearch && matchCat && matchEquip
   })
@@ -143,8 +173,9 @@ export default function Library() {
           </div>
         ) : (
           filtered.map((ex) => {
-            const catColor = CATEGORY_COLORS[ex.category] || 'text-muted-foreground bg-gray-800 border-gray-700'
-            const mechBadge = MECHANIC_BADGE[ex.mechanic] || 'text-muted-foreground bg-gray-800'
+            const subcat = (ex as Record<string, string>).subcategory || ex.category
+            const catColor = CATEGORY_COLORS[subcat] || CATEGORY_COLORS[ex.category] || 'text-muted-foreground bg-surface-3 border-border'
+            const mechBadge = MECHANIC_BADGE[ex.mechanic] || 'text-muted-foreground bg-surface-3'
             const isLoading = loadingId === ex.id
 
             return (
@@ -164,7 +195,7 @@ export default function Library() {
                         {ex.mechanic}
                       </span>
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest ${catColor}`}>
-                        {ex.category}
+                        {(ex as Record<string, string>).subcategory || ex.category}
                       </span>
                     </div>
                   </div>
