@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ChevronLeft, Check, MoreVertical, X, ArrowUp, ArrowDown, Plus, SkipForward, Trash2 } from 'lucide-react'
+import { ChevronLeft, Check, MoreVertical, X, ArrowUp, ArrowDown, Plus, SkipForward, Trash2, RefreshCw, Search } from 'lucide-react'
+import EXERCISES from '../../../../data/exercises.json'
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
 
@@ -289,6 +290,10 @@ export default function ProgramWorkoutPage() {
 
   // Exercise context menu
   const [menuExIndex, setMenuExIndex] = useState<number | null>(null)
+
+  // Replace exercise picker
+  const [replaceExIndex, setReplaceExIndex] = useState<number | null>(null)
+  const [replaceSearch, setReplaceSearch] = useState('')
 
   // Prevent re-initialization when Supabase re-emits auth
   const hasInitializedRef = useRef(false)
@@ -633,6 +638,15 @@ export default function ProgramWorkoutPage() {
     setMenuExIndex(null)
   }, [])
 
+  const handleReplaceExercise = useCallback((exIndex: number, newName: string) => {
+    setExerciseLogs((prev) =>
+      prev.map((ex, i) => i === exIndex ? { ...ex, name: newName, progressionNote: undefined } : ex)
+    )
+    setReplaceExIndex(null)
+    setReplaceSearch('')
+    setMenuExIndex(null)
+  }, [])
+
   const handleSkipWorkout = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     window.location.assign('/body')
@@ -952,6 +966,10 @@ export default function ProgramWorkoutPage() {
                   className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-foreground hover:bg-surface-3 transition-colors disabled:opacity-40">
                   <ArrowDown size={16} className="flex-shrink-0" /> Move Down
                 </button>
+                <button onClick={() => { setReplaceExIndex(menuExIndex); setMenuExIndex(null) }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-foreground hover:bg-surface-3 transition-colors">
+                  <RefreshCw size={16} className="flex-shrink-0" /> Replace Exercise
+                </button>
               </div>
               <div className="ds-card overflow-hidden">
                 <button onClick={() => handleRemoveExercise(menuExIndex)}
@@ -959,6 +977,72 @@ export default function ProgramWorkoutPage() {
                   <Trash2 size={16} className="flex-shrink-0" /> Remove Exercise
                 </button>
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Replace Exercise Picker ───────────────────────────────────────────── */}
+      {replaceExIndex !== null && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => { setReplaceExIndex(null); setReplaceSearch('') }} />
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface-2 border-t border-border rounded-t-2xl animate-float-up flex flex-col max-h-[80vh]">
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Replacing</p>
+                <p className="font-display tracking-[0.06em] uppercase text-sm text-foreground">
+                  {exerciseLogs[replaceExIndex]?.name}
+                </p>
+              </div>
+              <button
+                onClick={() => { setReplaceExIndex(null); setReplaceSearch('') }}
+                className="w-7 h-7 rounded-lg bg-surface-3 border border-border flex items-center justify-center text-muted-foreground"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            {/* Search */}
+            <div className="px-4 pt-3 pb-2 flex-shrink-0">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search exercises..."
+                  value={replaceSearch}
+                  onChange={(e) => setReplaceSearch(e.target.value)}
+                  className="w-full bg-surface-3 border border-border rounded-lg py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand transition-colors"
+                />
+              </div>
+            </div>
+            {/* Exercise list */}
+            <div className="overflow-y-auto flex-1 px-4 pb-8 space-y-1">
+              {EXERCISES
+                .filter(ex =>
+                  !replaceSearch ||
+                  ex.name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
+                  ex.target.toLowerCase().includes(replaceSearch.toLowerCase()) ||
+                  ((ex as Record<string,string>).subcategory || '').toLowerCase().includes(replaceSearch.toLowerCase())
+                )
+                .map((ex) => (
+                  <button
+                    key={ex.id}
+                    onClick={() => handleReplaceExercise(replaceExIndex, ex.name)}
+                    className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-3/50 border border-border/50 hover:border-brand/40 hover:bg-brand/5 transition-all active:scale-[0.98]"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{ex.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{ex.target}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground bg-surface-2 border border-border px-2 py-0.5 rounded-full flex-shrink-0">
+                      {(ex as Record<string,string>).subcategory || ex.category}
+                    </span>
+                  </button>
+                ))
+              }
             </div>
           </div>
         </>
