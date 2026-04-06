@@ -254,11 +254,134 @@ const HYBRID_5 = {
   ]
 }
 
+const GOLDEN_ERA_3 = {
+  name: "Golden Era 3",
+  daysPerWeek: 3,
+  days: [
+    {
+      dayNumber: 1,
+      dayName: "Chest & Triceps",
+      exercises: [
+        { name: "Barbell Bench Press", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "push_horizontal", setOrder: 1 },
+        { name: "Incline DB Press", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "push_horizontal", setOrder: 2 },
+        { name: "DB Flyes", sets: 3, repMin: 10, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_fly", setOrder: 3 },
+        { name: "Cable Crossover", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_fly", setOrder: 4 },
+        { name: "Close-Grip Bench Press", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 5 },
+        { name: "EZ Bar Skull Crushers", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_tricep", setOrder: 6 },
+        { name: "Cable Triceps Pushdown", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 7 },
+      ]
+    },
+    {
+      dayNumber: 2,
+      dayName: "Back & Biceps",
+      exercises: [
+        { name: "Wide-Grip Pull-Ups", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "pull_vertical", setOrder: 1 },
+        { name: "Barbell Rows", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "pull_horizontal", setOrder: 2 },
+        { name: "Lat Pulldown", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "pull_vertical", setOrder: 3 },
+        { name: "Seated Cable Rows", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "pull_horizontal", setOrder: 4 },
+        { name: "DB Pullovers", sets: 2, repMin: 12, repMax: 15, perSetRir: [3, 3], movementPattern: "pull_vertical", setOrder: 5 },
+        { name: "EZ Bar Curls", sets: 4, repMin: 10, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_bicep", setOrder: 6 },
+        { name: "Preacher Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_bicep", setOrder: 7 },
+        { name: "Hammer Curls", sets: 2, repMin: 12, repMax: 15, perSetRir: [3, 3], movementPattern: "isolation_bicep", setOrder: 8 },
+      ]
+    },
+    {
+      dayNumber: 3,
+      dayName: "Legs & Shoulders",
+      exercises: [
+        { name: "Barbell Back Squat", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "squat", setOrder: 1 },
+        { name: "Leg Press", sets: 3, repMin: 10, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "squat", setOrder: 2 },
+        { name: "Leg Extension", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "isolation_quad", setOrder: 3 },
+        { name: "Lying Leg Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_hamstring", setOrder: 4 },
+        { name: "Standing Calf Raise", sets: 4, repMin: 15, repMax: 20, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_calf", setOrder: 5 },
+        { name: "Barbell OHP", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "push_vertical", setOrder: 6 },
+        { name: "DB Lateral Raise", sets: 4, repMin: 12, repMax: 15, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_shoulder", setOrder: 7 },
+        { name: "Rear Delt DB Flies", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "pull_rear_delt", setOrder: 8 },
+      ]
+    },
+  ]
+}
+
+const GOLDEN_ERA_5 = {
+  name: "Golden Era 5",
+  daysPerWeek: 5,
+  days: [
+    {
+      dayNumber: 1,
+      dayName: "Chest",
+      exercises: [
+        { name: "Barbell Bench Press", sets: 5, repMin: 6, repMax: 10, perSetRir: [3, 3, 3, 2, 2], movementPattern: "push_horizontal", setOrder: 1 },
+        { name: "Incline DB Press", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "push_horizontal", setOrder: 2 },
+        { name: "Decline Barbell Press", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "push_horizontal", setOrder: 3 },
+        { name: "DB Flyes", sets: 3, repMin: 10, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_fly", setOrder: 4 },
+        { name: "Cable Crossover", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_fly", setOrder: 5 },
+      ]
+    },
+    {
+      dayNumber: 2,
+      dayName: "Back",
+      exercises: [
+        { name: "Deadlift", sets: 4, repMin: 4, repMax: 6, perSetRir: [3, 3, 2, 2], movementPattern: "hinge", setOrder: 1 },
+        { name: "Wide-Grip Pull-Ups", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "pull_vertical", setOrder: 2 },
+        { name: "Barbell Rows", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "pull_horizontal", setOrder: 3 },
+        { name: "Lat Pulldown", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "pull_vertical", setOrder: 4 },
+        { name: "Seated Cable Rows", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "pull_horizontal", setOrder: 5 },
+        { name: "DB Pullovers", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "pull_vertical", setOrder: 6 },
+      ]
+    },
+    {
+      dayNumber: 3,
+      dayName: "Shoulders & Arms",
+      exercises: [
+        { name: "Barbell OHP", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "push_vertical", setOrder: 1 },
+        { name: "DB Lateral Raise", sets: 4, repMin: 12, repMax: 15, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_shoulder", setOrder: 2 },
+        { name: "Rear Delt DB Flies", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "pull_rear_delt", setOrder: 3 },
+        { name: "EZ Bar Curls", sets: 4, repMin: 10, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_bicep", setOrder: 4 },
+        { name: "Preacher Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_bicep", setOrder: 5 },
+        { name: "Concentration Curls", sets: 2, repMin: 12, repMax: 15, perSetRir: [3, 2], movementPattern: "isolation_bicep", setOrder: 6 },
+        { name: "EZ Bar Skull Crushers", sets: 4, repMin: 10, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "push_tricep", setOrder: 7 },
+        { name: "Close-Grip Bench Press", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 8 },
+        { name: "Cable Triceps Pushdown", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 9 },
+      ]
+    },
+    {
+      dayNumber: 4,
+      dayName: "Legs",
+      exercises: [
+        { name: "Barbell Back Squat", sets: 5, repMin: 6, repMax: 10, perSetRir: [3, 3, 3, 2, 2], movementPattern: "squat", setOrder: 1 },
+        { name: "Leg Press", sets: 4, repMin: 10, repMax: 15, perSetRir: [3, 3, 3, 2], movementPattern: "squat", setOrder: 2 },
+        { name: "Leg Extension", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "isolation_quad", setOrder: 3 },
+        { name: "Romanian Deadlift", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "hinge", setOrder: 4 },
+        { name: "Lying Leg Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_hamstring", setOrder: 5 },
+        { name: "Walking Lunges", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "squat_unilateral", setOrder: 6, notes: "12-15 steps each leg" },
+        { name: "Standing Calf Raise", sets: 5, repMin: 15, repMax: 20, perSetRir: [3, 3, 3, 2, 2], movementPattern: "isolation_calf", setOrder: 7 },
+        { name: "Seated Calf Raise", sets: 3, repMin: 15, repMax: 20, perSetRir: [3, 3, 2], movementPattern: "isolation_calf", setOrder: 8 },
+      ]
+    },
+    {
+      dayNumber: 5,
+      dayName: "Arms & Weak Points",
+      exercises: [
+        { name: "EZ Bar Curls", sets: 4, repMin: 10, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_bicep", setOrder: 1 },
+        { name: "Incline DB Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_bicep", setOrder: 2 },
+        { name: "Hammer Curls", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "isolation_bicep", setOrder: 3 },
+        { name: "Close-Grip Bench Press", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 2, 2], movementPattern: "push_tricep", setOrder: 4 },
+        { name: "EZ Bar Skull Crushers", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_tricep", setOrder: 5 },
+        { name: "Overhead Triceps Extension", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 6 },
+        { name: "DB Lateral Raise", sets: 4, repMin: 15, repMax: 20, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_shoulder", setOrder: 7 },
+        { name: "Rear Delt Cable Flies", sets: 3, repMin: 15, repMax: 20, perSetRir: [3, 3, 3], movementPattern: "pull_rear_delt", setOrder: 8 },
+      ]
+    },
+  ]
+}
+
 const PROGRAM_TEMPLATES: Record<string, typeof DAD_STRONG_5> = {
   'dad-strong-3': DAD_STRONG_3,
   'dad-strong-5': DAD_STRONG_5,
   'hybrid-3': HYBRID_3,
   'hybrid-5': HYBRID_5,
+  'golden-era-3': GOLDEN_ERA_3,
+  'golden-era-5': GOLDEN_ERA_5,
 }
 
 // ── Muscle group mapping ─────────────────────────────────────────────────────
@@ -499,6 +622,7 @@ Your job is to prescribe: exercise name, movementPattern, sets count, targetReps
 PROGRAM CHARACTER:
 - Dad Strong: strength + hypertrophy hybrid. Compound-first. Linear RIR progression.
 - Hybrid: functional strength + GPP. For GPP movements (carries, sleds, conditioning): set targetRir to 0 and add note "load by feel, RPE 7-8".
+- Golden Era: classic bodybuilding. High volume, full pumps, peak contraction. Isolation-forward. Rep ranges 8-15 for accessories. Mind-muscle connection over load. Progression is squeeze-first, weight second.
 
 PROGRESSION RULES:
 Week 1 (no history): start all exercises at RIR 3-4. Rep ranges as per template. weekTheme = "Week 1 — Find Your Baseline".
