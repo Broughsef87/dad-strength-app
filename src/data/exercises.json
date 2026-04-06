@@ -117,5 +117,29 @@
   { "id": "fb9",  "name": "Clean & Press",               "category": "Cardio",    "subcategory": "Full Body",  "target": "Full Body / Power",         "mechanic": "Compound",  "equipment": "iron" },
   { "id": "fb10", "name": "Man Maker",                   "category": "Cardio",    "subcategory": "Full Body",  "target": "Full Body",                 "mechanic": "Compound",  "equipment": "both" },
   { "id": "fb11", "name": "Sandbag Load",                "category": "Cardio",    "subcategory": "Full Body",  "target": "Full Body / Grip",          "mechanic": "Compound",  "equipment": "iron" },
-  { "id": "fb12", "name": "Assault Bike Sprint",         "category": "Cardio",    "subcategory": "Full Body",  "target": "Cardio / Full Body",        "mechanic": "Compound",  "equipment": "iron" }
+  { "id": "fb12", "name": "Assault Bike Sprint",         "category": "Cardio",    "subcategory": "Full Body",  "target": "Cardio / Full Body",        "mechanic": "Compound",  "equipment": "iron" },
+
+  { "id": "hs1",  "name": "HS Iso-Lateral Chest Press",   "category": "Chest",     "subcategory": "Chest",      "target": "Pectorals / Triceps",       "mechanic": "Compound",  "equipment": "iron" },
+  { "id": "hs2",  "name": "HS Iso-Lateral Incline Press", "category": "Chest",     "subcategory": "Chest",      "target": "Upper Pecs / Front Delt",   "mechanic": "Compound",  "equipment": "iron" },
+  { "id": "hs3",  "name": "HS Iso-Lateral Decline Press", "category": "Chest",     "subcategory": "Chest",      "target": "Lower Pecs",                "mechanic": "Compound",  "equipment": "iron" },
+
+  { "id": "hs4",  "name": "HS Iso-Lateral High Row",      "category": "Back",      "subcategory": "Back",       "target": "Upper Back / Rear Delt",    "mechanic": "Compound",  "equipment": "iron" },
+  { "id": "hs5",  "name": "HS Iso-Lateral Low Row",       "category": "Back",      "subcategory": "Back",       "target": "Mid-Back / Lats",           "mechanic": "Compound",  "equipment": "iron" },
+  { "id": "hs6",  "name": "HS Iso-Lateral Wide Pulldown", "category": "Back",      "subcategory": "Back",       "target": "Lats / Teres Major",        "mechanic": "Compound",  "equipment": "iron" },
+  { "id": "hs7",  "name": "HS Iso-Lateral Front Pulldown","category": "Back",      "subcategory": "Back",       "target": "Lats / Biceps",             "mechanic": "Compound",  "equipment": "iron" },
+
+  { "id": "hs8",  "name": "HS Iso-Lateral Shoulder Press","category": "Shoulders", "subcategory": "Shoulders",  "target": "Deltoids / Triceps",        "mechanic": "Compound",  "equipment": "iron" },
+  { "id": "hs9",  "name": "HS Iso-Lateral Shrug",         "category": "Shoulders", "subcategory": "Shoulders",  "target": "Traps",                     "mechanic": "Isolation", "equipment": "iron" },
+
+  { "id": "hs10", "name": "HS Iso-Lateral Preacher Curl", "category": "Arms",      "subcategory": "Biceps",     "target": "Biceps Peak",               "mechanic": "Isolation", "equipment": "iron" },
+
+  { "id": "hs11", "name": "HS Iso-Lateral Leg Press",     "category": "Legs",      "subcategory": "Quads",      "target": "Quads / Glutes",            "mechanic": "Compound",  "equipment": "iron" },
+  { "id": "hs12", "name": "HS Iso-Lateral Hack Squat",    "category": "Legs",      "subcategory": "Quads",      "target": "Quads",                     "mechanic": "Compound",  "equipment": "iron" },
+
+  { "id": "hs13", "name": "HS Lying Leg Curl",            "category": "Legs",      "subcategory": "Hamstrings", "target": "Hamstrings",                "mechanic": "Isolation", "equipment": "iron" },
+  { "id": "hs14", "name": "HS Seated Leg Curl",           "category": "Legs",      "subcategory": "Hamstrings", "target": "Hamstrings",                "mechanic": "Isolation", "equipment": "iron" },
+
+  { "id": "hs15", "name": "HS Glute Drive",               "category": "Legs",      "subcategory": "Glutes",     "target": "Glutes / Hamstrings",       "mechanic": "Compound",  "equipment": "iron" },
+
+  { "id": "hs16", "name": "HS Standing Calf Raise",       "category": "Legs",      "subcategory": "Calves",     "target": "Gastrocnemius",             "mechanic": "Isolation", "equipment": "iron" }
 ]
