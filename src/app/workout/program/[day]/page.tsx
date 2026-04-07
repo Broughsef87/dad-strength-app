@@ -443,7 +443,9 @@ export default function ProgramWorkoutPage() {
         })
 
         if (!res.ok) {
-          throw new Error(`AI API returned ${res.status}`)
+          const errBody = await res.text().catch(() => '(unreadable)')
+          console.error(`AI API ${res.status}:`, errBody)
+          throw new Error(`AI API returned ${res.status}: ${errBody}`)
         }
 
         const { program: generated } = await res.json()

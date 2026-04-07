@@ -276,7 +276,7 @@ Week 1 calibration: use baseline RIR 3-4 for all exercises. weekTheme = "Week 1 
 
     // ── Generate AI program ─────────────────────────────────────────────────
     const { object: aiProgram } = await generateObject({
-      model: google('gemini-2.0-flash'),
+      model: google('gemini-2.5-flash'),
       system: GOD_SYSTEM_PROMPTS[god],
       prompt,
       schema: programSchema,

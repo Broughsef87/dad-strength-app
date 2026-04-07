@@ -615,7 +615,7 @@ Generate a complete week of programmed workouts for week ${weekNumber}.
 
     // ── Generate AI program ─────────────────────────────────────────────────
     const { object: aiProgram } = await generateObject({
-      model: google('gemini-2.0-flash'),
+      model: google('gemini-2.5-flash'),
       system: `You are an experienced strength coach programming for busy dads. Data-driven, direct, zero fluff.
 
 CRITICAL: Do NOT prescribe specific weights. The system calculates recommended weights automatically.
