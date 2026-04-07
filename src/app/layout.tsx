@@ -4,6 +4,7 @@ import './globals.css'
 import PageTransition from '../components/PageTransition'
 import { UserProvider } from '../contexts/UserContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
+import { SubscriptionProvider } from '../contexts/SubscriptionContext'
 
 const bebasNeue = Bebas_Neue({
   subsets: ['latin'],
@@ -85,7 +86,9 @@ export default function RootLayout({
       <body className={`${spaceGrotesk.className} overflow-x-hidden`}>
         <ThemeProvider>
           <UserProvider>
-            <PageTransition>{children}</PageTransition>
+            <SubscriptionProvider>
+              <PageTransition>{children}</PageTransition>
+            </SubscriptionProvider>
           </UserProvider>
         </ThemeProvider>
       </body>

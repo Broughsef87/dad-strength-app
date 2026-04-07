@@ -31,21 +31,25 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
 
   // Protected routes
-  const protectedPaths = ['/dashboard', '/mind', '/body', '/spirit', '/profile', '/workout', '/edit-program', '/onboarding', '/history', '/library']
+  const protectedPaths = [
+    '/dashboard', '/mind', '/body', '/spirit', '/profile',
+    '/workout', '/edit-program', '/onboarding', '/history', '/library',
+    '/build', '/forge', '/schedule', '/systems', '/exercises',
+  ]
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
 
-  if (!session && isProtected) {
+  if (!user && isProtected) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
-  if (session && pathname === '/') {
+  if (user && pathname === '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

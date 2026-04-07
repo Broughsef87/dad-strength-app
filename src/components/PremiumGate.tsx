@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Zap } from 'lucide-react'
-import { useSubscription } from '../hooks/useSubscription'
+import { useSubscription } from '../contexts/SubscriptionContext'
 import UpgradeModal from './UpgradeModal'
 
 interface PremiumGateProps {

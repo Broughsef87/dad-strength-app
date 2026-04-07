@@ -12,7 +12,7 @@ import BottomNav from '../../components/BottomNav'
 import DadScore from '../../components/DadScore'
 import DadOfMonth from '../../components/DadOfMonth'
 import StreakShield from '../../components/StreakShield'
-import { useSubscription } from '../../hooks/useSubscription'
+import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 
 export default function Profile() {
