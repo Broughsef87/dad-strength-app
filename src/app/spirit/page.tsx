@@ -1,207 +1,464 @@
-'use client';
+'use client'
 
-import { motion } from 'framer-motion';
-import { staggerContainer, fadeUp } from '../../components/ui/motion';
-import { createClient } from '../../utils/supabase/client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Flame, Anchor, ArrowLeft, Sun, CheckCircle2, Timer, Play, Pause, RotateCcw } from 'lucide-react';
-import BottomNav from '../../components/BottomNav';
-import AppHeader from '../../components/AppHeader';
-import FamilyPulse from '../../components/FamilyPulse';
-import Brotherhood from '../../components/Brotherhood';
-import BabySleepTracker from '../../components/BabySleepTracker';
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { staggerContainer, fadeUp } from '../../components/ui/motion'
+import { Zap, Users, Check } from 'lucide-react'
+import BottomNav from '../../components/BottomNav'
+import AppHeader from '../../components/AppHeader'
+
+// ── Challenge data ─────────────────────────────────────────────────────────────
+
+type Category = 'wife' | 'kids' | 'brotherhood' | 'self'
+
+const CATEGORY_CONFIG: Record<Category, { label: string; color: string; bg: string }> = {
+  wife:        { label: 'Wife',        color: 'text-rose-400',  bg: 'bg-rose-500/10'   },
+  kids:        { label: 'Kids',        color: 'text-amber-400', bg: 'bg-amber-500/10'  },
+  brotherhood: { label: 'Brotherhood', color: 'text-blue-400',  bg: 'bg-blue-500/10'   },
+  self:        { label: 'Self',        color: 'text-brand',     bg: 'bg-brand/10'      },
+}
+
+type Challenge = { id: number; category: Category; text: string }
+
+const CHALLENGES: Challenge[] = [
+  // Wife
+  { id:  1, category: 'wife', text: 'Put your phone face-down at dinner tonight and hold eye contact.' },
+  { id:  2, category: 'wife', text: 'Text her one specific thing you noticed and appreciated about her today.' },
+  { id:  3, category: 'wife', text: 'Ask what she needs from you this week — then just listen.' },
+  { id:  4, category: 'wife', text: 'Do one task she\'s been handling without being asked and without mentioning it.' },
+  { id:  5, category: 'wife', text: 'Tell the kids, in front of her, something you love about their mom.' },
+  { id:  6, category: 'wife', text: 'Make the bed before she gets to it.' },
+  { id:  7, category: 'wife', text: 'Ask her about something she\'s working on — nothing to do with kids.' },
+  { id:  8, category: 'wife', text: 'Plan the next date, even if it\'s just a walk after the kids are in bed.' },
+  { id:  9, category: 'wife', text: 'Bring her coffee or tea exactly the way she likes it — no reason needed.' },
+  { id: 10, category: 'wife', text: 'Say "I\'ve got the kids tonight" and actually mean it.' },
+  { id: 11, category: 'wife', text: 'Ask her what she\'d do with 2 free hours and make it happen this week.' },
+  { id: 12, category: 'wife', text: 'Tell her something you\'re proud of her for — out loud, not over text.' },
+  { id: 13, category: 'wife', text: 'Put your phone away an hour before bed and just be present with her.' },
+  { id: 14, category: 'wife', text: 'Write her a note — actual paper, not a text.' },
+  { id: 15, category: 'wife', text: 'Ask her what she needs more of from you. Don\'t get defensive.' },
+  // Kids
+  { id: 16, category: 'kids', text: 'Get on the floor and play whatever they want for 20 minutes — no directing.' },
+  { id: 17, category: 'kids', text: 'Ask "what was the best part of your day?" then ask one follow-up question.' },
+  { id: 18, category: 'kids', text: 'Tell your kid one specific thing you noticed them do well this week.' },
+  { id: 19, category: 'kids', text: 'Put your phone in another room for the next hour.' },
+  { id: 20, category: 'kids', text: 'Let them teach you something — a game, a move, a song. Be a real student.' },
+  { id: 21, category: 'kids', text: 'Say "I\'m proud of you" for who they are, not something they achieved.' },
+  { id: 22, category: 'kids', text: 'Do the bedtime routine tonight with full presence — no rushing.' },
+  { id: 23, category: 'kids', text: 'Ask them what they\'d build if they could build anything in the world.' },
+  { id: 24, category: 'kids', text: 'Leave a note in their lunchbox, backpack, or under their pillow.' },
+  { id: 25, category: 'kids', text: 'Make up a secret handshake together right now.' },
+  { id: 26, category: 'kids', text: 'Tell them a story from when you were exactly their age.' },
+  { id: 27, category: 'kids', text: 'Let them pick what\'s for dinner tonight, no complaints.' },
+  { id: 28, category: 'kids', text: 'Wrestle or roughhouse for 10 minutes. They need it more than you think.' },
+  { id: 29, category: 'kids', text: 'Ask them what they want to be when they grow up and dig into the why.' },
+  { id: 30, category: 'kids', text: 'Let them stay up 20 minutes late just to talk.' },
+  // Brotherhood
+  { id: 31, category: 'brotherhood', text: 'Text a friend you haven\'t talked to in 30+ days. No agenda — just check in.' },
+  { id: 32, category: 'brotherhood', text: 'Share something you\'re actually struggling with with a man you trust.' },
+  { id: 33, category: 'brotherhood', text: 'Send a voice message instead of a text to someone who matters.' },
+  { id: 34, category: 'brotherhood', text: 'Tell a friend specifically what you respect about him — today.' },
+  { id: 35, category: 'brotherhood', text: 'Invite someone to train with you this week.' },
+  { id: 36, category: 'brotherhood', text: 'Check in on a friend who\'s going through something hard.' },
+  { id: 37, category: 'brotherhood', text: 'Set up a recurring hang with one friend — monthly is enough to start.' },
+  { id: 38, category: 'brotherhood', text: 'Tell your dad or a father figure something you\'re grateful for.' },
+  { id: 39, category: 'brotherhood', text: 'Be the one who makes the plan today. Stop waiting for someone else.' },
+  { id: 40, category: 'brotherhood', text: 'Reply to someone who reached out to you and you never responded.' },
+  { id: 41, category: 'brotherhood', text: 'Share a win with a friend — don\'t only reach out when things are hard.' },
+  { id: 42, category: 'brotherhood', text: 'Be honest with someone about where you actually are right now.' },
+  { id: 43, category: 'brotherhood', text: 'Introduce two people in your life who should know each other.' },
+  { id: 44, category: 'brotherhood', text: 'Ask a mentor or someone you admire for 15 minutes of their time.' },
+  { id: 45, category: 'brotherhood', text: 'Write down the names of 3 men who make you better. Reach out to one today.' },
+  // Self
+  { id: 46, category: 'self', text: 'Spend 10 minutes outside with no phone. Just walk and look around.' },
+  { id: 47, category: 'self', text: 'Write down 3 things that are actually going well right now.' },
+  { id: 48, category: 'self', text: 'Name the one thing you\'ve been avoiding. Take one small step on it today.' },
+  { id: 49, category: 'self', text: 'Read for 15 minutes before picking up your phone this morning.' },
+  { id: 50, category: 'self', text: 'Eat one meal today with no screens. Just food.' },
+  { id: 51, category: 'self', text: 'Name one thing you\'re proud of yourself for this week.' },
+  { id: 52, category: 'self', text: 'Do one thing today just because you enjoy it. Not productive — just good.' },
+  { id: 53, category: 'self', text: 'Go to sleep 30 minutes earlier tonight.' },
+  { id: 54, category: 'self', text: 'Identify your #1 priority for tomorrow and block time for it now.' },
+  { id: 55, category: 'self', text: 'Say no to one thing today that drains you.' },
+  { id: 56, category: 'self', text: 'Cancel or defer one commitment you said yes to but shouldn\'t have.' },
+  { id: 57, category: 'self', text: 'Write 5 sentences about what you want your life to look like in 5 years.' },
+  { id: 58, category: 'self', text: 'Drink a full glass of water before you look at your phone this morning.' },
+  { id: 59, category: 'self', text: 'Sit in silence for 5 minutes. No music, no podcast, no phone.' },
+  { id: 60, category: 'self', text: 'Ask yourself: am I who I want my kids to become? Act accordingly today.' },
+]
+
+function getDayOfYear(): number {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), 0, 0)
+  return Math.floor((now.getTime() - start.getTime()) / 86_400_000)
+}
+
+function pickChallenge(skipCategory?: Category): Challenge {
+  const day = getDayOfYear()
+  const pool = skipCategory ? CHALLENGES.filter(c => c.category !== skipCategory) : CHALLENGES
+  return pool[day % pool.length]
+}
+
+// ── Heat map types ─────────────────────────────────────────────────────────────
+
+type Connection = { date: string; note?: string }
+type HeatSlot   = { id: string; label: string; name: string; connections: Connection[] }
+
+const DEFAULT_SLOTS: HeatSlot[] = [
+  { id: 'wife',   label: 'Wife',   name: '', connections: [] },
+  { id: 'kid1',   label: 'Kid 1',  name: '', connections: [] },
+  { id: 'kid2',   label: 'Kid 2',  name: '', connections: [] },
+  { id: 'kid3',   label: 'Kid 3',  name: '', connections: [] },
+  { id: 'friend', label: 'Friend', name: '', connections: [] },
+]
+
+function heatColor(slot: HeatSlot) {
+  if (!slot.connections.length)
+    return { bg: 'bg-surface-3/40', border: 'border-border/40', text: 'text-muted-foreground/50', label: 'No data' }
+  const days = Math.floor(
+    (Date.now() - new Date(slot.connections[slot.connections.length - 1].date).getTime()) / 86_400_000
+  )
+  if (days <= 1) return { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', label: days === 0 ? 'Today' : 'Yesterday' }
+  if (days <= 3) return { bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   text: 'text-amber-400',   label: `${days}d ago` }
+  return              { bg: 'bg-red-500/10',        border: 'border-red-500/30',     text: 'text-red-400',     label: `${days}d ago` }
+}
+
+const HEAT_KEY = 'dad-strength-spirit-heat'
+const ACT_KEY  = 'dad-strength-spirit-act'
+
+// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function SpiritPage() {
-  const [supabase] = useState(() => createClient());
-  const router = useRouter();
-  const [prayerDone, setPrayerDone] = useState(false);
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const [timerActive, setTimerActive] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(false)
+
+  // Act
+  const [challenge, setChallenge]   = useState<Challenge>(() => pickChallenge())
+  const [actDone, setActDone]       = useState(false)
+
+  // Heat map
+  const [slots, setSlots]               = useState<HeatSlot[]>(DEFAULT_SLOTS)
+  const [isEditing, setIsEditing]       = useState(false)
+  const [editingId, setEditingId]       = useState<string | null>(null)
+  const [editName, setEditName]         = useState('')
+  const [loggingId, setLoggingId]       = useState<string | null>(null)
+  const [logNote, setLogNote]           = useState('')
 
   useEffect(() => {
-    setMounted(true);
-    const today = new Date().toISOString().split('T')[0];
-    const saved = localStorage.getItem('dad-strength-spirit-state');
-    if (saved) {
-      const data = JSON.parse(saved);
-      if (data.date === new Date().toLocaleDateString()) {
-        setPrayerDone(data.prayerDone || false);
+    setMounted(true)
+    const today = new Date().toISOString().split('T')[0]
+
+    // Restore act
+    try {
+      const raw = localStorage.getItem(ACT_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw)
+        if (saved.date === today) {
+          setActDone(saved.done ?? false)
+          const c = CHALLENGES.find(x => x.id === saved.challengeId)
+          if (c) setChallenge(c)
+        }
       }
-    }
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase
-        .from('daily_checkins')
-        .select('spirit_state')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .single()
-        .then(({ data }) => {
-          if (data?.spirit_state) {
-            const ss = data.spirit_state as { prayerDone?: boolean };
-            setPrayerDone(ss.prayerDone || false);
-          }
-        });
-    });
-  }, [supabase]);
+    } catch { /* ignore */ }
 
-  const saveSpiritState = (done: boolean) => {
-    const state = { date: new Date().toLocaleDateString(), prayerDone: done };
-    localStorage.setItem('dad-strength-spirit-state', JSON.stringify(state));
-    const today = new Date().toISOString().split('T')[0];
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from('daily_checkins').upsert(
-        { user_id: user.id, date: today, spirit_state: state, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id,date' }
-      ).then(() => {});
-    });
-  };
+    // Restore heat map
+    try {
+      const raw = localStorage.getItem(HEAT_KEY)
+      if (raw) setSlots(JSON.parse(raw))
+    } catch { /* ignore */ }
+  }, [])
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (timerActive && timerSeconds > 0) {
-      interval = setInterval(() => setTimerSeconds(prev => prev - 1), 1000);
-    } else if (timerSeconds === 0) {
-      setTimerActive(false);
-    }
-    return () => clearInterval(interval);
-  }, [timerActive, timerSeconds]);
+  // ── Act handlers ──────────────────────────────────────────────────────────────
 
-  const startTimer = (mins: number) => {
-    setTimerSeconds(mins * 60);
-    setTimerActive(true);
-  };
+  function saveAct(done: boolean, c: Challenge) {
+    const today = new Date().toISOString().split('T')[0]
+    localStorage.setItem(ACT_KEY, JSON.stringify({ date: today, done, challengeId: c.id }))
+  }
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+  function handleToggleDone() {
+    const next = !actDone
+    setActDone(next)
+    saveAct(next, challenge)
+  }
+
+  function handleNotToday() {
+    const next = pickChallenge(challenge.category)
+    setChallenge(next)
+    setActDone(false)
+    saveAct(false, next)
+  }
+
+  // ── Heat map handlers ─────────────────────────────────────────────────────────
+
+  function persistSlots(next: HeatSlot[]) {
+    setSlots(next)
+    localStorage.setItem(HEAT_KEY, JSON.stringify(next))
+  }
+
+  function handleRename(id: string) {
+    persistSlots(slots.map(s => s.id === id ? { ...s, name: editName.trim() || s.label } : s))
+    setEditingId(null)
+    setEditName('')
+  }
+
+  function handleLogConnection(id: string) {
+    const today = new Date().toISOString().split('T')[0]
+    persistSlots(slots.map(s => {
+      if (s.id !== id) return s
+      const rest = s.connections.filter(c => c.date !== today)
+      return { ...s, connections: [...rest, { date: today, note: logNote.trim() || undefined }] }
+    }))
+    setLoggingId(null)
+    setLogNote('')
+  }
+
+  function handleUndoConnection(id: string) {
+    const today = new Date().toISOString().split('T')[0]
+    persistSlots(slots.map(s =>
+      s.id === id ? { ...s, connections: s.connections.filter(c => c.date !== today) } : s
+    ))
+  }
 
   if (!mounted) return (
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
-      <main className="max-w-md mx-auto px-6 pt-4 space-y-6">
-        <div className="ds-card p-6 animate-pulse space-y-3">
-          <div className="h-4 bg-muted rounded w-1/3" />
-          <div className="h-3 bg-muted rounded w-2/3" />
-          <div className="h-3 bg-muted rounded w-1/2" />
-        </div>
-        <div className="ds-card p-6 animate-pulse space-y-3">
-          <div className="h-4 bg-muted rounded w-1/3" />
-          <div className="h-3 bg-muted rounded w-2/3" />
-          <div className="h-3 bg-muted rounded w-1/2" />
-        </div>
-        <div className="ds-card p-6 animate-pulse space-y-3">
-          <div className="h-4 bg-muted rounded w-1/3" />
-          <div className="h-3 bg-muted rounded w-2/3" />
-          <div className="h-3 bg-muted rounded w-1/2" />
-        </div>
+      <main className="max-w-md mx-auto px-6 pt-6 space-y-6">
+        {[1, 2].map(i => (
+          <div key={i} className="glass-card rounded-2xl border border-border/50 p-5 animate-pulse space-y-4">
+            <div className="h-3 bg-muted rounded w-1/4" />
+            <div className="h-14 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+          </div>
+        ))}
       </main>
     </div>
-  );
+  )
+
+  const today     = new Date().toISOString().split('T')[0]
+  const catConfig = CATEGORY_CONFIG[challenge.category]
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
-      <main className="max-w-md mx-auto px-6 pt-4">
-        <div className="mb-6">
+      <main className="max-w-md mx-auto px-6 pt-6">
+
+        <div className="mb-8">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Relationships</p>
           <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Spirit</h1>
         </div>
-        <motion.div
-          className="space-y-6"
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
-        >
 
-        <motion.div variants={fadeUp} className="ds-card p-6">
-          <BabySleepTracker />
-        </motion.div>
+        <motion.div className="space-y-6" initial="hidden" animate="visible" variants={staggerContainer}>
 
-        <motion.div variants={fadeUp} className="ds-card p-6">
-          <FamilyPulse />
-        </motion.div>
+          {/* ── The Act ──────────────────────────────────────────────────────────── */}
+          <motion.div variants={fadeUp}>
+            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
+              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
+              <div className="p-5 space-y-4">
 
-        <motion.div variants={fadeUp} className="ds-card p-6">
-          <Brotherhood />
-        </motion.div>
-
-        {/* Spiritual Reset */}
-        <motion.div variants={fadeUp} className="ds-card p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Anchor size={16} className="text-brand" />
-            <h3 className="font-medium text-sm">Spiritual Reset</h3>
-          </div>
-
-          <div className="space-y-5">
-            {timerSeconds > 0 && (
-              <div className="bg-background p-5 rounded-xl border border-border text-center">
-                <div className="text-4xl font-light text-foreground mb-4 font-mono tabular-nums tracking-tight">
-                  {formatTime(timerSeconds)}
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap size={14} className="text-brand" strokeWidth={2.5} />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground font-display">The Act</p>
+                  </div>
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${catConfig.bg} ${catConfig.color}`}>
+                    {catConfig.label}
+                  </span>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setTimerActive(!timerActive)}
-                    className="flex-1 py-2.5 bg-foreground text-background rounded-lg text-xs font-medium uppercase tracking-[0.1em]"
+
+                {/* Challenge text */}
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={challenge.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18 }}
+                    className={`text-base font-semibold leading-relaxed transition-colors ${
+                      actDone ? 'text-muted-foreground line-through decoration-muted-foreground/40' : 'text-foreground'
+                    }`}
                   >
-                    {timerActive ? <Pause size={14} className="mx-auto" /> : <Play size={14} className="mx-auto" />}
-                  </button>
+                    {challenge.text}
+                  </motion.p>
+                </AnimatePresence>
+
+                {/* Actions */}
+                <div className="flex gap-2.5">
                   <button
-                    onClick={() => { setTimerSeconds(0); setTimerActive(false); }}
-                    className="px-4 py-2.5 border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={handleToggleDone}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 ${
+                      actDone
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-brand text-background brand-glow hover:bg-brand/90'
+                    }`}
                   >
-                    <RotateCcw size={14} />
+                    {actDone && <Check size={12} strokeWidth={3} />}
+                    {actDone ? 'Done' : 'Mark Done'}
                   </button>
+                  {!actDone && (
+                    <button
+                      onClick={handleNotToday}
+                      className="px-4 py-3 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-all text-xs font-bold uppercase tracking-widest active:scale-95"
+                    >
+                      Not today
+                    </button>
+                  )}
                 </div>
+
               </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => startTimer(5)}
-                className="flex flex-col items-center gap-2.5 p-4 bg-background border border-border rounded-xl hover:border-foreground/30 transition-colors group"
-              >
-                <Timer size={18} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors">5 Min Prayer</span>
-              </button>
-              <button
-                onClick={() => startTimer(10)}
-                className="flex flex-col items-center gap-2.5 p-4 bg-background border border-border rounded-xl hover:border-foreground/30 transition-colors group"
-              >
-                <Timer size={18} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground group-hover:text-foreground transition-colors">10 Min Meditation</span>
-              </button>
             </div>
+          </motion.div>
 
-            <button
-              onClick={() => { const next = !prayerDone; setPrayerDone(next); saveSpiritState(next); }}
-              className={`w-full flex flex-col items-center justify-center p-8 rounded-xl border-2 transition-all gap-3 ${
-                prayerDone
-                  ? 'bg-brand/5 border-brand/30 text-brand'
-                  : 'bg-background border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'
-              }`}
-            >
-              {prayerDone ? <CheckCircle2 size={28} /> : <Sun size={28} />}
-              <span className="text-xs font-medium uppercase tracking-[0.12em]">
-                {prayerDone ? 'Daily Reset Logged' : 'Log Daily Reset'}
-              </span>
-            </button>
-          </div>
+          {/* ── Connection Heat Map ───────────────────────────────────────────────── */}
+          <motion.div variants={fadeUp}>
+            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
+              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
+              <div className="p-5 space-y-4">
 
-          <p className="mt-5 text-[11px] text-muted-foreground text-center leading-relaxed italic px-4">
-            "Quiet the noise to hear the signal."
-          </p>
-        </motion.div>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users size={14} className="text-brand" strokeWidth={2.5} />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground font-display">Connection</p>
+                  </div>
+                  <button
+                    onClick={() => { setIsEditing(!isEditing); setEditingId(null) }}
+                    className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {isEditing ? 'Done' : 'Edit Names'}
+                  </button>
+                </div>
+
+                {/* Slots */}
+                <div className="space-y-2">
+                  {slots.map(slot => {
+                    const { bg, border, text, label } = heatColor(slot)
+                    const displayName = slot.name || slot.label
+                    const loggedToday = slot.connections.some(c => c.date === today)
+
+                    /* Edit mode */
+                    if (isEditing) {
+                      return (
+                        <div key={slot.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/40 bg-surface-3/30">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground w-14 flex-shrink-0">
+                            {slot.label}
+                          </span>
+                          {editingId === slot.id ? (
+                            <div className="flex gap-2 flex-1 items-center">
+                              <input
+                                autoFocus
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleRename(slot.id)}
+                                placeholder={slot.label}
+                                className="flex-1 bg-transparent text-sm text-foreground outline-none border-b border-brand pb-0.5"
+                              />
+                              <button onClick={() => handleRename(slot.id)} className="text-brand text-xs font-black uppercase tracking-wider">
+                                Save
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setEditingId(slot.id); setEditName(slot.name) }}
+                              className="flex-1 text-left text-sm font-semibold text-foreground hover:text-brand transition-colors"
+                            >
+                              {displayName}
+                              <span className="text-muted-foreground/40 font-normal text-xs ml-2">tap to rename</span>
+                            </button>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    /* Normal mode */
+                    return (
+                      <div key={slot.id}>
+                        <button
+                          onClick={() => {
+                            if (loggedToday) {
+                              handleUndoConnection(slot.id)
+                            } else {
+                              setLoggingId(loggingId === slot.id ? null : slot.id)
+                              setLogNote('')
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-all active:scale-[0.98] ${bg} ${border}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
+                              loggedToday ? 'bg-emerald-500/20 border-emerald-500/40' : 'border-border/60'
+                            }`}>
+                              {loggedToday && <Check size={10} className="text-emerald-400" strokeWidth={3} />}
+                            </div>
+                            <span className="text-sm font-bold text-foreground">{displayName}</span>
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${text}`}>
+                            {loggedToday ? 'Logged ✓' : label}
+                          </span>
+                        </button>
+
+                        {/* Note expander */}
+                        <AnimatePresence>
+                          {loggingId === slot.id && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.18 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="pt-2 pb-1 space-y-2">
+                                <input
+                                  autoFocus
+                                  value={logNote}
+                                  onChange={e => setLogNote(e.target.value)}
+                                  onKeyDown={e => e.key === 'Enter' && handleLogConnection(slot.id)}
+                                  placeholder="What did you do? (optional)"
+                                  className="w-full bg-surface-3/50 border border-border/50 rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-brand transition-colors"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleLogConnection(slot.id)}
+                                    className="flex-1 py-2.5 bg-brand text-background text-xs font-black uppercase tracking-widest rounded-xl active:scale-95 brand-glow"
+                                  >
+                                    Log Connection
+                                  </button>
+                                  <button
+                                    onClick={() => setLoggingId(null)}
+                                    className="px-4 py-2.5 border border-border/50 text-muted-foreground rounded-xl text-xs font-bold uppercase tracking-wider active:scale-95"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-4 pt-1">
+                  {[
+                    { dot: 'bg-emerald-500', label: 'Recent' },
+                    { dot: 'bg-amber-500',   label: '3+ days' },
+                    { dot: 'bg-red-500',     label: '7+ days' },
+                  ].map(({ dot, label }) => (
+                    <div key={label} className="flex items-center gap-1.5">
+                      <div className={`w-2 h-2 rounded-full ${dot} opacity-60`} />
+                      <span className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-medium">{label}</span>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            </div>
+          </motion.div>
 
         </motion.div>
       </main>
-
       <BottomNav />
     </div>
-  );
+  )
 }
