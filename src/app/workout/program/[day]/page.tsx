@@ -403,8 +403,9 @@ export default function ProgramWorkoutPage() {
         const oneRepMaxesRaw = localStorage.getItem('dad-strength-one-rep-maxes')
         const oneRepMaxes = oneRepMaxesRaw ? JSON.parse(oneRepMaxesRaw) : {}
 
-        // Detect custom god programs (adonis-*, ares-*, hercules-*)
-        const isCustomProgram = /^(adonis|ares|hercules)-\d+$/.test(prog.slug)
+        // Detect custom god programs (adonis-*, ares-*, hercules-*, atlas-*)
+        // Note: chronos routes to /workout/squeeze, never reaches this page
+        const isCustomProgram = /^(adonis|ares|hercules|atlas)-\d+$/.test(prog.slug)
         const customConfigRaw = localStorage.getItem('dad-strength-custom-config')
         const customConfig = customConfigRaw ? JSON.parse(customConfigRaw) : {}
 

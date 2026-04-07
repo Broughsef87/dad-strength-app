@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
 import { useUser } from '../../contexts/UserContext'
 import { createClient } from '../../utils/supabase/client'
 import type { ActiveProgramData } from '../../components/ProgramSelector'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type God = 'adonis' | 'ares' | 'hercules'
+type God = 'adonis' | 'ares' | 'hercules' | 'atlas' | 'chronos'
 type Days = 3 | 4 | 5
 type Weeks = 4 | 5 | 6
 type GymType = 'commercial' | 'home'
@@ -25,40 +26,108 @@ interface CustomConfig {
 
 const GODS = [
   {
+    id: 'atlas' as God,
+    name: 'Atlas',
+    title: 'Titan of Strength',
+    tagline: 'Carry the World.',
+    description: 'Functional lifting meets strongman. Carries mandatory every session. Built to move heavy things in the real world.',
+    attributes: ['3–6 Reps', 'Strongman', 'Functional'],
+    avatar: '🌍',
+    avatarSrc: '/gods/atlas.jpg',
+    color: 'text-amber-400',
+    border: 'border-amber-500/50',
+    bg: 'bg-amber-500/10',
+    glow: 'shadow-amber-500/20',
+    dot: 'bg-amber-400',
+    sampleDays: [
+      { day: 'Day 1', name: 'Squat + Carries', exercises: ['Back Squat 4×5', 'Zercher Carry 3×40yd', 'Bulgarian Split Squat 3×6', 'Farmer Carry finisher 3×50yd'] },
+      { day: 'Day 2', name: 'Press + Strongman', exercises: ['Log Press / Barbell OHP 4×5', 'Push Press 3×5', 'Sandbag Carry 3×40yd', 'Suitcase Carry finisher'] },
+      { day: 'Day 3', name: 'Deadlift + Carries', exercises: ['Deadlift 4×4', 'Romanian DL 3×6', 'Farmer Carry 3×50yd', 'Tire flip sub 3×5'] },
+      { day: 'Day 4', name: 'Pull + Conditioning', exercises: ['Barbell Row 4×5', 'Weighted Pull-ups 3×6', 'Overhead Carry 3×40yd', 'Loaded carry medley finisher'] },
+    ],
+  },
+  {
     id: 'adonis' as God,
     name: 'Adonis',
     title: 'God of Beauty',
     tagline: 'The Physique Above All.',
     description: 'High volume. Full pumps. Cables, machines, isolation finishers. Built for the mirror.',
     attributes: ['8–15 Reps', 'High Volume', 'Pump-Focused'],
+    avatar: '🏛️',
+    avatarSrc: '/gods/adonis.jpg',
     color: 'text-brand',
     border: 'border-brand',
     bg: 'bg-brand/10',
     glow: 'shadow-brand/20',
+    dot: 'bg-brand',
+    sampleDays: [
+      { day: 'Day 1', name: 'Chest + Triceps', exercises: ['Barbell Bench Press 4×10', 'Incline DB Press 3×12', 'Cable Fly 3×15', 'Tricep Pushdown 3×12', 'Lateral Raise 3×15'] },
+      { day: 'Day 2', name: 'Back + Biceps', exercises: ['Pull-ups 4×10', 'Barbell Row 3×10', 'Cable Row 3×12', 'Face Pulls 3×15', 'Barbell Curl 3×12'] },
+      { day: 'Day 3', name: 'Shoulders + Arms', exercises: ['DB OHP 4×12', 'Machine Lateral Raise 3×15', 'Rear Delt Fly 3×15', 'Hammer Curl 3×12', 'Skull Crushers 3×12'] },
+      { day: 'Day 4', name: 'Legs', exercises: ['Back Squat 4×10', 'Leg Press 3×12', 'Leg Extension 3×15', 'Leg Curl 3×12', 'Standing Calf Raise 4×15'] },
+    ],
   },
   {
     id: 'ares' as God,
     name: 'Ares',
     title: 'God of War',
     tagline: 'Train Like You Fight.',
-    description: 'Explosive primers. Heavy compounds. Conditioning finishers. Built for the battlefield.',
-    attributes: ['5–12 Reps', 'Power + Condition', 'Athletic'],
+    description: 'Explosive primers. Heavy compounds. MetCon finishers. Functional and fierce — works in any gym or garage.',
+    attributes: ['3–10 Reps', 'Hybrid + CrossFit', 'Any Gym'],
+    avatar: '⚔️',
+    avatarSrc: '/gods/ares.jpg',
     color: 'text-red-400',
     border: 'border-red-500/50',
     bg: 'bg-red-500/10',
     glow: 'shadow-red-500/20',
+    dot: 'bg-red-400',
+    sampleDays: [
+      { day: 'Day 1', name: 'Upper Push + MetCon', exercises: ['Power Clean 4×4', 'Bench Press 4×5', 'Split Squat 3×8', 'AMRAP 10min: 5 pull-ups / 10 push-ups / 15 KB swings'] },
+      { day: 'Day 2', name: 'Lower Squat + Carries', exercises: ['Box Jump 4×4', 'Back Squat 4×5', 'Single-Leg RDL 3×8', 'Farmer Carry 3×40yd'] },
+      { day: 'Day 3', name: 'Upper Pull + Cond.', exercises: ['Med Ball Slam 4×5', 'Weighted Pull-ups 4×5', 'Single-Arm DB Row 3×8', 'For Time: 400m run / 21 burpees / 15 pull-ups'] },
+      { day: 'Day 4', name: 'Lower Hinge + Strongman', exercises: ['Broad Jump 4×4', 'Deadlift 4×4', 'Good Morning 3×8', 'EMOM 10min: Suitcase carry + KB swings'] },
+    ],
   },
   {
     id: 'hercules' as God,
     name: 'Hercules',
     title: 'God of Strength',
     tagline: 'Move Mountains.',
-    description: 'Heavy singles. Barbell compounds. One primary lift per day. Built for raw power.',
-    attributes: ['1–6 Reps', 'Barbell Only', 'Powerlifting'],
+    description: 'One primary barbell lift per day. Heavy and technical. Accessory work with DBs, cables, and machines to protect the joints.',
+    attributes: ['2–6 Reps', 'Barbell Core', 'Raw Power'],
+    avatar: '🗿',
+    avatarSrc: '/gods/hercules.jpg',
     color: 'text-slate-300',
     border: 'border-slate-500/40',
     bg: 'bg-slate-500/10',
     glow: 'shadow-slate-500/20',
+    dot: 'bg-slate-400',
+    sampleDays: [
+      { day: 'Day 1', name: 'Squat Day', exercises: ['Back Squat 5×3 @ RIR 1', 'Leg Press 3×10', 'Bulgarian Split Squat 3×10', 'Leg Curl 3×10', 'Calf Raise 3×15'] },
+      { day: 'Day 2', name: 'Bench Day', exercises: ['Bench Press 5×3 @ RIR 1', 'Incline DB Press 3×10', 'Cable Fly 3×12', 'Tricep Pushdown 3×10', 'Face Pulls 3×12'] },
+      { day: 'Day 3', name: 'Deadlift Day', exercises: ['Deadlift 5×3 @ RIR 1', 'Barbell Row 3×8', 'Pull-ups 3×8', 'DB Row 3×10', 'Back Extension 3×12'] },
+      { day: 'Day 4', name: 'OHP Day', exercises: ['Barbell OHP 5×3 @ RIR 1', 'DB Shoulder Press 3×10', 'Lateral Raise 3×15', 'Rear Delt Fly 3×15', 'Barbell Curl 3×12'] },
+    ],
+  },
+  {
+    id: 'chronos' as God,
+    name: 'Chronos',
+    title: 'God of Time',
+    tagline: '15 Minutes. No Excuses.',
+    description: 'Time-crunched sessions for busy dads. A1 compound + A2 superset + finisher. Any equipment, any place.',
+    attributes: ['15–20 Min', 'Daily', 'Any Gym'],
+    avatar: '⏳',
+    avatarSrc: '/gods/chronos.jpg',
+    color: 'text-yellow-400',
+    border: 'border-yellow-500/50',
+    bg: 'bg-yellow-500/10',
+    glow: 'shadow-yellow-500/20',
+    dot: 'bg-yellow-400',
+    sampleDays: [
+      { day: 'Session 1', name: 'Hinge + Carry', exercises: ['Deadlift 3×5 (A1)', 'KB Swing + Row superset × 3 rounds (A2)', 'Farmer carry AMRAP 3min (Finisher)'] },
+      { day: 'Session 2', name: 'Squat + Cond.', exercises: ['Goblet Squat 3×5 (A1)', 'Box jump + Push-up superset × 3 rounds (A2)', 'Sprint / bike finisher'] },
+      { day: 'Session 3', name: 'Push + Core', exercises: ['DB Press 3×5 (A1)', 'Push-up + Band pull-apart × 3 rounds (A2)', 'Ab wheel AMRAP 3min (Finisher)'] },
+    ],
   },
 ]
 
@@ -67,7 +136,7 @@ const FOCUS_MUSCLES = [
   'Quads', 'Hamstrings', 'Glutes', 'Core',
 ]
 
-const DAY_NAMES: Record<God, Record<Days, string[]>> = {
+const DAY_NAMES: Record<God, Record<number, string[]>> = {
   adonis: {
     3: ['Push', 'Pull', 'Legs'],
     4: ['Chest + Triceps', 'Back + Biceps', 'Shoulders + Arms', 'Legs'],
@@ -82,6 +151,12 @@ const DAY_NAMES: Record<God, Record<Days, string[]>> = {
     3: ['Squat Day', 'Bench Day', 'Deadlift Day'],
     4: ['Squat Day', 'Bench Day', 'Deadlift Day', 'OHP Day'],
     5: ['Squat Day', 'Bench Day', 'Deadlift Day', 'OHP Day', 'Weak Points'],
+  },
+  atlas: {
+    4: ['Squat + Carries', 'Press + Strongman', 'Deadlift + Carries', 'Pull + Conditioning'],
+  },
+  chronos: {
+    4: ['Session 1', 'Session 2', 'Session 3', 'Session 4'],
   },
 }
 
@@ -101,7 +176,7 @@ export default function BuildPage() {
   const supabase = createClient()
 
   const [mounted, setMounted] = useState(false)
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
 
   // Selections
   const [selectedGod, setSelectedGod] = useState<God | null>(null)
@@ -142,7 +217,7 @@ export default function BuildPage() {
     if (!user || !selectedGod) return
     setActivating(true)
 
-    const slug = `${selectedGod}-${daysPerWeek}` as const
+    const slug = selectedGod === 'chronos' ? 'chronos-4' : `${selectedGod}-4`
     const startMonday = getNextMonday()
 
     // Convert 5RMs → 1RMs (Epley: 5RM × 1.167)
@@ -154,16 +229,22 @@ export default function BuildPage() {
 
     const godMeta = GODS.find(g => g.id === selectedGod)!
 
+    const primaryGoal =
+      selectedGod === 'adonis' ? 'hypertrophy' :
+      selectedGod === 'hercules' ? 'strength' :
+      selectedGod === 'chronos' ? 'conditioning' :
+      'athletic'
+
     const data: ActiveProgramData = {
       slug,
       name: godMeta.name,
       startedAt: startMonday.toISOString(),
       currentWeek: 1,
       trainingAge: 'intermediate',
-      primaryGoal: selectedGod === 'adonis' ? 'hypertrophy' : selectedGod === 'hercules' ? 'strength' : 'athletic',
+      primaryGoal,
       equipment: {},
-      daysCount: daysPerWeek,
-      dayNames: DAY_NAMES[selectedGod][daysPerWeek],
+      daysCount: 4,
+      dayNames: DAY_NAMES[selectedGod][4],
     }
 
     const config: CustomConfig = { god: selectedGod, focusGroups, gymType }
@@ -200,9 +281,10 @@ export default function BuildPage() {
     setTimeout(() => router.push('/workout/program/1'), 1200)
   }
 
-  const allWeightsFilled = CALIBRATION_LIFTS.every(l => parseFloat(weights[l.key as keyof typeof weights]) > 0)
+  const isChronos = selectedGod === 'chronos'
+  const allWeightsFilled = isChronos || CALIBRATION_LIFTS.every(l => parseFloat(weights[l.key as keyof typeof weights]) > 0)
   const godMeta = selectedGod ? GODS.find(g => g.id === selectedGod)! : null
-  const TOTAL_STEPS = 4
+  const TOTAL_STEPS = 3
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -210,7 +292,7 @@ export default function BuildPage() {
       <header className="sticky top-0 z-10 bg-surface-2 border-b border-border flex-shrink-0">
         <div className="max-w-md mx-auto px-4 h-14 flex items-center gap-3">
           <button
-            onClick={() => step > 1 ? setStep((s) => (s - 1) as typeof step) : router.back()}
+            onClick={() => step > 1 ? setStep((s) => (s - 1) as 1 | 2 | 3) : router.back()}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors"
           >
             <ArrowLeft size={18} />
@@ -262,47 +344,100 @@ export default function BuildPage() {
               </div>
 
               <div className="space-y-3">
-                {GODS.map((god) => (
-                  <button
-                    key={god.id}
-                    onClick={() => setSelectedGod(god.id)}
-                    className={`w-full text-left ds-card p-5 border-2 transition-all duration-200 ${
-                      selectedGod === god.id
-                        ? `${god.border} shadow-lg ${god.glow}`
-                        : 'border-transparent hover:border-border'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div>
-                        <p className={`text-[10px] uppercase tracking-[0.2em] font-semibold mb-0.5 ${god.color}`}>
-                          {god.title}
+                {GODS.map((god) => {
+                  const isSelected = selectedGod === god.id
+                  return (
+                    <div key={god.id} className={`ds-card border-2 transition-all duration-200 overflow-hidden ${
+                      isSelected ? `${god.border} shadow-lg ${god.glow}` : 'border-transparent hover:border-border'
+                    }`}>
+                      <button
+                        onClick={() => setSelectedGod(isSelected ? null : god.id)}
+                        className="w-full text-left p-5"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-start gap-3">
+                            {/* Animated avatar */}
+                            <motion.div
+                              animate={isSelected ? { y: [0, -4, 0], scale: [1, 1.04, 1] } : { y: 0, scale: 1 }}
+                              transition={isSelected ? { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } : {}}
+                              className={`relative w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden border-2 transition-all duration-300 ${god.border} ${isSelected ? `shadow-xl` : ''}`}
+                            >
+                              <Image
+                                src={god.avatarSrc}
+                                alt={god.name}
+                                fill
+                                className="object-cover object-top"
+                                sizes="64px"
+                              />
+                            </motion.div>
+                            <div>
+                              <p className={`text-[10px] uppercase tracking-[0.2em] font-semibold mb-0.5 ${god.color}`}>
+                                {god.title}
+                              </p>
+                              <h2 className="font-display text-4xl tracking-[0.1em] uppercase leading-none text-foreground">
+                                {god.name}
+                              </h2>
+                              <p className={`text-xs font-semibold mt-0.5 ${god.color}`}>{god.tagline}</p>
+                            </div>
+                          </div>
+                          <CheckCircle2 size={20} className={`flex-shrink-0 mt-1 transition-opacity ${isSelected ? `${god.color} opacity-100` : 'opacity-0'}`} />
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                          {god.description}
                         </p>
-                        <h2 className="font-display text-4xl tracking-[0.1em] uppercase leading-none text-foreground">
-                          {god.name}
-                        </h2>
-                        <p className={`text-xs font-semibold mt-0.5 ${god.color}`}>{god.tagline}</p>
-                      </div>
-                      {selectedGod === god.id && (
-                        <CheckCircle2 size={20} className={`${god.color} flex-shrink-0 mt-1`} />
-                      )}
-                    </div>
 
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                      {god.description}
-                    </p>
+                        <div className="flex flex-wrap gap-2">
+                          {god.attributes.map(attr => (
+                            <span
+                              key={attr}
+                              className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wider ${god.color} ${god.bg} ${god.border}`}
+                            >
+                              {attr}
+                            </span>
+                          ))}
+                        </div>
+                      </button>
 
-                    <div className="flex flex-wrap gap-2">
-                      {god.attributes.map(attr => (
-                        <span
-                          key={attr}
-                          className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wider ${god.color} ${god.bg} ${god.border}`}
-                        >
-                          {attr}
-                        </span>
-                      ))}
+                      {/* Sample programming — shown when selected */}
+                      <AnimatePresence>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden"
+                          >
+                            <div className={`mx-5 mb-5 rounded-xl border ${god.border} ${god.bg} p-4`}>
+                              <p className={`text-[10px] uppercase tracking-[0.2em] font-semibold mb-3 ${god.color}`}>
+                                Sample Week
+                              </p>
+                              <div className="space-y-3">
+                                {god.sampleDays.map((d) => (
+                                  <div key={d.day}>
+                                    <div className="flex items-baseline gap-2 mb-1">
+                                      <span className={`text-[10px] font-black uppercase tracking-widest ${god.color}`}>{d.day}</span>
+                                      <span className="text-xs font-semibold text-foreground">{d.name}</span>
+                                    </div>
+                                    <ul className="space-y-0.5">
+                                      {d.exercises.map((ex) => (
+                                        <li key={ex} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                          <span className={`w-1 h-1 rounded-full flex-shrink-0 ${god.dot}`} />
+                                          {ex}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </button>
-                ))}
+                  )
+                })}
               </div>
 
               <button
@@ -392,7 +527,7 @@ export default function BuildPage() {
             </motion.div>
           )}
 
-          {/* ── Step 3: Structure ───────────────────────────────────────────── */}
+          {/* ── Step 3: Calibrate + Activate ───────────────────────────────── */}
           {step === 3 && (
             <motion.div
               key="step3"
@@ -407,72 +542,40 @@ export default function BuildPage() {
                   {godMeta?.name}
                 </p>
                 <h1 className="font-display text-5xl tracking-[0.1em] uppercase leading-none">
-                  Structure
+                  {isChronos ? 'Launch' : 'Calibrate'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2">
-                  How many days and weeks do you want to train?
+                  {isChronos
+                    ? 'No calibration needed — Chronos sessions work with any equipment. Just launch.'
+                    : 'Your 5RM — heaviest weight you can lift for 5 clean reps. The AI uses these to calculate your starting weights.'}
                 </p>
               </div>
 
-              {/* Days per week */}
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
-                  Days per Week
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {([3, 4, 5] as Days[]).map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDaysPerWeek(d)}
-                      className={`py-4 rounded-xl border-2 transition-all duration-200 ${
-                        daysPerWeek === d
-                          ? `${godMeta?.border} ${godMeta?.bg}`
-                          : 'border-border bg-surface-3'
-                      }`}
-                    >
-                      <p className={`font-display text-4xl tracking-widest ${daysPerWeek === d ? godMeta?.color : 'text-foreground'}`}>
-                        {d}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Days</p>
-                    </button>
-                  ))}
+              {/* Summary card */}
+              <div className={`ds-card p-4 border ${godMeta?.border}`}>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className={`font-display text-xl tracking-widest uppercase ${godMeta?.color}`}>{godMeta?.name}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">God</p>
+                  </div>
+                  <div>
+                    <p className={`font-display text-xl tracking-widest ${godMeta?.color}`}>4</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Days</p>
+                  </div>
+                  <div>
+                    <p className={`font-display text-xl tracking-widest ${godMeta?.color}`}>{weeks}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Weeks</p>
+                  </div>
                 </div>
-
-                {/* Day names preview */}
-                {selectedGod && (
-                  <div className="ds-card p-3 space-y-1">
-                    {DAY_NAMES[selectedGod][daysPerWeek].map((name, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className={`w-5 h-5 rounded-full ${godMeta?.bg} ${godMeta?.border} border flex items-center justify-center text-[9px] font-bold ${godMeta?.color}`}>
-                          {i + 1}
-                        </span>
-                        {name}
-                      </div>
+                {focusGroups.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-1.5">
+                    {focusGroups.map(m => (
+                      <span key={m} className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wider ${godMeta?.color} ${godMeta?.bg} ${godMeta?.border}`}>
+                        {m}
+                      </span>
                     ))}
                   </div>
                 )}
-              </div>
-
-              {/* Weeks */}
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
-                  Program Length
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {([4, 5, 6] as Weeks[]).map((w) => (
-                    <button
-                      key={w}
-                      onClick={() => setWeeks(w)}
-                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
-                        weeks === w
-                          ? `${godMeta?.border} ${godMeta?.bg} ${godMeta?.color}`
-                          : 'border-border bg-surface-3 text-muted-foreground'
-                      }`}
-                    >
-                      {w} Weeks
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Gym type */}
@@ -497,87 +600,52 @@ export default function BuildPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setStep(4)}
-                className={`w-full py-4 rounded-xl font-display tracking-[0.08em] uppercase text-sm flex items-center justify-center gap-2 ${godMeta?.bg} ${godMeta?.color} border ${godMeta?.border}`}
-              >
-                Continue <ChevronRight size={15} />
-              </button>
-            </motion.div>
-          )}
-
-          {/* ── Step 4: Calibration + Activate ─────────────────────────────── */}
-          {step === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
-            >
-              <div>
-                <p className={`text-[10px] uppercase tracking-[0.25em] font-semibold font-display mb-1 ${godMeta?.color}`}>
-                  {godMeta?.name}
-                </p>
-                <h1 className="font-display text-5xl tracking-[0.1em] uppercase leading-none">
-                  Calibrate
-                </h1>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your 5RM — heaviest weight you can lift for 5 clean reps.
-                  The AI uses these to calculate your starting weights.
-                </p>
-              </div>
-
-              {/* Summary card */}
-              <div className={`ds-card p-4 border ${godMeta?.border}`}>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className={`font-display text-xl tracking-widest uppercase ${godMeta?.color}`}>{godMeta?.name}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">God</p>
-                  </div>
-                  <div>
-                    <p className={`font-display text-xl tracking-widest ${godMeta?.color}`}>{daysPerWeek}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Days</p>
-                  </div>
-                  <div>
-                    <p className={`font-display text-xl tracking-widest ${godMeta?.color}`}>{weeks}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Weeks</p>
-                  </div>
+              {/* Weeks */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
+                  Program Length
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([4, 5, 6] as Weeks[]).map((w) => (
+                    <button
+                      key={w}
+                      onClick={() => setWeeks(w)}
+                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
+                        weeks === w
+                          ? `${godMeta?.border} ${godMeta?.bg} ${godMeta?.color}`
+                          : 'border-border bg-surface-3 text-muted-foreground'
+                      }`}
+                    >
+                      {w} Weeks
+                    </button>
+                  ))}
                 </div>
-                {focusGroups.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-1.5">
-                    {focusGroups.map(m => (
-                      <span key={m} className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wider ${godMeta?.color} ${godMeta?.bg} ${godMeta?.border}`}>
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* Calibration inputs */}
-              <div className="ds-card divide-y divide-border overflow-hidden">
-                {CALIBRATION_LIFTS.map((lift) => (
-                  <div key={lift.key} className="flex items-center gap-4 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground">{lift.label}</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">{lift.hint}</div>
+              {/* Calibration inputs — hidden for Chronos */}
+              {!isChronos && (
+                <div className="ds-card divide-y divide-border overflow-hidden">
+                  {CALIBRATION_LIFTS.map((lift) => (
+                    <div key={lift.key} className="flex items-center gap-4 px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-foreground">{lift.label}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">{lift.hint}</div>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          placeholder="0"
+                          value={weights[lift.key as keyof typeof weights]}
+                          onChange={e => setWeights(prev => ({ ...prev, [lift.key]: e.target.value }))}
+                          className="w-16 text-right bg-surface-3 border border-border rounded-lg px-2 py-1.5 text-sm font-mono text-foreground focus:outline-none focus:border-brand transition-colors"
+                        />
+                        <span className="text-xs text-muted-foreground w-6">lbs</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="0"
-                        value={weights[lift.key as keyof typeof weights]}
-                        onChange={e => setWeights(prev => ({ ...prev, [lift.key]: e.target.value }))}
-                        className="w-16 text-right bg-surface-3 border border-border rounded-lg px-2 py-1.5 text-sm font-mono text-foreground focus:outline-none focus:border-brand transition-colors"
-                      />
-                      <span className="text-xs text-muted-foreground w-6">lbs</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               {/* Activate */}
               <AnimatePresence mode="wait">
@@ -613,7 +681,7 @@ export default function BuildPage() {
                 )}
               </AnimatePresence>
 
-              {!allWeightsFilled && !activating && (
+              {!allWeightsFilled && !activating && !isChronos && (
                 <p className="text-center text-[11px] text-muted-foreground">
                   Fill in all 5 lifts to continue
                 </p>

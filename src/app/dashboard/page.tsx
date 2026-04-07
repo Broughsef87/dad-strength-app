@@ -14,7 +14,6 @@ import {
 import { motion } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
 import BottomNav from '../../components/BottomNav'
-import ProgramSelector from '../../components/ProgramSelector'
 import Logo from '../../components/Logo'
 import DadScore from '../../components/DadScore'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
@@ -54,7 +53,6 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [workout, setWorkout] = useState<any>(null)
-  const [showProgramSelector, setShowProgramSelector] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [activeProgram, setActiveProgram] = useState<any>(null)
   const [streak, setStreak] = useState(0)
@@ -269,13 +267,17 @@ export default function Dashboard() {
                   whileTap={{ scale: 0.97 }}
                   onClick={() => {
                     if (activeProgram) {
-                      const daysCount = activeProgram.daysCount || activeProgram.frequency || 3
-                      const nextDay = getNextWorkoutDay(daysCount)
-                      router.push(`/workout/program/${nextDay}`)
+                      if (activeProgram.slug?.startsWith('chronos')) {
+                        router.push('/workout/squeeze')
+                      } else {
+                        const daysCount = activeProgram.daysCount || activeProgram.frequency || 3
+                        const nextDay = getNextWorkoutDay(daysCount)
+                        router.push(`/workout/program/${nextDay}`)
+                      }
                     } else if (workout) {
                       router.push(`/workout/${workout.id}`)
                     } else {
-                      setShowProgramSelector(true)
+                      router.push('/build')
                     }
                   }}
                   className="w-full flex items-center justify-center gap-2.5 rounded-md bg-brand px-6 py-3.5 text-sm font-semibold text-background hover:bg-brand/90 transition-all brand-glow uppercase tracking-[0.1em]"
@@ -287,7 +289,7 @@ export default function Dashboard() {
                 {(activeProgram || workout) && (
                   <motion.button
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => setShowProgramSelector(true)}
+                    onClick={() => router.push('/build')}
                     className="w-full flex items-center justify-center gap-2 px-6 py-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-[0.12em] border border-border hover:border-brand/30 font-semibold"
                     style={{ borderRadius: '6px' }}
                   >
@@ -307,8 +309,8 @@ export default function Dashboard() {
               <div>
                 <p className="text-[9px] font-display tracking-[0.14em] text-muted-foreground uppercase mb-0.5">Short on time?</p>
                 <p className="font-display text-xl tracking-wide text-foreground leading-none">
-                  The Squeeze
-                  <span className="text-muted-foreground font-sans text-xs font-normal ml-2 tracking-normal">18 min</span>
+                  Chronos
+                  <span className="text-muted-foreground font-sans text-xs font-normal ml-2 tracking-normal">15–20 min</span>
                   {!isPro && <span className="ml-2 text-[8px] bg-brand/10 text-brand px-1.5 py-0.5 uppercase tracking-widest font-semibold font-sans" style={{ borderRadius: '3px' }}>Pro</span>}
                 </p>
               </div>
@@ -336,12 +338,6 @@ export default function Dashboard() {
       </main>
 
       <BottomNav />
-
-      <ProgramSelector
-        isOpen={showProgramSelector}
-        onClose={() => setShowProgramSelector(false)}
-        onProgramSelected={() => setShowProgramSelector(false)}
-      />
 
       <UpgradeModal
         isOpen={showUpgrade}

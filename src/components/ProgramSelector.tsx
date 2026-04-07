@@ -29,6 +29,12 @@ export interface ProgramSelectorProps {
 
 // ── Program data ──────────────────────────────────────────────────────────────
 
+interface SampleDay {
+  day: string
+  name: string
+  exercises: string[]
+}
+
 interface Program {
   slug: string
   name: string
@@ -40,6 +46,7 @@ interface Program {
   availableDays: readonly number[]
   lockedDays?: number
   comingSoon?: boolean
+  sampleWeek?: SampleDay[]
 }
 
 const PROGRAMS: readonly Program[] = [
@@ -53,6 +60,11 @@ const PROGRAMS: readonly Program[] = [
     icon: '🏋️',
     gymTypes: ['commercial', 'home'],
     availableDays: [3, 5],
+    sampleWeek: [
+      { day: 'Mon', name: 'Lower Body', exercises: ['Back Squat 3×5', 'Romanian Deadlift 3×8', 'Goblet Squat 3×10', 'Plank 3×45s'] },
+      { day: 'Wed', name: 'Upper Body', exercises: ['Bench Press 3×5', 'Barbell Row 3×8', 'OHP 3×8', 'Farmer Carry 3×40yd'] },
+      { day: 'Fri', name: 'Full Body', exercises: ['Deadlift 3×5', 'Push-up 3×12', 'DB Row 3×10', 'Conditioning Circuit'] },
+    ],
   },
   {
     slug: 'hybrid',
@@ -64,6 +76,11 @@ const PROGRAMS: readonly Program[] = [
     icon: '⚔️',
     gymTypes: ['commercial', 'home'],
     availableDays: [3, 5],
+    sampleWeek: [
+      { day: 'Mon', name: 'Strength Day', exercises: ['Squat 5×5', 'Bench Press 5×5', 'Deadlift 3×3', 'OHP 3×5'] },
+      { day: 'Wed', name: 'HIIT + Upper', exercises: ['Tabata intervals', 'Push/Pull supersets 4×10', 'Core circuit 3 rounds'] },
+      { day: 'Fri', name: 'Conditioning', exercises: ['AMRAP circuits', 'Sled push / carries', 'Bodybuilding pump finisher'] },
+    ],
   },
   {
     slug: 'the-squeeze',
@@ -76,6 +93,11 @@ const PROGRAMS: readonly Program[] = [
     gymTypes: ['commercial', 'home'],
     availableDays: [3],
     lockedDays: 3,
+    sampleWeek: [
+      { day: 'Session 1', name: 'Hinge + Carry', exercises: ['Deadlift 3×5', 'KB Swing + Row superset 3 rounds', 'Farmer carry finisher 3min'] },
+      { day: 'Session 2', name: 'Squat + Cond.', exercises: ['Goblet Squat 3×5', 'Box jump + Push superset', 'Sprint / bike finisher'] },
+      { day: 'Session 3', name: 'Push + Core', exercises: ['DB Press 3×5', 'Push-up + Band pull-apart', 'Ab wheel / AMRAP 3min'] },
+    ],
   },
   {
     slug: 'home-shred',
@@ -400,52 +422,83 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                         const isActive = activeSlug?.startsWith(program.slug)
                         const isComingSoon = !!program.comingSoon
                         return (
-                          <button
+                          <div
                             key={program.slug}
-                            onClick={() => !isComingSoon && setSelectedSlug(program.slug)}
-                            disabled={isComingSoon}
-                            className={`relative w-full text-left card-base p-4 transition-all duration-200 ${
+                            className={`relative card-base overflow-hidden transition-all duration-200 ${
                               isComingSoon
-                                ? 'opacity-40 pointer-events-none cursor-not-allowed border-border/50'
+                                ? 'opacity-40 pointer-events-none border-border/50'
                                 : isSelected
-                                ? 'border-brand bg-brand/5 active:scale-[0.98]'
-                                : 'border-border/50 hover:border-brand/30 active:scale-[0.98]'
+                                ? 'border-brand bg-brand/5'
+                                : 'border-border/50'
                             }`}
                           >
-                            {isComingSoon && (
-                              <span className="absolute top-3 right-3 text-[9px] font-display tracking-[0.12em] px-2 py-0.5 rounded-full bg-surface-3 text-text-muted border border-border/40">
-                                COMING SOON
-                              </span>
-                            )}
-                            <div className="flex items-start justify-between gap-3 mb-2">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span className="text-xl flex-shrink-0">{program.icon}</span>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-lg font-display tracking-[0.06em] uppercase leading-tight">
-                                      {program.name}
-                                    </span>
-                                    {isActive && (
-                                      <span className="text-[9px] uppercase tracking-widest font-black bg-brand/15 text-brand border border-brand/30 rounded-sm px-2 py-0.5">
-                                        Active
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground font-medium">
-                                    {program.tagline}
-                                  </p>
-                                </div>
-                              </div>
-                              {!isComingSoon && (
-                                <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 rounded-sm px-2.5 py-1 whitespace-nowrap">
-                                  {program.vibe}
+                            <button
+                              onClick={() => !isComingSoon && setSelectedSlug(isSelected ? null : program.slug)}
+                              disabled={isComingSoon}
+                              className="relative w-full text-left p-4 active:scale-[0.98] transition-transform"
+                            >
+                              {isComingSoon && (
+                                <span className="absolute top-3 right-3 text-[9px] font-display tracking-[0.12em] px-2 py-0.5 rounded-full bg-surface-3 text-text-muted border border-border/40">
+                                  COMING SOON
                                 </span>
                               )}
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              {program.description}
-                            </p>
-                          </button>
+                              <div className="flex items-start justify-between gap-3 mb-2">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="text-xl flex-shrink-0">{program.icon}</span>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-lg font-display tracking-[0.06em] uppercase leading-tight">
+                                        {program.name}
+                                      </span>
+                                      {isActive && (
+                                        <span className="text-[9px] uppercase tracking-widest font-black bg-brand/15 text-brand border border-brand/30 rounded-sm px-2 py-0.5">
+                                          Active
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground font-medium">
+                                      {program.tagline}
+                                    </p>
+                                  </div>
+                                </div>
+                                {!isComingSoon && (
+                                  <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 rounded-sm px-2.5 py-1 whitespace-nowrap">
+                                    {program.vibe}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {program.description}
+                              </p>
+                            </button>
+
+                            {/* Sample week — expands when selected */}
+                            {isSelected && program.sampleWeek && (
+                              <div className="mx-4 mb-4 rounded-lg border border-brand/20 bg-brand/5 p-3">
+                                <p className="text-[9px] uppercase tracking-[0.2em] font-black text-brand mb-2.5">
+                                  Sample Week
+                                </p>
+                                <div className="space-y-2.5">
+                                  {program.sampleWeek.map((d) => (
+                                    <div key={d.day}>
+                                      <div className="flex items-baseline gap-2 mb-1">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-brand">{d.day}</span>
+                                        <span className="text-[11px] font-semibold text-foreground">{d.name}</span>
+                                      </div>
+                                      <ul className="space-y-0.5">
+                                        {d.exercises.map((ex) => (
+                                          <li key={ex} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                            <span className="w-1 h-1 rounded-full bg-brand/50 flex-shrink-0" />
+                                            {ex}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         )
                       })}
                     </div>
