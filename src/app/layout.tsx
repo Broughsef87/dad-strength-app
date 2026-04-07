@@ -77,6 +77,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${bebasNeue.variable} ${spaceGrotesk.variable} ${spaceMono.variable} overflow-x-hidden`}>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
+        <link rel="apple-touch-icon" href="/logo-suite/ds_app_icon.png" />
         {/* FOUC prevention: apply theme class before first paint */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){
