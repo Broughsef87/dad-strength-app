@@ -142,6 +142,7 @@ function SetRow({
   onLog,
   onRirSelect,
   onSkip,
+  onUnlock,
 }: {
   exerciseIndex: number
   setLog: SetLog
@@ -150,6 +151,7 @@ function SetRow({
   onLog: () => void
   onRirSelect: (rir: number) => void
   onSkip: () => void
+  onUnlock: () => void
 }) {
   const isDone = setLog.status === 'done'
   const isLogging = setLog.status === 'logging'
@@ -206,9 +208,13 @@ function SetRow({
         {/* Action button / done check */}
         {isDone ? (
           <div className="w-14 flex justify-center">
-            <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center">
+            <button
+              onClick={onUnlock}
+              title="Tap to edit"
+              className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center active:scale-90 hover:bg-emerald-500/40 transition-colors"
+            >
               <Check size={14} className="text-emerald-500" />
-            </div>
+            </button>
           </div>
         ) : (
           <button
@@ -669,6 +675,20 @@ export default function ProgramWorkoutPage() {
     setMenuExIndex(null)
   }, [])
 
+  const handleUnlockSet = useCallback((exIndex: number, setIndex: number) => {
+    setExerciseLogs((prev) =>
+      prev.map((ex, ei) => {
+        if (ei !== exIndex) return ex
+        return {
+          ...ex,
+          sets: ex.sets.map((s, si) =>
+            si === setIndex ? { ...s, status: 'idle' as SetStatus } : s
+          ),
+        }
+      })
+    )
+  }, [])
+
   const handleSkipWorkout = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     window.location.assign('/body')
@@ -910,6 +930,7 @@ export default function ProgramWorkoutPage() {
                     onLog={() => handleLog(exIndex, setIndex)}
                     onRirSelect={(rir) => handleRirSelect(exIndex, setIndex, rir)}
                     onSkip={() => handleSkip(exIndex, setIndex)}
+                    onUnlock={() => handleUnlockSet(exIndex, setIndex)}
                   />
                 ))}
               </div>
