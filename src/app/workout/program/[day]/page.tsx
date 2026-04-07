@@ -521,9 +521,12 @@ export default function ProgramWorkoutPage() {
         if (ei !== exIndex) return ex
         return {
           ...ex,
-          sets: ex.sets.map((s, si) =>
-            si === setIndex ? { ...s, actualWeight: val } : s
-          ),
+          sets: ex.sets.map((s, si) => {
+            if (si === setIndex) return { ...s, actualWeight: val }
+            // Cascade to subsequent idle sets only
+            if (si > setIndex && s.status === 'idle') return { ...s, actualWeight: val }
+            return s
+          }),
         }
       })
       return next
