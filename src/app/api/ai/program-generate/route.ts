@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { createClient } from '../../../../utils/supabase/server'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 5
@@ -614,7 +615,7 @@ Generate a complete week of programmed workouts for week ${weekNumber}.
 
     // ── Generate AI program ─────────────────────────────────────────────────
     const { object: aiProgram } = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-2.0-flash'),
       system: `You are an experienced strength coach programming for busy dads. Data-driven, direct, zero fluff.
 
 CRITICAL: Do NOT prescribe specific weights. The system calculates recommended weights automatically.

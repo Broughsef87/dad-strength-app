@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { createClient } from '../../../../utils/supabase/server'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 5
@@ -275,7 +276,7 @@ Week 1 calibration: use baseline RIR 3-4 for all exercises. weekTheme = "Week 1 
 
     // ── Generate AI program ─────────────────────────────────────────────────
     const { object: aiProgram } = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-2.0-flash'),
       system: GOD_SYSTEM_PROMPTS[god],
       prompt,
       schema: programSchema,
