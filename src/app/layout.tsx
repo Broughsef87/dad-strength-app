@@ -43,9 +43,11 @@ export const metadata: Metadata = {
     title: 'Dad Strength',
     description: 'The Operating System for Modern Fatherhood.',
     type: 'website',
+    url: 'https://dad-strength-app-rnz1.vercel.app',
+    siteName: 'Dad Strength',
     images: [
       {
-        url: '/logo-suite/ds_banner_dark.png',
+        url: 'https://dad-strength-app-rnz1.vercel.app/logo-suite/ds_banner_dark.png',
         width: 1500,
         height: 500,
         alt: 'Dad Strength — The OS for Modern Fatherhood',
@@ -56,7 +58,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Dad Strength',
     description: 'The Operating System for Modern Fatherhood.',
-    images: ['/logo-suite/ds_banner_dark.png'],
+    images: ['https://dad-strength-app-rnz1.vercel.app/logo-suite/ds_banner_dark.png'],
   },
 }
 
