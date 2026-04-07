@@ -82,10 +82,10 @@ const GODS = [
     glow: 'shadow-red-500/20',
     dot: 'bg-red-400',
     sampleDays: [
-      { day: 'Day 1', name: 'Pull Skill + Squat', exercises: ['Muscle-up progressions 5×3 (skill)', 'Back Squat 4×5', 'AMRAP 12min: 5 pull-ups / 10 push-ups / 15 air squats'] },
-      { day: 'Day 2', name: 'Push Skill + Hinge', exercises: ['Handstand push-up practice 4×5 (skill)', 'Deadlift 4×4', 'For Time 3rds: 10 HSPU / 15 box jumps / 20 KB swings'] },
-      { day: 'Day 3', name: 'Ring Work + Press', exercises: ['Ring dip progressions 5×5 (skill)', 'Barbell OHP 4×5', 'EMOM 16min: odd — 8 toes-to-bar / even — 10 DB push press'] },
-      { day: 'Day 4', name: 'Core Skill + Bench', exercises: ['L-sit / toes-to-bar 4×20s (skill)', 'Bench Press 4×5', 'For Time 21-15-9: Thrusters + Pull-ups (Fran)'] },
+      { day: 'Day 1', name: 'Strength + MetCon', exercises: ['Back Squat 5×4 (strength)', 'AMRAP 12: 5 pull-ups / 10 push-ups / 15 air squats'] },
+      { day: 'Day 2', name: 'Pure MetCon', exercises: ['For Time — 5 rounds: Run 400m / Power Clean 9 / Bar Muscle-Up 6'] },
+      { day: 'Day 3', name: 'EMOM', exercises: ['EMOM 18: Min 1 — Deadlift 5 / Min 2 — Ring Muscle-Up 3 / Min 3 — Hollow Rock 10'] },
+      { day: 'Day 4', name: 'Barbell + Gymnastics', exercises: ['Deadlift 5×3 (strength)', 'For Time 21-15-9: Thrusters / Pull-ups (Fran)'] },
     ],
   },
   {
