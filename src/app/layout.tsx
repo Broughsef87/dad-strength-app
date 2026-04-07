@@ -29,9 +29,12 @@ export const metadata: Metadata = {
   description: 'The Operating System for Modern Fatherhood.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/logo-suite/ds_app_icon.svg',
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/logo-suite/ds_app_icon.png', type: 'image/png', sizes: '1024x1024' },
+    ],
     apple: '/logo-suite/ds_app_icon.png',
-    shortcut: '/logo-suite/ds_app_icon.png',
+    shortcut: '/favicon.ico',
   },
   appleWebApp: {
     capable: true,
