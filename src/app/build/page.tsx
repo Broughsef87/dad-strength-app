@@ -82,10 +82,10 @@ const GODS = [
     glow: 'shadow-red-500/20',
     dot: 'bg-red-400',
     sampleDays: [
-      { day: 'Day 1', name: 'Upper Push + MetCon', exercises: ['Power Clean 4×4', 'Bench Press 4×5', 'Split Squat 3×8', 'AMRAP 10min: 5 pull-ups / 10 push-ups / 15 KB swings'] },
-      { day: 'Day 2', name: 'Lower Squat + Carries', exercises: ['Box Jump 4×4', 'Back Squat 4×5', 'Single-Leg RDL 3×8', 'Farmer Carry 3×40yd'] },
-      { day: 'Day 3', name: 'Upper Pull + Cond.', exercises: ['Med Ball Slam 4×5', 'Weighted Pull-ups 4×5', 'Single-Arm DB Row 3×8', 'For Time: 400m run / 21 burpees / 15 pull-ups'] },
-      { day: 'Day 4', name: 'Lower Hinge + Strongman', exercises: ['Broad Jump 4×4', 'Deadlift 4×4', 'Good Morning 3×8', 'EMOM 10min: Suitcase carry + KB swings'] },
+      { day: 'Day 1', name: 'Pull Skill + Squat', exercises: ['Muscle-up progressions 5×3 (skill)', 'Back Squat 4×5', 'AMRAP 12min: 5 pull-ups / 10 push-ups / 15 air squats'] },
+      { day: 'Day 2', name: 'Push Skill + Hinge', exercises: ['Handstand push-up practice 4×5 (skill)', 'Deadlift 4×4', 'For Time 3rds: 10 HSPU / 15 box jumps / 20 KB swings'] },
+      { day: 'Day 3', name: 'Ring Work + Press', exercises: ['Ring dip progressions 5×5 (skill)', 'Barbell OHP 4×5', 'EMOM 16min: odd — 8 toes-to-bar / even — 10 DB push press'] },
+      { day: 'Day 4', name: 'Core Skill + Bench', exercises: ['L-sit / toes-to-bar 4×20s (skill)', 'Bench Press 4×5', 'For Time 21-15-9: Thrusters + Pull-ups (Fran)'] },
     ],
   },
   {
