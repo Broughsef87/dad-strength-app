@@ -699,10 +699,42 @@ export default function ProgramWorkoutPage() {
     }
     try { await Promise.all(saveTasks) } catch (e) { console.error('Failed to save partial sets:', e) }
 
-    // Clear WIP cache — session is officially submitted
     if (program) {
+      // Clear WIP cache — session is officially submitted
       const wipKey = `dad-strength-wip-day${dayNumber}-week${program.currentWeek}-${program.slug}`
       localStorage.removeItem(wipKey)
+
+      // ── Mark this day complete in week progress ──────────────────────────────
+      // Derive the Monday-based week key (same logic as ActiveProgram.tsx)
+      const today = new Date()
+      const dow = today.getDay()
+      const monday = new Date(today)
+      monday.setDate(today.getDate() - dow + (dow === 0 ? -6 : 1))
+      monday.setHours(0, 0, 0, 0)
+      const weekKey = monday.toISOString().split('T')[0]
+
+      const progressKey = `dad-strength-week-progress-${weekKey}`
+      let progress: Record<number, string> = {}
+      try { progress = JSON.parse(localStorage.getItem(progressKey) ?? '{}') } catch { /* ignore */ }
+
+      const dayIndex = dayNumber - 1
+      progress[dayIndex] = 'complete'
+      localStorage.setItem(progressKey, JSON.stringify(progress))
+
+      // ── Advance week if all days are done ────────────────────────────────────
+      const completedCount = Object.values(progress).filter(v => v === 'complete').length
+      if (completedCount >= program.daysCount) {
+        const newWeek = (program.currentWeek || 1) + 1
+        const updated = { ...program, currentWeek: newWeek }
+        localStorage.setItem('dad-strength-active-program', JSON.stringify(updated))
+        // Persist to Supabase too
+        try {
+          await supabase.from('user_programs')
+            .update({ current_week: newWeek })
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+        } catch (e) { console.error('Failed to advance week in DB:', e) }
+      }
     }
 
     window.location.assign('/body')
