@@ -701,6 +701,10 @@ export default function SqueezePage() {
         const recentRaw = localStorage.getItem('dad-strength-squeeze-recent-movements')
         const recentSqueezeMovements: string[] = recentRaw ? JSON.parse(recentRaw) : []
 
+        // Read user profile from custom config
+        const customConfigRaw = localStorage.getItem('dad-strength-custom-config')
+        const customConfig = customConfigRaw ? JSON.parse(customConfigRaw) : {}
+
         // Call AI generation
         const res = await fetch('/api/ai/squeeze-generate', {
           method: 'POST',
@@ -710,6 +714,8 @@ export default function SqueezePage() {
             dayNumber: safeDay,
             equipment,
             recentSqueezeMovements,
+            trainingAge: customConfig.trainingAge ?? 'intermediate',
+            injuryFlags: customConfig.injuryFlags ?? [],
           }),
         })
 

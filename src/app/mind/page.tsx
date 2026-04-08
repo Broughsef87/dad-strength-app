@@ -4,17 +4,14 @@ import { motion } from 'framer-motion';
 import { staggerContainer, fadeUp } from '../../components/ui/motion';
 import { createClient } from '../../utils/supabase/client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Brain, Target, PenLine, ArrowLeft, Lock, Unlock, CheckCircle2, Circle, Save, Plus, X } from 'lucide-react';
+import { Target, PenLine, Lock, Unlock, CheckCircle2, Circle, Save, Plus, X } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import AppHeader from '../../components/AppHeader';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
 import MindSqueeze from '../../components/MindSqueeze';
-import MorningProtocol from '../../components/MorningProtocol';
 
 export default function MindPage() {
   const [supabase] = useState(() => createClient());
-  const router = useRouter();
   const [objectives, setObjectives] = useState(['', '', '']);
   const [completedObjectives, setCompletedObjectives] = useState<boolean[]>([false, false, false]);
   const [lockedIn, setLockedIn] = useState(false);
@@ -127,11 +124,6 @@ export default function MindPage() {
           animate="visible"
           variants={staggerContainer}
         >
-
-        {/* Morning Protocol */}
-        <motion.div variants={fadeUp}>
-          <MorningProtocol />
-        </motion.div>
 
         {/* Objectives */}
         <motion.div variants={fadeUp} className="ds-card p-6">

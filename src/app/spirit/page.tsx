@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
-import { Zap, Users, Check } from 'lucide-react'
+import { Zap, Users, Check, ScrollText, ArrowRight, PenLine } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import AppHeader from '../../components/AppHeader'
+import MorningProtocol from '../../components/MorningProtocol'
+import { type StoicEntry, getTodaysStoicEntry } from '../../data/stoicEntries'
 
 // ── Challenge data ─────────────────────────────────────────────────────────────
 
@@ -126,26 +128,50 @@ function heatColor(slot: HeatSlot) {
 const HEAT_KEY = 'dad-strength-spirit-heat'
 const ACT_KEY  = 'dad-strength-spirit-act'
 
+const GOD_LABELS: Record<string, string> = {
+  atlas:    'Atlas',
+  adonis:   'Adonis',
+  hercules: 'Hercules',
+  ares:     'Ares',
+  chronos:  'Chronos',
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function SpiritPage() {
   const [mounted, setMounted] = useState(false)
 
+  // Stoic
+  const [stoic, setStoic] = useState<StoicEntry>(() => getTodaysStoicEntry())
+  const [activeGod, setActiveGod] = useState<string | undefined>(undefined)
+
   // Act
-  const [challenge, setChallenge]   = useState<Challenge>(() => pickChallenge())
-  const [actDone, setActDone]       = useState(false)
+  const [challenge, setChallenge] = useState<Challenge>(() => pickChallenge())
+  const [actDone, setActDone]     = useState(false)
 
   // Heat map
-  const [slots, setSlots]               = useState<HeatSlot[]>(DEFAULT_SLOTS)
-  const [isEditing, setIsEditing]       = useState(false)
-  const [editingId, setEditingId]       = useState<string | null>(null)
-  const [editName, setEditName]         = useState('')
-  const [loggingId, setLoggingId]       = useState<string | null>(null)
-  const [logNote, setLogNote]           = useState('')
+  const [slots, setSlots]         = useState<HeatSlot[]>(DEFAULT_SLOTS)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName]   = useState('')
+  const [loggingId, setLoggingId] = useState<string | null>(null)
+  const [logNote, setLogNote]     = useState('')
 
   useEffect(() => {
     setMounted(true)
     const today = new Date().toISOString().split('T')[0]
+
+    // Get today's entry (deterministic, no async needed)
+    setStoic(getTodaysStoicEntry())
+
+    // Read active god from custom config
+    try {
+      const raw = localStorage.getItem('dad-strength-custom-config')
+      if (raw) {
+        const cfg = JSON.parse(raw)
+        if (cfg.god) setActiveGod(cfg.god)
+      }
+    } catch { /* ignore */ }
 
     // Restore act
     try {
@@ -222,7 +248,7 @@ export default function SpiritPage() {
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-6 space-y-6">
-        {[1, 2].map(i => (
+        {[1, 2, 3].map(i => (
           <div key={i} className="glass-card rounded-2xl border border-border/50 p-5 animate-pulse space-y-4">
             <div className="h-3 bg-muted rounded w-1/4" />
             <div className="h-14 bg-muted rounded" />
@@ -242,11 +268,93 @@ export default function SpiritPage() {
       <main className="max-w-md mx-auto px-6 pt-6">
 
         <div className="mb-8">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Relationships</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Inner Life</p>
           <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Spirit</h1>
         </div>
 
         <motion.div className="space-y-6" initial="hidden" animate="visible" variants={staggerContainer}>
+
+          {/* ── Morning Protocol ──────────────────────────────────────────────── */}
+          <motion.div variants={fadeUp}>
+            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
+              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
+              <div className="p-5">
+                <MorningProtocol />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ── Stoic for Today ───────────────────────────────────────────────── */}
+          <motion.div variants={fadeUp}>
+            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
+              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
+              <div className="p-5 space-y-4">
+
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ScrollText size={14} className="text-brand" strokeWidth={2.5} />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground font-display">Stoic for Today</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                      {stoic.theme}
+                    </span>
+                    {activeGod && GOD_LABELS[activeGod] && (
+                      <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-brand/10 text-brand">
+                        {GOD_LABELS[activeGod]}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quote */}
+                <blockquote className="space-y-2">
+                  <p className="text-sm font-semibold leading-relaxed text-foreground italic">
+                    &ldquo;{stoic.quote}&rdquo;
+                  </p>
+                  <footer className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                    — {stoic.author}{stoic.work ? `, ${stoic.work}` : ''}
+                  </footer>
+                </blockquote>
+
+                {/* Reflection */}
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {stoic.reflection}
+                </p>
+
+                {/* Meditation line */}
+                <div className="border-t border-border/40 pt-4">
+                  <p className="text-sm font-semibold text-foreground italic text-center leading-snug">
+                    {stoic.meditation}
+                  </p>
+                </div>
+
+                {/* Action + Journal */}
+                <div className="border-t border-border/40 pt-4 space-y-3">
+                  <div className="flex gap-2.5">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <ArrowRight size={12} className="text-brand" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-1">Action</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{stoic.action}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2.5">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <PenLine size={12} className="text-muted-foreground" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Journal</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed italic">{stoic.journal}</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </motion.div>
 
           {/* ── The Act ──────────────────────────────────────────────────────────── */}
           <motion.div variants={fadeUp}>

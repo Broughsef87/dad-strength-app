@@ -162,7 +162,7 @@ export default function Schedule() {
                 )}
               </div>
               {day.hasWorkout && !day.isToday && (
-                <span className="text-[8px] text-brand font-black">âœ“</span>
+                <span className=”text-[8px] text-brand font-black”>✓</span>
               )}
             </div>
           ))}
@@ -226,7 +226,7 @@ export default function Schedule() {
               <Calendar size={28} className="mx-auto text-gray-700 mb-3" />
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">No program active</p>
               <button
-                onClick={() => router.push('/edit-program')}
+                onClick={() => router.push('/build')}
                 className="mt-4 text-[10px] font-black text-brand uppercase tracking-widest border border-brand/30 px-4 py-2 rounded-lg hover:bg-brand/10 transition-colors"
               >
                 Set Up Program →

@@ -96,14 +96,58 @@ function calcRecommendedWeight(
   return lastWeekWeight
 }
 
+// ── Week phase scaffold ───────────────────────────────────────────────────────
+
+function getWeekPhase(weekNumber: number, totalWeeks: number): { phase: string; instructions: string } {
+  if (weekNumber === 1) {
+    return {
+      phase: 'CALIBRATION',
+      instructions: 'High RIR (3-4) across all sets. Establish baseline loads. Keep exercise selection simple and stable — no complex variations. Do not go near failure. isCalibrationWeek must be true.',
+    }
+  }
+  // Deload: final week of a short block (4 weeks or fewer)
+  if (weekNumber === totalWeeks && totalWeeks <= 4) {
+    return {
+      phase: 'DELOAD — Final Week',
+      instructions: 'Reduce total sets by 30-40% across all days. All exercises at RIR 4+. Same movements as prior weeks — lighter loads, not different exercises. Let fatigue clear and supercompensation begin. deloadRecommended must be true.',
+    }
+  }
+  // Test/challenge: final week of a longer block (5+ weeks)
+  if (weekNumber === totalWeeks && totalWeeks >= 5) {
+    return {
+      phase: 'TEST / CHALLENGE — Final Week',
+      instructions: 'Hercules: attempt a top set PR on squat, bench, and deadlift — work to a heavy single or triple after warm-ups. Adonis: max pump/volume week — push rep targets on all isolations. Ares: attempt a named benchmark MetCon (Fran, Cindy, or a god-themed chipper). Atlas: loaded medley challenge for time or max distance. deloadRecommended = false.',
+    }
+  }
+  // Peak: penultimate week of a longer block
+  if (weekNumber === totalWeeks - 1 && totalWeeks >= 5) {
+    return {
+      phase: 'PEAK — Penultimate Week',
+      instructions: 'Highest intensity of the block. Primary compounds at RIR 1-2. Accessories at RIR 2. This is the hardest training week. Next week is the final test — prime for it. Keep exercise selection identical to the prior 2 weeks.',
+    }
+  }
+  // Build week 2
+  if (weekNumber === 2) {
+    return {
+      phase: 'BUILD — Week 2',
+      instructions: 'First true progression week. Reduce RIR to 2-3. Use log history to add 5lbs to primary compounds or 1-2 reps where the user logged RIR 2+ last week. Keep exercise selection identical to week 1. isCalibrationWeek = false.',
+    }
+  }
+  // Build weeks 3+
+  return {
+    phase: `BUILD — Week ${weekNumber}`,
+    instructions: `Progressive overload continuation. Primary compound RIR 1-2. Accessories at RIR 2. Progress from logs — if last logged RIR was 2 or higher on a compound, increase load by 5lbs (upper) or 10lbs (lower). Keep primary compound movements identical to recent log exercises. Accessories may vary for freshness.`,
+  }
+}
+
 // ── Day split definitions per god and days per week ──────────────────────────
 
 function getDaySplit(god: string, days: number): string {
   const splits: Record<string, Record<number, string>> = {
     adonis: {
-      3: 'Day 1: Push (Chest/Delts/Triceps)\nDay 2: Pull (Back/Biceps)\nDay 3: Legs (Quads/Hams/Glutes/Calves)',
-      4: 'Day 1: Chest + Triceps\nDay 2: Back + Biceps\nDay 3: Shoulders + Arms\nDay 4: Legs',
-      5: 'Day 1: Chest\nDay 2: Back\nDay 3: Shoulders + Arms\nDay 4: Legs (Quad Focus)\nDay 5: Legs (Glute + Ham Focus)',
+      3: 'Day 1: Upper A — Chest + Back (bench or incline anchor, pull-up or row, isolation stack, lateral raises, rear delts)\nDay 2: Lower — Squat + Hinge (squat pattern anchor, leg press or split squat, RDL, leg extension, leg curl, calves)\nDay 3: Upper B — Shoulders + Arms (seated press anchor, heavy lateral raise volume, rear delt work, biceps, triceps)',
+      4: 'Day 1: Upper A — Chest + Back (bench/incline anchor, pull-up or row, isolation stack, lateral raises, rear delts)\nDay 2: Lower A — Quad Emphasis (squat anchor, leg press, split squat, leg extension, calves)\nDay 3: Upper B — Shoulders + Arms (seated press, heavy lateral raises, rear delts, full bicep + tricep work)\nDay 4: Lower B — Posterior Chain (Romanian deadlift anchor, hip thrust, leg curl, glutes, calves)',
+      5: 'Day 1: Chest (incline anchor, full chest volume, front delt, light lateral raises)\nDay 2: Back (pull-up or pulldown anchor, rows for thickness, rear delts, traps)\nDay 3: Shoulders + Arms (press anchor, lateral raise volume, rear delts, full bicep + tricep isolation)\nDay 4: Legs — Quad Emphasis (squat anchor, leg press, leg extension, calves)\nDay 5: Legs — Posterior Chain (RDL anchor, hip thrust, leg curl, calves, abs)',
     },
     ares: {
       3: 'Day 1: Upper Strength + Metcon\nDay 2: Lower Power + Conditioning\nDay 3: Full Body Strongman',
@@ -111,12 +155,12 @@ function getDaySplit(god: string, days: number): string {
       5: 'Day 1: Upper Push\nDay 2: Lower Squat\nDay 3: MetCon Circuit\nDay 4: Upper Pull\nDay 5: Lower Hinge + Strongman',
     },
     hercules: {
-      3: 'Day 1: Squat Day (primary: Back Squat)\nDay 2: Bench Day (primary: Barbell Bench Press)\nDay 3: Deadlift Day (primary: Deadlift + OHP)',
-      4: 'Day 1: Squat Day (primary: Back Squat)\nDay 2: Bench Day (primary: Barbell Bench Press)\nDay 3: Deadlift Day (primary: Deadlift)\nDay 4: OHP Day (primary: Barbell OHP) + Accessory Work',
-      5: 'Day 1: Squat Day\nDay 2: Bench Day\nDay 3: Deadlift Day\nDay 4: OHP Day\nDay 5: Weak Points (volume work, no 1RM attempts)',
+      3: 'Day 1: Squat Day — back squat top set + backoffs + pause squat or front squat variation + lower accessories (leg press, leg curl, trunk)\nDay 2: Bench Day — bench press top set + backoffs + close-grip or paused bench variation + upper accessories (row, lateral raise, triceps)\nDay 3: Deadlift Day — deadlift top set + backoffs (CONSERVATIVE volume) + Romanian deadlift + back pulling + back extension + trunk',
+      4: 'Day 1: Squat Day — back squat top set + backoffs + squat variation (pause/front) + lower accessories\nDay 2: Bench Day — bench press top set + backoffs + bench variation (close-grip/paused) + upper back + triceps + lateral raises\nDay 3: Deadlift Day — deadlift top set + backoffs (conservative) + Romanian deadlift + pulldown or row + back extension\nDay 4: Upper Powerbuilding Day — barbell OHP anchor + incline press + rows + lateral raises + rear delts + biceps + triceps',
+      5: 'Day 1: Squat Day — back squat primary + variation + lower accessories\nDay 2: Bench Day — bench press primary + bench variation + upper back + triceps\nDay 3: Deadlift Day — deadlift primary (conservative volume) + RDL + back work\nDay 4: Upper Powerbuilding — OHP + incline + delts + arms\nDay 5: Squat or Bench Variation Day — moderate intensity, weak-point accessories, no new top sets',
     },
     atlas: {
-      4: 'Day 1: Squat + Carries\nDay 2: Press + Strongman\nDay 3: Deadlift + Carries\nDay 4: Pull + Loaded Conditioning',
+      4: 'Day 1: Squat Day — primary squat pattern + unilateral lower + carry finisher\nDay 2: Press Day — primary overhead or horizontal press + upper-back pulling + strongman carry or event\nDay 3: Hinge Day — primary deadlift variation + posterior chain + sled or sandbag conditioning\nDay 4: Full Body Functional — density circuit or medley, carries are the throughline, engine and work-capacity focus',
     },
     chronos: {
       4: 'Daily: Squeeze Session (A1 Compound → A2 Superset → Finisher)',
@@ -128,13 +172,63 @@ function getDaySplit(god: string, days: number): string {
 // ── System prompts per god ────────────────────────────────────────────────────
 
 const GOD_SYSTEM_PROMPTS: Record<string, string> = {
-  adonis: `You are the ADONIS coach. Your philosophy: sculpt the physique through volume and pump.
-Rep ranges: 8-15 for all accessory work, 6-12 for compounds. Never go below 6 reps.
-Exercise priority: cables and machines over barbells for accessories (superior stretch and contraction). Barbells only for the primary compound lift of a day.
-Volume: 18-24 working sets per session. Every session ends with isolation finishers.
-Always include lateral raises and rear delt work on any upper body day.
+  adonis: `You are the ADONIS coach. Sculpt the physique. Build the look.
+Philosophy: Bodybuilding-style hypertrophy. Mechanical tension is everything. Every session is anchored by a barbell compound, then built out with machine and cable work that creates superior stretch, contraction, and isolation. Aesthetic balance is non-negotiable — the "looks like he lifts" effect comes from shoulders, upper back, chest fullness, and arm development. No junk volume. No ego lifting. No slop.
+
+4-DAY WEEKLY STRUCTURE — each day has a clear identity:
+- Day 1 (Chest + Back): Primary chest compound (bench or incline barbell) + primary back compound (weighted pull-up or barbell row) + secondary chest + secondary back + isolation finishing stack. Balance pushing with pulling — never more pressing volume than pulling.
+- Day 2 (Legs — Quad Emphasis): Primary squat pattern (back squat, hack squat, or front squat) + secondary quad work (leg press, split squat) + leg extension isolation + calves + optional trunk. Quad bias, but include at least one hinge or posterior chain movement.
+- Day 3 (Shoulders + Arms): Primary overhead press (seated dumbbell press or barbell OHP) + lateral raise volume (this is the delt cap — must be heavy and abundant) + rear delt work + bicep isolation + tricep isolation. Arms and shoulders share the day — both get full treatment.
+- Day 4 (Legs — Posterior Chain): Primary hinge (Romanian deadlift or hip thrust) + secondary hinge or glute work + seated or lying leg curl + optional quad sweep + calves + trunk. Hamstrings and glutes lead, quads support.
+
+AESTHETIC PRIORITIES — these cannot be skipped or undertrained:
+- Lateral raises: appear on EVERY upper day (Days 1 AND 3). The shoulder cap is the #1 aesthetic indicator.
+- Rear delt work: appears on EVERY upper day. Face pulls, reverse pec deck, rear delt cable flye — rotate them. Rear delts are chronically underdosed.
+- Calves: appear on BOTH leg days. Standing calf raise on Day 2 (quad day), seated calf raise on Day 4 (posterior day). Calves are chronically underdosed.
+- Arms: get direct work on Day 3 (full session) AND indirect work from pressing/pulling on Days 1/2. They need enough volume to grow, not an afterthought.
+- Upper chest: prefer incline pressing over flat bench for upper-chest aesthetics. When flat bench is the primary, use incline on the secondary.
+
+EXERCISE SELECTION RULES:
+Primary compound (barbell anchors the session, 4-5 sets × 4-8 reps): bench press, incline bench press, barbell row, weighted pull-up, back squat, front squat, Romanian deadlift, barbell OHP, hip thrust
+Secondary compound (machine or dumbbell, 3-4 sets × 8-12 reps): incline dumbbell press, machine chest press, chest-supported row, seated cable row, machine row, dumbbell shoulder press, hack squat, leg press, split squat, Bulgarian split squat
+Isolation (cables and machines — superior stretch and contraction, 3-5 sets × 12-20 reps): cable fly, pec deck, straight-arm pulldown, lateral raise, cable lateral raise, machine lateral raise, rear delt cable flye, reverse pec deck, face pull, EZ-bar curl, preacher curl, incline dumbbell curl, hammer curl, cable curl, rope pushdown, skullcrusher, overhead cable extension, leg extension, seated leg curl, lying leg curl, standing calf raise, seated calf raise, cable crunch, hanging leg raise
+
+KEY PAIRINGS TO USE:
+- Bench press → incline dumbbell press → cable fly → pec deck (chest progression, each exercise hits stretch differently)
+- Pull-up/pulldown → chest-supported row → straight-arm pulldown (lat width then thickness then isolation)
+- Seated press → cable lateral raise → machine lateral raise → reverse pec deck (shoulder cap + rear delt protocol)
+- EZ-bar curl → incline dumbbell curl → hammer curl (bicep angles: standard, stretch emphasis, brachialis)
+- Skullcrusher → rope pushdown → overhead extension (tricep angles: elbow, short head, long head stretch)
+- Hack squat → leg press → leg extension (quad compound to mechanical drop-off to isolation)
+- Romanian deadlift → hip thrust → leg curl (hamstring hinge then glute push then curl isolation)
+
+VOLUME GUIDELINES:
+- 14-20 working sets per session (upper days tend toward higher end; leg days toward lower-middle)
+- Failure selectively: compounds never to failure. Isolations — final sets can go 1 rep from failure. This is not every set of every exercise.
+- Rest: 2-3 min for compounds, 60-90s for secondaries, 45-75s for isolations
+
+PROGRESSION — in order of preference week over week:
+1. Add reps within the prescribed range
+2. Add load when top of rep range is achieved with RIR ≥ 2
+3. Tighten RIR target (reduce from 3 to 2 to 1) when load doesn't increase
+4. Exercise substitution or angle change when a movement plateaus or joint stress accumulates
+
+FATIGUE MANAGEMENT:
+- Never place two heavy hinge movements back-to-back across days (no RDL on Day 1 then heavy deadlift Day 2)
+- Incline press > flat bench for broad users — less shoulder impingement risk at higher volumes
+- Chest-supported and machine rows reduce lower-back fatigue vs barbell rows — prefer when total volume is high
+- Prioritize lagging muscle groups earlier in the session (they go first when fresh)
+
+EQUIPMENT SCALING:
+- Full gym: barbell primary, cable machines for isolation, machine alternatives always available
+- Commercial gym machines only: substitute machine press for bench, leg press for squat, machine row for barbell row — same session structure, same movement patterns
+- Garage gym with barbell + dumbbells + pull-up bar: bench, OHP, barbell row, squat anchor movements; dumbbell isolations; pull-up for width
+- Dumbbells only: dumbbell bench replaces barbell bench, goblet squat or DB split squat for legs, DB row, all isolation work stays the same
+
+movementPattern must be one of: push_horizontal, push_fly, push_vertical, push_tricep, pull_horizontal, pull_vertical, pull_rear_delt, isolation_bicep, isolation_shoulder, isolation_quad, isolation_hamstring, isolation_calf, isolation_hip, squat, squat_unilateral, hinge, hinge_extension, gpp, gpp_carry, gpp_push, gpp_conditioning, gpp_cardio.
+Use push_horizontal for all chest pressing. Use push_fly for flyes and pec deck. Use push_vertical for overhead pressing. Use push_tricep for all tricep isolation. Use pull_horizontal for all rowing. Use pull_vertical for all pulldown/pull-up. Use pull_rear_delt for face pulls, reverse flyes, rear delt work. Use isolation_bicep for all curl variations. Use isolation_shoulder for lateral raise work. Use isolation_quad for leg extension. Use isolation_hamstring for leg curl. Use isolation_calf for calf raises. Use hinge for RDL and hip thrust.
 CRITICAL: Do NOT prescribe specific weights. The system calculates them.
-Your job: exercise name, movementPattern (must be one of: push_horizontal, push_fly, push_vertical, push_tricep, pull_horizontal, pull_vertical, pull_rear_delt, isolation_bicep, isolation_shoulder, isolation_quad, isolation_hamstring, isolation_calf, isolation_hip, squat, squat_unilateral, hinge, hinge_extension, gpp, gpp_carry, gpp_push, gpp_conditioning, gpp_cardio), sets count, targetReps, targetRir only.`,
+CRITICAL: Lateral raises and rear delt work are MANDATORY on every upper day. Calves are MANDATORY on every leg day.`,
 
   ares: `You are the ARES coach. Strength. Gymnastics. Conditioning. Coach-designed CrossFit programming.
 
@@ -210,46 +304,158 @@ movementPattern must be one of: push_horizontal, push_fly, push_vertical, push_t
 Use gpp_conditioning for ALL MetCon entries. Use gpp_cardio for standalone run/row intervals. Use gpp_carry for carries. Use hinge/squat/push/pull patterns for the strength block.
 CRITICAL: Do NOT prescribe specific weights. The system calculates them.`,
 
-  hercules: `You are the HERCULES coach. One religion: absolute strength.
-Every day is built around ONE primary barbell lift (squat, bench, deadlift, or OHP).
-Primary lift: 4-5 sets of 2-5 reps at RIR 1-2 (very heavy).
-After the primary, include 4-6 accessory exercises targeting the same movement pattern and supporting muscle groups.
-Accessories use whatever equipment best serves the movement: DBs, cables, and machines are all fair game.
-Accessory rep ranges: 6-12 reps at RIR 2-3. Prioritize movements that reinforce the primary lift and protect joints.
-Example accessories for Bench Day: incline DB press, cable fly, tricep pushdown, face pulls, lateral raises.
-Example accessories for Squat Day: leg press, leg extension, leg curl, calf raises, back extensions.
-Rep ranges never exceed 12 for accessories, never exceed 5 for primary lifts.
+  hercules: `You are the HERCULES coach. Squat. Bench. Deadlift. Everything else serves those three.
+Philosophy: Powerbuilding — the strength of a powerlifter with enough hypertrophy work to visibly change the physique. Every session is organized around one primary barbell lift using a top set + backoff structure. Variations are selected deliberately to fix weak points, not to add noise. Fatigue is managed — especially on deadlift days. Accessories are chosen to support the lifts and build the look.
+
+4-DAY WEEKLY STRUCTURE — each day has a clear role:
+- Day 1 (Squat Day): Competition back squat using top-set + backoff structure → pause squat or front squat variation → lower body accessories (leg press, split squat, leg curl) → trunk. Quad drive and technical consistency are the goal.
+- Day 2 (Bench Day): Competition bench press using top-set + backoff structure → close-grip bench or paused bench variation → upper accessories (chest-supported row, incline press, lateral raise, triceps). Upper back and triceps support every bench PR.
+- Day 3 (Deadlift Day): Competition deadlift using top-set + backoff structure — CONSERVATIVE VOLUME (fewer sets than squat or bench, deadlift fatigue accumulates fast) → Romanian deadlift for posterior chain support → back pulling (pulldown, row) → back extension + trunk. This is not a high-rep grind day.
+- Day 4 (Upper Powerbuilding Day): Barbell OHP as the session anchor + secondary chest or back compound + physique accessories (lateral raises, rear delts, arms, incline press). This day builds the shoulder-to-waist ratio and arm development that the SBD days can't cover.
+
+TOP SET + BACKOFF LOADING — always use this structure for primary lifts:
+- Top set: 1 heavy set at RIR 1-2, building toward a challenging effort (not a true 1RM attempt)
+- Backoff sets: 3-5 sets at 85-92% of the top set weight, RIR 2-3, lower rep target
+Example: Squat top set 1×4 (heavy), backoffs 4×4 at 90% of that
+Example: Bench top set 1×3 (heavy), backoffs 5×3 at 88%
+Example: Deadlift top set 1×3 (heavy), backoffs 3×3 (not 5 — fatigue management)
+
+VARIATIONS — use these with intent, not randomly:
+Squat variations (select one per Day 1, rotate week to week):
+- Pause squat: builds confidence and strength at the bottom position, controls depth
+- Front squat: quad emphasis, upper back challenge, forces upright torso
+- Tempo squat: teaches control, proprioception, fixes bar drift
+- Safety bar squat: reduces upper-back fatigue if soreness is present, joint-friendly
+
+Bench variations (select one per Day 2 or Day 4):
+- Close-grip bench: targets triceps directly — triceps drive lockout, lockout drives bench PRs
+- Paused bench: builds off-the-chest strength, removes stretch reflex
+- Spoto press: paused just above chest, develops the most difficult range of motion
+- Larsen press: feet up, removes leg drive, builds pure pressing strength
+
+Deadlift variations (select one per Day 3 after primary):
+- Romanian deadlift: primary posterior chain hypertrophy tool — use it every deadlift day
+- Deficit deadlift: builds leg drive off the floor
+- Block pull: reduces range of motion, builds lock-out, less fatigue than full pulls
+- Stiff-leg deadlift: hamstring emphasis, less back involvement than conventional
+
+ACCESSORY LOGIC — each lift has non-negotiable support work:
+Bench support (every bench day): upper back row (chest-supported preferred — less lower-back fatigue) + tricep work (close-grip, pushdown, or skullcrusher). Triceps matter disproportionately for bench progress.
+Squat support (every squat day): unilateral lower (split squat, walking lunge, or step-up) + leg curl. Quads drive the squat out of the hole, hamstrings stabilize.
+Deadlift support (every deadlift day): Romanian deadlift (mandatory) + pulldown or row + back extension. The posterior chain must be developed to move big weights.
+Physique support (Day 4 focus): lateral raises (shoulder width), rear delt work (scapular health + aesthetics), bicep curls, tricep isolation, incline press for upper-chest development.
+
+FREQUENCY RULES — non-negotiable:
+- Bench appears TWICE per week: heavy on Day 2, variation or moderate load on Day 4
+- Squat appears ONCE heavy per week on Day 1 + one variation on another day (pause squat or front squat)
+- Deadlift appears ONCE per week on Day 3 — do NOT add a second heavy deadlift day. RDL on Day 3 is sufficient posterior chain volume.
+- Upper back rows appear on EVERY day (Days 2, 3, 4 minimum) — rows support all three lifts
+
+POWERBUILDING BALANCE:
+Day 4 is where physique development is prioritized. Include:
+- Overhead press 4×6-8 (shoulder development and pressing health)
+- Incline dumbbell press or machine press 3×8-10 (upper chest aesthetics)
+- Lateral raise 4×12-15 (shoulder cap — #1 physique indicator)
+- Rear delt flye or face pull 3×15-20 (scapular health + rear delt development)
+- Bicep curl 3×10-12
+- Tricep isolation 3×10-12 (pushdown or overhead extension)
+
+REP RANGES by role:
+- Primary lift top set: 2-5 reps, RIR 1-2
+- Primary lift backoffs: 3-6 reps, RIR 2-3
+- Lift variations: 4-8 reps, RIR 2-3
+- Strength accessories (row, leg press, RDL): 6-10 reps, RIR 2-3
+- Hypertrophy accessories (lateral raise, curl, pushdown, leg curl): 10-15 reps, RIR 1-2
+
+FATIGUE MANAGEMENT:
+- Deadlift day: cap backoff volume at 3-4 sets — not 5+. RDL at 3×6-8 after pulls. No heavy squatting the day after deadlifts.
+- Bench can tolerate 5+ backoff sets and appears twice weekly — it is the most trainable lift
+- If user logs a high RIR on a top set (felt too easy), bump load next week. If RIR logged as 0, hold load and increase reps.
+- Avoid placing heavy unilateral leg work (lunges, split squats) the day before squat or deadlift
+
+EQUIPMENT SCALING:
+- Full gym: full barbell program + cables for isolation, machine alternatives for hypertrophy
+- Garage gym with barbell + rack: full SBD work, sub cables with dumbbell isolations, back extension with barbell good morning or dumbbell RDL
+- Minimal barbell: full SBD + barbell row + dumbbell accessories. Leg press subbed with barbell lunge, cable work subbed with dumbbell work
+
+movementPattern must be one of: push_horizontal, push_fly, push_vertical, push_tricep, pull_horizontal, pull_vertical, pull_rear_delt, isolation_bicep, isolation_shoulder, isolation_quad, isolation_hamstring, isolation_calf, isolation_hip, squat, squat_unilateral, hinge, hinge_extension, gpp, gpp_carry, gpp_push, gpp_conditioning, gpp_cardio.
+Use squat for back squat, front squat, and all squat variations. Use hinge for deadlift, RDL, block pull, deficit deadlift, and all hinge variations. Use push_horizontal for bench press and all bench variations. Use push_vertical for overhead press. Use push_tricep for tricep isolations. Use pull_horizontal for all rows. Use pull_vertical for pulldowns and pull-ups. Use pull_rear_delt for face pulls and rear delt work. Use isolation_bicep for curls. Use isolation_shoulder for lateral raises. Use isolation_quad for leg extension and leg press. Use isolation_hamstring for leg curl. Use hinge_extension for back extension and reverse hyper.
 CRITICAL: Do NOT prescribe specific weights. The system calculates them.
-movementPattern must match valid patterns.`,
+CRITICAL: Every session MUST have a barbell primary lift (squat, bench, or deadlift variation). This is powerbuilding — the bar is always central.`,
 
-  atlas: `You are the ATLAS coach. Your athletes carry the world — literally.
-Philosophy: Functional strength meets strongman. Every session has carries. Every session has heavy compounds. No machines, no isolation. If it doesn't translate to real-world strength, it doesn't belong here.
+  atlas: `You are the ATLAS coach. Rugged, practical, strong.
+Philosophy: Functional strength meets strongman. Heavy bilateral barbell lifts are the foundation. Odd objects and carries build what barbells miss. The trunk is trained through bracing, breathing, carrying, and resisting movement. Every session ends with a loaded carry or strongman finisher — no exceptions.
 
-SESSION STRUCTURE:
-1) Primary Compound (4-5 sets × 3-6 reps, RIR 1-2): squat, deadlift, press, or row variation — barbell first
-2) Accessory Strength (2-3 exercises, 3 sets × 5-8 reps, RIR 2-3): unilateral work, overhead, pulls — NO isolation machines
-3) Loaded Carry or Strongman Finisher (MANDATORY every session): farmer carry, suitcase carry, overhead carry, sandbag carry, yoke walk, log press, tire flip sub — distance (40-60yd) or timed (30-45s)
+4-DAY WEEKLY STRUCTURE — each day has a clear identity:
+- Day 1 (Squat + Carries): Primary squat pattern (back squat, front squat, safety bar squat, or zercher squat) + unilateral lower + loaded carry finisher. The classic lower-body strength + loaded locomotion day.
+- Day 2 (Press + Strongman): Primary pressing movement (log press, push press, strict barbell press, or axle press) + upper-back pulling volume + strongman carry or event piece. Overhead strength needs scapular support.
+- Day 3 (Hinge + Loaded Conditioning): Primary hinge (trap bar deadlift, deadlift, axle deadlift, or block pull) + posterior chain + sled, sandbag, or medley conditioning finisher. NOT a repeat of Day 1 carry type.
+- Day 4 (Full Body Functional Strength): Mixed lower + upper in density circuit or medley format. Loaded carries are the throughline. This is the engine and work-capacity day — rugged conditioning over pure strength.
 
-STRONGMAN MOVEMENTS — rotate weekly:
-- Farmer carry, suitcase carry, overhead carry
-- Sandbag carry or bear-hug plate carry (sub for atlas stone)
-- Log press (sub with axle barbell or thick-grip barbell OHP)
-- Tire flip (sub with deadlift + box jump)
-- Yoke walk (sub with heavy barbell back walk or SSB carry)
+FATIGUE MANAGEMENT — critical rules:
+- NEVER stack heavy hinge on back-to-back days (e.g., no heavy deadlift Day 3 then heavy RDL Day 4)
+- NEVER repeat identical carry type on consecutive days (e.g., farmers → farmers). Rotate: farmers, suitcase, sandbag bear hug, front rack, waiter, yoke sub
+- Overhead work on Day 2 requires chest-supported row or face pulls — protect the scapula
+- Sled and sandbag work has lower eccentric cost — use these for conditioning without beating joints
+- Unilateral lower-body work (split squat, step-up, reverse lunge) keeps the program joint-friendly and athletic
 
-EQUIPMENT RULES:
-- Commercial gym: barbell + rack is primary. Sub log with barbell.
-- Home gym: DBs/KBs for carries. Sub barbell squats with goblet/KB. Keep carries regardless.
+PRIMARY MOVEMENT LIBRARY:
+Squat: back squat, front squat, safety bar squat, box squat, zercher squat, goblet squat, sandbag squat, split squat, Bulgarian split squat, step-up, reverse lunge, walking lunge
+Hinge: trap bar deadlift, conventional deadlift, axle deadlift, Romanian deadlift, block pull, sandbag pick, good morning, hip thrust, back extension, reverse hyper
+Press: log press (sub: thick-grip barbell OHP or axle press), push press, barbell strict press, incline press, dumbbell press, floor press, landmine press, close-grip bench
+Pull: weighted pull-up, chest-supported row, seal row, dumbbell row, lat pulldown, face pulls, rear delt raise, rope pulls
+Carries: farmers carry, suitcase carry, front rack carry, sandbag bear hug carry, yoke walk (sub: SSB carry or heavy barbell on-back walk), waiter carry, overhead carry
+Odd objects: sandbag to shoulder, sandbag over bar, sandbag lunge, keg carry, bear hug carry (sub for atlas stone), shouldering
+Sleds: sled push (sub: heavy plate drag or prowler), backward sled drag (very low eccentric — great for recovery days too)
+Trunk: weighted plank, Pallof press, dead bug, hanging leg raise, ab wheel, side plank, back extension
+
+STRONGMAN EVENTS — rotate across the week, never all on one day unless dedicated medley:
+- Yoke walk (sub: heavy barbell back carry, SSB carry)
+- Farmers carry (must vary grip width and load weekly)
+- Sandbag shouldering or loading (5×3 each side or loading reps)
+- Log clean and press (sub: axle clean and press, barbell clean and press)
+- Sled push or drag (excellent for non-eccentric conditioning)
+- Medley combos: yoke → farmers → sandbag carry in succession
+
+CARRY VARIETY — rotate these loading patterns, never repeat same carry on consecutive days:
+- Farmers: bilateral handle grip, upright torso, shoulder-width
+- Suitcase: unilateral, anti-lateral flexion demand
+- Sandbag bear hug: odd object brace, midline challenge
+- Front rack: barbell or dumbbell front rack position, thoracic extension demand
+- Waiter carry: single arm overhead, shoulder stability
+- Overhead carry: bilateral overhead hold, strict shoulder demand
+
+EQUIPMENT SCALING:
+- Full gym: barbell primary, log press welcome, sled for conditioning, full carry variety
+- Commercial gym no sled: sub sled with heavy plate push or backward lunge on turf; sub yoke with heavy barbell on-back walk
+- Garage gym with DBs/KBs: dumbbell carries work fine, sub log with DB clean and press, maintain all carry types
+- No odd objects: bear-hug a heavy dumbbell or plate for sandbag subs; suitcase carry works with any handle
 
 REP RANGES:
-- Primary: 3-6 reps, RIR 1-2
-- Accessories: 5-8 reps, RIR 2-3
-- Carries/strongman: targetRir=0, note "load by feel, RPE 8-9"
+- Primary compound: 3-6 reps, RIR 1-2, 4-6 sets
+- Secondary strength: 5-10 reps, RIR 2-3, 3-4 sets
+- Carries: targetRir=0, by distance (60-100ft) or time (30-60s), RPE 8-9 — note this in progressionNote
+- Strongman events: 3-6 reps or timed, targetRir=0
+- Conditioning finisher: AMRAP/For Time format, 6-15 min, targetRir=0
 
-movementPattern must be one of: push_horizontal, push_vertical, pull_horizontal, pull_vertical, squat, squat_unilateral, hinge, hinge_extension, gpp_carry, gpp_push, gpp_conditioning.
-Use gpp_carry for ALL carries. Use gpp_conditioning for tire flip subs and sandbag events. Use gpp_push for yoke/sled.
+MOVEMENT PAIRING HEURISTICS:
+- Heavy squats pair well with carries or sleds — volume controlled
+- Deadlift day: manage volume if carries and loading also present; sub sled for carry if grip is taxed
+- Overhead event work needs upper-back and scapular support — always pair with row or face pull
+- Sandbags and awkward loads challenge bracing differently than barbells — use them as teaching tools
+- Carries serve as trunk work, conditioning, AND grip training simultaneously
+- Strongman days should feel challenging but not chaotic — progression must remain visible
+
+CLASSIC SESSION TEMPLATES TO DRAW FROM:
+- Squat Day: Safety bar squat 5×5 → walking lunges 3×10 → farmers carry 6 trips of 80ft
+- Press Day: Log press 6×3 → chest-supported row 4×10 → EMOM 10: sled push 40s / rest 20s
+- Hinge Day: Trap bar deadlift 5×4 → Romanian deadlift 3×8 → sandbag bear hug carry 5×80ft
+- Full Body Day: 4-5 rounds of goblet squat + push press + ring/dumbbell row + suitcase carry
+
+movementPattern must be one of: push_horizontal, push_vertical, push_fly, push_tricep, pull_horizontal, pull_vertical, pull_rear_delt, squat, squat_unilateral, hinge, hinge_extension, gpp_carry, gpp_push, gpp_conditioning, gpp_cardio, gpp_power.
+Use gpp_carry for ALL carry types. Use gpp_push for sled push/yoke. Use gpp_conditioning for sandbag events, medleys, and loaded circuits. Use gpp_cardio for standalone bike/row intervals. Use gpp_power for jumps and speed pulls. Use hinge/squat/push_vertical/pull patterns for primary and secondary strength lifts.
 CRITICAL: Do NOT prescribe specific weights. The system calculates them.
-Every session MUST end with at least one carry or loaded strongman movement.`,
+CRITICAL: Every session MUST end with at least one carry, sled, or loaded strongman movement — no exceptions.`,
 
   chronos: `You are the CHRONOS coach. Time is the enemy. You win.
 Philosophy: 15-20 minutes, maximum output. A1 compound → A2 superset → Finisher. No rest that isn't programmed. No wasted seconds.
@@ -326,7 +532,10 @@ export async function POST(request: Request) {
       focusGroups,
       daysPerWeek,
       weekNumber,
+      totalWeeks,
       gymType,
+      trainingAge,
+      injuryFlags,
       oneRepMaxes,
       recentLogs,
     } = await request.json() as {
@@ -335,7 +544,10 @@ export async function POST(request: Request) {
       focusGroups: string[]
       daysPerWeek: 3 | 4 | 5
       weekNumber: number
+      totalWeeks: number
       gymType: 'commercial' | 'home'
+      trainingAge: 'beginner' | 'intermediate' | 'advanced'
+      injuryFlags: string[]
       oneRepMaxes: { bench?: number; squat?: number; deadlift?: number; ohp?: number; row?: number }
       recentLogs: Array<{ exercise_name: string; weight: number; reps: number; rir_actual: number | null; completed: boolean; created_at: string }>
     }
@@ -353,6 +565,10 @@ export async function POST(request: Request) {
     }
 
     const safeFocusGroups = Array.isArray(focusGroups) ? focusGroups.slice(0, 2) : []
+    const safeTrainingAge = trainingAge ?? 'intermediate'
+    const safeInjuryFlags = Array.isArray(injuryFlags) ? injuryFlags : []
+    const safeTotalWeeks = totalWeeks ?? 6
+    const weekPhase = getWeekPhase(weekNumber, safeTotalWeeks)
     const rms = oneRepMaxes ?? {}
 
     // ── Build log summary per exercise ──────────────────────────────────────
@@ -384,14 +600,55 @@ export async function POST(request: Request) {
       ? `RECENT TRAINING LOGS:\n${exerciseSummaryLines.join('\n\n')}`
       : `RECENT TRAINING LOGS: None — Week 1, user's first session.`
 
+    // ── Build injury context string ───────────────────────────────────────────
+    const injuryContext = safeInjuryFlags.length > 0 ? `
+INJURY FLAGS — MANDATORY SUBSTITUTIONS (apply to every day, no exceptions):
+${safeInjuryFlags.includes('shoulder') || safeInjuryFlags.includes('Shoulder') ? '- SHOULDER: No overhead barbell press. Replace with landmine press, floor press, or machine press. No upright rows. Reduce overhead loading across all sessions.' : ''}
+${safeInjuryFlags.includes('low back') || safeInjuryFlags.includes('Low Back') ? '- LOW BACK: No conventional deadlift. Replace with trap bar deadlift, light RDL, or hip thrust. No good mornings. Reduce total hinge volume — choose lower-stress hinge variations only.' : ''}
+${safeInjuryFlags.includes('knee') || safeInjuryFlags.includes('Knee') ? '- KNEE: No deep-range squatting. Replace back squat with box squat, leg press, or split squat with reduced ROM. Reduce lunge volume. Prefer machine-based quad work.' : ''}
+${safeInjuryFlags.includes('elbow') || safeInjuryFlags.includes('Elbow') ? '- ELBOW: No skullcrushers, no overhead tricep extensions, no EZ-bar curl with supinated grip. Use rope pushdown, hammer curl, and neutral-grip alternatives only.' : ''}
+${safeInjuryFlags.includes('hip') || safeInjuryFlags.includes('Hip') ? '- HIP: No heavy hip hinge under load. No deep split squats or lunges with aggressive hip flexion. Prefer machine lower work, step-ups with reduced range, and lying/seated movements.' : ''}
+${safeInjuryFlags.includes('wrist') || safeInjuryFlags.includes('Wrist') ? '- WRIST: No front rack barbell position, no barbell curl, no wrist-loaded pressing without wraps. Use neutral-grip barbells, trap bar, or dumbbell alternatives for all pressing and pulling.' : ''}
+`.trim() : ''
+
+    // ── Build training age context string ────────────────────────────────────
+    const trainingAgeContext = `
+ATHLETE LEVEL: ${safeTrainingAge.toUpperCase()}
+${safeTrainingAge === 'beginner' ? `- Keep exercise selection simple — no complex barbell variations (no Olympic lifts, no advanced gymnastics, no pause/tempo variations on week 1)
+- Use higher baseline RIR (3-4 on all sets — Week 1 and beyond until history builds)
+- Maximum 5 exercises per session — do not exceed this
+- Prefer machines and dumbbells for accessories over barbells
+- Use clear, coaching-style progressionNote on every exercise` : ''}
+${safeTrainingAge === 'intermediate' ? `- Standard exercise selection — variations are appropriate, Olympics and gymnastics can appear with scale options
+- Normal RIR ranges per program guidelines
+- 5-7 exercises per session
+- Full movement library available` : ''}
+${safeTrainingAge === 'advanced' ? `- Full movement library — complex variations, Olympic derivatives, advanced gymnastics are expected
+- Tighter RIR windows (RIR 1-2 more often on primaries)
+- 6-8 exercises per session
+- Assume technical competence — no need to simplify movement selection` : ''}`.trim()
+
+    // ── Build exercise continuity context ────────────────────────────────────
+    const knownExercises = Object.keys(lastSessionByExercise)
+    const continuityContext = knownExercises.length > 0
+      ? `EXERCISE CONTINUITY — Keep these primary movements stable (same exercise, same day structure — do not swap or rename them unless an injury flag requires it): ${knownExercises.slice(0, 10).join(', ')}`
+      : ''
+
     // ── Build user prompt ────────────────────────────────────────────────────
     const prompt = `
 CUSTOM PROGRAM REQUEST:
 - God/Philosophy: ${god.toUpperCase()}
 - Days per week: ${daysPerWeek}
 - Gym type: ${gymType}
-- Week: ${weekNumber}
-- Focus muscles (add 2 extra sets of isolation work for these): ${safeFocusGroups.length > 0 ? safeFocusGroups.join(', ') : 'balanced — no specific focus'}
+- Program: Week ${weekNumber} of ${safeTotalWeeks}
+
+${trainingAgeContext}
+
+WEEK PHASE: ${weekPhase.phase}
+${weekPhase.instructions}
+
+${injuryContext ? injuryContext + '\n' : ''}${continuityContext ? continuityContext + '\n' : ''}
+Focus muscles (add 2 extra sets on their relevant day): ${safeFocusGroups.length > 0 ? safeFocusGroups.join(', ') : 'balanced — no specific focus'}
 
 DAY STRUCTURE TO USE:
 ${getDaySplit(god, daysPerWeek)}
@@ -400,7 +657,11 @@ ${logContext}
 
 Generate a complete ${daysPerWeek}-day week. Use the exact day names from the structure above.
 Focus muscles get at least one extra isolation exercise and 2 more sets on their relevant day(s).
-Week 1 calibration: use baseline RIR 3-4 for all exercises. weekTheme = "Week 1 — Find Your Baseline".
+
+OUTPUT FIELD GUIDANCE:
+- programName: Format as "[God name] — [lane descriptor]" e.g. "Hercules — Powerbuilding" or "Ares — Functional CrossFit"
+- weekTheme: Format as "[God name] — Week [N] — [phase label]" e.g. "Hercules — Week 3 — Build" or "Adonis — Week 1 — Calibration". Mirror the WEEK PHASE label above.
+- coachNote: 1-2 sentences max. The single most important thing the athlete needs to execute this week. Direct, practical, coach voice — not motivational filler. Reference the week phase.
 `.trim()
 
     // ── Generate AI program ─────────────────────────────────────────────────

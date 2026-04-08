@@ -7,7 +7,6 @@ import {
   PlayCircle, RefreshCcw, BarChart2, RotateCcw, Zap
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import ProgramSelector from './ProgramSelector'
 import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
 
@@ -76,7 +75,6 @@ export default function ActiveProgram() {
   const [program, setProgram] = useState<ActiveProgramData | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [expanded, setExpanded] = useState(true)
-  const [showChangeProgram, setShowChangeProgram] = useState(false)
   const [weekKey, setWeekKey] = useState('')
   const [weekProgress, setWeekProgress] = useState<WeekProgress>({})
 
@@ -133,15 +131,6 @@ export default function ActiveProgram() {
     loadProgram()
   }, [loadProgram])
 
-  const handleProgramSelected = (data: ActiveProgramData) => {
-    setProgram(data)
-    const key = getWeekKey(new Date())
-    setWeekKey(key)
-    setWeekProgress({})
-    setShowChangeProgram(false)
-    setExpanded(true)
-  }
-
   const cycleStatus = (dayIndex: number) => {
     const current = weekProgress[dayIndex] ?? 'not_started'
     const next: DayStatus =
@@ -186,37 +175,31 @@ export default function ActiveProgram() {
     )
   }
 
-  // No program — show a prompt card + open the selector sheet
+  // No program — route to build page
   if (!program) {
     return (
-      <>
-        <div className="glass-card rounded-2xl border border-border/50 p-6 text-center space-y-4">
-          <div className="p-3 bg-brand/10 rounded-xl w-fit mx-auto">
-            <Dumbbell size={24} className="text-brand" strokeWidth={1.5} />
-          </div>
-          <div>
-            <h3 className="font-black text-base uppercase italic tracking-tight mb-1">No Program Active</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Choose a program to start tracking your training.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowChangeProgram(true)}
-            className="w-full bg-brand hover:bg-brand/90 text-foreground font-black py-3 rounded-xl uppercase tracking-widest text-sm transition-all active:scale-95"
-          >
-            Choose a Program
-          </button>
+      <div className="glass-card rounded-2xl border border-border/50 p-6 text-center space-y-4">
+        <div className="p-3 bg-brand/10 rounded-xl w-fit mx-auto">
+          <Dumbbell size={24} className="text-brand" strokeWidth={1.5} />
         </div>
-        <ProgramSelector
-          activeSlug={null}
-          isOpen={showChangeProgram}
-          onClose={() => setShowChangeProgram(false)}
-          onProgramSelected={handleProgramSelected}
-        />
-      </>
+        <div>
+          <h3 className="font-black text-base uppercase italic tracking-tight mb-1">No Program Active</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Choose your god and build your program.
+          </p>
+        </div>
+        <button
+          onClick={() => router.push('/build')}
+          className="w-full bg-brand hover:bg-brand/90 text-foreground font-black py-3 rounded-xl uppercase tracking-widest text-sm transition-all active:scale-95"
+        >
+          Build My Program
+        </button>
+      </div>
     )
   }
 
+  const isChronos = program.slug?.startsWith('chronos')
+  const workoutRoute = (day: number) => isChronos ? '/workout/squeeze' : `/workout/program/${day}`
   const dayNames = program.dayNames ?? Array.from({ length: totalDays }, (_, i) => `Day ${i + 1}`)
 
   return (
@@ -337,7 +320,7 @@ export default function ActiveProgram() {
                       </span>
                       {/* Navigate to workout — always available for all statuses */}
                       <button
-                        onClick={() => router.push(`/workout/program/${i + 1}`)}
+                        onClick={() => router.push(workoutRoute(i + 1))}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
                           status === 'complete'
                             ? 'bg-green-500/15 text-green-500 border border-green-500/30 hover:bg-green-500/25'
@@ -376,7 +359,7 @@ export default function ActiveProgram() {
                 onClick={() => {
                   if (!program) return
                   const nextDay = getNextWorkoutDay(program.daysCount, weekKey, weekProgress)
-                  router.push(`/workout/program/${nextDay}`)
+                  router.push(workoutRoute(nextDay))
                 }}
                 className="w-full flex items-center justify-center gap-2.5 py-3 rounded-md bg-brand text-background text-sm font-semibold uppercase tracking-[0.1em] active:scale-95 brand-glow transition-all hover:bg-brand/90"
               >
@@ -403,7 +386,7 @@ export default function ActiveProgram() {
               </div>
 
               <button
-                onClick={() => setShowChangeProgram(true)}
+                onClick={() => router.push('/build')}
                 className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
               >
                 <RefreshCcw size={10} strokeWidth={2} />
@@ -414,13 +397,6 @@ export default function ActiveProgram() {
         )}
       </AnimatePresence>
 
-      {/* Program selector sheet — always mounted, controlled by showChangeProgram */}
-      <ProgramSelector
-        activeSlug={program.slug}
-        isOpen={showChangeProgram}
-        onClose={() => setShowChangeProgram(false)}
-        onProgramSelected={handleProgramSelected}
-      />
     </div>
   )
 }

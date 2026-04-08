@@ -235,7 +235,7 @@ export default function Profile() {
               <p className="text-xs text-brand uppercase tracking-[0.12em] font-medium font-display">Active Protocol</p>
               <p className="font-medium text-sm mt-0.5">{programName}</p>
             </div>
-            <button onClick={() => router.push('/edit-program')} className="text-xs font-medium text-brand uppercase tracking-[0.12em] hover:opacity-70 transition-opacity">
+            <button onClick={() => router.push('/build')} className="text-xs font-medium text-brand uppercase tracking-[0.12em] hover:opacity-70 transition-opacity">
               Change →
             </button>
           </div>

@@ -15,11 +15,15 @@ type God = 'adonis' | 'ares' | 'hercules' | 'atlas' | 'chronos'
 type Days = 3 | 4 | 5
 type Weeks = 4 | 5 | 6
 type GymType = 'commercial' | 'home'
+type TrainingAge = 'beginner' | 'intermediate' | 'advanced'
 
 interface CustomConfig {
   god: God
   focusGroups: string[]
   gymType: GymType
+  trainingAge: TrainingAge
+  injuryFlags: string[]
+  totalWeeks: number
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -40,10 +44,10 @@ const GODS = [
     glow: 'shadow-amber-500/20',
     dot: 'bg-amber-400',
     sampleDays: [
-      { day: 'Day 1', name: 'Squat + Carries', exercises: ['Back Squat 4×5', 'Zercher Carry 3×40yd', 'Bulgarian Split Squat 3×6', 'Farmer Carry finisher 3×50yd'] },
-      { day: 'Day 2', name: 'Press + Strongman', exercises: ['Log Press / Barbell OHP 4×5', 'Push Press 3×5', 'Sandbag Carry 3×40yd', 'Suitcase Carry finisher'] },
-      { day: 'Day 3', name: 'Deadlift + Carries', exercises: ['Deadlift 4×4', 'Romanian DL 3×6', 'Farmer Carry 3×50yd', 'Tire flip sub 3×5'] },
-      { day: 'Day 4', name: 'Pull + Conditioning', exercises: ['Barbell Row 4×5', 'Weighted Pull-ups 3×6', 'Overhead Carry 3×40yd', 'Loaded carry medley finisher'] },
+      { day: 'Day 1', name: 'Squat + Carries', exercises: ['Safety Bar Squat 5×5', 'Bulgarian Split Squat 3×8', 'Farmers Carry 6×80ft', 'Suitcase Carry finisher'] },
+      { day: 'Day 2', name: 'Press + Strongman', exercises: ['Log Press / OHP 5×4', 'Chest-Supported Row 4×8', 'Push Press 3×5', 'Sandbag Bear Hug Carry 4×60ft'] },
+      { day: 'Day 3', name: 'Hinge + Conditioning', exercises: ['Trap Bar Deadlift 5×4', 'Romanian DL 3×8', 'Sandbag to Shoulder 4×3', 'Sled Push 6×20m'] },
+      { day: 'Day 4', name: 'Full Body Functional', exercises: ['4 rounds: Goblet Squat 10 / Push Press 8 / DB Row 10 / Suitcase Carry 60ft'] },
     ],
   },
   {
@@ -61,10 +65,10 @@ const GODS = [
     glow: 'shadow-brand/20',
     dot: 'bg-brand',
     sampleDays: [
-      { day: 'Day 1', name: 'Chest + Triceps', exercises: ['Barbell Bench Press 4×10', 'Incline DB Press 3×12', 'Cable Fly 3×15', 'Tricep Pushdown 3×12', 'Lateral Raise 3×15'] },
-      { day: 'Day 2', name: 'Back + Biceps', exercises: ['Pull-ups 4×10', 'Barbell Row 3×10', 'Cable Row 3×12', 'Face Pulls 3×15', 'Barbell Curl 3×12'] },
-      { day: 'Day 3', name: 'Shoulders + Arms', exercises: ['DB OHP 4×12', 'Machine Lateral Raise 3×15', 'Rear Delt Fly 3×15', 'Hammer Curl 3×12', 'Skull Crushers 3×12'] },
-      { day: 'Day 4', name: 'Legs', exercises: ['Back Squat 4×10', 'Leg Press 3×12', 'Leg Extension 3×15', 'Leg Curl 3×12', 'Standing Calf Raise 4×15'] },
+      { day: 'Day 1', name: 'Chest + Back', exercises: ['Incline Bench Press 4×8', 'Weighted Pull-up 4×6', 'Incline DB Press 3×10', 'Chest-Supported Row 3×10', 'Cable Fly 3×15', 'Lateral Raise 3×15', 'Rear Delt Fly 3×20'] },
+      { day: 'Day 2', name: 'Legs — Quads', exercises: ['Back Squat 4×8', 'Leg Press 4×12', 'Bulgarian Split Squat 3×10', 'Leg Extension 3×15', 'Standing Calf Raise 4×15'] },
+      { day: 'Day 3', name: 'Shoulders + Arms', exercises: ['Seated DB Press 4×10', 'Cable Lateral Raise 5×15', 'Reverse Pec Deck 4×20', 'EZ-Bar Curl 3×12', 'Rope Pushdown 3×12', 'Incline DB Curl 3×12'] },
+      { day: 'Day 4', name: 'Legs — Posterior', exercises: ['Romanian DL 4×8', 'Hip Thrust 4×10', 'Seated Leg Curl 4×12', 'Reverse Lunge 3×10', 'Seated Calf Raise 4×15'] },
     ],
   },
   {
@@ -103,10 +107,10 @@ const GODS = [
     glow: 'shadow-slate-500/20',
     dot: 'bg-slate-400',
     sampleDays: [
-      { day: 'Day 1', name: 'Squat Day', exercises: ['Back Squat 5×3 @ RIR 1', 'Leg Press 3×10', 'Bulgarian Split Squat 3×10', 'Leg Curl 3×10', 'Calf Raise 3×15'] },
-      { day: 'Day 2', name: 'Bench Day', exercises: ['Bench Press 5×3 @ RIR 1', 'Incline DB Press 3×10', 'Cable Fly 3×12', 'Tricep Pushdown 3×10', 'Face Pulls 3×12'] },
-      { day: 'Day 3', name: 'Deadlift Day', exercises: ['Deadlift 5×3 @ RIR 1', 'Barbell Row 3×8', 'Pull-ups 3×8', 'DB Row 3×10', 'Back Extension 3×12'] },
-      { day: 'Day 4', name: 'OHP Day', exercises: ['Barbell OHP 5×3 @ RIR 1', 'DB Shoulder Press 3×10', 'Lateral Raise 3×15', 'Rear Delt Fly 3×15', 'Barbell Curl 3×12'] },
+      { day: 'Day 1', name: 'Squat Day', exercises: ['Back Squat — top set ×4, backoffs 4×4', 'Pause Squat 3×4', 'Leg Press 3×10', 'Walking Lunge 3×10', 'Leg Curl 3×12'] },
+      { day: 'Day 2', name: 'Bench Day', exercises: ['Bench Press — top set ×4, backoffs 5×4', 'Close-Grip Bench 3×6', 'Chest-Supported Row 4×8', 'Lateral Raise 3×15', 'Rope Pushdown 3×12'] },
+      { day: 'Day 3', name: 'Deadlift Day', exercises: ['Deadlift — top set ×3, backoffs 3×3', 'Romanian DL 3×8', 'Pulldown 4×10', 'Back Extension 3×15', 'Hanging Leg Raise 3×12'] },
+      { day: 'Day 4', name: 'Upper Powerbuilding', exercises: ['Barbell OHP 4×6', 'Incline DB Press 3×10', 'Barbell Row 4×8', 'Lateral Raise 4×15', 'EZ-Bar Curl 3×12', 'Rope Pushdown 3×12'] },
     ],
   },
   {
@@ -134,6 +138,16 @@ const GODS = [
 const FOCUS_MUSCLES = [
   'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps',
   'Quads', 'Hamstrings', 'Glutes', 'Core',
+]
+
+const INJURY_OPTIONS = [
+  'Shoulder', 'Low Back', 'Knee', 'Elbow', 'Hip', 'Wrist',
+]
+
+const TRAINING_AGE_OPTIONS: { value: TrainingAge; label: string; desc: string }[] = [
+  { value: 'beginner',     label: 'Beginner',     desc: 'Under 1 year consistent lifting' },
+  { value: 'intermediate', label: 'Intermediate', desc: '1–3 years, know the basics' },
+  { value: 'advanced',     label: 'Advanced',     desc: '3+ years, strong technique' },
 ]
 
 const DAY_NAMES: Record<God, Record<number, string[]>> = {
@@ -180,6 +194,8 @@ export default function BuildPage() {
 
   // Selections
   const [selectedGod, setSelectedGod] = useState<God | null>(null)
+  const [trainingAge, setTrainingAge] = useState<TrainingAge>('intermediate')
+  const [injuryFlags, setInjuryFlags] = useState<string[]>([])
   const [focusGroups, setFocusGroups] = useState<string[]>([])
   const [daysPerWeek, setDaysPerWeek] = useState<Days>(4)
   const [weeks, setWeeks] = useState<Weeks>(6)
@@ -200,6 +216,12 @@ export default function BuildPage() {
       prev.includes(muscle)
         ? prev.filter(m => m !== muscle)
         : prev.length >= 2 ? prev : [...prev, muscle]
+    )
+  }
+
+  function toggleInjury(flag: string) {
+    setInjuryFlags(prev =>
+      prev.includes(flag) ? prev.filter(f => f !== flag) : [...prev, flag]
     )
   }
 
@@ -240,14 +262,14 @@ export default function BuildPage() {
       name: godMeta.name,
       startedAt: startMonday.toISOString(),
       currentWeek: 1,
-      trainingAge: 'intermediate',
+      trainingAge,
       primaryGoal,
       equipment: {},
       daysCount: 4,
       dayNames: DAY_NAMES[selectedGod][4],
     }
 
-    const config: CustomConfig = { god: selectedGod, focusGroups, gymType }
+    const config: CustomConfig = { god: selectedGod, focusGroups, gymType, trainingAge, injuryFlags, totalWeeks: weeks }
 
     // Persist
     localStorage.setItem('dad-strength-active-program', JSON.stringify(data))
@@ -271,14 +293,14 @@ export default function BuildPage() {
         current_week: 1,
         status: 'active',
         equipment: {},
-        preferences: { gymType, weeks, focusGroups, calibrationWeights: weights },
+        preferences: { gymType, weeks, focusGroups, trainingAge, injuryFlags, calibrationWeights: weights },
       },
       { onConflict: 'user_id' }
     )
 
     setActivating(false)
     setDone(true)
-    setTimeout(() => router.push('/workout/program/1'), 1200)
+    setTimeout(() => router.push(selectedGod === 'chronos' ? '/workout/squeeze' : '/workout/program/1'), 1200)
   }
 
   const isChronos = selectedGod === 'chronos'
@@ -454,7 +476,7 @@ export default function BuildPage() {
             </motion.div>
           )}
 
-          {/* ── Step 2: Focus Muscles ───────────────────────────────────────── */}
+          {/* ── Step 2: Customize ──────────────────────────────────────────── */}
           {step === 2 && (
             <motion.div
               key="step2"
@@ -462,67 +484,122 @@ export default function BuildPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.25 }}
-              className="space-y-6"
+              className="space-y-7"
             >
               <div>
                 <p className={`text-[10px] uppercase tracking-[0.25em] font-semibold font-display mb-1 ${godMeta?.color}`}>
                   {godMeta?.name}
                 </p>
                 <h1 className="font-display text-5xl tracking-[0.1em] uppercase leading-none">
-                  Focus
+                  Customize
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Pick up to 2 muscle groups to bias. They get extra sets and priority placement.
+                  Tell the AI who it&apos;s coaching so it can program appropriately.
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {FOCUS_MUSCLES.map((muscle) => {
-                  const isSelected = focusGroups.includes(muscle)
-                  const isDisabled = !isSelected && focusGroups.length >= 2
-                  return (
+              {/* Training Experience */}
+              <div className="space-y-3">
+                <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
+                  Training Experience
+                </label>
+                <div className="space-y-2">
+                  {TRAINING_AGE_OPTIONS.map((opt) => (
                     <button
-                      key={muscle}
-                      onClick={() => !isDisabled && toggleFocus(muscle)}
-                      disabled={isDisabled}
-                      className={`px-4 py-2.5 rounded-full text-sm font-semibold border transition-all duration-200 ${
-                        isSelected
-                          ? `${godMeta?.color} ${godMeta?.bg} ${godMeta?.border}`
-                          : isDisabled
-                          ? 'text-muted-foreground/40 bg-surface-3/40 border-border/40 cursor-not-allowed'
-                          : 'text-foreground bg-surface-3 border-border hover:border-brand/40'
+                      key={opt.value}
+                      onClick={() => setTrainingAge(opt.value)}
+                      className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${
+                        trainingAge === opt.value
+                          ? `${godMeta?.border} ${godMeta?.bg}`
+                          : 'border-border bg-surface-3 hover:border-border/80'
                       }`}
                     >
-                      {muscle}
+                      <div>
+                        <span className={`text-sm font-semibold block ${trainingAge === opt.value ? godMeta?.color : 'text-foreground'}`}>
+                          {opt.label}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">{opt.desc}</span>
+                      </div>
+                      {trainingAge === opt.value && (
+                        <CheckCircle2 size={16} className={godMeta?.color} />
+                      )}
                     </button>
-                  )
-                })}
-              </div>
-
-              {focusGroups.length === 0 && (
-                <p className="text-xs text-muted-foreground italic">
-                  Skip focus for a balanced program with no specific bias.
-                </p>
-              )}
-
-              {focusGroups.length > 0 && (
-                <div className="ds-card p-4 space-y-1">
-                  <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold ${godMeta?.color}`}>
-                    Your Focus
-                  </p>
-                  {focusGroups.map(m => (
-                    <p key={m} className="text-sm text-foreground font-medium">
-                      + {m} — extra sets &amp; priority placement
-                    </p>
                   ))}
                 </div>
-              )}
+              </div>
+
+              {/* Injury Flags */}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
+                    Anything to Work Around?
+                  </label>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    The AI will substitute or avoid movements that aggravate these areas.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {INJURY_OPTIONS.map((flag) => {
+                    const isSelected = injuryFlags.includes(flag)
+                    return (
+                      <button
+                        key={flag}
+                        onClick={() => toggleInjury(flag)}
+                        className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${
+                          isSelected
+                            ? 'text-red-400 bg-red-500/10 border-red-500/50'
+                            : 'text-foreground bg-surface-3 border-border hover:border-border/80'
+                        }`}
+                      >
+                        {flag}
+                      </button>
+                    )
+                  })}
+                </div>
+                {injuryFlags.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground italic">None selected — no restrictions applied.</p>
+                )}
+              </div>
+
+              {/* Focus Muscles */}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
+                    Priority Muscles <span className="normal-case text-muted-foreground/60">(optional, up to 2)</span>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    These get extra sets and priority placement in the program.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {FOCUS_MUSCLES.map((muscle) => {
+                    const isSelected = focusGroups.includes(muscle)
+                    const isDisabled = !isSelected && focusGroups.length >= 2
+                    return (
+                      <button
+                        key={muscle}
+                        onClick={() => !isDisabled && toggleFocus(muscle)}
+                        disabled={isDisabled}
+                        className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${
+                          isSelected
+                            ? `${godMeta?.color} ${godMeta?.bg} ${godMeta?.border}`
+                            : isDisabled
+                            ? 'text-muted-foreground/40 bg-surface-3/40 border-border/40 cursor-not-allowed'
+                            : 'text-foreground bg-surface-3 border-border hover:border-brand/40'
+                        }`}
+                      >
+                        {muscle}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
 
               <button
                 onClick={() => setStep(3)}
                 className={`w-full py-4 rounded-xl font-display tracking-[0.08em] uppercase text-sm flex items-center justify-center gap-2 ${godMeta?.bg} ${godMeta?.color} border ${godMeta?.border}`}
               >
-                {focusGroups.length > 0 ? 'Continue' : 'Skip — Balanced Program'} <ChevronRight size={15} />
+                Continue <ChevronRight size={15} />
               </button>
             </motion.div>
           )}

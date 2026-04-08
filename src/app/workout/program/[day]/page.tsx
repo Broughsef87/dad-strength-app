@@ -291,6 +291,9 @@ export default function ProgramWorkoutPage() {
   // Calibration week
   const [isCalibrationWeek, setIsCalibrationWeek] = useState(false)
 
+  // Deload week
+  const [isDeloadWeek, setIsDeloadWeek] = useState(false)
+
   // Skip workout confirmation dialog
   const [showSkipConfirm, setShowSkipConfirm] = useState(false)
 
@@ -420,7 +423,10 @@ export default function ProgramWorkoutPage() {
               focusGroups: customConfig.focusGroups ?? [],
               daysPerWeek: prog.daysCount,
               weekNumber: prog.currentWeek,
+              totalWeeks: customConfig.totalWeeks ?? 6,
               gymType: customConfig.gymType ?? 'commercial',
+              trainingAge: customConfig.trainingAge ?? 'intermediate',
+              injuryFlags: customConfig.injuryFlags ?? [],
               recentLogs: recentLogs ?? [],
               oneRepMaxes,
             }
@@ -477,6 +483,7 @@ export default function ProgramWorkoutPage() {
         setCoachNote(generated.coachNote)
         setWeekTheme(generated.weekTheme)
         setIsCalibrationWeek(generated.isCalibrationWeek ?? prog.currentWeek === 1)
+        setIsDeloadWeek(generated.deloadRecommended ?? false)
         setExerciseLogs(initExerciseLogs(currentDayData.exercises))
         setPageState('ready')
       } catch (err) {
@@ -843,6 +850,19 @@ export default function ProgramWorkoutPage() {
               <p className="text-xs font-black text-brand uppercase tracking-wider mb-0.5">Calibration Week</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 These weights are your baseline. Focus on form and honest RIR — Week 2 weights will be optimized from your results today.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Deload week banner */}
+        {isDeloadWeek && (
+          <div className="mx-4 mb-2 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex gap-2.5">
+            <span className="text-lg">🔄</span>
+            <div>
+              <p className="text-xs font-black text-blue-500 uppercase tracking-wider mb-0.5">Deload Week</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Reduced volume this week — let your body absorb the work. Move well, keep intensity honest, come back stronger.
               </p>
             </div>
           </div>
