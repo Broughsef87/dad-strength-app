@@ -156,7 +156,10 @@ export default function FirstWeekChecklist() {
     if (item.key === 'first_workout') {
       const activeWorkoutId = localStorage.getItem('activeWorkoutId')
       const activeProgram = localStorage.getItem('dad-strength-active-program')
-      if (activeProgram) router.push('/workout/program/1')
+      if (activeProgram) {
+        const prog = JSON.parse(activeProgram)
+        router.push(prog.slug?.startsWith('ares') ? '/workout/ares/1' : '/workout/program/1')
+      }
       else if (activeWorkoutId) router.push(`/workout/${activeWorkoutId}`)
       return
     }

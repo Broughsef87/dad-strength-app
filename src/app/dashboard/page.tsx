@@ -288,7 +288,7 @@ export default function Dashboard() {
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={() => {
-                      if (activeProgram) router.push('/workout/program/1')
+                      if (activeProgram) router.push(activeProgram.slug?.startsWith('ares') ? '/workout/ares/1' : '/workout/program/1')
                       else if (workout) router.push(`/workout/${workout.id}`)
                       else setShowProgramSelector(true)
                     }}

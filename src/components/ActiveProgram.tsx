@@ -323,7 +323,10 @@ export default function ActiveProgram() {
                       <button
                         onClick={() => {
                           if (status === 'not_started') {
-                            router.push(`/workout/program/${i + 1}`)
+                            const dest = program?.slug?.startsWith('ares')
+                              ? `/workout/ares/${i + 1}`
+                              : `/workout/program/${i + 1}`
+                            router.push(dest)
                           } else {
                             cycleStatus(i)
                           }

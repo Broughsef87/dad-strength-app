@@ -101,6 +101,18 @@ const PROGRAMS: readonly Program[] = [
     availableDays: [3, 5],
     comingSoon: true,
   },
+  {
+    slug: 'ares',
+    name: 'Ares',
+    tagline: 'Constantly Varied. Always Hard.',
+    description:
+      'Functional fitness built on the CrossFit model. Strength, Olympic lifting, gymnastics, and MetCons that change every week. No two sessions the same.',
+    vibe: 'Functional Fitness + MetCons',
+    icon: '⚔️',
+    gymTypes: ['commercial'],
+    availableDays: [4],
+    lockedDays: 4,
+  },
 ]
 
 type ProgramSlug = string
@@ -294,7 +306,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
     closeSheet()
     onProgramSelected?.(data)
-    router.push('/workout/program/1')
+    router.push(finalSlug.startsWith('ares') ? '/workout/ares/1' : '/workout/program/1')
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────
