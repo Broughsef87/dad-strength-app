@@ -42,7 +42,7 @@ type SessionSummary = {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function History() {
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const router = useRouter()
 
   const [sessions, setSessions] = useState<SessionSummary[]>([])
@@ -131,7 +131,7 @@ export default function History() {
     }
 
     fetchHistory()
-  }, [router, supabase])
+  }, [router])
 
   // ── Group by week ──────────────────────────────────────────────────────────────
 

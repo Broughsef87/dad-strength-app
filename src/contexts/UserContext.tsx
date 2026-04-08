@@ -19,13 +19,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const supabase = createClient()
 
     // Get initial session (fast — reads from localStorage cache)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+    supabase.auth.getSession().then(({ data }: { data: { session: any } }) => {
+      setUser(data.session?.user ?? null)
       setLoading(false)
     })
 
     // Keep in sync with auth state changes (login / logout / token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })

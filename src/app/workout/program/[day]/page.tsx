@@ -333,7 +333,7 @@ export default function ProgramWorkoutPage() {
   useEffect(() => {
     if (userLoading) return
     if (!user) {
-      if (!hasInitializedRef.current) window.location.assign('/login')
+      if (!hasInitializedRef.current) window.location.assign('/')
       return
     }
 

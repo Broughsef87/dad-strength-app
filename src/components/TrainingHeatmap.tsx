@@ -6,7 +6,7 @@ import { toLocalDateString } from '../lib/utils'
 import { motion } from 'framer-motion'
 
 export default function TrainingHeatmap() {
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const { user, loading: userLoading } = useUser()
   const [trainedDays, setTrainedDays] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -24,7 +24,7 @@ export default function TrainingHeatmap() {
         .eq('user_id', user.id)
         .eq('completed', true)
         .gte('created_at', sevenDaysAgo.toISOString())
-      const days = new Set((data || []).map((l: any) => toLocalDateString(new Date(l.created_at))))
+      const days = new Set<string>((data || []).map((l: any) => toLocalDateString(new Date(l.created_at))))
       setTrainedDays(days)
       setLoading(false)
     }

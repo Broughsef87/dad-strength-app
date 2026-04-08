@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server'
 import { google } from '@ai-sdk/google'
 import { generateText } from 'ai'
+import { createClient } from '../../../utils/supabase/server'
 
 const rateLimitMap = new Map<string, number[]>()
 const RATE_LIMIT = 10
 const RATE_WINDOW = 60 * 1000
 
 export async function POST(request: Request) {
+  // Auth check — must be a logged-in user
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
   const now = Date.now()
   const timestamps = (rateLimitMap.get(ip) ?? []).filter(t => now - t < RATE_WINDOW)

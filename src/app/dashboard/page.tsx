@@ -47,7 +47,7 @@ function getNextWorkoutDay(daysCount: number): number {
 }
 
 export default function Dashboard() {
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const router = useRouter()
   const { isPro, loading: subLoading } = useSubscription()
   const [user, setUser] = useState<any>(null)
@@ -138,7 +138,7 @@ export default function Dashboard() {
       setLoading(false)
     }
     loadDashboard()
-  }, [router, supabase])
+  }, [router])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()

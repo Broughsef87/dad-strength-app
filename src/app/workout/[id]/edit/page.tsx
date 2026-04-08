@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '../../../../utils/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { ChevronLeft, Plus, Trash2, Save } from 'lucide-react'
 
 type Exercise = {
@@ -19,8 +19,10 @@ type Workout = {
   exercises: Exercise[]
 }
 
-export default function EditWorkout({ params }: { params: { id: string } }) {
+export default function EditWorkout() {
   const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
   const supabase = createClient()
 
   const [workout, setWorkout] = useState<Workout | null>(null)
@@ -32,7 +34,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
       const { data, error } = await supabase
         .from('workouts')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
 
       if (error) {
@@ -48,7 +50,7 @@ export default function EditWorkout({ params }: { params: { id: string } }) {
       setLoading(false)
     }
     fetchWorkout()
-  }, [supabase, params.id])
+  }, [supabase, id])
 
   const handleWorkoutChange = (field: 'name' | 'description', value: string) => {
     if (!workout) return

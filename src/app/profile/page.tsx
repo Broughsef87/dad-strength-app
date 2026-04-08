@@ -17,7 +17,7 @@ import UpgradeModal from '../../components/UpgradeModal'
 
 export default function Profile() {
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const { isPro, isFounder, loading: subLoading } = useSubscription()
   const [showUpgrade, setShowUpgrade] = useState(false)
 
@@ -82,7 +82,7 @@ export default function Profile() {
       setLoading(false)
     }
     load()
-  }, [router, supabase])
+  }, [router])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()

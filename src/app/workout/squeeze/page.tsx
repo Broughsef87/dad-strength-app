@@ -659,7 +659,7 @@ export default function SqueezePage() {
   useEffect(() => {
     if (userLoading) return
     if (!user) {
-      router.push('/login')
+      router.push('/')
       return
     }
 

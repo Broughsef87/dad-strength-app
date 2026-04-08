@@ -155,7 +155,7 @@ export default function ActiveProgram() {
           .update({ current_week: newWeek })
           .eq('user_id', user.id)
           .eq('status', 'active')
-          .then(({ error }) => { if (error) console.error(error) })
+          .then(({ error }: { error: any }) => { if (error) console.error(error) })
       }
     }
   }

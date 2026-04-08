@@ -20,7 +20,7 @@ type DayData = {
 }
 
 export default function Schedule() {
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const router = useRouter()
   const [weekDays, setWeekDays] = useState<DayData[]>([])
   const [activeWorkout, setActiveWorkout] = useState<any>(null)
@@ -91,7 +91,7 @@ export default function Schedule() {
         .eq('completed', true)
         .order('created_at', { ascending: false })
 
-      const uniqueDays = Array.from(new Set((allLogs || []).map((l: any) => new Date(l.created_at).toDateString())))
+      const uniqueDays = Array.from(new Set<string>((allLogs || []).map((l: any) => new Date(l.created_at).toDateString())))
       let s = 0
       for (let i = 0; i < uniqueDays.length; i++) {
         const d = new Date(uniqueDays[i]); d.setHours(0,0,0,0)
@@ -110,7 +110,7 @@ export default function Schedule() {
       setLoading(false)
     }
     load()
-  }, [router, supabase])
+  }, [router])
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-background">
