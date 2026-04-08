@@ -70,7 +70,7 @@ export default function DadScore() {
     // Habits score (0-30): average completion rate from daily_checkins this week
     const { data: checkins } = await supabase
       .from('daily_checkins')
-      .select('growth_state')
+      .select('growth_state, mind_state')
       .eq('user_id', user.id)
       .gte('date', monday.toISOString().split('T')[0])
       .lte('date', sunday.toISOString().split('T')[0])

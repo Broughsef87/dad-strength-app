@@ -131,6 +131,20 @@ export default function FirstWeekChecklist() {
     check()
   }, [userId])
 
+  // Auto-check morning_protocol if they've completed at least one pillar today
+  useEffect(() => {
+    if (!userId || state.morning_protocol) return
+    try {
+      const raw = localStorage.getItem('dad-strength-morning-protocol')
+      if (!raw) return
+      const saved = JSON.parse(raw)
+      const today = new Date().toLocaleDateString()
+      if (saved.date === today && Array.isArray(saved.completed) && saved.completed.some(Boolean)) {
+        updateItem('morning_protocol', true)
+      }
+    } catch { /* ignore */ }
+  }, [userId, state.morning_protocol])
+
   const updateItem = async (key: keyof ChecklistState, value: boolean) => {
     const newState = { ...state, [key]: value }
     setState(newState)
@@ -164,9 +178,11 @@ export default function FirstWeekChecklist() {
       if (item.href.startsWith('http')) window.open(item.href, '_blank')
       else router.push(item.href)
     }
-    // Mark as visited (not completed — completion is verified)
-    if (item.key !== 'first_workout') {
-      updateItem(item.key as keyof ChecklistState, true)
+    // joined_brotherhood: external link — mark on click (can't verify externally)
+    // set_mission: mission page marks it done on save — don't mark here
+    // morning_protocol: verified against localStorage when a pillar is completed
+    if (item.key === 'joined_brotherhood') {
+      updateItem('joined_brotherhood', true)
     }
   }
 
