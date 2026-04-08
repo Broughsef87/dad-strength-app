@@ -70,7 +70,7 @@ const STATUS_CONFIG: Record<DayStatus, { label: string; color: string; Icon: Rea
 
 export default function ActiveProgram() {
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const { user } = useUser()
   const [program, setProgram] = useState<ActiveProgramData | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -86,6 +86,8 @@ export default function ActiveProgram() {
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
       if (dbProgram) {
         const data: ActiveProgramData = {

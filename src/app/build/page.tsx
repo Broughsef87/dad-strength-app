@@ -284,19 +284,23 @@ export default function BuildPage() {
       }
     }
 
-    // Save to Supabase
-    await supabase.from('user_programs').upsert(
-      {
-        user_id: user.id,
-        slug: data.slug,
-        started_at: data.startedAt,
-        current_week: 1,
-        status: 'active',
-        equipment: {},
-        preferences: { gymType, weeks, focusGroups, trainingAge, injuryFlags, calibrationWeights: weights },
-      },
-      { onConflict: 'user_id' }
-    )
+    // Save to Supabase — deactivate any existing active programs first,
+    // then insert the new one so there is always exactly one active row.
+    await supabase
+      .from('user_programs')
+      .update({ status: 'inactive' })
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+
+    await supabase.from('user_programs').insert({
+      user_id: user.id,
+      slug: data.slug,
+      started_at: data.startedAt,
+      current_week: 1,
+      status: 'active',
+      equipment: {},
+      preferences: { gymType, weeks, focusGroups, trainingAge, injuryFlags, calibrationWeights: weights },
+    })
 
     setActivating(false)
     setDone(true)

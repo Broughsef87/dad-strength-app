@@ -106,6 +106,38 @@ export default function Dashboard() {
         await supabase.from('user_profiles').upsert({ id: user.id }, { onConflict: 'id' })
       }
 
+      // Load active program from user_programs (Greek god system)
+      const { data: dbProgram } = await supabase
+        .from('user_programs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (dbProgram) {
+        const programName = dbProgram.slug
+          .replace(/-\d+$/, '')
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, (c: string) => c.toUpperCase())
+        const programData = {
+          slug: dbProgram.slug,
+          name: programName,
+          startedAt: dbProgram.started_at,
+          currentWeek: dbProgram.current_week,
+          daysCount: parseInt(dbProgram.slug.split('-').pop() ?? '4'),
+          dayNames: [],
+          trainingAge: dbProgram.preferences?.trainingAge ?? '',
+          primaryGoal: dbProgram.preferences?.primaryGoal ?? '',
+          equipment: dbProgram.equipment ?? {},
+        }
+        setActiveProgram(programData)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('dad-strength-active-program', JSON.stringify(programData))
+        }
+      }
+
       const activeWorkoutId = typeof window !== 'undefined' ? localStorage.getItem('activeWorkoutId') : null
       let workoutData = null
       if (activeWorkoutId) {
@@ -254,10 +286,12 @@ export default function Dashboard() {
               <div className="flex items-start justify-between mb-5">
                 <div>
                   <h2 className="text-3xl text-foreground leading-none mb-2">
-                    {workout?.name || 'Load Program'}
+                    {activeProgram?.name || workout?.name || 'Load Program'}
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    {workout?.description || 'Deploy your first training protocol.'}
+                    {activeProgram
+                      ? `${activeProgram.daysCount} days/week · Week ${activeProgram.currentWeek}`
+                      : workout?.description || 'Deploy your first training protocol.'}
                   </p>
                 </div>
                 <Dumbbell size={28} className="text-muted-foreground/20 shrink-0 mt-1" strokeWidth={1} />
