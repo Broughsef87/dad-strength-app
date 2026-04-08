@@ -161,9 +161,6 @@ export default function Schedule() {
                   </span>
                 )}
               </div>
-              {day.hasWorkout && !day.isToday && (
-                <span className=”text-[8px] text-brand font-black”>✓</span>
-              )}
             </div>
           ))}
         </div>
