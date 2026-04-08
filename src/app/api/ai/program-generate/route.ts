@@ -3,12 +3,9 @@ import { google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { createClient } from '../../../../utils/supabase/server'
+import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
-
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 5
-const RATE_WINDOW = 60 * 1000
 
 const DAD_STRONG_3 = {
   name: "Dad Strong 3",
@@ -262,17 +259,12 @@ const PROGRAM_TEMPLATES: Record<string, typeof DAD_STRONG_5> = {
 }
 
 export async function POST(request: Request) {
-  const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
-  const now = Date.now()
-  const timestamps = (rateLimitMap.get(ip) ?? []).filter(t => now - t < RATE_WINDOW)
-  if (timestamps.length >= RATE_LIMIT) {
-    return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
-  }
-  rateLimitMap.set(ip, [...timestamps, now])
-
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { allowed } = await checkRateLimit(supabase, user.id, 'program-generate')
+  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
 
   try {
     const { userId, weekNumber, programSlug, userProfile, recentLogs, calibrationWeights } = await request.json() as {
