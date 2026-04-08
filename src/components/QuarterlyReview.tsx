@@ -174,7 +174,7 @@ export default function QuarterlyReview() {
       .lte('created_at', endISO + 'T23:59:59')
 
     const distinctWorkoutDates = new Set(
-      (wlogs || []).map(l => new Date(l.created_at).toDateString())
+      (wlogs || []).map((l: any) => new Date(l.created_at).toDateString())
     )
     const workoutCount = distinctWorkoutDates.size
     const weeklyAvgSessions = workoutCount / weeksElapsed(quarter.start, now)
@@ -191,7 +191,7 @@ export default function QuarterlyReview() {
     const activeCheckinDays = checkinList.length
 
     // Count rough sleep nights (sleep_quality <= 2 or forge_state marks poor sleep)
-    const roughSleepNights = checkinList.filter(c => {
+    const roughSleepNights = checkinList.filter((c: any) => {
       const sq = c.sleep_quality
       return sq !== null && sq !== undefined && Number(sq) <= 2
     }).length
@@ -206,7 +206,7 @@ export default function QuarterlyReview() {
       .lte('recorded_at', endISO + 'T23:59:59')
       .order('recorded_at', { ascending: true })
 
-    const bcList = (bodyComp || []).filter(b => b.weight_lbs != null)
+    const bcList = (bodyComp || []).filter((b: any) => b.weight_lbs != null)
     if (bcList.length >= 2) {
       weightChange = bcList[bcList.length - 1].weight_lbs - bcList[0].weight_lbs
     }

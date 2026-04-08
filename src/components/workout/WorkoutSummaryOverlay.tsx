@@ -8,8 +8,8 @@ interface WorkoutSummaryOverlayProps {
   workoutName: string;
   totalVolume: number;
   duration: string;
-  workoutId: string;
-  userId: string;
+  workoutId?: string;
+  userId?: string;
   newPRs?: Array<{exercise: string, weight: number, reps: number}>;
   onReturn: () => void;
 }

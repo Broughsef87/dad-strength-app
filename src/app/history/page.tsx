@@ -214,16 +214,7 @@ export default function History() {
 
         {/* AI Weekly Debrief */}
         <div className="ds-card p-6">
-          <WeeklyDebrief
-            weekSessions={sessions.filter(s => {
-              const d = new Date(s.date)
-              const now = new Date()
-              const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay())
-              return d >= startOfWeek
-            }).length}
-            totalVolume={sessions.reduce((sum, s) => sum + s.totalVolume, 0)}
-            streak={0}
-          />
+          <WeeklyDebrief />
         </div>
         {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center">

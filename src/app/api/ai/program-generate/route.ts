@@ -280,7 +280,7 @@ export async function POST(request: Request) {
       weekNumber: number
       programSlug: string
       userProfile?: Record<string, unknown>
-      recentLogs?: unknown[]
+      recentLogs?: Array<{ exercise: string; weight: number; reps: number; rir_actual: number | null; completed: boolean; logged_at: string }>
       calibrationWeights?: Record<string, number>
     }
 

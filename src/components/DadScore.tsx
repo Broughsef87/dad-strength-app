@@ -77,35 +77,35 @@ export default function DadScore() {
 
     let habitScore = 0
     if (checkins && checkins.length > 0) {
-      const habitCounts = checkins.map(c => {
+      const habitCounts = checkins.map((c: any) => {
         const gs = c.growth_state as any
         if (!gs?.habits) return 0
         const done = gs.habits.filter(Boolean).length
         const total = gs.habits.length
         return total > 0 ? done / total : 0
       })
-      const avgRate = habitCounts.reduce((a, b) => a + b, 0) / habitCounts.length
+      const avgRate = habitCounts.reduce((a: number, b: number) => a + b, 0) / habitCounts.length
       habitScore = Math.round(avgRate * 30)
     }
 
     // Family score (0-20): family goals completed this week
     let familyScore = 0
     if (checkins && checkins.length > 0) {
-      const familyDone = checkins.filter(c => (c.growth_state as any)?.familyGoalDone === true).length
+      const familyDone = checkins.filter((c: any) => (c.growth_state as any)?.familyGoalDone === true).length
       familyScore = Math.min(Math.round((familyDone / 7) * 20), 20)
     }
 
     // Mind score (0-10): objectives locked in and completed
     let mindScore = 0
     if (checkins && checkins.length > 0) {
-      const mindEntries = checkins.map(c => {
+      const mindEntries = checkins.map((c: any) => {
         const ms = (c as any).mind_state as any
         if (!ms?.completedObjectives) return 0
         const done = ms.completedObjectives.filter(Boolean).length
         const total = ms.objectives?.length || 1
         return done / total
       })
-      const avgMind = mindEntries.reduce((a, b) => a + b, 0) / mindEntries.length
+      const avgMind = mindEntries.reduce((a: number, b: number) => a + b, 0) / mindEntries.length
       mindScore = Math.round(avgMind * 10)
     }
 

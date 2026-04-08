@@ -150,7 +150,8 @@ export default function PersonalGrowth() {
       ...overrides,
     }
     localStorage.setItem('dad-strength-growth-state', JSON.stringify(state))
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then((r: any) => {
+      const user = r.data.user
       if (!user) return
       supabase.from('daily_checkins').upsert(
         { user_id: user.id, date: today, growth_state: state, updated_at: new Date().toISOString() },
@@ -162,7 +163,8 @@ export default function PersonalGrowth() {
   const saveGrowthProfile = (habitsData: Habit[], bookData: BookData) => {
     const profile = { habits: habitsData, book: bookData }
     localStorage.setItem('dad-strength-growth-profile', JSON.stringify(profile))
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then((r: any) => {
+      const user = r.data.user
       if (!user) return
       supabase.from('user_profiles').upsert(
         { id: user.id, growth_data: profile },

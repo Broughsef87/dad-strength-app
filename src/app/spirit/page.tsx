@@ -29,7 +29,8 @@ export default function SpiritPage() {
         setPrayerDone(data.prayerDone || false);
       }
     }
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then((r: any) => {
+      const user = r.data.user;
       if (!user) return;
       supabase
         .from('daily_checkins')
@@ -37,9 +38,9 @@ export default function SpiritPage() {
         .eq('user_id', user.id)
         .eq('date', today)
         .single()
-        .then(({ data }) => {
-          if (data?.spirit_state) {
-            const ss = data.spirit_state as { prayerDone?: boolean };
+        .then((res: any) => {
+          if (res.data?.spirit_state) {
+            const ss = res.data.spirit_state as { prayerDone?: boolean };
             setPrayerDone(ss.prayerDone || false);
           }
         });
@@ -50,7 +51,8 @@ export default function SpiritPage() {
     const state = { date: new Date().toLocaleDateString(), prayerDone: done };
     localStorage.setItem('dad-strength-spirit-state', JSON.stringify(state));
     const today = new Date().toISOString().split('T')[0];
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then((r: any) => {
+      const user = r.data.user;
       if (!user) return;
       supabase.from('daily_checkins').upsert(
         { user_id: user.id, date: today, spirit_state: state, updated_at: new Date().toISOString() },
