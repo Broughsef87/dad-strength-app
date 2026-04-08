@@ -55,14 +55,14 @@ export default function DadScore() {
 
     const { data: weekLogs } = await supabase
       .from('workout_logs')
-      .select('created_at, workout_id')
+      .select('created_at, workout_id, generated_workout_id')
       .eq('user_id', user.id)
       .eq('completed', true)
       .gte('created_at', monday.toISOString())
       .lte('created_at', sunday.toISOString())
 
     const uniqueSessions = new Set(
-      (weekLogs || []).map((l: any) => `${toLocalDateString(new Date(l.created_at))}__${l.workout_id}`)
+      (weekLogs || []).map((l: any) => `${toLocalDateString(new Date(l.created_at))}__${l.workout_id ?? l.generated_workout_id ?? 'standalone'}`)
     ).size
 
     const trainingScore = Math.min(Math.round((uniqueSessions / weeklyTarget) * 40), 40)

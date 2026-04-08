@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000">
+  <defs>
+    <linearGradient id="ringGradL" x1="300" y1="300" x2="1700" y2="1700" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2a2f35"/>
+      <stop offset="20%" stop-color="#1a1e22"/>
+      <stop offset="45%" stop-color="#3d4550"/>
+      <stop offset="70%" stop-color="#1c2028"/>
+      <stop offset="100%" stop-color="#2e343c"/>
+    </linearGradient>
+    <linearGradient id="innerSteelL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a2f35"/>
+      <stop offset="50%" stop-color="#1a1e22"/>
+      <stop offset="100%" stop-color="#3d4550"/>
+    </linearGradient>
+    <radialGradient id="faceGradL" cx="45%" cy="35%" r="80%">
+      <stop offset="0%" stop-color="#f0f0ec"/>
+      <stop offset="50%" stop-color="#e8e8e4"/>
+      <stop offset="100%" stop-color="#dcdcd6"/>
+    </radialGradient>
+    <linearGradient id="letterGradL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1e22"/>
+      <stop offset="40%" stop-color="#2e343c"/>
+      <stop offset="100%" stop-color="#141414"/>
+    </linearGradient>
+    <linearGradient id="goldGradL" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f1d088"/>
+      <stop offset="25%" stop-color="#c79228"/>
+      <stop offset="50%" stop-color="#8d6218"/>
+      <stop offset="75%" stop-color="#d9ac46"/>
+      <stop offset="100%" stop-color="#7e5913"/>
+    </linearGradient>
+    <filter id="shadowL" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+    <filter id="softShadowL" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.12"/>
+    </filter>
+    <clipPath id="faceClipL"><circle cx="1000" cy="1000" r="695"/></clipPath>
+  </defs>
+
+  <!-- light brand background -->
+  <rect width="2000" height="2000" fill="#FAFAF7"/>
+
+  <g filter="url(#shadowL)">
+    <circle cx="1000" cy="1000" r="705" fill="none" stroke="url(#ringGradL)" stroke-width="44"/>
+    <circle cx="1000" cy="1000" r="705" fill="none" stroke="#1a1e22" stroke-opacity="0.3" stroke-width="4"/>
+    <circle cx="1000" cy="1000" r="683" fill="none" stroke="#e0e0da" stroke-width="10"/>
+  </g>
+
+  <g clip-path="url(#faceClipL)">
+    <circle cx="1000" cy="1000" r="695" fill="url(#faceGradL)"/>
+    <ellipse cx="890" cy="720" rx="430" ry="300" fill="#c9972b" opacity="0.04"/>
+    <path d="M1000 305 L1000 1695" stroke="#dcdcd6" stroke-width="10" opacity="0.6"/>
+  </g>
+
+  <!-- center divider -->
+  <g filter="url(#softShadowL)">
+    <rect x="970" y="350" width="60" height="1300" rx="16" fill="url(#innerSteelL)" stroke="#2a2f35" stroke-opacity="0.3" stroke-width="3"/>
+    <rect x="993" y="350" width="14" height="1300" rx="7" fill="url(#goldGradL)"/>
+  </g>
+
+  <!-- central hub -->
+  <g filter="url(#shadowL)">
+    <circle cx="1000" cy="1000" r="126" fill="url(#innerSteelL)" stroke="#2a2f35" stroke-opacity="0.3" stroke-width="4"/>
+    <circle cx="1000" cy="1000" r="92" fill="#FAFAF7"/>
+    <circle cx="1000" cy="1000" r="92" fill="none" stroke="#dcdcd6" stroke-width="3"/>
+  </g>
+
+  <!-- D -->
+  <g filter="url(#softShadowL)">
+    <path fill="url(#letterGradL)" stroke="#1a1e22" stroke-opacity="0.2" stroke-width="3" fill-rule="evenodd"
+      d="
+      M 585 745
+      L 785 745
+      C 866 745, 907 787, 907 870
+      L 907 1130
+      C 907 1213, 866 1255, 785 1255
+      L 585 1255
+      Z
+
+      M 660 815
+      L 779 815
+      C 820 815, 837 833, 837 874
+      L 837 1126
+      C 837 1167, 820 1185, 779 1185
+      L 660 1185
+      Z" />
+  </g>
+
+  <!-- S -->
+  <g filter="url(#softShadowL)">
+    <path fill="url(#letterGradL)" stroke="#1a1e22" stroke-opacity="0.2" stroke-width="3"
+      d="
+      M 1115 760
+      L 1372 760
+      L 1372 838
+      L 1218 838
+      C 1188 838, 1175 851, 1175 882
+      L 1175 903
+      C 1175 934, 1188 947, 1218 947
+      L 1328 947
+      C 1392 947, 1430 984, 1430 1045
+      L 1430 1157
+      C 1430 1218, 1392 1255, 1328 1255
+      L 1115 1255
+      L 1115 1177
+      L 1295 1177
+      C 1332 1177, 1352 1159, 1352 1126
+      L 1352 1074
+      C 1352 1040, 1332 1022, 1295 1022
+      L 1205 1022
+      C 1140 1022, 1100 985, 1100 922
+      L 1100 862
+      C 1100 799, 1148 760, 1215 760
+      Z"/>
+  </g>
+
+  <circle cx="1000" cy="1000" r="705" fill="none" stroke="#e0e0da" stroke-opacity="0.6" stroke-width="8"/>
+
+  <!-- DAD STRENGTH wordmark -->
+  <text x="1000" y="1820" font-family="'Arial Black', 'Impact', sans-serif" font-size="120" font-weight="900"
+    letter-spacing="28" text-anchor="middle" fill="#141414" opacity="0.85">DAD STRENGTH</text>
+</svg>

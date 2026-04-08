@@ -45,7 +45,7 @@ export default function Schedule() {
       // Fetch this week's logs
       const { data: logs } = await supabase
         .from('workout_logs')
-        .select('created_at, weight_lbs, reps, workout_id')
+        .select('created_at, weight_lbs, reps, workout_id, generated_workout_id')
         .eq('user_id', user.id)
         .eq('completed', true)
         .gte('created_at', startOfWeek.toISOString())

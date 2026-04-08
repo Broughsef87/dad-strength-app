@@ -51,7 +51,7 @@ export default function BodyVitals() {
 
       const { data: weekLogs } = await supabase
         .from('workout_logs')
-        .select('created_at, workout_id')
+        .select('created_at, workout_id, generated_workout_id')
         .eq('user_id', user.id)
         .eq('completed', true)
         .gte('created_at', monday.toISOString())
@@ -60,7 +60,7 @@ export default function BodyVitals() {
       // Count unique sessions (date + workout_id combos) not individual set rows
       const uniqueSessions = new Set(
         (weekLogs || []).map((l: any) =>
-          `${toLocalDateString(new Date(l.created_at))}__${l.workout_id}`
+          `${toLocalDateString(new Date(l.created_at))}__${l.workout_id ?? l.generated_workout_id ?? 'standalone'}`
         )
       )
       setSessionsThisWeek(uniqueSessions.size)

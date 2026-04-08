@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Dumbbell, ChevronRight, Flame, CheckCircle2 } from 'lucide-react'
 import { useUser } from '../../contexts/UserContext'
 import { createClient } from '../../utils/supabase/client'
-import type { ActiveProgramData } from '../../components/ProgramSelector'
+import type { ActiveProgramData } from '../../types/program'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 

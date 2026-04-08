@@ -751,7 +751,7 @@ export default function SqueezePage() {
       await supabase.from('workout_logs').insert({
         user_id: user.id,
         exercise_name: session.sessionTitle,
-        weight: 0,
+        weight_lbs: 0,
         reps: 0,
         completed: true,
         notes: JSON.stringify({ squeeze: true, blocks: session.blocks, dayPattern: session.dayPattern }),

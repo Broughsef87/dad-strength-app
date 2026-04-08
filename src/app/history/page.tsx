@@ -24,7 +24,7 @@ type GeneratedWorkout = {
 type WorkoutLog = {
   id: string
   exercise_name: string
-  weight: number
+  weight_lbs: number
   reps: number
   rir_actual: number | null
   completed: boolean
@@ -83,7 +83,7 @@ export default function History() {
       // 2. Fetch workout_logs for those workout IDs
       const { data: logs, error: lErr } = await supabase
         .from('workout_logs')
-        .select('id, exercise_name, weight, reps, rir_actual, completed, generated_workout_id, created_at')
+        .select('id, exercise_name, weight_lbs, reps, rir_actual, completed, generated_workout_id, created_at')
         .in('generated_workout_id', workoutIds)
         .order('created_at', { ascending: true })
 
@@ -114,7 +114,7 @@ export default function History() {
         const completedSets = wLogs.filter((l) => l.completed).length
         const totalVolume = wLogs
           .filter((l) => l.completed)
-          .reduce((sum, l) => sum + (l.weight || 0) * (l.reps || 0), 0)
+          .reduce((sum, l) => sum + (l.weight_lbs || 0) * (l.reps || 0), 0)
 
         built.push({ workout, logs: wLogs, completedSets, totalVolume })
       }
@@ -370,7 +370,7 @@ export default function History() {
                                             S{i + 1}
                                           </span>
                                           <span className="text-sm font-bold">
-                                            {s.weight > 0 ? `${s.weight} lbs` : 'BW'}
+                                            {s.weight_lbs > 0 ? `${s.weight_lbs} lbs` : 'BW'}
                                           </span>
                                           <span className="text-sm font-bold text-brand">× {s.reps}</span>
                                           {s.rir_actual !== null && (

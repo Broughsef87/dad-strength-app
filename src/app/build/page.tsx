@@ -7,7 +7,7 @@ import { ArrowLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
 import { useUser } from '../../contexts/UserContext'
 import { createClient } from '../../utils/supabase/client'
-import type { ActiveProgramData } from '../../components/ProgramSelector'
+import type { ActiveProgramData } from '../../types/program'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

@@ -397,7 +397,7 @@ export default function ProgramWorkoutPage() {
         // 3. Fetch recent logs for AI context
         const { data: recentLogs } = await supabase
           .from('workout_logs')
-          .select('exercise_name, weight, reps, rir_actual, completed, created_at')
+          .select('exercise_name, weight_lbs, reps, rir_actual, completed, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(100)
@@ -605,7 +605,7 @@ export default function ProgramWorkoutPage() {
           await supabase.from('workout_logs').insert({
             user_id: user.id,
             exercise_name: exerciseName,
-            weight: set.actualWeight,
+            weight_lbs: set.actualWeight,
             reps: set.actualReps,
             rir_actual: rir,
             completed: true,
@@ -719,7 +719,7 @@ export default function ProgramWorkoutPage() {
             supabase.from('workout_logs').insert({
               user_id: user.id,
               exercise_name: ex.name,
-              weight: s.actualWeight > 0 ? s.actualWeight : s.targetWeight,
+              weight_lbs: s.actualWeight > 0 ? s.actualWeight : s.targetWeight,
               reps: s.actualReps,
               rir_actual: null,
               completed: false,
