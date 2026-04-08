@@ -8,6 +8,7 @@ import BottomNav from '../../components/BottomNav'
 import AppHeader from '../../components/AppHeader'
 import MorningProtocol from '../../components/MorningProtocol'
 import { type StoicEntry, getTodaysStoicEntry } from '../../data/stoicEntries'
+import { createClient } from '../../utils/supabase/client'
 
 // ── Challenge data ─────────────────────────────────────────────────────────────
 
@@ -128,6 +129,14 @@ function heatColor(slot: HeatSlot) {
 const HEAT_KEY = 'dad-strength-spirit-heat'
 const ACT_KEY  = 'dad-strength-spirit-act'
 
+function getMondayIso(): string {
+  const d = new Date()
+  const day = d.getDay()
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1))
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString().split('T')[0]
+}
+
 const GOD_LABELS: Record<string, string> = {
   atlas:    'Atlas',
   adonis:   'Adonis',
@@ -140,6 +149,9 @@ const GOD_LABELS: Record<string, string> = {
 
 export default function SpiritPage() {
   const [mounted, setMounted] = useState(false)
+  const [supabase] = useState(() => createClient())
+  const [userId, setUserId] = useState<string | null>(null)
+  const [weekStart, setWeekStart] = useState('')
 
   // Stoic
   const [stoic, setStoic] = useState<StoicEntry>(() => getTodaysStoicEntry())
@@ -186,11 +198,79 @@ export default function SpiritPage() {
       }
     } catch { /* ignore */ }
 
-    // Restore heat map
+    // Restore heat map from localStorage (fast, synchronous)
+    let localSlots: HeatSlot[] = DEFAULT_SLOTS
     try {
       const raw = localStorage.getItem(HEAT_KEY)
-      if (raw) setSlots(JSON.parse(raw))
+      if (raw) { localSlots = JSON.parse(raw); setSlots(localSlots) }
     } catch { /* ignore */ }
+
+    // Hydrate from Supabase in background (overwrites localStorage with fresh DB data)
+    const ws = getMondayIso()
+    setWeekStart(ws);
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        setUserId(user.id)
+
+        // family_pulse for wife/kid slots
+        const { data: pulse } = await supabase
+          .from('family_pulse')
+          .select('moments')
+          .eq('user_id', user.id)
+          .eq('week_start', ws)
+          .maybeSingle()
+
+        // brotherhood_contacts for friend slot
+        const { data: contacts } = await supabase
+          .from('brotherhood_contacts')
+          .select('name, last_contacted_at')
+          .eq('user_id', user.id)
+          .order('last_contacted_at', { ascending: false })
+
+        setSlots(prev => {
+          let next = [...prev]
+
+          // Merge family_pulse moments into wife/kid slots
+          if (pulse?.moments?.length) {
+            type Moment = { slot: string; date: string; note?: string }
+            const parsed = (pulse.moments as string[]).map((m: string) => {
+              try { return JSON.parse(m) as Moment } catch { return null }
+            }).filter((m): m is Moment => m !== null)
+
+            next = next.map(slot => {
+              if (slot.id === 'friend') return slot
+              const slotMoments = parsed.filter(m => m.slot === slot.id)
+              if (!slotMoments.length) return slot
+              const dbConns: Connection[] = slotMoments.map(m => ({ date: m.date, note: m.note }))
+              const localDates = new Set(slot.connections.map(c => c.date))
+              const merged = [...slot.connections, ...dbConns.filter(c => !localDates.has(c.date))]
+                .sort((a, b) => a.date.localeCompare(b.date))
+              return { ...slot, connections: merged }
+            })
+          }
+
+          // Merge most-recent brotherhood contact into friend slot
+          if (contacts && contacts.length > 0) {
+            const contact = contacts[0]
+            next = next.map(slot => {
+              if (slot.id !== 'friend') return slot
+              const dbConns: Connection[] = contact.last_contacted_at
+                ? [{ date: (contact.last_contacted_at as string).split('T')[0] }]
+                : []
+              const localDates = new Set(slot.connections.map(c => c.date))
+              const merged = [...slot.connections, ...dbConns.filter(c => !localDates.has(c.date))]
+                .sort((a, b) => a.date.localeCompare(b.date))
+              return { ...slot, name: slot.name || (contact.name as string) || '', connections: merged }
+            })
+          }
+
+          localStorage.setItem(HEAT_KEY, JSON.stringify(next))
+          return next
+        })
+      } catch { /* ignore — localStorage state remains */ }
+    })()
   }, [])
 
   // ── Act handlers ──────────────────────────────────────────────────────────────
@@ -215,9 +295,58 @@ export default function SpiritPage() {
 
   // ── Heat map handlers ─────────────────────────────────────────────────────────
 
+  async function syncToSupabase(next: HeatSlot[]) {
+    if (!userId || !weekStart) return
+    try {
+      // ── family_pulse (wife / kids) ──────────────────────────────────────────
+      const familySlots = next.filter(s => s.id !== 'friend')
+      const moments: string[] = []
+      for (const slot of familySlots) {
+        for (const conn of slot.connections) {
+          moments.push(JSON.stringify({ slot: slot.id, date: conn.date, note: conn.note }))
+        }
+      }
+      const wCount = moments.filter(m => { try { return JSON.parse(m).slot === 'wife' } catch { return false } }).length
+      const kCount = moments.filter(m => { try { return ['kid1','kid2','kid3'].includes(JSON.parse(m).slot) } catch { return false } }).length
+      await supabase.from('family_pulse').upsert({
+        user_id: userId,
+        week_start: weekStart,
+        moments,
+        marriage_vibe: wCount > 0 ? Math.min(5, wCount) : null,
+        kid_score:     kCount > 0 ? Math.min(5, kCount) : null,
+      }, { onConflict: 'user_id,week_start' })
+
+      // ── brotherhood_contacts (friend slot) ──────────────────────────────────
+      const friendSlot = next.find(s => s.id === 'friend')
+      if (friendSlot && friendSlot.connections.length > 0) {
+        const name = friendSlot.name || 'Friend'
+        const lastDate = friendSlot.connections[friendSlot.connections.length - 1].date
+        const lastContactedAt = new Date(`${lastDate}T12:00:00`).toISOString()
+        const { data: existing } = await supabase
+          .from('brotherhood_contacts')
+          .select('id')
+          .eq('user_id', userId)
+          .order('created_at')
+          .limit(1)
+          .maybeSingle()
+        if (existing) {
+          await supabase.from('brotherhood_contacts')
+            .update({ name, last_contacted_at: lastContactedAt })
+            .eq('id', (existing as any).id)
+        } else {
+          await supabase.from('brotherhood_contacts')
+            .insert({ user_id: userId, name, last_contacted_at: lastContactedAt })
+        }
+      }
+    } catch (e) {
+      console.error('Connection sync error:', e)
+    }
+  }
+
   function persistSlots(next: HeatSlot[]) {
     setSlots(next)
     localStorage.setItem(HEAT_KEY, JSON.stringify(next))
+    syncToSupabase(next)
   }
 
   function handleRename(id: string) {
