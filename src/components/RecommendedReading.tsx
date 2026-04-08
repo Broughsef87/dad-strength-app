@@ -104,7 +104,7 @@ export default function RecommendedReading() {
 
       {currentlyReading && (
         <p className="text-xs text-muted-foreground text-center">
-          âœ… Currently reading: <span className="text-brand">{BOOKS.find(b => b.id === currentlyReading)?.title}</span>
+          Currently reading: <span className="text-brand">{BOOKS.find(b => b.id === currentlyReading)?.title}</span>
         </p>
       )}
     </div>
