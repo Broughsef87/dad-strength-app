@@ -6,15 +6,14 @@ import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
 
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { allowed } = await checkRateLimit(supabase, user.id, 'morning-protocol', 10, 60_000)
-  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
+  const { allowed } = await checkRateLimit(supabase, user.id, 'morning-protocol')
+  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
 
   const req = request
   try {
@@ -32,20 +31,20 @@ export async function POST(request: Request) {
 
     const { object: protocol } = await generateObject({
       model: google('gemini-2.5-flash'),
-      system: `You are a high-performance coach for busy dads. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Gratitude. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
+      system: `You are a high-performance coach for busy dads with young babies. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Goals & Journal. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
       prompt: `Today is ${dayOfWeek}.
 Available time: ${minutes} minutes
-Sleep quality: ${babyNight}
+Baby's night: ${babyNight}
 Energy level: ${energy}
 Today's objectives:
 ${objectivesList}
 
-Generate a morning protocol with exactly 4 steps — one for each pillar (Prayer, Meditation, Reading, Gratitude). Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading. Always end with Gratitude. For the Gratitude step, the guidance should encourage writing 3 things they're grateful for.`,
+Generate a morning protocol with exactly 4 steps — one for each pillar. Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading/Goals.`,
       schema: z.object({
         theme: z.string().describe("A short, punchy theme for today's morning — e.g. 'The Quiet Before the War'"),
-        greeting: z.string().describe("1-2 sentence personal greeting acknowledging sleep quality and energy level. Direct, warm, stoic."),
+        greeting: z.string().describe("1-2 sentence personal greeting acknowledging the baby's night and energy level. Direct, warm, stoic."),
         steps: z.array(z.object({
-          pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Gratitude']),
+          pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Goals & Journal']),
           minutes: z.number().describe('Minutes allocated to this pillar'),
           title: z.string().describe('Short action title for this pillar'),
           guidance: z.string().describe('2-3 sentence guidance for this block'),

@@ -6,7 +6,6 @@ import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
 
 const DAD_STRONG_3 = {
   name: "Dad Strong 3",
@@ -252,251 +251,11 @@ const HYBRID_5 = {
   ]
 }
 
-const GOLDEN_ERA_3 = {
-  name: "Golden Era 3",
-  daysPerWeek: 3,
-  days: [
-    {
-      dayNumber: 1,
-      dayName: "Chest & Triceps",
-      exercises: [
-        { name: "Barbell Bench Press", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "push_horizontal", setOrder: 1 },
-        { name: "Incline DB Press", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "push_horizontal", setOrder: 2 },
-        { name: "DB Flyes", sets: 3, repMin: 10, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_fly", setOrder: 3 },
-        { name: "Cable Crossover", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_fly", setOrder: 4 },
-        { name: "Close-Grip Bench Press", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 5 },
-        { name: "EZ Bar Skull Crushers", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_tricep", setOrder: 6 },
-        { name: "Cable Triceps Pushdown", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 7 },
-      ]
-    },
-    {
-      dayNumber: 2,
-      dayName: "Back & Biceps",
-      exercises: [
-        { name: "Wide-Grip Pull-Ups", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "pull_vertical", setOrder: 1 },
-        { name: "Barbell Rows", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "pull_horizontal", setOrder: 2 },
-        { name: "Lat Pulldown", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "pull_vertical", setOrder: 3 },
-        { name: "Seated Cable Rows", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "pull_horizontal", setOrder: 4 },
-        { name: "DB Pullovers", sets: 2, repMin: 12, repMax: 15, perSetRir: [3, 3], movementPattern: "pull_vertical", setOrder: 5 },
-        { name: "EZ Bar Curls", sets: 4, repMin: 10, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_bicep", setOrder: 6 },
-        { name: "Preacher Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_bicep", setOrder: 7 },
-        { name: "Hammer Curls", sets: 2, repMin: 12, repMax: 15, perSetRir: [3, 3], movementPattern: "isolation_bicep", setOrder: 8 },
-      ]
-    },
-    {
-      dayNumber: 3,
-      dayName: "Legs & Shoulders",
-      exercises: [
-        { name: "Barbell Back Squat", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "squat", setOrder: 1 },
-        { name: "Leg Press", sets: 3, repMin: 10, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "squat", setOrder: 2 },
-        { name: "Leg Extension", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "isolation_quad", setOrder: 3 },
-        { name: "Lying Leg Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_hamstring", setOrder: 4 },
-        { name: "Standing Calf Raise", sets: 4, repMin: 15, repMax: 20, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_calf", setOrder: 5 },
-        { name: "Barbell OHP", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "push_vertical", setOrder: 6 },
-        { name: "DB Lateral Raise", sets: 4, repMin: 12, repMax: 15, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_shoulder", setOrder: 7 },
-        { name: "Rear Delt DB Flies", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "pull_rear_delt", setOrder: 8 },
-      ]
-    },
-  ]
-}
-
-const GOLDEN_ERA_5 = {
-  name: "Golden Era 5",
-  daysPerWeek: 5,
-  days: [
-    {
-      dayNumber: 1,
-      dayName: "Chest",
-      exercises: [
-        { name: "Barbell Bench Press", sets: 5, repMin: 6, repMax: 10, perSetRir: [3, 3, 3, 2, 2], movementPattern: "push_horizontal", setOrder: 1 },
-        { name: "Incline DB Press", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "push_horizontal", setOrder: 2 },
-        { name: "Decline Barbell Press", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "push_horizontal", setOrder: 3 },
-        { name: "DB Flyes", sets: 3, repMin: 10, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_fly", setOrder: 4 },
-        { name: "Cable Crossover", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_fly", setOrder: 5 },
-      ]
-    },
-    {
-      dayNumber: 2,
-      dayName: "Back",
-      exercises: [
-        { name: "Deadlift", sets: 4, repMin: 4, repMax: 6, perSetRir: [3, 3, 2, 2], movementPattern: "hinge", setOrder: 1 },
-        { name: "Wide-Grip Pull-Ups", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "pull_vertical", setOrder: 2 },
-        { name: "Barbell Rows", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "pull_horizontal", setOrder: 3 },
-        { name: "Lat Pulldown", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "pull_vertical", setOrder: 4 },
-        { name: "Seated Cable Rows", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "pull_horizontal", setOrder: 5 },
-        { name: "DB Pullovers", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "pull_vertical", setOrder: 6 },
-      ]
-    },
-    {
-      dayNumber: 3,
-      dayName: "Shoulders & Arms",
-      exercises: [
-        { name: "Barbell OHP", sets: 4, repMin: 6, repMax: 10, perSetRir: [3, 3, 2, 2], movementPattern: "push_vertical", setOrder: 1 },
-        { name: "DB Lateral Raise", sets: 4, repMin: 12, repMax: 15, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_shoulder", setOrder: 2 },
-        { name: "Rear Delt DB Flies", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "pull_rear_delt", setOrder: 3 },
-        { name: "EZ Bar Curls", sets: 4, repMin: 10, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_bicep", setOrder: 4 },
-        { name: "Preacher Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_bicep", setOrder: 5 },
-        { name: "Concentration Curls", sets: 2, repMin: 12, repMax: 15, perSetRir: [3, 2], movementPattern: "isolation_bicep", setOrder: 6 },
-        { name: "EZ Bar Skull Crushers", sets: 4, repMin: 10, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "push_tricep", setOrder: 7 },
-        { name: "Close-Grip Bench Press", sets: 3, repMin: 8, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 8 },
-        { name: "Cable Triceps Pushdown", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 9 },
-      ]
-    },
-    {
-      dayNumber: 4,
-      dayName: "Legs",
-      exercises: [
-        { name: "Barbell Back Squat", sets: 5, repMin: 6, repMax: 10, perSetRir: [3, 3, 3, 2, 2], movementPattern: "squat", setOrder: 1 },
-        { name: "Leg Press", sets: 4, repMin: 10, repMax: 15, perSetRir: [3, 3, 3, 2], movementPattern: "squat", setOrder: 2 },
-        { name: "Leg Extension", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "isolation_quad", setOrder: 3 },
-        { name: "Romanian Deadlift", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "hinge", setOrder: 4 },
-        { name: "Lying Leg Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_hamstring", setOrder: 5 },
-        { name: "Walking Lunges", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "squat_unilateral", setOrder: 6, notes: "12-15 steps each leg" },
-        { name: "Standing Calf Raise", sets: 5, repMin: 15, repMax: 20, perSetRir: [3, 3, 3, 2, 2], movementPattern: "isolation_calf", setOrder: 7 },
-        { name: "Seated Calf Raise", sets: 3, repMin: 15, repMax: 20, perSetRir: [3, 3, 2], movementPattern: "isolation_calf", setOrder: 8 },
-      ]
-    },
-    {
-      dayNumber: 5,
-      dayName: "Arms & Weak Points",
-      exercises: [
-        { name: "EZ Bar Curls", sets: 4, repMin: 10, repMax: 12, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_bicep", setOrder: 1 },
-        { name: "Incline DB Curls", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 2], movementPattern: "isolation_bicep", setOrder: 2 },
-        { name: "Hammer Curls", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 3], movementPattern: "isolation_bicep", setOrder: 3 },
-        { name: "Close-Grip Bench Press", sets: 4, repMin: 8, repMax: 12, perSetRir: [3, 3, 2, 2], movementPattern: "push_tricep", setOrder: 4 },
-        { name: "EZ Bar Skull Crushers", sets: 3, repMin: 10, repMax: 12, perSetRir: [3, 3, 3], movementPattern: "push_tricep", setOrder: 5 },
-        { name: "Overhead Triceps Extension", sets: 3, repMin: 12, repMax: 15, perSetRir: [3, 3, 2], movementPattern: "push_tricep", setOrder: 6 },
-        { name: "DB Lateral Raise", sets: 4, repMin: 15, repMax: 20, perSetRir: [3, 3, 3, 2], movementPattern: "isolation_shoulder", setOrder: 7 },
-        { name: "Rear Delt Cable Flies", sets: 3, repMin: 15, repMax: 20, perSetRir: [3, 3, 3], movementPattern: "pull_rear_delt", setOrder: 8 },
-      ]
-    },
-  ]
-}
-
 const PROGRAM_TEMPLATES: Record<string, typeof DAD_STRONG_5> = {
   'dad-strong-3': DAD_STRONG_3,
   'dad-strong-5': DAD_STRONG_5,
   'hybrid-3': HYBRID_3,
   'hybrid-5': HYBRID_5,
-  'golden-era-3': GOLDEN_ERA_3,
-  'golden-era-5': GOLDEN_ERA_5,
-}
-
-// ── Muscle group mapping ─────────────────────────────────────────────────────
-
-const MOVEMENT_TO_MUSCLE: Record<string, string | null> = {
-  push_horizontal: 'chest',
-  push_fly: 'chest',
-  push_vertical: 'shoulders',
-  isolation_shoulder: 'shoulders',
-  push_tricep: 'triceps',
-  push_power: 'shoulders',
-  pull_horizontal: 'back',
-  pull_vertical: 'back',
-  pull_rear_delt: 'back',
-  isolation_bicep: 'biceps',
-  squat: 'quads',
-  squat_unilateral: 'quads',
-  isolation_quad: 'quads',
-  hinge: 'hamstrings',
-  hinge_extension: 'hamstrings',
-  isolation_hamstring: 'hamstrings',
-  isolation_calf: 'calves',
-  isolation_hip: 'glutes',
-  gpp_hip: 'glutes',
-  gpp: null,
-  gpp_carry: null,
-  gpp_push: null,
-  gpp_conditioning: null,
-  gpp_cardio: null,
-  gpp_power: null,
-  gpp_strongman: null,
-}
-
-const COMPOUND_PATTERNS = new Set([
-  'push_horizontal', 'push_vertical', 'pull_horizontal', 'pull_vertical',
-  'squat', 'squat_unilateral', 'hinge',
-])
-
-// ── Epley-based weight recommendation ────────────────────────────────────────
-
-function epleyWeight(oneRM: number, targetReps: number, targetRir: number): number {
-  // Effective reps = reps you could do at this weight = targetReps + targetRir
-  const effectiveReps = targetReps + targetRir
-  if (effectiveReps <= 1) return oneRM
-  const weight = oneRM / (1 + effectiveReps / 30)
-  return Math.round(weight / 2.5) * 2.5
-}
-
-function get1RMForExercise(
-  name: string,
-  pattern: string,
-  oneRepMaxes: Record<string, number>
-): number {
-  const n = name.toLowerCase()
-  const bench = oneRepMaxes.bench || 0
-  const squat = oneRepMaxes.squat || 0
-  const deadlift = oneRepMaxes.deadlift || 0
-  const ohp = oneRepMaxes.ohp || 0
-  const row = oneRepMaxes.row || 0
-
-  // Direct matches
-  if (n.includes('bench press') && !n.includes('incline') && !n.includes('db')) return bench
-  if ((n.includes('back squat') || n === 'squat') && !n.includes('goblet') && !n.includes('hack')) return squat
-  if (n.includes('deadlift') && !n.includes('romanian') && !n.includes('stiff')) return deadlift
-  if (n.includes('overhead press') || n.includes('ohp') || n.includes('barbell ohp')) return ohp
-  if (n.includes('barbell row') || n.includes('barbell rows')) return row
-
-  // Derivatives by pattern
-  // DB weights are per-hand. Rule: DB = 75% of barbell total / 2 per hand (0.375x).
-  // Example: 100 lb bench → 37.5 lb DB press each hand.
-  if (pattern === 'push_horizontal') return Math.round(bench * 0.375 / 2.5) * 2.5  // DB press per hand — 75% of barbell / 2
-  if (pattern === 'push_fly') return Math.round(bench * 0.16 / 2.5) * 2.5          // DB/cable fly — much lighter, not a direct barbell derivative
-  if (pattern === 'push_vertical') return Math.round((ohp || bench * 0.60) * 0.375 / 2.5) * 2.5  // DB OHP per hand — 75% of barbell OHP / 2
-  if (pattern === 'push_tricep') return Math.round(bench * 0.30 / 2.5) * 2.5       // skull crushers/pushdowns total load
-  if (pattern === 'pull_horizontal') return Math.round(row * 0.85 / 2.5) * 2.5    // cable/machine row similar to barbell
-  if (pattern === 'pull_vertical') return Math.round(row * 0.70 / 2.5) * 2.5      // lat pulldown
-  if (pattern === 'pull_rear_delt') return Math.round(row * 0.18 / 2.5) * 2.5     // face pulls / rear delt flies
-  if (pattern === 'isolation_bicep') return Math.round(row * 0.16 / 2.5) * 2.5    // curls per hand
-  if (pattern === 'isolation_shoulder') return Math.round((ohp || bench * 0.60) * 0.18 / 2.5) * 2.5  // lateral raise per hand
-  if (pattern === 'squat') return Math.round(squat * 1.3 / 5) * 5                 // leg press
-  if (pattern === 'squat_unilateral') return Math.round(squat * 0.40 / 2.5) * 2.5 // split squat / lunge per hand
-  if (pattern === 'isolation_quad') return Math.round(squat * 0.30 / 2.5) * 2.5   // leg extension stack
-  if (pattern === 'hinge') return Math.round(deadlift * 0.50 / 2.5) * 2.5         // RDL / good morning
-  if (pattern === 'hinge_extension') return Math.round(deadlift * 0.30 / 2.5) * 2.5
-  if (pattern === 'isolation_hamstring') return Math.round(deadlift * 0.20 / 2.5) * 2.5  // leg curl stack
-  if (pattern === 'isolation_calf') return Math.round(squat * 0.45 / 5) * 5
-  if (pattern === 'isolation_hip') return Math.round(squat * 0.25 / 2.5) * 2.5
-
-  return 0
-}
-
-function calcRecommendedWeight(
-  name: string,
-  pattern: string,
-  targetReps: number,
-  targetRir: number,
-  lastWeekWeight: number | null,
-  lastWeekRir: number | null,
-  oneRepMaxes: Record<string, number>
-): number {
-  const isCompound = COMPOUND_PATTERNS.has(pattern)
-
-  if (lastWeekWeight === null) {
-    // Week 1 — derive from 1RM
-    const rm = get1RMForExercise(name, pattern, oneRepMaxes)
-    if (!rm) return 0
-    return epleyWeight(rm, targetReps, targetRir)
-  }
-
-  // Week 2+ — adjust from last week's actual
-  if (lastWeekRir === 0) {
-    // Hit true failure → add weight
-    return lastWeekWeight + (isCompound ? 5 : 2.5)
-  }
-
-  // Otherwise weight stays same; AI changes RIR target
-  return lastWeekWeight
 }
 
 export async function POST(request: Request) {
@@ -504,25 +263,49 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { allowed } = await checkRateLimit(supabase, user.id, 'program-generate', 5, 60_000)
-  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
+  const { allowed } = await checkRateLimit(supabase, user.id, 'program-generate')
+  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
 
   try {
-    const {
-      userId, weekNumber, programSlug, userProfile,
-      recentLogs, oneRepMaxes, muscleGroupFeedback
-    } = await request.json() as {
+    const { userId, weekNumber, programSlug, userProfile, recentLogs, calibrationWeights } = await request.json() as {
       userId: string
       weekNumber: number
       programSlug: string
       userProfile?: Record<string, unknown>
-      recentLogs?: Array<{ exercise_name: string; weight: number; reps: number; rir_actual: number | null; completed: boolean; created_at: string }>
-      oneRepMaxes?: Record<string, number>
-      muscleGroupFeedback?: Array<{ week_number: number; muscle_group: string; volume_rating: string; pump_rating: string; pain_rating: string }>
+      recentLogs?: Array<{ exercise: string; weight: number; reps: number; rir_actual: number | null; completed: boolean; logged_at: string }>
+      calibrationWeights?: Record<string, number>
     }
 
     if (!userId || !weekNumber || !programSlug) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
+    }
+
+    // Derive accessory weights from main lift calibration weights
+    function deriveAccessoryWeights(cw: Record<string, number>) {
+      const bench = cw.bench || 0
+      const squat = cw.squat || 0
+      const deadlift = cw.deadlift || 0
+      const row = cw.row || 0
+
+      return {
+        // Chest accessories
+        incline_db_press: Math.round((bench * 0.35) / 5) * 5,
+        cable_flyes: Math.round((bench * 0.15) / 5) * 5,
+        jm_press: Math.round((bench * 0.45) / 5) * 5,
+        skull_crushers: Math.round((bench * 0.35) / 5) * 5,
+        // Back accessories
+        lat_pulldown: Math.round((row * 0.85) / 5) * 5,
+        seated_cable_row: Math.round((row * 0.75) / 5) * 5,
+        straight_arm_pulldown: Math.round((row * 0.3) / 5) * 5,
+        // Leg accessories
+        leg_press: Math.round((squat * 1.5) / 5) * 5,
+        romanian_deadlift: Math.round((deadlift * 0.5) / 5) * 5,
+        good_morning: Math.round((squat * 0.3) / 5) * 5,
+        // Small muscles (rough estimates)
+        curl: Math.round((row * 0.2) / 5) * 5,
+        tricep_pushdown: Math.round((bench * 0.2) / 5) * 5,
+        calf_raise: Math.round((squat * 0.4) / 5) * 5,
+      }
     }
 
     const template = PROGRAM_TEMPLATES[programSlug] ?? PROGRAM_TEMPLATES['dad-strong-5']
@@ -530,173 +313,143 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Unknown program: ${programSlug}` }, { status: 400 })
     }
 
-    const rms = oneRepMaxes ?? {}
+    // ── Build log summary per exercise ─────────────────────────────────────
+    const logsByExercise: Record<string, Array<{
+      weight: number
+      reps: number
+      rir_actual: number | null
+      completed: boolean
+      logged_at: string
+    }>> = {}
 
-    // ── Build log summary per exercise ──────────────────────────────────────
-    type LogEntry = { exercise_name: string; weight: number; reps: number; rir_actual: number | null; completed: boolean; created_at: string }
-    const logsByExercise: Record<string, LogEntry[]> = {}
     for (const log of (recentLogs || [])) {
-      const key = log.exercise_name
-      if (!logsByExercise[key]) logsByExercise[key] = []
-      logsByExercise[key].push(log)
-    }
-
-    // Last session per exercise
-    const exerciseSummaryLines: string[] = []
-    const lastSessionByExercise: Record<string, { weight: number; reps: number; rir_actual: number | null }> = {}
-    for (const [exercise, logs] of Object.entries(logsByExercise)) {
-      const sorted = logs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      const lastDate = sorted[0].created_at.split('T')[0]
-      const lastSession = sorted.filter(l => l.created_at.startsWith(lastDate))
-      // Store last set's data for weight recommendation
-      const lastSet = lastSession[lastSession.length - 1]
-      lastSessionByExercise[exercise] = { weight: lastSet.weight, reps: lastSet.reps, rir_actual: lastSet.rir_actual }
-      const setLines = lastSession.map((s, i) =>
-        `  Set ${i + 1}: ${s.weight}lbs × ${s.reps} reps, RIR=${s.rir_actual ?? 'not logged'}, completed=${s.completed}`
-      ).join('\n')
-      exerciseSummaryLines.push(`${exercise} (${lastDate}):\n${setLines}`)
-    }
-
-    // ── Muscle group feedback context ───────────────────────────────────────
-    const feedbackLines: string[] = []
-    const painByMuscle: Record<string, number> = {} // muscle → consecutive weeks with pain
-    for (const fb of (muscleGroupFeedback || [])) {
-      feedbackLines.push(
-        `Week ${fb.week_number} — ${fb.muscle_group}: volume=${fb.volume_rating}, pump=${fb.pump_rating}, pain=${fb.pain_rating}`
-      )
-      if (fb.pain_rating !== 'none') {
-        painByMuscle[fb.muscle_group] = (painByMuscle[fb.muscle_group] || 0) + 1
+      if (!logsByExercise[log.exercise]) {
+        logsByExercise[log.exercise] = []
       }
+      logsByExercise[log.exercise].push(log)
     }
-    const painFlags = Object.entries(painByMuscle)
-      .filter(([, count]) => count >= 2)
-      .map(([muscle]) => muscle)
+
+    // Summarize last session per exercise
+    const exerciseSummaryLines: string[] = []
+    for (const [exercise, logs] of Object.entries(logsByExercise)) {
+      const sorted = logs.sort((a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime())
+      const lastSessionDate = sorted[0].logged_at.split('T')[0]
+      const lastSession = sorted.filter(l => l.logged_at.startsWith(lastSessionDate))
+      const setLines = lastSession.map((s, i) =>
+        `  Set ${i + 1}: ${s.weight}lbs x ${s.reps} reps, RIR logged=${s.rir_actual ?? 'not logged'}, completed=${s.completed}`
+      ).join('\n')
+      exerciseSummaryLines.push(`${exercise} (last session: ${lastSessionDate}):\n${setLines}`)
+    }
 
     const hasHistory = exerciseSummaryLines.length > 0
     const logContext = hasHistory
-      ? `RECENT TRAINING LOGS:\n${exerciseSummaryLines.join('\n\n')}`
-      : `RECENT TRAINING LOGS: None — Week 1, user's first session.`
+      ? `RECENT TRAINING LOGS (last 2 weeks):\n${exerciseSummaryLines.join('\n\n')}`
+      : `RECENT TRAINING LOGS: None — this is the user's first week on this program.`
 
-    const feedbackContext = feedbackLines.length > 0
-      ? `MUSCLE GROUP FEEDBACK (from previous sessions):\n${feedbackLines.join('\n')}`
-      : ''
-
-    const painContext = painFlags.length > 0
-      ? `PAIN FLAGS (2+ consecutive weeks): ${painFlags.join(', ')} — reduce volume and note to consider exercise swap`
-      : ''
+    const templateJson = JSON.stringify(template, null, 2)
 
     const prompt = `
 PROGRAM TEMPLATE:
-${JSON.stringify(template, null, 2)}
+${templateJson}
 
 USER PROFILE:
 - Training age: ${userProfile?.trainingAge ?? 'intermediate'}
 - Primary goal: ${userProfile?.primaryGoal ?? 'strength'}
-- Equipment: ${userProfile?.equipment ? Object.entries(userProfile.equipment as Record<string,unknown>).filter(([, v]) => v).map(([k]) => k).join(', ') || 'standard gym' : 'standard gym'}
+- Equipment available: ${userProfile?.equipment ? Object.entries(userProfile.equipment).filter(([, v]) => v).map(([k]) => k).join(', ') || 'standard gym' : 'standard gym'}
 
 WEEK: ${weekNumber}
 
 ${logContext}
 
-${feedbackContext}
-
-${painContext}
-
 Generate a complete week of programmed workouts for week ${weekNumber}.
 `.trim()
 
     // ── Generate AI program ─────────────────────────────────────────────────
-    const { object: aiProgram } = await generateObject({
+    const { object: program } = await generateObject({
       model: google('gemini-2.5-flash'),
-      system: `You are an experienced strength coach programming for busy dads. Data-driven, direct, zero fluff.
-
-CRITICAL: Do NOT prescribe specific weights. The system calculates recommended weights automatically.
-Your job is to prescribe: exercise name, movementPattern, sets count, targetReps, and targetRir only.
+      system: `You are an experienced strength coach programming for busy dads. You are data-driven, direct, and brief — no fluff. You write like a coach talking to someone with limited time and real responsibilities.
 
 PROGRAM CHARACTER:
-- Dad Strong: strength + hypertrophy hybrid. Compound-first. Linear RIR progression.
-- Hybrid: functional strength + GPP. For GPP movements (carries, sleds, conditioning): set targetRir to 0 and add note "load by feel, RPE 7-8".
-- Golden Era: classic bodybuilding. High volume, full pumps, peak contraction. Isolation-forward. Rep ranges 8-15 for accessories. Mind-muscle connection over load. Progression is squeeze-first, weight second.
+- Dad Strong (dad-strong-3, dad-strong-5): Strength + bodybuilding hybrid with linear progression. Compound-first, accessories follow. Progress weights methodically each week.
+- Hybrid (hybrid-3, hybrid-5): Functional strength + GPP. Carries, loaded conditioning, and strongman movements are core to this program. For GPP/strongman days (Farmer's Carry, Sled Push, Atlas Stone, etc.): no RIR targets — use RPE 7-8, load by feel, focus on quality movement and effort. Do not program targetWeight for GPP carries/sleds — set to 0 and note "load by feel".
 
-PROGRESSION RULES:
-Week 1 (no history): start all exercises at RIR 3-4. Rep ranges as per template. weekTheme = "Week 1 — Find Your Baseline".
+PROGRESSION RULES (follow these exactly):
+1. For each exercise, find the user's last logged weight, reps, and rir_actual from the provided logs.
+2. If rir_actual > target RIR (too easy): increase weight — 5 lbs for isolation movements, 10 lbs for compound movements.
+3. If rir_actual = target RIR (on target): keep weight. If they hit the top of the rep range, add 2.5 lbs.
+4. If rir_actual < target RIR (too hard): keep weight or reduce 5-10%.
+5. If completed=false on any set: reduce weight 10% for that exercise.
+6. For week 1 with no history and no calibration data, suggest conservative starting weights based on training age:
+   - beginner: empty bar or very light weight, technique focus
+   - intermediate: moderate working weights (e.g., bench ~135 lbs, squat ~155 lbs, deadlift ~185 lbs)
+   - advanced: near-max programming with heavier starting points
+7. For week 1 new users: add a note like "Start conservative — we'll dial in your weights over the first 2 sessions"
 
-Week 2+ per exercise:
-- rir_actual was ABOVE target (felt easy): reduce targetRir by 1 next week (same reps, user will use same weight and work harder)
-- rir_actual matched target: keep targetRir same; if they hit TOP of rep range → note it in progressionNote
-- rir_actual was BELOW target (too hard): increase targetRir by 1
-- rir_actual = 0 (true failure): server adds weight automatically; reset targetRir to 2 next week
-- completed=false on any set: increase targetRir by 2 (back off)
+OUTPUT RULES:
+- Always reference actual numbers from logs when explaining progression decisions in progressionNote.
+- Keep progressionNote brief: one sentence max. Example: "Up from 185x5 last week — hit top of range with RIR 4."
+- coachNote should be 1-2 sentences max. Direct. References what the data shows or what to focus on this week.
+- weekTheme should be concise: e.g. "Foundation Week", "Week 3 — Adding Load", "Deload Week".
+- Set targetWeight to 0 for bodyweight exercises.
+- Ensure every exercise from the template is included in each day.
+- deloadRecommended should be true if the user has 4+ consecutive weeks of logged data showing fatigue indicators (rir_actual consistently below target or failed sets).${
+        weekNumber === 1 && calibrationWeights && Object.keys(calibrationWeights).length > 0
+          ? `
 
-Volume adjustments from muscle group feedback:
-- volume="not_enough": add 1 working set to the primary compound for that muscle
-- volume="too_much" or "bit_much": remove 1 set or increase targetRir by 1
-- pump="good" or "skin_splitting" AND volume="about_right": reduce targetRir by 1 (capitalize on adaptation)
-- pain="mild" once: no change, note it
-- pain flag active (2+ weeks): reduce volume 1 set, increase targetRir by 1, add progressionNote "Consider exercise swap"
+CALIBRATION WEEK RULES (Week 1 only):
+- This is the user's calibration week. Do NOT try to guess weights based on training age.
+- Use the calibration weights EXACTLY as the starting point for primary lifts.
+- For primary lifts: use the calibration weight directly as targetWeight.
+- For accessory lifts: use the derived accessory weights provided below.
+- Set ALL sets to the SAME weight for each exercise (no wave loading in Week 1).
+- The weekTheme should be "Calibration Week"
+- The coachNote should explain: "Week 1 is about locking in your baselines. Use exactly these weights, focus on form, and hit the target RIR. We'll start pushing load in Week 2."
 
-Deload week (last week of program OR early trigger): reduce sets by ~40%, increase all targetRir by 2-3.
+Calibration weights entered by user:
+${JSON.stringify(calibrationWeights)}
 
-OUTPUT:
-- progressionNote: one sentence max referencing actual data. e.g. "RIR 4 last week vs target 3 — tightening to RIR 2."
-- coachNote: 1-2 sentences, data-referenced, direct.
-- weekTheme: short label, e.g. "Week 3 — Tightening the Vice"
-- movementPattern: must match exactly from template data (e.g. push_horizontal, squat, hinge, isolation_bicep)
-- Ensure every exercise from the template appears in each day.`,
+Derived accessory weights (use these for accessories):
+${JSON.stringify(deriveAccessoryWeights(calibrationWeights))}`
+          : weekNumber === 1
+          ? `
+
+WEEK 1 - NO CALIBRATION DATA:
+User did not enter starting weights. Suggest conservative starter weights based on training age:
+- Beginner: very light (bar + 25s for compounds)
+- Intermediate: moderate (bar + 45-90s for compounds)
+- Advanced: moderate-heavy (bar + 90-135s for compounds)
+Add a note on each exercise: "Adjust this weight to achieve the target RIR — these are estimates."
+Set weekTheme to "Calibration Week" regardless.`
+          : ''
+      }`,
       prompt,
       schema: z.object({
         weekNumber: z.number(),
         programName: z.string(),
-        weekTheme: z.string(),
-        coachNote: z.string(),
+        weekTheme: z.string().describe('Short label for this week, e.g. "Foundation Week" or "Push Week 3 — Adding Load"'),
+        coachNote: z.string().describe('1-2 sentences from the coach on what to focus on this week, referencing actual data'),
         days: z.array(z.object({
           dayNumber: z.number(),
           dayName: z.string(),
           exercises: z.array(z.object({
             name: z.string(),
-            movementPattern: z.string().describe('Must match template movementPattern exactly'),
             sets: z.array(z.object({
               setNumber: z.number(),
+              targetWeight: z.number().describe('Weight in lbs. Use 0 for bodyweight exercises.'),
               targetReps: z.number(),
               targetRir: z.number(),
-              notes: z.string().optional(),
+              notes: z.string().optional().describe('e.g. "increase from last week" or "start conservative"'),
             })),
-            progressionNote: z.string().optional(),
+            progressionNote: z.string().optional().describe('One sentence explaining why weight changed or stayed the same vs last week'),
           })),
         })),
         deloadRecommended: z.boolean(),
-        deloadReason: z.string().optional(),
+        deloadReason: z.string().optional().describe('Why a deload is recommended, if applicable'),
         isCalibrationWeek: z.boolean(),
       }),
     })
 
-    // ── Server-side: inject recommendedWeight per set ───────────────────────
-    const programWithWeights = {
-      ...aiProgram,
-      days: aiProgram.days.map(day => ({
-        ...day,
-        exercises: day.exercises.map(ex => {
-          const lastData = lastSessionByExercise[ex.name] ?? null
-          return {
-            ...ex,
-            sets: ex.sets.map(set => ({
-              ...set,
-              recommendedWeight: calcRecommendedWeight(
-                ex.name,
-                ex.movementPattern,
-                set.targetReps,
-                set.targetRir,
-                lastData?.weight ?? null,
-                lastData?.rir_actual ?? null,
-                rms
-              ),
-            })),
-          }
-        }),
-      })),
-    }
-
-    return NextResponse.json({ program: programWithWeights })
+    return NextResponse.json({ program })
   } catch (error) {
     console.error('Program Generate Error:', error)
     return NextResponse.json({ error: 'Failed to generate program. Try again.' }, { status: 500 })

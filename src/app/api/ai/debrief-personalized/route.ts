@@ -6,7 +6,6 @@ import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
 
 export async function POST(request: Request) {
   // ── Auth: validate session server-side, never trust userId from body ──────
@@ -17,8 +16,8 @@ export async function POST(request: Request) {
   }
   const userId = user.id  // always use server-verified id
 
-  const { allowed } = await checkRateLimit(supabase, user.id, 'debrief-personalized', 3, 60_000)
-  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
+  const { allowed } = await checkRateLimit(supabase, user.id, 'debrief-personalized')
+  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
 
   try {
     const { weekStart, weekEnd, userInputs } = await request.json()

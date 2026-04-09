@@ -150,10 +150,11 @@ export default function PersonalGrowth() {
       ...overrides,
     }
     localStorage.setItem('dad-strength-growth-state', JSON.stringify(state))
-    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
-      if (!data.user) return
+    supabase.auth.getUser().then((r: any) => {
+      const user = r.data.user
+      if (!user) return
       supabase.from('daily_checkins').upsert(
-        { user_id: data.user.id, date: today, growth_state: state, updated_at: new Date().toISOString() },
+        { user_id: user.id, date: today, growth_state: state, updated_at: new Date().toISOString() },
         { onConflict: 'user_id,date' }
       ).then(() => {})
     })
@@ -162,10 +163,11 @@ export default function PersonalGrowth() {
   const saveGrowthProfile = (habitsData: Habit[], bookData: BookData) => {
     const profile = { habits: habitsData, book: bookData }
     localStorage.setItem('dad-strength-growth-profile', JSON.stringify(profile))
-    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
-      if (!data.user) return
+    supabase.auth.getUser().then((r: any) => {
+      const user = r.data.user
+      if (!user) return
       supabase.from('user_profiles').upsert(
-        { id: data.user.id, growth_data: profile },
+        { id: user.id, growth_data: profile },
         { onConflict: 'id' }
       ).then(() => {})
     })

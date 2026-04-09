@@ -42,7 +42,8 @@ export default function Brotherhood() {
   useEffect(() => {
     if (userLoading) return;
     loadBrothers(userId);
-  }, [user, userLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, userLoading]);
 
   const loadBrothers = async (uid: string | null) => {
     setLoading(true);
@@ -77,25 +78,28 @@ export default function Brotherhood() {
 
   const markContacted = async (id: string) => {
     const now = new Date().toISOString();
-    const { error } = await supabase
+    // Optimistic update — instant feedback before network round-trip
+    setBrothers(prev =>
+      prev.map(b => b.id === id ? { ...b, last_contacted_at: now } : b)
+    );
+    // Persist in background; if it fails we leave the optimistic state
+    // (a reload will resync from DB)
+    supabase
       .from('brotherhood_contacts')
       .update({ last_contacted_at: now })
-      .eq('id', id);
-    if (!error) {
-      setBrothers(prev =>
-        prev.map(b => b.id === id ? { ...b, last_contacted_at: now } : b)
-      );
-    }
+      .eq('id', id)
+      .then(() => {});
   };
 
   const removeBrother = async (id: string) => {
-    const { error } = await supabase
+    // Optimistic update
+    setBrothers(prev => prev.filter(b => b.id !== id));
+    // Persist in background
+    supabase
       .from('brotherhood_contacts')
       .delete()
-      .eq('id', id);
-    if (!error) {
-      setBrothers(prev => prev.filter(b => b.id !== id));
-    }
+      .eq('id', id)
+      .then(() => {});
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

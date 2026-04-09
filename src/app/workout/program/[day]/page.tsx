@@ -350,6 +350,13 @@ export default function ProgramWorkoutPage() {
           return
         }
         const prog: ActiveProgram = JSON.parse(raw)
+
+        // Ares uses its own workout page
+        if (prog.slug?.startsWith('ares')) {
+          router.replace(`/workout/ares/${dayNumber}`)
+          return
+        }
+
         setProgram(prog)
 
         // 2. Restore in-progress workout if it exists (survives screen sleep / app close)

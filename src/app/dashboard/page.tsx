@@ -303,6 +303,10 @@ export default function Dashboard() {
                     if (activeProgram) {
                       if (activeProgram.slug?.startsWith('chronos')) {
                         router.push('/workout/squeeze')
+                      } else if (activeProgram.slug?.startsWith('ares')) {
+                        const daysCount = activeProgram.daysCount || 4
+                        const nextDay = getNextWorkoutDay(daysCount)
+                        router.push(`/workout/ares/${nextDay}`)
                       } else {
                         const daysCount = activeProgram.daysCount || activeProgram.frequency || 3
                         const nextDay = getNextWorkoutDay(daysCount)

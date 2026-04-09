@@ -6,7 +6,6 @@ import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
 
 // ── Rotation pattern (dayNumber % 7) ───────────────────────────────────────
 const ROTATION_PATTERNS: Record<number, string> = {
@@ -107,8 +106,8 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { allowed } = await checkRateLimit(supabase, user.id, 'squeeze-generate', 5, 60_000)
-  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
+  const { allowed } = await checkRateLimit(supabase, user.id, 'squeeze-generate')
+  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
 
   try {
     const {
@@ -118,8 +117,6 @@ export async function POST(request: Request) {
       recentSqueezeMovements,
       isSubstitute,
       substitutedDayFocus,
-      trainingAge,
-      injuryFlags,
     } = await request.json() as {
       userId: string
       dayNumber: number
@@ -127,12 +124,7 @@ export async function POST(request: Request) {
       recentSqueezeMovements?: string[]
       isSubstitute?: boolean
       substitutedDayFocus?: string
-      trainingAge?: 'beginner' | 'intermediate' | 'advanced'
-      injuryFlags?: string[]
     }
-
-    const safeTrainingAge = trainingAge ?? 'intermediate'
-    const safeInjuryFlags = Array.isArray(injuryFlags) ? injuryFlags : []
 
     if (!userId || !dayNumber || !equipment) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
@@ -163,26 +155,6 @@ export async function POST(request: Request) {
       ? `This is substituting for a ${substitutedDayFocus} program day — try to match that muscle group focus.`
       : ''
 
-    const trainingAgeNote =
-      safeTrainingAge === 'beginner'
-        ? 'ATHLETE LEVEL: BEGINNER — Keep A1 simple (no Olympic lifts, no complex barbell variations). Use goblet squat over back squat, DB movements over barbell. A2 superset: bodyweight or light DB only. Finisher: simple and short.'
-        : safeTrainingAge === 'advanced'
-        ? 'ATHLETE LEVEL: ADVANCED — Full movement library available. A1 can be barbell compound or Olympic derivative. A2 can include gymnastics, carries, or sprint intervals. Finisher can be complex.'
-        : 'ATHLETE LEVEL: INTERMEDIATE — Standard movement library. Barbell A1 if equipment available. Standard A2 and finisher formats.'
-
-    const injuryNote = safeInjuryFlags.length > 0
-      ? `INJURY FLAGS — MANDATORY (apply to every block, no exceptions):${safeInjuryFlags.map(f => {
-          const fl = f.toLowerCase()
-          if (fl === 'shoulder') return '\n- SHOULDER: No overhead press (OHP, push press, barbell press). Use floor press, incline push-up, or landmine press instead. No upright rows.'
-          if (fl === 'low back') return '\n- LOW BACK: No conventional deadlift or good morning. Use goblet squat, hip thrust, or KB swing as hinge substitutes. Keep spinal load minimal.'
-          if (fl === 'knee') return '\n- KNEE: No deep squats or high-volume lunges. Use hip hinge patterns (hinge A1), upper body A1, or box squat with reduced ROM. Leg press at shallow depth if available.'
-          if (fl === 'elbow') return '\n- ELBOW: No skullcrushers. No barbell curl with supinated grip. Use rope pushdown, hammer curl, and neutral-grip alternatives only.'
-          if (fl === 'hip') return '\n- HIP: No aggressive hip hinge or split squat with deep hip flexion. Use upper body A1 patterns, step-ups with limited ROM, or machine-based lower work.'
-          if (fl === 'wrist') return '\n- WRIST: No front rack barbell position. No barbell curl. Use trap bar, neutral-grip DB, or bodyweight pressing alternatives.'
-          return ''
-        }).join('')}`
-      : ''
-
     const systemPrompt = `You are a strength coach programming The Squeeze — a 15-20 min daily workout for busy dads.
 
 THE SQUEEZE FORMAT:
@@ -211,8 +183,7 @@ ROTATION LOGIC:
 SPECIAL RULES:
 - ${recentNote}
 - ${substituteNote || 'Standard session.'}
-- ${trainingAgeNote}
-${injuryNote ? injuryNote + '\n' : ''}- Always include scaleUp and scaleDown for A1
+- Always include scaleUp and scaleDown for A1
 - Keep coachNote direct and brief — 1-2 sentences max
 - sessionTitle should be the exercise names shortened, e.g. "Dead, Row, Carry"
 - For amrap type: durationSeconds = 180

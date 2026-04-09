@@ -33,8 +33,8 @@ export default function MindPage() {
         setJournal(data.journal || '');
       }
     }
-    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
-      const user = data.user
+    supabase.auth.getUser().then((r: any) => {
+      const user = r.data.user;
       if (!user) return;
       supabase
         .from('daily_checkins')
@@ -42,9 +42,9 @@ export default function MindPage() {
         .eq('user_id', user.id)
         .eq('date', today)
         .single()
-        .then(({ data }: { data: any }) => {
-          if (data?.mind_state) {
-            const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean; journal?: string };
+        .then((res: any) => {
+          if (res.data?.mind_state) {
+            const ms = res.data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean; journal?: string };
             setObjectives(ms.objectives || ['', '', '']);
             setCompletedObjectives(ms.completedObjectives || [false, false, false]);
             setLockedIn(ms.lockedIn || false);
@@ -65,10 +65,11 @@ export default function MindPage() {
     };
     localStorage.setItem('dad-strength-mind-state', JSON.stringify(state));
     const today = new Date().toISOString().split('T')[0];
-    supabase.auth.getUser().then(({ data }: { data: { user: any } }) => {
-      if (!data.user) return;
+    supabase.auth.getUser().then((r: any) => {
+      const user = r.data.user;
+      if (!user) return;
       supabase.from('daily_checkins').upsert(
-        { user_id: data.user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
+        { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
         { onConflict: 'user_id,date' }
       ).then(() => {});
     });

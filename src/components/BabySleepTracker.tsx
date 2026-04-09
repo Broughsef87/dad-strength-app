@@ -28,17 +28,19 @@ export default function BabySleepTracker() {
   const [savedMsg, setSavedMsg] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const userId = user?.id ?? null
   const today = new Date().toISOString().split('T')[0]
 
-  useEffect(() => { load() }, [user])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!userLoading) load() }, [userId, userLoading])
 
   const load = async () => {
-    if (!user) { setLoading(false); return }
+    if (!userId) { setLoading(false); return }
 
     const { data } = await supabase
       .from('user_profiles')
       .select('sleep_log')
-      .eq('id', user.id)
+      .eq('id', userId)
       .maybeSingle()
 
     if (data?.sleep_log) {
@@ -61,11 +63,11 @@ export default function BabySleepTracker() {
       personalHours: parseFloat(personalHours) || 0,
     }
 
-    if (user) {
+    if (userId) {
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('sleep_log')
-        .eq('id', user.id)
+        .eq('id', userId)
         .maybeSingle()
 
       const existing: SleepEntry[] = (profile?.sleep_log as SleepEntry[]) || []
@@ -74,7 +76,7 @@ export default function BabySleepTracker() {
         .slice(-30)
 
       await supabase.from('user_profiles').upsert(
-        { id: user.id, sleep_log: updated },
+        { id: userId, sleep_log: updated },
         { onConflict: 'id' }
       )
       setEntries(updated.slice(-7).reverse())

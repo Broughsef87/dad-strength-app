@@ -157,7 +157,7 @@ export default function ActiveProgram() {
           .update({ current_week: newWeek })
           .eq('user_id', user.id)
           .eq('status', 'active')
-          .then(({ error }: { error: any }) => { if (error) console.error(error) })
+          .then(({ error }: { error: unknown }) => { if (error) console.error(error) })
       }
     }
   }
@@ -201,7 +201,9 @@ export default function ActiveProgram() {
   }
 
   const isChronos = program.slug?.startsWith('chronos')
-  const workoutRoute = (day: number) => isChronos ? '/workout/squeeze' : `/workout/program/${day}`
+  const isAres = program.slug?.startsWith('ares')
+  const workoutRoute = (day: number) =>
+    isChronos ? '/workout/squeeze' : isAres ? `/workout/ares/${day}` : `/workout/program/${day}`
   const dayNames = program.dayNames ?? Array.from({ length: totalDays }, (_, i) => `Day ${i + 1}`)
 
   return (

@@ -91,7 +91,7 @@ export default function Schedule() {
         .eq('completed', true)
         .order('created_at', { ascending: false })
 
-      const uniqueDays = Array.from(new Set<string>((allLogs || []).map((l: any) => new Date(l.created_at).toDateString())))
+      const uniqueDays = Array.from(new Set((allLogs || []).map((l: any) => new Date(l.created_at).toDateString()))) as string[]
       let s = 0
       for (let i = 0; i < uniqueDays.length; i++) {
         const d = new Date(uniqueDays[i]); d.setHours(0,0,0,0)

@@ -6,15 +6,14 @@ import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
 
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { allowed } = await checkRateLimit(supabase, user.id, 'mission-brief', 5, 60_000)
-  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
+  const { allowed } = await checkRateLimit(supabase, user.id, 'mission-brief')
+  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
 
   try {
     const { weekObjective, familyIntention, trainingFocus, weekNumber } = await request.json()

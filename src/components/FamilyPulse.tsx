@@ -82,8 +82,11 @@ export default function FamilyPulse() {
     };
 
     fetchData();
+  // Only re-fetch when the userId string changes, not when the user object reference
+  // changes (e.g. Supabase TOKEN_REFRESHED rebuilds the object, which would
+  // overwrite optimistic state before the debounced save fires).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, user]);
+  }, [userId]);
 
   // Debounced save
   const scheduleSave = useCallback((data: PulseData) => {

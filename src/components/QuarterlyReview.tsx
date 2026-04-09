@@ -173,7 +173,7 @@ export default function QuarterlyReview() {
       .gte('created_at', startISO)
       .lte('created_at', endISO + 'T23:59:59')
 
-    const distinctWorkoutDates = new Set<string>(
+    const distinctWorkoutDates = new Set(
       (wlogs || []).map((l: any) => new Date(l.created_at).toDateString())
     )
     const workoutCount = distinctWorkoutDates.size
