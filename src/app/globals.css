@@ -103,11 +103,11 @@
     --background: 0 0% 4%;           /* #0A0A0A — absolute near-black */
     --foreground: 0 0% 94%;          /* #F0F0F0 — clean off-white */
 
-    --card: 0 0% 8%;                 /* #141414 — raised surface */
+    --card: 0 0% 10%;                /* #1A1A1A — raised surface */
     --card-foreground: 0 0% 94%;
 
     --surface-1: 0 0% 4%;            /* #0A0A0A — base */
-    --surface-2: 0 0% 10%;           /* #1A1A1A — nav, header bands */
+    --surface-2: 0 0% 13%;           /* #212121 — nav, header bands */
     --surface-3: 0 0% 8%;            /* #141414 — cards */
 
     --popover: 0 0% 10%;
@@ -457,4 +457,97 @@
   height: 2px;
   background: hsl(var(--brand));
   border-radius: 1px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ELEIKO-STYLE COMPONENT UTILITIES
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Info card (left border accent, like Eleiko) ─────────────────── */
+.info-card {
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  border-left: 3px solid hsl(var(--brand));
+  padding: 14px 16px;
+}
+
+/* ── Data row (label + value, separated by bottom border) ─────────── */
+.data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.data-row:last-child {
+  border-bottom: none;
+}
+
+/* ── Section label (small gray uppercase above a group) ───────────── */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 8px;
+  margin-top: 20px;
+}
+
+/* ── Stat number (large bold Inter, NOT monospace) ────────────────── */
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: hsl(var(--foreground));
+  letter-spacing: -0.02em;
+}
+
+/* ── Brand progress bar ───────────────────────────────────────────── */
+.progress-track {
+  height: 4px;
+  background: hsl(var(--muted));
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: hsl(var(--brand));
+  border-radius: 2px;
+  transition: width 0.7s ease;
+}
+
+/* ── Segment control (like Eleiko's Goal | Week plan tabs) ─────────── */
+.segment-control {
+  display: flex;
+  background: hsl(var(--muted));
+  border-radius: calc(var(--radius) - 4px);
+  padding: 3px;
+  gap: 2px;
+}
+.segment-tab {
+  flex: 1;
+  padding: 7px 12px;
+  border-radius: calc(var(--radius) - 6px);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.15s;
+  color: hsl(var(--muted-foreground));
+}
+.segment-tab.active {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+/* ── Brand checkmark circle ─────────────────────────────────────────── */
+.brand-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: hsl(var(--brand));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }

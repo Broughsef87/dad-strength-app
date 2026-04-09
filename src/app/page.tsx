@@ -57,100 +57,77 @@ export default function Home() {
     checkUser();
   }, [router, supabase.auth]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Thin header */}
-      <header className="flex items-center justify-between px-6 py-5">
-        <span className="text-[10px] font-semibold tracking-[0.3em] text-muted-foreground/40 uppercase">Dad Strength</span>
-        <span className="font-mono text-[10px] text-muted-foreground/30 tracking-widest">2026</span>
-      </header>
-      <div className="h-px bg-brand" />
-
-      {/* Content */}
-      <div className="flex-1 flex flex-col justify-between px-6 pt-10 pb-10 max-w-3xl">
-
-        {/* Hero headline */}
-        <div>
-          <h1 className="font-display text-[clamp(5rem,20vw,14rem)] leading-[0.82] text-foreground tracking-tight">
-            DAD<br />STRENGTH
-          </h1>
-          <div className="mt-6 flex items-center gap-6 max-w-lg">
-            <div className="h-px flex-1 bg-border/30" />
-            <p className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] shrink-0">
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <>
+          {/* Top brand area */}
+          <div className="flex flex-col items-center justify-center pt-16 pb-8 px-6">
+            {/* Logo mark */}
+            <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center mb-5">
+              <span className="font-black text-white text-2xl" style={{ fontFamily: 'var(--font-bebas, sans-serif)', letterSpacing: '0.05em' }}>DS</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Dad Strength</h1>
+            <p className="text-[13px] text-muted-foreground mt-1.5 text-center max-w-xs">
               The training OS for fathers who refuse to disappear
             </p>
           </div>
 
-          {/* Stats row */}
-          <div className="mt-10 flex items-center gap-10">
-            {[
-              { num: '6', label: 'Programs' },
-              { num: '4×', label: 'Days / Week' },
-              { num: '∞', label: 'Variation' },
-            ].map((s) => (
-              <div key={s.label} className="border-t border-border/30 pt-3">
-                <p className="font-mono text-2xl text-foreground">{s.num}</p>
-                <p className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.2em] mt-1">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Auth section — minimal */}
-        <div className="mt-14 max-w-xs">
-          <p className="text-[9px] tracking-[0.3em] text-muted-foreground/40 uppercase mb-5">Enter</p>
-          <div className="auth-container">
-            <Auth
-              supabaseClient={supabase}
-              appearance={{
-                theme: ThemeSupa,
-                variables: {
-                  default: {
-                    colors: authColors,
-                    borderWidths: { buttonBorderWidth: '1px', inputBorderWidth: '1px' },
-                    radii: {
-                      borderRadiusButton: '12px',
-                      buttonBorderRadius: '12px',
-                      inputBorderRadius: '12px',
+          {/* Auth form */}
+          <div className="flex-1 px-6 max-w-sm mx-auto w-full">
+            <div className="auth-container">
+              <Auth
+                supabaseClient={supabase}
+                appearance={{
+                  theme: ThemeSupa,
+                  variables: {
+                    default: {
+                      colors: authColors,
+                      borderWidths: { buttonBorderWidth: '1px', inputBorderWidth: '1px' },
+                      radii: {
+                        borderRadiusButton: '12px',
+                        buttonBorderRadius: '12px',
+                        inputBorderRadius: '12px',
+                      },
+                      fontSizes: { baseBodySize: '14px', baseLabelSize: '11px' },
+                      fonts: { bodyFontFamily: 'var(--font-inter, sans-serif)' },
+                      space: { inputPadding: '14px 16px', buttonPadding: '14px 16px' },
                     },
-                    fontSizes: { baseBodySize: '14px', baseLabelSize: '11px' },
-                    fonts: { bodyFontFamily: 'var(--font-inter, sans-serif)' },
-                    space: { inputPadding: '14px 16px', buttonPadding: '14px 16px' },
                   },
-                },
-                style: {
-                  button: {
-                    fontWeight: '600',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase' as const,
-                    fontSize: '12px',
+                  style: {
+                    button: {
+                      fontWeight: '600',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase' as const,
+                      fontSize: '12px',
+                    },
+                    label: {
+                      fontSize: '10px',
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase' as const,
+                      fontWeight: '600',
+                    },
+                    anchor: { fontWeight: '500' },
                   },
-                  label: {
-                    fontSize: '10px',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase' as const,
-                    fontWeight: '600',
-                  },
-                  anchor: { fontWeight: '500' },
-                },
-              }}
-              providers={['google']}
-              redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined}
-            />
+                }}
+                providers={['google']}
+                redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined}
+              />
+            </div>
           </div>
-          <p className="mt-6 text-[10px] text-muted-foreground/30 leading-relaxed max-w-xs">
-            Your training data is private and encrypted. No spam. Cancel anytime.
-          </p>
-        </div>
-      </div>
+
+          {/* Footer */}
+          <div className="py-8 px-6 text-center">
+            <p className="text-[11px] text-muted-foreground/50">
+              Your data is private and encrypted. No spam.
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

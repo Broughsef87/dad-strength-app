@@ -116,9 +116,9 @@ export default function DadScore() {
   }
 
   if (loading) return (
-    <div className="space-y-3 animate-pulse">
-      <div className="h-2 bg-muted/30 rounded-none w-1/4" />
-      <div className="h-16 bg-muted/20 rounded-none w-1/3" />
+    <div className="bg-card rounded-2xl border border-border p-5 animate-pulse">
+      <div className="h-4 bg-muted rounded w-1/4 mb-3" />
+      <div className="h-10 bg-muted rounded w-1/3" />
     </div>
   )
 
@@ -127,31 +127,40 @@ export default function DadScore() {
   const gradeColor = getGradeColor(score.grade)
 
   return (
-    <div>
-      <p className="text-[9px] font-semibold tracking-[0.3em] text-muted-foreground/40 uppercase mb-4">Dad Score</p>
-      <div className="flex items-baseline gap-5 mb-8">
-        <span className="font-mono text-8xl text-foreground leading-none tabular-nums">{score.total}</span>
-        <div>
-          <span className={`font-display text-3xl tracking-[0.06em] ${gradeColor}`}>{score.grade}</span>
-          <p className="text-[9px] text-muted-foreground/30 tracking-[0.2em] uppercase mt-1">/ 100</p>
-        </div>
+    <div className="bg-card rounded-2xl border border-border p-5">
+      {/* Header */}
+      <p className="text-[11px] font-medium text-muted-foreground mb-3">Dad Score · This Week</p>
+
+      {/* Score + grade */}
+      <div className="flex items-baseline gap-3 mb-4">
+        <span className="text-5xl font-black text-foreground leading-none" style={{ letterSpacing: '-0.02em' }}>
+          {score.total}
+        </span>
+        <span className={`text-lg font-bold ${gradeColor}`}>{score.grade}</span>
+        <span className="text-sm text-muted-foreground ml-auto">/ 100</span>
       </div>
-      <div className="space-y-4">
+
+      {/* Overall progress bar */}
+      <div className="progress-track mb-5">
+        <div className="progress-fill" style={{ width: `${score.total}%` }} />
+      </div>
+
+      {/* Breakdown rows */}
+      <div className="border-t border-border">
         {[
           { label: 'Training', value: score.training, max: 40 },
           { label: 'Habits', value: score.habits, max: 30 },
           { label: 'Family', value: score.family, max: 20 },
           { label: 'Mind', value: score.mind, max: 10 },
         ].map(({ label, value, max }) => (
-          <div key={label} className="flex items-center gap-4">
-            <span className="text-[9px] font-semibold tracking-[0.2em] text-muted-foreground/40 uppercase w-16 shrink-0">{label}</span>
-            <div className="flex-1 h-px bg-border/30 relative">
-              <div
-                className="absolute top-0 left-0 h-px bg-foreground/60 transition-all duration-700"
-                style={{ width: `${(value / max) * 100}%` }}
-              />
+          <div key={label} className="data-row">
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <div className="flex items-center gap-3 flex-1 ml-4">
+              <div className="flex-1 progress-track">
+                <div className="progress-fill" style={{ width: `${(value / max) * 100}%` }} />
+              </div>
+              <span className="text-sm font-semibold text-foreground w-10 text-right tabular-nums">{value}/{max}</span>
             </div>
-            <span className="font-mono text-[10px] text-muted-foreground/40 w-10 text-right tabular-nums">{value}/{max}</span>
           </div>
         ))}
       </div>

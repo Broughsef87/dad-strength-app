@@ -3,7 +3,7 @@
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Zap } from 'lucide-react'
+import { Settings, Zap, Flame, ChevronRight } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import DadScore from '../../components/DadScore'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
@@ -190,137 +190,131 @@ export default function Dashboard() {
     )
   }
 
-  const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()
-
-  const programLabel = activeProgram?.name?.toUpperCase() || workout?.name?.toUpperCase() || 'NO PROTOCOL'
-  const weekFreqLabel = activeProgram
-    ? `WEEK ${activeProgram.currentWeek ?? 1} · ${activeProgram.daysCount ?? '—'} DAYS/WK`
-    : null
-
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
+    <div className="min-h-screen bg-background text-foreground pb-24">
       <DailyForge />
 
       {/* Upgrade success banner */}
       {upgradeSuccess && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display tracking-[0.2em] uppercase py-3 px-4">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-brand text-white text-center text-[10px] font-semibold tracking-[0.2em] uppercase py-3 px-4">
           Welcome to Dad Strong+ — All Features Unlocked
         </div>
       )}
 
-      {/* HEADER — ultra thin, no background */}
-      <header className="flex items-center justify-between px-5 md:px-8 py-4">
-        <span className="text-[10px] font-semibold tracking-[0.25em] text-muted-foreground/50 uppercase">Dad Strength</span>
-        <div className="flex items-center gap-3">
+      {/* HEADER */}
+      <header className="flex items-center justify-between px-5 pt-12 pb-4 md:pt-6 md:px-8">
+        <div>
+          <p className="text-[11px] text-muted-foreground font-medium tracking-wide">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <h1 className="text-2xl font-bold text-foreground mt-0.5">Good morning</h1>
+        </div>
+        <div className="flex items-center gap-2">
           {!isPro && !subLoading && (
             <button
               onClick={() => setShowUpgrade(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-[10px] font-semibold uppercase tracking-wider"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand text-white text-[11px] font-semibold"
             >
-              <Zap size={10} /> Pro
+              Upgrade
             </button>
           )}
           <button
             onClick={() => router.push('/profile')}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"
           >
-            <Settings size={16} />
+            <Settings size={16} className="text-muted-foreground" />
           </button>
         </div>
       </header>
 
-      {/* SINGLE RED RULE */}
-      <div className="h-px bg-brand" />
+      <main className="px-5 md:px-8 space-y-5 max-w-lg mx-auto md:max-w-2xl">
 
-      {/* HERO — day name + headline */}
-      <section className="px-5 md:px-8 pt-10 pb-8">
-        <p className="text-[10px] font-semibold tracking-[0.3em] text-muted-foreground/40 uppercase mb-3">
-          {dayName}
-        </p>
-        <h1 className="font-display text-[clamp(5rem,18vw,10rem)] leading-[0.85] text-foreground">
-          TRAIN<br />DAY.
-        </h1>
-        <div className="mt-6 flex items-center gap-4">
-          <div className="flex-1 h-px bg-border/30" />
-          {streak > 0 && (
-            <span className="font-mono text-[10px] text-muted-foreground/40 tracking-[0.2em]">{streak}D STREAK</span>
+        {/* ACTIVE PROGRAM CARD — hero */}
+        <div className="bg-card rounded-2xl p-5 border border-border">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="section-label mt-0">Active Protocol</p>
+              <h2 className="text-xl font-bold text-foreground leading-tight mt-1">
+                {activeProgram?.name || workout?.name || 'No Program'}
+              </h2>
+            </div>
+            {streak > 0 && (
+              <div className="flex items-center gap-1.5 bg-brand/10 border border-brand/20 px-3 py-1.5 rounded-full">
+                <Flame size={12} className="text-brand" />
+                <span className="text-[12px] font-bold text-brand">{streak}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Metadata rows */}
+          {activeProgram && (
+            <div className="border-t border-border">
+              <div className="data-row">
+                <span className="text-sm text-muted-foreground">Week</span>
+                <span className="text-sm font-semibold text-foreground">{activeProgram.currentWeek}</span>
+              </div>
+              <div className="data-row">
+                <span className="text-sm text-muted-foreground">Frequency</span>
+                <span className="text-sm font-semibold text-foreground">{activeProgram.daysCount} days / week</span>
+              </div>
+              <div className="data-row">
+                <span className="text-sm text-muted-foreground">Type</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {activeProgram.slug?.startsWith('ares') ? 'Functional' : 'Strength'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* CTA */}
+          <button
+            onClick={handleStart}
+            className="w-full mt-4 py-3.5 rounded-xl bg-brand text-white font-semibold text-[15px] flex items-center justify-center gap-2 hover:bg-brand/90 transition-colors"
+          >
+            {activeProgram || workout ? 'Begin Session' : 'Choose Program'}
+            <ChevronRight size={18} />
+          </button>
+
+          {(activeProgram || workout) && (
+            <button
+              onClick={() => router.push('/build')}
+              className="w-full mt-2 py-2 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Change Program
+            </button>
           )}
         </div>
-      </section>
 
-      {/* ACTIVE PROTOCOL */}
-      <section className="border-t border-border/30 px-5 md:px-8 py-8">
-        <p className="text-[9px] font-semibold tracking-[0.3em] text-muted-foreground/40 uppercase mb-4">Active Protocol</p>
-        <h2 className="font-display text-[clamp(2.5rem,8vw,5rem)] leading-none text-foreground mb-1">
-          {programLabel}
-        </h2>
-        {weekFreqLabel && (
-          <p className="font-mono text-[11px] text-muted-foreground/50 tracking-[0.15em] uppercase mb-6">
-            {weekFreqLabel}
-          </p>
-        )}
-        {!weekFreqLabel && (
-          <p className="font-mono text-[11px] text-muted-foreground/50 tracking-[0.15em] uppercase mb-6">
-            {activeProgram || workout ? '' : 'DEPLOY YOUR FIRST PROTOCOL'}
-          </p>
-        )}
-        <div className="h-px bg-border/30 mb-6" />
-        {/* BEGIN button */}
-        <button onClick={handleStart} className="group flex items-center gap-4 hover:opacity-70 transition-opacity">
-          <div className="w-0.5 h-10 bg-brand" />
-          <span className="font-display text-3xl tracking-[0.08em] text-foreground">BEGIN</span>
-          <span className="font-mono text-sm text-muted-foreground/40 group-hover:text-brand transition-colors">→</span>
-        </button>
-        {(activeProgram || workout) && (
-          <button
-            onClick={() => router.push('/build')}
-            className="mt-4 ml-4 text-[9px] tracking-[0.2em] text-muted-foreground/30 uppercase hover:text-muted-foreground/60 transition-colors"
-          >
-            Change Protocol
-          </button>
-        )}
-      </section>
-
-      {/* CHRONOS */}
-      <section className="border-t border-border/30 px-5 md:px-8 py-6">
+        {/* CHRONOS */}
         <button
           onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
-          className="group flex items-center justify-between w-full hover:opacity-70 transition-opacity"
+          className="w-full bg-card rounded-2xl border border-border p-4 flex items-center justify-between hover:border-brand/30 transition-colors group"
         >
-          <div>
-            <p className="text-[9px] tracking-[0.3em] text-muted-foreground/40 uppercase mb-1">Short on time?</p>
-            <p className="font-display text-2xl text-foreground tracking-wide">
-              CHRONOS
-              {!isPro && (
-                <span className="ml-2 text-[9px] text-brand/60 font-sans font-semibold uppercase tracking-widest">Pro</span>
-              )}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
+              <Zap size={18} className="text-brand" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-sm text-foreground">Chronos</p>
+              <p className="text-[12px] text-muted-foreground">15–20 min · Any equipment</p>
+            </div>
           </div>
-          <span className="font-mono text-xs text-muted-foreground/30">→</span>
+          <ChevronRight size={16} className="text-muted-foreground group-hover:text-brand transition-colors" />
         </button>
-      </section>
 
-      {/* FIRST WEEK CHECKLIST */}
-      <section className="border-t border-border/30 px-5 md:px-8 py-6">
+        {/* FIRST WEEK CHECKLIST */}
         <FirstWeekChecklist />
-      </section>
 
-      {/* DAILY OBJECTIVES */}
-      <section className="border-t border-border/30 px-5 md:px-8 py-6">
+        {/* DAILY OBJECTIVES */}
         <DailyObjectivesCard />
-      </section>
 
-      {/* DAD SCORE */}
-      <section className="border-t border-border/30 px-5 md:px-8 py-8 pb-4">
+        {/* DAD SCORE */}
         <DadScore />
-      </section>
+
+      </main>
 
       <BottomNav />
-
-      <UpgradeModal
-        isOpen={showUpgrade}
-        onClose={() => setShowUpgrade(false)}
-      />
+      <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   )
 }
