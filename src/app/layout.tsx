@@ -80,13 +80,13 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
         <link rel="apple-touch-icon" href="/logo-suite/ds_app_icon.png" />
-        {/* FOUC prevention: apply theme class before first paint */}
+        {/* FOUC prevention: apply theme classes before first paint */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){
             try{
-              var t=localStorage.getItem('dad-strength-theme');
-              var dark=t==='dark'||((!t||t==='auto')&&window.matchMedia('(prefers-color-scheme: dark)').matches);
-              if(dark)document.documentElement.classList.add('dark');
+              var t=localStorage.getItem('dad-strength-theme')||'dark';
+              if(t==='dark'){document.documentElement.classList.add('dark');}
+              else if(t==='red'){document.documentElement.classList.add('dark','see-red');}
             }catch(e){}
           })();
         `}} />

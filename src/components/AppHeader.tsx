@@ -2,17 +2,39 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Settings } from 'lucide-react'
+import { Settings, Sun, Moon, Eye } from 'lucide-react'
 import Logo from './Logo'
 import { createClient } from '../utils/supabase/client'
+import { useTheme, type Theme } from '../contexts/ThemeContext'
 
 interface AppHeaderProps {
   active?: 'hq' | 'train' | 'history' | 'profile'
 }
 
+const THEME_CYCLE: Theme[] = ['light', 'dark', 'red']
+const THEME_ICONS = {
+  light: Sun,
+  dark: Moon,
+  red: Eye,
+}
+const THEME_LABELS = {
+  light: 'Light',
+  dark: 'Dark',
+  red: 'See Red',
+}
+
 export default function AppHeader({ active }: AppHeaderProps) {
   const router = useRouter()
   const supabase = createClient()
+  const { theme, setTheme } = useTheme()
+
+  const cycleTheme = () => {
+    const idx = THEME_CYCLE.indexOf(theme)
+    const next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length]
+    setTheme(next)
+  }
+
+  const ThemeIcon = THEME_ICONS[theme] ?? Moon
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -53,6 +75,16 @@ export default function AppHeader({ active }: AppHeaderProps) {
           >
             Sign Out
           </button>
+          {/* Theme toggle — cycles Light → Dark → See Red */}
+          <button
+            onClick={cycleTheme}
+            title={`Switch to ${THEME_LABELS[THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length]]}`}
+            className={`p-1.5 rounded-md border border-border transition-all hover:border-brand/40 ${
+              theme === 'red' ? 'text-red-300 border-red-800/50 bg-red-900/20' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ThemeIcon size={14} />
+          </button>
         </nav>
       </header>
 
@@ -69,12 +101,24 @@ export default function AppHeader({ active }: AppHeaderProps) {
             </span>
           </div>
         </Link>
-        <Link
-          href="/profile"
-          className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Settings size={16} />
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Mobile theme cycle button */}
+          <button
+            onClick={cycleTheme}
+            title={THEME_LABELS[theme]}
+            className={`p-2 rounded-lg border border-border transition-all ${
+              theme === 'red' ? 'text-red-300 border-red-800/40 bg-red-900/20' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ThemeIcon size={15} />
+          </button>
+          <Link
+            href="/profile"
+            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Settings size={16} />
+          </Link>
+        </div>
       </header>
     </>
   )

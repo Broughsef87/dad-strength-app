@@ -129,11 +129,14 @@
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 17%;              /* #2B2B2B — hairline borders */
+    --border-bright: 0 0% 24%;       /* #3D3D3D — hover / active steel */
     --input: 0 0% 8%;
     --ring: 0 78% 50%;
 
     --brand: 0 78% 50%;              /* #E61A1A — same red, both modes */
+    --brand-deep: 0 78% 36%;         /* #A81111 — deep crimson, taillight shadow */
     --steel: 0 0% 56%;               /* #8F8F8F */
+    --steel-bright: 0 0% 72%;        /* #B8B8B8 — specular highlight, catches light */
   }
 
   * {
@@ -151,6 +154,18 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* ── Dark body — carbon composite + red taillight ambient ──────────── */
+  /* Three layers: red glow at the bottom (like F80 taillights), carbon   */
+  /* fiber weave cross-hatch, and the flat base. Fixed so it doesn't      */
+  /* scroll with content — it's the cockpit you're sitting inside.        */
+  .dark body {
+    background-image:
+      radial-gradient(ellipse 100% 40% at 50% 110%, hsl(var(--brand) / 0.07) 0%, transparent 60%),
+      repeating-linear-gradient( 45deg, transparent 0px, transparent 3px, rgba(255,255,255,0.013) 3px, rgba(255,255,255,0.013) 4px),
+      repeating-linear-gradient(-45deg, transparent 0px, transparent 3px, rgba(255,255,255,0.013) 3px, rgba(255,255,255,0.013) 4px);
+    background-attachment: fixed;
+  }
+
   /* ── Grain texture — fixed full-viewport overlay ───────────────────────── */
   /* Feels like premium paper in light, brushed steel in dark.              */
   body::after {
@@ -166,7 +181,7 @@
     mix-blend-mode: multiply;
   }
   .dark body::after {
-    opacity: 0.048;
+    opacity: 0.055;
     mix-blend-mode: overlay;
   }
 
@@ -205,6 +220,10 @@
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
 }
+.dark .card-base {
+  background: linear-gradient(150deg, hsl(0 0% 12%) 0%, hsl(0 0% 8%) 100%);
+  border-color: hsl(0 0% 18%);
+}
 
 /* Elevated card — shadow depth */
 .card-elevated {
@@ -216,7 +235,12 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
 }
 .dark .card-elevated {
-  box-shadow: 0 1px 2px rgba(0,0,0,0.6), 0 4px 20px rgba(0,0,0,0.4);
+  background: linear-gradient(160deg, hsl(0 0% 14%) 0%, hsl(0 0% 9%) 100%);
+  border-color: hsl(0 0% 20%);
+  box-shadow:
+    0 1px 0 hsl(0 0% 22%) inset,
+    0 2px 4px rgba(0,0,0,0.8),
+    0 8px 32px rgba(0,0,0,0.5);
 }
 
 /* Signature DS card — red top hairline accent */
@@ -228,7 +252,7 @@
   position: relative;
   overflow: hidden;
 }
-/* Red top accent — fades at edges, hits hard in the center */
+/* Red top accent — fades at edges, glows in the center like a taillight */
 .ds-card::before {
   content: '';
   position: absolute;
@@ -247,11 +271,21 @@
   );
   z-index: 1;
 }
+/* Dark mode: the line glows — red light bleeding outward */
+.dark .ds-card::before {
+  box-shadow: 0 0 10px 1px hsl(var(--brand) / 0.5), 0 0 32px 4px hsl(var(--brand) / 0.18);
+}
 :root .ds-card {
   box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
 }
 .dark .ds-card {
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3);
+  background: linear-gradient(160deg, hsl(0 0% 13%) 0%, hsl(0 0% 7%) 100%);
+  border-color: hsl(0 0% 18%);
+  box-shadow:
+    0 1px 0 hsl(0 0% 20%) inset,
+    0 2px 6px rgba(0,0,0,0.8),
+    0 8px 40px rgba(0,0,0,0.55),
+    0 0 80px hsl(var(--brand) / 0.04);
 }
 
 /* Glass card — kept for legacy compat, now matches base */
@@ -262,6 +296,13 @@
 }
 :root .glass-card {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.dark .glass-card {
+  background: linear-gradient(145deg, hsl(0 0% 13%) 0%, hsl(0 0% 8%) 100%);
+  border-color: hsl(0 0% 19%);
+  box-shadow:
+    0 1px 0 hsl(0 0% 21%) inset,
+    0 2px 8px rgba(0,0,0,0.7);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -296,11 +337,24 @@
 .brand-glow {
   box-shadow: 0 0 0 1px hsl(var(--brand) / 0.3), 0 4px 24px hsl(var(--brand) / 0.25);
 }
+.dark .brand-glow {
+  box-shadow:
+    0 0 0 1px hsl(var(--brand) / 0.35),
+    0 4px 24px hsl(var(--brand) / 0.3),
+    0 12px 48px hsl(var(--brand) / 0.12);
+}
 .brand-glow-lg {
   box-shadow:
     0 0 0 1px hsl(var(--brand) / 0.4),
     0 4px 32px hsl(var(--brand) / 0.35),
     0 16px 64px hsl(var(--brand) / 0.15);
+}
+.dark .brand-glow-lg {
+  box-shadow:
+    0 0 0 1px hsl(var(--brand) / 0.5),
+    0 4px 32px hsl(var(--brand) / 0.4),
+    0 16px 64px hsl(var(--brand) / 0.22),
+    0 32px 96px hsl(var(--brand) / 0.08);
 }
 
 /* Section glows — Mind, Spirit */
@@ -510,9 +564,13 @@
 }
 .progress-fill {
   height: 100%;
-  background: hsl(var(--brand));
+  background: linear-gradient(90deg, hsl(0 78% 40%) 0%, hsl(0 85% 55%) 50%, hsl(0 78% 46%) 100%);
   border-radius: 2px;
   transition: width 0.7s ease;
+}
+.dark .progress-fill {
+  background: linear-gradient(90deg, hsl(0 78% 36%) 0%, hsl(0 85% 54%) 40%, hsl(0 78% 44%) 100%);
+  box-shadow: 0 0 8px hsl(var(--brand) / 0.45), 0 0 2px hsl(var(--brand) / 0.8);
 }
 
 /* ── Segment control (like Eleiko's Goal | Week plan tabs) ─────────── */
@@ -550,4 +608,198 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SEE RED MODE — reds and darks inverted
+   The cockpit goes crimson. Red is the environment; steel is the accent.
+   Background → deep lacquer red. Cards → rich crimson. Brand → silver steel.
+───────────────────────────────────────────────────────────────────────────── */
+.see-red {
+  --background: 0 72% 7%;           /* #200505 — deep lacquer black-red */
+  --foreground: 0 10% 92%;          /* #EDE8E8 — warm off-white */
+
+  --card: 0 65% 11%;                /* #381212 — raised crimson surface */
+  --card-foreground: 0 10% 92%;
+
+  --surface-1: 0 72% 7%;            /* #200505 — base */
+  --surface-2: 0 60% 14%;           /* #471515 — nav, header bands */
+  --surface-3: 0 65% 10%;           /* #330F0F — cards */
+
+  --popover: 0 65% 11%;
+  --popover-foreground: 0 10% 92%;
+
+  --primary: 0 10% 92%;
+  --primary-foreground: 0 72% 7%;
+
+  --secondary: 0 60% 14%;
+  --secondary-foreground: 0 10% 92%;
+
+  --muted: 0 58% 16%;               /* #521414 */
+  --muted-foreground: 0 20% 62%;    /* #B08888 — muted rose-grey */
+
+  --accent: 0 58% 16%;
+  --accent-foreground: 0 10% 92%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 55% 18%;              /* #5C1212 — deep crimson border */
+  --border-bright: 0 50% 26%;       /* #851A1A — brighter border */
+  --input: 0 65% 9%;
+  --ring: 0 0% 72%;
+
+  /* The inversion: silver is now the accent, vivid red is the "steel" */
+  --brand: 0 0% 78%;                /* #C7C7C7 — steel silver as accent */
+  --brand-deep: 0 0% 56%;           /* #8F8F8F — muted steel */
+  --steel: 0 65% 52%;               /* #CC2020 — vivid red as "steel" detail */
+  --steel-bright: 0 0% 90%;         /* #E6E6E6 — bright specular highlight */
+
+  --radius: 0.75rem;
+}
+
+/* See Red body — carbon fiber weave stays, red dominates */
+.see-red body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%, hsl(0 72% 14% / 0.8) 0%, transparent 60%),
+    repeating-linear-gradient( 45deg, transparent 0px, transparent 3px, rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px),
+    repeating-linear-gradient(-45deg, transparent 0px, transparent 3px, rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px);
+  background-attachment: fixed;
+}
+
+/* See Red card depth — warm crimson gradients */
+.see-red .ds-card,
+.see-red .card-base,
+.see-red .card-elevated,
+.see-red .glass-card {
+  border-color: hsl(0 52% 20%);
+  box-shadow:
+    0 1px 0 hsl(0 52% 22%) inset,
+    0 2px 6px rgba(0,0,0,0.8),
+    0 8px 32px rgba(0,0,0,0.5);
+}
+.see-red .ds-card {
+  background: linear-gradient(160deg, hsl(0 65% 13%) 0%, hsl(0 65% 8%) 100%);
+}
+.see-red .card-base,
+.see-red .glass-card {
+  background: linear-gradient(145deg, hsl(0 60% 12%) 0%, hsl(0 65% 8%) 100%);
+}
+.see-red .card-elevated {
+  background: linear-gradient(160deg, hsl(0 60% 14%) 0%, hsl(0 65% 9%) 100%);
+}
+
+/* See Red ds-card top accent — silver instead of red */
+.see-red .ds-card::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(0 0% 78% / 0.4) 15%,
+    hsl(0 0% 85%) 35%,
+    hsl(0 0% 85%) 65%,
+    hsl(0 0% 78% / 0.4) 85%,
+    transparent 100%
+  );
+  box-shadow: 0 0 10px 1px rgba(200,200,200,0.3), 0 0 24px 4px rgba(200,200,200,0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   FERRARI-GRADE DEPTH UTILITIES — carbon, steel, forge
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Carbon fiber surface — CSS woven composite texture ─────────────── */
+.carbon-fiber {
+  background-image:
+    repeating-linear-gradient( 45deg, transparent 0px, transparent 2px, rgba(255,255,255,0.018) 2px, rgba(255,255,255,0.018) 4px),
+    repeating-linear-gradient(-45deg, transparent 0px, transparent 2px, rgba(255,255,255,0.018) 2px, rgba(255,255,255,0.018) 4px);
+}
+
+/* ── Forge card — highest-tier card in the system ────────────────────── */
+/* Carbon composite + steel inner highlight + red ambient glow beneath. */
+.forge-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+}
+/* Steel top edge — specular highlight, catches light like brushed alloy */
+.forge-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    hsl(var(--steel) / 0.25) 20%,
+    hsl(var(--steel-bright, 0 0% 72%) / 0.45) 50%,
+    hsl(var(--steel) / 0.25) 80%,
+    transparent 100%
+  );
+  z-index: 2;
+}
+/* Red ambient bottom — F80 taillights bleeding up through the floor */
+.forge-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: linear-gradient(0deg, hsl(var(--brand) / 0.06) 0%, transparent 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+:root .forge-card {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08);
+}
+.dark .forge-card {
+  background: linear-gradient(160deg, hsl(0 0% 14%) 0%, hsl(0 0% 7%) 100%);
+  border-color: hsl(0 0% 20%);
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.9),
+    0 8px 40px rgba(0,0,0,0.6),
+    0 0 100px hsl(var(--brand) / 0.05);
+}
+
+/* ── Steel edge — gradient border that reads as brushed metal ────────── */
+.steel-edge {
+  position: relative;
+  border: 1px solid hsl(var(--border-bright, var(--border)));
+  background-clip: padding-box;
+}
+.dark .steel-edge {
+  border-color: transparent;
+  background-clip: padding-box;
+}
+.dark .steel-edge::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg,
+    hsl(0 0% 28%) 0%,
+    hsl(0 0% 16%) 40%,
+    hsl(0 0% 24%) 100%
+  );
+  z-index: -1;
+}
+
+/* ── Red ember section — ambient taillight atmosphere on a container ─── */
+.red-ember {
+  position: relative;
+}
+.red-ember::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 1px;
+  box-shadow: 0 0 40px 20px hsl(var(--brand) / 0.10);
+  pointer-events: none;
+  z-index: 0;
 }

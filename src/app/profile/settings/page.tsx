@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '../../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Moon, Sun, Bell, Shield, Download, Lock, Check, Loader2, Monitor } from 'lucide-react'
+import { ArrowLeft, Moon, Sun, Bell, Shield, Download, Lock, Check, Loader2, Eye } from 'lucide-react'
+
 import BottomNav from '../../../components/BottomNav'
 import { useTheme, type Theme } from '../../../contexts/ThemeContext'
 
@@ -139,27 +140,29 @@ export default function Settings() {
               <div>
                 <p className="font-medium text-sm">Theme</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {theme === 'auto' ? 'Follows your device' : theme === 'dark' ? 'Dark mode' : 'Light mode'}
+                  {theme === 'dark' ? 'Dark mode' : theme === 'red' ? 'See Red — cockpit mode' : 'Light mode'}
                 </p>
               </div>
             </div>
-            {/* iOS-style 3-segment pill */}
+            {/* 3-segment pill: Light / Dark / See Red */}
             <div className="flex rounded-lg bg-muted p-1 gap-0.5">
               {([
-                { value: 'auto' as Theme, label: 'Auto', Icon: Monitor },
                 { value: 'light' as Theme, label: 'Light', Icon: Sun },
                 { value: 'dark' as Theme, label: 'Dark', Icon: Moon },
+                { value: 'red' as Theme, label: 'See Red', Icon: Eye },
               ] as const).map(({ value, label, Icon }) => (
                 <button
                   key={value}
                   onClick={() => setTheme(value)}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
                     theme === value
-                      ? 'bg-background text-foreground shadow-sm'
+                      ? value === 'red'
+                        ? 'bg-red-900 text-red-200 shadow-sm'
+                        : 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <Icon size={13} />
+                  <Icon size={13} className={theme === value && value === 'red' ? 'text-red-300' : ''} />
                   {label}
                 </button>
               ))}
