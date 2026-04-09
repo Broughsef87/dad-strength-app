@@ -749,6 +749,7 @@ export default function AresWorkoutPage() {
 
   const [program, setProgram] = useState<ActiveProgramData | null>(null)
   const [day, setDay] = useState<AresDay | null>(null)
+  const [weekTheme, setWeekTheme] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -787,6 +788,7 @@ export default function AresWorkoutPage() {
       try {
         const parsed = JSON.parse(cached)
         setDay(parsed.day)
+        if (parsed.weekTheme) setWeekTheme(parsed.weekTheme)
         generatedWorkoutIdRef.current = parsed.generatedWorkoutId ?? null
         setLoading(false)
         return
@@ -803,10 +805,11 @@ export default function AresWorkoutPage() {
       .maybeSingle()
 
     if (existing) {
-      const workoutData = existing.workout_data as { day: AresDay }
+      const workoutData = existing.workout_data as { day: AresDay; weekTheme?: string }
       setDay(workoutData.day)
+      if (workoutData.weekTheme) setWeekTheme(workoutData.weekTheme)
       generatedWorkoutIdRef.current = existing.id
-      localStorage.setItem(cacheKey, JSON.stringify({ day: workoutData.day, generatedWorkoutId: existing.id }))
+      localStorage.setItem(cacheKey, JSON.stringify({ day: workoutData.day, weekTheme: workoutData.weekTheme, generatedWorkoutId: existing.id }))
       setLoading(false)
       return
     }
@@ -829,6 +832,7 @@ export default function AresWorkoutPage() {
       const { program: generated } = await res.json() as { program: AresProgram }
       const targetDay = generated.days.find(d => d.dayNumber === dayNumber) ?? generated.days[0]
       setDay(targetDay)
+      setWeekTheme(generated.weekTheme ?? '')
 
       // Save to generated_workouts — shared, date-keyed
       const { data: saved } = await supabase
@@ -838,14 +842,14 @@ export default function AresWorkoutPage() {
           program_slug: 'ares',
           week_number: aresWeekNumber,
           day_number: dayNumber,
-          workout_data: { program: generated, day: targetDay },
+          workout_data: { program: generated, day: targetDay, weekTheme: generated.weekTheme },
         })
         .select('id')
         .single()
 
       if (saved) {
         generatedWorkoutIdRef.current = saved.id
-        localStorage.setItem(cacheKey, JSON.stringify({ day: targetDay, generatedWorkoutId: saved.id }))
+        localStorage.setItem(cacheKey, JSON.stringify({ day: targetDay, weekTheme: generated.weekTheme, generatedWorkoutId: saved.id }))
       }
     } catch (e) {
       setError('Could not generate workout. Check your connection and try again.')
@@ -1009,8 +1013,20 @@ export default function AresWorkoutPage() {
             </button>
           )}
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/workout/ares/leaderboard')}
+            className="w-full py-3 border border-brand/30 text-brand rounded-lg text-sm font-medium hover:bg-brand/10 transition-colors"
+          >
+            🏆 View Leaderboard
+          </button>
+          <button
+            onClick={() => router.push('/workout/ares/history')}
             className="w-full py-3 border border-border text-muted-foreground rounded-lg text-sm font-medium hover:text-foreground transition-colors"
+          >
+            My History
+          </button>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="w-full py-2.5 text-muted-foreground text-sm hover:text-foreground transition-colors"
           >
             Dashboard
           </button>
@@ -1032,7 +1048,7 @@ export default function AresWorkoutPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              Week {program?.currentWeek} · Day {dayNumber}
+              {weekTheme || `Ares · Day ${dayNumber}`}
             </span>
             <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground border border-border rounded px-1.5 py-0.5">
               {archetypeIcon(day.archetype)}
@@ -1041,7 +1057,16 @@ export default function AresWorkoutPage() {
           </div>
           <h1 className="font-display text-xl tracking-[0.1em] uppercase truncate">{day.dayName}</h1>
         </div>
-        <BarChart2 size={16} className="text-brand shrink-0" />
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => router.push('/workout/ares/leaderboard')}
+            className="p-2 border border-border rounded-md text-muted-foreground hover:text-brand transition-colors"
+            title="Leaderboard"
+          >
+            <Trophy size={15} />
+          </button>
+          <BarChart2 size={16} className="text-brand" />
+        </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
