@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
-import { Shield, ChevronRight } from 'lucide-react'
 import { getMondayOfWeek, getSundayOfWeek, toLocalDateString } from '../lib/utils'
 
 type ScoreBreakdown = {
@@ -117,7 +116,10 @@ export default function DadScore() {
   }
 
   if (loading) return (
-    <div className="ds-card h-28 skeleton" />
+    <div className="space-y-3 animate-pulse">
+      <div className="h-2 bg-muted/30 rounded-none w-1/4" />
+      <div className="h-16 bg-muted/20 rounded-none w-1/3" />
+    </div>
   )
 
   if (!score) return null
@@ -125,50 +127,31 @@ export default function DadScore() {
   const gradeColor = getGradeColor(score.grade)
 
   return (
-    <div className="ds-card p-5 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-brand/10 rounded-lg">
-            <Shield size={15} strokeWidth={1.5} className="text-brand" />
-          </div>
-          <p className="steel-label">Dad Score</p>
-        </div>
-        <span className="steel-label">This Week</span>
-      </div>
-
-      <div className="flex items-end gap-3">
-        <p className="stat-num text-5xl text-foreground leading-none">{score.total}</p>
-        <div className="mb-1">
-          <p className={`text-sm font-semibold uppercase tracking-[0.08em] ${gradeColor}`}>{score.grade}</p>
-          <p className="steel-label">/ 100</p>
+    <div>
+      <p className="text-[9px] font-semibold tracking-[0.3em] text-muted-foreground/40 uppercase mb-4">Dad Score</p>
+      <div className="flex items-baseline gap-5 mb-8">
+        <span className="font-mono text-8xl text-foreground leading-none tabular-nums">{score.total}</span>
+        <div>
+          <span className={`font-display text-3xl tracking-[0.06em] ${gradeColor}`}>{score.grade}</span>
+          <p className="text-[9px] text-muted-foreground/30 tracking-[0.2em] uppercase mt-1">/ 100</p>
         </div>
       </div>
-
-      {/* Score bar */}
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-        <div
-          className="h-full bg-brand rounded-full transition-all duration-1000"
-          style={{ width: `${score.total}%` }}
-        />
-      </div>
-
-      {/* Breakdown */}
-      <div className="space-y-2.5 pt-1">
+      <div className="space-y-4">
         {[
           { label: 'Training', value: score.training, max: 40 },
           { label: 'Habits', value: score.habits, max: 30 },
           { label: 'Family', value: score.family, max: 20 },
           { label: 'Mind', value: score.mind, max: 10 },
         ].map(({ label, value, max }) => (
-          <div key={label} className="flex items-center gap-3">
-            <span className="steel-label w-14">{label}</span>
-            <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+          <div key={label} className="flex items-center gap-4">
+            <span className="text-[9px] font-semibold tracking-[0.2em] text-muted-foreground/40 uppercase w-16 shrink-0">{label}</span>
+            <div className="flex-1 h-px bg-border/30 relative">
               <div
-                className="h-full bg-brand/70 rounded-full transition-all duration-700"
+                className="absolute top-0 left-0 h-px bg-foreground/60 transition-all duration-700"
                 style={{ width: `${(value / max) * 100}%` }}
               />
             </div>
-            <span className="stat-num text-[10px] text-muted-foreground w-8 text-right">{value}/{max}</span>
+            <span className="font-mono text-[10px] text-muted-foreground/40 w-10 text-right tabular-nums">{value}/{max}</span>
           </div>
         ))}
       </div>

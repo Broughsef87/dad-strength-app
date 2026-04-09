@@ -3,15 +3,7 @@
 import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Flame,
-  Settings,
-  ChevronRight,
-  Dumbbell,
-  Zap,
-} from 'lucide-react'
-import { motion } from 'framer-motion'
-import { staggerContainer, fadeUp } from '../../components/ui/motion'
+import { Settings, Zap } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import DadScore from '../../components/DadScore'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
@@ -170,9 +162,21 @@ export default function Dashboard() {
     loadDashboard()
   }, [router])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+  const handleStart = () => {
+    if (activeProgram) {
+      if (activeProgram.slug?.startsWith('chronos')) router.push('/workout/squeeze')
+      else if (activeProgram.slug?.startsWith('ares')) {
+        const nextDay = getNextWorkoutDay(activeProgram.daysCount || 4)
+        router.push(`/workout/ares/${nextDay}`)
+      } else {
+        const nextDay = getNextWorkoutDay(activeProgram.daysCount || activeProgram.frequency || 3)
+        router.push(`/workout/program/${nextDay}`)
+      }
+    } else if (workout) {
+      router.push(`/workout/${workout.id}`)
+    } else {
+      router.push('/build')
+    }
   }
 
   if (loading) {
@@ -186,207 +190,130 @@ export default function Dashboard() {
     )
   }
 
+  const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()
+
+  const programLabel = activeProgram?.name?.toUpperCase() || workout?.name?.toUpperCase() || 'NO PROTOCOL'
+  const weekFreqLabel = activeProgram
+    ? `WEEK ${activeProgram.currentWeek ?? 1} · ${activeProgram.daysCount ?? '—'} DAYS/WK`
+    : null
+
   return (
-    <div className="min-h-screen bg-background text-foreground pb-28 md:pb-8 relative">
+    <div className="min-h-screen bg-background text-foreground pb-20">
       <DailyForge />
 
       {/* Upgrade success banner */}
       {upgradeSuccess && (
-        <motion.div
-          initial={{ y: -40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -40, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display tracking-[0.2em] uppercase py-3 px-4"
-        >
+        <div className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display tracking-[0.2em] uppercase py-3 px-4">
           Welcome to Dad Strong+ — All Features Unlocked
-        </motion.div>
+        </div>
       )}
 
-      {/* DESKTOP HEADER */}
-      <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-4 sticky top-0 z-40">
+      {/* HEADER — ultra thin, no background */}
+      <header className="flex items-center justify-between px-5 md:px-8 py-4">
+        <span className="text-[10px] font-semibold tracking-[0.25em] text-muted-foreground/50 uppercase">Dad Strength</span>
         <div className="flex items-center gap-3">
-          <div className="w-0.5 h-7 bg-brand" />
-          <span className="font-display text-xl tracking-[0.08em] uppercase text-foreground">Dad Strength</span>
-        </div>
-        <nav className="flex gap-8 text-[10px] text-muted-foreground uppercase tracking-[0.14em]">
-          <button className="text-brand font-semibold">HQ</button>
-          <button onClick={() => router.push('/body')} className="hover:text-foreground transition-colors">Train</button>
-          <button onClick={() => router.push('/history')} className="hover:text-foreground transition-colors">History</button>
-          <button onClick={() => router.push('/profile')} className="hover:text-foreground transition-colors">Profile</button>
-          <button onClick={handleSignOut} className="text-muted-foreground/50 hover:text-destructive transition-colors">Sign Out</button>
-        </nav>
-      </header>
-
-      {/* MOBILE HEADER */}
-      <header className="md:hidden flex items-center justify-between px-5 pt-8 pb-4">
-        <div>
-          <p className="steel-label mb-0.5">Dad Strength</p>
-          <h1 className="font-display text-2xl tracking-wide text-foreground leading-none">
-            HEADQUARTERS
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
           {!isPro && !subLoading && (
             <button
               onClick={() => setShowUpgrade(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-[10px] font-semibold uppercase tracking-wider"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-[10px] font-semibold uppercase tracking-wider"
             >
               <Zap size={10} /> Pro
             </button>
           )}
           <button
             onClick={() => router.push('/profile')}
-            className="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-brand/30 transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Settings size={15} />
+            <Settings size={16} />
           </button>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-5 pt-4 space-y-5">
+      {/* SINGLE RED RULE */}
+      <div className="h-px bg-brand" />
 
-        {/* Date + greeting */}
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
-          <div className="flex items-center justify-between">
-            <p className="steel-label">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
-            {streak > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-brand/25 bg-brand/8">
-                <Flame size={11} className="text-brand" strokeWidth={2} />
-                <span className="stat-num text-xs text-brand font-semibold">{streak}</span>
-                <span className="text-[9px] text-brand/70 uppercase tracking-wide">streak</span>
-              </div>
-            )}
-          </div>
-          <h2 className="font-display text-[3.5rem] leading-none mt-2 text-foreground tracking-wide">
-            TRAIN DAY.
-          </h2>
-          <div className="divider-brand mt-3" />
-        </motion.div>
+      {/* HERO — day name + headline */}
+      <section className="px-5 md:px-8 pt-10 pb-8">
+        <p className="text-[10px] font-semibold tracking-[0.3em] text-muted-foreground/40 uppercase mb-3">
+          {dayName}
+        </p>
+        <h1 className="font-display text-[clamp(5rem,18vw,10rem)] leading-[0.85] text-foreground">
+          TRAIN<br />DAY.
+        </h1>
+        <div className="mt-6 flex items-center gap-4">
+          <div className="flex-1 h-px bg-border/30" />
+          {streak > 0 && (
+            <span className="font-mono text-[10px] text-muted-foreground/40 tracking-[0.2em]">{streak}D STREAK</span>
+          )}
+        </div>
+      </section>
 
-        <motion.div
-          className="space-y-5"
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
+      {/* ACTIVE PROTOCOL */}
+      <section className="border-t border-border/30 px-5 md:px-8 py-8">
+        <p className="text-[9px] font-semibold tracking-[0.3em] text-muted-foreground/40 uppercase mb-4">Active Protocol</p>
+        <h2 className="font-display text-[clamp(2.5rem,8vw,5rem)] leading-none text-foreground mb-1">
+          {programLabel}
+        </h2>
+        {weekFreqLabel && (
+          <p className="font-mono text-[11px] text-muted-foreground/50 tracking-[0.15em] uppercase mb-6">
+            {weekFreqLabel}
+          </p>
+        )}
+        {!weekFreqLabel && (
+          <p className="font-mono text-[11px] text-muted-foreground/50 tracking-[0.15em] uppercase mb-6">
+            {activeProgram || workout ? '' : 'DEPLOY YOUR FIRST PROTOCOL'}
+          </p>
+        )}
+        <div className="h-px bg-border/30 mb-6" />
+        {/* BEGIN button */}
+        <button onClick={handleStart} className="group flex items-center gap-4 hover:opacity-70 transition-opacity">
+          <div className="w-0.5 h-10 bg-brand" />
+          <span className="font-display text-3xl tracking-[0.08em] text-foreground">BEGIN</span>
+          <span className="font-mono text-sm text-muted-foreground/40 group-hover:text-brand transition-colors">→</span>
+        </button>
+        {(activeProgram || workout) && (
+          <button
+            onClick={() => router.push('/build')}
+            className="mt-4 ml-4 text-[9px] tracking-[0.2em] text-muted-foreground/30 uppercase hover:text-muted-foreground/60 transition-colors"
+          >
+            Change Protocol
+          </button>
+        )}
+      </section>
+
+      {/* CHRONOS */}
+      <section className="border-t border-border/30 px-5 md:px-8 py-6">
+        <button
+          onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
+          className="group flex items-center justify-between w-full hover:opacity-70 transition-opacity"
         >
-          {/* First week checklist */}
-          <motion.div variants={fadeUp} custom={-0.5}>
-            <FirstWeekChecklist />
-          </motion.div>
-
-          {/* ACTIVE PROTOCOL */}
-          <motion.div variants={fadeUp} custom={0}>
-            <div className="ds-card p-6">
-              {/* Header row */}
-              <div className="flex items-start justify-between mb-5">
-                <div>
-                  <p className="steel-label mb-2">Active Protocol</p>
-                  <h3 className="font-display text-[2.25rem] leading-none text-foreground tracking-wide">
-                    {activeProgram?.name?.toUpperCase() || workout?.name?.toUpperCase() || 'NO PROGRAM'}
-                  </h3>
-                </div>
-                <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center">
-                  <Dumbbell size={18} className="text-muted-foreground/40" strokeWidth={1.5} />
-                </div>
-              </div>
-
-              {/* Program meta */}
-              {activeProgram && (
-                <div className="flex items-center gap-4 mb-5 pb-5 border-b border-border">
-                  {[
-                    { label: 'Days', value: `${activeProgram.daysCount}/wk` },
-                    { label: 'Week', value: `${activeProgram.currentWeek}` },
-                    { label: 'Type', value: activeProgram.slug?.startsWith('ares') ? 'Functional' : 'Strength' },
-                  ].map((item) => (
-                    <div key={item.label} className="flex-1">
-                      <p className="steel-label">{item.label}</p>
-                      <p className="font-semibold text-sm text-foreground mt-0.5">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
+          <div>
+            <p className="text-[9px] tracking-[0.3em] text-muted-foreground/40 uppercase mb-1">Short on time?</p>
+            <p className="font-display text-2xl text-foreground tracking-wide">
+              CHRONOS
+              {!isPro && (
+                <span className="ml-2 text-[9px] text-brand/60 font-sans font-semibold uppercase tracking-widest">Pro</span>
               )}
+            </p>
+          </div>
+          <span className="font-mono text-xs text-muted-foreground/30">→</span>
+        </button>
+      </section>
 
-              {!activeProgram && workout && (
-                <p className="text-sm text-muted-foreground mb-5">{workout.description}</p>
-              )}
-              {!activeProgram && !workout && (
-                <p className="text-sm text-muted-foreground mb-5">Deploy your first training protocol.</p>
-              )}
+      {/* FIRST WEEK CHECKLIST */}
+      <section className="border-t border-border/30 px-5 md:px-8 py-6">
+        <FirstWeekChecklist />
+      </section>
 
-              {/* CTA */}
-              <div className="flex flex-col gap-2">
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => {
-                    if (activeProgram) {
-                      if (activeProgram.slug?.startsWith('chronos')) router.push('/workout/squeeze')
-                      else if (activeProgram.slug?.startsWith('ares')) {
-                        const nextDay = getNextWorkoutDay(activeProgram.daysCount || 4)
-                        router.push(`/workout/ares/${nextDay}`)
-                      } else {
-                        const nextDay = getNextWorkoutDay(activeProgram.daysCount || activeProgram.frequency || 3)
-                        router.push(`/workout/program/${nextDay}`)
-                      }
-                    } else if (workout) {
-                      router.push(`/workout/${workout.id}`)
-                    } else {
-                      router.push('/build')
-                    }
-                  }}
-                  className="w-full flex items-center justify-between px-6 py-4 rounded-xl bg-brand text-white font-semibold text-sm uppercase tracking-[0.08em] hover:bg-brand/90 transition-colors group"
-                >
-                  <span>{activeProgram || workout ? 'Start Training' : 'Choose Program'}</span>
-                  <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-                </motion.button>
-                {(activeProgram || workout) && (
-                  <button
-                    onClick={() => router.push('/build')}
-                    className="w-full py-2.5 text-[11px] text-muted-foreground hover:text-foreground uppercase tracking-[0.1em] font-medium transition-colors"
-                  >
-                    Change Program
-                  </button>
-                )}
-              </div>
-            </div>
-          </motion.div>
+      {/* DAILY OBJECTIVES */}
+      <section className="border-t border-border/30 px-5 md:px-8 py-6">
+        <DailyObjectivesCard />
+      </section>
 
-          {/* CHRONOS */}
-          <motion.div variants={fadeUp} custom={0.5}>
-            <button
-              onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
-              className="w-full card-base p-4 flex items-center justify-between group hover:border-brand/30 transition-colors"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center shrink-0 group-hover:border-brand/30 transition-colors">
-                  <Zap size={16} className="text-muted-foreground group-hover:text-brand transition-colors" strokeWidth={1.5} />
-                </div>
-                <div className="text-left">
-                  <p className="steel-label mb-0.5">Short on Time?</p>
-                  <p className="font-display text-xl tracking-wide text-foreground leading-none">
-                    CHRONOS
-                    {!isPro && <span className="ml-2 text-[9px] bg-brand/10 text-brand px-2 py-0.5 rounded-md uppercase tracking-widest font-sans font-semibold">Pro</span>}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">15–20 min · Any equipment</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-brand group-hover:translate-x-0.5 transition-all shrink-0" strokeWidth={2} />
-            </button>
-          </motion.div>
-
-          {/* Daily Objectives */}
-          <motion.div variants={fadeUp} custom={1}>
-            <DailyObjectivesCard />
-          </motion.div>
-
-          {/* Dad Score */}
-          <motion.div variants={fadeUp} custom={2}>
-            <DadScore />
-          </motion.div>
-
-        </motion.div>
-      </main>
+      {/* DAD SCORE */}
+      <section className="border-t border-border/30 px-5 md:px-8 py-8 pb-4">
+        <DadScore />
+      </section>
 
       <BottomNav />
 
