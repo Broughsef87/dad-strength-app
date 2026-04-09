@@ -26,7 +26,7 @@ export default function StatCard({ type, stats, title, subtitle }: StatCardProps
           url: window.location.href,
         });
       } catch (err) {
-        console.log('Error sharing:', err);
+        // User cancelled share or share failed — no action needed
       }
     }
   };
