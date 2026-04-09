@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
+import Image from 'next/image'
 import Logo from './Logo'
 import { createClient } from '../utils/supabase/client'
 
@@ -36,15 +37,21 @@ export default function AppHeader({ active }: AppHeaderProps) {
       <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-3.5 sticky top-0 z-40">
         <Link href="/dashboard">
           {/* PNG lockups — fonts baked in at export time */}
-          <img
+          <Image
             src="/logo-suite/ds_horizontal_dark.png"
             alt="Dad Strength"
-            className="h-11 w-auto dark:block hidden"
+            width={176}
+            height={44}
+            className="dark:block hidden"
+            priority
           />
-          <img
+          <Image
             src="/logo-suite/ds_horizontal_light.png"
             alt="Dad Strength"
-            className="h-11 w-auto dark:hidden block"
+            width={176}
+            height={44}
+            className="dark:hidden block"
+            priority
           />
         </Link>
         <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">

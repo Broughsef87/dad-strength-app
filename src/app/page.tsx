@@ -6,6 +6,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../contexts/ThemeContext';
+import Image from 'next/image';
 
 export default function Home() {
   const supabase = createClient();
@@ -66,17 +67,23 @@ export default function Home() {
         {/* Brand lockup — stacked suite asset, dark/light aware */}
         <div className="flex flex-col items-center">
           {/* PNG lockups — fonts baked in at export time */}
-          <img
+          <Image
             src="/logo-suite/ds_stacked_dark.png"
             alt="Dad Strength"
-            className="w-56 h-auto dark:block hidden drop-shadow-2xl"
+            width={224}
+            height={112}
+            className="dark:block hidden drop-shadow-2xl"
             draggable={false}
+            priority
           />
-          <img
+          <Image
             src="/logo-suite/ds_stacked_light.png"
             alt="Dad Strength"
-            className="w-56 h-auto dark:hidden block drop-shadow-2xl"
+            width={224}
+            height={112}
+            className="dark:hidden block drop-shadow-2xl"
             draggable={false}
+            priority
           />
         </div>
 

@@ -3,26 +3,18 @@ import { generateObject } from 'ai'
 import { z } from 'zod'
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../utils/supabase/server'
+import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const rateLimitMap = new Map<string, number[]>()
-const RATE_LIMIT = 10
-const RATE_WINDOW = 60 * 1000
-
 export async function POST(request: Request) {
-  const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
-  const now = Date.now()
-  const timestamps = (rateLimitMap.get(ip) ?? []).filter(t => now - t < RATE_WINDOW)
-  if (timestamps.length >= RATE_LIMIT) {
-    return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
-  }
-  rateLimitMap.set(ip, [...timestamps, now])
-
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { allowed } = await checkRateLimit(supabase, user.id, 'mind-sprint', 10, 60_000)
+  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 })
 
   const req = request
   try {
