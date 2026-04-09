@@ -815,7 +815,6 @@ export default function AresWorkoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          weekNumber: prog.currentWeek,
           daysPerWeek: prog.daysCount,
           userProfile: {
             trainingAge: prog.trainingAge,
