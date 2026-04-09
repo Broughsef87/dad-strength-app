@@ -229,8 +229,8 @@ export default function Dashboard() {
 
       <main className="px-5 md:px-8 space-y-5 max-w-lg mx-auto md:max-w-2xl">
 
-        {/* ACTIVE PROGRAM CARD — hero */}
-        <div className="bg-card rounded-2xl p-5 border border-border">
+        {/* ACTIVE PROGRAM CARD — hero forge card */}
+        <div className="forge-card relative overflow-hidden rounded-2xl p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="section-label mt-0">Active Protocol</p>
@@ -269,7 +269,11 @@ export default function Dashboard() {
           {/* CTA */}
           <button
             onClick={handleStart}
-            className="w-full mt-4 py-3.5 rounded-xl bg-brand text-white font-semibold text-[15px] flex items-center justify-center gap-2 hover:bg-brand/90 transition-colors"
+            className="w-full mt-4 py-3.5 rounded-xl text-white font-semibold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            style={{
+              background: 'linear-gradient(135deg, #e03030 0%, #aa1111 100%)',
+              boxShadow: '0 0 20px 3px rgba(230,26,26,0.35), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)',
+            }}
           >
             {activeProgram || workout ? 'Begin Session' : 'Choose Program'}
             <ChevronRight size={18} />
@@ -288,7 +292,11 @@ export default function Dashboard() {
         {/* CHRONOS */}
         <button
           onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
-          className="w-full bg-card rounded-2xl border border-border p-4 flex items-center justify-between hover:border-brand/30 transition-colors group"
+          className="w-full rounded-2xl p-4 flex items-center justify-between transition-all group steel-edge"
+          style={{
+            background: 'linear-gradient(150deg, #1c1c1c 0%, #111111 100%)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+          }}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">

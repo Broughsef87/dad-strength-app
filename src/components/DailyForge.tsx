@@ -75,9 +75,17 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
         <button
           key={n}
           onClick={() => onChange(n)}
-          className={`w-10 h-10 rounded-full font-black text-sm transition-all active:scale-90 ${
-            n <= value ? 'bg-brand text-background shadow-lg shadow-brand/30 scale-105' : 'bg-muted text-muted-foreground'
+          className={`w-10 h-10 rounded-full font-black text-sm transition-all duration-150 active:scale-90 ${
+            n <= value ? 'text-white scale-110' : 'text-muted-foreground'
           }`}
+          style={n <= value ? {
+            background: 'linear-gradient(145deg, #e03535 0%, #aa1111 100%)',
+            boxShadow: '0 0 12px 2px rgba(230,26,26,0.5), 0 2px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)',
+          } : {
+            background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 4px rgba(0,0,0,0.4)',
+          }}
         >
           {n}
         </button>
@@ -90,8 +98,39 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
   if (!show) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 pb-24">
-      <div className="w-full max-w-sm bg-surface-2 border border-border rounded-xl p-7 shadow-2xl animate-in slide-in-from-bottom-8 duration-500">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-24"
+      style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 100%, rgba(230,26,26,0.08) 0%, rgba(0,0,0,0.82) 60%)' }}
+    >
+      <div className="w-full max-w-sm relative rounded-xl animate-in slide-in-from-bottom-8 duration-500 overflow-hidden"
+        style={{
+          background: 'linear-gradient(160deg, #1e1e1e 0%, #111111 60%, #0d0d0d 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.9), 0 12px 48px rgba(0,0,0,0.7), 0 0 80px rgba(230,26,26,0.06)',
+        }}
+      >
+        {/* Carbon fiber weave overlay */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: `
+            repeating-linear-gradient(45deg, transparent 0px, transparent 3px, rgba(255,255,255,0.014) 3px, rgba(255,255,255,0.014) 4px),
+            repeating-linear-gradient(-45deg, transparent 0px, transparent 3px, rgba(255,255,255,0.014) 3px, rgba(255,255,255,0.014) 4px)
+          `
+        }} />
+        {/* Steel inner highlight — top edge catches light */}
+        <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{
+          background: 'linear-gradient(90deg, transparent 0%, rgba(180,180,180,0.15) 20%, rgba(210,210,210,0.35) 50%, rgba(180,180,180,0.15) 80%, transparent 100%)'
+        }} />
+        {/* Red accent line — glowing taillight */}
+        <div className="absolute top-px left-0 right-0 h-[2px] pointer-events-none" style={{
+          background: 'linear-gradient(90deg, transparent 0%, rgba(230,26,26,0.35) 15%, rgba(230,26,26,0.95) 38%, rgba(230,26,26,0.95) 62%, rgba(230,26,26,0.35) 85%, transparent 100%)',
+          boxShadow: '0 0 10px 1px rgba(230,26,26,0.45), 0 0 28px 4px rgba(230,26,26,0.16)'
+        }} />
+        {/* Red ember at base */}
+        <div className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none" style={{
+          background: 'linear-gradient(0deg, rgba(230,26,26,0.05) 0%, transparent 100%)'
+        }} />
+
+        {/* Content — elevated above overlays */}
+        <div className="relative z-10 p-7">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-7">
@@ -104,10 +143,16 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
           </button>
         </div>
 
-        {/* Step indicator */}
+        {/* Step indicator — glowing active segments */}
         <div className="flex gap-1.5 mb-8">
           {[1,2,3].map(s => (
-            <div key={s} className={`flex-1 h-1 rounded-full transition-all duration-300 ${s <= step ? 'bg-brand' : 'bg-muted'}`} />
+            <div key={s} className={`flex-1 h-[3px] rounded-full transition-all duration-300 ${
+              s <= step
+                ? 'bg-brand'
+                : 'bg-muted'
+            }`}
+              style={s <= step ? { boxShadow: '0 0 6px 1px rgba(230,26,26,0.5)' } : {}}
+            />
           ))}
         </div>
 
@@ -177,7 +222,12 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
           {step > 1 && (
             <button
               onClick={() => setStep(s => s - 1)}
-              className="px-5 py-3 border border-border rounded-md text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="px-5 py-3 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              style={{
+                background: 'linear-gradient(145deg, #252525 0%, #181818 100%)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
+              }}
             >
               Back
             </button>
@@ -185,7 +235,11 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
           {step < 3 ? (
             <button
               onClick={() => setStep(s => s + 1)}
-              className="flex-1 flex items-center justify-center gap-2 bg-brand text-background font-semibold text-sm py-3 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow"
+              className="flex-1 flex items-center justify-center gap-2 text-white font-semibold text-sm py-3 rounded-md transition-all active:scale-[0.97]"
+              style={{
+                background: 'linear-gradient(135deg, #e03030 0%, #b01010 100%)',
+                boxShadow: '0 0 16px 2px rgba(230,26,26,0.4), 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)',
+              }}
             >
               Next <ChevronRight size={16} />
             </button>
@@ -193,12 +247,18 @@ export default function DailyForge({ onComplete }: { onComplete?: () => void }) 
             <button
               onClick={handleComplete}
               disabled={saving}
-              className="flex-1 bg-brand text-background font-semibold text-sm py-3 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow disabled:opacity-50"
+              className="flex-1 text-white font-semibold text-sm py-3 rounded-md transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{
+                background: 'linear-gradient(135deg, #e03030 0%, #b01010 100%)',
+                boxShadow: '0 0 16px 2px rgba(230,26,26,0.4), 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)',
+              }}
             >
               {saving ? 'Locking in...' : 'Lock In & Forge'}
             </button>
           )}
         </div>
+
+        </div>{/* /relative z-10 */}
       </div>
     </div>
   )
