@@ -767,7 +767,10 @@ export default function AresWorkoutPage() {
 
     if (!user) return
 
-    const cacheKey = `ares-day-${prog.slug}-w${prog.currentWeek}-d${dayNumber}`
+    // Workouts are shared across all users — keyed to the calendar date + day slot
+    // so everyone sees the same WOD and refreshing never changes it.
+    const todayDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    const cacheKey = `ares-wod-${todayDate}-d${dayNumber}`
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
@@ -776,16 +779,15 @@ export default function AresWorkoutPage() {
         generatedWorkoutIdRef.current = parsed.generatedWorkoutId ?? null
         setLoading(false)
         return
-      } catch { /* fall through to generate */ }
+      } catch { /* fall through to DB check */ }
     }
 
-    // Check generated_workouts table
+    // Check generated_workouts table — no user_id filter, shared across all users
     const { data: existing } = await supabase
       .from('generated_workouts')
       .select('id, workout_data')
-      .eq('user_id', user.id)
-      .eq('program_slug', prog.slug)
-      .eq('week_number', prog.currentWeek)
+      .eq('program_slug', 'ares')
+      .eq('week_number', todayDate) // repurpose week_number as date string for Ares
       .eq('day_number', dayNumber)
       .maybeSingle()
 
@@ -798,7 +800,7 @@ export default function AresWorkoutPage() {
       return
     }
 
-    // Generate fresh
+    // Generate fresh — first user to hit this day+date generates it for everyone
     setGenerating(true)
     try {
       const res = await fetch('/api/ai/ares-generate', {
@@ -818,13 +820,13 @@ export default function AresWorkoutPage() {
       const targetDay = generated.days.find(d => d.dayNumber === dayNumber) ?? generated.days[0]
       setDay(targetDay)
 
-      // Save to generated_workouts
+      // Save to generated_workouts — shared, date-keyed
       const { data: saved } = await supabase
         .from('generated_workouts')
         .insert({
-          user_id: user.id,
-          program_slug: prog.slug,
-          week_number: prog.currentWeek,
+          user_id: user.id,        // who generated it (for audit)
+          program_slug: 'ares',
+          week_number: todayDate,  // date string stored in week_number column
           day_number: dayNumber,
           workout_data: { program: generated, day: targetDay },
         })
