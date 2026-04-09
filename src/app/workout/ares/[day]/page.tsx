@@ -767,7 +767,18 @@ export default function AresWorkoutPage() {
 
     if (!user) return
 
-    const cacheKey = `ares-day-${prog.slug}-w${prog.currentWeek}-d${dayNumber}`
+    // Workouts are shared across all users — 4 unique WODs per week, keyed to
+    // Monday's date + day slot. Everyone doing Day 1 this week sees the same workout
+    // regardless of which calendar day they actually train.
+    const getMondayDate = () => {
+      const d = new Date()
+      const day = d.getDay() // 0=Sun, 1=Mon...
+      const diff = (day === 0 ? -6 : 1 - day) // shift to Monday
+      d.setDate(d.getDate() + diff)
+      return d.toISOString().split('T')[0] // YYYY-MM-DD of this week's Monday
+    }
+    const weekId = getMondayDate()
+    const cacheKey = `ares-wod-${weekId}-d${dayNumber}`
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
@@ -776,16 +787,15 @@ export default function AresWorkoutPage() {
         generatedWorkoutIdRef.current = parsed.generatedWorkoutId ?? null
         setLoading(false)
         return
-      } catch { /* fall through to generate */ }
+      } catch { /* fall through to DB check */ }
     }
 
-    // Check generated_workouts table
+    // Check generated_workouts table — no user_id filter, shared across all users
     const { data: existing } = await supabase
       .from('generated_workouts')
       .select('id, workout_data')
-      .eq('user_id', user.id)
-      .eq('program_slug', prog.slug)
-      .eq('week_number', prog.currentWeek)
+      .eq('program_slug', 'ares')
+      .eq('week_number', weekId) // Monday date of current week — 4 WODs per week
       .eq('day_number', dayNumber)
       .maybeSingle()
 
@@ -798,14 +808,13 @@ export default function AresWorkoutPage() {
       return
     }
 
-    // Generate fresh
+    // Generate fresh — first user to hit this day+date generates it for everyone
     setGenerating(true)
     try {
       const res = await fetch('/api/ai/ares-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          weekNumber: prog.currentWeek,
           daysPerWeek: prog.daysCount,
           userProfile: {
             trainingAge: prog.trainingAge,
@@ -818,13 +827,13 @@ export default function AresWorkoutPage() {
       const targetDay = generated.days.find(d => d.dayNumber === dayNumber) ?? generated.days[0]
       setDay(targetDay)
 
-      // Save to generated_workouts
+      // Save to generated_workouts — shared, date-keyed
       const { data: saved } = await supabase
         .from('generated_workouts')
         .insert({
-          user_id: user.id,
-          program_slug: prog.slug,
-          week_number: prog.currentWeek,
+          user_id: user.id,        // who generated it (for audit)
+          program_slug: 'ares',
+          week_number: weekId,     // Monday date = week identifier for Ares
           day_number: dayNumber,
           workout_data: { program: generated, day: targetDay },
         })

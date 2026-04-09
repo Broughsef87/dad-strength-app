@@ -138,12 +138,107 @@ const AresDaySchema = z.object({
 
 const AresProgramSchema = z.object({
   weekNumber: z.number(),
-  weekTheme: z.string().describe('e.g. "Week 2 — Olympic Focus", "Week 4 — Aerobic Base"'),
-  coachNote: z.string().describe('2-3 sentences referencing data. Direct, no fluff.'),
+  weekTheme: z.string().describe('e.g. "Week 14 — Posterior Chain Month", "Week 3 — Snatch Focus Month"'),
+  coachNote: z.string().describe('2-3 sentences. Reference the monthly theme and any relevant data. Direct, no fluff.'),
   days: z.array(AresDaySchema),
-  deloadRecommended: z.boolean(),
-  deloadReason: z.string().optional(),
 })
+
+// ── Monthly focus themes — cycle through these indefinitely ──────────────────
+// Each theme biases 1-2 sessions per week toward specific movements/skills.
+// The program never ends — athletes hop on/off. No deloads, no phases.
+
+interface MonthlyTheme {
+  name: string
+  focus: string
+  description: string
+  biasMovements: string[]
+  skillProgression?: string
+  archetypeBias?: string // archetype to favor this month
+}
+
+const MONTHLY_THEMES: MonthlyTheme[] = [
+  {
+    name: 'Posterior Chain Month',
+    focus: 'posterior_chain',
+    description: 'Hamstrings, glutes, and lower back. Pulling from the floor and hinge patterns.',
+    biasMovements: ['Deadlift', 'Romanian Deadlift', 'Good Morning', 'KB Swing', 'GHD Back Extension', 'Hip Thrust', 'Sumo Deadlift'],
+    skillProgression: undefined,
+    archetypeBias: 'strength_metcon',
+  },
+  {
+    name: 'Quad Strength Month',
+    focus: 'quad',
+    description: 'Front-side leg dominance. Squatting, lunging, and knee-dominant patterns.',
+    biasMovements: ['Front Squat', 'Back Squat', 'Thruster', 'Wall Ball', 'Walking Lunges', 'Bulgarian Split Squat', 'Box Jump'],
+    skillProgression: undefined,
+    archetypeBias: 'strength_metcon',
+  },
+  {
+    name: 'Gymnastics Pull Month',
+    focus: 'gymnastics_pull',
+    description: 'Pulling strength and bar/ring gymnastics. Progressing toward muscle-ups and rope climbs.',
+    biasMovements: ['Strict Pull-ups', 'Chest-to-Bar Pull-ups', 'Ring Muscle-ups', 'Bar Muscle-ups', 'Rope Climbs', 'Ring Rows'],
+    skillProgression: 'Muscle-up progression: strict pull-up → kipping pull-up → chest-to-bar → ring muscle-up. Spend at least 1 skill session per week working this continuum.',
+    archetypeBias: 'gymnastics_skill',
+  },
+  {
+    name: 'Snatch Month',
+    focus: 'snatch',
+    description: 'Olympic lifting — the snatch and its derivatives. Speed, timing, and overhead stability.',
+    biasMovements: ['Power Snatch', 'Squat Snatch', 'Hang Power Snatch', 'Overhead Squat', 'Snatch Balance', 'Snatch Pull', 'DB Snatch'],
+    skillProgression: 'Snatch skill focus: Week 1 positional work (hang), Week 2 full snatch from floor, Week 3 heavy singles, Week 4 Isabel or similar benchmark.',
+    archetypeBias: 'olympic_build',
+  },
+  {
+    name: 'Pressing Strength Month',
+    focus: 'press',
+    description: 'Overhead and horizontal pressing. Shoulder strength and HSPU development.',
+    biasMovements: ['Strict Press', 'Push Press', 'Bench Press', 'Ring Dips', 'Bar Dips', 'Handstand Push-ups', 'Pike Push-ups', 'DB Arnold Press'],
+    skillProgression: 'HSPU progression: pike push-up → kipping HSPU → strict HSPU → deficit HSPU. At least 1 skill session per week targeting this.',
+    archetypeBias: 'gymnastics_skill',
+  },
+  {
+    name: 'Engine Building Month',
+    focus: 'monostructural',
+    description: 'Aerobic base and conditioning. Running, rowing, biking. Building the engine that powers everything else.',
+    biasMovements: ['Run', 'Row (erg)', 'Assault Bike', 'Ski Erg', 'Double-Unders'],
+    skillProgression: 'Double-under skill progression if athletes lack them: single-under → penguin jumps → double-under attempts → consistent double-unders.',
+    archetypeBias: 'monostructural_strength',
+  },
+  {
+    name: 'Clean & Jerk Month',
+    focus: 'clean_jerk',
+    description: 'The king of Olympic lifts. Power cleans, split jerks, and the full movement.',
+    biasMovements: ['Power Clean', 'Squat Clean', 'Hang Power Clean', 'Split Jerk', 'Push Jerk', 'Clean Pull', 'Clean & Jerk'],
+    skillProgression: 'C&J progression: hang power clean → power clean from floor → squat clean → split jerk → full clean & jerk. Build toward heavy singles.',
+    archetypeBias: 'olympic_build',
+  },
+  {
+    name: 'Core & Handstand Month',
+    focus: 'gymnastics_core',
+    description: 'Midline stability and inverted movement. Toes-to-bar, handstands, and hollow body strength.',
+    biasMovements: ['Toes-to-Bar', 'GHD Sit-ups', 'Hollow Rocks', 'V-Ups', 'L-Sit', 'Handstand Walk', 'Wall Walk', 'Ab Mat Sit-ups'],
+    skillProgression: 'Handstand progression: plank → shoulder taps → wall walk → nose-to-wall hold → freestanding handstand → handstand walk. 1 dedicated skill session per week.',
+    archetypeBias: 'gymnastics_skill',
+  },
+]
+
+// ── Calendar helpers ──────────────────────────────────────────────────────────
+
+/** ISO week number (1-52/53) for the current date */
+function getISOWeekNumber(): number {
+  const d = new Date()
+  const dayOfWeek = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayOfWeek)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+}
+
+/** Current monthly theme based on calendar month, cycling through all themes */
+function getCurrentTheme(): MonthlyTheme {
+  const monthIndex = new Date().getMonth() // 0-11
+  return MONTHLY_THEMES[monthIndex % MONTHLY_THEMES.length]
+}
 
 // ── POST handler ──────────────────────────────────────────────────────────────
 
@@ -155,9 +250,12 @@ export async function POST(request: Request) {
   const { allowed } = await checkRateLimit(supabase, user.id, 'ares-generate', 8, 60_000)
   if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
 
+  // Derive week number and theme server-side — consistent for all users
+  const weekNumber = getISOWeekNumber()
+  const theme = getCurrentTheme()
+
   try {
     const {
-      weekNumber,
       daysPerWeek = 4,
       userProfile,
       previousWeekArchetypes,
@@ -165,7 +263,6 @@ export async function POST(request: Request) {
       recentMetconResults,
       recentStrengthLogs,
     } = await request.json() as {
-      weekNumber: number
       daysPerWeek?: number
       userProfile?: {
         trainingAge?: string
@@ -174,12 +271,12 @@ export async function POST(request: Request) {
         injuryFlags?: string[]
         primaryGoal?: string
       }
-      previousWeekArchetypes?: string[]   // archetypes used last week
-      olympicLifts1RMs?: Record<string, number>  // clean, snatch, jerk peak weights
+      previousWeekArchetypes?: string[]
+      olympicLifts1RMs?: Record<string, number>
       recentMetconResults?: Array<{
         workoutName: string
         format: string
-        result: string  // e.g. "8:42", "12 rounds + 5 reps"
+        result: string
         weekNumber: number
         rx: boolean
       }>
@@ -190,18 +287,14 @@ export async function POST(request: Request) {
       }>
     }
 
-    if (!weekNumber) {
-      return NextResponse.json({ error: 'Missing weekNumber' }, { status: 400 })
-    }
-
     // Build context strings
     const prevArchetypeContext = previousWeekArchetypes?.length
       ? `LAST WEEK'S DAY ARCHETYPES: ${previousWeekArchetypes.join(' → ')}\nDo NOT repeat the same sequence. Vary the structure.`
-      : 'FIRST WEEK — no previous archetype data.'
+      : 'No previous archetype data — vary freely.'
 
     const olympicContext = olympicLifts1RMs && Object.keys(olympicLifts1RMs).length
       ? `OLYMPIC LIFT RECENT MAXES:\n${Object.entries(olympicLifts1RMs).map(([k, v]) => `  ${k}: ${v} lbs`).join('\n')}`
-      : 'OLYMPIC LIFT MAXES: Not established yet — Week 1 or first Olympic session. Start conservatively.'
+      : 'OLYMPIC LIFT MAXES: Not established — start conservatively on Olympic sessions.'
 
     const metconContext = recentMetconResults?.length
       ? `RECENT METCON RESULTS:\n${recentMetconResults.map(r =>
@@ -225,8 +318,25 @@ export async function POST(request: Request) {
       ? `GYM: Home — avoid equipment not in: ${Object.entries(userProfile?.equipment ?? {}).filter(([, v]) => v).map(([k]) => k).join(', ') || 'basic home setup'}`
       : 'GYM: Commercial — full equipment available'
 
+    const monthlyThemeContext = `
+═══════════════════════════════════════════
+MONTHLY FOCUS — ${theme.name.toUpperCase()}
+═══════════════════════════════════════════
+This month's programming has a bias toward: ${theme.focus}
+${theme.description}
+
+Bias movements (incorporate into 1-2 sessions this week naturally):
+${theme.biasMovements.map(m => `  - ${m}`).join('\n')}
+
+${theme.skillProgression ? `Skill progression this month:\n${theme.skillProgression}` : ''}
+${theme.archetypeBias ? `Preferred archetype to include at least once this week: ${theme.archetypeBias}` : ''}
+
+This is a BIAS, not a mandate. The other sessions should still be fully varied.
+The monthly theme should feel like a thread running through the program, not a restriction.
+`.trim()
+
     const prompt = `
-WEEK: ${weekNumber}
+ISO WEEK: ${weekNumber}
 DAYS THIS WEEK: ${daysPerWeek}
 TRAINING AGE: ${userProfile?.trainingAge ?? 'intermediate'}
 ${gymContext}
@@ -241,7 +351,7 @@ ${metconContext}
 ${strengthContext}
 
 Generate ${daysPerWeek} training days for Ares week ${weekNumber}.
-Apply all weekly variety rules and progression logic from the system prompt.
+Apply all weekly variety rules. Honor the monthly theme bias for 1-2 sessions.
 `.trim()
 
     const { object: program } = await generateObject({
@@ -249,9 +359,14 @@ Apply all weekly variety rules and progression logic from the system prompt.
       system: `You are an elite CrossFit and functional fitness programmer. You write for serious athletes who train 4 days/week and want constantly varied, high-quality programming.
 
 PROGRAM IDENTITY — ARES:
-Ares is a constantly varied functional fitness program. No two weeks look the same.
-The movement menu includes: Olympic weightlifting, gymnastics/bodyweight skills, barbell strength, monostructural cardio (run/row/bike), and MetCons.
+Ares is a one continuous, ever-evolving functional fitness program with no start date, no end date, and no deloads.
+Athletes hop on and off as life allows — the program keeps moving regardless.
+No two weeks look the same. The movement menu spans: Olympic weightlifting, gymnastics/bodyweight skills, barbell strength, monostructural cardio (run/row/bike), and MetCons.
 Ares respects three energy systems: phosphagen (short/max effort), glycolytic (medium intensity), oxidative (aerobic/long).
+
+Progressive overload is embedded through monthly focus themes — a bias toward specific movements or skills that runs underneath the daily variation. Athletes may not consciously notice it, but over a month they will have accumulated meaningful volume in one area.
+
+${monthlyThemeContext}
 
 ═══════════════════════════════════════════
 DAY ARCHETYPES — choose one per day
@@ -306,7 +421,7 @@ WEEKLY VARIETY RULES — must enforce
 5. NO BACK-TO-BACK HEAVY HINGING: Don't program heavy deadlifts two days in a row.
 6. NO SAME-DAY GRIP CLASH: Don't pair heavy Olympic lifting + lots of pull-ups on the same day.
 7. ENERGY SYSTEM BALANCE: At least 1 oxidative (aerobic) session per week (long MetCon, monostructural_strength, or very long AMRAP).
-8. DELOAD SIGNAL: If week ≥ 5 or if recentMetconResults show declining performance — recommend deload. Deload = reduce MetCon intensity by 30%, no heavy strength max-effort work.
+8. MONTHLY THEME HONOR: 1-2 sessions this week should naturally feature the current monthly focus movements. Do not force it — weave it in.
 
 ═══════════════════════════════════════════
 METCON DESIGN PRINCIPLES
@@ -346,8 +461,9 @@ STRENGTH PRESCRIPTION RULES
 
 For strength blocks (format = sets_reps):
   - Prescribe sets, repsMin/repsMax, targetRir (0-3)
-  - Week 1: RIR 3-4 (baseline)
-  - Week 2+: progress based on logs — if athlete hit top of rep range at RIR 3, tighten to RIR 2
+  - Default RIR: 2-3 (hard but not failure — sustainable for an ongoing program)
+  - If strength logs show athlete consistently hitting top of rep range: tighten to RIR 1-2
+  - No deloads — the constant variation IS the recovery mechanism
   - Do NOT prescribe weights — the system handles weight recommendations
 
 For Olympic builds (format = build_to_max):
