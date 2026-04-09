@@ -183,7 +183,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                 <div className="flex items-center gap-2.5 text-left">
                   <Shield size={14} className="text-brand shrink-0" />
                   <div>
-                    <p className="font-bold text-sm">Founder's Pass</p>
+                    <p className="font-bold text-sm">Founder&apos;s Pass</p>
                     <p className="text-xs text-muted-foreground">Lifetime access — one-time payment</p>
                   </div>
                 </div>

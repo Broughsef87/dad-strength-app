@@ -8,61 +8,6 @@ import { checkRateLimit } from '../../../../lib/rateLimit'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-// ── Movement vocabulary the AI draws from ────────────────────────────────────
-
-const MOVEMENT_LIBRARY = {
-  olympic: [
-    'Power Clean', 'Squat Clean', 'Hang Power Clean', 'Hang Squat Clean',
-    'Power Snatch', 'Squat Snatch', 'Hang Power Snatch',
-    'Clean & Jerk', 'Split Jerk', 'Push Jerk',
-    'Clean Pull', 'Snatch Pull', 'Clean Deadlift',
-  ],
-  gymnastics: [
-    'Pull-ups', 'Chest-to-Bar Pull-ups', 'Strict Pull-ups',
-    'Ring Muscle-ups', 'Bar Muscle-ups',
-    'Handstand Push-ups', 'Strict Handstand Push-ups', 'Pike Push-ups',
-    'Ring Dips', 'Bar Dips',
-    'Toes-to-Bar', 'Knees-to-Elbows', 'Hanging Knee Raises',
-    'Box Jumps', 'Box Jump Overs',
-    'Double-Unders', 'Single-Unders',
-    'Burpees', 'Burpee Box Jumps', 'Bar-Facing Burpees',
-    'Pistol Squats', 'Air Squats',
-    'Push-ups', 'Hand Release Push-ups',
-    'Hollow Rocks', 'V-Ups', 'GHD Sit-ups',
-    'Back Extensions (GHD)',
-    'L-Sit Hold', 'Rope Climbs', 'Rope Climb Progressions',
-    'Wall Walk', 'Handstand Walk',
-  ],
-  barbell_metcon: [
-    'Thrusters', 'Front Squats', 'Back Squats', 'Overhead Squats',
-    'Deadlifts', 'Romanian Deadlifts',
-    'Push Press', 'Push Jerk',
-    'Barbell Lunges', 'Good Mornings',
-    'Hang Power Cleans', 'Power Cleans',
-    'Sumo Deadlift High Pull',
-    'Wall Balls (DB or Med Ball)',
-  ],
-  monostructural: [
-    'Run', 'Row (erg)', 'Assault Bike', 'Ski Erg',
-    'Jump Rope', 'Double-Unders',
-  ],
-  kettlebell_db: [
-    'KB Swings', 'KB Goblet Squat', 'KB Turkish Get-up',
-    'KB Clean & Press', 'KB Snatch',
-    'DB Snatch', 'DB Hang Power Clean', 'DB Thrusters',
-    'Farmer Carry', 'Overhead Carry',
-  ],
-  strength_compounds: [
-    'Back Squat', 'Front Squat', 'Overhead Squat',
-    'Deadlift', 'Romanian Deadlift', 'Sumo Deadlift',
-    'Bench Press', 'Overhead Press', 'Push Press',
-    'Barbell Row', 'Pendlay Row',
-    'Bulgarian Split Squat', 'Walking Lunges',
-    'Good Morning', 'Hip Thrust',
-    'Clean & Jerk', 'Snatch',
-  ],
-}
-
 // ── Named benchmark workouts the AI can prescribe ────────────────────────────
 
 const BENCHMARK_WODS = `

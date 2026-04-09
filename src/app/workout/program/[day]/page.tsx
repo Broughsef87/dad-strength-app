@@ -135,7 +135,6 @@ function ErrorScreen({ onBack }: { onBack: () => void }) {
 }
 
 function SetRow({
-  exerciseIndex,
   setLog,
   onWeightChange,
   onRepsChange,

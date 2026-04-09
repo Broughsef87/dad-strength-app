@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo, ReactNode } from 'react'
 
 export type Theme = 'dark' | 'light' | 'auto'
 
@@ -20,11 +20,6 @@ export function useTheme() {
   return useContext(ThemeContext)
 }
 
-function getSystemPreference(): 'dark' | 'light' {
-  if (typeof window === 'undefined') return 'dark'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
 function applyToDOM(resolved: 'dark' | 'light') {
   const html = document.documentElement
   if (resolved === 'dark') {
@@ -34,48 +29,39 @@ function applyToDOM(resolved: 'dark' | 'light') {
   }
 }
 
+function getSavedTheme(): Theme {
+  if (typeof window === 'undefined') return 'auto'
+  const saved = localStorage.getItem('dad-strength-theme') as Theme | null
+  return saved && ['dark', 'light', 'auto'].includes(saved) ? saved : 'auto'
+}
+
+function getSystemDark(): boolean {
+  if (typeof window === 'undefined') return true
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('auto')
-  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark')
-  const [mounted, setMounted] = useState(false)
+  const [theme, setThemeState] = useState<Theme>(getSavedTheme)
+  const [systemDark, setSystemDark] = useState<boolean>(getSystemDark)
 
-  const resolve = useCallback((t: Theme): 'dark' | 'light' => {
-    return t === 'auto' ? getSystemPreference() : t
-  }, [])
+  // resolvedTheme is pure derived state — no extra setState needed
+  const resolvedTheme: 'dark' | 'light' = useMemo(
+    () => (theme === 'auto' ? (systemDark ? 'dark' : 'light') : theme),
+    [theme, systemDark]
+  )
 
-  // Mount: read saved preference and apply immediately
+  // Apply to DOM whenever resolvedTheme changes
   useEffect(() => {
-    const saved = localStorage.getItem('dad-strength-theme') as Theme | null
-    const initial: Theme = (saved && ['dark', 'light', 'auto'].includes(saved)) ? saved : 'auto'
-    const resolved = resolve(initial)
-    setThemeState(initial)
-    setResolvedTheme(resolved)
-    applyToDOM(resolved)
-    setMounted(true)
-  }, [resolve])
+    applyToDOM(resolvedTheme)
+  }, [resolvedTheme])
 
-  // When theme changes after mount
+  // Track OS preference changes
   useEffect(() => {
-    if (!mounted) return
-    const resolved = resolve(theme)
-    setResolvedTheme(resolved)
-    applyToDOM(resolved)
-  }, [theme, mounted, resolve])
-
-  // Listen for OS preference changes when in auto mode
-  useEffect(() => {
-    if (!mounted) return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => {
-      if (theme === 'auto') {
-        const resolved = getSystemPreference()
-        setResolvedTheme(resolved)
-        applyToDOM(resolved)
-      }
-    }
+    const handler = () => setSystemDark(mq.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
-  }, [theme, mounted])
+  }, [])
 
   const setTheme = (t: Theme) => {
     setThemeState(t)

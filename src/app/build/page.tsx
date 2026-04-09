@@ -12,7 +12,7 @@ import type { ActiveProgramData } from '../../types/program'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type God = 'adonis' | 'ares' | 'hercules' | 'atlas' | 'chronos'
-type Days = 3 | 4 | 5
+
 type Weeks = 4 | 5 | 6
 type GymType = 'commercial' | 'home'
 type TrainingAge = 'beginner' | 'intermediate' | 'advanced'
@@ -197,7 +197,7 @@ export default function BuildPage() {
   const [trainingAge, setTrainingAge] = useState<TrainingAge>('intermediate')
   const [injuryFlags, setInjuryFlags] = useState<string[]>([])
   const [focusGroups, setFocusGroups] = useState<string[]>([])
-  const [daysPerWeek, setDaysPerWeek] = useState<Days>(4)
+
   const [weeks, setWeeks] = useState<Weeks>(6)
   const [gymType, setGymType] = useState<GymType>('commercial')
   const [weights, setWeights] = useState({ bench: '', squat: '', deadlift: '', ohp: '', row: '' })

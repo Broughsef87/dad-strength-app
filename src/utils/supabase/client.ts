@@ -33,7 +33,7 @@ export function createClient() {
         update: () => Promise.resolve({ data: null, error: null }),
         delete: () => Promise.resolve({ data: null, error: null }),
       }),
-    } as any;
+    } as unknown as ReturnType<typeof createBrowserClient>;
   }
 
   return createBrowserClient(url, key);

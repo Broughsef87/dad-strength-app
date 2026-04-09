@@ -48,7 +48,7 @@ export default function MissionEditor() {
             .single()
           
           if (profile?.mission_data) {
-            setMission(profile.mission_data as any)
+            setMission(profile.mission_data as typeof mission)
             return
           }
         }

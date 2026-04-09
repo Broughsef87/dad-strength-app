@@ -140,12 +140,12 @@ export default function WeeklyDebrief() {
 
     // Distinct workout days
     const sessionDays = new Set(
-      (workoutRes.data || []).map((l: any) => new Date(l.created_at).toDateString())
+      (workoutRes.data || []).map((l: { created_at: string }) => new Date(l.created_at).toDateString())
     )
 
     // Objectives
     const objs = objectivesRes.data || []
-    const completed = objs.filter((o: any) => o.completed).length
+    const completed = objs.filter((o: { completed: boolean }) => o.completed).length
 
     // Rough nights from sleep_log (last 7)
     let roughNights = 0
@@ -219,8 +219,8 @@ export default function WeeklyDebrief() {
         debrief: data.debrief,
         generatedAt: ts,
       } satisfies CachedDebrief))
-    } catch (err: any) {
-      setError(err.message || 'Could not generate debrief.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not generate debrief.')
     } finally {
       setLoading(false)
     }

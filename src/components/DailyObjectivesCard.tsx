@@ -40,7 +40,7 @@ export default function DailyObjectivesCard() {
         .single()
 
       if (data?.mind_state) {
-        const ms = data.mind_state as any
+        const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean }
         setObjectives(ms.objectives || ['', '', ''])
         setCompleted(ms.completedObjectives || [false, false, false])
         setLocked(ms.lockedIn || false)
@@ -98,7 +98,7 @@ export default function DailyObjectivesCard() {
       {!hasObjectives ? (
         <a href="/mind" className="block text-center py-4 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <p className="text-xs">No objectives set yet.</p>
-          <p className="text-brand text-xs font-medium mt-1">Set today's objectives →</p>
+          <p className="text-brand text-xs font-medium mt-1">Set today&apos;s objectives →</p>
         </a>
       ) : (
         <div className="space-y-2">

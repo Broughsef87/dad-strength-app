@@ -1,16 +1,13 @@
 'use client'
 
 import { createClient } from '../../../utils/supabase/client'
+import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, BookOpen, Target, Flame, CheckCircle2, Circle, Edit2 } from 'lucide-react'
 
 type Habit = { name: string; done: boolean }
 type BookData = { title: string; author: string; currentChapter: number; totalChapters: number }
-type GrowthProfile = {
-  habits: Habit[]
-  book: BookData
-}
 type GrowthState = {
   date: string
   habits: boolean[]
@@ -150,8 +147,7 @@ export default function PersonalGrowth() {
       ...overrides,
     }
     localStorage.setItem('dad-strength-growth-state', JSON.stringify(state))
-    supabase.auth.getUser().then((r: any) => {
-      const user = r.data.user
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null }; error: Error | null }) => {
       if (!user) return
       supabase.from('daily_checkins').upsert(
         { user_id: user.id, date: today, growth_state: state, updated_at: new Date().toISOString() },
@@ -163,8 +159,7 @@ export default function PersonalGrowth() {
   const saveGrowthProfile = (habitsData: Habit[], bookData: BookData) => {
     const profile = { habits: habitsData, book: bookData }
     localStorage.setItem('dad-strength-growth-profile', JSON.stringify(profile))
-    supabase.auth.getUser().then((r: any) => {
-      const user = r.data.user
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null }; error: Error | null }) => {
       if (!user) return
       supabase.from('user_profiles').upsert(
         { id: user.id, growth_data: profile },
@@ -308,7 +303,7 @@ export default function PersonalGrowth() {
               <div className="flex items-center gap-3 p-3 bg-brand/5 border border-brand/10 rounded-lg">
                 <BookOpen size={14} className="text-brand/60 shrink-0" />
                 <p className="text-xs text-muted-foreground italic">
-                  "The man who reads leads." — Add the book you're currently working through.
+                  &quot;The man who reads leads.&quot; — Add the book you&apos;re currently working through.
                 </p>
               </div>
             )}

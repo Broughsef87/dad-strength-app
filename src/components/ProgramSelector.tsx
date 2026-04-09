@@ -233,15 +233,6 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  function openSheet() {
-    // Reset to step 1 but keep pre-selected slug if there's an active program
-    setStep(1)
-    setGymType(null)
-    setDays(null)
-    setWeeks(null)
-    setOpen(true)
-  }
-
   function closeSheet() {
     setOpen(false)
     onClose?.()

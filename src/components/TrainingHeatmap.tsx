@@ -24,7 +24,7 @@ export default function TrainingHeatmap() {
         .eq('user_id', user.id)
         .eq('completed', true)
         .gte('created_at', sevenDaysAgo.toISOString())
-      const days = new Set<string>((data || []).map((l: any) => toLocalDateString(new Date(l.created_at))))
+      const days = new Set<string>((data || []).map((l: { created_at: string }) => toLocalDateString(new Date(l.created_at))))
       setTrainedDays(days)
       setLoading(false)
     }

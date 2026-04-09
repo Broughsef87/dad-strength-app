@@ -9,9 +9,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 })
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2026-03-25.dahlia' as any,
-  })
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
   try {
     const supabase = await createClient()
@@ -80,8 +78,9 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({ url: session.url })
-  } catch (err: any) {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Checkout failed'
     console.error('Checkout error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

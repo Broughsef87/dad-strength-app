@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame, Heart } from 'lucide-react'
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
@@ -20,7 +20,7 @@ const ENERGY_LEVELS = [
   { id: 'low',    label: 'Running on fumes',emoji: '🌫️' },
 ]
 
-const PILLAR_ICONS: Record<string, any> = {
+const PILLAR_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   'Prayer':    Flame,
   'Meditation':Sun,
   'Reading':   BookOpen,
@@ -169,7 +169,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
         {/* Sleep quality */}
         <div>
-          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How'd you sleep?</label>
+          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How&apos;d you sleep?</label>
           <div className="grid grid-cols-2 gap-2">
             {SLEEP_QUALITY.map(s => (
               <button key={s.id} onClick={() => setSleep(s.id)}
@@ -316,7 +316,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                   {/* Gratitude — 3 text inputs */}
                   {isGratitude ? (
                     <div className="space-y-2">
-                      <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">3 things you're grateful for</p>
+                      <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">3 things you&apos;re grateful for</p>
                       {[0, 1, 2].map(j => (
                         <div key={j} className="flex items-center gap-2">
                           <span className="text-[10px] text-muted-foreground font-medium w-4">{j + 1}.</span>

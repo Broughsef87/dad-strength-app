@@ -114,7 +114,7 @@ export default function RelationshipLedger() {
         {deposits.map(d => (
           <div key={d.id} className="flex items-center justify-between p-2.5 rounded-xl bg-background/50 border border-border group animate-in fade-in slide-in-from-left-1">
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-foreground font-medium truncate italic">"{d.text}"</p>
+              <p className="text-xs text-foreground font-medium truncate italic">&quot;{d.text}&quot;</p>
               <p className="text-[9px] text-muted-foreground font-medium uppercase mt-0.5">{d.timestamp}</p>
             </div>
             <button onClick={() => removeDeposit(type, d.id)} className="p-1 text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 ml-2 flex-shrink-0">

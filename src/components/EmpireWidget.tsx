@@ -19,7 +19,7 @@ const ICON_MAP = {
 
 export default function EmpireWidget() {
   const supabase = createClient()
-  const { user, loading: userLoading } = useUser()
+  const { user } = useUser()
   const [mission, setMission] = useState({
     title: 'The Empire',
     primaryMetric: 'Operation: Freedom',
@@ -46,7 +46,7 @@ export default function EmpireWidget() {
             .single()
 
           if (profile?.mission_data) {
-            setMission(profile.mission_data as any)
+            setMission(profile.mission_data as unknown as typeof mission)
             return
           }
         }

@@ -40,7 +40,7 @@ export default function EditWorkout() {
       if (error) {
         console.error('Error fetching workout:', error)
       } else {
-        const exercisesWithIds = (data.exercises as any[]).map((ex, idx) => ({
+        const exercisesWithIds = (data.exercises as { id?: string; name: string; sets: number; reps: string }[]).map((ex, idx) => ({
           ...ex,
           id: ex.id || `ex-${idx}`,
           target_reps: ex.reps

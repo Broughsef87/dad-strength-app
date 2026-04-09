@@ -1,4 +1,4 @@
-﻿import { Trophy, Dumbbell, Flame, Target } from 'lucide-react';
+﻿import { Trophy, Dumbbell, Flame } from 'lucide-react';
 
 const MOCK_PRS = [
   { id: 1, name: 'Mike T.', exercise: 'Deadlift', weight: 405, reps: 1, type: 'strength', time: '2m ago' },

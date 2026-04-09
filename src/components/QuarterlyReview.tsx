@@ -174,7 +174,7 @@ export default function QuarterlyReview() {
       .lte('created_at', endISO + 'T23:59:59')
 
     const distinctWorkoutDates = new Set(
-      (wlogs || []).map((l: any) => new Date(l.created_at).toDateString())
+      (wlogs || []).map((l: { created_at: string }) => new Date(l.created_at).toDateString())
     )
     const workoutCount = distinctWorkoutDates.size
     const weeklyAvgSessions = workoutCount / weeksElapsed(quarter.start, now)
@@ -191,7 +191,7 @@ export default function QuarterlyReview() {
     const activeCheckinDays = checkinList.length
 
     // Count rough sleep nights (sleep_quality <= 2 or forge_state marks poor sleep)
-    const roughSleepNights = checkinList.filter((c: any) => {
+    const roughSleepNights = checkinList.filter((c: { sleep_quality?: number | null }) => {
       const sq = c.sleep_quality
       return sq !== null && sq !== undefined && Number(sq) <= 2
     }).length
@@ -206,7 +206,7 @@ export default function QuarterlyReview() {
       .lte('recorded_at', endISO + 'T23:59:59')
       .order('recorded_at', { ascending: true })
 
-    const bcList = (bodyComp || []).filter((b: any) => b.weight_lbs != null)
+    const bcList = (bodyComp || []).filter((b: { weight_lbs?: number | null }) => b.weight_lbs != null)
     if (bcList.length >= 2) {
       weightChange = bcList[bcList.length - 1].weight_lbs - bcList[0].weight_lbs
     }
@@ -251,8 +251,8 @@ export default function QuarterlyReview() {
       localStorage.setItem(storageKey(quarter.label), JSON.stringify(entry))
       setCached(entry)
       setExpanded(true)
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate. Try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate. Try again.')
     }
 
     setGenerating(false)
@@ -454,7 +454,7 @@ export default function QuarterlyReview() {
                   <span className="text-[10px] text-muted-foreground">{quarter.label}</span>
                 </div>
                 <p className="text-sm font-bold text-foreground leading-snug border-l-2 border-brand pl-3 italic">
-                  "{cached.review.quarterHeadline}"
+                  &quot;{cached.review.quarterHeadline}&quot;
                 </p>
               </div>
 
@@ -519,7 +519,7 @@ export default function QuarterlyReview() {
               <div className="space-y-2">
                 <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Letter to Self</p>
                 <p className="text-xs text-muted-foreground leading-relaxed italic">
-                  "{cached.review.letterToSelf}"
+                  &quot;{cached.review.letterToSelf}&quot;
                 </p>
               </div>
 

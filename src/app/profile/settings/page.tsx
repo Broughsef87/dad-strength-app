@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '../../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Moon, Sun, Bell, Shield, Download, Lock, Check, Loader2, Monitor } from 'lucide-react'
+import { ArrowLeft, Moon, Sun, Bell, Download, Lock, Check, Loader2, Monitor } from 'lucide-react'
 import BottomNav from '../../../components/BottomNav'
 import { useTheme, type Theme } from '../../../contexts/ThemeContext'
 
@@ -110,8 +110,8 @@ export default function Settings() {
       })
       if (error) throw error
       setResetSent(true)
-    } catch (err: any) {
-      setResetError(err.message || 'Failed to send reset email.')
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'Failed to send reset email.')
     } finally {
       setResetLoading(false)
     }
@@ -263,7 +263,7 @@ export default function Settings() {
                 ) : (
                   <>
                     <p className="text-xs text-muted-foreground">
-                      We'll send a password reset link to:
+                      We&apos;ll send a password reset link to:
                     </p>
                     <p className="text-sm font-medium">{resetEmail}</p>
                     {resetError && (

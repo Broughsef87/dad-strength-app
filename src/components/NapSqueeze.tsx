@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { Lock, Zap, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Zap, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function NapSqueeze() {
   return (
@@ -22,10 +22,10 @@ export default function NapSqueeze() {
         </div>
 
         <h2 className="text-3xl font-black text-foreground tracking-tight mb-2 italic uppercase">
-          Founder's Pass
+          Founder&apos;s Pass
         </h2>
         <p className="text-muted-foreground text-sm font-bold mb-8 leading-relaxed">
-          Get the "Nap-Squeeze" productivity engine and all future premium protocols. One payment. Lifetime access.
+          Get the &quot;Nap-Squeeze&quot; productivity engine and all future premium protocols. One payment. Lifetime access.
         </p>
 
         <div className="space-y-4 mb-10">

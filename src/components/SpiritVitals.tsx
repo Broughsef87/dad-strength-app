@@ -35,7 +35,7 @@ function toISODate(date: Date): string {
 export default function SpiritVitals() {
   const supabase = createClient()
   const router = useRouter()
-  const { user, loading: userLoading } = useUser()
+  const { user } = useUser()
   const [loading, setLoading] = useState(true)
   const [familyScore, setFamilyScore] = useState<number | null>(null)
   const [overdueCount, setOverdueCount] = useState(0)

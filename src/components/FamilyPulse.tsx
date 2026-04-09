@@ -53,7 +53,7 @@ export default function FamilyPulse() {
 
     const fetchData = async () => {
       // Current week
-      const { data: cur } = await (supabase as any)
+      const { data: cur } = await supabase
         .from('family_pulse')
         .select('marriage_vibe, kid_score, moments')
         .eq('user_id', userId)
@@ -69,7 +69,7 @@ export default function FamilyPulse() {
       }
 
       // Last week
-      const { data: last } = await (supabase as any)
+      const { data: last } = await supabase
         .from('family_pulse')
         .select('marriage_vibe, kid_score')
         .eq('user_id', userId)
@@ -94,7 +94,7 @@ export default function FamilyPulse() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       setSaving(true);
-      await (supabase as any)
+      await supabase
         .from('family_pulse')
         .upsert({
           user_id: userId,
@@ -271,7 +271,7 @@ export default function FamilyPulse() {
           {current.moments.map((m, i) => (
             <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-background/60 border border-border group animate-in fade-in slide-in-from-left-1">
               <span className="text-[9px] font-black text-brand uppercase tracking-widest w-4 shrink-0">{i + 1}</span>
-              <p className="flex-1 text-xs text-gray-300 italic truncate">"{m}"</p>
+              <p className="flex-1 text-xs text-gray-300 italic truncate">&quot;{m}&quot;</p>
               <button
                 onClick={() => removeMoment(i)}
                 className="p-1 text-gray-700 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 shrink-0"

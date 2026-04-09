@@ -92,7 +92,7 @@ export default function DeepWorkTimer({ availableObjectives = [] }: DeepWorkTime
 
       <div className="bg-brand/5 border border-brand/10 rounded-xl p-3">
         <p className="text-[9px] text-muted-foreground font-medium leading-relaxed italic text-center">
-          "The Nap-Squeeze: Baby is down. The clock is ticking. This is 90 minutes of pure execution. No noise, just the mission."
+          &quot;The Nap-Squeeze: Baby is down. The clock is ticking. This is 90 minutes of pure execution. No noise, just the mission.&quot;
         </p>
       </div>
     </div>

@@ -128,7 +128,7 @@ export default function Brotherhood() {
         <div className="text-center py-8 text-gray-600">
           <Shield size={28} className="mx-auto mb-3 opacity-30" />
           <p className="text-[10px] font-black uppercase tracking-widest">No brothers added yet.</p>
-          <p className="text-[10px] font-bold text-gray-700 mt-1">Dads don't do this alone.</p>
+          <p className="text-[10px] font-bold text-gray-700 mt-1">Dads don&apos;t do this alone.</p>
         </div>
       ) : (
         <div className="space-y-3 mb-5">
@@ -206,7 +206,7 @@ export default function Brotherhood() {
       )}
 
       <p className="mt-5 text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center italic">
-        "Iron sharpens iron. You need your brothers."
+        &quot;Iron sharpens iron. You need your brothers.&quot;
       </p>
     </div>
   );

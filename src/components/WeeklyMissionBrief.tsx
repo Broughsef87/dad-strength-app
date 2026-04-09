@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '../utils/supabase/client'
 import { Map, RefreshCw, ChevronDown, ChevronUp, Target, Heart, Dumbbell, Zap } from 'lucide-react'
 
 type Brief = {
@@ -30,7 +29,6 @@ function getWeekKey() {
 }
 
 export default function WeeklyMissionBrief() {
-  const [supabase] = useState(() => createClient())
   const [state, setState] = useState<BriefState>({
     weekKey: getWeekKey(),
     weekObjective: '',
@@ -79,8 +77,8 @@ export default function WeeklyMissionBrief() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newState))
       setExpanded(true)
       setShowForm(false)
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate. Try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate. Try again.')
     }
     setLoading(false)
   }
@@ -117,7 +115,7 @@ export default function WeeklyMissionBrief() {
       {/* Form to generate */}
       {!hasBrief && showForm && (
         <div className="px-5 pb-5 space-y-4 border-t border-border pt-4">
-          <p className="text-xs text-muted-foreground">Answer three questions. The AI builds your week's battle plan.</p>
+          <p className="text-xs text-muted-foreground">Answer three questions. The AI builds your week&apos;s battle plan.</p>
           <div className="space-y-3">
             <div>
               <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium block mb-1.5">
@@ -172,7 +170,7 @@ export default function WeeklyMissionBrief() {
         <div className="border-t border-border px-5 pb-5 pt-4 space-y-4">
           {/* Mission Statement */}
           <p className="text-sm text-foreground leading-relaxed italic border-l-2 border-brand pl-3">
-            "{state.brief.missionStatement}"
+            &quot;{state.brief.missionStatement}&quot;
           </p>
 
           {/* Breakdown */}
