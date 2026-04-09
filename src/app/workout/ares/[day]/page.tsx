@@ -767,10 +767,18 @@ export default function AresWorkoutPage() {
 
     if (!user) return
 
-    // Workouts are shared across all users — keyed to the calendar date + day slot
-    // so everyone sees the same WOD and refreshing never changes it.
-    const todayDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
-    const cacheKey = `ares-wod-${todayDate}-d${dayNumber}`
+    // Workouts are shared across all users — 4 unique WODs per week, keyed to
+    // Monday's date + day slot. Everyone doing Day 1 this week sees the same workout
+    // regardless of which calendar day they actually train.
+    const getMondayDate = () => {
+      const d = new Date()
+      const day = d.getDay() // 0=Sun, 1=Mon...
+      const diff = (day === 0 ? -6 : 1 - day) // shift to Monday
+      d.setDate(d.getDate() + diff)
+      return d.toISOString().split('T')[0] // YYYY-MM-DD of this week's Monday
+    }
+    const weekId = getMondayDate()
+    const cacheKey = `ares-wod-${weekId}-d${dayNumber}`
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
@@ -787,7 +795,7 @@ export default function AresWorkoutPage() {
       .from('generated_workouts')
       .select('id, workout_data')
       .eq('program_slug', 'ares')
-      .eq('week_number', todayDate) // repurpose week_number as date string for Ares
+      .eq('week_number', weekId) // Monday date of current week — 4 WODs per week
       .eq('day_number', dayNumber)
       .maybeSingle()
 
@@ -826,7 +834,7 @@ export default function AresWorkoutPage() {
         .insert({
           user_id: user.id,        // who generated it (for audit)
           program_slug: 'ares',
-          week_number: todayDate,  // date string stored in week_number column
+          week_number: weekId,     // Monday date = week identifier for Ares
           day_number: dayNumber,
           workout_data: { program: generated, day: targetDay },
         })
