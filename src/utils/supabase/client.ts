@@ -4,12 +4,6 @@ export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Debugging SSR env vars
-  if (typeof window === 'undefined') {
-    console.log(`[SSR] Supabase URL: ${url ? 'PRESENT' : 'MISSING'} (Value: "${url}")`);
-    console.log(`[SSR] Supabase Key: ${key ? 'PRESENT' : 'MISSING'} (Value: "${key}")`);
-  }
-
   // Use more robust check for missing environment variables
   const isMissing = !url || url === 'undefined' || !key || key === 'undefined';
 

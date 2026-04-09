@@ -11,8 +11,7 @@ export default function AutomationHook() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // For now, we'll just log it. In the future, this connects to Supabase/Skool.
-    console.log('Automation wish:', input);
+    // TODO: connect to Supabase/Skool when ready
 
     // Simulate API call
     setSubmitted(true);

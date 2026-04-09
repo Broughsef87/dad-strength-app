@@ -29,6 +29,19 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient()
 
+  // Idempotency guard — ignore events we've already processed
+  const { error: dedupError } = await supabase
+    .from('stripe_webhook_events')
+    .insert({ event_id: event.id, event_type: event.type })
+  if (dedupError) {
+    // Unique constraint violation = already processed
+    if (dedupError.code === '23505') {
+      return NextResponse.json({ received: true, duplicate: true })
+    }
+    // Any other DB error — log but continue (better to double-process than drop)
+    console.error('Webhook dedup check failed:', dedupError.message)
+  }
+
   try {
     switch (event.type) {
 
