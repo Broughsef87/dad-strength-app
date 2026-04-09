@@ -46,7 +46,7 @@ export default function Profile() {
 
       const { data: logs } = await supabase
         .from('workout_logs')
-        .select('created_at, weight_lbs, reps, exercise_name, workout_id')
+        .select('created_at, weight_lbs, reps, exercise_name')
         .eq('user_id', data.user.id)
         .eq('completed', true)
         .order('created_at', { ascending: false })

@@ -7,7 +7,6 @@ import { Calendar, ChevronLeft, PlayCircle, CheckCircle2, Dumbbell, Flame } from
 import BottomNav from '../../components/BottomNav'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 type DayData = {
   date: Date
@@ -45,7 +44,7 @@ export default function Schedule() {
       // Fetch this week's logs
       const { data: logs } = await supabase
         .from('workout_logs')
-        .select('created_at, weight_lbs, reps, workout_id, generated_workout_id')
+        .select('created_at, weight_lbs, reps, generated_workout_id')
         .eq('user_id', user.id)
         .eq('completed', true)
         .gte('created_at', startOfWeek.toISOString())
@@ -186,7 +185,7 @@ export default function Schedule() {
 
         {/* Today's session */}
         <div>
-          <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3">Today's Session</p>
+          <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3">Today&apos;s Session</p>
           {todayData?.hasWorkout ? (
             <div className="bg-brand/10 border border-brand/30 rounded-3xl p-5 flex items-center gap-4">
               <CheckCircle2 size={28} className="text-brand flex-shrink-0" />
