@@ -756,6 +756,7 @@ export default function AresWorkoutPage() {
 
   // Saved log IDs so we can persist to Supabase
   const generatedWorkoutIdRef = useRef<string | null>(null)
+  const aresWeekNumberRef = useRef<number>(0)
 
   // ── Load or generate the day ────────────────────────────────────────────────
 
@@ -767,18 +768,20 @@ export default function AresWorkoutPage() {
 
     if (!user) return
 
-    // Workouts are shared across all users — 4 unique WODs per week, keyed to
-    // Monday's date + day slot. Everyone doing Day 1 this week sees the same workout
-    // regardless of which calendar day they actually train.
-    const getMondayDate = () => {
+    // Canonical week number for Ares: year * 100 + ISO week (e.g. 202614).
+    // Integer so it fits the week_number column. Unique across years.
+    // All users this week share the same 4 WODs regardless of which day they train.
+    const getAresWeekNumber = (): number => {
       const d = new Date()
-      const day = d.getDay() // 0=Sun, 1=Mon...
-      const diff = (day === 0 ? -6 : 1 - day) // shift to Monday
-      d.setDate(d.getDate() + diff)
-      return d.toISOString().split('T')[0] // YYYY-MM-DD of this week's Monday
+      const dayOfWeek = d.getUTCDay() || 7
+      d.setUTCDate(d.getUTCDate() + 4 - dayOfWeek)
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+      const isoWeek = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+      return d.getUTCFullYear() * 100 + isoWeek
     }
-    const weekId = getMondayDate()
-    const cacheKey = `ares-wod-${weekId}-d${dayNumber}`
+    const aresWeekNumber = getAresWeekNumber()
+    aresWeekNumberRef.current = aresWeekNumber
+    const cacheKey = `ares-wod-w${aresWeekNumber}-d${dayNumber}`
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
@@ -795,7 +798,7 @@ export default function AresWorkoutPage() {
       .from('generated_workouts')
       .select('id, workout_data')
       .eq('program_slug', 'ares')
-      .eq('week_number', weekId) // Monday date of current week — 4 WODs per week
+      .eq('week_number', aresWeekNumber)
       .eq('day_number', dayNumber)
       .maybeSingle()
 
@@ -833,7 +836,7 @@ export default function AresWorkoutPage() {
         .insert({
           user_id: user.id,        // who generated it (for audit)
           program_slug: 'ares',
-          week_number: weekId,     // Monday date = week identifier for Ares
+          week_number: aresWeekNumber,
           day_number: dayNumber,
           workout_data: { program: generated, day: targetDay },
         })
@@ -864,7 +867,7 @@ export default function AresWorkoutPage() {
     const rows = doneSets.map(s => ({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
-      week_number: program.currentWeek,
+      week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'strength_set' as const,
       block_name: block.name,
@@ -882,7 +885,7 @@ export default function AresWorkoutPage() {
     await supabase.from('ares_session_logs').insert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
-      week_number: program.currentWeek,
+      week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'build_to_max',
       block_name: block.name,
@@ -897,7 +900,7 @@ export default function AresWorkoutPage() {
     await supabase.from('ares_session_logs').insert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
-      week_number: program.currentWeek,
+      week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'skill_work',
       block_name: block.name,
@@ -911,7 +914,7 @@ export default function AresWorkoutPage() {
     await supabase.from('ares_session_logs').insert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
-      week_number: program.currentWeek,
+      week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'monostructural',
       block_name: block.name,
@@ -929,7 +932,7 @@ export default function AresWorkoutPage() {
     await supabase.from('ares_session_logs').insert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
-      week_number: program.currentWeek,
+      week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'metcon',
       block_name: metcon.name ?? 'MetCon',
