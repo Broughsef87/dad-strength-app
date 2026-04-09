@@ -22,6 +22,25 @@ import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 
+interface ActiveProgramData {
+  slug: string
+  name: string
+  startedAt: string
+  currentWeek: number
+  trainingAge: string
+  primaryGoal: string
+  equipment: Record<string, boolean>
+  daysCount: number
+  dayNames: string[]
+  frequency?: number
+}
+
+interface WorkoutData {
+  id: string
+  name?: string
+  description?: string
+}
+
 function getCurrentWeekKey(): string {
   const d = new Date()
   const day = d.getDay()
@@ -50,11 +69,10 @@ export default function Dashboard() {
   const [supabase] = useState(() => createClient())
   const router = useRouter()
   const { isPro, loading: subLoading } = useSubscription()
-  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [workout, setWorkout] = useState<any>(null)
+  const [workout, setWorkout] = useState<WorkoutData | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
-  const [activeProgram, setActiveProgram] = useState<any>(null)
+  const [activeProgram, setActiveProgram] = useState<ActiveProgramData | null>(null)
   const [streak, setStreak] = useState(0)
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
 
@@ -82,7 +100,6 @@ export default function Dashboard() {
     const loadDashboard = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
-      setUser(user)
 
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -158,7 +175,7 @@ export default function Dashboard() {
         .eq('completed', true)
         .order('created_at', { ascending: false })
 
-      const uniqueDays: string[] = Array.from(new Set((logDates || []).map((l: any) => new Date(l.created_at).toDateString())))
+      const uniqueDays: string[] = Array.from(new Set((logDates || []).map((l: { created_at: string }) => new Date(l.created_at).toDateString())))
       let s = 0
       const today = new Date(); today.setHours(0, 0, 0, 0)
       for (let i = 0; i < uniqueDays.length; i++) {

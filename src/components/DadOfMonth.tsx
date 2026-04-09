@@ -63,7 +63,7 @@ export default function DadOfMonth() {
         .lte('date', lastOfPrev),
     ])
 
-    function activeDays(rows: any[]): number {
+    function activeDays(rows: { forge_state?: Record<string, unknown>; habit_completions?: number | Record<string, unknown> }[]): number {
       return (rows || []).filter(r => {
         const hasForge = r.forge_state && Object.keys(r.forge_state).length > 0
         const hasHabits = r.habit_completions && (

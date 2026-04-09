@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
-import { Shield, ChevronRight } from 'lucide-react'
+import { Shield } from 'lucide-react'
 import { getMondayOfWeek, getSundayOfWeek, toLocalDateString } from '../lib/utils'
 
 type ScoreBreakdown = {
@@ -32,7 +32,7 @@ function getGradeColor(grade: string): string {
 
 export default function DadScore() {
   const [supabase] = useState(() => createClient())
-  const { user, loading: userLoading } = useUser()
+  const { user } = useUser()
   const [score, setScore] = useState<ScoreBreakdown | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -62,7 +62,7 @@ export default function DadScore() {
       .lte('created_at', sunday.toISOString())
 
     const uniqueSessions = new Set(
-      (weekLogs || []).map((l: any) => `${toLocalDateString(new Date(l.created_at))}__${l.workout_id ?? l.generated_workout_id ?? 'standalone'}`)
+      (weekLogs || []).map((l: { created_at: string; workout_id?: string; generated_workout_id?: string }) => `${toLocalDateString(new Date(l.created_at))}__${l.workout_id ?? l.generated_workout_id ?? 'standalone'}`)
     ).size
 
     const trainingScore = Math.min(Math.round((uniqueSessions / weeklyTarget) * 40), 40)
@@ -77,8 +77,8 @@ export default function DadScore() {
 
     let habitScore = 0
     if (checkins && checkins.length > 0) {
-      const habitCounts = checkins.map((c: any) => {
-        const gs = c.growth_state as any
+      const habitCounts = checkins.map((c: { growth_state: unknown }) => {
+        const gs = c.growth_state as { habits?: boolean[] } | null
         if (!gs?.habits) return 0
         const done = gs.habits.filter(Boolean).length
         const total = gs.habits.length
@@ -91,15 +91,15 @@ export default function DadScore() {
     // Family score (0-20): family goals completed this week
     let familyScore = 0
     if (checkins && checkins.length > 0) {
-      const familyDone = checkins.filter((c: any) => (c.growth_state as any)?.familyGoalDone === true).length
+      const familyDone = checkins.filter((c: { growth_state: unknown }) => (c.growth_state as { familyGoalDone?: boolean } | null)?.familyGoalDone === true).length
       familyScore = Math.min(Math.round((familyDone / 7) * 20), 20)
     }
 
     // Mind score (0-10): objectives locked in and completed
     let mindScore = 0
     if (checkins && checkins.length > 0) {
-      const mindEntries = checkins.map((c: any) => {
-        const ms = c.growth_state as any
+      const mindEntries = checkins.map((c: { growth_state: unknown }) => {
+        const ms = c.growth_state as { completedObjectives?: boolean[]; objectives?: unknown[] } | null
         if (!ms?.completedObjectives) return 0
         const done = ms.completedObjectives.filter(Boolean).length
         const total = ms.objectives?.length || 1

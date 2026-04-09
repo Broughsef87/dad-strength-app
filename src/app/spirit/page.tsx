@@ -332,7 +332,7 @@ export default function SpiritPage() {
         if (existing) {
           await supabase.from('brotherhood_contacts')
             .update({ name, last_contacted_at: lastContactedAt })
-            .eq('id', (existing as any).id)
+            .eq('id', (existing as { id: string }).id)
         } else {
           await supabase.from('brotherhood_contacts')
             .insert({ user_id: userId, name, last_contacted_at: lastContactedAt })

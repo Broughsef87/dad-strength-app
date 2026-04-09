@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Search, PlayCircle, Dumbbell, Loader2, SlidersHorizontal } from 'lucide-react'
+import { ChevronLeft, Search, PlayCircle, Dumbbell, Loader2 } from 'lucide-react'
 import { createClient } from '../../utils/supabase/client'
 import BottomNav from '../../components/BottomNav'
 import EXERCISES from '../../data/exercises.json'

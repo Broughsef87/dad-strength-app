@@ -15,7 +15,6 @@ interface WorkoutSummaryOverlayProps {
 }
 
 export default function WorkoutSummaryOverlay({
-  workoutName,
   totalVolume,
   duration,
   workoutId,

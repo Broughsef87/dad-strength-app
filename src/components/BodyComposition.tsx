@@ -13,7 +13,7 @@ type BodyEntry = {
 
 export default function BodyComposition() {
   const [supabase] = useState(() => createClient())
-  const { user, loading: userLoading } = useUser()
+  const { user } = useUser()
   const [entries, setEntries] = useState<BodyEntry[]>([])
   const [weight, setWeight] = useState('')
   const [waist, setWaist] = useState('')

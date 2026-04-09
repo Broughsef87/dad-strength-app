@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
-import { Moon, AlertTriangle, Zap, Baby } from 'lucide-react'
+import { Moon, Zap, Baby } from 'lucide-react'
 
 type SleepEntry = {
   date: string
@@ -11,7 +11,6 @@ type SleepEntry = {
   personalHours: number
 }
 
-const QUALITY_LABELS = { good: 'Good Night', ok: 'Manageable', rough: 'Rough Night' }
 const QUALITY_COLORS = {
   good: 'bg-green-500/10 border-green-500/20 text-green-600',
   ok: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600',
@@ -160,7 +159,7 @@ export default function BabySleepTracker() {
         <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Log Last Night</p>
 
         <div>
-          <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2">Baby's Night</p>
+          <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2">Baby&apos;s Night</p>
           <div className="grid grid-cols-3 gap-2">
             {(['good', 'ok', 'rough'] as const).map(q => (
               <button

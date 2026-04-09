@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, Coffee, Play, Timer, TrendingUp, Volume2 } from 'lucide-react';
+import { Activity, Coffee, Play, Timer, TrendingUp } from 'lucide-react';
 
 interface ActiveSessionHeaderProps {
   workoutName: string;
@@ -19,7 +19,6 @@ export default function ActiveSessionHeader({
   progress,
   isPaused = false,
   onTogglePause,
-  predictedVolume
 }: ActiveSessionHeaderProps) {
   return (
     <div className={`group relative bg-surface-3 border-2 overflow-hidden transition-all duration-700 p-6 rounded-xl mb-8 ${

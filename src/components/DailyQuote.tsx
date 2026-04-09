@@ -34,7 +34,7 @@ export default function DailyQuote() {
 
   return (
     <div className="glass-card rounded-xl p-5 border border-border flex flex-col items-center justify-center text-center space-y-3">
-      <div className="text-4xl text-muted-foreground/20 font-serif leading-none -mb-1 self-start">"</div>
+      <div className="text-4xl text-muted-foreground/20 font-serif leading-none -mb-1 self-start">&quot;</div>
       <p className="text-sm text-muted-foreground font-light italic leading-relaxed px-2">
         {quote.text}
       </p>

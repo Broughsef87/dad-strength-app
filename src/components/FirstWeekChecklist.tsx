@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, Circle, X, Dumbbell, Target, Sun, Users } from 'lucide-react'
+import { CheckCircle2, X, Dumbbell, Target, Sun, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const SKOOL_URL = process.env.NEXT_PUBLIC_SKOOL_URL || 'https://www.skool.com'

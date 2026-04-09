@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { staggerContainer, fadeUp } from '../../components/ui/motion';
 import { createClient } from '../../utils/supabase/client';
+import type { User } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 import { Target, PenLine, Lock, Unlock, CheckCircle2, Circle, Save, Plus, X } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
@@ -33,8 +34,7 @@ export default function MindPage() {
         setJournal(data.journal || '');
       }
     }
-    supabase.auth.getUser().then((r: any) => {
-      const user = r.data.user;
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null }; error: Error | null }) => {
       if (!user) return;
       supabase
         .from('daily_checkins')
@@ -42,9 +42,9 @@ export default function MindPage() {
         .eq('user_id', user.id)
         .eq('date', today)
         .single()
-        .then((res: any) => {
-          if (res.data?.mind_state) {
-            const ms = res.data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean; journal?: string };
+        .then(({ data }: { data: { mind_state: unknown } | null; error: Error | null }) => {
+          if (data?.mind_state) {
+            const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean; journal?: string };
             setObjectives(ms.objectives || ['', '', '']);
             setCompletedObjectives(ms.completedObjectives || [false, false, false]);
             setLockedIn(ms.lockedIn || false);
@@ -65,8 +65,7 @@ export default function MindPage() {
     };
     localStorage.setItem('dad-strength-mind-state', JSON.stringify(state));
     const today = new Date().toISOString().split('T')[0];
-    supabase.auth.getUser().then((r: any) => {
-      const user = r.data.user;
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null }; error: Error | null }) => {
       if (!user) return;
       supabase.from('daily_checkins').upsert(
         { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },

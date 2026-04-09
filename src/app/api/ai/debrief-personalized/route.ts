@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       .lte('created_at', new Date(weekEnd + 'T23:59:59').toISOString())
 
     const workoutSessionDays = new Set(
-      (workoutLogs || []).map((l: any) => new Date(l.created_at).toDateString())
+      (workoutLogs || []).map((l: { created_at: string }) => new Date(l.created_at).toDateString())
     )
     const workoutsCompleted = workoutSessionDays.size
 
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       .lte('date', weekEnd)
 
     const totalObjectives = (objectivesData || []).length
-    const completedObjectives = (objectivesData || []).filter((o: any) => o.completed).length
+    const completedObjectives = (objectivesData || []).filter((o: { completed: boolean }) => o.completed).length
 
     // ── Query daily_checkins: habit_completions and mind/spirit state ───────
     const { data: checkinsData } = await supabase

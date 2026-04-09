@@ -295,7 +295,7 @@ export default function ForgePage() {
           </div>
 
           <div className="ds-card divide-y divide-border overflow-hidden">
-            {CALIBRATION_LIFTS.map((lift, i) => (
+            {CALIBRATION_LIFTS.map((lift) => (
               <div key={lift.key} className="flex items-center gap-4 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-foreground">{lift.label}</div>

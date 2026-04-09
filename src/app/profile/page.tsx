@@ -21,7 +21,7 @@ export default function Profile() {
   const { isPro, isFounder, loading: subLoading } = useSubscription()
   const [showUpgrade, setShowUpgrade] = useState(false)
 
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [stats, setStats] = useState({ totalSessions: 0, totalVolume: 0, topLift: '', streak: 0 })
   const [programName, setProgramName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -52,9 +52,9 @@ export default function Profile() {
         .order('created_at', { ascending: false })
 
       if (logs) {
-        const uniqueDays = new Set<string>(logs.map((l: any) => new Date(l.created_at).toDateString()))
-        const totalVolume = logs.reduce((sum: number, l: any) => sum + (l.weight_lbs || 0) * (l.reps || 0), 0)
-        const topLog = logs.reduce((best: any, l: any) => (l.weight_lbs || 0) > (best?.weight_lbs || 0) ? l : best, null)
+        const uniqueDays = new Set<string>(logs.map((l: { created_at: string }) => new Date(l.created_at).toDateString()))
+        const totalVolume = logs.reduce((sum: number, l: { weight_lbs?: number; reps?: number }) => sum + (l.weight_lbs || 0) * (l.reps || 0), 0)
+        const topLog = logs.reduce((best: { weight_lbs?: number; exercise_name?: string } | null, l: { weight_lbs?: number; exercise_name?: string }) => (l.weight_lbs || 0) > (best?.weight_lbs || 0) ? l : best, null)
 
         const days: string[] = Array.from(uniqueDays)
         let streak = 0

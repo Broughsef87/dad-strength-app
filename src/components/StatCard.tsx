@@ -14,7 +14,7 @@ interface StatCardProps {
   subtitle: string;
 }
 
-export default function StatCard({ type, stats, title, subtitle }: StatCardProps) {
+export default function StatCard({ stats, title, subtitle }: StatCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleShare = async () => {
@@ -25,7 +25,7 @@ export default function StatCard({ type, stats, title, subtitle }: StatCardProps
           text: `Just finished my ${title}! #DadStrength #ForgeOS`,
           url: window.location.href,
         });
-      } catch (err) {
+      } catch {
         // User cancelled share or share failed — no action needed
       }
     }

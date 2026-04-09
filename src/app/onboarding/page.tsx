@@ -101,8 +101,8 @@ export default function Onboarding() {
       localStorage.setItem('activeProgramConfig', JSON.stringify(activeProgramConfig))
 
       router.push('/dashboard')
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong. Try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Try again.')
       setSaving(false)
     }
   }
@@ -168,7 +168,7 @@ export default function Onboarding() {
               onClick={() => setStep('focus')}
               className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand/90 text-background font-semibold py-5 rounded-md text-base uppercase tracking-wider transition-all active:scale-95 brand-glow"
             >
-              Let's Build Your Protocol <ChevronRight size={20} />
+              Let&apos;s Build Your Protocol <ChevronRight size={20} />
             </button>
           </div>
         )}
@@ -178,7 +178,7 @@ export default function Onboarding() {
           <div className="w-full space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div>
               <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">Step 1 of 3</p>
-              <h2 className="text-3xl font-display tracking-[0.06em] uppercase">What's your focus?</h2>
+              <h2 className="text-3xl font-display tracking-[0.06em] uppercase">What&apos;s your focus?</h2>
               <p className="text-muted-foreground text-sm mt-1">Pick the area you want to prioritize.</p>
             </div>
             <div className="space-y-3">

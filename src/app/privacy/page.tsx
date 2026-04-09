@@ -22,9 +22,9 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Overview</h2>
             <p>
-              Dad Strength ("we," "us," or "our") is committed to protecting your privacy. This policy explains what
+              Dad Strength (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy. This policy explains what
               information we collect when you use the Dad Strength app, how we use it, and your rights regarding
-              your data. We don't sell your data. Ever.
+              your data. We don&apos;t sell your data. Ever.
             </p>
           </section>
 
@@ -160,7 +160,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Children's Privacy</h2>
+            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Children&apos;s Privacy</h2>
             <p>
               Dad Strength is intended for users 13 years of age and older. We do not knowingly collect
               personal information from children under 13. If you believe a child under 13 has provided us
@@ -171,8 +171,8 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Changes to This Policy</h2>
             <p>
-              We may update this policy from time to time. When we do, we'll update the "last updated" date
-              at the top of this page. For significant changes, we'll notify you via email or an in-app notice.
+              We may update this policy from time to time. When we do, we&apos;ll update the &quot;last updated&quot; date
+              at the top of this page. For significant changes, we&apos;ll notify you via email or an in-app notice.
               Continued use of the app after changes take effect constitutes your acceptance of the updated policy.
             </p>
           </section>

@@ -59,7 +59,7 @@ export default function BodyVitals() {
 
       // Count unique sessions (date + workout_id combos) not individual set rows
       const uniqueSessions = new Set(
-        (weekLogs || []).map((l: any) =>
+        (weekLogs || []).map((l: { created_at: string; workout_id?: string; generated_workout_id?: string }) =>
           `${toLocalDateString(new Date(l.created_at))}__${l.workout_id ?? l.generated_workout_id ?? 'standalone'}`
         )
       )
@@ -73,7 +73,7 @@ export default function BodyVitals() {
         .order('created_at', { ascending: false })
 
       if (allLogs && allLogs.length > 0) {
-        const localDates = allLogs.map((l: any) =>
+        const localDates = allLogs.map((l: { created_at: string }) =>
           toLocalDateString(new Date(l.created_at))
         )
         setStreak(calcStreak(localDates))

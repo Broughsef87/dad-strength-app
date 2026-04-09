@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Circle, Dumbbell, History, MoreHorizontal } from 'lucide-react';
+import { CheckCircle2, Circle, History } from 'lucide-react';
 
 interface ActiveSetRowProps {
   index: number;

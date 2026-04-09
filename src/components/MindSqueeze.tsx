@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Brain, Clock, Loader2, Zap, Play, SkipForward, Lock } from 'lucide-react'
 
 const TIME_OPTIONS = [10, 20, 30, 45]
@@ -19,7 +19,7 @@ const BLOCK_COLORS: Record<string, string> = {
   review:     'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
 }
 
-const BLOCK_ICONS: Record<string, any> = {
+const BLOCK_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   focus:      Zap,
   transition: SkipForward,
   review:     Brain,
@@ -117,7 +117,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
         <Brain size={18} className="text-brand" />
         <h3 className="font-black text-lg uppercase italic tracking-tighter">Mind Squeeze</h3>
       </div>
-      <p className="text-xs text-muted-foreground font-medium -mt-4">Stolen time. Optimized focus. Let's go.</p>
+      <p className="text-xs text-muted-foreground font-medium -mt-4">Stolen time. Optimized focus. Let&apos;s go.</p>
 
       {/* Time */}
       <div>
@@ -202,7 +202,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
 
           {/* Mindset anchor */}
           <div className="border-l-2 border-brand/40 pl-4">
-            <p className="text-xs text-brand italic font-bold leading-snug">"{sprint.mindset}"</p>
+            <p className="text-xs text-brand italic font-bold leading-snug">&quot;{sprint.mindset}&quot;</p>
           </div>
 
           {/* Time blocks */}

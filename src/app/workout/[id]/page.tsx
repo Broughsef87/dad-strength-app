@@ -32,7 +32,7 @@ export default function ActiveWorkout() {
   
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [loading, setLoading] = useState(true)
-  const [logs, setLogs] = useState<any>({})
+  const [logs, setLogs] = useState<Record<string, { weight: string; reps: string; completed: boolean }>>({})
   const [timer, setTimer] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
@@ -82,7 +82,7 @@ export default function ActiveWorkout() {
   }, [workout])
 
   useEffect(() => {
-    let interval: any
+    let interval: ReturnType<typeof setInterval> | undefined
     if (restTime > 0 && !isGraceMode) {
       interval = setInterval(() => {
         setRestTime((prev) => prev - 1)
@@ -102,7 +102,7 @@ export default function ActiveWorkout() {
       if (error) {
         console.error('Error fetching workout:', error)
       } else {
-        const exercisesWithIds = (data.exercises as any[]).map((ex, idx) => ({
+        const exercisesWithIds = (data.exercises as { id?: string; name: string; sets: number; reps: string }[]).map((ex, idx) => ({
           ...ex,
           id: ex.id || `ex-${idx}`,
           target_reps: ex.reps
@@ -135,7 +135,7 @@ export default function ActiveWorkout() {
   }, [supabase, params?.id])
 
   useEffect(() => {
-    let interval: any
+    let interval: ReturnType<typeof setInterval> | undefined
     if (timerRunning && !isGraceMode) {
       interval = setInterval(() => {
         setTimer((prev) => prev + 1)
@@ -180,7 +180,7 @@ export default function ActiveWorkout() {
     const key = `${exercise.id}-${setIndex}`
     const isNowCompleted = !logs[key]?.completed
     
-    setLogs((prev: any) => ({
+    setLogs((prev) => ({
       ...prev,
       [key]: { ...prev[key], completed: isNowCompleted }
     }))
@@ -211,7 +211,7 @@ export default function ActiveWorkout() {
 
   const handleInputChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     const key = `${exerciseId}-${setIndex}`
-    setLogs((prev: any) => ({
+    setLogs((prev) => ({
       ...prev,
       [key]: { ...prev[key], [field]: value }
     }))
@@ -392,7 +392,7 @@ export default function ActiveWorkout() {
                 onClick={() => { setShowFinishConfirm(false); finishWorkout() }}
                 className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3.5 rounded-md text-sm uppercase tracking-widest transition-all active:scale-95"
               >
-                Yes, I'm Done
+                Yes, I&apos;m Done
               </button>
               <button
                 onClick={() => setShowFinishConfirm(false)}

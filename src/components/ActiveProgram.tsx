@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Dumbbell, ChevronDown, ChevronUp, CheckCircle2, Clock,
-  PlayCircle, RefreshCcw, BarChart2, RotateCcw, Zap
+  PlayCircle, RefreshCcw, RotateCcw, Zap
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '../utils/supabase/client'

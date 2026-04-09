@@ -22,7 +22,7 @@ export default function Schedule() {
   const [supabase] = useState(() => createClient())
   const router = useRouter()
   const [weekDays, setWeekDays] = useState<DayData[]>([])
-  const [activeWorkout, setActiveWorkout] = useState<any>(null)
+  const [activeWorkout, setActiveWorkout] = useState<{ id: string; name: string; description?: string; exercises?: unknown[] } | null>(null)
   const [streak, setStreak] = useState(0)
   const [weekVolume, setWeekVolume] = useState(0)
   const [weekSessions, setWeekSessions] = useState(0)
@@ -90,7 +90,7 @@ export default function Schedule() {
         .eq('completed', true)
         .order('created_at', { ascending: false })
 
-      const uniqueDays = Array.from(new Set((allLogs || []).map((l: any) => new Date(l.created_at).toDateString()))) as string[]
+      const uniqueDays = Array.from(new Set((allLogs || []).map((l: { created_at: string }) => new Date(l.created_at).toDateString()))) as string[]
       let s = 0
       for (let i = 0; i < uniqueDays.length; i++) {
         const d = new Date(uniqueDays[i]); d.setHours(0,0,0,0)

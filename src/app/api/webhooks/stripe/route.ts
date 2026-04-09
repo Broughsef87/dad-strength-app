@@ -9,9 +9,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 })
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2026-03-25.dahlia' as any,
-  })
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
@@ -22,9 +20,10 @@ export async function POST(req: NextRequest) {
 
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
-  } catch (err: any) {
-    console.error('Webhook signature error:', err.message)
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Signature verification failed'
+    console.error('Webhook signature error:', message)
+    return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 })
   }
 
   const supabase = createAdminClient()
@@ -132,7 +131,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ received: true })
-  } catch (err: any) {
+  } catch (err) {
     console.error('Webhook handler error:', err)
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
