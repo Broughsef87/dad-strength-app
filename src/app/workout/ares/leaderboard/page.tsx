@@ -182,6 +182,7 @@ export default function AresLeaderboardPage() {
       setCurrentUserId(user.id)
     }
     checkAuth()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
 
   // Data fetch on day change
@@ -244,6 +245,7 @@ export default function AresLeaderboardPage() {
     }
 
     fetchData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDay, currentUserId, aresWeekNumber])
 
   // Observe user row visibility for fixed banner
@@ -261,11 +263,11 @@ export default function AresLeaderboardPage() {
   const showBanner = !!userRanked && !userRowVisible
 
   function getRankIcon(rank: number) {
-    if (rank === 1) return <Crown size={16} className="text-yellow-400" strokeWidth={1.5} />
-    if (rank === 2) return <Medal size={16} className="text-slate-400" strokeWidth={1.5} />
-    if (rank === 3) return <Medal size={16} className="text-amber-600" strokeWidth={1.5} />
+    if (rank === 1) return <Crown size={15} className="text-yellow-400" strokeWidth={1.5} />
+    if (rank === 2) return <Medal size={15} className="text-slate-400" strokeWidth={1.5} />
+    if (rank === 3) return <Medal size={15} className="text-amber-600" strokeWidth={1.5} />
     return (
-      <span className="text-[11px] font-display text-muted-foreground w-4 text-center inline-block">
+      <span className="stat-num text-lg text-muted-foreground w-8 text-center inline-block">
         {rank}
       </span>
     )
@@ -279,36 +281,35 @@ export default function AresLeaderboardPage() {
 
   if (currentUserId === null) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background text-foreground">
-        <div className="w-6 h-6 border border-brand border-t-transparent rounded-full animate-spin" />
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-md mx-auto px-4 py-6 pb-24">
+      <div className="max-w-md mx-auto px-4 py-6 pb-40">
 
-        {/* Header */}
+        {/* Page header */}
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => router.push('/dashboard')}
-            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-brand/30 transition-colors"
+            className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Back to dashboard"
           >
-            <ArrowLeft size={16} strokeWidth={1.5} />
+            <ArrowLeft size={20} />
           </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <Trophy size={15} className="text-brand shrink-0" strokeWidth={1.5} />
-              <h1 className="text-lg font-display tracking-wide uppercase text-foreground leading-none truncate">
-                Ares Leaderboard
-              </h1>
-            </div>
-            <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-0.5 font-semibold">
-              {formatAresWeek(aresWeekNumber)}
-            </p>
+          <div>
+            <h1 className="font-display text-4xl text-foreground leading-none tracking-wide uppercase">
+              IRON BOARD
+            </h1>
+            <p className="steel-label mt-0.5">Community WOD Rankings</p>
           </div>
         </div>
+
+        {/* Week label */}
+        <p className="steel-label text-muted-foreground mb-4">{formatAresWeek(aresWeekNumber)}</p>
 
         {/* Day tab selector */}
         <div className="flex gap-2 mb-5">
@@ -316,10 +317,10 @@ export default function AresLeaderboardPage() {
             <button
               key={day}
               onClick={() => setSelectedDay(day)}
-              className={`flex-1 py-2 rounded-full text-[11px] font-display uppercase tracking-[0.12em] transition-all ${
+              className={`flex-1 py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-[0.12em] transition-all ${
                 selectedDay === day
-                  ? 'bg-brand text-background font-semibold'
-                  : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-brand/30'
+                  ? 'bg-brand text-white'
+                  : 'card-base text-muted-foreground hover:border-brand/30'
               }`}
             >
               Day {day}
@@ -329,14 +330,14 @@ export default function AresLeaderboardPage() {
 
         {/* WOD preview card */}
         {(dayName || wodDescription) && (
-          <div className="bg-card border border-border rounded-xl p-4 mb-5">
+          <div className="ds-card p-5 mb-5">
             {dayName && (
-              <p className="text-[9px] uppercase tracking-[0.18em] text-brand font-semibold font-display mb-1">
+              <p className="font-display text-2xl text-foreground leading-none mb-2 uppercase">
                 {dayName}
               </p>
             )}
             {wodDescription && (
-              <p className="text-[12px] text-muted-foreground leading-relaxed whitespace-pre-line">
+              <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
                 {truncateDescription(wodDescription)}
               </p>
             )}
@@ -345,18 +346,20 @@ export default function AresLeaderboardPage() {
 
         {/* Leaderboard */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-5 h-5 border border-brand border-t-transparent rounded-full animate-spin" />
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="skeleton h-14 rounded-xl" />
+            ))}
           </div>
         ) : rankedResults.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border rounded-xl p-8 text-center"
+            className="ds-card p-8 text-center"
           >
             <Trophy size={28} className="text-muted-foreground/30 mx-auto mb-3" strokeWidth={1} />
-            <p className="text-sm text-foreground font-semibold mb-1">No results yet for Day {selectedDay}</p>
-            <p className="text-[11px] text-muted-foreground">Be the first to post!</p>
+            <p className="text-sm font-semibold text-foreground mb-1">No results yet for Day {selectedDay}</p>
+            <p className="text-xs text-muted-foreground">Be the first to log today&apos;s WOD</p>
           </motion.div>
         ) : (
           <motion.div
@@ -368,6 +371,7 @@ export default function AresLeaderboardPage() {
           >
             {rankedResults.map((r) => {
               const isCurrentUser = r.userId === currentUserId
+              const isTop1 = r.rank === 1
               return (
                 <motion.div
                   key={r.userId}
@@ -375,23 +379,21 @@ export default function AresLeaderboardPage() {
                   variants={fadeUp}
                   custom={r.rank - 1}
                   className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
-                    isCurrentUser
-                      ? 'border-brand/30 bg-brand/5'
-                      : 'border-border bg-card'
+                    isTop1
+                      ? 'border-brand/40 bg-brand/5'
+                      : isCurrentUser
+                        ? 'border-brand/30 bg-brand/5'
+                        : 'border-border bg-card'
                   }`}
                 >
                   {/* Rank */}
-                  <div className="w-6 flex items-center justify-center shrink-0">
+                  <div className="w-8 flex items-center justify-center shrink-0">
                     {getRankIcon(r.rank)}
                   </div>
 
                   {/* Name */}
                   <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-[13px] font-semibold leading-none truncate ${
-                        isCurrentUser ? 'text-brand' : 'text-foreground'
-                      }`}
-                    >
+                    <p className="text-sm font-semibold text-foreground leading-none truncate">
                       {r.displayName}
                       {isCurrentUser && (
                         <span className="ml-1.5 text-[9px] text-brand/70 font-normal normal-case tracking-normal">
@@ -408,11 +410,11 @@ export default function AresLeaderboardPage() {
 
                   {/* Result */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[13px] font-display font-semibold text-foreground tabular-nums">
+                    <span className="stat-num text-brand font-bold">
                       {r.result}
                     </span>
                     {r.rx && (
-                      <span className="text-[8px] font-display font-bold uppercase tracking-[0.1em] bg-brand/10 text-brand px-1.5 py-0.5 rounded-sm">
+                      <span className="text-[9px] uppercase tracking-widest bg-brand/10 text-brand px-1.5 py-0.5 rounded font-semibold">
                         RX
                       </span>
                     )}
@@ -424,21 +426,23 @@ export default function AresLeaderboardPage() {
         )}
       </div>
 
-      {/* Your position banner */}
+      {/* Fixed bottom banner — your position */}
       {showBanner && userRanked && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe">
-          <div className="max-w-md w-full px-4 pb-4">
-            <motion.div
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="bg-brand text-background rounded-xl px-5 py-3 flex items-center justify-center gap-2 shadow-lg"
-            >
-              <Trophy size={13} strokeWidth={2} />
-              <p className="text-[11px] font-display uppercase tracking-[0.14em] font-semibold">
-                You&apos;re #{userRanked.rank} of {rankedResults.length} athletes
-              </p>
-            </motion.div>
-          </div>
+        <div className="fixed bottom-20 left-4 right-4 z-50">
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="bg-surface-2/95 backdrop-blur-sm border border-border rounded-2xl p-4 flex items-center justify-center gap-2 shadow-lg"
+          >
+            <Trophy size={13} className="text-brand" strokeWidth={2} />
+            <p className="text-sm font-semibold text-foreground">
+              You&apos;re{' '}
+              <span className="text-brand">#{userRanked.rank}</span>
+              {' '}of{' '}
+              <span className="text-brand">{rankedResults.length}</span>
+              {' '}athletes this week
+            </p>
+          </motion.div>
         </div>
       )}
     </div>

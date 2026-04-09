@@ -66,7 +66,7 @@ export default function StreakShield() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-5 space-y-4">
+    <div className="ds-card p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

@@ -378,7 +378,7 @@ export default function SpiritPage() {
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-6 space-y-6">
         {[1, 2, 3].map(i => (
-          <div key={i} className="glass-card rounded-2xl border border-border/50 p-5 animate-pulse space-y-4">
+          <div key={i} className="ds-card p-5 animate-pulse space-y-4">
             <div className="h-3 bg-muted rounded w-1/4" />
             <div className="h-14 bg-muted rounded" />
             <div className="h-10 bg-muted rounded" />
@@ -405,8 +405,8 @@ export default function SpiritPage() {
 
           {/* ── Morning Protocol ──────────────────────────────────────────────── */}
           <motion.div variants={fadeUp}>
-            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
-              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
+            <div className="ds-card overflow-hidden">
+
               <div className="p-5">
                 <MorningProtocol />
               </div>
@@ -415,8 +415,8 @@ export default function SpiritPage() {
 
           {/* ── Stoic for Today ───────────────────────────────────────────────── */}
           <motion.div variants={fadeUp}>
-            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
-              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
+            <div className="ds-card overflow-hidden">
+
               <div className="p-5 space-y-4">
 
                 {/* Header */}
@@ -487,8 +487,8 @@ export default function SpiritPage() {
 
           {/* ── The Act ──────────────────────────────────────────────────────────── */}
           <motion.div variants={fadeUp}>
-            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
-              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
+            <div className="ds-card overflow-hidden">
+
               <div className="p-5 space-y-4">
 
                 {/* Header */}
@@ -547,8 +547,8 @@ export default function SpiritPage() {
 
           {/* ── Connection Heat Map ───────────────────────────────────────────────── */}
           <motion.div variants={fadeUp}>
-            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
-              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
+            <div className="ds-card overflow-hidden">
+
               <div className="p-5 space-y-4">
 
                 {/* Header */}

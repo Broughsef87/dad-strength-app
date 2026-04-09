@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Bebas_Neue, Space_Grotesk, Space_Mono } from 'next/font/google'
+import { Bebas_Neue, Inter, Space_Mono } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
 import { UserProvider } from '../contexts/UserContext'
@@ -12,9 +12,9 @@ const bebasNeue = Bebas_Neue({
   weight: ['400'],
 })
 
-const spaceGrotesk = Space_Grotesk({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-space-grotesk',
+  variable: '--font-inter',
   weight: ['300', '400', '500', '600', '700'],
 })
 
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0D0F14',
+  themeColor: '#0A0A0A',
 }
 
 export default function RootLayout({
@@ -75,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${spaceGrotesk.variable} ${spaceMono.variable} overflow-x-hidden`}>
+    <html lang="en" className={`${bebasNeue.variable} ${inter.variable} ${spaceMono.variable} overflow-x-hidden`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
@@ -91,7 +91,7 @@ export default function RootLayout({
           })();
         `}} />
       </head>
-      <body className={`${spaceGrotesk.className} overflow-x-hidden`}>
+      <body className={`${inter.className} overflow-x-hidden`}>
         <ThemeProvider>
           <UserProvider>
             <SubscriptionProvider>

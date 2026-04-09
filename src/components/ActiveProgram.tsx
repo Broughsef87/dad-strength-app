@@ -170,7 +170,7 @@ export default function ActiveProgram() {
   // Not loaded yet — skeleton
   if (!loaded) {
     return (
-      <div className="glass-card rounded-2xl p-5 border border-border/50 animate-pulse">
+      <div className="ds-card p-5 animate-pulse">
         <div className="h-3 bg-muted rounded w-2/3 mb-3" />
         <div className="h-6 bg-muted rounded w-1/2" />
       </div>
@@ -180,7 +180,7 @@ export default function ActiveProgram() {
   // No program — route to build page
   if (!program) {
     return (
-      <div className="glass-card rounded-2xl border border-border/50 p-6 text-center space-y-4">
+      <div className="ds-card p-6 text-center space-y-4">
         <div className="p-3 bg-brand/10 rounded-xl w-fit mx-auto">
           <Dumbbell size={24} className="text-brand" strokeWidth={1.5} />
         </div>
@@ -192,7 +192,7 @@ export default function ActiveProgram() {
         </div>
         <button
           onClick={() => router.push('/build')}
-          className="w-full bg-brand hover:bg-brand/90 text-foreground font-black py-3 rounded-xl uppercase tracking-widest text-sm transition-all active:scale-95"
+          className="btn-primary w-full"
         >
           Build My Program
         </button>
@@ -207,10 +207,7 @@ export default function ActiveProgram() {
   const dayNames = program.dayNames ?? Array.from({ length: totalDays }, (_, i) => `Day ${i + 1}`)
 
   return (
-    <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
-      {/* Brand accent top bar */}
-      <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
-
+    <div className="ds-card overflow-hidden">
       {/* Header */}
       <div
         className="flex items-center justify-between p-5 cursor-pointer select-none"
@@ -221,10 +218,10 @@ export default function ActiveProgram() {
             <Dumbbell size={16} strokeWidth={1.5} />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5 font-display">
+            <p className="steel-label text-muted-foreground mb-0.5">
               Active Program
             </p>
-            <h3 className="font-black text-base uppercase italic tracking-[0.06em] leading-tight truncate font-display">
+            <h3 className="font-display text-[2rem] leading-none tracking-wide uppercase truncate">
               {program.name.replace(/\s+[35]$/, '')}
               <span className="text-muted-foreground font-medium normal-case italic text-sm">
                 {' '}— Week {program.currentWeek}
@@ -254,7 +251,7 @@ export default function ActiveProgram() {
           </span>
           <span className="text-[9px] font-black text-brand">{completedCount}/{totalDays} days</span>
         </div>
-        <div className="w-full h-1.5 bg-card rounded-full overflow-hidden">
+        <div className="w-full bg-muted h-1 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-brand rounded-full"
             initial={{ width: 0 }}
@@ -298,10 +295,10 @@ export default function ActiveProgram() {
                     key={i}
                     className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
                       status === 'complete'
-                        ? 'bg-green-500/5 border-green-500/20'
+                        ? 'bg-green-500/5 border border-green-500/20'
                         : status === 'in_progress'
-                        ? 'bg-brand/5 border-brand/20'
-                        : 'bg-card/40 border-border/50'
+                        ? 'bg-brand/5 border border-brand/20'
+                        : 'bg-card border border-border'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -365,7 +362,7 @@ export default function ActiveProgram() {
                   const nextDay = getNextWorkoutDay(program.daysCount, weekKey, weekProgress)
                   router.push(workoutRoute(nextDay))
                 }}
-                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-md bg-brand text-background text-sm font-semibold uppercase tracking-[0.1em] active:scale-95 brand-glow transition-all hover:bg-brand/90"
+                className="btn-primary w-full flex items-center justify-center gap-2.5"
               >
                 <Zap size={14} strokeWidth={2} />
                 {completedCount === totalDays ? 'Start Next Week' : completedCount > 0 ? 'Continue Training' : 'Start Training'}
@@ -376,22 +373,22 @@ export default function ActiveProgram() {
             <div className="px-5 py-4 border-t border-border/30 mt-2 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="text-center">
-                  <p className="text-lg font-black text-brand leading-none font-display">{completedCount}</p>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5 font-display">Done</p>
+                  <p className="stat-num text-lg text-brand leading-none">{completedCount}</p>
+                  <p className="steel-label text-muted-foreground mt-0.5">Done</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-black text-foreground leading-none font-display">{totalDays - completedCount}</p>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5 font-display">Left</p>
+                  <p className="stat-num text-lg text-foreground leading-none">{totalDays - completedCount}</p>
+                  <p className="steel-label text-muted-foreground mt-0.5">Left</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-black text-foreground leading-none font-display">{program.currentWeek}</p>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mt-0.5 font-display">Week</p>
+                  <p className="stat-num text-lg text-foreground leading-none">{program.currentWeek}</p>
+                  <p className="steel-label text-muted-foreground mt-0.5">Week</p>
                 </div>
               </div>
 
               <button
                 onClick={() => router.push('/build')}
-                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                className="steel-label flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <RefreshCcw size={10} strokeWidth={2} />
                 Change Program

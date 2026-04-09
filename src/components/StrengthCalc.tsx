@@ -133,7 +133,7 @@ export default function StrengthCalc() {
   const standards = state.exercise !== 'Custom' ? STANDARDS[state.exercise] : null
 
   return (
-    <div className="glass-card rounded-xl overflow-hidden">
+    <div className="ds-card overflow-hidden">
       {/* Header / toggle */}
       <button
         onClick={() => setOpen(o => !o)}

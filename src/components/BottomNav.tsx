@@ -16,7 +16,7 @@ export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-4 left-4 right-4 bg-surface-2 border border-border rounded-xl px-3 py-2 flex items-center justify-around z-[100] shadow-2xl shadow-black/70">
+    <nav className="fixed bottom-4 left-4 right-4 bg-surface-2/95 backdrop-blur-sm border border-border rounded-2xl px-3 py-2 flex items-center justify-around z-[100] shadow-2xl shadow-black/50">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon
         const isActive = pathname === item.path || pathname.startsWith(item.path + '/')
@@ -30,7 +30,7 @@ export default function BottomNav() {
             {isActive && (
               <motion.div
                 layoutId="nav-pill"
-                className="absolute inset-0 bg-brand/10 rounded-lg border border-brand/25"
+                className="absolute inset-0 bg-brand/8 border border-brand/20 rounded-xl"
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
               />
             )}
@@ -38,12 +38,12 @@ export default function BottomNav() {
               size={20}
               strokeWidth={isActive ? 2 : 1.5}
               className={`relative z-10 transition-all duration-200 ${
-                isActive ? 'text-brand' : 'text-muted-foreground'
+                isActive ? 'text-brand' : 'text-muted-foreground/60'
               }`}
             />
             <span
-              className={`relative z-10 text-[9px] uppercase tracking-[0.14em] font-semibold transition-colors duration-200 font-display ${
-                isActive ? 'text-brand' : 'text-muted-foreground'
+              className={`relative z-10 font-display text-[10px] uppercase tracking-[0.12em] transition-colors duration-200 ${
+                isActive ? 'text-brand' : 'text-muted-foreground/60'
               }`}
             >
               {item.label}

@@ -4,7 +4,6 @@ import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  PlayCircle,
   Flame,
   Settings,
   ChevronRight,
@@ -14,7 +13,6 @@ import {
 import { motion } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
 import BottomNav from '../../components/BottomNav'
-import Logo from '../../components/Logo'
 import DadScore from '../../components/DadScore'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import DailyForge from '../../components/DailyForge'
@@ -179,10 +177,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background text-foreground">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-6 h-6 border border-brand border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em] font-display">Loading</p>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="steel-label">Loading</p>
         </div>
       </div>
     )
@@ -207,66 +205,68 @@ export default function Dashboard() {
       {/* DESKTOP HEADER */}
       <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-4 sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <Logo className="w-8 h-8" />
-          <span className="font-display text-lg tracking-[0.1em] uppercase text-foreground">
-            Dad Strength
-          </span>
+          <div className="w-0.5 h-7 bg-brand" />
+          <span className="font-display text-xl tracking-[0.08em] uppercase text-foreground">Dad Strength</span>
         </div>
         <nav className="flex gap-8 text-[10px] text-muted-foreground uppercase tracking-[0.14em]">
           <button className="text-brand font-semibold">HQ</button>
           <button onClick={() => router.push('/body')} className="hover:text-foreground transition-colors">Train</button>
           <button onClick={() => router.push('/history')} className="hover:text-foreground transition-colors">History</button>
           <button onClick={() => router.push('/profile')} className="hover:text-foreground transition-colors">Profile</button>
-          <button onClick={handleSignOut} className="text-destructive/60 hover:text-destructive transition-colors">Sign Out</button>
+          <button onClick={handleSignOut} className="text-muted-foreground/50 hover:text-destructive transition-colors">Sign Out</button>
         </nav>
       </header>
 
       {/* MOBILE HEADER */}
-      <header className="md:hidden flex items-center justify-between px-5 pt-6 pb-2">
-        <div className="flex items-center gap-2.5">
-          <Logo className="w-8 h-8" />
-          <span className="font-display text-xl tracking-[0.08em] uppercase text-foreground">
-            Dad Strength
-          </span>
+      <header className="md:hidden flex items-center justify-between px-5 pt-8 pb-4">
+        <div>
+          <p className="steel-label mb-0.5">Dad Strength</p>
+          <h1 className="font-display text-2xl tracking-wide text-foreground leading-none">
+            HEADQUARTERS
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           {!isPro && !subLoading && (
             <button
               onClick={() => setShowUpgrade(true)}
-              className="flex items-center gap-1.5 text-[9px] font-display uppercase tracking-[0.16em] text-brand border border-brand/30 bg-brand/8 px-3 py-1.5 rounded-md hover:bg-brand/15 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-[10px] font-semibold uppercase tracking-wider"
             >
-              <Zap size={10} /> Upgrade
+              <Zap size={10} /> Pro
             </button>
           )}
           <button
             onClick={() => router.push('/profile')}
-            className="p-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-brand/30 transition-colors"
+            className="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-brand/30 transition-colors"
           >
             <Settings size={15} />
           </button>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-5 pt-5 space-y-4">
+      <main className="max-w-lg mx-auto px-5 pt-4 space-y-5">
 
         {/* Date + greeting */}
-        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
-          <h1 className="text-4xl text-foreground leading-none mt-1">
-            Train Day.
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
+          <div className="flex items-center justify-between">
+            <p className="steel-label">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
             {streak > 0 && (
-              <span className="text-brand ml-3 inline-flex items-center gap-1 text-2xl">
-                <Flame size={18} className="inline" strokeWidth={1.5} />
-                <span className="stat-num">{streak}</span>
-              </span>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-brand/25 bg-brand/8">
+                <Flame size={11} className="text-brand" strokeWidth={2} />
+                <span className="stat-num text-xs text-brand font-semibold">{streak}</span>
+                <span className="text-[9px] text-brand/70 uppercase tracking-wide">streak</span>
+              </div>
             )}
-          </h1>
+          </div>
+          <h2 className="font-display text-[3.5rem] leading-none mt-2 text-foreground tracking-wide">
+            TRAIN DAY.
+          </h2>
+          <div className="divider-brand mt-3" />
         </motion.div>
 
         <motion.div
-          className="space-y-4"
+          className="space-y-5"
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
@@ -276,40 +276,57 @@ export default function Dashboard() {
             <FirstWeekChecklist />
           </motion.div>
 
-          {/* TODAY'S MISSION */}
+          {/* ACTIVE PROTOCOL */}
           <motion.div variants={fadeUp} custom={0}>
-            <div className="ds-card p-6 overflow-hidden">
-              <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-4 font-display">
-                <span className="w-1 h-1 bg-brand inline-block" />
-                Active Protocol
-              </span>
+            <div className="ds-card p-6">
+              {/* Header row */}
               <div className="flex items-start justify-between mb-5">
                 <div>
-                  <h2 className="text-3xl text-foreground leading-none mb-2">
-                    {activeProgram?.name || workout?.name || 'Load Program'}
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {activeProgram
-                      ? `${activeProgram.daysCount} days/week · Week ${activeProgram.currentWeek}`
-                      : workout?.description || 'Deploy your first training protocol.'}
-                  </p>
+                  <p className="steel-label mb-2">Active Protocol</p>
+                  <h3 className="font-display text-[2.25rem] leading-none text-foreground tracking-wide">
+                    {activeProgram?.name?.toUpperCase() || workout?.name?.toUpperCase() || 'NO PROGRAM'}
+                  </h3>
                 </div>
-                <Dumbbell size={28} className="text-muted-foreground/20 shrink-0 mt-1" strokeWidth={1} />
+                <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center">
+                  <Dumbbell size={18} className="text-muted-foreground/40" strokeWidth={1.5} />
+                </div>
               </div>
-              <div className="flex flex-col gap-2.5">
+
+              {/* Program meta */}
+              {activeProgram && (
+                <div className="flex items-center gap-4 mb-5 pb-5 border-b border-border">
+                  {[
+                    { label: 'Days', value: `${activeProgram.daysCount}/wk` },
+                    { label: 'Week', value: `${activeProgram.currentWeek}` },
+                    { label: 'Type', value: activeProgram.slug?.startsWith('ares') ? 'Functional' : 'Strength' },
+                  ].map((item) => (
+                    <div key={item.label} className="flex-1">
+                      <p className="steel-label">{item.label}</p>
+                      <p className="font-semibold text-sm text-foreground mt-0.5">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!activeProgram && workout && (
+                <p className="text-sm text-muted-foreground mb-5">{workout.description}</p>
+              )}
+              {!activeProgram && !workout && (
+                <p className="text-sm text-muted-foreground mb-5">Deploy your first training protocol.</p>
+              )}
+
+              {/* CTA */}
+              <div className="flex flex-col gap-2">
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={{ scale: 0.96 }}
                   onClick={() => {
                     if (activeProgram) {
-                      if (activeProgram.slug?.startsWith('chronos')) {
-                        router.push('/workout/squeeze')
-                      } else if (activeProgram.slug?.startsWith('ares')) {
-                        const daysCount = activeProgram.daysCount || 4
-                        const nextDay = getNextWorkoutDay(daysCount)
+                      if (activeProgram.slug?.startsWith('chronos')) router.push('/workout/squeeze')
+                      else if (activeProgram.slug?.startsWith('ares')) {
+                        const nextDay = getNextWorkoutDay(activeProgram.daysCount || 4)
                         router.push(`/workout/ares/${nextDay}`)
                       } else {
-                        const daysCount = activeProgram.daysCount || activeProgram.frequency || 3
-                        const nextDay = getNextWorkoutDay(daysCount)
+                        const nextDay = getNextWorkoutDay(activeProgram.daysCount || activeProgram.frequency || 3)
                         router.push(`/workout/program/${nextDay}`)
                       }
                     } else if (workout) {
@@ -318,47 +335,43 @@ export default function Dashboard() {
                       router.push('/build')
                     }
                   }}
-                  className="w-full flex items-center justify-center gap-2.5 rounded-md bg-brand px-6 py-3.5 text-sm font-semibold text-background hover:bg-brand/90 transition-all brand-glow uppercase tracking-[0.1em]"
-                  style={{ borderRadius: '6px' }}
+                  className="w-full flex items-center justify-between px-6 py-4 rounded-xl bg-brand text-white font-semibold text-sm uppercase tracking-[0.08em] hover:bg-brand/90 transition-colors group"
                 >
-                  <PlayCircle size={16} strokeWidth={2} />
-                  {activeProgram || workout ? 'Start Training' : 'Choose Program'}
+                  <span>{activeProgram || workout ? 'Start Training' : 'Choose Program'}</span>
+                  <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                 </motion.button>
                 {(activeProgram || workout) && (
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
+                  <button
                     onClick={() => router.push('/build')}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-[0.12em] border border-border hover:border-brand/30 font-semibold"
-                    style={{ borderRadius: '6px' }}
+                    className="w-full py-2.5 text-[11px] text-muted-foreground hover:text-foreground uppercase tracking-[0.1em] font-medium transition-colors"
                   >
-                    <Settings size={11} /> Change Program
-                  </motion.button>
+                    Change Program
+                  </button>
                 )}
               </div>
             </div>
           </motion.div>
 
-          {/* The Squeeze */}
+          {/* CHRONOS */}
           <motion.div variants={fadeUp} custom={0.5}>
             <button
               onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
-              className="w-full ds-card p-4 flex items-center justify-between group"
+              className="w-full card-base p-4 flex items-center justify-between group hover:border-brand/30 transition-colors"
             >
-              <div>
-                <p className="text-[9px] font-display tracking-[0.14em] text-muted-foreground uppercase mb-0.5">Short on time?</p>
-                <p className="font-display text-xl tracking-wide text-foreground leading-none">
-                  Chronos
-                  <span className="text-muted-foreground font-sans text-xs font-normal ml-2 tracking-normal">15–20 min</span>
-                  {!isPro && <span className="ml-2 text-[8px] bg-brand/10 text-brand px-1.5 py-0.5 uppercase tracking-widest font-semibold font-sans" style={{ borderRadius: '3px' }}>Pro</span>}
-                </p>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center shrink-0 group-hover:border-brand/30 transition-colors">
+                  <Zap size={16} className="text-muted-foreground group-hover:text-brand transition-colors" strokeWidth={1.5} />
+                </div>
+                <div className="text-left">
+                  <p className="steel-label mb-0.5">Short on Time?</p>
+                  <p className="font-display text-xl tracking-wide text-foreground leading-none">
+                    CHRONOS
+                    {!isPro && <span className="ml-2 text-[9px] bg-brand/10 text-brand px-2 py-0.5 rounded-md uppercase tracking-widest font-sans font-semibold">Pro</span>}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">15–20 min · Any equipment</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {isPro
-                  ? <span className="text-[10px] text-muted-foreground">Any equipment</span>
-                  : <Zap size={13} className="text-brand" strokeWidth={1.5} />
-                }
-                <ChevronRight className="w-4 h-4 text-brand group-hover:translate-x-0.5 transition-transform" strokeWidth={1.5} />
-              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-brand group-hover:translate-x-0.5 transition-all shrink-0" strokeWidth={2} />
             </button>
           </motion.div>
 

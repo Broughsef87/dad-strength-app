@@ -107,7 +107,7 @@ export default function BodyVitals() {
       variants={fadeUp}
       initial="hidden"
       animate="visible"
-      className="glass-card rounded-xl p-5 cursor-pointer group active:scale-[0.98] transition-all duration-300 hover:border-brand/25"
+      className="ds-card p-5 cursor-pointer group active:scale-[0.98] transition-all duration-300 hover:border-brand/25"
       onClick={() => router.push(workoutId ? `/workout/${workoutId}` : '/body')}
     >
       <div className="flex items-center justify-between mb-5">

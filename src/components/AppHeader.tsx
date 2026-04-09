@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
-import Image from 'next/image'
 import Logo from './Logo'
 import { createClient } from '../utils/supabase/client'
 
@@ -23,8 +22,10 @@ export default function AppHeader({ active }: AppHeaderProps) {
   const navItem = (label: string, href: string, key: string) => (
     <Link
       href={href}
-      className={`hover:text-foreground transition-colors ${
-        active === key ? 'text-foreground font-medium' : ''
+      className={`steel-label transition-colors ${
+        active === key
+          ? 'text-brand'
+          : 'hover:text-foreground'
       }`}
     >
       {label}
@@ -35,33 +36,20 @@ export default function AppHeader({ active }: AppHeaderProps) {
     <>
       {/* DESKTOP */}
       <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-3.5 sticky top-0 z-40">
-        <Link href="/dashboard">
-          {/* PNG lockups — fonts baked in at export time */}
-          <Image
-            src="/logo-suite/ds_horizontal_dark.png"
-            alt="Dad Strength"
-            width={176}
-            height={44}
-            className="dark:block hidden"
-            priority
-          />
-          <Image
-            src="/logo-suite/ds_horizontal_light.png"
-            alt="Dad Strength"
-            width={176}
-            height={44}
-            className="dark:hidden block"
-            priority
-          />
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <div className="w-0.5 h-6 bg-brand" />
+          <span className="font-display text-lg tracking-[0.08em] uppercase text-foreground">
+            Dad Strength
+          </span>
         </Link>
-        <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
+        <nav className="flex items-center gap-8">
           {navItem('HQ', '/dashboard', 'hq')}
           {navItem('Train', '/body', 'train')}
           {navItem('History', '/history', 'history')}
           {navItem('Profile', '/profile', 'profile')}
           <button
             onClick={handleSignOut}
-            className="text-red-500/60 hover:text-red-500 transition-colors"
+            className="steel-label text-red-500/60 hover:text-red-500 transition-colors"
           >
             Sign Out
           </button>
@@ -73,10 +61,7 @@ export default function AppHeader({ active }: AppHeaderProps) {
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <Logo className="w-9 h-9" />
           <div className="flex flex-col leading-none">
-            <span
-              className="font-black text-base tracking-[0.08em] uppercase"
-              style={{ fontFamily: 'var(--font-bebas, "Arial Black", sans-serif)' }}
-            >
+            <span className="font-display text-base tracking-[0.08em] uppercase text-foreground">
               Dad Strength
             </span>
             <span className="text-[9px] tracking-[0.15em] text-muted-foreground uppercase mt-0.5">

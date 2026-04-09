@@ -90,6 +90,39 @@ function groupByBlock<T extends { block_name: string }>(
   return map
 }
 
+// ── Log type badge ─────────────────────────────────────────────────────────────
+
+function LogTypeBadge({ type }: { type: SessionLog['log_type'] }) {
+  const config: Record<SessionLog['log_type'], { label: string; className: string }> = {
+    strength_set: {
+      label: 'Strength',
+      className: 'bg-surface-2 text-muted-foreground border border-border',
+    },
+    metcon: {
+      label: 'MetCon',
+      className: 'bg-brand text-white',
+    },
+    build_to_max: {
+      label: 'Build to Max',
+      className: 'bg-[#1A1A1A] text-foreground border border-border',
+    },
+    skill_work: {
+      label: 'Skill',
+      className: 'bg-sky-950/60 text-sky-400 border border-sky-900/40',
+    },
+    monostructural: {
+      label: 'Cardio',
+      className: 'bg-green-950/60 text-green-400 border border-green-900/40',
+    },
+  }
+  const { label, className } = config[type]
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-widest ${className}`}>
+      {label}
+    </span>
+  )
+}
+
 // ── Log type icon ──────────────────────────────────────────────────────────────
 
 function LogTypeIcon({ type }: { type: SessionLog['log_type'] }) {
@@ -121,16 +154,24 @@ function StrengthSetSummary({ logs }: { logs: SessionLog[] }) {
   }, null)
 
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="flex items-start gap-2.5">
       <LogTypeIcon type="strength_set" />
-      <span>
-        <span className="text-foreground font-medium">{logs[0].block_name}</span>
-        {' — '}
-        {completed.length} set{completed.length !== 1 ? 's' : ''} logged
+      <div className="flex-1 min-w-0">
+        <span className="text-xs font-medium text-foreground">{logs[0].block_name}</span>
+        <span className="text-xs text-muted-foreground">
+          {' — '}{completed.length} set{completed.length !== 1 ? 's' : ''}
+        </span>
         {topSet && topSet.weight_lbs != null && topSet.reps != null && (
-          <>, top set: <span className="text-foreground font-medium">{topSet.weight_lbs}lbs × {topSet.reps} reps</span></>
+          <span className="text-xs text-muted-foreground">
+            {', top: '}
+            <span className="stat-num text-foreground">
+              {topSet.weight_lbs}
+            </span>
+            <span className="steel-label ml-0.5">lbs</span>
+            <span className="text-muted-foreground"> × {topSet.reps}</span>
+          </span>
         )}
-      </span>
+      </div>
     </div>
   )
 }
@@ -144,17 +185,20 @@ function BuildToMaxSummary({ logs }: { logs: SessionLog[] }) {
   }, null)
 
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="flex items-start gap-2.5">
       <LogTypeIcon type="build_to_max" />
-      <span>
-        <span className="text-foreground font-medium">{logs[0].block_name}</span>
-        {' — built to '}
+      <div className="flex-1 min-w-0">
+        <span className="text-xs font-medium text-foreground">{logs[0].block_name}</span>
+        <span className="text-xs text-muted-foreground">{' — built to '}</span>
         {best?.peak_weight_lbs != null ? (
-          <span className="text-foreground font-medium">{best.peak_weight_lbs}lbs</span>
+          <>
+            <span className="stat-num text-foreground">{best.peak_weight_lbs}</span>
+            <span className="steel-label ml-0.5">lbs</span>
+          </>
         ) : (
-          <span className="italic">no weight recorded</span>
+          <span className="text-xs italic text-muted-foreground">no weight recorded</span>
         )}
-      </span>
+      </div>
     </div>
   )
 }
@@ -165,14 +209,18 @@ function SkillWorkSummary({ logs }: { logs: SessionLog[] }) {
   const total = logs.reduce((sum, l) => sum + (l.skill_duration_minutes ?? 0), 0)
 
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="flex items-start gap-2.5">
       <LogTypeIcon type="skill_work" />
-      <span>
-        <span className="text-foreground font-medium">{logs[0].block_name}</span>
+      <div className="flex-1 min-w-0">
+        <span className="text-xs font-medium text-foreground">{logs[0].block_name}</span>
         {total > 0 && (
-          <> — <span className="text-foreground font-medium">{total} min</span></>
+          <span className="text-xs text-muted-foreground">
+            {' — '}
+            <span className="stat-num text-foreground">{total}</span>
+            <span className="steel-label ml-0.5">min</span>
+          </span>
         )}
-      </span>
+      </div>
     </div>
   )
 }
@@ -184,22 +232,34 @@ function MonostructuralSummary({ logs }: { logs: SessionLog[] }) {
   const hasDistance = log.distance_meters != null && log.distance_meters > 0
   const hasDuration = log.duration_seconds != null && log.duration_seconds > 0
 
-  let detail = ''
-  if (hasDistance && hasDuration) {
-    detail = ` — ${log.distance_meters}m in ${formatTime(log.duration_seconds!)}`
-  } else if (hasDuration) {
-    detail = ` — ${formatTime(log.duration_seconds!)}`
-  } else if (hasDistance) {
-    detail = ` — ${log.distance_meters}m`
-  }
-
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="flex items-start gap-2.5">
       <LogTypeIcon type="monostructural" />
-      <span>
-        <span className="text-foreground font-medium">{log.block_name}</span>
-        {detail}
-      </span>
+      <div className="flex-1 min-w-0">
+        <span className="text-xs font-medium text-foreground">{log.block_name}</span>
+        {hasDistance && hasDuration && (
+          <span className="text-xs text-muted-foreground">
+            {' — '}
+            <span className="stat-num text-foreground">{log.distance_meters}</span>
+            <span className="steel-label ml-0.5">m</span>
+            {' in '}
+            <span className="stat-num text-foreground">{formatTime(log.duration_seconds!)}</span>
+          </span>
+        )}
+        {!hasDistance && hasDuration && (
+          <span className="text-xs text-muted-foreground">
+            {' — '}
+            <span className="stat-num text-foreground">{formatTime(log.duration_seconds!)}</span>
+          </span>
+        )}
+        {hasDistance && !hasDuration && (
+          <span className="text-xs text-muted-foreground">
+            {' — '}
+            <span className="stat-num text-foreground">{log.distance_meters}</span>
+            <span className="steel-label ml-0.5">m</span>
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -213,49 +273,51 @@ function MetconResult({ logs }: { logs: SessionLog[] }) {
   const isAmrap = log.metcon_format === 'amrap'
 
   return (
-    <div className="mt-1 rounded-lg bg-brand/5 border border-brand/20 px-3 py-2.5">
-      <div className="flex items-center justify-between gap-2">
+    <div className="mt-1 rounded-xl bg-brand/5 border border-brand/20 px-3 py-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
-          <LogTypeIcon type="metcon" />
-          <span className="text-xs font-semibold text-brand uppercase tracking-wide">
-            {log.block_name || 'MetCon'}
-          </span>
+          <Zap size={12} className="text-brand shrink-0" />
+          <span className="steel-label text-brand">{log.block_name || 'MetCon'}</span>
         </div>
         {log.metcon_rx && (
-          <span className="text-[10px] font-bold uppercase tracking-widest text-brand border border-brand/40 rounded px-1.5 py-0.5">
+          <span className="text-[9px] uppercase tracking-widest bg-brand/10 text-brand px-1.5 py-0.5 rounded font-bold border border-brand/30">
             RX
           </span>
         )}
       </div>
 
       {isForTime && log.metcon_time_seconds != null && (
-        <p className="mt-1.5 font-mono text-xl font-bold text-foreground tabular-nums">
-          {formatTime(log.metcon_time_seconds)}
+        <div className="flex items-baseline gap-1.5">
+          <span className="stat-num text-2xl text-brand">
+            {formatTime(log.metcon_time_seconds)}
+          </span>
           {log.time_cap_hit && (
-            <span className="ml-2 text-xs font-normal text-muted-foreground">(cap hit)</span>
+            <span className="steel-label text-muted-foreground">cap hit</span>
           )}
-        </p>
+        </div>
       )}
 
       {isAmrap && (
-        <p className="mt-1.5 font-mono text-xl font-bold text-foreground tabular-nums">
-          {log.metcon_rounds ?? 0} rds
+        <div className="flex items-baseline gap-1.5">
+          <span className="stat-num text-2xl text-brand">
+            {log.metcon_rounds ?? 0}
+          </span>
+          <span className="steel-label text-muted-foreground">rds</span>
           {log.metcon_partial_reps != null && log.metcon_partial_reps > 0 && (
-            <span className="text-base font-semibold text-muted-foreground">
-              {' '}+ {log.metcon_partial_reps} reps
-            </span>
+            <>
+              <span className="stat-num text-lg text-brand/70">+{log.metcon_partial_reps}</span>
+              <span className="steel-label text-muted-foreground">reps</span>
+            </>
           )}
-        </p>
+        </div>
       )}
 
       {!isForTime && !isAmrap && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          {log.metcon_format ?? 'result logged'}
-        </p>
+        <p className="text-xs text-muted-foreground">{log.metcon_format ?? 'result logged'}</p>
       )}
 
       {log.notes && (
-        <p className="mt-1 text-xs text-muted-foreground italic">{log.notes}</p>
+        <p className="mt-1.5 text-xs text-muted-foreground italic leading-relaxed">{log.notes}</p>
       )}
     </div>
   )
@@ -267,6 +329,7 @@ interface DayCardProps {
   dayNumber: number
   dayName: string
   logs: SessionLog[]
+  date?: string
 }
 
 function DayCard({ dayNumber, dayName, logs }: DayCardProps) {
@@ -283,16 +346,50 @@ function DayCard({ dayNumber, dayName, logs }: DayCardProps) {
   const monoByBlock = groupByBlock(monoLogs)
   const metconByBlock = groupByBlock(metconLogs)
 
+  // Collect unique log types for badge row
+  const types = Array.from(
+    new Set(logs.map((l) => l.log_type)),
+  ) as SessionLog['log_type'][]
+
+  // Derive date from first log
+  const firstLog = logs[0]
+  const logDate = firstLog
+    ? new Date(firstLog.created_at).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : null
+
   return (
-    <div className="ds-card rounded-xl bg-card border border-border p-4 space-y-3">
-      <div className="flex items-baseline gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand">
-          Day {dayNumber}
-        </span>
-        <span className="text-sm font-semibold text-foreground">{dayName}</span>
+    <div className="ds-card overflow-hidden mb-3">
+      {/* Card header */}
+      <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className="font-display text-xl text-foreground leading-none">
+            Day {dayNumber}
+          </span>
+          <span className="text-sm font-medium text-muted-foreground leading-none">
+            {dayName}
+          </span>
+        </div>
+        {logDate && <span className="steel-label shrink-0">{logDate}</span>}
       </div>
 
-      <div className="space-y-2">
+      {/* Badge row */}
+      {types.length > 0 && (
+        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+          {types.map((t) => (
+            <LogTypeBadge key={t} type={t} />
+          ))}
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="border-t border-border mx-4" />
+
+      {/* Log summaries */}
+      <div className="px-4 py-3 space-y-2.5">
         {Array.from(strengthByBlock.entries()).map(([block, bLogs]) => (
           <StrengthSetSummary key={`s-${block}`} logs={bLogs} />
         ))}
@@ -333,17 +430,17 @@ function WeekGroup({
   const [expanded, setExpanded] = useState(defaultExpanded)
 
   return (
-    <motion.div variants={fadeUp} className="space-y-3">
+    <motion.div variants={fadeUp} className="space-y-0">
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="w-full flex items-center justify-between gap-3 py-1"
+        className="w-full flex items-center justify-between gap-3 py-2"
       >
         <div className="flex items-center gap-2.5">
-          <span className="text-sm font-bold text-foreground">
+          <span className="steel-label text-foreground">
             {formatAresWeek(weekNumber)}
           </span>
           {isCurrentWeek && (
-            <span className="text-[9px] font-bold uppercase tracking-widest text-background bg-brand px-1.5 py-0.5 rounded">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-white bg-brand px-1.5 py-0.5 rounded">
               Current
             </span>
           )}
@@ -352,14 +449,14 @@ function WeekGroup({
           </span>
         </div>
         {expanded ? (
-          <ChevronUp size={16} className="text-muted-foreground shrink-0" />
+          <ChevronUp size={15} className="text-muted-foreground shrink-0" />
         ) : (
-          <ChevronDown size={16} className="text-muted-foreground shrink-0" />
+          <ChevronDown size={15} className="text-muted-foreground shrink-0" />
         )}
       </button>
 
       {expanded && (
-        <div className="space-y-3 pl-0.5">
+        <div className="pt-1">
           {dayEntries.map(({ dayNumber, logs }) => (
             <DayCard
               key={dayNumber}
@@ -462,17 +559,8 @@ export default function AresHistoryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-6">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center brand-pulse">
-            <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-brand" />
-            </div>
-          </div>
-        </div>
-        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-          Loading history...
-        </p>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -481,9 +569,9 @@ export default function AresHistoryPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
-      {/* Page */}
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
+
+        {/* Page header */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/dashboard')}
@@ -492,9 +580,12 @@ export default function AresHistoryPage() {
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="font-display text-2xl font-black uppercase tracking-widest text-foreground leading-none">
-            My Ares History
-          </h1>
+          <div>
+            <h1 className="font-display text-4xl text-foreground leading-none tracking-wide uppercase">
+              IRON LOG
+            </h1>
+            <p className="steel-label mt-0.5">Your Ares History</p>
+          </div>
         </div>
 
         {/* Empty state */}
@@ -503,24 +594,24 @@ export default function AresHistoryPage() {
             initial="hidden"
             animate="visible"
             variants={fadeUp}
-            className="flex flex-col items-center justify-center py-20 px-4 text-center gap-4"
+            className="flex flex-col items-center justify-center py-20 px-4 text-center gap-5"
           >
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-brand/10 scale-150" />
-              <div className="relative h-16 w-16 rounded-2xl bg-card border border-border flex items-center justify-center mx-auto">
-                <Dumbbell size={28} className="text-brand" strokeWidth={1.5} />
-              </div>
+            <div className="h-16 w-16 rounded-2xl bg-card border border-border flex items-center justify-center mx-auto">
+              <Dumbbell size={28} className="text-muted-foreground/40" strokeWidth={1.5} />
             </div>
-            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-              No sessions logged yet. Complete an Ares workout to see your history here.
-            </p>
+            <div>
+              <p className="text-sm font-semibold text-foreground mb-1">No sessions logged yet</p>
+              <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+                Complete an Ares workout to see your history here.
+              </p>
+            </div>
           </motion.div>
         ) : (
           <motion.div
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
-            className="space-y-6"
+            className="space-y-4"
           >
             {sortedWeeks.map((weekNum) => {
               const dayMap = weekMap.get(weekNum)!

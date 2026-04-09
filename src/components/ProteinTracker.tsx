@@ -34,7 +34,7 @@ export default function ProteinTracker() {
   const remaining = Math.max(GOAL - grams, 0)
 
   return (
-    <div className="glass-card rounded-xl p-5 space-y-4">
+    <div className="ds-card p-5 space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Daily Protein</p>
         <button onClick={reset} className="text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">Reset</button>

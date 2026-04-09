@@ -393,10 +393,10 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                             disabled={isComingSoon}
                             className={`relative w-full text-left card-base p-4 transition-all duration-200 ${
                               isComingSoon
-                                ? 'opacity-40 pointer-events-none cursor-not-allowed border-border/50'
+                                ? 'opacity-40 pointer-events-none cursor-not-allowed'
                                 : isSelected
                                 ? 'border-brand bg-brand/5 active:scale-[0.98]'
-                                : 'border-border/50 hover:border-brand/30 active:scale-[0.98]'
+                                : 'hover:border-brand/30 active:scale-[0.98]'
                             }`}
                           >
                             {isComingSoon && (
@@ -440,7 +440,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     <button
                       onClick={goNext}
                       disabled={!selectedSlug}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
+                      className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Next →
                     </button>
@@ -517,7 +517,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                           className="overflow-hidden"
                         >
                           <div className="space-y-2 pt-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">
+                            <p className="steel-label text-muted-foreground mb-3">
                               What do you have?
                             </p>
                             {HOME_EQUIPMENT.map(({ key, label, icon }) => {
@@ -558,7 +558,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     <button
                       onClick={goNext}
                       disabled={!effectiveGymType}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
+                      className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Next →
                     </button>
@@ -634,7 +634,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     <button
                       onClick={goNext}
                       disabled={!effectiveDays}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
+                      className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Next →
                     </button>
@@ -692,7 +692,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
                     <button
                       onClick={goNext}
                       disabled={!weeks}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
+                      className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Lock It In →
                     </button>
@@ -718,7 +718,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
                     <div className="space-y-3">
                       {(CALIBRATION_LIFTS[selectedProgram.slug] ?? []).map(({ key, label, hint, unit }) => (
-                        <div key={key} className="glass-card rounded-xl p-4 border border-border/50">
+                        <div key={key} className="card-base p-4">
                           <label className="block text-xs font-black uppercase tracking-wider mb-1">{label}</label>
                           <p className="text-[10px] text-muted-foreground mb-3">{hint}</p>
                           <div className="flex items-center gap-3">
@@ -743,7 +743,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
                     <button
                       onClick={goNext}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-background font-semibold py-4 rounded-md uppercase tracking-wider transition-all active:scale-95"
+                      className="btn-primary w-full flex items-center justify-center gap-2"
                     >
                       Next →
                     </button>
@@ -764,28 +764,28 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
                     {/* Summary pills */}
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="glass-card rounded-xl p-3 border border-border/50 text-center">
-                        <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
+                      <div className="card-base p-3 text-center">
+                        <p className="steel-label text-muted-foreground mb-1">
                           Gym
                         </p>
                         <p className="text-sm font-black">
                           {effectiveGymType === 'home' ? '🏠 Home' : '🏢 Commercial'}
                         </p>
                       </div>
-                      <div className="glass-card rounded-xl p-3 border border-border/50 text-center">
-                        <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
+                      <div className="card-base p-3 text-center">
+                        <p className="steel-label text-muted-foreground mb-1">
                           Days / Week
                         </p>
                         <p className="text-sm font-black">{effectiveDays} Days</p>
                       </div>
-                      <div className="glass-card rounded-xl p-3 border border-border/50 text-center">
-                        <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
+                      <div className="card-base p-3 text-center">
+                        <p className="steel-label text-muted-foreground mb-1">
                           Length
                         </p>
                         <p className="text-sm font-black">{weeks} Weeks</p>
                       </div>
-                      <div className="glass-card rounded-xl p-3 border border-border/50 text-center">
-                        <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
+                      <div className="card-base p-3 text-center">
+                        <p className="steel-label text-muted-foreground mb-1">
                           Starts
                         </p>
                         <p className="text-sm font-black">{formatDate(nextMonday)}</p>
@@ -794,7 +794,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
 
                     <button
                       onClick={handleConfirm}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-brand/20"
+                      className="btn-primary w-full flex items-center justify-center gap-2"
                     >
                       Start Program
                     </button>

@@ -117,10 +117,7 @@ export default function DadScore() {
   }
 
   if (loading) return (
-    <div className="bg-card rounded-xl p-5 border border-border animate-pulse">
-      <div className="h-3 bg-muted rounded w-1/3 mb-3" />
-      <div className="h-12 bg-muted rounded w-1/2" />
-    </div>
+    <div className="ds-card h-28 skeleton" />
   )
 
   if (!score) return null
@@ -128,27 +125,27 @@ export default function DadScore() {
   const gradeColor = getGradeColor(score.grade)
 
   return (
-    <div className="bg-card rounded-xl p-5 border border-border space-y-4">
+    <div className="ds-card p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-brand/10 rounded-lg">
             <Shield size={15} strokeWidth={1.5} className="text-brand" />
           </div>
-          <h3 className="font-medium text-sm font-display tracking-[0.06em]">Dad Score</h3>
+          <p className="steel-label">Dad Score</p>
         </div>
-        <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">This Week</span>
+        <span className="steel-label">This Week</span>
       </div>
 
       <div className="flex items-end gap-3">
-        <p className="text-5xl font-black tabular-nums leading-none font-display">{score.total}</p>
+        <p className="stat-num text-5xl text-foreground leading-none">{score.total}</p>
         <div className="mb-1">
-          <p className={`text-sm font-black uppercase tracking-[0.08em] font-display ${gradeColor}`}>{score.grade}</p>
-          <p className="text-[10px] text-muted-foreground">/ 100</p>
+          <p className={`text-sm font-semibold uppercase tracking-[0.08em] ${gradeColor}`}>{score.grade}</p>
+          <p className="steel-label">/ 100</p>
         </div>
       </div>
 
       {/* Score bar */}
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
         <div
           className="h-full bg-brand rounded-full transition-all duration-1000"
           style={{ width: `${score.total}%` }}
@@ -156,7 +153,7 @@ export default function DadScore() {
       </div>
 
       {/* Breakdown */}
-      <div className="space-y-2 pt-1">
+      <div className="space-y-2.5 pt-1">
         {[
           { label: 'Training', value: score.training, max: 40 },
           { label: 'Habits', value: score.habits, max: 30 },
@@ -164,14 +161,14 @@ export default function DadScore() {
           { label: 'Mind', value: score.mind, max: 10 },
         ].map(({ label, value, max }) => (
           <div key={label} className="flex items-center gap-3">
-            <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium w-14">{label}</span>
+            <span className="steel-label w-14">{label}</span>
             <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-brand/60 rounded-full transition-all duration-700"
+                className="h-full bg-brand/70 rounded-full transition-all duration-700"
                 style={{ width: `${(value / max) * 100}%` }}
               />
             </div>
-            <span className="text-[10px] font-black tabular-nums text-muted-foreground w-8 text-right">{value}/{max}</span>
+            <span className="stat-num text-[10px] text-muted-foreground w-8 text-right">{value}/{max}</span>
           </div>
         ))}
       </div>
