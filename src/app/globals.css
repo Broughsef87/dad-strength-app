@@ -169,13 +169,19 @@
       );
   }
 
-  /* Dark mode: brushed steel stripe */
+  /* Dark mode: carbon cross-hatch over brushed steel stripe */
   .dark body {
-    background-image: repeating-linear-gradient(
-      -38deg,
-      transparent 0, transparent 3px,
-      rgba(100, 140, 210, 0.018) 3px, rgba(100, 140, 210, 0.018) 4px
-    );
+    background-image:
+      repeating-linear-gradient(
+        -38deg,
+        transparent 0, transparent 3px,
+        rgba(100, 140, 210, 0.018) 3px, rgba(100, 140, 210, 0.018) 4px
+      ),
+      repeating-linear-gradient(
+        52deg,
+        transparent 0, transparent 3px,
+        rgba(100, 140, 210, 0.012) 3px, rgba(100, 140, 210, 0.012) 4px
+      );
   }
 
   /* Display headings: Bebas Neue — architectural, not gym-aggressive */
@@ -425,4 +431,130 @@
 /* Accent border top — legacy name kept */
 .accent-border-top {
   border-top: 1px solid hsl(var(--brand) / 0.3);
+}
+
+/* ── Kinetic ambient animations ─────────────────────────────── */
+@keyframes orb-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(40px, -30px) scale(1.06); }
+  66%  { transform: translate(-25px, 20px) scale(0.95); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes orb-drift-2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  40%  { transform: translate(-50px, 30px) scale(1.08); }
+  70%  { transform: translate(30px, -20px) scale(0.93); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+/* ── Button shimmer sweep ────────────────────────────────────── */
+@keyframes btn-shimmer {
+  0%   { transform: translateX(-120%) skewX(-12deg); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateX(220%) skewX(-12deg); opacity: 0; }
+}
+
+/* Forge shimmer button — amber CTA with periodic light sweep */
+.btn-forge-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.btn-forge-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 200, 80, 0.18) 50%,
+    transparent 100%
+  );
+  transform: translateX(-120%) skewX(-12deg);
+  animation: btn-shimmer 4s ease-in-out infinite;
+  animation-delay: 2s;
+  pointer-events: none;
+}
+
+/* ── Forge card — hero card with depth gradient + amber top line ── */
+.forge-card {
+  background: linear-gradient(160deg, hsl(220 31% 14%) 0%, hsl(222 21% 8%) 100%);
+  border: 1px solid hsl(214 35% 20%);
+  border-radius: 1rem;
+  position: relative;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
+}
+.forge-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 15%; right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(38 90% 41% / 0.45) 30%,
+    hsl(38 95% 55% / 0.80) 50%,
+    hsl(38 90% 41% / 0.45) 70%,
+    transparent
+  );
+  border-radius: 1rem 1rem 0 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Steel edge — secondary cards with cool chrome top ──────── */
+.steel-edge {
+  border: 1px solid hsl(214 35% 18%);
+  position: relative;
+}
+.dark .steel-edge::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--steel) / 0.30) 40%,
+    hsl(var(--steel) / 0.50) 50%,
+    hsl(var(--steel) / 0.30) 60%,
+    transparent
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Dark mode gradient card backgrounds ─────────────────────── */
+.dark .ds-card {
+  background: linear-gradient(160deg, hsl(220 31% 13%) 0%, hsl(222 21% 8%) 100%);
+}
+.dark .card-elevated {
+  background: linear-gradient(160deg, hsl(220 31% 13%) 0%, hsl(222 21% 8%) 100%);
+}
+.dark .card-base {
+  background: linear-gradient(160deg, hsl(220 31% 12%) 0%, hsl(222 21% 8%) 100%);
+}
+.dark .glass-card {
+  background: linear-gradient(160deg, hsl(220 31% 12%) 0%, hsl(222 21% 8%) 100%);
+}
+
+/* Amber bloom on dark ds-card top edge */
+.dark .ds-card::before {
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(38 90% 41% / 0.25) 25%,
+    hsl(38 95% 55% / 0.50) 50%,
+    hsl(38 90% 41% / 0.25) 75%,
+    transparent
+  );
+}
+
+/* Section data row — tight stat pair */
+.data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+}
+.data-row:last-child {
+  border-bottom: none;
 }

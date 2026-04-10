@@ -1,23 +1,23 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame, Heart } from 'lucide-react'
+import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame, Heart, Star, Moon, CloudDrizzle, Skull, Zap, Coffee, Wind } from 'lucide-react'
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
 const SLEEP_QUALITY = [
-  { id: 'great',  label: 'Slept great',     emoji: '😴' },
-  { id: 'ok',     label: 'Decent night',    emoji: '🙂' },
-  { id: 'rough',  label: 'Rough night',     emoji: '😮‍💨' },
-  { id: 'brutal', label: 'Up all night',    emoji: '💀' },
+  { id: 'great',  label: 'Slept great',      Icon: Star },
+  { id: 'ok',     label: 'Decent night',     Icon: Moon },
+  { id: 'rough',  label: 'Rough night',      Icon: CloudDrizzle },
+  { id: 'brutal', label: 'Up all night',     Icon: Skull },
 ]
 
 const ENERGY_LEVELS = [
-  { id: 'high',   label: 'Ready to go',     emoji: '🔥' },
-  { id: 'medium', label: 'Getting there',   emoji: '☕' },
-  { id: 'low',    label: 'Running on fumes',emoji: '🌫️' },
+  { id: 'high',   label: 'Ready to go',      Icon: Zap },
+  { id: 'medium', label: 'Getting there',    Icon: Coffee },
+  { id: 'low',    label: 'Running on fumes', Icon: Wind },
 ]
 
 const PILLAR_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -173,13 +173,14 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           <div className="grid grid-cols-2 gap-2">
             {SLEEP_QUALITY.map(s => (
               <button key={s.id} onClick={() => setSleep(s.id)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all border ${
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all border ${
                   sleep === s.id
                     ? 'bg-brand/5 border-brand/30 text-foreground'
                     : 'bg-muted border-transparent text-muted-foreground hover:border-border'
                 }`}
               >
-                <span>{s.emoji}</span> <span className="text-xs">{s.label}</span>
+                <s.Icon size={13} className={sleep === s.id ? 'text-brand' : 'text-muted-foreground'} />
+                <span className="text-xs">{s.label}</span>
               </button>
             ))}
           </div>
@@ -191,13 +192,14 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           <div className="space-y-2">
             {ENERGY_LEVELS.map(e => (
               <button key={e.id} onClick={() => setEnergy(e.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all border ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${
                   energy === e.id
                     ? 'bg-brand/5 border-brand/30 text-foreground'
                     : 'bg-muted border-transparent text-muted-foreground hover:border-border'
                 }`}
               >
-                <span>{e.emoji}</span> <span className="text-xs">{e.label}</span>
+                <e.Icon size={13} className={energy === e.id ? 'text-brand' : 'text-muted-foreground'} />
+                <span className="text-xs">{e.label}</span>
               </button>
             ))}
           </div>

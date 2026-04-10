@@ -92,6 +92,54 @@ export default function RootLayout({
         `}} />
       </head>
       <body className={`${spaceGrotesk.className} overflow-x-hidden`}>
+        {/* ── Kinetic ambient — drifting forge glow, dark mode only ── */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+          {/* Primary orb — large, slow, amber warmth */}
+          <div style={{
+            position: 'absolute',
+            width: '750px',
+            height: '750px',
+            top: '5%',
+            left: '50%',
+            marginLeft: '-375px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(200,130,10,0.09) 0%, transparent 65%)',
+            filter: 'blur(60px)',
+            animation: 'orb-drift 32s ease-in-out infinite',
+            opacity: 0,
+          }} className="dark:!opacity-100" />
+          {/* Secondary orb — lower, gold-steel tint */}
+          <div style={{
+            position: 'absolute',
+            width: '420px',
+            height: '420px',
+            top: '55%',
+            left: '30%',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(160,110,8,0.07) 0%, transparent 65%)',
+            filter: 'blur(70px)',
+            animation: 'orb-drift-2 26s ease-in-out infinite',
+            animationDelay: '8s',
+            opacity: 0,
+          }} className="dark:!opacity-100" />
+
+          {/* Edge vignettes — pull focus inward */}
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, bottom: 0,
+            width: '200px',
+            background: 'linear-gradient(to right, rgba(0,0,0,0.50) 0%, transparent 100%)',
+            opacity: 0,
+          }} className="dark:!opacity-100" />
+          <div style={{
+            position: 'absolute',
+            top: 0, right: 0, bottom: 0,
+            width: '200px',
+            background: 'linear-gradient(to left, rgba(0,0,0,0.50) 0%, transparent 100%)',
+            opacity: 0,
+          }} className="dark:!opacity-100" />
+        </div>
+
         <ThemeProvider>
           <UserProvider>
             <SubscriptionProvider>
