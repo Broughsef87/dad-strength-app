@@ -170,17 +170,21 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         {/* Sleep quality */}
         <div>
           <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How&apos;d you sleep?</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
             {SLEEP_QUALITY.map(s => (
               <button key={s.id} onClick={() => setSleep(s.id)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all border ${
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all border ${
                   sleep === s.id
                     ? 'bg-brand/5 border-brand/30 text-foreground'
                     : 'bg-muted border-transparent text-muted-foreground hover:border-border'
                 }`}
               >
-                <s.Icon size={13} className={sleep === s.id ? 'text-brand' : 'text-muted-foreground'} />
-                <span className="text-xs">{s.label}</span>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                  sleep === s.id ? 'bg-brand/15 border border-brand/40' : 'bg-background/40 border border-border'
+                }`}>
+                  <s.Icon size={14} className={sleep === s.id ? 'text-brand' : 'text-muted-foreground'} />
+                </span>
+                <span className="text-sm font-semibold">{s.label}</span>
               </button>
             ))}
           </div>
@@ -192,14 +196,18 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           <div className="space-y-2">
             {ENERGY_LEVELS.map(e => (
               <button key={e.id} onClick={() => setEnergy(e.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all border ${
                   energy === e.id
                     ? 'bg-brand/5 border-brand/30 text-foreground'
                     : 'bg-muted border-transparent text-muted-foreground hover:border-border'
                 }`}
               >
-                <e.Icon size={13} className={energy === e.id ? 'text-brand' : 'text-muted-foreground'} />
-                <span className="text-xs">{e.label}</span>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                  energy === e.id ? 'bg-brand/15 border border-brand/40' : 'bg-background/40 border border-border'
+                }`}>
+                  <e.Icon size={14} className={energy === e.id ? 'text-brand' : 'text-muted-foreground'} />
+                </span>
+                <span className="text-sm font-semibold">{e.label}</span>
               </button>
             ))}
           </div>
