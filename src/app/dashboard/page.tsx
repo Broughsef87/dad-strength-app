@@ -21,6 +21,8 @@ import DailyForge from '../../components/DailyForge'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
+import ProgressRing from '../../components/ProgressRing'
+import { BarbellMark, SectionDivider } from '../../components/BarbellMark'
 
 interface ActiveProgramData {
   slug: string
@@ -239,14 +241,35 @@ export default function Dashboard() {
       </header>
 
       {/* MOBILE HEADER */}
-      <header className="md:hidden flex items-center justify-between px-5 pt-6 pb-2">
-        <div className="flex items-center gap-2.5">
-          <Logo className="w-8 h-8" />
-          <span className="font-display text-xl tracking-[0.08em] uppercase text-foreground">
-            Dad Strength
-          </span>
+      <header className="md:hidden relative flex items-center justify-between px-5 pt-8 pb-4 overflow-hidden">
+        {/* Large background "DS" — editorial depth mark */}
+        <span
+          className="absolute -top-4 -left-2 font-display leading-none pointer-events-none select-none"
+          style={{ fontSize: '9rem', color: 'rgba(200,130,10,0.045)', letterSpacing: '0.05em' }}
+          aria-hidden="true"
+        >DS</span>
+        <div className="relative">
+          <p className="steel-label">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <h1 className="font-display text-[2.6rem] md:text-5xl tracking-[0.06em] uppercase text-foreground mt-0.5 leading-none">
+            Train Day.
+            {streak > 0 && (
+              <span className="text-brand ml-3 inline-flex items-center gap-1 text-2xl align-middle">
+                <Flame size={18} className="inline" strokeWidth={1.5} />
+                <span className="stat-num">{streak}</span>
+              </span>
+            )}
+          </h1>
+          {/* Amber accent line — brand signature */}
+          <div className="flex items-center gap-1.5 mt-2">
+            <div className="h-[2px] w-8 rounded-full bg-brand"
+              style={{ boxShadow: '0 0 8px 1px rgba(200,130,10,0.55)' }} />
+            <div className="h-[2px] w-4 rounded-full bg-brand/35" />
+            <div className="h-[2px] w-2 rounded-full bg-brand/15" />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative">
           {!isPro && !subLoading && (
             <button
               onClick={() => setShowUpgrade(true)}
@@ -264,23 +287,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-5 pt-5 space-y-4">
+      <main className="max-w-lg mx-auto px-5 pt-2 space-y-4">
 
-        {/* Date + greeting */}
-        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
-          <h1 className="text-4xl text-foreground leading-none mt-1">
-            Train Day.
-            {streak > 0 && (
-              <span className="text-brand ml-3 inline-flex items-center gap-1 text-2xl">
-                <Flame size={18} className="inline" strokeWidth={1.5} />
-                <span className="stat-num">{streak}</span>
-              </span>
-            )}
-          </h1>
-        </motion.div>
+        {/* Removed separate date/greeting — now in header */}
 
         <motion.div
           className="space-y-4"
@@ -293,29 +302,78 @@ export default function Dashboard() {
             <FirstWeekChecklist />
           </motion.div>
 
-          {/* TODAY'S MISSION */}
+          {/* TODAY'S MISSION — hero forge card */}
           <motion.div variants={fadeUp} custom={0}>
-            <div className="ds-card p-6 overflow-hidden">
-              <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-4 font-display">
-                <span className="w-1 h-1 bg-brand inline-block" />
-                Active Protocol
-              </span>
-              <div className="flex items-start justify-between mb-5">
+            <div className="forge-card p-6 overflow-hidden">
+              {/* Editorial background numeral */}
+              <span
+                className="absolute -top-3 right-3 font-display leading-none pointer-events-none select-none"
+                style={{ fontSize: '8rem', color: 'rgba(200,130,10,0.05)', letterSpacing: '0.05em' }}
+                aria-hidden="true"
+              >01</span>
+              {/* Barbell watermark */}
+              <BarbellMark className="absolute -bottom-2 -left-4 -right-4 w-[108%] pointer-events-none select-none" />
+
+              <div className="flex items-start justify-between mb-4 relative z-10">
                 <div>
-                  <h2 className="text-3xl text-foreground leading-none mb-2">
+                  <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold font-display">
+                    <span className="w-1 h-1 bg-brand inline-block" />
+                    Active Protocol
+                  </span>
+                  <h2 className="text-3xl text-foreground leading-none mt-1">
                     {activeProgram?.name || workout?.name || 'Load Program'}
                   </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {activeProgram
-                      ? `${activeProgram.daysCount} days/week · Week ${activeProgram.currentWeek}`
-                      : workout?.description || 'Deploy your first training protocol.'}
-                  </p>
                 </div>
-                <Dumbbell size={28} className="text-muted-foreground/20 shrink-0 mt-1" strokeWidth={1} />
+                <div className="flex items-center gap-3 shrink-0">
+                  {streak > 0 && (
+                    <div className="flex items-center gap-1.5 bg-brand/10 border border-brand/20 px-2.5 py-1.5 rounded-full">
+                      <Flame size={11} className="text-brand" />
+                      <span className="text-[11px] font-bold text-brand">{streak}</span>
+                    </div>
+                  )}
+                  {activeProgram && (
+                    <ProgressRing
+                      value={Math.round(((activeProgram.currentWeek - 1) / Math.max(activeProgram.daysCount, 1)) * 100)}
+                      size={54}
+                      strokeWidth={4}
+                      label={`W${activeProgram.currentWeek}`}
+                      sublabel="week"
+                    />
+                  )}
+                  {!activeProgram && (
+                    <Dumbbell size={28} className="text-muted-foreground/20" strokeWidth={1} />
+                  )}
+                </div>
               </div>
-              <div className="flex flex-col gap-2.5">
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
+
+              {/* Metadata rows */}
+              {activeProgram && (
+                <div className="border-t border-border relative z-10 mb-4">
+                  <div className="data-row">
+                    <span className="text-sm text-muted-foreground">Week</span>
+                    <span className="text-sm font-semibold text-foreground">{activeProgram.currentWeek}</span>
+                  </div>
+                  <div className="data-row">
+                    <span className="text-sm text-muted-foreground">Frequency</span>
+                    <span className="text-sm font-semibold text-foreground">{activeProgram.daysCount} days / week</span>
+                  </div>
+                  <div className="data-row">
+                    <span className="text-sm text-muted-foreground">Type</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {activeProgram.slug?.startsWith('ares') ? 'Functional' : 'Strength'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {!activeProgram && (
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 relative z-10">
+                  {workout?.description || 'Deploy your first training protocol.'}
+                </p>
+              )}
+
+              <div className="flex flex-col gap-2.5 relative z-10">
+                <button
                   onClick={() => {
                     if (activeProgram) {
                       if (activeProgram.slug?.startsWith('chronos')) {
@@ -335,47 +393,54 @@ export default function Dashboard() {
                       router.push('/build')
                     }
                   }}
-                  className="w-full flex items-center justify-center gap-2.5 rounded-md bg-brand px-6 py-3.5 text-sm font-semibold text-background hover:bg-brand/90 transition-all brand-glow uppercase tracking-[0.1em]"
-                  style={{ borderRadius: '6px' }}
+                  className="btn-forge-shimmer w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-background uppercase tracking-[0.1em] transition-all active:scale-[0.98]"
+                  style={{
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #d48a0a 0%, #8B5A00 100%)',
+                    boxShadow: '0 0 20px 3px rgba(200,130,10,0.30), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
+                  }}
                 >
                   <PlayCircle size={16} strokeWidth={2} />
-                  {activeProgram || workout ? 'Start Training' : 'Choose Program'}
-                </motion.button>
+                  {activeProgram || workout ? 'Begin Session' : 'Choose Program'}
+                </button>
                 {(activeProgram || workout) && (
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
+                  <button
                     onClick={() => router.push('/build')}
                     className="w-full flex items-center justify-center gap-2 px-6 py-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-[0.12em] border border-border hover:border-brand/30 font-semibold"
                     style={{ borderRadius: '6px' }}
                   >
                     <Settings size={11} /> Change Program
-                  </motion.button>
+                  </button>
                 )}
               </div>
             </div>
           </motion.div>
 
+          {/* Section divider */}
+          <SectionDivider className="w-full opacity-80" />
+
           {/* The Squeeze */}
           <motion.div variants={fadeUp} custom={0.5}>
             <button
               onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
-              className="w-full ds-card p-4 flex items-center justify-between group"
+              className="w-full steel-edge rounded-2xl p-4 flex items-center justify-between group transition-all"
+              style={{
+                background: 'linear-gradient(150deg, hsl(220 31% 13%) 0%, hsl(222 21% 8%) 100%)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+              }}
             >
-              <div>
-                <p className="text-[9px] font-display tracking-[0.14em] text-muted-foreground uppercase mb-0.5">Short on time?</p>
-                <p className="font-display text-xl tracking-wide text-foreground leading-none">
-                  Chronos
-                  <span className="text-muted-foreground font-sans text-xs font-normal ml-2 tracking-normal">15–20 min</span>
-                  {!isPro && <span className="ml-2 text-[8px] bg-brand/10 text-brand px-1.5 py-0.5 uppercase tracking-widest font-semibold font-sans" style={{ borderRadius: '3px' }}>Pro</span>}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
+                  <Zap size={18} className="text-brand" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-sm text-foreground">Chronos</p>
+                  <p className="text-[12px] text-muted-foreground">15–20 min · Any equipment
+                    {!isPro && <span className="ml-2 text-[8px] bg-brand/10 text-brand px-1.5 py-0.5 uppercase tracking-widest font-semibold rounded" >Pro</span>}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {isPro
-                  ? <span className="text-[10px] text-muted-foreground">Any equipment</span>
-                  : <Zap size={13} className="text-brand" strokeWidth={1.5} />
-                }
-                <ChevronRight className="w-4 h-4 text-brand group-hover:translate-x-0.5 transition-transform" strokeWidth={1.5} />
-              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-brand transition-colors" strokeWidth={1.5} />
             </button>
           </motion.div>
 
