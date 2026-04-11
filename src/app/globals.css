@@ -317,9 +317,10 @@
 /* Stronger amber glow for hero CTA */
 .brand-glow-lg {
   box-shadow:
-    0 0 32px hsl(var(--brand) / 0.28),
-    0 0 80px hsl(var(--brand) / 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.4);
+    0 0 0 1px hsl(38 90% 41% / 0.15),
+    0 0 20px hsl(var(--brand) / 0.30),
+    0 0 60px hsl(var(--brand) / 0.10),
+    0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 /* Section-specific accent glows — keeping for Mind/Spirit pages */
@@ -455,7 +456,7 @@
   100% { transform: translateX(220%) skewX(-12deg); opacity: 0; }
 }
 
-/* Forge shimmer button — amber CTA with periodic light sweep */
+/* Forge shimmer button — amber CTA with slow, infrequent light sweep */
 .btn-forge-shimmer {
   position: relative;
   overflow: hidden;
@@ -467,38 +468,54 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 200, 80, 0.18) 50%,
+    rgba(255, 210, 100, 0.14) 50%,
     transparent 100%
   );
   transform: translateX(-120%) skewX(-12deg);
-  animation: btn-shimmer 4s ease-in-out infinite;
-  animation-delay: 2s;
+  animation: btn-shimmer 8s ease-in-out infinite;
+  animation-delay: 3s;
   pointer-events: none;
 }
 
-/* ── Forge card — hero card with depth gradient + amber top line ── */
+/* ── Forge card — hero surface with layered depth + restrained amber highlight ── */
 .forge-card {
-  background: linear-gradient(160deg, hsl(220 31% 14%) 0%, hsl(222 21% 8%) 100%);
-  border: 1px solid hsl(214 35% 20%);
+  background: linear-gradient(165deg, hsl(220 31% 13%) 0%, hsl(222 25% 9%) 60%, hsl(222 21% 7%) 100%);
+  border: 1px solid hsl(214 35% 19%);
   border-radius: 1rem;
   position: relative;
-  box-shadow: 0 4px 32px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
+  /* Layered shadow: close depth + wide ambient */
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.6),
+    0 6px 24px rgba(0,0,0,0.5),
+    0 20px 60px rgba(0,0,0,0.3);
 }
+/* Top-edge amber specular — tuned down from 0.80 to feel premium not flashy */
 .forge-card::before {
   content: '';
   position: absolute;
-  top: 0; left: 15%; right: 15%;
+  top: 0; left: 20%; right: 20%;
   height: 1px;
   background: linear-gradient(90deg,
     transparent,
-    hsl(38 90% 41% / 0.45) 30%,
-    hsl(38 95% 55% / 0.80) 50%,
-    hsl(38 90% 41% / 0.45) 70%,
+    hsl(38 90% 41% / 0.35) 25%,
+    hsl(38 90% 50% / 0.55) 50%,
+    hsl(38 90% 41% / 0.35) 75%,
     transparent
   );
   border-radius: 1rem 1rem 0 0;
   pointer-events: none;
   z-index: 1;
+}
+/* Bottom-edge ambient warmth — ground plane glow, not a taillight */
+.dark .forge-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(0deg, hsl(38 90% 41% / 0.04) 0%, transparent 100%);
+  border-radius: 0 0 1rem 1rem;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ── Steel edge — secondary cards with cool chrome top ──────── */
@@ -545,6 +562,33 @@
     hsl(38 90% 41% / 0.25) 75%,
     transparent
   );
+}
+
+/* ── Premium surface — for upgrade/paywall moments ─────────────
+   Same layered depth as forge-card but with a steel-cool top
+   instead of amber. Keeps hierarchy: amber = action, steel = premium container. */
+.premium-surface {
+  background: linear-gradient(165deg, hsl(222 30% 12%) 0%, hsl(222 25% 8%) 100%);
+  border: 1px solid hsl(214 35% 20%);
+  position: relative;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.6),
+    0 8px 32px rgba(0,0,0,0.45);
+}
+.dark .premium-surface::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--steel) / 0.25) 20%,
+    hsl(var(--steel) / 0.45) 50%,
+    hsl(var(--steel) / 0.25) 80%,
+    transparent
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Section data row — tight stat pair */
