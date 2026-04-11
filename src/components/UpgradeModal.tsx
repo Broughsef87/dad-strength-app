@@ -81,125 +81,126 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-md bg-surface-2 border border-border rounded-xl overflow-hidden"
+            className="relative w-full max-w-md overflow-hidden rounded-xl premium-surface"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
-            {/* Header */}
-            <div className="relative bg-brand/10 border-b border-border p-6">
+            {/* Header — steel-edge platform feel */}
+            <div className="relative p-6 border-b border-border/60">
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute top-4 right-4 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-brand rounded-lg">
-                  <Zap size={18} className="text-foreground" />
+                <div className="w-9 h-9 rounded-lg bg-brand/15 border border-brand/30 flex items-center justify-center">
+                  <Zap size={16} className="text-brand" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium">Dad Strong+</p>
-                  <h2 className="font-display text-2xl tracking-[0.08em] uppercase">Unlock Everything</h2>
+                  <p className="text-[9px] uppercase tracking-[0.18em] text-brand font-semibold font-display">Dad Strong+</p>
+                  <h2 className="font-display text-2xl tracking-[0.06em] uppercase text-foreground leading-tight">Unlock Everything</h2>
                 </div>
               </div>
               {trigger && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {trigger} is a premium feature.
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  {trigger} requires Dad Strong+.
                 </p>
               )}
             </div>
 
             {/* Features */}
-            <div className="p-6 space-y-2">
+            <div className="px-6 py-5 space-y-2">
               {PRO_FEATURES.map((f, i) => (
-                <div key={i} className="flex items-center gap-2.5 text-sm">
-                  <Check size={13} className="text-brand shrink-0" />
-                  <span className="text-muted-foreground">{f}</span>
+                <div key={i} className="flex items-center gap-2.5">
+                  <Check size={12} className="text-brand shrink-0" strokeWidth={2.5} />
+                  <span className="text-sm text-muted-foreground leading-snug">{f}</span>
                 </div>
               ))}
             </div>
 
             {/* Pricing options */}
-            <div className="px-6 pb-6 space-y-3">
+            <div className="px-6 pb-6 space-y-2.5">
+
+              {/* Yearly — recommended — most prominent */}
+              <button
+                onClick={() => handleCheckout('yearly')}
+                disabled={!!loading}
+                className="btn-forge-shimmer w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:opacity-50"
+                style={{
+                  background: 'linear-gradient(160deg, hsl(38 40% 14%) 0%, hsl(38 35% 10%) 100%)',
+                  border: '1px solid hsl(38 90% 41% / 0.40)',
+                  boxShadow: '0 0 12px 1px rgba(200,130,10,0.12), 0 2px 8px rgba(0,0,0,0.5)',
+                }}
+              >
+                <div className="absolute -top-2.5 left-4 bg-brand text-background text-[8px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 rounded-sm">
+                  Best Value
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-sm text-foreground">Annual</p>
+                  <p className="text-xs text-muted-foreground">Save 34% — $6.58/mo</p>
+                </div>
+                <div className="text-right">
+                  {loading === 'yearly'
+                    ? <Loader2 size={15} className="animate-spin text-brand" />
+                    : <p className="font-black text-lg text-foreground">$79<span className="text-xs text-muted-foreground font-normal">/yr</span></p>
+                  }
+                </div>
+              </button>
+
               {/* Monthly */}
               <button
                 onClick={() => handleCheckout('monthly')}
                 disabled={!!loading}
-                className="w-full flex items-center justify-between p-4 rounded-md border border-border hover:border-brand/40 bg-muted/30 hover:bg-brand/5 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-between p-4 rounded-lg border border-border/60 hover:border-border bg-muted/20 hover:bg-muted/30 transition-all disabled:opacity-50"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">Monthly</p>
+                  <p className="font-semibold text-sm">Monthly</p>
                   <p className="text-xs text-muted-foreground">Cancel anytime</p>
                 </div>
                 <div className="text-right">
                   {loading === 'monthly'
-                    ? <Loader2 size={16} className="animate-spin text-brand" />
-                    : <p className="font-black text-lg">$9.99<span className="text-xs text-muted-foreground font-normal">/mo</span></p>
+                    ? <Loader2 size={15} className="animate-spin text-brand" />
+                    : <p className="font-bold text-base">$9.99<span className="text-xs text-muted-foreground font-normal">/mo</span></p>
                   }
                 </div>
               </button>
 
-              {/* Yearly — recommended */}
-              <button
-                onClick={() => handleCheckout('yearly')}
-                disabled={!!loading}
-                className="w-full flex items-center justify-between p-4 rounded-md border-2 border-brand bg-brand/10 hover:bg-brand/15 transition-all disabled:opacity-50 relative"
-              >
-                <div className="absolute -top-2.5 left-4 bg-brand text-background text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-sm">
-                  Best Value
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm">Annual</p>
-                  <p className="text-xs text-muted-foreground">Save 34% vs monthly</p>
-                </div>
-                <div className="text-right">
-                  {loading === 'yearly'
-                    ? <Loader2 size={16} className="animate-spin text-brand" />
-                    : (
-                      <>
-                        <p className="font-black text-lg">$79<span className="text-xs text-muted-foreground font-normal">/yr</span></p>
-                        <p className="text-[9px] text-muted-foreground">≈ $6.58/mo</p>
-                      </>
-                    )
-                  }
-                </div>
-              </button>
-
-              {/* Founder Pass divider */}
-              <div className="flex items-center gap-3 my-1">
-                <div className="flex-1 h-px bg-border" />
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Or</p>
-                <div className="flex-1 h-px bg-border" />
+              {/* Divider */}
+              <div className="flex items-center gap-3 py-0.5">
+                <div className="flex-1 h-px bg-border/50" />
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Or</p>
+                <div className="flex-1 h-px bg-border/50" />
               </div>
 
               {/* Founder Pass */}
               <button
                 onClick={() => handleCheckout('founder')}
                 disabled={!!loading}
-                className="w-full flex items-center justify-between p-4 rounded-md border border-border/50 hover:border-foreground/20 bg-muted/20 hover:bg-muted/40 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-between p-4 rounded-lg border border-border/40 hover:border-border/70 bg-muted/10 hover:bg-muted/20 transition-all disabled:opacity-50"
               >
                 <div className="flex items-center gap-2.5 text-left">
-                  <Shield size={14} className="text-brand shrink-0" />
+                  <Shield size={13} className="text-steel shrink-0" />
                   <div>
-                    <p className="font-bold text-sm">Founder&apos;s Pass</p>
-                    <p className="text-xs text-muted-foreground">Lifetime access — one-time payment</p>
+                    <p className="font-semibold text-sm">Founder&apos;s Pass</p>
+                    <p className="text-xs text-muted-foreground">Lifetime access · one-time</p>
                   </div>
                 </div>
                 {loading === 'founder'
-                  ? <Loader2 size={16} className="animate-spin text-brand" />
+                  ? <Loader2 size={15} className="animate-spin text-brand" />
                   : (
                     <div className="text-right shrink-0 ml-2">
-                      <p className="font-black text-base">$47</p>
+                      <p className="font-bold text-base">$47</p>
                       <p className="text-[9px] text-muted-foreground line-through">$149</p>
                     </div>
                   )
                 }
               </button>
 
-              <p className="text-center text-[10px] text-muted-foreground pt-1">
-                Secure checkout via Stripe. Cancel anytime.
+              <p className="text-center text-[9px] text-muted-foreground pt-0.5 tracking-wide">
+                Secure checkout · Stripe · Cancel anytime
               </p>
             </div>
           </motion.div>
