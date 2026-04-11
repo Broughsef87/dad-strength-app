@@ -1,17 +1,18 @@
--- Guarantee exactly one WOD per (program_slug, week_number, day_number).
+-- Ares shared WOD: add missing columns + unique index.
 --
--- Without this, concurrent first-generation requests from different users
--- both insert, leaving duplicate rows. Any subsequent .maybeSingle() call
--- returns null (multiple rows), causing every user without localStorage to
--- re-generate — producing a different workout each time.
+-- The generated_workouts table was originally per-user (unique per user_id+week+day).
+-- Ares needs two new columns and a SHARED uniqueness guarantee across all users
+-- so that exactly one canonical WOD exists per (program_slug, week_number, day_number).
 --
--- With this constraint:
---   • The first insert wins and becomes the canonical WOD for the week.
---   • Any racing insert gets a 23505 unique-violation error.
---   • The page code catches that error and fetches the canonical version,
---     overwriting the user's locally-generated (potentially different) copy.
---   • All users converge on the same workout regardless of race timing.
+-- Uses a partial unique index (WHERE program_slug IS NOT NULL) so existing per-user
+-- rows with NULL program_slug are unaffected.
 
+-- 1. Columns the Ares page code expects
 ALTER TABLE generated_workouts
-  ADD CONSTRAINT generated_workouts_slug_week_day_unique
-  UNIQUE (program_slug, week_number, day_number);
+  ADD COLUMN IF NOT EXISTS program_slug TEXT,
+  ADD COLUMN IF NOT EXISTS workout_data JSONB;
+
+-- 2. One WOD per Ares day — shared across all users
+CREATE UNIQUE INDEX IF NOT EXISTS generated_workouts_slug_week_day_unique
+  ON generated_workouts (program_slug, week_number, day_number)
+  WHERE program_slug IS NOT NULL;
