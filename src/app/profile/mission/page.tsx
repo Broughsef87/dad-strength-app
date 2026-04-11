@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../../utils/supabase/client'
-import { ChevronLeft, Target, Loader2, Check, TrendingUp } from 'lucide-react'
+import { ChevronLeft, Target, Loader2, TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function MissionPage() {
@@ -12,7 +12,6 @@ export default function MissionPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
 
   const [title, setTitle] = useState('')
@@ -53,21 +52,18 @@ export default function MissionPage() {
       mission_progress: Math.min(100, Math.max(0, progress)),
       mission_milestone: milestone,
     }).eq('id', userId)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-
-    // Mark first_week_checklist set_mission as done
+    // Mark first_week_checklist set_mission as done (handle null column for new users)
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('first_week_checklist')
       .eq('id', userId)
       .maybeSingle()
 
-    if (profile?.first_week_checklist) {
-      const updated = { ...profile.first_week_checklist, set_mission: true }
-      await supabase.from('user_profiles').update({ first_week_checklist: updated }).eq('id', userId)
-    }
+    const existing = (profile?.first_week_checklist as Record<string, unknown>) ?? {}
+    await supabase.from('user_profiles').update({ first_week_checklist: { ...existing, set_mission: true } }).eq('id', userId)
+
+    setSaving(false)
+    router.push('/dashboard')
   }
 
   if (loading) {
@@ -170,12 +166,7 @@ export default function MissionPage() {
           disabled={saving || !title}
           className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-black py-4 rounded-xl uppercase tracking-widest text-sm transition-all active:scale-[0.98]"
         >
-          {saving
-            ? <Loader2 size={16} className="animate-spin" />
-            : saved
-              ? <><Check size={16} /> Saved!</>
-              : 'Save Mission'
-          }
+          {saving ? <Loader2 size={16} className="animate-spin" /> : 'Save Mission'}
         </button>
 
         {/* Preview card */}
