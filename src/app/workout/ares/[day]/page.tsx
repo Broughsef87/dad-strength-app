@@ -834,7 +834,12 @@ export default function AresWorkoutPage() {
       setDay(targetDay)
       setWeekTheme(generated.weekTheme ?? '')
 
-      // Save to generated_workouts — shared, date-keyed
+      // Cache locally immediately — do NOT gate on DB success.
+      // If the DB insert fails for any reason the user still gets
+      // the same workout on every subsequent visit this week.
+      localStorage.setItem(cacheKey, JSON.stringify({ day: targetDay, weekTheme: generated.weekTheme, generatedWorkoutId: null }))
+
+      // Persist to generated_workouts so OTHER users share the same WOD
       const { data: saved } = await supabase
         .from('generated_workouts')
         .insert({
@@ -849,6 +854,7 @@ export default function AresWorkoutPage() {
 
       if (saved) {
         generatedWorkoutIdRef.current = saved.id
+        // Update local cache with the real DB id for logging purposes
         localStorage.setItem(cacheKey, JSON.stringify({ day: targetDay, weekTheme: generated.weekTheme, generatedWorkoutId: saved.id }))
       }
     } catch (e) {
