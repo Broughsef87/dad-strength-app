@@ -834,16 +834,17 @@ export default function AresWorkoutPage() {
       setDay(targetDay)
       setWeekTheme(generated.weekTheme ?? '')
 
-      // Cache locally immediately — do NOT gate on DB success.
-      // If the DB insert fails for any reason the user still gets
-      // the same workout on every subsequent visit this week.
+      // Cache locally immediately — don't wait for DB.
+      // Even if the DB insert races and loses, this user keeps a stable workout.
       localStorage.setItem(cacheKey, JSON.stringify({ day: targetDay, weekTheme: generated.weekTheme, generatedWorkoutId: null }))
 
-      // Persist to generated_workouts so OTHER users share the same WOD
-      const { data: saved } = await supabase
+      // Persist to generated_workouts — shared, date-keyed.
+      // The unique constraint on (program_slug, week_number, day_number) means
+      // only the FIRST insert wins. Concurrent generators get a 23505 conflict.
+      const { data: saved, error: insertError } = await supabase
         .from('generated_workouts')
         .insert({
-          user_id: user.id,        // who generated it (for audit)
+          user_id: user.id,
           program_slug: 'ares',
           week_number: aresWeekNumber,
           day_number: dayNumber,
@@ -853,9 +854,31 @@ export default function AresWorkoutPage() {
         .single()
 
       if (saved) {
+        // We won the race — our workout is now canonical for this week/day.
         generatedWorkoutIdRef.current = saved.id
-        // Update local cache with the real DB id for logging purposes
         localStorage.setItem(cacheKey, JSON.stringify({ day: targetDay, weekTheme: generated.weekTheme, generatedWorkoutId: saved.id }))
+      } else if ((insertError as { code?: string } | null)?.code === '23505') {
+        // Another user beat us to it — fetch their canonical version and
+        // overwrite our locally-generated (potentially different) workout.
+        const { data: canonical } = await supabase
+          .from('generated_workouts')
+          .select('id, workout_data')
+          .eq('program_slug', 'ares')
+          .eq('week_number', aresWeekNumber)
+          .eq('day_number', dayNumber)
+          .single()
+
+        if (canonical) {
+          const canonicalData = canonical.workout_data as { day: AresDay; weekTheme?: string }
+          setDay(canonicalData.day)
+          setWeekTheme(canonicalData.weekTheme ?? '')
+          generatedWorkoutIdRef.current = canonical.id
+          localStorage.setItem(cacheKey, JSON.stringify({
+            day: canonicalData.day,
+            weekTheme: canonicalData.weekTheme,
+            generatedWorkoutId: canonical.id,
+          }))
+        }
       }
     } catch (e) {
       setError('Could not generate workout. Check your connection and try again.')
