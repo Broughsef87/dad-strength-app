@@ -22,6 +22,7 @@ import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 import ProgressRing from '../../components/ProgressRing'
+import { BarbellMark, SectionDivider } from '../../components/BarbellMark'
 
 interface ActiveProgramData {
   slug: string
@@ -40,6 +41,15 @@ interface WorkoutData {
   id: string
   name?: string
   description?: string
+}
+
+// Total weeks per program family — drives ProgressRing percentage
+const PROGRAM_TOTAL_WEEKS: Record<string, number> = {
+  ares: 12,
+  zeus: 12,
+  hercules: 12,
+  apollo: 8,
+  chronos: 4,
 }
 
 function getCurrentWeekKey(): string {
@@ -303,49 +313,75 @@ export default function Dashboard() {
 
           {/* TODAY'S MISSION — hero forge card */}
           <motion.div variants={fadeUp} custom={0}>
-            <div className="forge-card p-5 overflow-hidden">
+            <div className="forge-card p-6 overflow-hidden">
+              {/* Editorial background numeral */}
+              <span
+                className="absolute -top-3 right-3 font-display leading-none pointer-events-none select-none"
+                style={{ fontSize: '8rem', color: 'rgba(200,130,10,0.05)', letterSpacing: '0.05em' }}
+                aria-hidden="true"
+              >01</span>
+              {/* Barbell watermark */}
+              <BarbellMark className="absolute -bottom-2 -left-4 -right-4 w-[108%] pointer-events-none select-none" />
 
-              {/* Label row */}
-              <div className="flex items-center justify-between mb-3 relative z-10">
-                <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold font-display">
-                  <span className="w-1 h-1 rounded-full bg-brand inline-block" />
-                  Active Protocol
-                </span>
-                {streak > 0 && (
-                  <span className="inline-flex items-center gap-1 text-[10px] text-brand font-semibold">
-                    <Flame size={10} />
-                    {streak}
+              <div className="flex items-start justify-between mb-4 relative z-10">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold font-display">
+                    <span className="w-1 h-1 bg-brand inline-block" />
+                    Active Protocol
                   </span>
-                )}
-              </div>
-
-              {/* Program name + ring */}
-              <div className="flex items-start justify-between mb-5 relative z-10">
-                <div className="flex-1 min-w-0 pr-4">
-                  <h2 className="text-3xl text-foreground leading-none">
+                  <h2 className="text-3xl text-foreground leading-none mt-1">
                     {activeProgram?.name || workout?.name || 'Load Program'}
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-1.5">
-                    {activeProgram
-                      ? `Week ${activeProgram.currentWeek} · ${activeProgram.daysCount}×/week`
-                      : workout?.description || 'Choose your first training protocol.'}
-                  </p>
                 </div>
-                {activeProgram ? (
-                  <ProgressRing
-                    value={Math.min(100, Math.round((activeProgram.currentWeek / 12) * 100))}
-                    size={52}
-                    strokeWidth={4}
-                    label={`W${activeProgram.currentWeek}`}
-                    sublabel="week"
-                  />
-                ) : (
-                  <Dumbbell size={26} className="text-muted-foreground/20 shrink-0 mt-1" strokeWidth={1} />
-                )}
+                <div className="flex items-center gap-3 shrink-0">
+                  {streak > 0 && (
+                    <div className="flex items-center gap-1.5 bg-brand/10 border border-brand/20 px-2.5 py-1.5 rounded-full">
+                      <Flame size={11} className="text-brand" />
+                      <span className="text-[11px] font-bold text-brand">{streak}</span>
+                    </div>
+                  )}
+                  {activeProgram && (
+                    <ProgressRing
+                      value={Math.round(((activeProgram.currentWeek - 1) / (PROGRAM_TOTAL_WEEKS[activeProgram.slug.split('-')[0]] ?? 12)) * 100)}
+                      size={54}
+                      strokeWidth={4}
+                      label={`W${activeProgram.currentWeek}`}
+                      sublabel="week"
+                    />
+                  )}
+                  {!activeProgram && (
+                    <Dumbbell size={28} className="text-muted-foreground/20" strokeWidth={1} />
+                  )}
+                </div>
               </div>
 
-              {/* CTAs */}
-              <div className="flex flex-col gap-2 relative z-10">
+              {/* Metadata rows */}
+              {activeProgram && (
+                <div className="border-t border-border relative z-10 mb-4">
+                  <div className="data-row">
+                    <span className="text-sm text-muted-foreground">Week</span>
+                    <span className="text-sm font-semibold text-foreground">{activeProgram.currentWeek}</span>
+                  </div>
+                  <div className="data-row">
+                    <span className="text-sm text-muted-foreground">Frequency</span>
+                    <span className="text-sm font-semibold text-foreground">{activeProgram.daysCount} days / week</span>
+                  </div>
+                  <div className="data-row">
+                    <span className="text-sm text-muted-foreground">Type</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {activeProgram.slug?.startsWith('ares') ? 'Functional' : 'Strength'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {!activeProgram && (
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 relative z-10">
+                  {workout?.description || 'Deploy your first training protocol.'}
+                </p>
+              )}
+
+              <div className="flex flex-col gap-2.5 relative z-10">
                 <button
                   onClick={() => {
                     if (activeProgram) {
@@ -366,12 +402,11 @@ export default function Dashboard() {
                       router.push('/build')
                     }
                   }}
-                  className="btn-forge-shimmer w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold uppercase tracking-[0.1em] transition-all active:scale-[0.98]"
+                  className="btn-forge-shimmer w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-background uppercase tracking-[0.1em] transition-all active:scale-[0.98]"
                   style={{
                     borderRadius: '8px',
-                    color: 'hsl(222 21% 7%)',
-                    background: 'linear-gradient(180deg, hsl(38 90% 48%) 0%, hsl(38 88% 38%) 100%)',
-                    boxShadow: '0 0 16px 1px rgba(200,130,10,0.22), 0 2px 12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,210,80,0.18)',
+                    background: 'linear-gradient(135deg, #d48a0a 0%, #8B5A00 100%)',
+                    boxShadow: '0 0 20px 3px rgba(200,130,10,0.30), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
                   }}
                 >
                   <PlayCircle size={16} strokeWidth={2} />
@@ -380,7 +415,8 @@ export default function Dashboard() {
                 {(activeProgram || workout) && (
                   <button
                     onClick={() => router.push('/build')}
-                    className="w-full flex items-center justify-center gap-2 py-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-[0.12em] font-medium"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-[0.12em] border border-border hover:border-brand/30 font-semibold"
+                    style={{ borderRadius: '6px' }}
                   >
                     <Settings size={11} /> Change Program
                   </button>
@@ -388,6 +424,9 @@ export default function Dashboard() {
               </div>
             </div>
           </motion.div>
+
+          {/* Section divider */}
+          <SectionDivider className="w-full opacity-80" />
 
           {/* The Squeeze */}
           <motion.div variants={fadeUp} custom={0.5}>

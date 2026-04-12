@@ -476,6 +476,30 @@
   animation-delay: 3s;
   pointer-events: none;
 }
+@media (prefers-reduced-motion: reduce) {
+  .btn-forge-shimmer::after {
+    animation: none;
+  }
+}
+
+/* ── Annual upgrade card — dark amber in dark mode, warm light in light mode ── */
+.annual-card {
+  background: linear-gradient(160deg, hsl(38 40% 14%) 0%, hsl(38 35% 10%) 100%);
+  border: 1px solid hsl(38 90% 41% / 0.40);
+  box-shadow: 0 0 12px 1px rgba(200,130,10,0.12), 0 2px 8px rgba(0,0,0,0.5);
+}
+:root:not(.dark) .annual-card {
+  background: linear-gradient(160deg, hsl(38 85% 93%) 0%, hsl(38 75% 88%) 100%);
+  border: 1px solid hsl(38 90% 45% / 0.50);
+  box-shadow: 0 0 12px 1px rgba(200,130,10,0.18), 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ── Premium surface — light mode override ─────────────────────── */
+:root:not(.dark) .premium-surface {
+  background: hsl(220 15% 97%);
+  border-color: hsl(214 20% 85%);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.12);
+}
 
 /* ── Forge card — hero surface with layered depth + restrained amber highlight ── */
 .forge-card {

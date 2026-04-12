@@ -81,6 +81,9 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
 
           {/* Modal */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upgrade-modal-title"
             className="relative w-full max-w-md overflow-hidden rounded-xl premium-surface"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -91,6 +94,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
             <div className="relative p-6 border-b border-border/60">
               <button
                 onClick={onClose}
+                aria-label="Close upgrade modal"
                 className="absolute top-4 right-4 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
               >
                 <X size={16} />
@@ -101,7 +105,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                 </div>
                 <div>
                   <p className="text-[9px] uppercase tracking-[0.18em] text-brand font-semibold font-display">Dad Strong+</p>
-                  <h2 className="font-display text-2xl tracking-[0.06em] uppercase text-foreground leading-tight">Unlock Everything</h2>
+                  <h2 id="upgrade-modal-title" className="font-display text-2xl tracking-[0.06em] uppercase text-foreground leading-tight">Unlock Everything</h2>
                 </div>
               </div>
               {trigger && (
@@ -128,12 +132,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               <button
                 onClick={() => handleCheckout('yearly')}
                 disabled={!!loading}
-                className="btn-forge-shimmer w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:opacity-50"
-                style={{
-                  background: 'linear-gradient(160deg, hsl(38 40% 14%) 0%, hsl(38 35% 10%) 100%)',
-                  border: '1px solid hsl(38 90% 41% / 0.40)',
-                  boxShadow: '0 0 12px 1px rgba(200,130,10,0.12), 0 2px 8px rgba(0,0,0,0.5)',
-                }}
+                className="btn-forge-shimmer annual-card w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:opacity-50"
               >
                 <div className="absolute -top-2.5 left-4 bg-brand text-background text-[8px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 rounded-sm">
                   Best Value
