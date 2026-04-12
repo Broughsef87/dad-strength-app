@@ -70,7 +70,7 @@ const DEFAULT_STATE: ChecklistState = {
   dismissed_at: null,
 }
 
-export default function FirstWeekChecklist() {
+export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => void } = {}) {
   const router = useRouter()
   const supabase = createClient()
   const [state, setState] = useState<ChecklistState>(DEFAULT_STATE)
@@ -105,9 +105,18 @@ export default function FirstWeekChecklist() {
 
       if (checklist.dismissed) { setVisible(false); return }
 
-      // All done — auto-hide
+      // All done — persist dismissed + callback so dashboard can swap card
       const allDone = checklist.first_workout && checklist.set_mission && checklist.morning_protocol && checklist.joined_brotherhood
-      if (allDone) { setVisible(false); return }
+      if (allDone) {
+        if (!checklist.dismissed) {
+          await supabase.from('user_profiles').update({
+            first_week_checklist: { ...checklist, dismissed: true, dismissed_at: new Date().toISOString() }
+          }).eq('id', user.id)
+        }
+        setVisible(false)
+        onComplete?.()
+        return
+      }
 
       setState(checklist)
       setVisible(true)
@@ -151,10 +160,15 @@ export default function FirstWeekChecklist() {
     if (!userId) return
     await supabase.from('user_profiles').update({ first_week_checklist: newState }).eq('id', userId)
 
-    // Hide if all items complete
+    // Hide and persist dismissed if all items complete
     const allDone = newState.first_workout && newState.set_mission && newState.morning_protocol && newState.joined_brotherhood
     if (allDone) {
-      setTimeout(() => setVisible(false), 1200)
+      const finalState = { ...newState, dismissed: true, dismissed_at: new Date().toISOString() }
+      await supabase.from('user_profiles').update({ first_week_checklist: finalState }).eq('id', userId)
+      setTimeout(() => {
+        setVisible(false)
+        onComplete?.()
+      }, 1200)
     }
   }
 

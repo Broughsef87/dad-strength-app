@@ -21,6 +21,7 @@ import DailyForge from '../../components/DailyForge'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
+import MorningProtocol from '../../components/MorningProtocol'
 import ProgressRing from '../../components/ProgressRing'
 import { BarbellMark, SectionDivider } from '../../components/BarbellMark'
 
@@ -86,6 +87,7 @@ export default function Dashboard() {
   const [activeProgram, setActiveProgram] = useState<ActiveProgramData | null>(null)
   const [streak, setStreak] = useState(0)
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
+  const [checklistDone, setChecklistDone] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -117,6 +119,12 @@ export default function Dashboard() {
         .select('*')
         .eq('id', user.id)
         .maybeSingle()
+
+      // Check if first-week checklist is already fully complete so we can swap the card immediately
+      const cl = profile?.first_week_checklist as { first_workout?: boolean; set_mission?: boolean; morning_protocol?: boolean; joined_brotherhood?: boolean } | null
+      if (cl?.first_workout && cl?.set_mission && cl?.morning_protocol && cl?.joined_brotherhood) {
+        setChecklistDone(true)
+      }
 
       const onboardingLocal = typeof window !== 'undefined' ? localStorage.getItem('onboardingComplete') === 'true' : false
       const onboardingDB = profile?.onboarding_complete || false
@@ -306,9 +314,12 @@ export default function Dashboard() {
           animate="visible"
           variants={staggerContainer}
         >
-          {/* First week checklist */}
+          {/* First week checklist → swaps to Morning Protocol once all done */}
           <motion.div variants={fadeUp} custom={-0.5}>
-            <FirstWeekChecklist />
+            {checklistDone
+              ? <MorningProtocol />
+              : <FirstWeekChecklist onComplete={() => setChecklistDone(true)} />
+            }
           </motion.div>
 
           {/* TODAY'S MISSION — hero forge card */}

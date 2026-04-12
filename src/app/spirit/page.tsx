@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
-import { Zap, Users, Check, ScrollText, ArrowRight, PenLine } from 'lucide-react'
+import { Zap, Users, Check, ScrollText, ArrowRight, PenLine, Trash2, Plus } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import AppHeader from '../../components/AppHeader'
 import MorningProtocol from '../../components/MorningProtocol'
@@ -373,6 +373,21 @@ export default function SpiritPage() {
     ))
   }
 
+  function handleDeleteSlot(id: string) {
+    // Don't allow deleting the wife slot — always required
+    if (id === 'wife') return
+    persistSlots(slots.filter(s => s.id !== id))
+    if (editingId === id) setEditingId(null)
+  }
+
+  function handleAddKid() {
+    const kidNums = slots
+      .filter(s => s.id.startsWith('kid'))
+      .map(s => parseInt(s.id.replace('kid', '')) || 0)
+    const next = kidNums.length ? Math.max(...kidNums) + 1 : 1
+    persistSlots([...slots, { id: `kid${next}`, label: `Kid ${next}`, name: '', connections: [] }])
+  }
+
   if (!mounted) return (
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
@@ -575,8 +590,8 @@ export default function SpiritPage() {
                     /* Edit mode */
                     if (isEditing) {
                       return (
-                        <div key={slot.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/40 bg-surface-3/30">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground w-14 flex-shrink-0">
+                        <div key={slot.id} className="flex items-center gap-2 p-3 rounded-xl border border-border/40 bg-surface-3/30">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground w-12 flex-shrink-0">
                             {slot.label}
                           </span>
                           {editingId === slot.id ? (
@@ -600,6 +615,15 @@ export default function SpiritPage() {
                             >
                               {displayName}
                               <span className="text-muted-foreground/40 font-normal text-xs ml-2">tap to rename</span>
+                            </button>
+                          )}
+                          {slot.id !== 'wife' && (
+                            <button
+                              onClick={() => handleDeleteSlot(slot.id)}
+                              className="p-1.5 text-muted-foreground/40 hover:text-destructive transition-colors flex-shrink-0"
+                              aria-label={`Remove ${displayName}`}
+                            >
+                              <Trash2 size={13} />
                             </button>
                           )}
                         </div>
@@ -674,6 +698,16 @@ export default function SpiritPage() {
                     )
                   })}
                 </div>
+
+                {/* Add kid slot (only visible in edit mode) */}
+                {isEditing && (
+                  <button
+                    onClick={handleAddKid}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-border/50 text-muted-foreground hover:text-foreground hover:border-brand/30 transition-all text-xs font-bold uppercase tracking-widest"
+                  >
+                    <Plus size={12} /> Add Kid
+                  </button>
+                )}
 
                 {/* Legend */}
                 <div className="flex items-center justify-center gap-4 pt-1">
