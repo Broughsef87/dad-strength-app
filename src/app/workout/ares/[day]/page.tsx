@@ -813,6 +813,56 @@ export default function AresWorkoutPage() {
     // Generate fresh — first user to hit this day+date generates it for everyone
     setGenerating(true)
     try {
+      // ── Build generation context ────────────────────────────────────────────
+      // 1. Last week's day archetypes — so AI doesn't repeat the same structure
+      const lastWeekNumber = aresWeekNumber - 1
+      const { data: lastWeekDays } = await supabase
+        .from('generated_workouts')
+        .select('workout_data')
+        .eq('program_slug', 'ares')
+        .eq('week_number', lastWeekNumber)
+        .order('day_number', { ascending: true })
+      const previousWeekArchetypes = (lastWeekDays ?? [])
+        .map(r => (r.workout_data as { day?: { archetype?: string } })?.day?.archetype)
+        .filter(Boolean) as string[]
+
+      // 2. Recent metcon results — so AI doesn't repeat same movement combos
+      const { data: recentLogs } = await supabase
+        .from('ares_session_logs')
+        .select('log_type, metcon_name, metcon_format, metcon_result, week_number, rx')
+        .eq('user_id', user.id)
+        .eq('log_type', 'metcon')
+        .order('created_at', { ascending: false })
+        .limit(8)
+      const recentMetconResults = (recentLogs ?? []).map(l => ({
+        workoutName: l.metcon_name ?? 'Custom',
+        format: l.metcon_format ?? '',
+        result: l.metcon_result ?? '',
+        weekNumber: l.week_number ?? 0,
+        rx: l.rx ?? false,
+      }))
+
+      // 3. Recent strength logs — so AI can progressively overload
+      const { data: strengthLogs } = await supabase
+        .from('ares_session_logs')
+        .select('block_name, set_number, weight_lbs, reps, rir_actual, week_number')
+        .eq('user_id', user.id)
+        .eq('log_type', 'strength_set')
+        .order('created_at', { ascending: false })
+        .limit(40)
+      // Group by exercise name for the AI
+      const strengthByExercise: Record<string, { weight: number; reps: number; rir: number | null; weekNumber: number }[]> = {}
+      for (const l of (strengthLogs ?? [])) {
+        const name = l.block_name ?? 'Unknown'
+        if (!strengthByExercise[name]) strengthByExercise[name] = []
+        strengthByExercise[name].push({ weight: l.weight_lbs ?? 0, reps: l.reps ?? 0, rir: l.rir_actual ?? null, weekNumber: l.week_number ?? 0 })
+      }
+      const recentStrengthLogs = Object.entries(strengthByExercise).map(([exercise, sets]) => ({
+        exercise,
+        sets: sets.slice(0, 6),
+        weekNumber: sets[0]?.weekNumber ?? 0,
+      }))
+
       const res = await fetch('/api/ai/ares-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -822,6 +872,9 @@ export default function AresWorkoutPage() {
             trainingAge: prog.trainingAge,
             primaryGoal: prog.primaryGoal,
           },
+          previousWeekArchetypes,
+          recentMetconResults,
+          recentStrengthLogs,
         }),
       })
       if (!res.ok) throw new Error('Generation failed')
