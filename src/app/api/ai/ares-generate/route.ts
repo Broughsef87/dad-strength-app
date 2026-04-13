@@ -131,7 +131,7 @@ const MONTHLY_THEMES: MonthlyTheme[] = [
     focus: 'snatch',
     description: 'Olympic lifting — the snatch and its derivatives. Speed, timing, and overhead stability.',
     biasMovements: ['Power Snatch', 'Squat Snatch', 'Hang Power Snatch', 'Overhead Squat', 'Snatch Balance', 'Snatch Pull', 'DB Snatch'],
-    skillProgression: 'Snatch skill focus: Week 1 positional work (hang), Week 2 full snatch from floor, Week 3 heavy singles, Week 4 Isabel or similar benchmark.',
+    skillProgression: 'Snatch skill focus: Week 1 positional work (hang), Week 2 full snatch from floor, Week 3 heavy singles, Week 4 Isabel or similar benchmark. IMPORTANT: whenever Hang Power Snatch or Power Snatch appears as a strength block, ALWAYS follow it with Overhead Squat (3-4 sets) as the next block. OHS reinforces the overhead position that snatch work builds — they are a mandatory pairing during Snatch Month.',
     archetypeBias: 'olympic_build',
   },
   {

@@ -685,7 +685,7 @@ function MetConBlock({ metcon, onLog }: {
         {(isAmrap || isEmom) && (
           <div>
             <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2">
-              {isEmom ? 'Rounds Completed' : 'Score (Rounds + Reps)'}
+              {isEmom ? 'Rounds + Partial Reps' : 'Score (Rounds + Reps)'}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -695,18 +695,14 @@ function MetConBlock({ metcon, onLog }: {
                 placeholder="rounds"
                 className="w-24 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50 text-center"
               />
-              {isAmrap && (
-                <>
-                  <span className="text-muted-foreground text-sm">+</span>
-                  <input
-                    type="number"
-                    value={partialReps}
-                    onChange={e => setPartialReps(e.target.value)}
-                    placeholder="reps"
-                    className="w-24 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50 text-center"
-                  />
-                </>
-              )}
+              <span className="text-muted-foreground text-sm">+</span>
+              <input
+                type="number"
+                value={partialReps}
+                onChange={e => setPartialReps(e.target.value)}
+                placeholder="reps"
+                className="w-24 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50 text-center"
+              />
             </div>
           </div>
         )}
