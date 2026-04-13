@@ -755,6 +755,49 @@ export default function AresWorkoutPage() {
   const generatedWorkoutIdRef = useRef<string | null>(null)
   const aresWeekNumberRef = useRef<number>(0)
 
+  // ── Week locking helpers ────────────────────────────────────────────────────
+  // The user's "Ares week" is locked to the ISO week they started on.
+  // It only advances once they finish or skip all days for that week.
+  // This prevents the calendar week rolling over mid-stride (e.g. starting
+  // Saturday and having the workouts change on Monday).
+
+  const ARES_LOCK_KEY = 'ares-locked-week'
+
+  const getCurrentISOWeek = (): number => {
+    const d = new Date()
+    const dayOfWeek = d.getUTCDay() || 7
+    d.setUTCDate(d.getUTCDate() + 4 - dayOfWeek)
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+    const isoWeek = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    return d.getUTCFullYear() * 100 + isoWeek
+  }
+
+  const getUserLockedWeek = (daysCount: number): number => {
+    try {
+      const raw = localStorage.getItem(ARES_LOCK_KEY)
+      if (raw) {
+        const lock = JSON.parse(raw)
+        const doneDays: number[] = lock.doneDays ?? []
+        if (doneDays.length < daysCount) {
+          return lock.weekNumber  // still mid-week, keep the locked week
+        }
+      }
+    } catch { /* fall through */ }
+    // No lock or all days done — start fresh on current ISO week
+    const weekNumber = getCurrentISOWeek()
+    localStorage.setItem(ARES_LOCK_KEY, JSON.stringify({ weekNumber, doneDays: [], daysCount }))
+    return weekNumber
+  }
+
+  const markAresDayDone = (day: number) => {
+    try {
+      const raw = localStorage.getItem(ARES_LOCK_KEY)
+      const lock = raw ? JSON.parse(raw) : { weekNumber: getCurrentISOWeek(), doneDays: [], daysCount: 4 }
+      const doneDays: number[] = [...new Set([...(lock.doneDays ?? []), day])]
+      localStorage.setItem(ARES_LOCK_KEY, JSON.stringify({ ...lock, doneDays }))
+    } catch { /* ignore */ }
+  }
+
   // ── Load or generate the day ────────────────────────────────────────────────
 
   const loadDay = useCallback(async () => {
@@ -765,18 +808,8 @@ export default function AresWorkoutPage() {
 
     if (!user) return
 
-    // Canonical week number for Ares: year * 100 + ISO week (e.g. 202614).
-    // Integer so it fits the week_number column. Unique across years.
-    // All users this week share the same 4 WODs regardless of which day they train.
-    const getAresWeekNumber = (): number => {
-      const d = new Date()
-      const dayOfWeek = d.getUTCDay() || 7
-      d.setUTCDate(d.getUTCDate() + 4 - dayOfWeek)
-      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-      const isoWeek = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-      return d.getUTCFullYear() * 100 + isoWeek
-    }
-    const aresWeekNumber = getAresWeekNumber()
+    // Use the user's locked week — won't rotate until all days are done/skipped
+    const aresWeekNumber = getUserLockedWeek(prog.daysCount)
     aresWeekNumberRef.current = aresWeekNumber
     const cacheKey = `ares-wod-w${aresWeekNumber}-d${dayNumber}`
     const cached = localStorage.getItem(cacheKey)
@@ -1027,6 +1060,16 @@ export default function AresWorkoutPage() {
       notes: result.notes || null,
     })
     setSessionComplete(true)
+    markAresDayDone(dayNumber)
+  }
+
+  const handleSkipDay = () => {
+    markAresDayDone(dayNumber)
+    if (dayNumber < (program?.daysCount ?? 4)) {
+      router.push(`/workout/ares/${dayNumber + 1}`)
+    } else {
+      router.push('/dashboard')
+    }
   }
 
   // ── Render states ────────────────────────────────────────────────────────────
@@ -1136,6 +1179,13 @@ export default function AresWorkoutPage() {
           <h1 className="font-display text-xl tracking-[0.1em] uppercase truncate">{day.dayName}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleSkipDay}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors font-medium px-2 py-1"
+            title="Skip this day"
+          >
+            Skip
+          </button>
           <button
             onClick={() => router.push('/workout/ares/leaderboard')}
             className="p-2 border border-border rounded-md text-muted-foreground hover:text-brand transition-colors"
