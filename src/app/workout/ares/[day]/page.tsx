@@ -856,7 +856,7 @@ export default function AresWorkoutPage() {
         .eq('week_number', lastWeekNumber)
         .order('day_number', { ascending: true })
       const previousWeekArchetypes = (lastWeekDays ?? [])
-        .map(r => (r.workout_data as { day?: { archetype?: string } })?.day?.archetype)
+        .map((r: { workout_data: unknown }) => (r.workout_data as { day?: { archetype?: string } })?.day?.archetype)
         .filter(Boolean) as string[]
 
       // 2. Recent metcon results — so AI doesn't repeat same movement combos
@@ -867,7 +867,7 @@ export default function AresWorkoutPage() {
         .eq('log_type', 'metcon')
         .order('created_at', { ascending: false })
         .limit(8)
-      const recentMetconResults = (recentLogs ?? []).map(l => ({
+      const recentMetconResults = (recentLogs ?? []).map((l: { metcon_name?: string | null; metcon_format?: string | null; metcon_result?: string | null; week_number?: number | null; rx?: boolean | null }) => ({
         workoutName: l.metcon_name ?? 'Custom',
         format: l.metcon_format ?? '',
         result: l.metcon_result ?? '',
