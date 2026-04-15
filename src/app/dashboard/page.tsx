@@ -23,7 +23,7 @@ import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 import MorningProtocol from '../../components/MorningProtocol'
 import ProgressRing from '../../components/ProgressRing'
-import { BarbellMark, SectionDivider } from '../../components/BarbellMark'
+import { SectionLabel } from '../../components/BarbellMark'
 
 interface ActiveProgramData {
   slug: string
@@ -322,17 +322,18 @@ export default function Dashboard() {
             }
           </motion.div>
 
-          {/* TODAY'S MISSION — hero forge card */}
+          {/* I. ACTIVE PROTOCOL — hero forge card */}
+          <motion.div variants={fadeUp} custom={-0.1}>
+            <SectionLabel numeral="I" title="Active Protocol" />
+          </motion.div>
           <motion.div variants={fadeUp} custom={0}>
             <div className="forge-card p-6 overflow-hidden">
-              {/* Editorial background numeral */}
+              {/* Editorial background numeral — single depth mark */}
               <span
                 className="absolute -top-3 right-3 font-display leading-none pointer-events-none select-none"
                 style={{ fontSize: '8rem', color: 'rgba(200,130,10,0.05)', letterSpacing: '0.05em' }}
                 aria-hidden="true"
               >01</span>
-              {/* Barbell watermark */}
-              <BarbellMark className="absolute -bottom-2 -left-4 -right-4 w-[108%] pointer-events-none select-none" />
 
               <div className="flex items-start justify-between mb-4 relative z-10">
                 <div>
@@ -426,20 +427,19 @@ export default function Dashboard() {
                 {(activeProgram || workout) && (
                   <button
                     onClick={() => router.push('/build')}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-2.5 text-[10px] text-muted-foreground hover:text-foreground transition-all uppercase tracking-[0.12em] border border-border hover:border-brand/30 font-semibold"
-                    style={{ borderRadius: '6px' }}
+                    className="self-end inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-brand transition-colors uppercase tracking-[0.16em] font-display font-semibold mt-1 py-1"
                   >
-                    <Settings size={11} /> Change Program
+                    Change Program <ChevronRight size={11} strokeWidth={2} />
                   </button>
                 )}
               </div>
             </div>
           </motion.div>
 
-          {/* Section divider */}
-          <SectionDivider className="w-full opacity-80" />
-
-          {/* The Squeeze */}
+          {/* II. THE SQUEEZE */}
+          <motion.div variants={fadeUp} custom={0.4}>
+            <SectionLabel numeral="II" title="The Squeeze" />
+          </motion.div>
           <motion.div variants={fadeUp} custom={0.5}>
             <button
               onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
@@ -464,12 +464,18 @@ export default function Dashboard() {
             </button>
           </motion.div>
 
-          {/* Daily Objectives */}
+          {/* III. DAILY OBJECTIVES */}
+          <motion.div variants={fadeUp} custom={0.9}>
+            <SectionLabel numeral="III" title="Daily Objectives" />
+          </motion.div>
           <motion.div variants={fadeUp} custom={1}>
             <DailyObjectivesCard />
           </motion.div>
 
-          {/* Dad Score */}
+          {/* IV. DAD SCORE */}
+          <motion.div variants={fadeUp} custom={1.9}>
+            <SectionLabel numeral="IV" title="Dad Score" />
+          </motion.div>
           <motion.div variants={fadeUp} custom={2}>
             <DadScore />
           </motion.div>

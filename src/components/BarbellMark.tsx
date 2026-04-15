@@ -94,6 +94,43 @@ export function ForgeDiamond({ className = '' }: { className?: string }) {
 }
 
 /**
+ * SectionLabel — editorial chapter marker for dashboard sections.
+ * Renders: [I] — ACTIVE PROTOCOL ──────────
+ * Pair with cards carrying matching 01/02/03 depth numerals.
+ */
+export function SectionLabel({
+  numeral,
+  title,
+  className = '',
+}: {
+  numeral: string
+  title: string
+  className?: string
+}) {
+  return (
+    <div className={`flex items-center gap-2 px-1 ${className}`}>
+      <span
+        className="text-[11px] font-display tracking-[0.3em] text-brand"
+        style={{ textShadow: '0 0 6px rgba(200,130,10,0.4)' }}
+      >
+        {numeral}
+      </span>
+      <span
+        className="h-px w-3"
+        style={{
+          background:
+            'linear-gradient(90deg, rgba(200,130,10,0.55) 0%, rgba(200,130,10,0.1) 100%)',
+        }}
+      />
+      <span className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground font-display font-semibold">
+        {title}
+      </span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  )
+}
+
+/**
  * SectionDivider — thin hairline with a centered diamond mark.
  * Use between major content sections.
  */
