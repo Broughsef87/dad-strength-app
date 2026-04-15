@@ -448,6 +448,27 @@
   100% { transform: translate(0, 0) scale(1); }
 }
 
+/* ── Forge loader: pulsing disc + rotating arc ───────────────── */
+@keyframes forge-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%      { transform: scale(1.18); opacity: 0.9; }
+}
+@keyframes forge-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.forge-pulse {
+  animation: forge-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.forge-spin {
+  animation: forge-spin 1.4s linear infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .forge-pulse { animation: none; opacity: 0.7; }
+  .forge-spin  { animation: none; }
+}
+
 /* ── Button shimmer sweep ────────────────────────────────────── */
 @keyframes btn-shimmer {
   0%   { transform: translateX(-120%) skewX(-12deg); opacity: 0; }

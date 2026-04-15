@@ -134,7 +134,7 @@ export default function DadScore() {
         className="absolute -top-4 right-2 font-display leading-none pointer-events-none select-none"
         style={{ fontSize: '7rem', color: 'rgba(200,130,10,0.045)', letterSpacing: '0.05em' }}
         aria-hidden="true"
-      >03</span>
+      >04</span>
       {/* Shield watermark */}
       <svg className="absolute -bottom-4 -right-4 w-28 h-28 pointer-events-none select-none" viewBox="0 0 100 100" fill="none" aria-hidden="true" style={{ opacity: 0.04, color: 'hsl(38 90% 50%)' }}>
         <path d="M50 8 L88 22 L88 52 C88 72 68 88 50 95 C32 88 12 72 12 52 L12 22 Z" stroke="currentColor" strokeWidth="5" strokeLinejoin="round" />

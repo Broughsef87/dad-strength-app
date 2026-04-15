@@ -24,6 +24,7 @@ import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 import MorningProtocol from '../../components/MorningProtocol'
 import ProgressRing from '../../components/ProgressRing'
 import { SectionLabel } from '../../components/BarbellMark'
+import ForgeLoader from '../../components/ForgeLoader'
 
 interface ActiveProgramData {
   slug: string
@@ -216,10 +217,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-foreground">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-6 h-6 border border-brand border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em] font-display">Loading</p>
-        </div>
+        <ForgeLoader />
       </div>
     )
   }
@@ -309,7 +307,7 @@ export default function Dashboard() {
         {/* Removed separate date/greeting — now in header */}
 
         <motion.div
-          className="space-y-4"
+          className="space-y-6"
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
@@ -323,10 +321,8 @@ export default function Dashboard() {
           </motion.div>
 
           {/* I. ACTIVE PROTOCOL — hero forge card */}
-          <motion.div variants={fadeUp} custom={-0.1}>
+          <motion.div variants={fadeUp} custom={0} className="space-y-2.5">
             <SectionLabel numeral="I" title="Active Protocol" />
-          </motion.div>
-          <motion.div variants={fadeUp} custom={0}>
             <div className="forge-card p-6 overflow-hidden">
               {/* Editorial background numeral — single depth mark */}
               <span
@@ -355,8 +351,8 @@ export default function Dashboard() {
                   {activeProgram && (
                     <ProgressRing
                       value={Math.round(((activeProgram.currentWeek - 1) / (PROGRAM_TOTAL_WEEKS[activeProgram.slug.split('-')[0]] ?? 12)) * 100)}
-                      size={54}
-                      strokeWidth={4}
+                      size={58}
+                      strokeWidth={6}
                       label={`W${activeProgram.currentWeek}`}
                       sublabel="week"
                     />
@@ -437,19 +433,23 @@ export default function Dashboard() {
           </motion.div>
 
           {/* II. THE SQUEEZE */}
-          <motion.div variants={fadeUp} custom={0.4}>
+          <motion.div variants={fadeUp} custom={0.5} className="space-y-2.5">
             <SectionLabel numeral="II" title="The Squeeze" />
-          </motion.div>
-          <motion.div variants={fadeUp} custom={0.5}>
             <button
               onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
-              className="w-full steel-edge rounded-2xl p-4 flex items-center justify-between group transition-all"
+              className="w-full steel-edge rounded-2xl p-4 flex items-center justify-between group transition-all relative overflow-hidden"
               style={{
                 background: 'linear-gradient(150deg, hsl(220 31% 13%) 0%, hsl(222 21% 8%) 100%)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
               }}
             >
-              <div className="flex items-center gap-3">
+              {/* Editorial depth numeral — matches section label II */}
+              <span
+                className="absolute -top-2 right-3 font-display leading-none pointer-events-none select-none"
+                style={{ fontSize: '4.5rem', color: 'rgba(200,130,10,0.05)', letterSpacing: '0.05em' }}
+                aria-hidden="true"
+              >02</span>
+              <div className="flex items-center gap-3 relative z-10">
                 <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
                   <Zap size={18} className="text-brand" />
                 </div>
@@ -460,23 +460,19 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-brand transition-colors" strokeWidth={1.5} />
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-brand transition-colors relative z-10" strokeWidth={1.5} />
             </button>
           </motion.div>
 
           {/* III. DAILY OBJECTIVES */}
-          <motion.div variants={fadeUp} custom={0.9}>
+          <motion.div variants={fadeUp} custom={1} className="space-y-2.5">
             <SectionLabel numeral="III" title="Daily Objectives" />
-          </motion.div>
-          <motion.div variants={fadeUp} custom={1}>
             <DailyObjectivesCard />
           </motion.div>
 
           {/* IV. DAD SCORE */}
-          <motion.div variants={fadeUp} custom={1.9}>
+          <motion.div variants={fadeUp} custom={2} className="space-y-2.5">
             <SectionLabel numeral="IV" title="Dad Score" />
-          </motion.div>
-          <motion.div variants={fadeUp} custom={2}>
             <DadScore />
           </motion.div>
 

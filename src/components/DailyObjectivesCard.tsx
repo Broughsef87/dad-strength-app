@@ -86,7 +86,7 @@ export default function DailyObjectivesCard() {
         className="absolute -top-4 right-2 font-display leading-none pointer-events-none select-none"
         style={{ fontSize: '7rem', color: 'rgba(200,130,10,0.045)', letterSpacing: '0.05em' }}
         aria-hidden="true"
-      >02</span>
+      >03</span>
       <svg className="absolute -bottom-4 -right-4 w-24 h-24 pointer-events-none select-none" viewBox="0 0 100 100" fill="none" aria-hidden="true" style={{ opacity: 0.04, color: 'hsl(38 90% 50%)' }}>
         <circle cx="50" cy="50" r="44" stroke="currentColor" strokeWidth="5" />
         <circle cx="50" cy="50" r="28" stroke="currentColor" strokeWidth="5" />
