@@ -399,6 +399,10 @@ export default function Dashboard() {
                         const daysCount = activeProgram.daysCount || 4
                         const nextDay = getNextWorkoutDay(daysCount)
                         router.push(`/workout/ares/${nextDay}`)
+                      } else if (activeProgram.slug?.startsWith('zeus')) {
+                        const daysCount = activeProgram.daysCount || 4
+                        const nextDay = getNextWorkoutDay(daysCount)
+                        router.push(`/workout/zeus/${nextDay}`)
                       } else {
                         const daysCount = activeProgram.daysCount || activeProgram.frequency || 3
                         const nextDay = getNextWorkoutDay(daysCount)

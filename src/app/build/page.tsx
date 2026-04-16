@@ -11,7 +11,7 @@ import type { ActiveProgramData } from '../../types/program'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type God = 'adonis' | 'ares' | 'hercules' | 'atlas' | 'chronos'
+type God = 'adonis' | 'ares' | 'hercules' | 'atlas' | 'chronos' | 'zeus'
 
 type Weeks = 4 | 5 | 6
 type GymType = 'commercial' | 'home'
@@ -114,6 +114,27 @@ const GODS = [
     ],
   },
   {
+    id: 'zeus' as God,
+    name: 'Zeus',
+    title: 'King of the Gods',
+    tagline: 'Command Everything.',
+    description: 'Weightlifting. CrossFit gymnastics. Intervals. Bodybuilding accessory work. 12-week structured mesos — built for the accomplished athlete who wants it all.',
+    attributes: ['3–8 Reps', 'Olympic + CrossFit', '12 Weeks'],
+    avatar: '⚡',
+    avatarSrc: '/gods/Zeus.png',
+    color: 'text-blue-400',
+    border: 'border-blue-500/50',
+    bg: 'bg-blue-500/10',
+    glow: 'shadow-blue-500/20',
+    dot: 'bg-blue-400',
+    sampleDays: [
+      { day: 'Day 1', name: 'Squat + Oly + Engine', exercises: ['Back Squat 4×5 (Paused)', 'Hang Power Clean build to heavy', 'T2B skill work 15 min', 'Bike intervals 6×2 min', 'AMRAP 12: Power Cleans + Box Jumps + Cal Row'] },
+      { day: 'Day 2', name: 'Hinge + Pull', exercises: ['Romanian Deadlift 4×6', 'Barbell Row 4×5', 'Push Jerk build to heavy', 'Row intervals 5×3 min', 'Accessories: Face pull, curl, leg curl'] },
+      { day: 'Day 3', name: 'Press + Skill + Metcon', exercises: ['Barbell OHP 4×6', 'Pull-up skill + kipping 20 min', 'Bike intervals 8×45s', 'For Time: 3 rounds — Row 500m + 15 Pull-ups + 10 HSPU'] },
+      { day: 'Day 4', name: 'Engine Day', exercises: ['Row 5×4 min @ 85%', 'Front Squat 3×5', 'Sprint finisher: 10×15s bike', 'Accessories: Carries, core, lateral raises'] },
+    ],
+  },
+  {
     id: 'chronos' as God,
     name: 'Chronos',
     title: 'God of Time',
@@ -151,6 +172,9 @@ const TRAINING_AGE_OPTIONS: { value: TrainingAge; label: string; desc: string }[
 ]
 
 const DAY_NAMES: Record<God, Record<number, string[]>> = {
+  zeus: {
+    4: ['Squat & Oly', 'Hinge & Pull', 'Press & Skill', 'Engine Day'],
+  },
   adonis: {
     3: ['Push', 'Pull', 'Legs'],
     4: ['Chest + Triceps', 'Back + Biceps', 'Shoulders + Arms', 'Legs'],
@@ -304,7 +328,12 @@ export default function BuildPage() {
 
     setActivating(false)
     setDone(true)
-    setTimeout(() => router.push(selectedGod === 'chronos' ? '/workout/squeeze' : '/workout/program/1'), 1200)
+    const destination =
+      selectedGod === 'chronos' ? '/workout/squeeze' :
+      selectedGod === 'ares'    ? '/workout/ares/1' :
+      selectedGod === 'zeus'    ? '/workout/zeus/1' :
+      '/workout/program/1'
+    setTimeout(() => router.push(destination), 1200)
   }
 
   const isChronos = selectedGod === 'chronos'
