@@ -95,6 +95,21 @@ interface MetconResult {
   done: boolean
 }
 
+// ── Log history types ──────────────────────────────────────────────────────────
+
+interface RecentStrengthLog {
+  exercise: string
+  weekNumber: number
+  sets: Array<{ weight: number; reps: number; rir?: number }>
+}
+
+interface RecentMetconLog {
+  name: string
+  format: string
+  result: string
+  weekNumber: number
+}
+
 // ── LocalStorage helpers ───────────────────────────────────────────────────────
 
 const ZEUS_LOCK_KEY = 'zeus-locked-week'
@@ -124,6 +139,90 @@ const markZeusDayDone = (day: number) => {
     const doneDays: number[] = [...new Set([...(lock.doneDays ?? []), day])]
     localStorage.setItem(ZEUS_LOCK_KEY, JSON.stringify({ ...lock, doneDays }))
   } catch { /* ignore */ }
+}
+
+// ── Recent log fetcher ─────────────────────────────────────────────────────────
+// Queries ares_session_logs scoped to Zeus workouts only (via generated_workouts join)
+// so Ares logs never bleed into Zeus progression context.
+
+async function fetchZeusRecentLogs(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  currentWeek: number,
+): Promise<{ recentLogs: RecentStrengthLog[]; recentMetcons: RecentMetconLog[] }> {
+  if (currentWeek <= 1) return { recentLogs: [], recentMetcons: [] }
+
+  const fromWeek = Math.max(1, currentWeek - 4)
+  const toWeek = currentWeek - 1
+
+  // Step 1 — get Zeus generated_workout IDs for the relevant weeks
+  const { data: zeusWorkouts } = await supabase
+    .from('generated_workouts')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('program_slug', 'zeus')
+    .gte('week_number', fromWeek)
+    .lte('week_number', toWeek)
+
+  const zeusIds: string[] = (zeusWorkouts ?? []).map((w: { id: string }) => w.id).filter(Boolean)
+  if (zeusIds.length === 0) return { recentLogs: [], recentMetcons: [] }
+
+  // Step 2 — fetch strength sets scoped to those IDs
+  const { data: strengthRows } = await supabase
+    .from('ares_session_logs')
+    .select('block_name, week_number, weight_lbs, reps, rir_actual, set_number')
+    .eq('user_id', userId)
+    .eq('log_type', 'strength_set')
+    .in('generated_workout_id', zeusIds)
+    .order('week_number', { ascending: false })
+    .order('set_number', { ascending: true })
+
+  // Group by exercise + week
+  const grouped: Record<string, RecentStrengthLog> = {}
+  for (const row of strengthRows ?? []) {
+    if (!row.weight_lbs || !row.reps) continue
+    const key = `${row.block_name}::w${row.week_number}`
+    if (!grouped[key]) {
+      grouped[key] = { exercise: row.block_name, weekNumber: row.week_number, sets: [] }
+    }
+    grouped[key].sets.push({
+      weight: row.weight_lbs,
+      reps: row.reps,
+      rir: row.rir_actual ?? undefined,
+    })
+  }
+  const recentLogs = Object.values(grouped).slice(0, 12)
+
+  // Step 3 — fetch metcon results scoped to those IDs
+  const { data: metconRows } = await supabase
+    .from('ares_session_logs')
+    .select('block_name, week_number, metcon_format, metcon_time_seconds, metcon_rounds, metcon_partial_reps, notes')
+    .eq('user_id', userId)
+    .eq('log_type', 'metcon')
+    .in('generated_workout_id', zeusIds)
+    .order('week_number', { ascending: false })
+
+  const recentMetcons: RecentMetconLog[] = (metconRows ?? []).map((r: {
+    block_name: string
+    week_number: number
+    metcon_format: string | null
+    metcon_time_seconds: number | null
+    metcon_rounds: number | null
+    metcon_partial_reps: number | null
+    notes: string | null
+  }) => ({
+    name: r.block_name,
+    format: r.metcon_format ?? 'unknown',
+    result: r.metcon_time_seconds != null
+      ? `${Math.floor(r.metcon_time_seconds / 60)}:${String(r.metcon_time_seconds % 60).padStart(2, '0')}`
+      : r.metcon_rounds != null
+      ? `${r.metcon_rounds}${r.metcon_partial_reps ? '+' + r.metcon_partial_reps + ' reps' : ''} rounds`
+      : r.notes ?? 'completed',
+    weekNumber: r.week_number,
+  })).slice(0, 8)
+
+  return { recentLogs, recentMetcons }
 }
 
 // ── Timer component ────────────────────────────────────────────────────────────
@@ -890,10 +989,11 @@ export default function ZeusWorkoutPage() {
       } catch { /* fall through to DB check */ }
     }
 
-    // Check generated_workouts table — shared across all users
+    // Check generated_workouts table — scoped to this user (Zeus is a personal program)
     const { data: existing } = await supabase
       .from('generated_workouts')
       .select('id, workout_data')
+      .eq('user_id', user.id)
       .eq('program_slug', 'zeus')
       .eq('week_number', zeusWeekNumber)
       .eq('day_number', dayNumber)
@@ -908,17 +1008,19 @@ export default function ZeusWorkoutPage() {
       return
     }
 
-    // Generate fresh — first user to hit this week+day generates for everyone
+    // Generate fresh — fetch progression context first so the AI can program intelligently
     setGenerating(true)
     try {
+      const { recentLogs, recentMetcons } = await fetchZeusRecentLogs(supabase, user.id, zeusWeekNumber)
+
       const res = await fetch('/api/ai/zeus-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           weekNumber: zeusWeekNumber,
           dayNumber,
-          recentLogs: [],
-          recentMetcons: [],
+          recentLogs,
+          recentMetcons,
         }),
       })
       if (!res.ok) throw new Error('Generation failed')
@@ -945,10 +1047,11 @@ export default function ZeusWorkoutPage() {
         generatedWorkoutIdRef.current = saved.id
         localStorage.setItem(cacheKey, JSON.stringify({ day: generated, generatedWorkoutId: saved.id }))
       } else if ((insertError as { code?: string } | null)?.code === '23505') {
-        // Another user beat us — fetch canonical version
+        // Duplicate insert — fetch existing row for this user
         const { data: canonical } = await supabase
           .from('generated_workouts')
           .select('id, workout_data')
+          .eq('user_id', user.id)
           .eq('program_slug', 'zeus')
           .eq('week_number', zeusWeekNumber)
           .eq('day_number', dayNumber)
