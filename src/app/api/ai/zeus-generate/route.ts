@@ -294,10 +294,17 @@ Three valid flavors — rotate across weeks for variety:
       → Total blocks: 5.
 
   (c) DISTANCE / ENGINE — steady-state monostructural (format: steady_state).
-      20-30 min continuous @ Z2-Z3 aerobic pace. Row, Bike, or Run (Meso 2+).
+      A specific distance OR time target at Z2-Z3 aerobic pace. Row, Bike,
+      or Run (Meso 2+). Range: anywhere from a 1-mile run (~6-10 min) up to
+      a 30-min tempo piece. Short distance pieces are fully valid — this
+      is NOT required to be a long slog.
       → Set metcon to null. Add ONE conditioning block as the last block with
-        intervalScheme describing the piece (e.g. "5k row @ 2:05/500m" or
-        "25 min Zone 2 bike — RPE 5-6").
+        intervalScheme describing the piece. Examples:
+          "1 mile run — steady, under 9:00"
+          "2k row @ 2:00/500m"
+          "3 mile run — Z2 pace, nasal breathing"
+          "5k row @ 2:05/500m"
+          "25 min Zone 2 bike — RPE 5-6"
       → Total blocks: 5.
 
 VARIETY MANDATE: Use recentMetcons history. If last week Day 1 was a metcon,
