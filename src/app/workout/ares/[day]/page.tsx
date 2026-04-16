@@ -896,6 +896,19 @@ export default function AresWorkoutPage() {
         weekNumber: sets[0]?.weekNumber ?? 0,
       }))
 
+      // Olympic 1RMs from onboarding (Snatch, C&J) — seeds Olympic session loading
+      let olympicLifts1RMs: Record<string, number> | undefined
+      try {
+        const raw = localStorage.getItem('dad-strength-one-rep-maxes')
+        if (raw) {
+          const all = JSON.parse(raw) as Record<string, number>
+          const oly: Record<string, number> = {}
+          if (typeof all.snatch === 'number' && all.snatch > 0) oly.snatch = all.snatch
+          if (typeof all.cleanJerk === 'number' && all.cleanJerk > 0) oly.cleanJerk = all.cleanJerk
+          if (Object.keys(oly).length) olympicLifts1RMs = oly
+        }
+      } catch { /* ignore */ }
+
       const res = await fetch('/api/ai/ares-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -906,6 +919,7 @@ export default function AresWorkoutPage() {
             primaryGoal: prog.primaryGoal,
           },
           previousWeekArchetypes,
+          olympicLifts1RMs,
           recentMetconResults,
           recentStrengthLogs,
         }),

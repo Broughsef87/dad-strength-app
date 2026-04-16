@@ -96,6 +96,7 @@ export async function POST(request: Request) {
       dayNumber,
       recentLogs,
       recentMetcons,
+      olympicLifts1RMs,
     } = await request.json() as {
       weekNumber: number
       dayNumber: number
@@ -110,6 +111,7 @@ export async function POST(request: Request) {
         result: string
         weekNumber: number
       }>
+      olympicLifts1RMs?: Record<string, number>
     }
 
     if (!weekNumber || weekNumber < 1 || weekNumber > 12) {
@@ -138,11 +140,20 @@ export async function POST(request: Request) {
         ).join('\n')}`
       : 'METCON HISTORY: None yet.'
 
+    const olympicContext = olympicLifts1RMs && Object.keys(olympicLifts1RMs).length
+      ? `OLYMPIC LIFT 1RMs (from calibration):\n${Object.entries(olympicLifts1RMs).map(([k, v]) => {
+          const label = k === 'snatch' ? 'Snatch' : k === 'cleanJerk' ? 'Clean & Jerk' : k
+          return `  ${label}: ${v} lbs`
+        }).join('\n')}\nUse these to calibrate Olympic session intensity — reference %1RM in coachCue where appropriate (e.g. "build to ~85%" ≈ lbs).`
+      : 'OLYMPIC 1RMs: Not provided — start Olympic work conservatively and build by feel.'
+
     const prompt = `
 ZEUS PROGRAM — GENERATE SINGLE DAY
 Week: ${weekNumber} of 12
 Meso: ${mesoNumber} (week ${weekInMeso} of 4 in meso)
 Day: ${dayNumber} of 4
+
+${olympicContext}
 
 ${strengthContext}
 

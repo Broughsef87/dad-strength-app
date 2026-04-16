@@ -198,13 +198,31 @@ const DAY_NAMES: Record<God, Record<number, string[]>> = {
   },
 }
 
-const CALIBRATION_LIFTS = [
-  { key: 'bench',    label: 'Bench Press',    hint: 'Heaviest set of 5 clean reps' },
-  { key: 'squat',    label: 'Back Squat',     hint: 'Heaviest set of 5 clean reps' },
-  { key: 'deadlift', label: 'Deadlift',       hint: 'Heaviest set of 5 clean reps' },
-  { key: 'ohp',      label: 'Overhead Press', hint: 'Heaviest set of 5 clean reps' },
-  { key: 'row',      label: 'Barbell Row',    hint: 'Heaviest set of 5 clean reps' },
+type CalibrationLift = {
+  key: string
+  label: string
+  repMax: 1 | 5
+}
+
+const BASE_CALIBRATION_LIFTS: CalibrationLift[] = [
+  { key: 'bench',    label: 'Bench Press',    repMax: 5 },
+  { key: 'squat',    label: 'Back Squat',     repMax: 5 },
+  { key: 'deadlift', label: 'Deadlift',       repMax: 5 },
+  { key: 'ohp',      label: 'Overhead Press', repMax: 5 },
+  { key: 'row',      label: 'Barbell Row',    repMax: 5 },
 ]
+
+const OLYMPIC_CALIBRATION_LIFTS: CalibrationLift[] = [
+  { key: 'snatch',    label: 'Snatch',       repMax: 1 },
+  { key: 'cleanJerk', label: 'Clean & Jerk', repMax: 1 },
+]
+
+function getCalibrationLifts(god: God | null): CalibrationLift[] {
+  if (god === 'ares' || god === 'zeus') {
+    return [...BASE_CALIBRATION_LIFTS, ...OLYMPIC_CALIBRATION_LIFTS]
+  }
+  return BASE_CALIBRATION_LIFTS
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -224,7 +242,10 @@ export default function BuildPage() {
 
   const [weeks, setWeeks] = useState<Weeks>(6)
   const [gymType, setGymType] = useState<GymType>('commercial')
-  const [weights, setWeights] = useState({ bench: '', squat: '', deadlift: '', ohp: '', row: '' })
+  const [weights, setWeights] = useState<Record<string, string>>({
+    bench: '', squat: '', deadlift: '', ohp: '', row: '',
+    snatch: '', cleanJerk: '',
+  })
   const [activating, setActivating] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -266,11 +287,15 @@ export default function BuildPage() {
     const slug = selectedGod === 'chronos' ? 'chronos-4' : `${selectedGod}-4`
     const startMonday = getNextMonday()
 
-    // Convert 5RMs → 1RMs (Epley: 5RM × 1.167)
+    // Convert 5RMs → 1RMs (Epley: 5RM × 1.167). True 1RMs (Snatch, C&J) pass through unchanged.
     const oneRepMaxes: Record<string, number> = {}
-    for (const [key, val] of Object.entries(weights)) {
-      const num = parseFloat(val) || 0
-      if (num > 0) oneRepMaxes[key] = Math.round((num * 1.167) / 2.5) * 2.5
+    const activeLifts = getCalibrationLifts(selectedGod)
+    for (const lift of activeLifts) {
+      const num = parseFloat(weights[lift.key] ?? '') || 0
+      if (num > 0) {
+        const converted = lift.repMax === 1 ? num : num * 1.167
+        oneRepMaxes[lift.key] = Math.round(converted / 2.5) * 2.5
+      }
     }
 
     const godMeta = GODS.find(g => g.id === selectedGod)!
@@ -337,7 +362,8 @@ export default function BuildPage() {
   }
 
   const isChronos = selectedGod === 'chronos'
-  const allWeightsFilled = isChronos || CALIBRATION_LIFTS.every(l => parseFloat(weights[l.key as keyof typeof weights]) > 0)
+  const activeCalibrationLifts = isChronos ? [] : getCalibrationLifts(selectedGod)
+  const allWeightsFilled = isChronos || activeCalibrationLifts.every(l => parseFloat(weights[l.key] ?? '') > 0)
   const godMeta = selectedGod ? GODS.find(g => g.id === selectedGod)! : null
   const TOTAL_STEPS = 3
 
@@ -655,9 +681,21 @@ export default function BuildPage() {
                   {isChronos ? 'Launch' : 'Calibrate'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {isChronos
-                    ? 'No calibration needed — Chronos sessions work with any equipment. Just launch.'
-                    : 'Your 5RM — heaviest weight you can lift for 5 clean reps. The AI uses these to calculate your starting weights.'}
+                  {isChronos ? (
+                    'No calibration needed — Chronos sessions work with any equipment. Just launch.'
+                  ) : selectedGod === 'ares' || selectedGod === 'zeus' ? (
+                    <>
+                      Your <span className="font-black text-yellow-400">5RM</span> for the main lifts, plus a{' '}
+                      <span className="font-black text-yellow-400">true 1RM</span> on Snatch and Clean &amp; Jerk.
+                      The AI uses these to anchor your starting weights.
+                    </>
+                  ) : (
+                    <>
+                      Your <span className="font-black text-yellow-400">5RM</span> — heaviest weight you can lift for{' '}
+                      <span className="font-black text-yellow-400">5 clean reps</span>. The AI uses these to calculate
+                      your starting weights.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -735,18 +773,23 @@ export default function BuildPage() {
               {/* Calibration inputs — hidden for Chronos */}
               {!isChronos && (
                 <div className="ds-card divide-y divide-border overflow-hidden">
-                  {CALIBRATION_LIFTS.map((lift) => (
+                  {activeCalibrationLifts.map((lift) => (
                     <div key={lift.key} className="flex items-center gap-4 px-4 py-3">
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground">{lift.label}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">{lift.hint}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          Heaviest set of{' '}
+                          <span className="font-black text-yellow-400">{lift.repMax}</span>
+                          {' '}clean rep{lift.repMax > 1 ? 's' : ''}
+                          {lift.repMax === 1 ? ' — true 1RM' : ''}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <input
                           type="number"
                           inputMode="numeric"
                           placeholder="0"
-                          value={weights[lift.key as keyof typeof weights]}
+                          value={weights[lift.key] ?? ''}
                           onChange={e => setWeights(prev => ({ ...prev, [lift.key]: e.target.value }))}
                           className="w-16 text-right bg-surface-3 border border-border rounded-lg px-2 py-1.5 text-sm font-mono text-foreground focus:outline-none focus:border-brand transition-colors"
                         />
@@ -793,7 +836,7 @@ export default function BuildPage() {
 
               {!allWeightsFilled && !activating && !isChronos && (
                 <p className="text-center text-[11px] text-muted-foreground">
-                  Fill in all 5 lifts to continue
+                  Fill in all {activeCalibrationLifts.length} lifts to continue
                 </p>
               )}
             </motion.div>
