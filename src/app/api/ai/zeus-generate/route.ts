@@ -242,13 +242,16 @@ The variation IS the programming tool.
 DAY TEMPLATES — STRICT
 ═══════════════════════════════════════════
 
-Day 1 — Squat + Oly + Gymnastics + Accessory + Conditioning + METCON:
+SESSION BUDGET: 75-90 minutes INCLUDING warmup. Do NOT stack both a full
+conditioning block AND a metcon on the same day — pick ONE finisher flavor.
+Two hours is too long. Respect the clock.
+
+Day 1 — Squat + Oly + Gymnastics + Accessory + FINISHER:
   Block 1 (strength_a): Back Squat family — sets/reps with variation
   Block 2 (olympic): Oly lift (Meso-appropriate) — build to heavy or complex
   Block 3 (gymnastics): T2B / gymnastics skill — timed skill practice with scaling
   Block 4 (accessory): Posterior/quad support — accessory circuit (GHD, leg curl, hip thrust, etc.)
-  Block 5 (conditioning): Intervals or short sprint — Row or Bike
-  METCON: Yes — short to medium (8-18 min). May include Oly movements, gymnastics, or mono.
+  FINISHER: ONE of — see FINISHER RULES below.
 
 Day 2 — Hinge + Pull + Oly + Accessory + Conditioning (NO METCON):
   Block 1 (strength_a): Hinge — Romanian Deadlift, Deadlift, Good Morning, etc.
@@ -258,12 +261,11 @@ Day 2 — Hinge + Pull + Oly + Accessory + Conditioning (NO METCON):
   Block 5 (conditioning): Intervals — Row or Bike, 3-5 sets, moderate duration
   METCON: null
 
-Day 3 — Push/Upper + Gymnastics Volume + Accessory + Conditioning + METCON:
+Day 3 — Push/Upper + Gymnastics Volume + Accessory + FINISHER:
   Block 1 (strength_a): Push/Upper — OHP, DB Bench, Incline Press, Dips
   Block 2 (gymnastics): Gymnastics volume — pull-up progressions, HSPU skill, T2B volume
   Block 3 (accessory): Shoulder/tri/chest — accessory circuit
-  Block 4 (conditioning): Intervals — Run (Meso 2+) or Bike/Row
-  METCON: Yes — short to medium (8-18 min). Complement the upper session.
+  FINISHER: ONE of — see FINISHER RULES below.
 
 Day 4 — Engine + Mixed Strength + Accessory + Sprints (NO METCON):
   Block 1 (conditioning): Engine piece — longer intervals or tempo effort (Row, Bike, Run combo)
@@ -272,6 +274,36 @@ Day 4 — Engine + Mixed Strength + Accessory + Sprints (NO METCON):
   Block 4 (conditioning): Sprint finish — short high-intensity intervals, 6-10 sets
   METCON: null
   Note: Day 4 has NO Olympic lift. It is pure engine and accessory.
+
+═══════════════════════════════════════════
+FINISHER RULES (Days 1 and 3 only)
+═══════════════════════════════════════════
+
+After the strength/skill/accessory work, pick EXACTLY ONE finisher flavor.
+NEVER stack a conditioning block AND a metcon on the same day.
+
+Three valid flavors — rotate across weeks for variety:
+
+  (a) METCON — short to medium (8-18 min). AMRAP, For Time, or EMOM.
+      → Populate the metcon field. Do NOT add a conditioning block.
+      → Total blocks: 4 (strength_a, olympic/gymnastics, gymnastics/accessory, accessory).
+
+  (b) INTERVALS — structured conditioning (format: intervals).
+      6-10 × 30s-2 min @ 85-95% / full rest, or 4-6 × 3-5 min @ 80-85% / 2-3 min rest.
+      → Set metcon to null. Add ONE conditioning block as the last block.
+      → Total blocks: 5.
+
+  (c) DISTANCE / ENGINE — steady-state monostructural (format: steady_state).
+      20-30 min continuous @ Z2-Z3 aerobic pace. Row, Bike, or Run (Meso 2+).
+      → Set metcon to null. Add ONE conditioning block as the last block with
+        intervalScheme describing the piece (e.g. "5k row @ 2:05/500m" or
+        "25 min Zone 2 bike — RPE 5-6").
+      → Total blocks: 5.
+
+VARIETY MANDATE: Use recentMetcons history. If last week Day 1 was a metcon,
+this week Day 1 should lean intervals or distance. Aim for roughly 1:1:1
+split across a 4-week meso for each of Day 1 and Day 3. Do not default to
+metcon every week — the athlete gets bored and overcooked.
 
 ═══════════════════════════════════════════
 ACCESSORY DESIGN
@@ -304,10 +336,12 @@ Machines by meso:
 Always include: machine field, intervalScheme (e.g. "6×3 min / 2 min rest"), effortCue.
 
 ═══════════════════════════════════════════
-METCON DESIGN (Days 1 and 3 only)
+METCON DESIGN (Days 1 and 3 only, when chosen as the finisher)
 ═══════════════════════════════════════════
 
-Only on Days 1 and 3. Set metcon to null for Days 2 and 4.
+Metcons are ONE of three finisher options on Days 1 and 3.
+Set metcon to null on Days 2 and 4 — ALWAYS.
+Set metcon to null on Days 1/3 when the finisher is intervals or distance.
 
 Time domain: short to medium (8-18 min preferred for Zeus — not long slogs).
 Formats: AMRAP, For Time, EMOM.
@@ -348,7 +382,9 @@ OUTPUT RULES
 - sessionIntent: one sentence — what this day trains and why it fits this position in the week
 - coachNote: 2-3 sentences — reference logs if available, give honest direction, no fluff
 - blocks: follow the day template exactly. Do not add extra blocks or skip required blocks.
-- metcon: null for Days 2 and 4. Required (non-null) for Days 1 and 3.
+- metcon: null for Days 2 and 4. On Days 1 and 3, metcon is EITHER populated (metcon finisher)
+  OR null (intervals/distance finisher — in which case the last block is a conditioning block).
+  NEVER both a metcon AND a conditioning finisher block on the same day.
 - All gymnastics blocks MUST include scaledOption — Zeus is rusty, scale conservatively.
 - Olympic blocks use format: build_to_max. Include climbScheme and timeCapMinutes.
 - Conditioning blocks use format: intervals or steady_state. Include intervalScheme, machine, effortCue.

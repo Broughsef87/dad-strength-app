@@ -588,8 +588,7 @@ function ConditioningBlock({ block, onLog }: {
         <div>
           <p className="font-medium text-sm text-foreground">{block.name}</p>
           <p className="text-xs text-muted-foreground">
-            {block.machine && `${block.machine} · `}
-            {block.intervalScheme ?? block.format}
+            {block.machine || (block.format === 'steady_state' ? 'Distance piece' : 'Interval work')}
           </p>
         </div>
         {logged && <CheckCircle2 size={15} className="text-blue-400 ml-auto" />}
@@ -597,7 +596,9 @@ function ConditioningBlock({ block, onLog }: {
 
       {block.intervalScheme && (
         <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-green-400 mb-1">Interval Scheme</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-green-400 mb-1">
+            {block.format === 'steady_state' ? 'Pace / Distance' : 'Interval Scheme'}
+          </p>
           <p className="text-xs text-foreground/80">{block.intervalScheme}</p>
         </div>
       )}
