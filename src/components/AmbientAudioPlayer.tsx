@@ -131,15 +131,16 @@ export default function AmbientAudioPlayer() {
     handleRef.current = null
   }
 
-  const startTrack = (trackId: string, vol: number) => {
+  const startTrack = async (trackId: string, vol: number) => {
     stopCurrent()
     if (trackId === 'silence') return
     if (!ctxRef.current || ctxRef.current.state === 'closed') {
       ctxRef.current = new AudioContext()
     }
     const ctx = ctxRef.current
-    // Resume suspended context (browser autoplay policy)
-    if (ctx.state === 'suspended') ctx.resume()
+    // Must await resume — browsers suspend AudioContext until user gesture
+    // resolves. Calling source.start() before this silently does nothing.
+    if (ctx.state === 'suspended') await ctx.resume()
     if (trackId === 'rain')       handleRef.current = makeBrownNoise(ctx, vol)
     if (trackId === 'forest')     handleRef.current = makePinkNoise(ctx, vol)
     if (trackId === 'whitenoise') handleRef.current = makeWhiteNoise(ctx, vol)
@@ -163,7 +164,7 @@ export default function AmbientAudioPlayer() {
       stopCurrent()
       setIsPlaying(false)
     } else {
-      startTrack(activeTrack, volume)
+      void startTrack(activeTrack, volume)
       setIsPlaying(true)
     }
   }
