@@ -711,8 +711,12 @@ export default function BuildPage() {
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Days</p>
                   </div>
                   <div>
-                    <p className={`font-display text-xl tracking-widest ${godMeta?.color}`}>{weeks}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Weeks</p>
+                    <p className={`font-display text-xl tracking-widest ${godMeta?.color}`}>
+                      {selectedGod === 'zeus' ? '12' : selectedGod === 'ares' ? '∞' : weeks}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      {selectedGod === 'ares' ? 'Rolling' : 'Weeks'}
+                    </p>
                   </div>
                 </div>
                 {focusGroups.length > 0 && (
@@ -748,27 +752,43 @@ export default function BuildPage() {
                 </div>
               </div>
 
-              {/* Weeks */}
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
-                  Program Length
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {([4, 5, 6] as Weeks[]).map((w) => (
-                    <button
-                      key={w}
-                      onClick={() => setWeeks(w)}
-                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
-                        weeks === w
-                          ? `${godMeta?.border} ${godMeta?.bg} ${godMeta?.color}`
-                          : 'border-border bg-surface-3 text-muted-foreground'
-                      }`}
-                    >
-                      {w} Weeks
-                    </button>
-                  ))}
+              {/* Weeks — only for custom program gods; Ares/Zeus/Chronos have fixed structure */}
+              {selectedGod !== 'ares' && selectedGod !== 'zeus' && !isChronos && (
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
+                    Program Length
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([4, 5, 6] as Weeks[]).map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => setWeeks(w)}
+                        className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
+                          weeks === w
+                            ? `${godMeta?.border} ${godMeta?.bg} ${godMeta?.color}`
+                            : 'border-border bg-surface-3 text-muted-foreground'
+                        }`}
+                      >
+                        {w} Weeks
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Structure note for fixed-length gods */}
+              {selectedGod === 'ares' && (
+                <div className="rounded-xl border border-border/60 bg-surface-3/40 px-4 py-3 text-[11px] text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">Ares runs on rolling monthly themes.</span>{' '}
+                  No deloads, no end date — hop on, hop off. Each month biases toward a different focus (posterior chain, snatch, engine, etc).
+                </div>
+              )}
+              {selectedGod === 'zeus' && (
+                <div className="rounded-xl border border-border/60 bg-surface-3/40 px-4 py-3 text-[11px] text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">Zeus is a fixed 12-week mesocycle.</span>{' '}
+                  Three 4-week mesos: Foundation → Shift → Accumulation. Sequential — week 1 through 12, no deloads.
+                </div>
+              )}
 
               {/* Calibration inputs — hidden for Chronos */}
               {!isChronos && (
