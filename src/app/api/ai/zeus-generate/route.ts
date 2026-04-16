@@ -169,6 +169,7 @@ Zeus is an accomplished weightlifter — this is his primary strength and identi
   → T2B: start with hanging knee raises → tuck → partial T2B → full T2B. Do not assume he can string them.
   → HSPU: start with pike push-ups or box pike → deficit only later in Meso 3
   → Muscle-ups: bar progressions only in Meso 3, and only if T2B/pull-ups are solid
+  → Double unders: just got a speed rope, rebuilding from scratch. Start with singles → DU attempts (sets of 5-10) → short linked sets → longer unbroken sets. Treat them like any other skill — dedicated practice time, not just thrown into metcons until consistent.
 - Building cardio engine: intervals and sprints preferred over long slow cardio
   → Short/medium intervals (2-8 min efforts) with structured rest are better than 30+ min steady state
   → Row and Bike are primary machines in Meso 1; Run added in Meso 2+
@@ -189,6 +190,7 @@ MESO 1 (Weeks 1-4) — Foundation:
   Primary Strength B: Barbell Row (horizontal pull)
   Olympic: Hang Power Clean + Push Jerk (2 of 4 days)
   Skill: T2B progression (broken sets building volume — start with knee raises if needed)
+         Double under intro: singles → attempts in sets of 5-10, Day 3 skill warm-up
   Engine: Row + Bike intervals
 
 MESO 2 (Weeks 5-8) — Shift:
@@ -196,6 +198,7 @@ MESO 2 (Weeks 5-8) — Shift:
   Primary Strength B: Strict Press (pressing)
   Olympic: Power Snatch + Clean complex (2 of 4 days)
   Skill: Strict pull-up volume → kipping intro + HSPU intro (pike push-ups)
+         Double unders: linked sets building (10s → 20s → 30s unbroken), can now appear in metcons
   Engine: Run intervals + Row
 
 MESO 3 (Weeks 9-12) — Accumulation:
@@ -203,6 +206,7 @@ MESO 3 (Weeks 9-12) — Accumulation:
   Primary Strength B: Weighted Pull-up
   Olympic: Full lifts + complexes (squat clean, squat snatch)
   Skill: T2B unbroken sets + HSPU volume + Bar muscle-up progressions
+         Double unders: longer unbroken sets (50+), feature regularly in metcons
   Engine: Mixed modal intervals (Row/Bike/Run combos)
 
 ═══════════════════════════════════════════
@@ -297,14 +301,15 @@ Only on Days 1 and 3. Set metcon to null for Days 2 and 4.
 Time domain: short to medium (8-18 min preferred for Zeus — not long slogs).
 Formats: AMRAP, For Time, EMOM.
 Movement selection: complement the day, do not duplicate heavy loading just done.
-  - Day 1 metcon: can include Oly movements at lighter weight, T2B, mono, box jumps
-  - Day 3 metcon: pull-up variations, push-ups, mono, DB work — no heavy barbell pressing
+  - Day 1 metcon: can include Oly movements at lighter weight, T2B, mono, box jumps, DUs (Meso 2+)
+  - Day 3 metcon: pull-up variations, push-ups, mono, DB work, DUs (Meso 2+) — no heavy barbell pressing
 
 Gymnastics scaling — Zeus is rusty, always provide scaledOption:
   - Pull-ups: → Ring rows or banded pull-ups
   - T2B: → Hanging knee raise or ab mat sit-ups
   - HSPU: → Pike push-up or DB push press
   - Bar/ring muscle-up: → Chest-to-bar pull-up or jumping muscle-up
+  - Double unders: → Singles (3:1 ratio) in Meso 1; short linked sets in Meso 2; only longer sets in Meso 3
 
 Write description exactly as a whiteboard:
   "AMRAP 12\\n5 Power Cleans (185/135 lb)\\n10 Box Jumps (24\\" box)\\n15 Cal Row"
