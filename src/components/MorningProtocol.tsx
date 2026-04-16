@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame, Heart, Star, Moon, CloudDrizzle, Skull, Zap, Coffee, Wind } from 'lucide-react'
+import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame, Heart, Star, Moon, CloudDrizzle, Skull, Zap, Coffee, Wind, Target, ArrowRight } from 'lucide-react'
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
+import { createClient } from '../utils/supabase/client'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -21,17 +22,19 @@ const ENERGY_LEVELS = [
 ]
 
 const PILLAR_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  'Prayer':    Flame,
-  'Meditation':Sun,
-  'Reading':   BookOpen,
-  'Gratitude': Heart,
+  'Prayer':          Flame,
+  'Meditation':      Sun,
+  'Reading':         BookOpen,
+  'Gratitude':       Heart,
+  'Goals & Journal': Target,
 }
 
 const PILLAR_COLORS: Record<string, string> = {
-  'Prayer':    'text-brand bg-brand/10 border-brand/20',
-  'Meditation':'text-foreground bg-muted border-border',
-  'Reading':   'text-foreground bg-muted border-border',
-  'Gratitude': 'text-green-500 bg-green-500/10 border-green-500/20',
+  'Prayer':          'text-brand bg-brand/10 border-brand/20',
+  'Meditation':      'text-foreground bg-muted border-border',
+  'Reading':         'text-foreground bg-muted border-border',
+  'Gratitude':       'text-green-500 bg-green-500/10 border-green-500/20',
+  'Goals & Journal': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
 }
 
 type Step = {
@@ -64,6 +67,34 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   const [configured, setConfigured] = useState(false)
   // Gratitude entries: 3 text inputs
   const [gratitude, setGratitude] = useState(['', '', ''])
+
+  // Goals & Journal — synced to Mind tab storage
+  const [mindObjectives, setMindObjectives] = useState(['', '', ''])
+  const [mindJournal, setMindJournal] = useState('')
+  const [mindSaved, setMindSaved] = useState(false)
+
+  const saveMindState = async () => {
+    const supabase = createClient()
+    const today = new Date().toISOString().split('T')[0]
+    const state = {
+      date: new Date().toLocaleDateString(),
+      objectives: mindObjectives,
+      completedObjectives: [false, false, false],
+      lockedIn: true,
+      journal: mindJournal,
+    }
+    // Write to localStorage so DailyObjectivesCard picks it up instantly
+    localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
+    // Persist to DB
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.from('daily_checkins').upsert(
+        { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,date' }
+      )
+    }
+    setMindSaved(true)
+  }
 
   useEffect(() => {
     try {
@@ -344,6 +375,73 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                         </div>
                       ))}
                     </div>
+
+                  ) : step.pillar === 'Goals & Journal' ? (
+                    /* Goals & Journal — inline objectives + journal that sync to Mind tab */
+                    <div className="space-y-4">
+                      {/* Daily Objectives */}
+                      <div className="space-y-2">
+                        <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">Today&apos;s objectives</p>
+                        {[0, 1, 2].map(j => (
+                          <div key={j} className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground font-mono w-5 shrink-0">0{j + 1}</span>
+                            <input
+                              type="text"
+                              value={mindObjectives[j]}
+                              onChange={e => {
+                                const next = [...mindObjectives]
+                                next[j] = e.target.value
+                                setMindObjectives(next)
+                                setMindSaved(false)
+                              }}
+                              placeholder={
+                                j === 0 ? 'Primary objective for today...' :
+                                j === 1 ? 'Secondary focus...' :
+                                'One more thing...'
+                              }
+                              className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-blue-500/40 transition-colors"
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Journal */}
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">Journal</p>
+                        <textarea
+                          value={mindJournal}
+                          onChange={e => { setMindJournal(e.target.value); setMindSaved(false) }}
+                          placeholder="What's on your mind? Capture the signal, ignore the noise..."
+                          rows={4}
+                          className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-blue-500/40 transition-colors resize-none"
+                        />
+                      </div>
+
+                      {/* Save button */}
+                      {!mindSaved ? (
+                        <button
+                          onClick={saveMindState}
+                          disabled={!mindObjectives.some(o => o.trim())}
+                          className="w-full flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-400 font-medium py-2.5 rounded-lg text-xs uppercase tracking-[0.12em] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Target size={12} /> Save to Mind Tab
+                        </button>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-blue-400 text-xs font-medium">
+                            <CheckCircle2 size={13} />
+                            Saved to Mind tab
+                          </div>
+                          <a
+                            href="/mind"
+                            className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                          >
+                            View <ArrowRight size={11} />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
                   ) : (
                     <div className={`rounded-lg px-4 py-3 border ${colors}`}>
                       <p className="text-[10px] uppercase tracking-[0.1em] font-medium mb-1 opacity-70">Focus Prompt</p>
