@@ -242,35 +242,53 @@ The variation IS the programming tool.
 DAY TEMPLATES — STRICT
 ═══════════════════════════════════════════
 
-SESSION BUDGET: 75-90 minutes INCLUDING warmup. Do NOT stack both a full
+SESSION BUDGET: 60-75 minutes INCLUDING warmup. Do NOT stack both a full
 conditioning block AND a metcon on the same day — pick ONE finisher flavor.
 Two hours is too long. Respect the clock.
 
-Day 1 — Squat + Oly + Gymnastics + Accessory + FINISHER:
+PROGRAMMING PHILOSOPHY — CRITICAL:
+The athlete is intermediate, not a competitive CrossFit athlete. Do NOT ask
+for technique precision on a fried nervous system. One skill/technique focus
+per day is the ceiling. Heavy barbell days don't also get gymnastics skill
+work — that's what Day 3 is for.
+
+Day 1 — Squat + Oly (Barbell CNS Day):
   Block 1 (strength_a): Back Squat family — sets/reps with variation
   Block 2 (olympic): Oly lift (Meso-appropriate) — build to heavy or complex
-  Block 3 (gymnastics): T2B / gymnastics skill — timed skill practice with scaling
-  Block 4 (accessory): Posterior/quad support — accessory circuit (GHD, leg curl, hip thrust, etc.)
+  Block 3 (accessory): Lower body / posterior chain accessory work
   FINISHER: ONE of — see FINISHER RULES below.
+  NO gymnastics block on Day 1. Gymnastics skill work belongs on Day 3 when
+  the athlete is fresh enough to train it with precision.
 
-Day 2 — Hinge + Pull + Oly + Accessory + Conditioning (NO METCON):
+Day 2 — Hinge + Pull + Oly (NO METCON):
   Block 1 (strength_a): Hinge — Romanian Deadlift, Deadlift, Good Morning, etc.
   Block 2 (strength_b): Horizontal pull — Barbell Row or DB Row (Meso 1), Strict Press (Meso 2), Weighted Pull-up (Meso 3)
   Block 3 (olympic): Oly lift — build to heavy or complex
-  Block 4 (accessory): Back/bicep/rear delt — accessory circuit
+  Block 4 (accessory): Back/bicep/rear delt accessory work
   Block 5 (conditioning): Intervals — Row or Bike, 3-5 sets, moderate duration
   METCON: null
 
-Day 3 — Push/Upper + Gymnastics Volume + Accessory + FINISHER:
-  Block 1 (strength_a): Push/Upper — OHP, DB Bench, Incline Press, Dips
-  Block 2 (gymnastics): Gymnastics volume — pull-up progressions, HSPU skill, T2B volume
-  Block 3 (accessory): Shoulder/tri/chest — accessory circuit
+Day 3 — Gymnastics Focus Day:
+  Block 1 (gymnastics): Skill work DONE FRESH — T2B / HSPU / pull-up progression.
+    This is the centerpiece of the day. 10-12 min, not buried after heavy work.
+  Block 2 (strength_a): Supporting strength A — a movement that DIRECTLY
+    contributes to the gymnastics skill just practiced. Examples:
+      For T2B: Hanging leg raise progression (weighted), Strict hollow holds,
+               Weighted plank, Lat pulldown heavy
+      For HSPU: Strict DB Press, Z-Press, Pin Press, Overhead hold
+      For Pull-up / MU: Weighted chin-up, Heavy Row, Scap work
+  Block 3 (strength_b): Supporting strength B — second movement that also
+    reinforces the skill pattern. Do NOT repeat Block 2's movement family.
+    (If Block 2 was overhead pressing, Block 3 could be dip or tricep work.
+     If Block 2 was heavy row, Block 3 could be OHP.)
   FINISHER: ONE of — see FINISHER RULES below.
+  NO separate accessory block — the supporting strength blocks absorb that role.
+  Keep Day 3 lean: skill + 2 strength + finisher. That's the whole day.
 
-Day 4 — Engine + Mixed Strength + Accessory + Sprints (NO METCON):
+Day 4 — Engine (NO METCON):
   Block 1 (conditioning): Engine piece — longer intervals or tempo effort (Row, Bike, Run combo)
   Block 2 (strength_a): Mixed strength — any compound that fits what's lagging
-  Block 3 (accessory): Whatever muscle group is lagging — accessory circuit
+  Block 3 (accessory): Whatever muscle group is lagging — accessory work
   Block 4 (conditioning): Sprint finish — short high-intensity intervals, 6-10 sets
   METCON: null
   Note: Day 4 has NO Olympic lift. It is pure engine and accessory.
@@ -316,15 +334,30 @@ metcon every week — the athlete gets bored and overcooked.
 ACCESSORY DESIGN
 ═══════════════════════════════════════════
 
-Format: accessory_circuit — list 2-3 exercises with sets and rep ranges (5-12 rep range).
-Keep rest short between exercises in the circuit (45-60s).
-Purpose: bodybuilding/isolation to reinforce primary patterns and address weak points.
+Format: accessory_circuit (legacy enum name — treat as "accessory work," NOT a circuit).
+Prescribe 2 movements. Allow a 3rd ONLY if all movements are bodyweight
+or require no equipment contention (e.g. banded work, ab wheel, plank).
+
+EXECUTION RULES — CRITICAL:
+- DEFAULT is STRAIGHT SETS: complete all sets of movement 1, then all sets
+  of movement 2. Not a 3-machine rotation.
+- SUPERSETS are allowed ONLY when the two movements use different equipment
+  that isn't in high demand (e.g. dumbbell curl + cable pushdown is fine;
+  barbell hip thrust + leg curl machine at a busy commercial gym is NOT).
+- Rest 60-90s between sets. This is bodybuilding-style accessory work,
+  not conditioning. No 45s circuit rest.
+- Write rest guidance in the `note` field of each exercise.
+- Never prescribe a 3-machine rotation. Zeus trains at a busy 24 Hour Fitness
+  and cannot hold three pieces of equipment simultaneously.
+
+Rep range: 8-12 reps. Purpose: bodybuilding/isolation to reinforce primary
+patterns and address weak points.
 
 Good accessory pairings:
-- After squats/Oly: GHD back extension, Nordic curl, leg curl, hip thrust, calf raise
-- After hinge/row: Face pull, rear delt fly, barbell curl, hammer curl, lat pulldown
-- After push/upper: Tricep pushdown, lateral raise, cable fly, overhead tricep extension, front raise
-- Day 4 lagging: Whatever hasn't been hit — core work, grip, single-leg, whatever the athlete needs
+- After squats/Oly: GHD back extension + leg curl (straight sets), or Nordic curl + hip thrust
+- After hinge/row: Face pull + barbell curl, or Hammer curl + rear delt fly
+- After push/upper: Tricep pushdown + lateral raise, or Cable fly + overhead tricep extension
+- Day 4 lagging: Whatever hasn't been hit — pick 2 movements, straight sets
 
 ═══════════════════════════════════════════
 CONDITIONING DESIGN
@@ -350,11 +383,27 @@ Metcons are ONE of three finisher options on Days 1 and 3.
 Set metcon to null on Days 2 and 4 — ALWAYS.
 Set metcon to null on Days 1/3 when the finisher is intervals or distance.
 
-Time domain: short to medium (8-18 min preferred for Zeus — not long slogs).
+Time domain: short to medium (8-12 min preferred for Zeus — not long slogs).
 Formats: AMRAP, For Time, EMOM.
-Movement selection: complement the day, do not duplicate heavy loading just done.
-  - Day 1 metcon: can include Oly movements at lighter weight, T2B, mono, box jumps, DUs (Meso 2+)
-  - Day 3 metcon: pull-up variations, push-ups, mono, DB work, DUs (Meso 2+) — no heavy barbell pressing
+
+MOVEMENT SELECTION — HARD CONSTRAINTS (not suggestions):
+  - MetCon MUST NOT use the same primary pattern as Strength A just trained.
+    Day 1 trained Back Squat → metcon MUST NOT include back squats, front
+    squats, goblet squats, or heavy DB squats. Box step-ups, wall balls,
+    and box jumps are fine.
+    Day 3 trained a supporting pressing pattern → metcon MUST NOT include
+    that same pattern at load.
+  - MetCon MUST NOT use the gymnastics skill that was just practiced fresh
+    on Day 3. If Day 3 skill block was T2B, the Day 3 metcon MUST NOT
+    include T2B. Pick a different gymnastics movement or an easier scaled
+    variant (hanging knee raise, sit-ups, etc.).
+  - Day 1 metcon SHOULD AVOID the Day 3 week's gymnastics skill too. If
+    this week's Day 3 skill is T2B, keep T2B out of Day 1's metcon — save
+    the skill for its dedicated day.
+  - Day 1 metcon can include: Oly movements at LIGHT weight, box jumps,
+    wall balls, DB work (non-squat), mono (row/bike), DUs (Meso 2+).
+  - Day 3 metcon can include: mono, DB work, light pressing (not the
+    pattern just trained), DUs (Meso 2+).
 
 Gymnastics scaling — Zeus is rusty, always provide scaledOption:
   - Pull-ups: → Ring rows or banded pull-ups
@@ -385,17 +434,23 @@ Week-in-meso loading intent:
 OUTPUT RULES
 ═══════════════════════════════════════════
 
-- dayName: specific and honest, e.g. "Back Squat + Engine", "Hinge & Pull", "Upper Push Day", "Engine First"
+- dayName: specific and honest, e.g. "Back Squat + Engine", "Hinge & Pull", "Gymnastics Focus", "Engine First"
 - sessionIntent: one sentence — what this day trains and why it fits this position in the week
 - coachNote: 2-3 sentences — reference logs if available, give honest direction, no fluff
 - blocks: follow the day template exactly. Do not add extra blocks or skip required blocks.
 - metcon: null for Days 2 and 4. On Days 1 and 3, metcon is EITHER populated (metcon finisher)
   OR null (intervals/distance finisher — in which case the last block is a conditioning block).
   NEVER both a metcon AND a conditioning finisher block on the same day.
+- strength_a and strength_b blocks use format: sets_reps. MUST include sets,
+  repsMin, and repsMax. Never omit these — the UI will render "undefined" if
+  you skip them. If the rep target is a single number (e.g. 5), set
+  repsMin = repsMax = 5.
 - All gymnastics blocks MUST include scaledOption — Zeus is rusty, scale conservatively.
-- Olympic blocks use format: build_to_max. Include climbScheme and timeCapMinutes.
+- Olympic blocks use format: build_to_max. Include climbScheme and timeCapMinutes (cap 15 min, not 20).
 - Conditioning blocks use format: intervals or steady_state. Include intervalScheme, machine, effortCue.
-- Accessory blocks use format: accessory_circuit. Include accessoryExercises array (2-3 items).`,
+- Accessory blocks use format: accessory_circuit (legacy name — but prescribe as
+  STRAIGHT SETS, not a circuit). Include accessoryExercises array (2 items;
+  3 only if all bodyweight). Rest 60-90s.`,
       prompt,
       schema: ZeusDaySchema,
     })

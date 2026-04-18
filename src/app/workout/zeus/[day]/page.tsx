@@ -332,9 +332,11 @@ function StrengthBlock({ block, label, onLog }: {
   }
 
   const doneCount = sets.filter(s => s.done).length
-  const repRange = block.repsMin === block.repsMax
+  const repRange = block.repsMin == null && block.repsMax == null
+    ? '—'
+    : block.repsMin === block.repsMax
     ? `${block.repsMin}`
-    : `${block.repsMin}–${block.repsMax}`
+    : `${block.repsMin ?? block.repsMax}–${block.repsMax ?? block.repsMin}`
 
   return (
     <div className="ds-card overflow-hidden">
@@ -662,11 +664,14 @@ function AccessoryBlock({ block, onLog }: {
   return (
     <div className="ds-card p-4 space-y-4">
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">Accessories</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">Accessory Work</span>
       </div>
       <div className="flex items-center gap-3">
         <Dumbbell size={15} className="text-muted-foreground shrink-0" />
-        <p className="font-medium text-sm text-foreground">{block.name}</p>
+        <div>
+          <p className="font-medium text-sm text-foreground">{block.name}</p>
+          <p className="text-[10px] text-muted-foreground">Straight sets · 60-90s rest</p>
+        </div>
         {logged && <CheckCircle2 size={15} className="text-blue-400 ml-auto" />}
       </div>
 
