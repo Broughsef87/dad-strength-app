@@ -47,6 +47,9 @@
   --font-sans: var(--font-space-grotesk, ui-sans-serif, system-ui, sans-serif);
   --font-mono: var(--font-space-mono, ui-monospace, monospace);
   --font-display: var(--font-bebas, 'Arial Black', sans-serif);
+  /* Editorial italic accent — used only via <HeroAccent> for
+     gravitas moments. Matches forging-fathers.com marketing voice. */
+  --font-serif-accent: var(--font-playfair, 'Playfair Display', 'Georgia', serif);
 }
 
 @layer base {

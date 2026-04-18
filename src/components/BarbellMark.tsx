@@ -152,3 +152,50 @@ export function SectionDivider({ className = '' }: { className?: string }) {
     </svg>
   )
 }
+
+/**
+ * HeroAccent — editorial italic-serif word inside a Bebas headline.
+ *
+ * The signature move from forging-fathers.com: pair disciplined
+ * uppercase display type with a single italic-serif word for
+ * moments of gravitas.
+ *
+ *   <h1 className="font-display text-4xl uppercase tracking-wider">
+ *     Lead by <HeroAccent>Example.</HeroAccent>
+ *   </h1>
+ *
+ * Use sparingly — one accent per headline, and not on every screen.
+ * Works on: hero headlines, week themes, empty states, debrief
+ * intros, mission statements. Not for body copy, labels, or UI chrome.
+ *
+ * `tone`:
+ *   - "amber" (default) — matches the marketing site, draws the eye
+ *   - "foreground" — quieter, uses the headline's own color
+ */
+export function HeroAccent({
+  children,
+  tone = 'amber',
+  className = '',
+}: {
+  children: React.ReactNode
+  tone?: 'amber' | 'foreground'
+  className?: string
+}) {
+  const color = tone === 'amber' ? 'text-brand' : 'text-foreground'
+  return (
+    <span
+      className={`font-serif italic normal-case tracking-normal ${color} ${className}`}
+      style={{
+        fontFamily: 'var(--font-serif-accent)',
+        fontWeight: 400,
+        // Slight optical bump — italic serif reads smaller than Bebas
+        // at the same nominal size, so scale up a hair.
+        fontSize: '1.08em',
+        // Kill Bebas uppercase inheritance — italic serif always lowercase
+        textTransform: 'none',
+      }}
+    >
+      {children}
+    </span>
+  )
+}

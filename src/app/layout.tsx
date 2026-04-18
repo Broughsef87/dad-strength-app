@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Bebas_Neue, Space_Grotesk, Space_Mono } from 'next/font/google'
+import { Bebas_Neue, Space_Grotesk, Space_Mono, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
 import { UserProvider } from '../contexts/UserContext'
@@ -22,6 +22,16 @@ const spaceMono = Space_Mono({
   subsets: ['latin'],
   variable: '--font-space-mono',
   weight: ['400', '700'],
+})
+
+// Editorial serif italic — used only inside <HeroAccent> for
+// gravitas moments (hero headlines, week themes, empty states).
+// Matches the forging-fathers.com marketing voice.
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  weight: ['400', '700'],
+  style: ['italic'],
 })
 
 export const metadata: Metadata = {
@@ -75,7 +85,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${spaceGrotesk.variable} ${spaceMono.variable} overflow-x-hidden`}>
+    <html lang="en" className={`${bebasNeue.variable} ${spaceGrotesk.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />

@@ -22,7 +22,7 @@ import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 import MorningProtocol from '../../components/MorningProtocol'
 import ProgressRing from '../../components/ProgressRing'
-import { SectionLabel } from '../../components/BarbellMark'
+import { SectionLabel, HeroAccent } from '../../components/BarbellMark'
 import ForgeLoader from '../../components/ForgeLoader'
 
 interface ActiveProgramData {
@@ -266,7 +266,7 @@ export default function Dashboard() {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
           <h1 className="font-display text-[2.6rem] md:text-5xl tracking-[0.06em] uppercase text-foreground mt-0.5 leading-none">
-            Train Day.
+            Train <HeroAccent>Day.</HeroAccent>
             {streak > 0 && (
               <span className="text-brand ml-3 inline-flex items-center gap-1 text-2xl align-middle">
                 <Flame size={18} className="inline" strokeWidth={1.5} />
