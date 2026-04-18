@@ -17,7 +17,6 @@ import BottomNav from '../../components/BottomNav'
 import Logo from '../../components/Logo'
 import DadScore from '../../components/DadScore'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
-import DailyForge from '../../components/DailyForge'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
@@ -224,8 +223,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28 md:pb-8 relative">
-      <DailyForge />
-
       {/* Upgrade success banner */}
       {upgradeSuccess && (
         <motion.div
