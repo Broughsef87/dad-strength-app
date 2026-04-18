@@ -153,16 +153,17 @@ export default function Dashboard() {
         .maybeSingle()
 
       if (dbProgram) {
-        const programName = dbProgram.slug
+        const dbSlug: string = dbProgram.program_slug ?? dbProgram.slug ?? ''
+        const programName = dbSlug
           .replace(/-\d+$/, '')
           .replace(/-/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
         const programData = {
-          slug: dbProgram.slug,
+          slug: dbSlug,
           name: programName,
           startedAt: dbProgram.started_at,
           currentWeek: dbProgram.current_week,
-          daysCount: parseInt(dbProgram.slug.split('-').pop() ?? '4'),
+          daysCount: parseInt(dbSlug.split('-').pop() ?? '4'),
           dayNames: [],
           trainingAge: dbProgram.preferences?.trainingAge ?? '',
           primaryGoal: dbProgram.preferences?.primaryGoal ?? '',

@@ -121,7 +121,7 @@ export default function ForgePage() {
     await supabase.from('user_programs').upsert(
       {
         user_id: user.id,
-        slug: data.slug,
+        program_slug: data.slug,
         started_at: data.startedAt,
         current_week: 1,
         status: 'active',

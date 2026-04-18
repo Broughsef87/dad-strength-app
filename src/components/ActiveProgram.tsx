@@ -90,15 +90,16 @@ export default function ActiveProgram() {
         .limit(1)
         .maybeSingle()
       if (dbProgram) {
+        const dbSlug: string = dbProgram.program_slug ?? dbProgram.slug ?? ''
         const data: ActiveProgramData = {
-          slug: dbProgram.slug,
-          name: dbProgram.slug.replace(/-\d+$/, '').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          slug: dbSlug,
+          name: dbSlug.replace(/-\d+$/, '').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
           startedAt: dbProgram.started_at,
           currentWeek: dbProgram.current_week,
           trainingAge: dbProgram.preferences?.trainingAge ?? '',
           primaryGoal: dbProgram.preferences?.primaryGoal ?? '',
           equipment: dbProgram.equipment ?? {},
-          daysCount: parseInt(dbProgram.slug.split('-').pop() ?? '5'),
+          daysCount: parseInt(dbSlug.split('-').pop() ?? '5'),
           dayNames: [],
         }
         // Sync to localStorage

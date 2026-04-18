@@ -277,7 +277,7 @@ export default function ProgramSelector({ activeSlug, onProgramSelected, isOpen,
         .upsert(
           {
             user_id: user.id,
-            slug: data.slug,
+            program_slug: data.slug,
             started_at: data.startedAt,
             current_week: 1,
             status: 'active',
