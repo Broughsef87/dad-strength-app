@@ -129,7 +129,7 @@ export default function Dashboard() {
       const onboardingLocal = typeof window !== 'undefined' ? localStorage.getItem('onboardingComplete') === 'true' : false
       const onboardingDB = profile?.onboarding_complete || false
 
-      if (!onboardingLocal && !onboardingDB) { router.push('/onboarding'); return }
+      if (!onboardingLocal && !onboardingDB) { router.push('/build'); return }
 
       if (onboardingLocal && !onboardingDB) {
         const localConfig = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('activeProgramConfig') || '{}') : {}
@@ -336,7 +336,7 @@ export default function Dashboard() {
                     Active Protocol
                   </span>
                   <h2 className="text-3xl text-foreground leading-none mt-1">
-                    {activeProgram?.name || workout?.name || 'Load Program'}
+                    {activeProgram?.name || 'Choose Program'}
                   </h2>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -383,7 +383,7 @@ export default function Dashboard() {
 
               {!activeProgram && (
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 relative z-10">
-                  {workout?.description || 'Deploy your first training protocol.'}
+                  Deploy your first training protocol.
                 </p>
               )}
 
@@ -406,8 +406,6 @@ export default function Dashboard() {
                         const nextDay = getNextWorkoutDay(daysCount)
                         router.push(`/workout/program/${nextDay}`)
                       }
-                    } else if (workout) {
-                      router.push(`/workout/${workout.id}`)
                     } else {
                       router.push('/build')
                     }
@@ -420,9 +418,9 @@ export default function Dashboard() {
                   }}
                 >
                   <PlayCircle size={16} strokeWidth={2} />
-                  {activeProgram || workout ? 'Begin Session' : 'Choose Program'}
+                  {activeProgram ? 'Begin Session' : 'Choose Program'}
                 </button>
-                {(activeProgram || workout) && (
+                {activeProgram && (
                   <button
                     onClick={() => router.push('/build')}
                     className="self-end inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-brand transition-colors uppercase tracking-[0.16em] font-display font-semibold mt-1 py-1"

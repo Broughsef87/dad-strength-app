@@ -141,7 +141,7 @@ export default function Library() {
                   : 'bg-card border-border text-muted-foreground hover:border-gray-700'
               }`}
             >
-              {eq === 'all' ? '🏋️ All' : eq === 'iron' ? '🔩 Iron Path' : '🏠 At Home'}
+              {eq === 'all' ? '🏋️ All' : eq === 'iron' ? '🔩 Full Gym' : '🏠 At Home'}
             </button>
           ))}
         </div>

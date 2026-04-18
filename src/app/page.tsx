@@ -101,7 +101,7 @@ export default function Home() {
         </div>
 
         <p className="text-center text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.22em] font-display">
-          Dad Strength · Built for the Iron Path
+          Dad Strength · Built for the Long Haul
         </p>
       </div>
     </div>
