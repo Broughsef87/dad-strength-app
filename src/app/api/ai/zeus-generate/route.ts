@@ -346,7 +346,7 @@ EXECUTION RULES — CRITICAL:
   barbell hip thrust + leg curl machine at a busy commercial gym is NOT).
 - Rest 60-90s between sets. This is bodybuilding-style accessory work,
   not conditioning. No 45s circuit rest.
-- Write rest guidance in the `note` field of each exercise.
+- Write rest guidance in the "note" field of each exercise.
 - Never prescribe a 3-machine rotation. Zeus trains at a busy 24 Hour Fitness
   and cannot hold three pieces of equipment simultaneously.
 
