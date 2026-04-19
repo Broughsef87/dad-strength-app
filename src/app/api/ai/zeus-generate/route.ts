@@ -199,7 +199,8 @@ PROGRAM STRUCTURE — 12 WEEKS / 3 MESOS
 MESO 1 (Weeks 1-4) — Foundation:
   Primary Strength A: Back Squat (squat family)
   Primary Strength B: Barbell Row (horizontal pull)
-  Olympic: Hang Power Clean + Push Jerk (2 of 4 days)
+  Olympic: Hang Power Clean + Push Jerk (Day 1 full-lift weeks)
+  Oly Pull family (Day 1 pull weeks): Clean Deadlift, Clean Pull
   Skill: T2B progression (broken sets building volume — start with knee raises if needed)
          Double under intro: singles → attempts in sets of 5-10, Day 3 skill warm-up
   Engine: Row + Bike intervals
@@ -207,7 +208,8 @@ MESO 1 (Weeks 1-4) — Foundation:
 MESO 2 (Weeks 5-8) — Shift:
   Primary Strength A: Front Squat (squat family)
   Primary Strength B: Strict Press (pressing)
-  Olympic: Power Snatch + Clean complex (2 of 4 days)
+  Olympic: Power Snatch + Clean complex (Day 1 full-lift weeks)
+  Oly Pull family (Day 1 pull weeks): Snatch Deadlift, Snatch Pull
   Skill: Strict pull-up volume → kipping intro + HSPU intro (pike push-ups)
          Double unders: linked sets building (10s → 20s → 30s unbroken), can now appear in metcons
   Engine: Run intervals + Row
@@ -215,7 +217,10 @@ MESO 2 (Weeks 5-8) — Shift:
 MESO 3 (Weeks 9-12) — Accumulation:
   Primary Strength A: Back Squat (heavier — above Meso 1 loads)
   Primary Strength B: Weighted Pull-up
-  Olympic: Full lifts + complexes (squat clean, squat snatch)
+  Olympic: Full lifts + complexes (squat clean, squat snatch — Day 1 full-lift weeks)
+  Oly Pull family (Day 1 pull weeks): Rotate both families — Snatch DL/Pull one week,
+                                      Clean DL/Pull the other. Use deficit or halting
+                                      variants to add challenge.
   Skill: T2B unbroken sets + HSPU volume + Bar muscle-up progressions
          Double unders: longer unbroken sets (50+), feature regularly in metcons
   Engine: Mixed modal intervals (Row/Bike/Run combos)
@@ -238,6 +243,13 @@ For Olympic lifts: Hang, Block, Pause below knee, Full from floor, Complex (e.g.
 NEVER switch the primary movement to a different exercise family mid-meso.
 The variation IS the programming tool.
 
+EXCEPTION — Day 1 Block 2 rotates by design:
+The Day 1 Block 2 slot is NOT held to the "same movement all meso" rule. It
+alternates every week between a full Oly lift and an Oly pull/DL variant
+(see DAY TEMPLATES — Day 1 Block 2 Rotation). This is intentional — it
+hits first-pull strength and posterior chain on a schedule that doesn't
+conflict with Day 2's conventional hinge.
+
 ═══════════════════════════════════════════
 DAY TEMPLATES — STRICT
 ═══════════════════════════════════════════
@@ -254,14 +266,36 @@ work — that's what Day 3 is for.
 
 Day 1 — Squat + Oly (Barbell CNS Day):
   Block 1 (strength_a): Back Squat family — sets/reps with variation
-  Block 2 (olympic): Oly lift (Meso-appropriate) — build to heavy or complex
+  Block 2 (ROTATING by weekInMeso — see Day 1 Block 2 Rotation below):
+    Odd weeks (1, 3): Full Oly lift — blockType "olympic", format "build_to_max"
+    Even weeks (2, 4): Oly pull or Oly deadlift — blockType "strength_b",
+                       format "sets_reps", 4-5 sets × 3-5 reps, heavy, name
+                       the specific variant in the variation field.
   Block 3 (accessory): Lower body / posterior chain accessory work
   FINISHER: ONE of — see FINISHER RULES below.
   NO gymnastics block on Day 1. Gymnastics skill work belongs on Day 3 when
   the athlete is fresh enough to train it with precision.
 
+  Day 1 Block 2 Rotation (per 4-week meso):
+    Week 1: Full Oly lift — the meso's primary Oly movement (e.g. Meso 1 =
+            Hang Power Clean + Push Jerk).
+    Week 2: Oly pull/DL — from that meso's Oly pull family (see MESO blocks).
+            Heavy triples or fives, strict positions, no Oly catch.
+    Week 3: Full Oly lift — a DIFFERENT variation than Week 1 (Paused, Block,
+            From Floor, or a different complex in the same family).
+    Week 4: Oly pull/DL — the opposite lift family from Week 2 if Meso 3,
+            OR a progressed version of Week 2 (deficit, halting, tempo)
+            for Mesos 1 and 2.
+    Purpose: builds pulling strength, first and second pull positions, and
+    posterior chain without crowding Day 2's conventional hinge work.
+
 Day 2 — Hinge + Pull + Oly (NO METCON):
-  Block 1 (strength_a): Hinge — Romanian Deadlift, Deadlift, Good Morning, etc.
+  Block 1 (strength_a): Hinge — Conventional Deadlift, Romanian Deadlift,
+    Good Morning, Deficit Deadlift, Sumo Deadlift, Block Pulls, Stiff-leg DL.
+    HARD RULE: The Day 2 hinge menu does NOT include Oly-grip pulls
+    (Snatch Pull, Clean Pull) or Oly-specific deadlift variants (Snatch
+    Deadlift, Clean Deadlift). Those live on Day 1's rotating Block 2.
+    Day 2 hinge is conventional powerlifting/posterior-chain work.
   Block 2 (strength_b): Horizontal pull — Barbell Row or DB Row (Meso 1), Strict Press (Meso 2), Weighted Pull-up (Meso 3)
   Block 3 (olympic): Oly lift — build to heavy or complex
   Block 4 (accessory): Back/bicep/rear delt accessory work
