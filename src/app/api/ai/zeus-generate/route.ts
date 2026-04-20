@@ -302,7 +302,19 @@ Day 2 — Hinge + Pull + Oly (NO METCON):
     Deadlift, Clean Deadlift). Those live on Day 1's rotating Block 2.
     Day 2 hinge is conventional powerlifting/posterior-chain work.
   Block 2 (strength_b): Horizontal pull — Barbell Row or DB Row (Meso 1), Strict Press (Meso 2), Weighted Pull-up (Meso 3)
-  Block 3 (olympic): Oly lift — build to heavy or complex
+  Block 3 (olympic): COMPLEMENTARY Oly movement — MUST be a different lift
+    family than Day 1's primary Oly. Day 2's Oly is lighter and technical,
+    not a second heavy CNS exposure.
+      → Meso 1 primary is Clean-based (HPC+PJ) → Day 2 Oly = Snatch work
+        (Power Snatch, Muscle Snatch, Snatch Balance, OHS, Snatch pulls
+        to knee — light/technique).
+      → Meso 2 primary is Snatch-based (Power Snatch / Snatch complex) →
+        Day 2 Oly = Clean or Jerk work (Power Clean pulls, Tall Clean,
+        Jerk Balance, Jerk Recovery — light/technique).
+      → Meso 3 primary alternates → Day 2 Oly = whichever family was NOT
+        trained heavy on Day 1 this week. Always the opposite family.
+    NEVER put the same Oly lift (or same lift family) on Day 1 and Day 2.
+    This block is build_to_max but capped lighter — technique work, not max.
   Block 4 (accessory): Back/bicep/rear delt accessory work
   Block 5 (conditioning): Intervals — Row or Bike, 3-5 sets, moderate duration
   METCON: null
@@ -473,9 +485,25 @@ Week-in-meso loading intent:
 OUTPUT RULES
 ═══════════════════════════════════════════
 
-- dayName: specific and honest, e.g. "Back Squat + Engine", "Hinge & Pull", "Gymnastics Focus", "Engine First"
-- sessionIntent: one sentence — what this day trains and why it fits this position in the week
-- coachNote: 2-3 sentences — reference logs if available, give honest direction, no fluff
+- dayName: specific and honest, e.g. "Back Squat + Engine", "Hinge & Pull", "Gymnastics Focus", "Engine First". MAX 6 words.
+- sessionIntent: ONE sentence. MAX 25 words. No prose dumps.
+- coachNote: 2-3 short sentences. MAX 60 words TOTAL. No motivational essays.
+
+HARD OUTPUT LENGTH CAPS — CRITICAL:
+The UI renders these fields inline. Walls of text break the layout and get
+ignored by the athlete. Stay within the caps:
+- coachCue: ONE short sentence, MAX 20 words. A single technical or mental cue.
+- notes: MAX 15 words. Usually null. Only use for a genuinely useful one-liner.
+- skillFocus: ONE sentence, MAX 25 words.
+- scaledOption: ONE short phrase, MAX 15 words (e.g. "Hanging knee raise").
+- progressionNote: ONE sentence, MAX 20 words.
+- effortCue: ONE short phrase, MAX 15 words (e.g. "Uncomfortable but aerobic").
+- accessoryExercises[].note: MAX 10 words. Usually the rest interval.
+
+DO NOT write paragraphs. DO NOT repeat yourself. DO NOT coach every rep.
+If you find yourself writing more than 2 sentences in any field except
+coachNote, STOP and rewrite shorter. The athlete reads these on a phone
+between sets — respect the real estate.
 - blocks: follow the day template exactly. Do not add extra blocks or skip required blocks.
 - metcon: null for Days 2 and 4. On Days 1 and 3, metcon is EITHER populated (metcon finisher)
   OR null (intervals/distance finisher — in which case the last block is a conditioning block).
@@ -494,6 +522,48 @@ OUTPUT RULES
           schema: ZeusDaySchema,
         })
         day = result.object
+        // Backfill defaults if Flash skipped required sets_reps fields.
+        // Schema has them optional to avoid 500s, but the UI renders "—" —
+        // prefer sane defaults over blanks so the athlete isn't guessing.
+        const d = day as {
+          blocks?: Array<{
+            blockType?: string
+            format?: string
+            sets?: number
+            repsMin?: number
+            repsMax?: number
+            coachCue?: string
+            notes?: string
+          }>
+          coachNote?: string
+        }
+        for (const b of d.blocks ?? []) {
+          if (
+            (b.blockType === 'strength_a' || b.blockType === 'strength_b') &&
+            b.format === 'sets_reps'
+          ) {
+            if (b.sets == null) b.sets = 4
+            if (b.repsMin == null && b.repsMax == null) {
+              b.repsMin = 5
+              b.repsMax = 8
+            } else if (b.repsMin == null) {
+              b.repsMin = b.repsMax
+            } else if (b.repsMax == null) {
+              b.repsMax = b.repsMin
+            }
+          }
+          // Truncate runaway cue/notes — hard stop at 200 chars for cue,
+          // 120 for notes. Flash occasionally ignores the length caps.
+          if (b.coachCue && b.coachCue.length > 200) {
+            b.coachCue = b.coachCue.slice(0, 197).trimEnd() + '…'
+          }
+          if (b.notes && b.notes.length > 120) {
+            b.notes = b.notes.slice(0, 117).trimEnd() + '…'
+          }
+        }
+        if (d.coachNote && d.coachNote.length > 400) {
+          d.coachNote = d.coachNote.slice(0, 397).trimEnd() + '…'
+        }
         break
       } catch (err) {
         const e = err as { name?: string; message?: string }
