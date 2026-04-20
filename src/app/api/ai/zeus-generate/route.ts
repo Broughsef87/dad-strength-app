@@ -165,9 +165,14 @@ Apply the correct meso ${mesoNumber} primary movements and skill focus.
 Use the variation field to differentiate this session's primary lift from previous weeks — do NOT switch to a different exercise family, vary within the same movement (Paused, Box, Tempo, Deficit, Pin, etc.).
 `.trim()
 
-    const { object: day } = await generateObject({
-      model: google('gemini-2.5-flash'),
-      system: `You are an elite strength and conditioning coach programming for a single athlete: Zeus.
+    // Flash occasionally produces output that fails Zod validation on a long
+    // system prompt. Retry once before giving up — cheap insurance.
+    let day: unknown
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const result = await generateObject({
+          model: google('gemini-2.5-flash'),
+          system: `You are an elite strength and conditioning coach programming for a single athlete: Zeus.
 
 ═══════════════════════════════════════════
 ATHLETE PROFILE
@@ -485,14 +490,36 @@ OUTPUT RULES
 - Accessory blocks use format: accessory_circuit (legacy name — but prescribe as
   STRAIGHT SETS, not a circuit). Include accessoryExercises array (2 items;
   3 only if all bodyweight). Rest 60-90s.`,
-      prompt,
-      schema: ZeusDaySchema,
-    })
+          prompt,
+          schema: ZeusDaySchema,
+        })
+        day = result.object
+        break
+      } catch (err) {
+        const e = err as { name?: string; message?: string }
+        console.error(
+          `Zeus generation attempt ${attempt + 1} failed:`,
+          e?.name,
+          e?.message,
+        )
+        if (attempt === 1) throw err
+      }
+    }
 
     return NextResponse.json({ day })
 
   } catch (error) {
-    console.error('Zeus Generate Error:', error)
-    return NextResponse.json({ error: 'Failed to generate Zeus session. Try again.' }, { status: 500 })
+    // Surface the actual error so we can diagnose Flash schema flakes
+    const err = error as { name?: string; message?: string; cause?: unknown }
+    const detail = {
+      name: err?.name ?? 'Error',
+      message: err?.message ?? String(error),
+      cause: err?.cause ? String(err.cause) : undefined,
+    }
+    console.error('Zeus Generate Error:', JSON.stringify(detail))
+    return NextResponse.json(
+      { error: 'Failed to generate Zeus session. Try again.', detail },
+      { status: 500 },
+    )
   }
 }
