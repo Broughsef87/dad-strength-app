@@ -310,55 +310,98 @@ Day 1 — Squat + Oly (Barbell CNS Day):
     Purpose: builds pulling strength, first and second pull positions, and
     posterior chain without crowding Day 2's conventional hinge work.
 
-Day 2 — Hinge + Pull + Oly (NO METCON):
+Day 2 — Hinge + Pull (NO METCON, NO OLY):
   Block 1 (strength_a): Hinge — Conventional Deadlift, Romanian Deadlift,
     Good Morning, Deficit Deadlift, Sumo Deadlift, Block Pulls, Stiff-leg DL.
     HARD RULE: The Day 2 hinge menu does NOT include Oly-grip pulls
     (Snatch Pull, Clean Pull) or Oly-specific deadlift variants (Snatch
     Deadlift, Clean Deadlift). Those live on Day 1's rotating Block 2.
     Day 2 hinge is conventional powerlifting/posterior-chain work.
-  Block 2 (strength_b): Horizontal pull — Barbell Row or DB Row (Meso 1), Strict Press (Meso 2), Weighted Pull-up (Meso 3)
-  Block 3 (olympic): COMPLEMENTARY Oly movement — MUST be a different lift
-    family than Day 1's primary Oly. Day 2's Oly is lighter and technical,
-    not a second heavy CNS exposure.
-      → Meso 1 primary is Clean-based (HPC+PJ) → Day 2 Oly = Snatch work
-        (Power Snatch, Muscle Snatch, Snatch Balance, OHS, Snatch pulls
-        to knee — light/technique).
-      → Meso 2 primary is Snatch-based (Power Snatch / Snatch complex) →
-        Day 2 Oly = Clean or Jerk work (Power Clean pulls, Tall Clean,
-        Jerk Balance, Jerk Recovery — light/technique).
-      → Meso 3 primary alternates → Day 2 Oly = whichever family was NOT
-        trained heavy on Day 1 this week. Always the opposite family.
-    NEVER put the same Oly lift (or same lift family) on Day 1 and Day 2.
-    This block is build_to_max but capped lighter — technique work, not max.
-  Block 4 (accessory): Back/bicep/rear delt accessory work
-  Block 5 (conditioning): Intervals — Row or Bike, 3-5 sets, moderate duration
+  Block 2 (strength_b): Horizontal pull — Barbell Row or DB Row (Meso 1),
+    Strict Press (Meso 2), Weighted Pull-up (Meso 3).
+  Block 3 (accessory): Back/bicep/rear delt accessory work — straight sets.
+  Block 4 (conditioning): Intervals — Row or Bike, 3-5 sets, moderate duration.
   METCON: null
+  NO OLYMPIC BLOCK on Day 2. Heavy deadlifting followed by Oly work fries
+  the posterior chain and tanks technique. Day 2 is hinge + pull +
+  accessories + conditioning. That's enough stimulus. Oly exposure is
+  Day 1 only (via Block 2's rotating full-lift/pull slot).
+  Total blocks: 4.
 
-Day 3 — Gymnastics Focus Day:
+Day 3 — Gymnastics + Complementary Oly:
   Block 1 (gymnastics): Skill work DONE FRESH — T2B / HSPU / pull-up progression.
-    This is the centerpiece of the day. 10-12 min, not buried after heavy work.
-  Block 2 (strength_a): Supporting strength A — a movement that DIRECTLY
-    contributes to the gymnastics skill just practiced. Examples:
-      For T2B: Hanging leg raise progression (weighted), Strict hollow holds,
-               Weighted plank, Lat pulldown heavy
-      For HSPU: Strict DB Press, Z-Press, Pin Press, Overhead hold
-      For Pull-up / MU: Weighted chin-up, Heavy Row, Scap work
-  Block 3 (strength_b): Supporting strength B — second movement that also
-    reinforces the skill pattern. Do NOT repeat Block 2's movement family.
-    (If Block 2 was overhead pressing, Block 3 could be dip or tricep work.
-     If Block 2 was heavy row, Block 3 could be OHP.)
+    Centerpiece of the day. 10-12 min, done on a fresh CNS BEFORE barbell work.
+  Block 2 (olympic): COMPLEMENTARY Oly lift — MUST be the OPPOSITE family
+    from Day 1 Block 2 of the same week. Light-to-moderate technique focus,
+    NOT a second max-effort day.
+      → Day 1 Clean-family (HPC+PJ, Clean DL, Clean Pull) → Day 3 Oly = Snatch
+        technique (Power Snatch, Muscle Snatch, Tall Snatch, Snatch Balance,
+        OHS, Snatch High Pull).
+      → Day 1 Snatch-family (Power Snatch, Snatch DL, Snatch Pull) → Day 3
+        Oly = Clean or Jerk technique (Muscle Clean, Tall Clean, Jerk
+        Balance, Jerk Recovery, Jerk from Blocks).
+    Format build_to_max, but cap at technique weight — NOT a PR attempt.
+    Aim for crisp positions at moderate load, not a grinder.
+  Block 3 (strength_a OR strength_b): ONE supporting strength for the skill.
+    This is the ONLY supporting lift on Day 3 now that Oly owns Block 2.
+    Examples:
+      For T2B: Weighted hanging leg raise, Strict hollow holds, Heavy Lat Pulldown
+      For HSPU: Strict DB Press, Z-Press, Pin Press
+      For Pull-up / MU: Weighted chin-up, Heavy Row
   FINISHER: ONE of — see FINISHER RULES below.
-  NO separate accessory block — the supporting strength blocks absorb that role.
-  Keep Day 3 lean: skill + 2 strength + finisher. That's the whole day.
+  NO separate accessory block.
+  Total blocks: 4 (skill + Oly + supporting strength + finisher block
+  if intervals/distance) OR 3 (skill + Oly + supporting strength) with
+  metcon populated separately.
 
 Day 4 — Engine (NO METCON):
   Block 1 (conditioning): Engine piece — longer intervals or tempo effort (Row, Bike, Run combo)
-  Block 2 (strength_a): Mixed strength — any compound that fits what's lagging
+  Block 2 (strength_a): Mixed strength — any compound that fits what's lagging.
+    HARD RULE: MUST NOT repeat any primary pattern already trained this week
+    (no squat if Day 1 squatted, no deadlift if Day 2 deadlifted, no press
+    if Day 3 pressed). Pick something complementary — lunge, step-up,
+    single-leg work, carries, pull-up, dip, etc.
   Block 3 (accessory): Whatever muscle group is lagging — accessory work
   Block 4 (conditioning): Sprint finish — short high-intensity intervals, 6-10 sets
   METCON: null
   Note: Day 4 has NO Olympic lift. It is pure engine and accessory.
+
+═══════════════════════════════════════════
+NO-REPEAT RULE — CRITICAL
+═══════════════════════════════════════════
+
+Within a SINGLE day's blocks:
+  - No two blocks may prescribe the same movement. If strength_a is
+    Conventional Deadlift, NO other block in that day may be Conventional
+    Deadlift, Deficit Deadlift, Sumo Deadlift, RDL, or any other deadlift
+    variation. The primary hinge is trained ONCE per day.
+  - The accessory block NEVER repeats the primary movement's family.
+    After deadlifts → no deadlift accessory. After squats → no squat
+    accessory. After pressing → no barbell pressing accessory (isolation
+    like tricep pushdowns is fine).
+  - MetCon movements (if metcon finisher is chosen) also respect this —
+    see METCON DESIGN movement constraints.
+
+Within a SINGLE week's 4 days:
+  - Conventional Deadlift (or any deadlift variation) appears AT MOST
+    ONCE per week, on Day 2 as strength_a. Do not program deadlifts on
+    Days 1, 3, or 4.
+  - The primary squat family runs on Day 1 only.
+  - The primary pressing pattern runs on Day 3 only (as strength_b
+    supporting the gymnastics skill in Meso 2/3 when press-pattern is
+    primary_b).
+  - Oly lifts: TWO Oly exposures per week, on separate non-consecutive
+    technical days.
+      → Day 1 Block 2: the HEAVY Oly day (rotating full-lift/pull by week).
+      → Day 3 Block 2: the COMPLEMENTARY Oly technique day — opposite
+        family from Day 1, light-to-moderate loads.
+      → Day 2 has NO Oly (deadlift day, wrong time for barbell-overhead).
+      → Day 4 has NO Oly (engine day).
+    Day 1 and Day 3 are separated by Day 2, giving the posterior chain
+    and CNS room to recover between Oly exposures.
+
+If you catch yourself about to prescribe the same movement twice — STOP.
+Pick a complementary movement instead.
 
 ═══════════════════════════════════════════
 FINISHER RULES (Days 1 and 3 only)
@@ -369,9 +412,10 @@ NEVER stack a conditioning block AND a metcon on the same day.
 
 Three valid flavors — rotate across weeks for variety:
 
-  (a) METCON — short to medium (8-18 min). AMRAP, For Time, or EMOM.
+  (a) METCON — short to medium (8-12 min preferred). AMRAP, For Time, or EMOM.
       → Populate the metcon field. Do NOT add a conditioning block.
-      → Total blocks: 4 (strength_a, olympic/gymnastics, gymnastics/accessory, accessory).
+      → Day 1 total blocks: 3 (strength_a squat, olympic/pull, accessory).
+      → Day 3 total blocks: 3 (gymnastics, olympic, supporting strength).
 
   (b) INTERVALS — structured conditioning (format: intervals).
       6-10 × 30s-2 min @ 85-95% / full rest, or 4-6 × 3-5 min @ 80-85% / 2-3 min rest.
@@ -579,6 +623,40 @@ between sets — respect the real estate.
         }
         if (d.coachNote && d.coachNote.length > 400) {
           d.coachNote = d.coachNote.slice(0, 397).trimEnd() + '…'
+        }
+        // Dedupe check — detect Flash programming the same movement in
+        // multiple blocks. If found, retry (attempt 0) or flag (attempt 1).
+        const dTyped = day as { blocks?: Array<{ name?: string }> }
+        const movementFamily = (name: string): string => {
+          const n = name.toLowerCase()
+          if (n.includes('deadlift') || n.includes('rdl') || n.includes('good morning')) return 'deadlift'
+          if (n.includes('squat') && !n.includes('overhead')) return 'squat'
+          if (n.includes('bench') || n.includes('push press') || n.includes('strict press') || n.includes('overhead press')) return 'press'
+          if (n.includes('row') || n.includes('pull-up') || n.includes('chin-up') || n.includes('pulldown')) return 'pull'
+          if (n.includes('clean') && !n.includes('deadlift') && !n.includes('pull')) return 'clean'
+          if (n.includes('snatch') && !n.includes('deadlift') && !n.includes('pull')) return 'snatch'
+          return n
+        }
+        const families = (dTyped.blocks ?? [])
+          .map(b => b.name ? movementFamily(b.name) : '')
+          .filter(f => f && f !== 'unknown')
+        const seen = new Set<string>()
+        let hasDupe = false
+        for (const f of families) {
+          if (seen.has(f)) { hasDupe = true; break }
+          seen.add(f)
+        }
+        if (hasDupe && attempt === 0) {
+          console.warn(
+            'Zeus generation attempt 1 produced duplicate movement families — retrying:',
+            families.join(', '),
+          )
+          continue
+        } else if (hasDupe) {
+          console.error(
+            'Zeus generation retry STILL has duplicate movement families — shipping anyway:',
+            families.join(', '),
+          )
         }
         break
       } catch (err) {
