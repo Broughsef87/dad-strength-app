@@ -6,7 +6,10 @@ import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+// Vercel Pro allows up to 300s. We need headroom for Flash's thinking budget
+// plus a single retry. 120s is the sweet spot — enough slack without
+// letting a truly hung call hang forever.
+export const maxDuration = 120
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
@@ -166,12 +169,25 @@ Use the variation field to differentiate this session's primary lift from previo
 `.trim()
 
     // Flash occasionally produces output that fails Zod validation on a long
-    // system prompt. Retry once before giving up — cheap insurance.
+    // system prompt. Retry once before giving up — cheap insurance. Skip
+    // the retry if we've already burned >60s to avoid 504ing on the client.
+    const startTime = Date.now()
     let day: unknown
     for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt === 1 && Date.now() - startTime > 60_000) {
+        throw new Error('Generation exceeded retry budget — skipping retry to avoid 504')
+      }
       try {
         const result = await generateObject({
           model: google('gemini-2.5-flash'),
+          // Disable Gemini's "thinking" step — the Zod schema enforces
+          // structure, we don't need chain-of-thought reasoning. Thinking
+          // adds 10-30s of latency and was the main 504 cause.
+          providerOptions: {
+            google: {
+              thinkingConfig: { thinkingBudget: 0 },
+            },
+          },
           system: `You are an elite strength and conditioning coach programming for a single athlete: Zeus.
 
 ═══════════════════════════════════════════
