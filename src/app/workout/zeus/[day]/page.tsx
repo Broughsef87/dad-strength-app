@@ -110,6 +110,38 @@ interface RecentMetconLog {
   weekNumber: number
 }
 
+// ── One-time cleanup of pre-v2 localStorage keys ──────────────────────────────
+// Devices that were around for the old localStorage-based progression have
+// stale 'zeus-locked-week' keys and 'zeus-wod-w*-d*' (v1) cached workouts
+// that diverged from the server. We sweep them on first load so no manual
+// DevTools work is required (especially on mobile).
+//
+// Idempotent — sets a sentinel key so this only runs once per device.
+const ZEUS_CACHE_SWEEP_KEY = 'zeus-cache-swept-v2'
+
+function sweepLegacyZeusCache(): void {
+  if (typeof window === 'undefined') return
+  try {
+    if (localStorage.getItem(ZEUS_CACHE_SWEEP_KEY) === '1') return
+    const toRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key) continue
+      // Legacy keys to nuke: 'zeus-locked-week' and any v1 workout cache
+      // (zeus-wod-wN-dN without the -v2- prefix).
+      if (key === 'zeus-locked-week') {
+        toRemove.push(key)
+        continue
+      }
+      if (key.startsWith('zeus-wod-') && !key.startsWith('zeus-wod-v2-')) {
+        toRemove.push(key)
+      }
+    }
+    for (const key of toRemove) localStorage.removeItem(key)
+    localStorage.setItem(ZEUS_CACHE_SWEEP_KEY, '1')
+  } catch { /* localStorage unavailable — nothing to sweep */ }
+}
+
 // ── Server-side progression state ──────────────────────────────────────────────
 // Previously tracked in localStorage per-device, which caused phone and desktop
 // to diverge (different weeks, different done-days, different generated workouts).
@@ -1006,6 +1038,9 @@ export default function ZeusWorkoutPage() {
 
   const loadDay = useCallback(async () => {
     if (!user) return
+
+    // Nuke pre-v2 legacy localStorage keys on first load — no-op after.
+    sweepLegacyZeusCache()
 
     // Fetch current week from server (single source of truth across devices).
     const progress = await fetchZeusProgress(supabase, user.id)
