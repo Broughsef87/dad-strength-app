@@ -242,12 +242,12 @@ PROGRESSION for this week (${weekInMeso} of 4):
 `.trim()
 
     // Two-stage model strategy for speed + reliability:
-    //   Attempt 1: gemini-2.5-flash-lite — fastest, ~6x cheaper than flash.
-    //              Handles most sessions fine now that structure is pre-computed.
-    //   Attempt 2: gemini-2.5-flash — the reliable fallback if lite flakes
-    //              on schema validation or produces garbage.
+    //   Attempt 1: gemini-3.1-flash-lite-preview — 2.5x faster time-to-first-token
+    //              than 2.5 Flash, 45% higher output speed, similar quality.
+    //   Attempt 2: gemini-2.5-flash — battle-tested fallback if the 3.1 preview
+    //              flakes on schema validation or is temporarily unavailable.
     // Skip the retry if we've already burned >60s to avoid 504ing the client.
-    const MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'] as const
+    const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash'] as const
     const startTime = Date.now()
     let day: unknown
     for (let attempt = 0; attempt < 2; attempt++) {
