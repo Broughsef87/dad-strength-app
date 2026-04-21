@@ -12,14 +12,15 @@
 --     day_number) so each user owns one row per (zeus, week, day).
 -- ============================================================
 
--- 1. Deduplicate any existing rows — keep the OLDEST per
+-- 1. Deduplicate any existing rows — keep one row per
 --    (user_id, program_slug, week_number, day_number), drop the rest.
 --    This is safe for personal programs like Zeus; Ares is skipped.
+--    Ordered by id ASC since generated_workouts lacks a created_at column.
 WITH ranked AS (
   SELECT id,
          ROW_NUMBER() OVER (
            PARTITION BY user_id, program_slug, week_number, day_number
-           ORDER BY created_at ASC, id ASC
+           ORDER BY id ASC
          ) AS rn
   FROM generated_workouts
   WHERE program_slug IS NOT NULL AND program_slug <> 'ares'
