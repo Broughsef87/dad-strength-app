@@ -26,7 +26,7 @@ const ZeusBlockSchema = z.object({
   variation: z.string().optional().describe('Movement variation: "Paused", "Box", "Tempo 3-1-0", "Deficit", "Pin", "Banded", etc.'),
 
   // build_to_max (oly)
-  climbScheme: z.string().optional().describe('e.g. "3-3-2-2-1-1" — rep scheme to build to heavy'),
+  climbScheme: z.string().optional().describe('Rep scheme to build to heavy. Use "3-2-2-1-1" for a heavy single, "3-3-2-2-2" for a heavy double. NEVER start with a set of 5+ reps.'),
   timeCapMinutes: z.number().optional(),
 
   // skill_time (gymnastics)
@@ -302,7 +302,8 @@ ACCESSORY RULES
   Deadlift day: RDLs, hamstring curls, good mornings, hip thrust, KB swings, 45° back ext, reverse hyper, single-leg RDL, stiff-leg DL.
 
 OLYMPIC BLOCKS
-- format build_to_max. Include climbScheme (e.g. "3-3-2-2-1-1") and timeCapMinutes (10-15, not longer).
+- format build_to_max. Include climbScheme and timeCapMinutes (10-15, not longer).
+- climbScheme HARD RULE: NEVER start the climb with a set of 5+ reps. Use EXACTLY "3-2-2-1-1" when building to a heavy SINGLE, or EXACTLY "3-3-2-2-2" when building to a heavy DOUBLE. No 5-3-1-1, no 5-5-3-1, no variations starting with 5.
 - Day 1 C&J: default full C&J. Occasionally Clean-only (~1 in 4 weeks). NEVER Jerk-only on Day 1.
 - Day 3 Snatch: rotate variations (Power, Squat, Hang, Block, Complex, Pause).
 
