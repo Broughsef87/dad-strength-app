@@ -1,21 +1,24 @@
 -- ============================================================
--- generated_workouts: per-user uniqueness for Zeus (and any future
--- personal programs). The existing partial unique index was built
--- for Ares (a shared daily WOD across all users) and does not
--- include user_id, so two Zeus rows can land for the same
--- (user, week, day) and each device reads a different one.
+-- generated_workouts: per-user uniqueness for Zeus only.
 --
--- Fix:
---   - Keep the Ares shared index intact.
---   - Add a second partial unique index for every program_slug
---     EXCEPT 'ares', keyed on (user_id, program_slug, week_number,
---     day_number) so each user owns one row per (zeus, week, day).
+-- The existing partial unique index on (program_slug, week_number,
+-- day_number) WHERE program_slug IS NOT NULL is specifically for
+-- Ares (shared daily WOD across all users). It does not include
+-- user_id, so Zeus races between devices can produce duplicate rows
+-- — each device then reads its own duplicate and users see different
+-- workouts (most visibly: different metcons).
+--
+-- Fix, scoped to zeus only:
+--   1. Dedupe any existing zeus duplicates (keep one per
+--      user/week/day, drop the rest).
+--   2. Add a partial unique index on (user_id, week_number,
+--      day_number) WHERE program_slug = 'zeus'.
+--
+-- Leaves Ares and all other programs untouched.
 -- ============================================================
 
--- 1. Deduplicate any existing rows — keep one row per
---    (user_id, program_slug, week_number, day_number), drop the rest.
---    This is safe for personal programs like Zeus; Ares is skipped.
---    Ordered by id ASC since generated_workouts lacks a created_at column.
+-- 1. Deduplicate zeus rows. Ordered by id ASC since the table has no
+--    created_at column — deterministic tiebreak is all we need.
 WITH ranked AS (
   SELECT id,
          ROW_NUMBER() OVER (
@@ -23,12 +26,12 @@ WITH ranked AS (
            ORDER BY id ASC
          ) AS rn
   FROM generated_workouts
-  WHERE program_slug IS NOT NULL AND program_slug <> 'ares'
+  WHERE program_slug = 'zeus'
 )
 DELETE FROM generated_workouts
 WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
 
--- 2. Add the per-user unique index now that the table is clean.
-CREATE UNIQUE INDEX IF NOT EXISTS generated_workouts_user_slug_week_day_unique
-  ON generated_workouts (user_id, program_slug, week_number, day_number)
-  WHERE program_slug IS NOT NULL AND program_slug <> 'ares';
+-- 2. Add per-user unique index for zeus.
+CREATE UNIQUE INDEX IF NOT EXISTS generated_workouts_zeus_user_week_day_unique
+  ON generated_workouts (user_id, week_number, day_number)
+  WHERE program_slug = 'zeus';
