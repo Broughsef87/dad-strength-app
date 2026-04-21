@@ -241,9 +241,13 @@ PROGRESSION for this week (${weekInMeso} of 4):
   ${weekInMeso === 1 ? 'Week 1 — RIR 3 baseline, establish the pattern.' : ''}${weekInMeso === 2 ? 'Week 2 — RIR 2, add a small amount of load or a rep.' : ''}${weekInMeso === 3 ? 'Week 3 — RIR 1, push hard, close to failure on last set.' : ''}${weekInMeso === 4 ? 'Week 4 — PEAK. Top heavy single/double OR a push-to-failure set on the last set.' : ''}
 `.trim()
 
-    // Flash occasionally produces output that fails Zod validation on a long
-    // system prompt. Retry once before giving up — cheap insurance. Skip
-    // the retry if we've already burned >60s to avoid 504ing on the client.
+    // Two-stage model strategy for speed + reliability:
+    //   Attempt 1: gemini-2.5-flash-lite — fastest, ~6x cheaper than flash.
+    //              Handles most sessions fine now that structure is pre-computed.
+    //   Attempt 2: gemini-2.5-flash — the reliable fallback if lite flakes
+    //              on schema validation or produces garbage.
+    // Skip the retry if we've already burned >60s to avoid 504ing the client.
+    const MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'] as const
     const startTime = Date.now()
     let day: unknown
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -252,7 +256,7 @@ PROGRESSION for this week (${weekInMeso} of 4):
       }
       try {
         const result = await generateObject({
-          model: google('gemini-2.5-flash'),
+          model: google(MODELS[attempt]),
           // Disable Gemini's "thinking" step — the Zod schema enforces
           // structure, we don't need chain-of-thought reasoning. Thinking
           // adds 10-30s of latency and was the main 504 cause.
