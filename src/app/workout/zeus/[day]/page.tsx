@@ -110,35 +110,62 @@ interface RecentMetconLog {
   weekNumber: number
 }
 
-// ── LocalStorage helpers ───────────────────────────────────────────────────────
+// ── Server-side progression state ──────────────────────────────────────────────
+// Previously tracked in localStorage per-device, which caused phone and desktop
+// to diverge (different weeks, different done-days, different generated workouts).
+// Now the `user_programs` row for Zeus is the single source of truth.
 
-const ZEUS_LOCK_KEY = 'zeus-locked-week'
-
-const getUserLockedWeek = (): number => {
-  try {
-    const raw = localStorage.getItem(ZEUS_LOCK_KEY)
-    if (raw) {
-      const lock = JSON.parse(raw)
-      const weekNumber = lock.weekNumber ?? 1
-      const doneDays: number[] = lock.doneDays ?? []
-      if (doneDays.length < 4) return weekNumber
-      // All days done — advance to next week
-      const nextWeek = Math.min(12, weekNumber + 1)
-      localStorage.setItem(ZEUS_LOCK_KEY, JSON.stringify({ weekNumber: nextWeek, doneDays: [], daysCount: 4 }))
-      return nextWeek
-    }
-  } catch { /* fall through */ }
-  localStorage.setItem(ZEUS_LOCK_KEY, JSON.stringify({ weekNumber: 1, doneDays: [], daysCount: 4 }))
-  return 1
+interface ZeusProgress {
+  weekNumber: number
+  doneDays: number[]
 }
 
-const markZeusDayDone = (day: number) => {
-  try {
-    const raw = localStorage.getItem(ZEUS_LOCK_KEY)
-    const lock = raw ? JSON.parse(raw) : { weekNumber: 1, doneDays: [], daysCount: 4 }
-    const doneDays: number[] = [...new Set([...(lock.doneDays ?? []), day])]
-    localStorage.setItem(ZEUS_LOCK_KEY, JSON.stringify({ ...lock, doneDays }))
-  } catch { /* ignore */ }
+async function fetchZeusProgress(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+): Promise<ZeusProgress> {
+  const { data } = await supabase
+    .from('user_programs')
+    .select('current_week, done_days')
+    .eq('user_id', userId)
+    .eq('program_slug', 'zeus')
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (!data) {
+    // No active Zeus program yet — default to week 1, no days done.
+    return { weekNumber: 1, doneDays: [] }
+  }
+  return {
+    weekNumber: data.current_week ?? 1,
+    doneDays: (data.done_days ?? []) as number[],
+  }
+}
+
+async function markZeusDayDoneRemote(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  dayNumber: number,
+): Promise<ZeusProgress> {
+  // Read current state
+  const current = await fetchZeusProgress(supabase, userId)
+  const doneDays = [...new Set([...current.doneDays, dayNumber])].sort()
+
+  // If all 4 days done, advance to next week and reset done_days.
+  const shouldAdvance = doneDays.length >= 4
+  const nextWeek = shouldAdvance ? current.weekNumber + 1 : current.weekNumber
+  const nextDone = shouldAdvance ? [] : doneDays
+
+  await supabase
+    .from('user_programs')
+    .update({ current_week: nextWeek, done_days: nextDone })
+    .eq('user_id', userId)
+    .eq('program_slug', 'zeus')
+    .eq('status', 'active')
+
+  return { weekNumber: nextWeek, doneDays: nextDone }
 }
 
 // ── Recent log fetcher ─────────────────────────────────────────────────────────
@@ -980,10 +1007,15 @@ export default function ZeusWorkoutPage() {
   const loadDay = useCallback(async () => {
     if (!user) return
 
-    const zeusWeekNumber = getUserLockedWeek()
+    // Fetch current week from server (single source of truth across devices).
+    const progress = await fetchZeusProgress(supabase, user.id)
+    const zeusWeekNumber = progress.weekNumber
     zeusWeekNumberRef.current = zeusWeekNumber
 
-    const cacheKey = `zeus-wod-w${zeusWeekNumber}-d${dayNumber}`
+    // Cache key bumped to v2 to auto-invalidate any stale caches from the
+    // pre-server-state era. v2 caches are still only a local perf hint —
+    // DB is canonical.
+    const cacheKey = `zeus-wod-v2-w${zeusWeekNumber}-d${dayNumber}`
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
@@ -1192,30 +1224,23 @@ export default function ZeusWorkoutPage() {
       time_cap_hit: result.timeCapHit,
       notes: result.notes || null,
     })
-    completeSession()
+    void completeSession()
   }
 
-  const completeSession = () => {
-    markZeusDayDone(dayNumber)
-    // Check if week 12 day 4 — program complete
-    const raw = localStorage.getItem(ZEUS_LOCK_KEY)
-    if (raw) {
-      try {
-        const lock = JSON.parse(raw)
-        if (lock.weekNumber >= 12 && lock.doneDays?.includes(dayNumber) && dayNumber === 4) {
-          setProgramDone(true)
-        }
-      } catch { /* ignore */ }
-    }
+  const completeSession = async () => {
+    if (!user) return
+    await markZeusDayDoneRemote(supabase, user.id, dayNumber)
+    // Program cycles indefinitely in 4-week mesos — never "complete".
     setSessionComplete(true)
   }
 
   const handleCompleteWithoutMetcon = () => {
-    completeSession()
+    void completeSession()
   }
 
-  const handleSkipDay = () => {
-    markZeusDayDone(dayNumber)
+  const handleSkipDay = async () => {
+    if (!user) return
+    await markZeusDayDoneRemote(supabase, user.id, dayNumber)
     if (dayNumber < 4) {
       router.push(`/workout/zeus/${dayNumber + 1}`)
     } else {
