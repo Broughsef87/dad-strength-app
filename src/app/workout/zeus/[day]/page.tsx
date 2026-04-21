@@ -117,7 +117,8 @@ interface RecentMetconLog {
 // DevTools work is required (especially on mobile).
 //
 // Idempotent — sets a sentinel key so this only runs once per device.
-const ZEUS_CACHE_SWEEP_KEY = 'zeus-cache-swept-v2'
+// Sentinel bumped to v3 so devices that already swept under v2 sweep again.
+const ZEUS_CACHE_SWEEP_KEY = 'zeus-cache-swept-v3'
 
 function sweepLegacyZeusCache(): void {
   if (typeof window === 'undefined') return
@@ -127,13 +128,13 @@ function sweepLegacyZeusCache(): void {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (!key) continue
-      // Legacy keys to nuke: 'zeus-locked-week' and any v1 workout cache
-      // (zeus-wod-wN-dN without the -v2- prefix).
-      if (key === 'zeus-locked-week') {
+      // Legacy keys to nuke: 'zeus-locked-week', the old v2 sweep sentinel,
+      // and any workout cache older than the current v3 key.
+      if (key === 'zeus-locked-week' || key === 'zeus-cache-swept-v2') {
         toRemove.push(key)
         continue
       }
-      if (key.startsWith('zeus-wod-') && !key.startsWith('zeus-wod-v2-')) {
+      if (key.startsWith('zeus-wod-') && !key.startsWith('zeus-wod-v3-')) {
         toRemove.push(key)
       }
     }
@@ -1050,7 +1051,7 @@ export default function ZeusWorkoutPage() {
     // Cache key bumped to v2 to auto-invalidate any stale caches from the
     // pre-server-state era. v2 caches are still only a local perf hint —
     // DB is canonical.
-    const cacheKey = `zeus-wod-v2-w${zeusWeekNumber}-d${dayNumber}`
+    const cacheKey = `zeus-wod-v3-w${zeusWeekNumber}-d${dayNumber}`
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
@@ -1062,16 +1063,22 @@ export default function ZeusWorkoutPage() {
       } catch { /* fall through to DB check */ }
     }
 
-    // Check generated_workouts table — scoped to this user (Zeus is a personal program)
-    const { data: existing } = await supabase
+    // Check generated_workouts table — scoped to this user (Zeus is a personal program).
+    // Use order+limit(1) instead of maybeSingle() so that if duplicate rows happen
+    // to exist (from the device race before the unique index was in place), BOTH
+    // devices deterministically pick the SAME row — the one with the lowest id.
+    // This converges phone and desktop even if the DB hasn't been deduped yet.
+    const { data: existingRows } = await supabase
       .from('generated_workouts')
       .select('id, workout_data')
       .eq('user_id', user.id)
       .eq('program_slug', 'zeus')
       .eq('week_number', zeusWeekNumber)
       .eq('day_number', dayNumber)
-      .maybeSingle()
+      .order('id', { ascending: true })
+      .limit(1)
 
+    const existing = existingRows?.[0]
     if (existing) {
       const workoutData = existing.workout_data as { day: ZeusDay }
       setDay(workoutData.day)
@@ -1136,16 +1143,19 @@ export default function ZeusWorkoutPage() {
         generatedWorkoutIdRef.current = saved.id
         localStorage.setItem(cacheKey, JSON.stringify({ day: generated, generatedWorkoutId: saved.id }))
       } else if ((insertError as { code?: string } | null)?.code === '23505') {
-        // Duplicate insert — fetch existing row for this user
-        const { data: canonical } = await supabase
+        // Duplicate insert — fetch the lowest-id row for this (user, week, day)
+        // so both devices converge on the same canonical row.
+        const { data: canonicalRows } = await supabase
           .from('generated_workouts')
           .select('id, workout_data')
           .eq('user_id', user.id)
           .eq('program_slug', 'zeus')
           .eq('week_number', zeusWeekNumber)
           .eq('day_number', dayNumber)
-          .single()
+          .order('id', { ascending: true })
+          .limit(1)
 
+        const canonical = canonicalRows?.[0]
         if (canonical) {
           const canonicalData = canonical.workout_data as { day: ZeusDay }
           setDay(canonicalData.day)
