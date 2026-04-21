@@ -1082,7 +1082,9 @@ export default function ZeusWorkoutPage() {
       // Cache locally immediately
       localStorage.setItem(cacheKey, JSON.stringify({ day: generated, generatedWorkoutId: null }))
 
-      // Persist to generated_workouts — unique constraint on (program_slug, week_number, day_number)
+      // Persist to generated_workouts — zeus has a per-user unique index on
+      // (user_id, week_number, day_number) WHERE program_slug = 'zeus'.
+      // Duplicate inserts surface as code 23505 and fall into the canonical fetch branch below.
       const { data: saved, error: insertError } = await supabase
         .from('generated_workouts')
         .insert({
