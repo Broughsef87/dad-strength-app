@@ -242,12 +242,16 @@ PROGRESSION for this week (${weekInMeso} of 4):
 `.trim()
 
     // Two-stage model strategy for speed + reliability:
-    //   Attempt 1: gemini-3.1-flash-lite-preview — 2.5x faster time-to-first-token
-    //              than 2.5 Flash, 45% higher output speed, similar quality.
-    //   Attempt 2: gemini-2.5-flash — battle-tested fallback if the 3.1 preview
-    //              flakes on schema validation or is temporarily unavailable.
+    //   Attempt 1: gemini-2.5-flash — GA, fast, works on brand-new Google
+    //              Cloud projects without preview-access provisioning.
+    //   Attempt 2: gemini-2.5-flash — same model for the retry so a Zod flake
+    //              on the first attempt gets a second chance rather than
+    //              changing the surface area of what's failing.
+    // We moved away from gemini-3.1-flash-lite-preview because preview
+    // models often have tighter per-project rate limits that bit us on the
+    // post-breach fresh project.
     // Skip the retry if we've already burned >60s to avoid 504ing the client.
-    const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash'] as const
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash'] as const
     const startTime = Date.now()
     let day: unknown
     for (let attempt = 0; attempt < 2; attempt++) {

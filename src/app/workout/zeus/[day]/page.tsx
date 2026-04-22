@@ -1250,13 +1250,13 @@ export default function ZeusWorkoutPage() {
       }
       const { day: generated } = await res.json() as { day: ZeusDay }
       setDay(generated)
+      console.log('[zeus-generate] AI returned workout — persisting to DB')
 
-      // Cache locally immediately
-      localStorage.setItem(cacheKey, JSON.stringify({ day: generated, generatedWorkoutId: null }))
+      // NOTE: We intentionally do NOT pre-cache with null generatedWorkoutId.
+      // That caused a stuck state where a silently-failing insert left the
+      // cache pointing at nothing, forcing a regenerate on every refresh.
+      // Cache is now written ONLY after a row is confirmed in the DB.
 
-      // Persist to generated_workouts — zeus has a per-user unique index on
-      // (user_id, week_number, day_number) WHERE program_slug = 'zeus'.
-      // Duplicate inserts surface as code 23505 and fall into the canonical fetch branch below.
       const { data: saved, error: insertError } = await supabase
         .from('generated_workouts')
         .insert({
@@ -1272,6 +1272,7 @@ export default function ZeusWorkoutPage() {
       if (saved) {
         generatedWorkoutIdRef.current = saved.id
         localStorage.setItem(cacheKey, JSON.stringify({ day: generated, generatedWorkoutId: saved.id }))
+        console.log('[zeus-generate] inserted generated_workouts row:', saved.id)
       } else if ((insertError as { code?: string } | null)?.code === '23505') {
         // Duplicate insert — fetch the lowest-id row for this (user, week, day)
         // so both devices converge on the same canonical row.
