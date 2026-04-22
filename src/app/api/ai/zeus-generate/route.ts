@@ -247,11 +247,13 @@ PROGRESSION for this week (${weekInMeso} of 4):
 `.trim()
 
     // Groq model strategy:
-    //   Attempt 1: openai/gpt-oss-120b — OpenAI's open-weights model, known
-    //              for strict JSON schema compliance. Ideal for generateObject.
-    //   Attempt 2: llama-3.3-70b-versatile — fast fallback if OSS is having
-    //              a bad day. Less reliable on JSON schemas but still usable.
-    const MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'] as const
+    //   Attempt 1: moonshotai/kimi-k2-instruct — supports strict structured
+    //              outputs on Groq (confirmed in the structured-outputs
+    //              whitelist). API-level schema enforcement means the
+    //              response is guaranteed to match the Zod schema.
+    //   Attempt 2: llama-3.3-70b-versatile — fallback using JSON mode if
+    //              Kimi is unavailable. Looser but usually works.
+    const MODELS = ['moonshotai/kimi-k2-instruct', 'llama-3.3-70b-versatile'] as const
     const startTime = Date.now()
     let day: unknown
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -259,16 +261,13 @@ PROGRESSION for this week (${weekInMeso} of 4):
         throw new Error('Generation exceeded retry budget — skipping retry to avoid 504')
       }
       try {
+        // Strict mode for Kimi (attempt 0), JSON mode fallback for Llama
+        // (attempt 1) since Llama isn't on the structured-outputs whitelist.
+        const useStrict = attempt === 0
         const result = await generateObject({
           model: groq(MODELS[attempt]),
-          // JSON mode (structuredOutputs=false). Groq's strict json_schema
-          // mode only works on a whitelisted subset of models — our
-          // openai/gpt-oss-120b primary isn't on it. JSON mode works
-          // everywhere, and with the schema rewritten to use .nullable()
-          // (every field present, optionals represented as null), the
-          // model has a simple target to hit and Zod validates after.
           providerOptions: {
-            groq: { structuredOutputs: false },
+            groq: { structuredOutputs: useStrict },
           },
           system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output a valid JSON object matching the schema. Every field must be present; use null (not omitted) for fields that don't apply to the current block (e.g. sets/repsMin on an olympic block).
 
