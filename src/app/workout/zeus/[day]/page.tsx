@@ -366,20 +366,25 @@ function CountdownTimer({ minutes, onComplete }: { minutes: number; onComplete?:
 
 // ── Strength block (strength_a / strength_b) ───────────────────────────────────
 
-function StrengthBlock({ block, label, onLog }: {
+function StrengthBlock({ block, label, onLog, initialLogs }: {
   block: ZeusBlock
   label: string
   onLog: (sets: StrengthSetLog[]) => void
+  initialLogs?: SessionLogRow[]
 }) {
   const totalSets = block.sets ?? 3
-  const [sets, setSets] = useState<StrengthSetLog[]>(
-    Array.from({ length: totalSets }, (_, i) => ({
-      setIndex: i,
-      weight: '',
-      reps: String(block.repsMin ?? ''),
-      rir: block.targetRir ?? null,
-      done: false,
-    }))
+  const [sets, setSets] = useState<StrengthSetLog[]>(() =>
+    // Hydrate from previously-entered rows so refresh doesn't wipe progress.
+    Array.from({ length: totalSets }, (_, i) => {
+      const row = initialLogs?.find(r => r.set_number === i + 1)
+      return {
+        setIndex: i,
+        weight: row?.weight_lbs != null ? String(row.weight_lbs) : '',
+        reps: row?.reps != null ? String(row.reps) : String(block.repsMin ?? ''),
+        rir: row?.rir_actual ?? block.targetRir ?? null,
+        done: row?.completed === true,
+      }
+    })
   )
   const [expanded, setExpanded] = useState(true)
 
@@ -478,13 +483,16 @@ function StrengthBlock({ block, label, onLog }: {
 
 // ── Olympic block ──────────────────────────────────────────────────────────────
 
-function OlympicBlock({ block, onLog }: {
+function OlympicBlock({ block, onLog, initialLog }: {
   block: ZeusBlock
   onLog: (peakWeight: number, notes: string) => void
+  initialLog?: SessionLogRow
 }) {
-  const [peakWeight, setPeakWeight] = useState('')
-  const [notes, setNotes] = useState('')
-  const [logged, setLogged] = useState(false)
+  const [peakWeight, setPeakWeight] = useState(
+    initialLog?.peak_weight_lbs != null ? String(initialLog.peak_weight_lbs) : '',
+  )
+  const [notes, setNotes] = useState(initialLog?.notes ?? '')
+  const [logged, setLogged] = useState(initialLog?.completed === true)
 
   const handleLog = () => {
     if (!peakWeight) return
@@ -552,12 +560,13 @@ function OlympicBlock({ block, onLog }: {
 
 // ── Gymnastics block ───────────────────────────────────────────────────────────
 
-function GymnasticsBlock({ block, onLog }: {
+function GymnasticsBlock({ block, onLog, initialLog }: {
   block: ZeusBlock
   onLog: (notes: string) => void
+  initialLog?: SessionLogRow
 }) {
-  const [notes, setNotes] = useState('')
-  const [logged, setLogged] = useState(false)
+  const [notes, setNotes] = useState(initialLog?.notes ?? '')
+  const [logged, setLogged] = useState(initialLog?.completed === true)
 
   return (
     <div className="ds-card p-4 space-y-4">
@@ -624,13 +633,22 @@ function GymnasticsBlock({ block, onLog }: {
 
 // ── Conditioning block ─────────────────────────────────────────────────────────
 
-function ConditioningBlock({ block, onLog }: {
+function ConditioningBlock({ block, onLog, initialLog }: {
   block: ZeusBlock
   onLog: (result: string, notes: string) => void
+  initialLog?: SessionLogRow
 }) {
-  const [result, setResult] = useState('')
-  const [notes, setNotes] = useState('')
-  const [logged, setLogged] = useState(false)
+  // Legacy stored "result · notes" concatenated into the notes column.
+  // Split once when hydrating so the fields show cleanly.
+  const [hydratedResult, hydratedNotes] = (() => {
+    const raw = initialLog?.notes ?? ''
+    const idx = raw.indexOf(' · ')
+    if (idx > 0) return [raw.slice(0, idx), raw.slice(idx + 3)]
+    return [raw, '']
+  })()
+  const [result, setResult] = useState(hydratedResult)
+  const [notes, setNotes] = useState(hydratedNotes)
+  const [logged, setLogged] = useState(initialLog?.completed === true)
 
   const machineIcon = () => {
     const m = (block.machine ?? '').toLowerCase()
@@ -713,12 +731,13 @@ function ConditioningBlock({ block, onLog }: {
 
 // ── Accessory block ────────────────────────────────────────────────────────────
 
-function AccessoryBlock({ block, onLog }: {
+function AccessoryBlock({ block, onLog, initialLog }: {
   block: ZeusBlock
   onLog: (notes: string) => void
+  initialLog?: SessionLogRow
 }) {
-  const [notes, setNotes] = useState('')
-  const [logged, setLogged] = useState(false)
+  const [notes, setNotes] = useState(initialLog?.notes ?? '')
+  const [logged, setLogged] = useState(initialLog?.completed === true)
   const exercises = block.accessoryExercises ?? []
 
   return (
@@ -787,18 +806,29 @@ function AccessoryBlock({ block, onLog }: {
 
 // ── MetCon block ───────────────────────────────────────────────────────────────
 
-function MetConBlock({ metcon, onLog }: {
+function MetConBlock({ metcon, onLog, initialLog }: {
   metcon: ZeusMetcon
   onLog: (result: MetconResult) => void
+  initialLog?: SessionLogRow
 }) {
-  const [rx, setRx] = useState(true)
-  const [timeMin, setTimeMin] = useState('')
-  const [timeSec, setTimeSec] = useState('')
-  const [rounds, setRounds] = useState('')
-  const [partialReps, setPartialReps] = useState('')
-  const [timeCapHit, setTimeCapHit] = useState(false)
-  const [notes, setNotes] = useState('')
-  const [logged, setLogged] = useState(false)
+  // Hydrate metcon inputs from previously-logged row if present.
+  const hydratedTimeSec = initialLog?.metcon_time_seconds ?? null
+  const [rx, setRx] = useState(initialLog?.metcon_rx ?? true)
+  const [timeMin, setTimeMin] = useState(
+    hydratedTimeSec != null ? String(Math.floor(hydratedTimeSec / 60)) : '',
+  )
+  const [timeSec, setTimeSec] = useState(
+    hydratedTimeSec != null ? String(hydratedTimeSec % 60).padStart(2, '0') : '',
+  )
+  const [rounds, setRounds] = useState(
+    initialLog?.metcon_rounds != null ? String(initialLog.metcon_rounds) : '',
+  )
+  const [partialReps, setPartialReps] = useState(
+    initialLog?.metcon_partial_reps != null ? String(initialLog.metcon_partial_reps) : '',
+  )
+  const [timeCapHit, setTimeCapHit] = useState(initialLog?.time_cap_hit ?? false)
+  const [notes, setNotes] = useState(initialLog?.notes ?? '')
+  const [logged, setLogged] = useState(initialLog?.completed === true)
   const [showTimer, setShowTimer] = useState(false)
 
   const isForTime = metcon.format === 'for_time' || metcon.format === 'for_time_with_cap'
@@ -1016,6 +1046,47 @@ function MetConBlock({ metcon, onLog }: {
   )
 }
 
+// ── Session log fetcher ───────────────────────────────────────────────────────
+// Pulls all ares_session_logs rows for a given generated_workout_id so blocks
+// can hydrate their inputs from what the athlete previously entered. This is
+// what makes the logger survive tab refresh + cross-device continuation.
+
+interface SessionLogRow {
+  block_name: string
+  log_type: string
+  set_number: number | null
+  weight_lbs: number | null
+  reps: number | null
+  rir_actual: number | null
+  peak_weight_lbs: number | null
+  climb_scheme: string | null
+  skill_duration_minutes: number | null
+  distance_meters: number | null
+  duration_seconds: number | null
+  metcon_format: string | null
+  metcon_time_seconds: number | null
+  metcon_rounds: number | null
+  metcon_partial_reps: number | null
+  metcon_rx: boolean | null
+  time_cap_hit: boolean | null
+  notes: string | null
+  completed: boolean | null
+  completed_at: string | null
+}
+
+async function fetchSessionLogs(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  generatedWorkoutId: string | null,
+): Promise<SessionLogRow[]> {
+  if (!generatedWorkoutId) return []
+  const { data } = await supabase
+    .from('ares_session_logs')
+    .select('block_name, log_type, set_number, weight_lbs, reps, rir_actual, peak_weight_lbs, climb_scheme, skill_duration_minutes, distance_meters, duration_seconds, metcon_format, metcon_time_seconds, metcon_rounds, metcon_partial_reps, metcon_rx, time_cap_hit, notes, completed, completed_at')
+    .eq('generated_workout_id', generatedWorkoutId)
+  return (data ?? []) as SessionLogRow[]
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function ZeusWorkoutPage() {
@@ -1031,6 +1102,7 @@ export default function ZeusWorkoutPage() {
   const [error, setError] = useState<string | null>(null)
   const [sessionComplete, setSessionComplete] = useState(false)
   const [programDone, setProgramDone] = useState(false)
+  const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
 
   const generatedWorkoutIdRef = useRef<string | null>(null)
   const zeusWeekNumberRef = useRef<number>(1)
@@ -1058,6 +1130,11 @@ export default function ZeusWorkoutPage() {
         const parsed = JSON.parse(cached)
         setDay(parsed.day)
         generatedWorkoutIdRef.current = parsed.generatedWorkoutId ?? null
+        // Hydrate session logs even from the cached path so blocks prefill.
+        if (parsed.generatedWorkoutId) {
+          const logs = await fetchSessionLogs(supabase, parsed.generatedWorkoutId)
+          setSessionLogs(logs)
+        }
         setLoading(false)
         return
       } catch { /* fall through to DB check */ }
@@ -1084,6 +1161,9 @@ export default function ZeusWorkoutPage() {
       setDay(workoutData.day)
       generatedWorkoutIdRef.current = existing.id
       localStorage.setItem(cacheKey, JSON.stringify({ day: workoutData.day, generatedWorkoutId: existing.id }))
+      // Hydrate previously-entered log rows for this workout.
+      const logs = await fetchSessionLogs(supabase, existing.id)
+      setSessionLogs(logs)
       setLoading(false)
       return
     }
@@ -1162,6 +1242,11 @@ export default function ZeusWorkoutPage() {
           generatedWorkoutIdRef.current = canonical.id
           localStorage.setItem(cacheKey, JSON.stringify({ day: canonicalData.day, generatedWorkoutId: canonical.id }))
         }
+      }
+      // If any logs were already written by another device, pick them up.
+      if (generatedWorkoutIdRef.current) {
+        const logs = await fetchSessionLogs(supabase, generatedWorkoutIdRef.current)
+        setSessionLogs(logs)
       }
     } catch (e) {
       setError('Could not generate workout. Check your connection and try again.')
@@ -1463,6 +1548,10 @@ export default function ZeusWorkoutPage() {
         {day.blocks.map((block, i) => {
           const blockNum = i + 1
 
+          // Lookup any prior logs for this block_name so the block can hydrate.
+          const blockLogs = sessionLogs.filter(l => l.block_name === block.name)
+          const singleLog = blockLogs[0] // non-strength blocks have 0 or 1 row
+
           if (block.blockType === 'strength_a' || block.blockType === 'strength_b') {
             const label = block.blockType === 'strength_a' ? 'Strength A' : 'Strength B'
             return (
@@ -1475,6 +1564,7 @@ export default function ZeusWorkoutPage() {
                   block={block}
                   label={label}
                   onLog={sets => logStrengthSets(block, sets)}
+                  initialLogs={blockLogs}
                 />
               </div>
             )
@@ -1490,6 +1580,7 @@ export default function ZeusWorkoutPage() {
                 <OlympicBlock
                   block={block}
                   onLog={(w, n) => logOlympic(block, w, n)}
+                  initialLog={singleLog}
                 />
               </div>
             )
@@ -1505,6 +1596,7 @@ export default function ZeusWorkoutPage() {
                 <GymnasticsBlock
                   block={block}
                   onLog={n => logGymnastics(block, n)}
+                  initialLog={singleLog}
                 />
               </div>
             )
@@ -1520,6 +1612,7 @@ export default function ZeusWorkoutPage() {
                 <ConditioningBlock
                   block={block}
                   onLog={(r, n) => logConditioning(block, r, n)}
+                  initialLog={singleLog}
                 />
               </div>
             )
@@ -1535,6 +1628,7 @@ export default function ZeusWorkoutPage() {
                 <AccessoryBlock
                   block={block}
                   onLog={n => logAccessory(block, n)}
+                  initialLog={singleLog}
                 />
               </div>
             )
@@ -1543,19 +1637,23 @@ export default function ZeusWorkoutPage() {
           return null
         })}
 
-        {/* MetCon — only on days 1 and 3 */}
-        {day.metcon && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-mono text-muted-foreground/60">{day.blocks.length + 1}</span>
-              <div className="flex-1 h-px bg-border" />
+        {/* MetCon — populated on days 1 and 4 */}
+        {day.metcon && (() => {
+          const metconLog = sessionLogs.find(l => l.log_type === 'metcon')
+          return (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-mono text-muted-foreground/60">{day.blocks.length + 1}</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <MetConBlock
+                metcon={day.metcon}
+                onLog={result => logMetcon(day.metcon!, result)}
+                initialLog={metconLog}
+              />
             </div>
-            <MetConBlock
-              metcon={day.metcon}
-              onLog={result => logMetcon(day.metcon!, result)}
-            />
-          </div>
-        )}
+          )
+        })()}
 
         {/* Complete button for days without a metcon (days 2 and 4) */}
         {!day.metcon && (
