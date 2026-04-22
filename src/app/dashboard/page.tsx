@@ -85,6 +85,10 @@ export default function Dashboard() {
   const [workout, setWorkout] = useState<WorkoutData | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [activeProgram, setActiveProgram] = useState<ActiveProgramData | null>(null)
+  // Zeus progression from user_programs (done_days is int[], current_week is int).
+  // Source of truth — replaces the old per-device dad-strength-week-progress-*
+  // localStorage for Zeus.
+  const [zeusDoneDays, setZeusDoneDays] = useState<number[]>([])
   const [streak, setStreak] = useState(0)
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
   const [checklistDone, setChecklistDone] = useState(false)
@@ -170,6 +174,11 @@ export default function Dashboard() {
           equipment: dbProgram.equipment ?? {},
         }
         setActiveProgram(programData)
+        // For Zeus, pick up the server-side done_days so "Start Training"
+        // routes to the right day across devices.
+        if (dbSlug.startsWith('zeus')) {
+          setZeusDoneDays((dbProgram.done_days ?? []) as number[])
+        }
         if (typeof window !== 'undefined') {
           localStorage.setItem('dad-strength-active-program', JSON.stringify(programData))
         }
@@ -398,8 +407,17 @@ export default function Dashboard() {
                         const nextDay = getNextWorkoutDay(daysCount)
                         router.push(`/workout/ares/${nextDay}`)
                       } else if (activeProgram.slug?.startsWith('zeus')) {
+                        // Zeus reads progression from user_programs.done_days (server),
+                        // not the old dad-strength-week-progress-* localStorage. This
+                        // keeps phone and desktop consistent and correctly routes the
+                        // user to the next unfinished day.
                         const daysCount = activeProgram.daysCount || 4
-                        const nextDay = getNextWorkoutDay(daysCount)
+                        let nextDay = 1
+                        for (let i = 1; i <= daysCount; i++) {
+                          if (!zeusDoneDays.includes(i)) { nextDay = i; break }
+                        }
+                        // All 4 done → week auto-advances server-side on completion;
+                        // route to day 1 of the new week.
                         router.push(`/workout/zeus/${nextDay}`)
                       } else {
                         const daysCount = activeProgram.daysCount || activeProgram.frequency || 3

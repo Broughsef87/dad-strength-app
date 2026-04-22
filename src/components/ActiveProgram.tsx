@@ -107,7 +107,17 @@ export default function ActiveProgram() {
         setProgram(data)
         const key = getWeekKey(new Date())
         setWeekKey(key)
-        setWeekProgress(loadWeekProgress(key))
+        // For Zeus, week progress = user_programs.done_days converted to the
+        // WeekProgress shape (0-indexed dayIndex → 'complete'). Server is
+        // the source of truth; the old localStorage is ignored for Zeus.
+        if (dbSlug.startsWith('zeus')) {
+          const doneDays = (dbProgram.done_days ?? []) as number[]
+          const serverProgress: WeekProgress = {}
+          for (const d of doneDays) serverProgress[d - 1] = 'complete'
+          setWeekProgress(serverProgress)
+        } else {
+          setWeekProgress(loadWeekProgress(key))
+        }
         setLoaded(true)
         return
       }
@@ -135,6 +145,10 @@ export default function ActiveProgram() {
   }, [loadProgram])
 
   const cycleStatus = (dayIndex: number) => {
+    // For Zeus, progress lives on the server (user_programs.done_days).
+    // Manual click-to-toggle here is disabled — users mark days done by
+    // completing the workout on the Zeus page, which updates the server.
+    if (program?.slug?.startsWith('zeus')) return
     const current = weekProgress[dayIndex] ?? 'not_started'
     const next: DayStatus =
       current === 'not_started' ? 'in_progress' :
