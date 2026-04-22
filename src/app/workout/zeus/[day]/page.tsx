@@ -175,9 +175,11 @@ async function fetchZeusProgress(
 
   const weekNumber = prog?.current_week ?? 1
 
-  // Step 2: doneDays = distinct day_numbers with at least one completed log
-  // in the current week. Joined to generated_workouts so we can scope by
-  // program_slug + week_number reliably even if older logs have NULL fields.
+  // Step 2: doneDays = distinct day_numbers that have a dedicated
+  // 'session_complete' sentinel row in ares_session_logs for the current
+  // week. Written explicitly by completeSession(), NOT implicitly by
+  // "one set is done". Marking a single set complete or mid-workout
+  // progress does NOT flip a day to done.
   const { data: workouts } = await supabase
     .from('generated_workouts')
     .select('id')
@@ -188,15 +190,15 @@ async function fetchZeusProgress(
   const workoutIds: string[] = (workouts ?? []).map((w: { id: string }) => w.id)
   if (workoutIds.length === 0) return { weekNumber, doneDays: [] }
 
-  const { data: completedLogs } = await supabase
+  const { data: completionRows } = await supabase
     .from('ares_session_logs')
     .select('day_number')
     .eq('user_id', userId)
     .in('generated_workout_id', workoutIds)
-    .not('completed_at', 'is', null)
+    .eq('log_type', 'session_complete')
 
   const doneDaysSet = new Set<number>(
-    (completedLogs ?? []).map((l: { day_number: number }) => l.day_number),
+    (completionRows ?? []).map((l: { day_number: number }) => l.day_number),
   )
   return { weekNumber, doneDays: [...doneDaysSet].sort() }
 }
@@ -1452,32 +1454,45 @@ export default function ZeusWorkoutPage() {
   }
 
   const completeSession = async () => {
-    if (!user) return
+    if (!user || !generatedWorkoutIdRef.current) return
+
+    // Write the session_complete sentinel FIRST. This is the single row
+    // that fetchZeusProgress looks for to decide "day is done". Writing
+    // it here (not on first set-Done click) is what keeps "one set done"
+    // from accidentally flipping the whole day to complete.
+    const sentinelRes = await supabase.from('ares_session_logs').upsert({
+      user_id: user.id,
+      generated_workout_id: generatedWorkoutIdRef.current,
+      week_number: zeusWeekNumberRef.current,
+      day_number: dayNumber,
+      log_type: 'session_complete',
+      block_name: '__session_complete__',
+      set_number: null,
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
+    reportLogResult('session_complete_sentinel', sentinelRes)
+
+    // Then check whether this completes the week and advance current_week.
     await markZeusDayDoneRemote(supabase, user.id, dayNumber)
 
-    // Write a streak-counter shim row into workout_logs so the dashboard's
-    // streak and history views pick up Zeus sessions. Dashboard counts
-    // distinct days with completed=true from workout_logs. Zeus never
-    // wrote there before, so Zeus sessions were invisible to the streak.
-    // Keyed with set_number=0 + identifying exercise_name so the upsert
-    // is idempotent via workout_logs_generated_unique_set.
-    if (generatedWorkoutIdRef.current) {
-      await supabase.from('workout_logs').upsert({
-        user_id: user.id,
-        generated_workout_id: generatedWorkoutIdRef.current,
-        exercise_name: `Zeus · Week ${zeusWeekNumberRef.current} · Day ${dayNumber}`,
-        set_number: 0,
-        weight_lbs: 0,
-        reps: 0,
-        completed: true,
-        notes: JSON.stringify({
-          program: 'zeus',
-          week: zeusWeekNumberRef.current,
-          day: dayNumber,
-        }),
-        created_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,generated_workout_id,exercise_name,set_number' })
-    }
+    // Streak shim into workout_logs so the dashboard's streak counter
+    // picks up Zeus sessions (dashboard reads workout_logs, not ares_session_logs).
+    await supabase.from('workout_logs').upsert({
+      user_id: user.id,
+      generated_workout_id: generatedWorkoutIdRef.current,
+      exercise_name: `Zeus · Week ${zeusWeekNumberRef.current} · Day ${dayNumber}`,
+      set_number: 0,
+      weight_lbs: 0,
+      reps: 0,
+      completed: true,
+      notes: JSON.stringify({
+        program: 'zeus',
+        week: zeusWeekNumberRef.current,
+        day: dayNumber,
+      }),
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,generated_workout_id,exercise_name,set_number' })
 
     // Program cycles indefinitely in 4-week mesos — never "complete".
     setSessionComplete(true)

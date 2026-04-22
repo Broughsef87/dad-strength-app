@@ -187,14 +187,14 @@ export default function Dashboard() {
             .eq('week_number', currentWeek)
           const ids: string[] = (zeusWorkouts ?? []).map((w: { id: string }) => w.id)
           if (ids.length > 0) {
-            const { data: completedLogs } = await supabase
+            const { data: completionRows } = await supabase
               .from('ares_session_logs')
               .select('day_number')
               .eq('user_id', user.id)
               .in('generated_workout_id', ids)
-              .not('completed_at', 'is', null)
+              .eq('log_type', 'session_complete')
             const done = [...new Set(
-              (completedLogs ?? []).map((l: { day_number: number }) => l.day_number),
+              (completionRows ?? []).map((l: { day_number: number }) => l.day_number),
             )] as number[]
             setZeusDoneDays(done.sort())
           } else {

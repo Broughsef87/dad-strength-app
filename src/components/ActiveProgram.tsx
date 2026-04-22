@@ -121,14 +121,14 @@ export default function ActiveProgram() {
           const ids: string[] = (zeusWorkouts ?? []).map((w: { id: string }) => w.id)
           const serverProgress: WeekProgress = {}
           if (ids.length > 0) {
-            const { data: completedLogs } = await supabase
+            const { data: completionRows } = await supabase
               .from('ares_session_logs')
               .select('day_number')
               .eq('user_id', user.id)
               .in('generated_workout_id', ids)
-              .not('completed_at', 'is', null)
+              .eq('log_type', 'session_complete')
             const doneDays = [...new Set(
-              ((completedLogs ?? []) as Array<{ day_number: number }>).map(l => l.day_number),
+              ((completionRows ?? []) as Array<{ day_number: number }>).map(l => l.day_number),
             )]
             for (const d of doneDays) serverProgress[d - 1] = 'complete'
           }
