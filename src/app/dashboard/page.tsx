@@ -174,10 +174,32 @@ export default function Dashboard() {
           equipment: dbProgram.equipment ?? {},
         }
         setActiveProgram(programData)
-        // For Zeus, pick up the server-side done_days so "Start Training"
-        // routes to the right day across devices.
+        // For Zeus, derive done_days from completed log rows rather than
+        // reading user_programs.done_days — the logs are the canonical
+        // record and stay consistent across devices.
         if (dbSlug.startsWith('zeus')) {
-          setZeusDoneDays((dbProgram.done_days ?? []) as number[])
+          const currentWeek = dbProgram.current_week ?? 1
+          const { data: zeusWorkouts } = await supabase
+            .from('generated_workouts')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('program_slug', 'zeus')
+            .eq('week_number', currentWeek)
+          const ids: string[] = (zeusWorkouts ?? []).map((w: { id: string }) => w.id)
+          if (ids.length > 0) {
+            const { data: completedLogs } = await supabase
+              .from('ares_session_logs')
+              .select('day_number')
+              .eq('user_id', user.id)
+              .in('generated_workout_id', ids)
+              .not('completed_at', 'is', null)
+            const done = [...new Set(
+              (completedLogs ?? []).map((l: { day_number: number }) => l.day_number),
+            )] as number[]
+            setZeusDoneDays(done.sort())
+          } else {
+            setZeusDoneDays([])
+          }
         }
         if (typeof window !== 'undefined') {
           localStorage.setItem('dad-strength-active-program', JSON.stringify(programData))

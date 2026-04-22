@@ -107,13 +107,31 @@ export default function ActiveProgram() {
         setProgram(data)
         const key = getWeekKey(new Date())
         setWeekKey(key)
-        // For Zeus, week progress = user_programs.done_days converted to the
-        // WeekProgress shape (0-indexed dayIndex → 'complete'). Server is
-        // the source of truth; the old localStorage is ignored for Zeus.
+        // For Zeus, derive week progress from ares_session_logs.completed_at
+        // rather than reading user_programs.done_days. Logs are the canonical
+        // record and consistent across devices.
         if (dbSlug.startsWith('zeus')) {
-          const doneDays = (dbProgram.done_days ?? []) as number[]
+          const currentWeek = dbProgram.current_week ?? 1
+          const { data: zeusWorkouts } = await supabase
+            .from('generated_workouts')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('program_slug', 'zeus')
+            .eq('week_number', currentWeek)
+          const ids: string[] = (zeusWorkouts ?? []).map((w: { id: string }) => w.id)
           const serverProgress: WeekProgress = {}
-          for (const d of doneDays) serverProgress[d - 1] = 'complete'
+          if (ids.length > 0) {
+            const { data: completedLogs } = await supabase
+              .from('ares_session_logs')
+              .select('day_number')
+              .eq('user_id', user.id)
+              .in('generated_workout_id', ids)
+              .not('completed_at', 'is', null)
+            const doneDays = [...new Set(
+              ((completedLogs ?? []) as Array<{ day_number: number }>).map(l => l.day_number),
+            )]
+            for (const d of doneDays) serverProgress[d - 1] = 'complete'
+          }
           setWeekProgress(serverProgress)
         } else {
           setWeekProgress(loadWeekProgress(key))

@@ -145,9 +145,14 @@ function sweepLegacyZeusCache(): void {
 }
 
 // ── Server-side progression state ──────────────────────────────────────────────
-// Previously tracked in localStorage per-device, which caused phone and desktop
-// to diverge (different weeks, different done-days, different generated workouts).
-// Now the `user_programs` row for Zeus is the single source of truth.
+// user_programs.current_week is the only stored progression value.
+// doneDays is DERIVED from ares_session_logs — a day is "done" iff at
+// least one of its log rows has completed_at set. This kills the
+// duplicate-state problem where done_days and session logs disagreed.
+//
+// (user_programs.done_days is still kept nullable on the table for now
+// but is no longer read or written by this code path. A follow-up
+// migration drops the column.)
 
 interface ZeusProgress {
   weekNumber: number
@@ -159,47 +164,67 @@ async function fetchZeusProgress(
   supabase: any,
   userId: string,
 ): Promise<ZeusProgress> {
-  const { data } = await supabase
+  // Step 1: current_week from user_programs.
+  const { data: prog } = await supabase
     .from('user_programs')
-    .select('current_week, done_days')
+    .select('current_week')
     .eq('user_id', userId)
     .eq('program_slug', 'zeus')
     .eq('status', 'active')
     .maybeSingle()
 
-  if (!data) {
-    // No active Zeus program yet — default to week 1, no days done.
-    return { weekNumber: 1, doneDays: [] }
-  }
-  return {
-    weekNumber: data.current_week ?? 1,
-    doneDays: (data.done_days ?? []) as number[],
-  }
+  const weekNumber = prog?.current_week ?? 1
+
+  // Step 2: doneDays = distinct day_numbers with at least one completed log
+  // in the current week. Joined to generated_workouts so we can scope by
+  // program_slug + week_number reliably even if older logs have NULL fields.
+  const { data: workouts } = await supabase
+    .from('generated_workouts')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('program_slug', 'zeus')
+    .eq('week_number', weekNumber)
+
+  const workoutIds: string[] = (workouts ?? []).map((w: { id: string }) => w.id)
+  if (workoutIds.length === 0) return { weekNumber, doneDays: [] }
+
+  const { data: completedLogs } = await supabase
+    .from('ares_session_logs')
+    .select('day_number')
+    .eq('user_id', userId)
+    .in('generated_workout_id', workoutIds)
+    .not('completed_at', 'is', null)
+
+  const doneDaysSet = new Set<number>(
+    (completedLogs ?? []).map((l: { day_number: number }) => l.day_number),
+  )
+  return { weekNumber, doneDays: [...doneDaysSet].sort() }
 }
 
 async function markZeusDayDoneRemote(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
-  dayNumber: number,
+  _dayNumber: number,
 ): Promise<ZeusProgress> {
-  // Read current state
+  // Completion = at least one log with completed_at for this (workout, day).
+  // That's guaranteed by the logMetcon / logStrengthSets handlers marking
+  // completed_at on their rows. So this function's job is now just to
+  // check whether all 4 days of the current week are done and advance
+  // current_week if so.
   const current = await fetchZeusProgress(supabase, userId)
-  const doneDays = [...new Set([...current.doneDays, dayNumber])].sort()
-
-  // If all 4 days done, advance to next week and reset done_days.
-  const shouldAdvance = doneDays.length >= 4
-  const nextWeek = shouldAdvance ? current.weekNumber + 1 : current.weekNumber
-  const nextDone = shouldAdvance ? [] : doneDays
-
+  const shouldAdvance = current.doneDays.length >= 4
+  if (!shouldAdvance) return current
+  const nextWeek = current.weekNumber + 1
   await supabase
     .from('user_programs')
-    .update({ current_week: nextWeek, done_days: nextDone })
+    .update({ current_week: nextWeek })
     .eq('user_id', userId)
     .eq('program_slug', 'zeus')
     .eq('status', 'active')
 
-  return { weekNumber: nextWeek, doneDays: nextDone }
+  // New week → done_days starts empty by definition (no logs yet in that week).
+  return { weekNumber: nextWeek, doneDays: [] }
 }
 
 // ── Recent log fetcher ─────────────────────────────────────────────────────────
