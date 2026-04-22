@@ -1106,6 +1106,11 @@ export default function ZeusWorkoutPage() {
 
   const generatedWorkoutIdRef = useRef<string | null>(null)
   const zeusWeekNumberRef = useRef<number>(1)
+  // In-flight guard for generation. React StrictMode double-invokes effects
+  // in development and causes two simultaneous /api/ai/zeus-generate calls
+  // (which were racing each other and producing divergent workouts). This
+  // ref gates the network request so only one can be in flight at a time.
+  const generationInFlightRef = useRef<boolean>(false)
 
   // ── Load or generate the day ────────────────────────────────────────────────
 
@@ -1173,7 +1178,11 @@ export default function ZeusWorkoutPage() {
       return
     }
 
-    // Generate fresh — fetch progression context first so the AI can program intelligently
+    // Generate fresh — fetch progression context first so the AI can program intelligently.
+    // In-flight guard: prevents React StrictMode double-effect + device race from
+    // firing two /api/ai/zeus-generate calls for the same (user, week, day).
+    if (generationInFlightRef.current) return
+    generationInFlightRef.current = true
     setGenerating(true)
     try {
       const { recentLogs, recentMetcons } = await fetchZeusRecentLogs(supabase, user.id, zeusWeekNumber)
@@ -1202,7 +1211,18 @@ export default function ZeusWorkoutPage() {
           olympicLifts1RMs,
         }),
       })
-      if (!res.ok) throw new Error('Generation failed')
+      if (!res.ok) {
+        // Surface the backend detail so we can see what actually broke
+        // (e.g. AI_NoObjectGeneratedError, ZodError, timeout, rate limit).
+        let detail = ''
+        try {
+          const body = await res.json()
+          detail = body?.detail?.message ?? body?.error ?? `HTTP ${res.status}`
+        } catch {
+          detail = `HTTP ${res.status}`
+        }
+        throw new Error(`Generation failed — ${detail}`)
+      }
       const { day: generated } = await res.json() as { day: ZeusDay }
       setDay(generated)
 
@@ -1254,11 +1274,13 @@ export default function ZeusWorkoutPage() {
         setSessionLogs(logs)
       }
     } catch (e) {
-      setError('Could not generate workout. Check your connection and try again.')
+      const msg = e instanceof Error ? e.message : 'Unknown error'
+      setError(msg)
       console.error(e)
     } finally {
       setGenerating(false)
       setLoading(false)
+      generationInFlightRef.current = false
     }
   }, [user, dayNumber, supabase])
 
