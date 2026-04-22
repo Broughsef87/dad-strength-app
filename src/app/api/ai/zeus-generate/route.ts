@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { groq } from '@ai-sdk/groq'
-import { generateObject } from 'ai'
+import { generateText } from 'ai'
 import { z } from 'zod'
 import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
@@ -86,6 +86,82 @@ const ZeusDaySchema = z.object({
   metcon: ZeusMetconSchema,
   coachNote: z.string().describe('2-3 short sentences, MAX 60 words total.'),
 })
+
+// ── Model-output preprocessor ─────────────────────────────────────────────────
+// Coerces common model mistakes into schema-valid shape before Zod runs.
+// The model is nondeterministic; rather than trust API-level strict-schema
+// enforcement (which didn't pan out across Groq models), we normalize here.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function preprocessModelOutput(raw: any, dayNumber: number): any {
+  if (!raw || typeof raw !== 'object') return raw
+
+  // metcon: empty object / undefined → null for days 2 & 3; wrong-shape → null
+  if (dayNumber === 2 || dayNumber === 3) {
+    raw.metcon = null
+  } else {
+    // For days 1 & 4, if metcon is missing, empty, or malformed, leave it for
+    // Zod to complain about (null isn't acceptable on those days per template).
+    if (raw.metcon && typeof raw.metcon === 'object' && Object.keys(raw.metcon).length === 0) {
+      raw.metcon = null // empty object → let Zod flag it
+    }
+  }
+
+  // Coerce string numbers to real numbers on block fields.
+  if (Array.isArray(raw.blocks)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const b of raw.blocks) {
+      if (!b || typeof b !== 'object') continue
+      // Numeric coercion for commonly-stringified fields
+      for (const f of ['sets', 'repsMin', 'repsMax', 'targetRir', 'timeCapMinutes', 'durationMinutes'] as const) {
+        if (typeof b[f] === 'string' && b[f] !== '') {
+          const n = Number(b[f])
+          b[f] = Number.isFinite(n) ? n : null
+        }
+        if (b[f] === undefined) b[f] = null
+      }
+      // Nullable string fields — coerce undefined → null
+      for (const f of ['variation', 'climbScheme', 'skillFocus', 'scaledOption', 'progressionNote', 'intervalScheme', 'machine', 'effortCue', 'coachCue', 'notes'] as const) {
+        if (b[f] === undefined) b[f] = null
+      }
+      // accessoryExercises defaulting
+      if (b.accessoryExercises === undefined) b.accessoryExercises = null
+      if (Array.isArray(b.accessoryExercises)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const a of b.accessoryExercises) {
+          if (a && typeof a === 'object' && a.note === undefined) a.note = null
+        }
+      }
+    }
+  }
+
+  // Coerce metcon nested fields if present
+  if (raw.metcon && typeof raw.metcon === 'object') {
+    const m = raw.metcon
+    if (m.name === undefined) m.name = null
+    if (m.timeCapMinutes === undefined) m.timeCapMinutes = null
+    if (m.rounds === undefined) m.rounds = null
+    if (m.coachNote === undefined) m.coachNote = null
+    if (Array.isArray(m.movements)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const mv of m.movements) {
+        if (!mv || typeof mv !== 'object') continue
+        for (const f of ['reps', 'calories'] as const) {
+          if (typeof mv[f] === 'string') {
+            const n = Number(mv[f])
+            mv[f] = Number.isFinite(n) ? n : null
+          }
+          if (mv[f] === undefined) mv[f] = null
+        }
+        for (const f of ['distance', 'weightRx', 'scaledOption'] as const) {
+          if (mv[f] === undefined) mv[f] = null
+        }
+      }
+    }
+  }
+
+  return raw
+}
 
 // ── POST handler ──────────────────────────────────────────────────────────────
 
@@ -261,15 +337,21 @@ PROGRESSION for this week (${weekInMeso} of 4):
         throw new Error('Generation exceeded retry budget — skipping retry to avoid 504')
       }
       try {
-        // Strict mode for Kimi (attempt 0), JSON mode fallback for Llama
-        // (attempt 1) since Llama isn't on the structured-outputs whitelist.
-        const useStrict = attempt === 0
-        const result = await generateObject({
+        // Switched from generateObject to generateText + manual parse + Zod
+        // validate. Pure strict-schema approaches (generateObject + Groq
+        // structuredOutputs) kept either hitting "model doesn't support
+        // json_schema" on some models or "response did not match schema"
+        // on others. This hand-rolled path lets us PREPROCESS the model's
+        // output (coerce metcon:{} → null, drop extra fields, etc.) before
+        // validation, which is the only robust answer when the model is
+        // nondeterministic. Trade: slightly more code, zero model-quirk
+        // weirdness.
+        const result = await generateText({
           model: groq(MODELS[attempt]),
           providerOptions: {
-            groq: { structuredOutputs: useStrict },
+            groq: { responseFormat: { type: 'json_object' } },
           },
-          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output a valid JSON object matching the schema. Every field must be present; use null (not omitted) for fields that don't apply to the current block (e.g. sets/repsMin on an olympic block).
+          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output a valid JSON object matching the schema. Every field must be present; use null (not omitted) for fields that don't apply to the current block (e.g. sets/repsMin on an olympic block). For Days 2 and 3, metcon MUST be null (not an object). For Days 1 and 4, metcon MUST be a populated object.
 
 ATHLETE CONTEXT
 - Strong barbell foundation: squats, deadlifts, Olympic lifts are home turf.
@@ -329,14 +411,43 @@ MONO CONDITIONING (Days 2 and 3)
 FIELD REQUIREMENTS
 - strength_a/strength_b: format sets_reps. MUST include sets, repsMin, repsMax. If a single rep target, set repsMin = repsMax.
 - gymnastics blocks: MUST include scaledOption.
-- metcon: populated for Days 1 and 4; null for Days 2 and 3.`,
+- metcon: populated for Days 1 and 4; null for Days 2 and 3.
+
+Return ONLY the JSON object — no prose wrapper, no markdown code fences.`,
           prompt,
-          schema: ZeusDaySchema,
         })
-        // Inject server-determined fields that the AI schema no longer
-        // includes — saves output tokens, keeps the shape the UI expects.
+
+        // Parse the raw text. Strip ```json fences if the model added them.
+        let rawText = result.text.trim()
+        rawText = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(rawText)
+        } catch (parseErr) {
+          console.error(`Zeus attempt ${attempt + 1}: JSON parse failed`, {
+            head: rawText.slice(0, 400),
+            err: parseErr,
+          })
+          throw new Error('Model returned invalid JSON')
+        }
+
+        // Preprocess to coerce common model mistakes into schema-valid shape
+        // BEFORE Zod validation. This is the whole point of the generateText
+        // path — we can be forgiving about what the model produces.
+        const preprocessed = preprocessModelOutput(parsed, dayNumber)
+
+        const validated = ZeusDaySchema.safeParse(preprocessed)
+        if (!validated.success) {
+          console.error(`Zeus attempt ${attempt + 1}: Zod validation failed`, {
+            head: rawText.slice(0, 600),
+            zodIssues: validated.error.issues.slice(0, 8),
+          })
+          throw new Error(`Response did not match schema: ${validated.error.issues[0]?.message ?? 'unknown'}`)
+        }
+
+        // Inject server-determined fields that the AI schema doesn't include.
         day = {
-          ...result.object,
+          ...validated.data,
           weekNumber,
           mesoNumber,
           weekInMeso,
