@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server'
-import { google } from '@ai-sdk/google'
+import { groq } from '@ai-sdk/groq'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
-// Vercel Pro allows up to 300s. We need headroom for Flash's thinking budget
-// plus a single retry. 120s is the sweet spot — enough slack without
-// letting a truly hung call hang forever.
-export const maxDuration = 120
+// Groq responses are sub-second typical. 60s is plenty of headroom for a
+// retry. (Gemini previously needed 120s due to thinking-mode latency and
+// preview-model rate queuing — those are no longer in the picture.)
+export const maxDuration = 60
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
@@ -241,34 +241,23 @@ PROGRESSION for this week (${weekInMeso} of 4):
   ${weekInMeso === 1 ? 'Week 1 — RIR 3 baseline, establish the pattern.' : ''}${weekInMeso === 2 ? 'Week 2 — RIR 2, add a small amount of load or a rep.' : ''}${weekInMeso === 3 ? 'Week 3 — RIR 1, push hard, close to failure on last set.' : ''}${weekInMeso === 4 ? 'Week 4 — PEAK. Top heavy single/double OR a push-to-failure set on the last set.' : ''}
 `.trim()
 
-    // Two-stage model strategy for speed + reliability:
-    //   Attempt 1: gemini-2.5-flash — GA, fast, works on brand-new Google
-    //              Cloud projects without preview-access provisioning.
-    //   Attempt 2: gemini-2.5-flash — same model for the retry so a Zod flake
-    //              on the first attempt gets a second chance rather than
-    //              changing the surface area of what's failing.
-    // We moved away from gemini-3.1-flash-lite-preview because preview
-    // models often have tighter per-project rate limits that bit us on the
-    // post-breach fresh project.
-    // Skip the retry if we've already burned >60s to avoid 504ing the client.
-    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash'] as const
+    // Groq model strategy:
+    //   Attempt 1: llama-3.3-70b-versatile — strongest JSON/tool-use model,
+    //              still sub-second on Groq's infra.
+    //   Attempt 2: openai/gpt-oss-120b — harder-hitting fallback if the
+    //              Llama attempt flakes on schema validation.
+    // Moved off Gemini entirely after the post-breach Google Cloud project
+    // ended up tier-0 with "high demand" throttling.
+    const MODELS = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b'] as const
     const startTime = Date.now()
     let day: unknown
     for (let attempt = 0; attempt < 2; attempt++) {
-      if (attempt === 1 && Date.now() - startTime > 60_000) {
+      if (attempt === 1 && Date.now() - startTime > 40_000) {
         throw new Error('Generation exceeded retry budget — skipping retry to avoid 504')
       }
       try {
         const result = await generateObject({
-          model: google(MODELS[attempt]),
-          // Disable Gemini's "thinking" step — the Zod schema enforces
-          // structure, we don't need chain-of-thought reasoning. Thinking
-          // adds 10-30s of latency and was the main 504 cause.
-          providerOptions: {
-            google: {
-              thinkingConfig: { thinkingBudget: 0 },
-            },
-          },
+          model: groq(MODELS[attempt]),
           system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness.
 
 ATHLETE CONTEXT
