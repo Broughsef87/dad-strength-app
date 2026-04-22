@@ -266,7 +266,7 @@ PROGRESSION for this week (${weekInMeso} of 4):
           providerOptions: {
             groq: { structuredOutputs: false },
           },
-          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness.
+          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output MUST be a single valid JSON object matching the provided schema — no prose wrapper.
 
 ATHLETE CONTEXT
 - Strong barbell foundation: squats, deadlifts, Olympic lifts are home turf.
