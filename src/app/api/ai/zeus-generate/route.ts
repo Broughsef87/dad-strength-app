@@ -107,11 +107,38 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
     }
   }
 
+  // Coerce blockType + format enums. Models frequently return title-case
+  // or loosely-spelled variants that don't match Zod's literal enum values.
+  const BLOCK_TYPE_MAP: Record<string, string> = {
+    'strength_a': 'strength_a', 'strengtha': 'strength_a', 'strength a': 'strength_a', 'strength': 'strength_a',
+    'strength_b': 'strength_b', 'strengthb': 'strength_b', 'strength b': 'strength_b',
+    'olympic': 'olympic', 'oly': 'olympic', 'olympic_lift': 'olympic', 'oly_lift': 'olympic',
+    'gymnastics': 'gymnastics', 'gymnastic': 'gymnastics', 'gym': 'gymnastics', 'skill': 'gymnastics',
+    'conditioning': 'conditioning', 'mono': 'conditioning', 'monostructural': 'conditioning', 'cardio': 'conditioning',
+    'accessory': 'accessory', 'accessories': 'accessory', 'accessory_circuit': 'accessory',
+  }
+  const FORMAT_MAP: Record<string, string> = {
+    'sets_reps': 'sets_reps', 'sets reps': 'sets_reps', 'setsreps': 'sets_reps',
+    'build_to_max': 'build_to_max', 'build to max': 'build_to_max', 'buildtomax': 'build_to_max',
+    'skill_time': 'skill_time', 'skill time': 'skill_time', 'skilltime': 'skill_time',
+    'intervals': 'intervals', 'interval': 'intervals',
+    'steady_state': 'steady_state', 'steady state': 'steady_state', 'steadystate': 'steady_state', 'distance': 'steady_state',
+    'accessory_circuit': 'accessory_circuit', 'accessory circuit': 'accessory_circuit',
+  }
+  const coerceEnum = (val: unknown, map: Record<string, string>): string | unknown => {
+    if (typeof val !== 'string') return val
+    const normalized = val.trim().toLowerCase().replace(/[-]+/g, '_').replace(/\s+/g, '_')
+    return map[normalized] ?? map[normalized.replace(/_/g, '')] ?? val
+  }
+
   // Coerce string numbers to real numbers on block fields.
   if (Array.isArray(raw.blocks)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const b of raw.blocks) {
       if (!b || typeof b !== 'object') continue
+      // Enum coercion
+      b.blockType = coerceEnum(b.blockType, BLOCK_TYPE_MAP)
+      b.format = coerceEnum(b.format, FORMAT_MAP)
       // Numeric coercion for commonly-stringified fields
       for (const f of ['sets', 'repsMin', 'repsMax', 'targetRir', 'timeCapMinutes', 'durationMinutes'] as const) {
         if (typeof b[f] === 'string' && b[f] !== '') {
@@ -138,6 +165,19 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
   // Coerce metcon nested fields if present
   if (raw.metcon && typeof raw.metcon === 'object') {
     const m = raw.metcon
+    const METCON_FORMAT_MAP: Record<string, string> = {
+      'for_time': 'for_time', 'fortime': 'for_time', 'for time': 'for_time', 'ft': 'for_time',
+      'amrap': 'amrap',
+      'emom': 'emom',
+      'for_time_with_cap': 'for_time_with_cap', 'for time with cap': 'for_time_with_cap',
+    }
+    const TIME_DOMAIN_MAP: Record<string, string> = {
+      'short': 'short',
+      'medium': 'medium', 'med': 'medium',
+      'long': 'long',
+    }
+    m.format = coerceEnum(m.format, METCON_FORMAT_MAP)
+    m.timeDomain = coerceEnum(m.timeDomain, TIME_DOMAIN_MAP)
     if (m.name === undefined) m.name = null
     if (m.timeCapMinutes === undefined) m.timeCapMinutes = null
     if (m.rounds === undefined) m.rounds = null
