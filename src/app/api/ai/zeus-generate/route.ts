@@ -242,13 +242,11 @@ PROGRESSION for this week (${weekInMeso} of 4):
 `.trim()
 
     // Groq model strategy:
-    //   Attempt 1: llama-3.3-70b-versatile — strongest JSON/tool-use model,
-    //              still sub-second on Groq's infra.
-    //   Attempt 2: openai/gpt-oss-120b — harder-hitting fallback if the
-    //              Llama attempt flakes on schema validation.
-    // Moved off Gemini entirely after the post-breach Google Cloud project
-    // ended up tier-0 with "high demand" throttling.
-    const MODELS = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b'] as const
+    //   Attempt 1: openai/gpt-oss-120b — OpenAI's open-weights model, known
+    //              for strict JSON schema compliance. Ideal for generateObject.
+    //   Attempt 2: llama-3.3-70b-versatile — fast fallback if OSS is having
+    //              a bad day. Less reliable on JSON schemas but still usable.
+    const MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'] as const
     const startTime = Date.now()
     let day: unknown
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -445,6 +443,7 @@ FIELD REQUIREMENTS
           responseBody?: string
           url?: string
           cause?: unknown
+          text?: string        // NoObjectGeneratedError carries the raw model output here
         }
         console.error(
           `Zeus generation attempt ${attempt + 1} failed:`,
@@ -454,6 +453,10 @@ FIELD REQUIREMENTS
             statusCode: e?.statusCode,
             url: e?.url,
             responseBody: e?.responseBody?.slice(0, 800),
+            // On AI_NoObjectGeneratedError, `text` is the model's raw output
+            // that failed schema validation. Essential for diagnosing "the
+            // model returned JSON that doesn't match the schema" failures.
+            rawText: e?.text?.slice(0, 2000),
             cause: e?.cause ? String(e.cause).slice(0, 400) : undefined,
           }),
         )
