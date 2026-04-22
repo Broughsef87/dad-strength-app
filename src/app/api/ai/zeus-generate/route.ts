@@ -478,11 +478,25 @@ Return ONLY the JSON object — no prose wrapper, no markdown code fences.`,
 
         const validated = ZeusDaySchema.safeParse(preprocessed)
         if (!validated.success) {
+          const issueDetail = validated.error.issues.slice(0, 5).map(i => ({
+            path: i.path.join('.'),
+            message: i.message,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            received: (i as any).received,
+          }))
           console.error(`Zeus attempt ${attempt + 1}: Zod validation failed`, {
             head: rawText.slice(0, 600),
-            zodIssues: validated.error.issues.slice(0, 8),
+            zodIssues: issueDetail,
           })
-          throw new Error(`Response did not match schema: ${validated.error.issues[0]?.message ?? 'unknown'}`)
+          // Attach diagnostic context to the thrown error so the outer
+          // catch can surface it in the 500 response body.
+          const err = new Error(
+            `Response did not match schema at ${issueDetail[0]?.path}: ${issueDetail[0]?.message}` +
+            (issueDetail[0]?.received !== undefined ? ` (got: ${JSON.stringify(issueDetail[0].received)})` : ''),
+          ) as Error & { zodIssues?: unknown; rawTextHead?: string }
+          err.zodIssues = issueDetail
+          err.rawTextHead = rawText.slice(0, 1200)
+          throw err
         }
 
         // Inject server-determined fields that the AI schema doesn't include.
@@ -633,6 +647,8 @@ Return ONLY the JSON object — no prose wrapper, no markdown code fences.`,
       responseBody?: string
       url?: string
       cause?: unknown
+      zodIssues?: unknown
+      rawTextHead?: string
     }
     const detail = {
       name: err?.name ?? 'Error',
@@ -641,6 +657,8 @@ Return ONLY the JSON object — no prose wrapper, no markdown code fences.`,
       url: err?.url,
       responseBody: err?.responseBody?.slice(0, 800),
       cause: err?.cause ? String(err.cause).slice(0, 400) : undefined,
+      zodIssues: err?.zodIssues,
+      rawTextHead: err?.rawTextHead,
     }
     console.error('Zeus Generate Error:', JSON.stringify(detail))
     return NextResponse.json(
