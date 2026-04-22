@@ -1140,10 +1140,18 @@ export default function ZeusWorkoutPage() {
     if (cached) {
       try {
         const parsed = JSON.parse(cached)
-        setDay(parsed.day)
-        generatedWorkoutIdRef.current = parsed.generatedWorkoutId ?? null
-        // Hydrate session logs even from the cached path so blocks prefill.
-        if (parsed.generatedWorkoutId) {
+        // A cache without a generatedWorkoutId is WORSE than no cache — it
+        // makes loadDay return early, blocks fall through, and every log
+        // write silently no-ops (because generatedWorkoutIdRef stays null).
+        // This happens when an earlier generate flow crashed between writing
+        // the local cache and inserting into generated_workouts. Discard it
+        // and fall through to the DB path so we can find the real row.
+        if (!parsed.generatedWorkoutId) {
+          console.warn('[zeus-hydrate] cache had null generatedWorkoutId — discarding and falling through to DB')
+          localStorage.removeItem(cacheKey)
+        } else {
+          setDay(parsed.day)
+          generatedWorkoutIdRef.current = parsed.generatedWorkoutId
           const logs = await fetchSessionLogs(supabase, parsed.generatedWorkoutId)
           console.log('[zeus-hydrate] via CACHE path:', {
             cachedWorkoutId: parsed.generatedWorkoutId,
@@ -1151,11 +1159,9 @@ export default function ZeusWorkoutPage() {
             blockNames: [...new Set(logs.map(l => l.block_name))],
           })
           setSessionLogs(logs)
-        } else {
-          console.warn('[zeus-hydrate] CACHE had no generatedWorkoutId — skipping log fetch')
+          setLoading(false)
+          return
         }
-        setLoading(false)
-        return
       } catch (e) {
         console.warn('[zeus-hydrate] cache parse failed:', e)
       }
