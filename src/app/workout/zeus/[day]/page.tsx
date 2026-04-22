@@ -1356,7 +1356,7 @@ export default function ZeusWorkoutPage() {
       completed_at: s.done ? nowIso : null,
     }))
     const res = await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
-    reportLogError(`strength_sets[${block.name}]`, res)
+    reportLogResult(`strength_sets[${block.name}]`, res)
   }
 
   const logOlympic = async (block: ZeusBlock, peakWeight: number, notes: string) => {
@@ -1375,7 +1375,7 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
-    reportLogError(`olympic[${block.name}]`, res)
+    reportLogResult(`olympic[${block.name}]`, res)
   }
 
   const logGymnastics = async (block: ZeusBlock, notes: string) => {
@@ -1393,7 +1393,7 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
-    reportLogError(`gymnastics[${block.name}]`, res)
+    reportLogResult(`gymnastics[${block.name}]`, res)
   }
 
   const logConditioning = async (block: ZeusBlock, result: string, notes: string) => {
@@ -1410,7 +1410,7 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
-    reportLogError(`conditioning[${block.name}]`, res)
+    reportLogResult(`conditioning[${block.name}]`, res)
   }
 
   const logAccessory = async (block: ZeusBlock, notes: string) => {
@@ -1427,7 +1427,7 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
-    reportLogError(`accessory[${block.name}]`, res)
+    reportLogResult(`accessory[${block.name}]`, res)
   }
 
   const logMetcon = async (metcon: ZeusMetcon, result: MetconResult) => {
@@ -1453,7 +1453,7 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
-    reportLogError(`metcon[${metcon.name ?? 'MetCon'}]`, res)
+    reportLogResult(`metcon[${metcon.name ?? 'MetCon'}]`, res)
     void completeSession()
   }
 
