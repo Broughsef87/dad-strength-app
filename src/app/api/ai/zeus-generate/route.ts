@@ -181,9 +181,14 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
       // Enum coercion
       b.blockType = coerceEnum(b.blockType, BLOCK_TYPE_MAP)
       b.format = coerceEnum(b.format, FORMAT_MAP)
-      // Default format from blockType if missing
-      if (!b.format && typeof b.blockType === 'string' && DEFAULT_FORMAT_FOR_TYPE[b.blockType]) {
-        b.format = DEFAULT_FORMAT_FOR_TYPE[b.blockType]
+      // If format is missing OR still not a valid enum after coercion,
+      // derive it from blockType. This catches the case where the model
+      // emits "reps" or "strength" or omits format entirely.
+      const VALID_FORMATS = new Set(['sets_reps', 'build_to_max', 'skill_time', 'intervals', 'steady_state', 'accessory_circuit'])
+      if (typeof b.blockType === 'string' && DEFAULT_FORMAT_FOR_TYPE[b.blockType]) {
+        if (!b.format || typeof b.format !== 'string' || !VALID_FORMATS.has(b.format)) {
+          b.format = DEFAULT_FORMAT_FOR_TYPE[b.blockType]
+        }
       }
       // Numeric coercion for commonly-stringified fields
       for (const f of ['sets', 'repsMin', 'repsMax', 'targetRir', 'timeCapMinutes', 'durationMinutes'] as const) {
