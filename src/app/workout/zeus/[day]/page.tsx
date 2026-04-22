@@ -1296,11 +1296,24 @@ export default function ZeusWorkoutPage() {
   // set_number: null and still collapse to one row per block.
   const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
 
+  // Surface upsert failures loudly. The most common silent failure is
+  // PostgREST error 42P10 "no matching unique constraint" which means
+  // the step-1 SQL migration wasn't run against the DB. Log it so it's
+  // visible in the browser console immediately instead of looking like
+  // success with nothing persisted.
+  type SbErrorResult = { error?: { code?: string; message?: string; details?: string } | null }
+  const reportLogError = (tag: string, res: SbErrorResult | null | undefined) => {
+    if (res?.error) {
+      console.error(`[zeus-log] ${tag} upsert FAILED:`, {
+        code: res.error.code,
+        message: res.error.message,
+        details: res.error.details,
+      })
+    }
+  }
+
   const logStrengthSets = async (block: ZeusBlock, sets: StrengthSetLog[]) => {
     if (!user || !generatedWorkoutIdRef.current) return
-    // Upsert ALL sets (including in-progress ones with partial data) so the
-    // UI can rehydrate exactly what the athlete typed. completed_at is set
-    // only on sets marked "Done".
     const nowIso = new Date().toISOString()
     const rows = sets.map(s => ({
       user_id: user.id,
@@ -1316,12 +1329,13 @@ export default function ZeusWorkoutPage() {
       completed: s.done,
       completed_at: s.done ? nowIso : null,
     }))
-    await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
+    const res = await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
+    reportLogError(`strength_sets[${block.name}]`, res)
   }
 
   const logOlympic = async (block: ZeusBlock, peakWeight: number, notes: string) => {
     if (!user || !generatedWorkoutIdRef.current) return
-    await supabase.from('ares_session_logs').upsert({
+    const res = await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
@@ -1335,11 +1349,12 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
+    reportLogError(`olympic[${block.name}]`, res)
   }
 
   const logGymnastics = async (block: ZeusBlock, notes: string) => {
     if (!user || !generatedWorkoutIdRef.current) return
-    await supabase.from('ares_session_logs').upsert({
+    const res = await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
@@ -1352,11 +1367,12 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
+    reportLogError(`gymnastics[${block.name}]`, res)
   }
 
   const logConditioning = async (block: ZeusBlock, result: string, notes: string) => {
     if (!user || !generatedWorkoutIdRef.current) return
-    await supabase.from('ares_session_logs').upsert({
+    const res = await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
@@ -1368,11 +1384,12 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
+    reportLogError(`conditioning[${block.name}]`, res)
   }
 
   const logAccessory = async (block: ZeusBlock, notes: string) => {
     if (!user || !generatedWorkoutIdRef.current) return
-    await supabase.from('ares_session_logs').upsert({
+    const res = await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
@@ -1384,6 +1401,7 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
+    reportLogError(`accessory[${block.name}]`, res)
   }
 
   const logMetcon = async (metcon: ZeusMetcon, result: MetconResult) => {
@@ -1391,7 +1409,7 @@ export default function ZeusWorkoutPage() {
     const timeSeconds = result.timeMinutes || result.timeSeconds
       ? (parseInt(result.timeMinutes || '0') * 60) + parseInt(result.timeSeconds || '0')
       : null
-    await supabase.from('ares_session_logs').upsert({
+    const res = await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
@@ -1409,6 +1427,7 @@ export default function ZeusWorkoutPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
+    reportLogError(`metcon[${metcon.name ?? 'MetCon'}]`, res)
     void completeSession()
   }
 
