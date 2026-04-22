@@ -261,14 +261,16 @@ PROGRESSION for this week (${weekInMeso} of 4):
       try {
         const result = await generateObject({
           model: groq(MODELS[attempt]),
-          // Strict mode ON: the Zod schema was rewritten to use .nullable()
-          // on all non-required fields (rather than .optional()), which
-          // Groq's strict JSON-schema compilation accepts. This guarantees
-          // the model's output matches the schema before we even validate.
+          // JSON mode (structuredOutputs=false). Groq's strict json_schema
+          // mode only works on a whitelisted subset of models — our
+          // openai/gpt-oss-120b primary isn't on it. JSON mode works
+          // everywhere, and with the schema rewritten to use .nullable()
+          // (every field present, optionals represented as null), the
+          // model has a simple target to hit and Zod validates after.
           providerOptions: {
-            groq: { structuredOutputs: true },
+            groq: { structuredOutputs: false },
           },
-          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output a JSON object matching the schema; use null for fields that don't apply to the current block (e.g. sets/repsMin on an olympic block).
+          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output a valid JSON object matching the schema. Every field must be present; use null (not omitted) for fields that don't apply to the current block (e.g. sets/repsMin on an olympic block).
 
 ATHLETE CONTEXT
 - Strong barbell foundation: squats, deadlifts, Olympic lifts are home turf.
