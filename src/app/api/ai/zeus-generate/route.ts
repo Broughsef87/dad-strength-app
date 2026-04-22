@@ -131,14 +131,60 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
     return map[normalized] ?? map[normalized.replace(/_/g, '')] ?? val
   }
 
+  // Default format based on blockType when the model didn't supply one.
+  const DEFAULT_FORMAT_FOR_TYPE: Record<string, string> = {
+    strength_a: 'sets_reps',
+    strength_b: 'sets_reps',
+    olympic: 'build_to_max',
+    gymnastics: 'skill_time',
+    conditioning: 'intervals',
+    accessory: 'accessory_circuit',
+  }
+
+  // Rename common model field-name variants to schema field names.
+  // The model frequently uses "type" instead of "blockType", "exercise"
+  // instead of "name", etc. Schema is strict on names — we rename before
+  // validation.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renameFields = (obj: any, aliases: Record<string, string>) => {
+    if (!obj || typeof obj !== 'object') return
+    for (const [from, to] of Object.entries(aliases)) {
+      if (obj[from] !== undefined && obj[to] === undefined) {
+        obj[to] = obj[from]
+        delete obj[from]
+      }
+    }
+    // Also strip stray hyphen prefixes (model sometimes writes "-notes").
+    for (const k of Object.keys(obj)) {
+      if (k.startsWith('-') && obj[k.slice(1)] === undefined) {
+        obj[k.slice(1)] = obj[k]
+        delete obj[k]
+      }
+    }
+  }
+  const BLOCK_ALIASES = {
+    type: 'blockType',
+    block_type: 'blockType',
+    exercise: 'name',
+    exercise_name: 'name',
+    movement: 'name',
+  }
+  const ACCESSORY_ALIASES = { exercise: 'name', movement: 'name', exercise_name: 'name' }
+
   // Coerce string numbers to real numbers on block fields.
   if (Array.isArray(raw.blocks)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const b of raw.blocks) {
       if (!b || typeof b !== 'object') continue
+      // Rename misfields first
+      renameFields(b, BLOCK_ALIASES)
       // Enum coercion
       b.blockType = coerceEnum(b.blockType, BLOCK_TYPE_MAP)
       b.format = coerceEnum(b.format, FORMAT_MAP)
+      // Default format from blockType if missing
+      if (!b.format && typeof b.blockType === 'string' && DEFAULT_FORMAT_FOR_TYPE[b.blockType]) {
+        b.format = DEFAULT_FORMAT_FOR_TYPE[b.blockType]
+      }
       // Numeric coercion for commonly-stringified fields
       for (const f of ['sets', 'repsMin', 'repsMax', 'targetRir', 'timeCapMinutes', 'durationMinutes'] as const) {
         if (typeof b[f] === 'string' && b[f] !== '') {
@@ -151,12 +197,14 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
       for (const f of ['variation', 'climbScheme', 'skillFocus', 'scaledOption', 'progressionNote', 'intervalScheme', 'machine', 'effortCue', 'coachCue', 'notes'] as const) {
         if (b[f] === undefined) b[f] = null
       }
-      // accessoryExercises defaulting
+      // accessoryExercises defaulting + field renaming
       if (b.accessoryExercises === undefined) b.accessoryExercises = null
       if (Array.isArray(b.accessoryExercises)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const a of b.accessoryExercises) {
-          if (a && typeof a === 'object' && a.note === undefined) a.note = null
+          if (!a || typeof a !== 'object') continue
+          renameFields(a, ACCESSORY_ALIASES)
+          if (a.note === undefined) a.note = null
         }
       }
     }
@@ -186,6 +234,7 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const mv of m.movements) {
         if (!mv || typeof mv !== 'object') continue
+        renameFields(mv, ACCESSORY_ALIASES)
         for (const f of ['reps', 'calories'] as const) {
           if (typeof mv[f] === 'string') {
             const n = Number(mv[f])
@@ -391,7 +440,22 @@ PROGRESSION for this week (${weekInMeso} of 4):
           providerOptions: {
             groq: { responseFormat: { type: 'json_object' } },
           },
-          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output a valid JSON object matching the schema. Every field must be present; use null (not omitted) for fields that don't apply to the current block (e.g. sets/repsMin on an olympic block). For Days 2 and 3, metcon MUST be null (not an object). For Days 1 and 4, metcon MUST be a populated object.
+          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output a valid JSON object matching the schema.
+
+EXACT FIELD NAMES (use these, no aliases):
+- Each block object MUST have keys: "blockType", "name", "format".
+  NOT "type", NOT "exercise", NOT "movement".
+- Each block MAY have: sets, repsMin, repsMax, targetRir, variation,
+  climbScheme, timeCapMinutes, durationMinutes, skillFocus, scaledOption,
+  progressionNote, intervalScheme, machine, effortCue, accessoryExercises,
+  coachCue, notes.
+- Each accessoryExercises item MUST have keys: "name", "sets", "repsMin", "repsMax", "note".
+  NOT "exercise".
+- Each metcon movement MUST have key: "name". NOT "exercise".
+- Every field must be present; use null (not omitted) for fields that don't
+  apply to the current block (e.g. sets/repsMin on an olympic block).
+- For Days 2 and 3, metcon MUST be null. For Days 1 and 4, metcon MUST be a
+  populated object.
 
 ATHLETE CONTEXT
 - Strong barbell foundation: squats, deadlifts, Olympic lifts are home turf.
