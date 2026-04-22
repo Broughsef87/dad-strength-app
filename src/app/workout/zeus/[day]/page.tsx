@@ -1391,6 +1391,31 @@ export default function ZeusWorkoutPage() {
   const completeSession = async () => {
     if (!user) return
     await markZeusDayDoneRemote(supabase, user.id, dayNumber)
+
+    // Write a streak-counter shim row into workout_logs so the dashboard's
+    // streak and history views pick up Zeus sessions. Dashboard counts
+    // distinct days with completed=true from workout_logs. Zeus never
+    // wrote there before, so Zeus sessions were invisible to the streak.
+    // Keyed with set_number=0 + identifying exercise_name so the upsert
+    // is idempotent via workout_logs_generated_unique_set.
+    if (generatedWorkoutIdRef.current) {
+      await supabase.from('workout_logs').upsert({
+        user_id: user.id,
+        generated_workout_id: generatedWorkoutIdRef.current,
+        exercise_name: `Zeus · Week ${zeusWeekNumberRef.current} · Day ${dayNumber}`,
+        set_number: 0,
+        weight_lbs: 0,
+        reps: 0,
+        completed: true,
+        notes: JSON.stringify({
+          program: 'zeus',
+          week: zeusWeekNumberRef.current,
+          day: dayNumber,
+        }),
+        created_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,generated_workout_id,exercise_name,set_number' })
+    }
+
     // Program cycles indefinitely in 4-week mesos — never "complete".
     setSessionComplete(true)
   }
