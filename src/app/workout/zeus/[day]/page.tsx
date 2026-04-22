@@ -1145,11 +1145,20 @@ export default function ZeusWorkoutPage() {
         // Hydrate session logs even from the cached path so blocks prefill.
         if (parsed.generatedWorkoutId) {
           const logs = await fetchSessionLogs(supabase, parsed.generatedWorkoutId)
+          console.log('[zeus-hydrate] via CACHE path:', {
+            cachedWorkoutId: parsed.generatedWorkoutId,
+            logsReturned: logs.length,
+            blockNames: [...new Set(logs.map(l => l.block_name))],
+          })
           setSessionLogs(logs)
+        } else {
+          console.warn('[zeus-hydrate] CACHE had no generatedWorkoutId — skipping log fetch')
         }
         setLoading(false)
         return
-      } catch { /* fall through to DB check */ }
+      } catch (e) {
+        console.warn('[zeus-hydrate] cache parse failed:', e)
+      }
     }
 
     // Check generated_workouts table — scoped to this user (Zeus is a personal program).
@@ -1175,6 +1184,14 @@ export default function ZeusWorkoutPage() {
       localStorage.setItem(cacheKey, JSON.stringify({ day: workoutData.day, generatedWorkoutId: existing.id }))
       // Hydrate previously-entered log rows for this workout.
       const logs = await fetchSessionLogs(supabase, existing.id)
+      console.log('[zeus-hydrate] via DB path:', {
+        workoutId: existing.id,
+        week: zeusWeekNumber,
+        day: dayNumber,
+        generatedWorkoutsRowsFound: existingRows?.length ?? 0,
+        logsReturned: logs.length,
+        blockNames: [...new Set(logs.map(l => l.block_name))],
+      })
       setSessionLogs(logs)
       setLoading(false)
       return
@@ -1296,24 +1313,33 @@ export default function ZeusWorkoutPage() {
   // set_number: null and still collapse to one row per block.
   const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
 
-  // Surface upsert failures loudly. The most common silent failure is
-  // PostgREST error 42P10 "no matching unique constraint" which means
-  // the step-1 SQL migration wasn't run against the DB. Log it so it's
-  // visible in the browser console immediately instead of looking like
-  // success with nothing persisted.
+  // Diagnostic wrapper. Logs every log attempt with enough detail to tell
+  // whether the write fired, succeeded, failed, or was skipped due to
+  // missing user/workoutId. Once the logger is confirmed stable these
+  // console.log lines should be pared back to errors-only.
   type SbErrorResult = { error?: { code?: string; message?: string; details?: string } | null }
-  const reportLogError = (tag: string, res: SbErrorResult | null | undefined) => {
+  const reportLogResult = (tag: string, res: SbErrorResult | null | undefined) => {
     if (res?.error) {
       console.error(`[zeus-log] ${tag} upsert FAILED:`, {
         code: res.error.code,
         message: res.error.message,
         details: res.error.details,
       })
+    } else {
+      console.log(`[zeus-log] ${tag} upsert ok`)
     }
   }
 
+  const reportSkip = (tag: string) => {
+    console.warn(`[zeus-log] ${tag} SKIPPED —`, {
+      hasUser: Boolean(user),
+      hasGeneratedWorkoutId: Boolean(generatedWorkoutIdRef.current),
+      generatedWorkoutId: generatedWorkoutIdRef.current,
+    })
+  }
+
   const logStrengthSets = async (block: ZeusBlock, sets: StrengthSetLog[]) => {
-    if (!user || !generatedWorkoutIdRef.current) return
+    if (!user || !generatedWorkoutIdRef.current) { reportSkip(`strength_sets[${block.name}]`); return }
     const nowIso = new Date().toISOString()
     const rows = sets.map(s => ({
       user_id: user.id,
