@@ -258,6 +258,14 @@ PROGRESSION for this week (${weekInMeso} of 4):
       try {
         const result = await generateObject({
           model: groq(MODELS[attempt]),
+          // Disable Groq's strict structured-output mode. Strict mode
+          // requires every optional Zod field to be listed in `required`
+          // as nullable, which our schema isn't (and shouldn't be). Falling
+          // back to plain JSON mode — the provider still sends the schema
+          // to the model and the AI SDK still validates with Zod after.
+          providerOptions: {
+            groq: { structuredOutputs: false },
+          },
           system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness.
 
 ATHLETE CONTEXT
