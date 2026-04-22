@@ -989,11 +989,14 @@ export default function AresWorkoutPage() {
 
   // ── Log handlers ────────────────────────────────────────────────────────────
 
+  // Unique key matches ares_session_logs_session_block_set_unique.
+  const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
+
   const logStrengthSets = async (block: AresBlock, sets: StrengthSetLog[]) => {
-    if (!user || !program) return
-    const doneSets = sets.filter(s => s.done)
-    if (!doneSets.length) return
-    const rows = doneSets.map(s => ({
+    if (!user || !program || !generatedWorkoutIdRef.current) return
+    // Upsert ALL sets so in-progress entries persist. completed_at set only on "Done".
+    const nowIso = new Date().toISOString()
+    const rows = sets.map(s => ({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: aresWeekNumberRef.current,
@@ -1001,70 +1004,81 @@ export default function AresWorkoutPage() {
       log_type: 'strength_set' as const,
       block_name: block.name,
       set_number: s.setIndex + 1,
-      weight_lbs: parseFloat(s.weight) || null,
-      reps: parseInt(s.reps) || null,
+      weight_lbs: s.weight === '' ? null : parseFloat(s.weight) || null,
+      reps: s.reps === '' ? null : parseInt(s.reps) || null,
       rir_actual: s.rir,
-      completed: true,
+      completed: s.done,
+      completed_at: s.done ? nowIso : null,
     }))
-    await supabase.from('ares_session_logs').insert(rows)
+    await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
   }
 
   const logBuildToMax = async (block: AresBlock, peakWeight: number, notes: string) => {
-    if (!user || !program) return
-    await supabase.from('ares_session_logs').insert({
+    if (!user || !program || !generatedWorkoutIdRef.current) return
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'build_to_max',
       block_name: block.name,
+      set_number: null,
       peak_weight_lbs: peakWeight,
       climb_scheme: block.climbScheme,
       notes,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
   }
 
   const logSkillWork = async (block: AresBlock, notes: string) => {
-    if (!user || !program) return
-    await supabase.from('ares_session_logs').insert({
+    if (!user || !program || !generatedWorkoutIdRef.current) return
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'skill_work',
       block_name: block.name,
+      set_number: null,
       skill_duration_minutes: block.durationMinutes,
       notes,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
   }
 
   const logMonostructural = async (block: AresBlock, data: { distanceMeters?: number; durationSeconds?: number; notes: string }) => {
-    if (!user || !program) return
-    await supabase.from('ares_session_logs').insert({
+    if (!user || !program || !generatedWorkoutIdRef.current) return
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'monostructural',
       block_name: block.name,
+      set_number: null,
       distance_meters: data.distanceMeters,
       duration_seconds: data.durationSeconds,
       notes: data.notes,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
   }
 
   const logMetcon = async (metcon: AresMetcon, result: MetconResult) => {
-    if (!user || !program) return
+    if (!user || !program || !generatedWorkoutIdRef.current) return
     const timeSeconds = result.timeMinutes || result.timeSeconds
       ? (parseInt(result.timeMinutes || '0') * 60) + parseInt(result.timeSeconds || '0')
       : null
-    await supabase.from('ares_session_logs').insert({
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: aresWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'metcon',
       block_name: metcon.name ?? 'MetCon',
+      set_number: null,
       metcon_format: metcon.format,
       metcon_time_seconds: timeSeconds,
       metcon_rounds: result.rounds ? parseInt(result.rounds) : null,
@@ -1072,7 +1086,9 @@ export default function AresWorkoutPage() {
       metcon_rx: result.rx,
       time_cap_hit: result.timeCapHit,
       notes: result.notes || null,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
     setSessionComplete(true)
     markAresDayDone(dayNumber)
   }

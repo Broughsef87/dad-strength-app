@@ -1176,11 +1176,19 @@ export default function ZeusWorkoutPage() {
 
   // ── Log handlers ────────────────────────────────────────────────────────────
 
+  // Unique key for every upsert: (user_id, generated_workout_id, block_name, set_number)
+  // The unique index on ares_session_logs uses NULLS NOT DISTINCT, so blocks
+  // without numbered sets (olympic, skill, mono, metcon) can safely pass
+  // set_number: null and still collapse to one row per block.
+  const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
+
   const logStrengthSets = async (block: ZeusBlock, sets: StrengthSetLog[]) => {
-    if (!user) return
-    const doneSets = sets.filter(s => s.done)
-    if (!doneSets.length) return
-    const rows = doneSets.map(s => ({
+    if (!user || !generatedWorkoutIdRef.current) return
+    // Upsert ALL sets (including in-progress ones with partial data) so the
+    // UI can rehydrate exactly what the athlete typed. completed_at is set
+    // only on sets marked "Done".
+    const nowIso = new Date().toISOString()
+    const rows = sets.map(s => ({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
@@ -1188,81 +1196,95 @@ export default function ZeusWorkoutPage() {
       log_type: 'strength_set' as const,
       block_name: block.name,
       set_number: s.setIndex + 1,
-      weight_lbs: parseFloat(s.weight) || null,
-      reps: parseInt(s.reps) || null,
+      weight_lbs: s.weight === '' ? null : parseFloat(s.weight) || null,
+      reps: s.reps === '' ? null : parseInt(s.reps) || null,
       rir_actual: s.rir,
-      completed: true,
+      completed: s.done,
+      completed_at: s.done ? nowIso : null,
     }))
-    await supabase.from('ares_session_logs').insert(rows)
+    await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
   }
 
   const logOlympic = async (block: ZeusBlock, peakWeight: number, notes: string) => {
-    if (!user) return
-    await supabase.from('ares_session_logs').insert({
+    if (!user || !generatedWorkoutIdRef.current) return
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'build_to_max',
       block_name: block.name,
+      set_number: null,
       peak_weight_lbs: peakWeight,
       climb_scheme: block.climbScheme,
       notes,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
   }
 
   const logGymnastics = async (block: ZeusBlock, notes: string) => {
-    if (!user) return
-    await supabase.from('ares_session_logs').insert({
+    if (!user || !generatedWorkoutIdRef.current) return
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'skill_work',
       block_name: block.name,
+      set_number: null,
       skill_duration_minutes: block.durationMinutes,
       notes,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
   }
 
   const logConditioning = async (block: ZeusBlock, result: string, notes: string) => {
-    if (!user) return
-    await supabase.from('ares_session_logs').insert({
+    if (!user || !generatedWorkoutIdRef.current) return
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'monostructural',
       block_name: block.name,
+      set_number: null,
       notes: result ? `${result}${notes ? ' · ' + notes : ''}` : notes || null,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
   }
 
   const logAccessory = async (block: ZeusBlock, notes: string) => {
-    if (!user) return
-    await supabase.from('ares_session_logs').insert({
+    if (!user || !generatedWorkoutIdRef.current) return
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'skill_work',
       block_name: block.name,
+      set_number: null,
       notes: notes || null,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
   }
 
   const logMetcon = async (metcon: ZeusMetcon, result: MetconResult) => {
-    if (!user) return
+    if (!user || !generatedWorkoutIdRef.current) return
     const timeSeconds = result.timeMinutes || result.timeSeconds
       ? (parseInt(result.timeMinutes || '0') * 60) + parseInt(result.timeSeconds || '0')
       : null
-    await supabase.from('ares_session_logs').insert({
+    await supabase.from('ares_session_logs').upsert({
       user_id: user.id,
       generated_workout_id: generatedWorkoutIdRef.current,
       week_number: zeusWeekNumberRef.current,
       day_number: dayNumber,
       log_type: 'metcon',
       block_name: metcon.name ?? 'MetCon',
+      set_number: null,
       metcon_format: metcon.format,
       metcon_time_seconds: timeSeconds,
       metcon_rounds: result.rounds ? parseInt(result.rounds) : null,
@@ -1270,7 +1292,9 @@ export default function ZeusWorkoutPage() {
       metcon_rx: result.rx,
       time_cap_hit: result.timeCapHit,
       notes: result.notes || null,
-    })
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: UPSERT_CONFLICT })
     void completeSession()
   }
 
