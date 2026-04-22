@@ -1253,6 +1253,11 @@ export default function ZeusWorkoutPage() {
           week_number: zeusWeekNumber,
           day_number: dayNumber,
           workout_data: { day: generated },
+          // Legacy NOT NULL column from the original schema. Payload
+          // moved to workout_data; pass an empty array to satisfy the
+          // constraint. A migration makes this column nullable going
+          // forward.
+          exercises: [],
         })
         .select('id')
         .single()
