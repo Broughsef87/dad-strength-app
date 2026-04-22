@@ -1101,7 +1101,9 @@ export default function ZeusWorkoutPage() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sessionComplete, setSessionComplete] = useState(false)
-  const [programDone, setProgramDone] = useState(false)
+  // Zeus cycles indefinitely through 4-week mesos — no "program done" state.
+  // Preserved only as a const so downstream refs don't break; always false.
+  const programDone = false
   const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
 
   const generatedWorkoutIdRef = useRef<string | null>(null)
