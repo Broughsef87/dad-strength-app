@@ -416,11 +416,24 @@ FIELD REQUIREMENTS
         }
         break
       } catch (err) {
-        const e = err as { name?: string; message?: string }
+        const e = err as {
+          name?: string
+          message?: string
+          statusCode?: number
+          responseBody?: string
+          url?: string
+          cause?: unknown
+        }
         console.error(
           `Zeus generation attempt ${attempt + 1} failed:`,
-          e?.name,
-          e?.message,
+          JSON.stringify({
+            name: e?.name,
+            message: e?.message,
+            statusCode: e?.statusCode,
+            url: e?.url,
+            responseBody: e?.responseBody?.slice(0, 800),
+            cause: e?.cause ? String(e.cause).slice(0, 400) : undefined,
+          }),
         )
         if (attempt === 1) throw err
       }
@@ -429,12 +442,24 @@ FIELD REQUIREMENTS
     return NextResponse.json({ day })
 
   } catch (error) {
-    // Surface the actual error so we can diagnose Flash schema flakes
-    const err = error as { name?: string; message?: string; cause?: unknown }
+    // Surface the actual error so we can diagnose auth / rate-limit / schema issues.
+    // AI_APICallError from @ai-sdk/google carries statusCode + responseBody which
+    // is the only thing that tells us 401 vs 403 vs 429 vs 500.
+    const err = error as {
+      name?: string
+      message?: string
+      statusCode?: number
+      responseBody?: string
+      url?: string
+      cause?: unknown
+    }
     const detail = {
       name: err?.name ?? 'Error',
       message: err?.message ?? String(error),
-      cause: err?.cause ? String(err.cause) : undefined,
+      statusCode: err?.statusCode,
+      url: err?.url,
+      responseBody: err?.responseBody?.slice(0, 800),
+      cause: err?.cause ? String(err.cause).slice(0, 400) : undefined,
     }
     console.error('Zeus Generate Error:', JSON.stringify(detail))
     return NextResponse.json(
