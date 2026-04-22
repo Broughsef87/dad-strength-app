@@ -134,7 +134,8 @@ function sweepLegacyZeusCache(): void {
         toRemove.push(key)
         continue
       }
-      if (key.startsWith('zeus-wod-') && !key.startsWith('zeus-wod-v3-')) {
+      // All zeus-wod-* localStorage caches are obsolete — we DB-first now.
+      if (key.startsWith('zeus-wod-')) {
         toRemove.push(key)
       }
     }
@@ -1122,97 +1123,61 @@ export default function ZeusWorkoutPage() {
     // Nuke pre-v2 legacy localStorage keys on first load — no-op after.
     sweepLegacyZeusCache()
 
-    // Fetch current week from server (single source of truth across devices).
+    // Fetch current week from the server. Single source of truth across devices.
     const progress = await fetchZeusProgress(supabase, user.id)
     const zeusWeekNumber = progress.weekNumber
     zeusWeekNumberRef.current = zeusWeekNumber
-    // If the server says this day is already done, skip straight to the
-    // "Session Done" screen — even on a fresh tab / different device.
     if (progress.doneDays.includes(dayNumber)) {
       setSessionComplete(true)
     }
 
-    // Cache key bumped to v2 to auto-invalidate any stale caches from the
-    // pre-server-state era. v2 caches are still only a local perf hint —
-    // DB is canonical.
-    const cacheKey = `zeus-wod-v3-w${zeusWeekNumber}-d${dayNumber}`
-    const cached = localStorage.getItem(cacheKey)
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached)
-        // A cache without a generatedWorkoutId is WORSE than no cache — it
-        // makes loadDay return early, blocks fall through, and every log
-        // write silently no-ops (because generatedWorkoutIdRef stays null).
-        // This happens when an earlier generate flow crashed between writing
-        // the local cache and inserting into generated_workouts. Discard it
-        // and fall through to the DB path so we can find the real row.
-        if (!parsed.generatedWorkoutId) {
-          console.warn('[zeus-hydrate] cache had null generatedWorkoutId — discarding and falling through to DB')
-          localStorage.removeItem(cacheKey)
-        } else {
-          setDay(parsed.day)
-          generatedWorkoutIdRef.current = parsed.generatedWorkoutId
-          const logs = await fetchSessionLogs(supabase, parsed.generatedWorkoutId)
-          console.log('[zeus-hydrate] via CACHE path:', {
-            cachedWorkoutId: parsed.generatedWorkoutId,
-            logsReturned: logs.length,
-            blockNames: [...new Set(logs.map(l => l.block_name))],
-          })
-          setSessionLogs(logs)
-          setLoading(false)
-          return
-        }
-      } catch (e) {
-        console.warn('[zeus-hydrate] cache parse failed:', e)
+    // ── DB-first load. No localStorage cache of workouts.
+    //
+    // Flow:
+    //   1. Look up generated_workouts for (user, zeus, week, day).
+    //      Hit? Use it, fetch logs, done.
+    //   2. Miss? Generate, insert, fetch logs, done.
+    //
+    // The previous 3-layer cache (localStorage + DB + AI retry + dedupe
+    // detector + in-flight lock) was the source of every persistence bug.
+    // This replaces it with straight line code.
+
+    const loadExisting = async (): Promise<boolean> => {
+      const { data: existingRows, error: selectError } = await supabase
+        .from('generated_workouts')
+        .select('id, workout_data')
+        .eq('user_id', user.id)
+        .eq('program_slug', 'zeus')
+        .eq('week_number', zeusWeekNumber)
+        .eq('day_number', dayNumber)
+        .order('id', { ascending: true })
+        .limit(1)
+      if (selectError) {
+        console.error('[zeus] generated_workouts select failed:', selectError)
+        return false
       }
-    }
-
-    // Check generated_workouts table — scoped to this user (Zeus is a personal program).
-    // Use order+limit(1) instead of maybeSingle() so that if duplicate rows happen
-    // to exist (from the device race before the unique index was in place), BOTH
-    // devices deterministically pick the SAME row — the one with the lowest id.
-    // This converges phone and desktop even if the DB hasn't been deduped yet.
-    const { data: existingRows } = await supabase
-      .from('generated_workouts')
-      .select('id, workout_data')
-      .eq('user_id', user.id)
-      .eq('program_slug', 'zeus')
-      .eq('week_number', zeusWeekNumber)
-      .eq('day_number', dayNumber)
-      .order('id', { ascending: true })
-      .limit(1)
-
-    const existing = existingRows?.[0]
-    if (existing) {
+      const existing = existingRows?.[0]
+      if (!existing) return false
       const workoutData = existing.workout_data as { day: ZeusDay }
       setDay(workoutData.day)
       generatedWorkoutIdRef.current = existing.id
-      localStorage.setItem(cacheKey, JSON.stringify({ day: workoutData.day, generatedWorkoutId: existing.id }))
-      // Hydrate previously-entered log rows for this workout.
       const logs = await fetchSessionLogs(supabase, existing.id)
-      console.log('[zeus-hydrate] via DB path:', {
-        workoutId: existing.id,
-        week: zeusWeekNumber,
-        day: dayNumber,
-        generatedWorkoutsRowsFound: existingRows?.length ?? 0,
-        logsReturned: logs.length,
-        blockNames: [...new Set(logs.map(l => l.block_name))],
-      })
       setSessionLogs(logs)
+      return true
+    }
+
+    if (await loadExisting()) {
       setLoading(false)
       return
     }
 
-    // Generate fresh — fetch progression context first so the AI can program intelligently.
-    // In-flight guard: prevents React StrictMode double-effect + device race from
-    // firing two /api/ai/zeus-generate calls for the same (user, week, day).
+    // No existing row — generate and persist.
     if (generationInFlightRef.current) return
     generationInFlightRef.current = true
     setGenerating(true)
     try {
       const { recentLogs, recentMetcons } = await fetchZeusRecentLogs(supabase, user.id, zeusWeekNumber)
 
-      // Olympic 1RMs from calibration — seeds Olympic session intensity
       let olympicLifts1RMs: Record<string, number> | undefined
       try {
         const raw = localStorage.getItem('dad-strength-one-rep-maxes')
@@ -1237,8 +1202,6 @@ export default function ZeusWorkoutPage() {
         }),
       })
       if (!res.ok) {
-        // Surface the backend detail so we can see what actually broke
-        // (e.g. AI_NoObjectGeneratedError, ZodError, timeout, rate limit).
         let detail = ''
         try {
           const body = await res.json()
@@ -1249,14 +1212,9 @@ export default function ZeusWorkoutPage() {
         throw new Error(`Generation failed — ${detail}`)
       }
       const { day: generated } = await res.json() as { day: ZeusDay }
-      setDay(generated)
-      console.log('[zeus-generate] AI returned workout — persisting to DB')
 
-      // NOTE: We intentionally do NOT pre-cache with null generatedWorkoutId.
-      // That caused a stuck state where a silently-failing insert left the
-      // cache pointing at nothing, forcing a regenerate on every refresh.
-      // Cache is now written ONLY after a row is confirmed in the DB.
-
+      // Insert the new workout. If a row already exists (another tab/device
+      // raced us) Postgres 23505's, and we fall back to reading theirs.
       const { data: saved, error: insertError } = await supabase
         .from('generated_workouts')
         .insert({
@@ -1270,34 +1228,19 @@ export default function ZeusWorkoutPage() {
         .single()
 
       if (saved) {
+        setDay(generated)
         generatedWorkoutIdRef.current = saved.id
-        localStorage.setItem(cacheKey, JSON.stringify({ day: generated, generatedWorkoutId: saved.id }))
-        console.log('[zeus-generate] inserted generated_workouts row:', saved.id)
+        console.log('[zeus] inserted generated_workouts row', saved.id)
       } else if ((insertError as { code?: string } | null)?.code === '23505') {
-        // Duplicate insert — fetch the lowest-id row for this (user, week, day)
-        // so both devices converge on the same canonical row.
-        const { data: canonicalRows } = await supabase
-          .from('generated_workouts')
-          .select('id, workout_data')
-          .eq('user_id', user.id)
-          .eq('program_slug', 'zeus')
-          .eq('week_number', zeusWeekNumber)
-          .eq('day_number', dayNumber)
-          .order('id', { ascending: true })
-          .limit(1)
-
-        const canonical = canonicalRows?.[0]
-        if (canonical) {
-          const canonicalData = canonical.workout_data as { day: ZeusDay }
-          setDay(canonicalData.day)
-          generatedWorkoutIdRef.current = canonical.id
-          localStorage.setItem(cacheKey, JSON.stringify({ day: canonicalData.day, generatedWorkoutId: canonical.id }))
+        const foundExisting = await loadExisting()
+        if (!foundExisting) {
+          throw new Error('Generated workout conflicts but no canonical row found — possible RLS issue')
         }
-      }
-      // If any logs were already written by another device, pick them up.
-      if (generatedWorkoutIdRef.current) {
-        const logs = await fetchSessionLogs(supabase, generatedWorkoutIdRef.current)
-        setSessionLogs(logs)
+      } else {
+        // Real insert error — surface it loudly, don't silently render a
+        // generated workout that isn't persisted.
+        console.error('[zeus] generated_workouts insert failed:', insertError)
+        throw new Error(`Workout generated but persist failed: ${insertError?.message ?? 'unknown'}`)
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Unknown error'
