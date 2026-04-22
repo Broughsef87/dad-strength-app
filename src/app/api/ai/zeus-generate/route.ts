@@ -354,9 +354,34 @@ FIELD REQUIREMENTS
             repsMax?: number
             coachCue?: string
             notes?: string
+            skillFocus?: string
+            scaledOption?: string
+            progressionNote?: string
+            effortCue?: string
           }>
           coachNote?: string
         }
+
+        // Sanitize AI-generated text:
+        //   1. Strip label prefixes like "PROGRESSIONNOTE:", "NOTES:" etc.
+        //      that Flash sometimes prepends when it decides to concatenate
+        //      multiple fields into one string.
+        //   2. Aggressive truncation — ~100-char caps, not 200-400. Anything
+        //      longer than one sentence is too long for the mobile UI.
+        const LABEL_PREFIX_RE = /^(?:\s*(?:PROGRESSION\s*NOTE|COACH\s*(?:CUE|NOTE)|SKILL\s*FOCUS|SCALED\s*OPTION|EFFORT\s*CUE|NOTES?)\s*:\s*)+/i
+        const INLINE_LABEL_RE = /\s*(?:PROGRESSION\s*NOTE|COACH\s*(?:CUE|NOTE)|SKILL\s*FOCUS|SCALED\s*OPTION|EFFORT\s*CUE|NOTES?)\s*:\s*/gi
+        const clean = (s: string | undefined, cap: number): string | undefined => {
+          if (!s) return s
+          let out = s.replace(LABEL_PREFIX_RE, '').trim()
+          // Second pass: strip label tokens that appear mid-string (Flash
+          // concatenates multiple fields with "NOTES: ... PROGRESSIONNOTE: ...").
+          // Keep the first segment only.
+          const firstLabelIdx = out.search(INLINE_LABEL_RE)
+          if (firstLabelIdx > 0) out = out.slice(0, firstLabelIdx).trim()
+          if (out.length > cap) out = out.slice(0, cap - 1).trimEnd() + '…'
+          return out
+        }
+
         for (const b of d.blocks ?? []) {
           if (
             (b.blockType === 'strength_a' || b.blockType === 'strength_b') &&
@@ -372,18 +397,14 @@ FIELD REQUIREMENTS
               b.repsMax = b.repsMin
             }
           }
-          // Truncate runaway cue/notes — hard stop at 200 chars for cue,
-          // 120 for notes. Flash occasionally ignores the length caps.
-          if (b.coachCue && b.coachCue.length > 200) {
-            b.coachCue = b.coachCue.slice(0, 197).trimEnd() + '…'
-          }
-          if (b.notes && b.notes.length > 120) {
-            b.notes = b.notes.slice(0, 117).trimEnd() + '…'
-          }
+          b.coachCue = clean(b.coachCue, 120)
+          b.notes = clean(b.notes, 80)
+          b.skillFocus = clean(b.skillFocus, 140)
+          b.scaledOption = clean(b.scaledOption, 100)
+          b.progressionNote = clean(b.progressionNote, 120)
+          b.effortCue = clean(b.effortCue, 100)
         }
-        if (d.coachNote && d.coachNote.length > 400) {
-          d.coachNote = d.coachNote.slice(0, 397).trimEnd() + '…'
-        }
+        d.coachNote = clean(d.coachNote, 250)
         // Dedupe check — detect Flash programming the same movement in
         // multiple blocks. If found, retry (attempt 0) or flag (attempt 1).
         const dTyped = day as { blocks?: Array<{ name?: string }> }
