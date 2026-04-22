@@ -1106,6 +1106,11 @@ export default function ZeusWorkoutPage() {
   // Preserved only as a const so downstream refs don't break; always false.
   const programDone = false
   const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
+  // Write-failure banner. When any log upsert fails, this populates and
+  // renders a red banner at the top so the user sees it instead of assuming
+  // the data persisted. Auto-clears 6s after a subsequent successful write.
+  const [logWriteError, setLogWriteError] = useState<string | null>(null)
+  const logWriteErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const generatedWorkoutIdRef = useRef<string | null>(null)
   const zeusWeekNumberRef = useRef<number>(1)
@@ -1275,8 +1280,14 @@ export default function ZeusWorkoutPage() {
         message: res.error.message,
         details: res.error.details,
       })
+      const shortMsg = res.error.message ?? res.error.code ?? 'Unknown'
+      setLogWriteError(`Save failed on ${tag}: ${shortMsg}`)
     } else {
       console.log(`[zeus-log] ${tag} upsert ok`)
+      // Clear any previous error a few seconds after a successful write —
+      // so the athlete doesn't stare at a stale banner forever.
+      if (logWriteErrorTimerRef.current) clearTimeout(logWriteErrorTimerRef.current)
+      logWriteErrorTimerRef.current = setTimeout(() => setLogWriteError(null), 6000)
     }
   }
 
@@ -1286,6 +1297,9 @@ export default function ZeusWorkoutPage() {
       hasGeneratedWorkoutId: Boolean(generatedWorkoutIdRef.current),
       generatedWorkoutId: generatedWorkoutIdRef.current,
     })
+    setLogWriteError(
+      `Cannot save ${tag}: workout not yet persisted. Refresh the page.`,
+    )
   }
 
   const logStrengthSets = async (block: ZeusBlock, sets: StrengthSetLog[]) => {
@@ -1578,6 +1592,21 @@ export default function ZeusWorkoutPage() {
           <BarChart2 size={16} className="text-blue-400" />
         </div>
       </header>
+
+      {/* Write-failure banner — surfaces log-upsert errors so the athlete
+          sees them instead of assuming a write persisted silently. */}
+      {logWriteError && (
+        <div className="sticky top-[60px] z-10 bg-red-500/10 border-b border-red-500/40 px-4 py-2 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-300 flex-1">{logWriteError}</p>
+          <button
+            onClick={() => setLogWriteError(null)}
+            className="text-[10px] uppercase tracking-wider text-red-300/80 hover:text-red-200 px-2"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
         {/* Session intent */}
