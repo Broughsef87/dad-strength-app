@@ -1119,6 +1119,11 @@ export default function ZeusWorkoutPage() {
     const progress = await fetchZeusProgress(supabase, user.id)
     const zeusWeekNumber = progress.weekNumber
     zeusWeekNumberRef.current = zeusWeekNumber
+    // If the server says this day is already done, skip straight to the
+    // "Session Done" screen — even on a fresh tab / different device.
+    if (progress.doneDays.includes(dayNumber)) {
+      setSessionComplete(true)
+    }
 
     // Cache key bumped to v2 to auto-invalidate any stale caches from the
     // pre-server-state era. v2 caches are still only a local perf hint —
