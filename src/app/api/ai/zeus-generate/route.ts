@@ -13,32 +13,37 @@ export const maxDuration = 60
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
+// NOTE: All "not-always-present" fields are .nullable() rather than .optional().
+// Groq's strict structured-output mode requires every property to appear in
+// `required`; the nullable-not-optional shape satisfies that while letting
+// the model return `null` for fields that don't apply to the current block.
+
 const ZeusBlockSchema = z.object({
   blockType: z.enum(['strength_a', 'strength_b', 'olympic', 'gymnastics', 'conditioning', 'accessory']),
   name: z.string().describe('Exercise name, e.g. "Back Squat", "Hang Power Clean + Push Jerk", "Toes-to-Bar"'),
   format: z.enum(['sets_reps', 'build_to_max', 'skill_time', 'intervals', 'steady_state', 'accessory_circuit']),
 
   // sets_reps
-  sets: z.number().optional(),
-  repsMin: z.number().optional(),
-  repsMax: z.number().optional(),
-  targetRir: z.number().optional().describe('0-3 reps in reserve. Only for strength_a and strength_b blocks.'),
-  variation: z.string().optional().describe('Movement variation: "Paused", "Box", "Tempo 3-1-0", "Deficit", "Pin", "Banded", etc.'),
+  sets: z.number().nullable(),
+  repsMin: z.number().nullable(),
+  repsMax: z.number().nullable(),
+  targetRir: z.number().nullable().describe('0-3 reps in reserve. Only for strength_a and strength_b blocks.'),
+  variation: z.string().nullable().describe('Movement variation: "Paused", "Box", "Tempo 3-1-0", "Deficit", "Pin", "Banded", etc.'),
 
   // build_to_max (oly)
-  climbScheme: z.string().optional().describe('Rep scheme to build to heavy. Use "3-2-2-1-1" for a heavy single, "3-3-2-2-2" for a heavy double. NEVER start with a set of 5+ reps.'),
-  timeCapMinutes: z.number().optional(),
+  climbScheme: z.string().nullable().describe('Rep scheme to build to heavy. Use "3-2-2-1-1" for a heavy single, "3-3-2-2-2" for a heavy double. NEVER start with a set of 5+ reps.'),
+  timeCapMinutes: z.number().nullable(),
 
   // skill_time (gymnastics)
-  durationMinutes: z.number().optional(),
-  skillFocus: z.string().optional().describe('Specific focus, e.g. "T2B kip timing — hip-to-bar lat engagement, 5-7 per set"'),
-  scaledOption: z.string().optional().describe('Conservative scale for rusty athlete: e.g. "Hanging knee raise" or "Box pike push-up"'),
-  progressionNote: z.string().optional().describe('What this develops toward in future weeks'),
+  durationMinutes: z.number().nullable(),
+  skillFocus: z.string().nullable().describe('Specific focus, e.g. "T2B kip timing — hip-to-bar lat engagement, 5-7 per set"'),
+  scaledOption: z.string().nullable().describe('Conservative scale for rusty athlete: e.g. "Hanging knee raise" or "Box pike push-up"'),
+  progressionNote: z.string().nullable().describe('What this develops toward in future weeks'),
 
   // intervals / conditioning
-  intervalScheme: z.string().optional().describe('e.g. "6×3 min @85% / 2 min rest" or "8×200m / 60s rest"'),
-  machine: z.string().optional().describe('"Row", "Bike", "Run", "Free Runner"'),
-  effortCue: z.string().optional().describe('Pacing cue, e.g. "Uncomfortable but controlled — stay aerobic"'),
+  intervalScheme: z.string().nullable().describe('e.g. "6×3 min @85% / 2 min rest" or "8×200m / 60s rest"'),
+  machine: z.string().nullable().describe('"Row", "Bike", "Run", "Free Runner"'),
+  effortCue: z.string().nullable().describe('Pacing cue, e.g. "Uncomfortable but controlled — stay aerobic"'),
 
   // accessory_circuit
   accessoryExercises: z.array(z.object({
@@ -46,29 +51,29 @@ const ZeusBlockSchema = z.object({
     sets: z.number(),
     repsMin: z.number(),
     repsMax: z.number(),
-    note: z.string().optional(),
-  })).optional(),
+    note: z.string().nullable(),
+  })).nullable(),
 
-  coachCue: z.string().optional().describe('One technical or mental cue for this block'),
-  notes: z.string().optional(),
+  coachCue: z.string().nullable().describe('One technical or mental cue for this block'),
+  notes: z.string().nullable(),
 })
 
 const ZeusMetconSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().nullable(),
   format: z.enum(['for_time', 'amrap', 'emom', 'for_time_with_cap']),
   timeDomain: z.enum(['short', 'medium', 'long']).describe('short <10min, medium 10-20min, long 20-30min'),
-  timeCapMinutes: z.number().optional(),
+  timeCapMinutes: z.number().nullable(),
   description: z.string().describe('Whiteboard-style prescription. E.g. "AMRAP 12\\n5 Power Cleans (185/135 lb)\\n10 Box Jumps (24/20)\\n15 Cal Row"'),
   movements: z.array(z.object({
     name: z.string(),
-    reps: z.number().optional(),
-    calories: z.number().optional(),
-    distance: z.string().optional(),
-    weightRx: z.string().optional().describe('e.g. "185/135 lb", "bodyweight"'),
-    scaledOption: z.string().optional(),
+    reps: z.number().nullable(),
+    calories: z.number().nullable(),
+    distance: z.string().nullable(),
+    weightRx: z.string().nullable().describe('e.g. "185/135 lb", "bodyweight"'),
+    scaledOption: z.string().nullable(),
   })),
-  rounds: z.number().optional(),
-  coachNote: z.string().optional(),
+  rounds: z.number().nullable(),
+  coachNote: z.string().nullable(),
 }).nullable()
 
 // Schema only asks AI for content it must generate — server fills in
@@ -256,15 +261,14 @@ PROGRESSION for this week (${weekInMeso} of 4):
       try {
         const result = await generateObject({
           model: groq(MODELS[attempt]),
-          // Disable Groq's strict structured-output mode. Strict mode
-          // requires every optional Zod field to be listed in `required`
-          // as nullable, which our schema isn't (and shouldn't be). Falling
-          // back to plain JSON mode — the provider still sends the schema
-          // to the model and the AI SDK still validates with Zod after.
+          // Strict mode ON: the Zod schema was rewritten to use .nullable()
+          // on all non-required fields (rather than .optional()), which
+          // Groq's strict JSON-schema compilation accepts. This guarantees
+          // the model's output matches the schema before we even validate.
           providerOptions: {
-            groq: { structuredOutputs: false },
+            groq: { structuredOutputs: true },
           },
-          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output MUST be a single valid JSON object matching the provided schema — no prose wrapper.
+          system: `You are an elite CrossFit programmer writing a single-day session for Zeus, an accomplished weightlifter rebuilding CrossFit skills at a busy 24 Hour Fitness. Output a JSON object matching the schema; use null for fields that don't apply to the current block (e.g. sets/repsMin on an olympic block).
 
 ATHLETE CONTEXT
 - Strong barbell foundation: squats, deadlifts, Olympic lifts are home turf.
