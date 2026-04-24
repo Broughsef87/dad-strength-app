@@ -356,7 +356,12 @@ Total blocks: 3.`
 Blocks (in order):
   1. gymnastics: Skill DONE FRESH — T2B / HSPU / Pull-up / Muscle-up progression. 10-12 min. Include scaledOption.
   2. strength_b: ${day2B} family, sets_reps. NO machine subs (lat pulldown is not a pull-up; dip machine is not a dip). Variations allowed (weighted, chin-up, ring dip, pendlay row, chest-supported row, seal row). MUST include sets, repsMin, repsMax.
-  3. accessory: 2× matching Block 2's muscle group.
+  3. accessory: 2× movements. ONE MUST be overhead volume (light/moderate —
+     Day 3 owns heavy overhead). Choose from: lateral raise, rear delt flye,
+     face pull, seated DB press, Arnold press (light), Z-press (light),
+     landmine press, DB push press (light). The OTHER movement matches
+     Block 2's muscle group (e.g. pull-up day → lat/bicep; dip day →
+     tricep/pec; row day → upper back/rear delt).
   4. conditioning: ${mono.d2} (Row, Bike, Run, or Ski). Include intervalScheme, machine, effortCue.
 metcon: null.
 Total blocks: 4.`
