@@ -303,7 +303,32 @@ export async function POST(request: Request) {
     const weekInMeso = ((weekNumber - 1) % 4) + 1
     const mesoParity = mesoNumber % 2 === 1 ? 'odd' : 'even'
     const squatVariant = mesoParity === 'odd' ? 'Back Squat' : 'Front Squat'
-    const ohpVariant = mesoParity === 'odd' ? 'Strict Press' : 'Push Press'
+    // Day 3 strict OHP only — alternates BB / DB each meso. Push press / jerk
+    // now lives on Day 2 so we cover BOTH strict and dynamic overhead weekly
+    // without Day 3 doing double duty.
+    const strictOhpVariant = mesoParity === 'odd' ? 'BB Strict Press' : 'DB Overhead Press'
+
+    // Day 2 dynamic overhead (Option A from chat) — Push Press, Push Jerk,
+    // or Split Jerk. Rotates weekly across the meso.
+    const DAY2_DYNAMIC_OH_ROTATION = ['Push Press', 'Push Jerk', 'Split Jerk', 'Push Press']
+    const day2DynamicOH = DAY2_DYNAMIC_OH_ROTATION[(weekInMeso - 1) % 4]
+
+    // Day 3 Olympic pull block. MAX 3 sets, 2-4 reps. 8 variants across
+    // two mesos covering: regular clean/snatch DL, deficit DL, pulls with
+    // pause below and above the knee.
+    const OLY_PULL_ODD = [
+      'Snatch Deadlift (regular, from floor)',
+      'Clean Pull with 2-second pause BELOW the knee',
+      'Snatch Pull with 2-second pause ABOVE the knee',
+      'Clean Deficit Deadlift (1.5-2 inch deficit)',
+    ]
+    const OLY_PULL_EVEN = [
+      'Clean Deadlift (regular, from floor)',
+      'Snatch Pull with 2-second pause BELOW the knee',
+      'Clean Pull with 2-second pause ABOVE the knee',
+      'Snatch Deficit Deadlift (1.5-2 inch deficit)',
+    ]
+    const olyPullVariant = (mesoParity === 'odd' ? OLY_PULL_ODD : OLY_PULL_EVEN)[(weekInMeso - 1) % 4]
 
     // Pre-compute structural choices so the AI only picks exercise variations
     // and writes the prose — no wasted time deliberating over structure.
@@ -352,28 +377,35 @@ Blocks (in order):
 metcon: POPULATED. Mixed-modal, ${day1MetconLen}. Do NOT include heavy squats.
 Total blocks: 3.`
       : dayNumber === 2
-      ? `DAY 2 — Gymnastics + ${day2B} + ${mono.d2} Mono
+      ? `DAY 2 — Gymnastics + ${day2B} + ${day2DynamicOH} + ${mono.d2} Mono
 Blocks (in order):
   1. gymnastics: Skill DONE FRESH — T2B / HSPU / Pull-up / Muscle-up progression. 10-12 min. Include scaledOption.
-  2. strength_b: ${day2B} family, sets_reps. NO machine subs (lat pulldown is not a pull-up; dip machine is not a dip). Variations allowed (weighted, chin-up, ring dip, pendlay row, chest-supported row, seal row). MUST include sets, repsMin, repsMax.
-  3. accessory: 2× movements. ONE MUST be overhead volume (light/moderate —
-     Day 3 owns heavy overhead). Choose from: lateral raise, rear delt flye,
-     face pull, seated DB press, Arnold press (light), Z-press (light),
-     landmine press, DB push press (light). The OTHER movement matches
-     Block 2's muscle group (e.g. pull-up day → lat/bicep; dip day →
-     tricep/pec; row day → upper back/rear delt).
-  4. conditioning: ${mono.d2} (Row, Bike, Run, or Ski). Include intervalScheme, machine, effortCue.
+  2. strength_a: ${day2DynamicOH} — 3 sets × 3-5 reps. sets_reps format.
+     This is the DYNAMIC/EXPLOSIVE overhead for the week (Day 3 covers
+     strict pressing). MUST include sets=3, repsMin, repsMax.
+  3. strength_b: ${day2B} family, sets_reps. NO machine subs (lat pulldown
+     is not a pull-up; dip machine is not a dip). Variations allowed
+     (weighted, chin-up, ring dip, pendlay row, chest-supported row, seal
+     row). MUST include sets, repsMin, repsMax.
+  4. accessory: 2× movements matching Block 3's muscle group (pull-up day →
+     lat/bicep; dip day → tricep/pec; row day → upper back/rear delt).
+  5. conditioning: ${mono.d2} (Row, Bike, Run, or Ski). Include intervalScheme, machine, effortCue.
 metcon: null.
-Total blocks: 4.`
+Total blocks: 5.`
       : dayNumber === 3
-      ? `DAY 3 — Snatch + ${ohpVariant} + ${mono.d3} Mono
+      ? `DAY 3 — Snatch + Oly Pull + ${strictOhpVariant} + ${mono.d3} Mono
 Blocks (in order):
   1. olympic: Snatch work (Power, Squat, Hang, Block, Complex). build_to_max, 10-15 min cap.
-  2. strength_a: ${ohpVariant}, sets_reps. MUST include sets, repsMin, repsMax.
-  3. accessory: 2× shoulder/tricep/upper-back accessories.
-  4. conditioning: ${mono.d3} (Row, Bike, Run, or Ski). Include intervalScheme, machine, effortCue.
+  2. strength_b: ${olyPullVariant}. MAX 3 sets × 2-4 reps, heavy. sets_reps
+     format. This is a POSITIONAL/STRENGTH pull — no catching, strict
+     positions. MUST include sets (≤3), repsMin, repsMax.
+  3. strength_a: ${strictOhpVariant} — STRICT pressing only. NO push press,
+     NO jerk here (Day 2 owns dynamic overhead). sets_reps. MUST include
+     sets, repsMin, repsMax.
+  4. accessory: 2× shoulder/tricep/upper-back accessories.
+  5. conditioning: ${mono.d3} (Row, Bike, Run, or Ski). Include intervalScheme, machine, effortCue.
 metcon: null.
-Total blocks: 4.`
+Total blocks: 5.`
       : `DAY 4 — Random + Flex B + Mixed-Modal Metcon
 Blocks (in order):
   1. Random flavor THIS WEEK: ${randomFlavor}.
