@@ -313,6 +313,14 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
     if (m.timeCapMinutes === undefined) m.timeCapMinutes = null
     if (m.rounds === undefined) m.rounds = null
     if (m.coachNote === undefined) m.coachNote = null
+    // movements is required by the schema; if the model omitted it, fall
+    // back to an empty array. The whiteboard description still carries
+    // the workout content even with no structured movements.
+    if (!Array.isArray(m.movements)) m.movements = []
+    // description is required too — backfill from name if missing.
+    if (typeof m.description !== 'string' || !m.description.trim()) {
+      m.description = m.name || 'Mixed-modal metcon — see coach note.'
+    }
     if (Array.isArray(m.movements)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const mv of m.movements) {
