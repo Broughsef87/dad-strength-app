@@ -131,6 +131,50 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
     return map[normalized] ?? map[normalized.replace(/_/g, '')] ?? val
   }
 
+  // Fuzzy keyword fallback — when the model emits something like
+  // "weightlifting" or "strength_focus" or "metcon" as a blockType,
+  // we scan for keywords and force a valid enum value rather than
+  // letting Zod 500. Last line of defense.
+  const fuzzyBlockType = (val: unknown): string | undefined => {
+    if (typeof val !== 'string') return undefined
+    const v = val.toLowerCase()
+    if (v.includes('snatch') || v.includes('clean') || v.includes('jerk') || v.includes('olympic') || v.includes('oly')) return 'olympic'
+    if (v.includes('gymnastic') || v.includes('skill') || v.includes('hspu') || v.includes('t2b') || v.includes('pull-up') || v.includes('handstand')) return 'gymnastics'
+    if (v.includes('cardio') || v.includes('condition') || v.includes('mono') || v.includes('interval') || v.includes('row') || v.includes('bike') || v.includes('run')) return 'conditioning'
+    if (v.includes('accessor') || v.includes('circuit')) return 'accessory'
+    if (v.includes('strength_b') || v.includes('strengthb') || v.includes('secondary')) return 'strength_b'
+    if (v.includes('strength') || v.includes('squat') || v.includes('deadlift') || v.includes('press') || v.includes('lift')) return 'strength_a'
+    return undefined
+  }
+  const fuzzyFormat = (val: unknown, blockType: string): string | undefined => {
+    if (typeof val === 'string') {
+      const v = val.toLowerCase()
+      if (v.includes('build') || v.includes('max') || v.includes('heavy')) return 'build_to_max'
+      if (v.includes('skill') || v.includes('time')) return 'skill_time'
+      if (v.includes('steady') || v.includes('distance')) return 'steady_state'
+      if (v.includes('interval') || v.includes('sprint')) return 'intervals'
+      if (v.includes('circuit') || v.includes('accessor')) return 'accessory_circuit'
+      if (v.includes('set') || v.includes('rep')) return 'sets_reps'
+    }
+    return DEFAULT_FORMAT_FOR_TYPE[blockType]
+  }
+  const fuzzyTimeDomain = (val: unknown): string => {
+    if (typeof val !== 'string') return 'medium'
+    const v = val.toLowerCase()
+    if (v.includes('long') || v.includes('20')) return 'long'
+    if (v.includes('short') || v.startsWith('s')) return 'short'
+    return 'medium'
+  }
+  const fuzzyMetconFormat = (val: unknown): string => {
+    if (typeof val !== 'string') return 'amrap'
+    const v = val.toLowerCase()
+    if (v.includes('emom')) return 'emom'
+    if (v.includes('amrap')) return 'amrap'
+    if (v.includes('cap')) return 'for_time_with_cap'
+    if (v.includes('time')) return 'for_time'
+    return 'amrap'
+  }
+
   // Default format based on blockType when the model didn't supply one.
   const DEFAULT_FORMAT_FOR_TYPE: Record<string, string> = {
     strength_a: 'sets_reps',
@@ -178,16 +222,42 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
       if (!b || typeof b !== 'object') continue
       // Rename misfields first
       renameFields(b, BLOCK_ALIASES)
-      // Enum coercion
-      b.blockType = coerceEnum(b.blockType, BLOCK_TYPE_MAP)
-      b.format = coerceEnum(b.format, FORMAT_MAP)
-      // If format is missing OR still not a valid enum after coercion,
-      // derive it from blockType. This catches the case where the model
-      // emits "reps" or "strength" or omits format entirely.
+      // Enum coercion (map lookup), then fuzzy keyword fallback if still invalid.
+      const VALID_BLOCK_TYPES = new Set(['strength_a', 'strength_b', 'olympic', 'gymnastics', 'conditioning', 'accessory'])
       const VALID_FORMATS = new Set(['sets_reps', 'build_to_max', 'skill_time', 'intervals', 'steady_state', 'accessory_circuit'])
-      if (typeof b.blockType === 'string' && DEFAULT_FORMAT_FOR_TYPE[b.blockType]) {
-        if (!b.format || typeof b.format !== 'string' || !VALID_FORMATS.has(b.format)) {
-          b.format = DEFAULT_FORMAT_FOR_TYPE[b.blockType]
+
+      b.blockType = coerceEnum(b.blockType, BLOCK_TYPE_MAP)
+      if (typeof b.blockType !== 'string' || !VALID_BLOCK_TYPES.has(b.blockType)) {
+        const fuzzy = fuzzyBlockType(b.blockType) ??
+                      fuzzyBlockType(b.name) ??
+                      fuzzyBlockType(b.format) ??
+                      'strength_a'
+        b.blockType = fuzzy
+      }
+
+      b.format = coerceEnum(b.format, FORMAT_MAP)
+      if (typeof b.format !== 'string' || !VALID_FORMATS.has(b.format)) {
+        b.format = fuzzyFormat(b.format, b.blockType)
+      }
+
+      // Conditioning intervalScheme must contain a number (distance or time).
+      // If the model returned a vague descriptor like "Steady Z2" with no
+      // number, backfill a sensible default per format.
+      if (b.blockType === 'conditioning') {
+        const scheme = typeof b.intervalScheme === 'string' ? b.intervalScheme.trim() : ''
+        const hasNumber = /\d/.test(scheme)
+        if (!hasNumber) {
+          if (b.format === 'steady_state') {
+            b.intervalScheme = scheme
+              ? `${scheme} — 15 min steady`
+              : '15 min steady Z2'
+          } else if (b.format === 'intervals') {
+            b.intervalScheme = scheme
+              ? `${scheme} — 6 × 3 min / 2 min rest`
+              : '6 × 3 min @ 85% / 2 min rest'
+          } else {
+            b.intervalScheme = scheme || '6 × 200m / 60s rest'
+          }
         }
       }
       // Numeric coercion for commonly-stringified fields
@@ -229,8 +299,16 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
       'medium': 'medium', 'med': 'medium',
       'long': 'long',
     }
+    const VALID_METCON_FORMATS = new Set(['for_time', 'amrap', 'emom', 'for_time_with_cap'])
+    const VALID_TIME_DOMAINS = new Set(['short', 'medium', 'long'])
     m.format = coerceEnum(m.format, METCON_FORMAT_MAP)
+    if (typeof m.format !== 'string' || !VALID_METCON_FORMATS.has(m.format)) {
+      m.format = fuzzyMetconFormat(m.format)
+    }
     m.timeDomain = coerceEnum(m.timeDomain, TIME_DOMAIN_MAP)
+    if (typeof m.timeDomain !== 'string' || !VALID_TIME_DOMAINS.has(m.timeDomain)) {
+      m.timeDomain = fuzzyTimeDomain(m.timeDomain)
+    }
     if (m.name === undefined) m.name = null
     if (m.timeCapMinutes === undefined) m.timeCapMinutes = null
     if (m.rounds === undefined) m.rounds = null
@@ -389,7 +467,14 @@ Blocks (in order):
      row). MUST include sets, repsMin, repsMax.
   4. accessory: 2× movements matching Block 3's muscle group (pull-up day →
      lat/bicep; dip day → tricep/pec; row day → upper back/rear delt).
-  5. conditioning: ${mono.d2} (Row, Bike, Run, or Ski). Include intervalScheme, machine, effortCue.
+  5. conditioning: ${mono.d2} (Row, Bike, Run, or Ski). intervalScheme MUST
+     contain a SPECIFIC distance OR duration prescription. Examples of valid
+     values:
+       intervals → "6 × 3 min @ 85% / 2 min rest"
+       sprints   → "8 × 200m run / 60s rest"
+       distance  → "2k row @ 2:00/500m" or "15 min Z2 bike"
+     "Steady Z2" alone is NOT acceptable — must include a distance OR a
+     time. Always provide machine and effortCue too.
 metcon: null.
 Total blocks: 5.`
       : dayNumber === 3
@@ -403,7 +488,13 @@ Blocks (in order):
      NO jerk here (Day 2 owns dynamic overhead). sets_reps. MUST include
      sets, repsMin, repsMax.
   4. accessory: 2× shoulder/tricep/upper-back accessories.
-  5. conditioning: ${mono.d3} (Row, Bike, Run, or Ski). Include intervalScheme, machine, effortCue.
+  5. conditioning: ${mono.d3} (Row, Bike, Run, or Ski). intervalScheme MUST
+     contain a SPECIFIC distance OR duration prescription, NOT just an
+     intensity descriptor. Examples:
+       intervals → "5 × 3 min @ 85% / 2 min rest"
+       sprints   → "6 × 100m run / 60s rest"
+       distance  → "3k row @ Z2" or "20 min steady Z2 bike"
+     "Steady Z2" alone is NOT acceptable. Always provide machine and effortCue.
 metcon: null.
 Total blocks: 5.`
       : `DAY 4 — Random + Flex B + Mixed-Modal Metcon
