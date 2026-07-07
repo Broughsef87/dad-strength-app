@@ -1,14 +1,23 @@
 import type { Metadata, Viewport } from 'next'
-import { Bebas_Neue, Space_Grotesk, Space_Mono, Playfair_Display } from 'next/font/google'
+import { Chakra_Petch, Share_Tech_Mono, Space_Grotesk, Space_Mono, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
+import CockpitChrome from '../components/CockpitChrome'
 import { UserProvider } from '../contexts/UserContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { SubscriptionProvider } from '../contexts/SubscriptionContext'
 
-const bebasNeue = Bebas_Neue({
+// Squared Thai-tech letterforms — the closest Google font to Gundam panel type.
+const chakraPetch = Chakra_Petch({
   subsets: ['latin'],
-  variable: '--font-bebas',
+  variable: '--font-chakra',
+  weight: ['500', '600', '700'],
+})
+
+// HUD readout mono — telemetry labels, weights, timers.
+const shareTechMono = Share_Tech_Mono({
+  subsets: ['latin'],
+  variable: '--font-telemetry',
   weight: ['400'],
 })
 
@@ -85,7 +94,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${spaceGrotesk.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
+    <html lang="en" className={`${chakraPetch.variable} ${shareTechMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
@@ -102,9 +111,9 @@ export default function RootLayout({
         `}} />
       </head>
       <body className={`${spaceGrotesk.className} overflow-x-hidden`}>
-        {/* ── Kinetic ambient — drifting forge glow, dark mode only ── */}
+        {/* ── Kinetic ambient — reactor glow, dark mode only ── */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-          {/* Primary orb — large, slow, amber warmth */}
+          {/* Primary orb — large, slow, rosso reactor bleed */}
           <div style={{
             position: 'absolute',
             width: '750px',
@@ -113,12 +122,12 @@ export default function RootLayout({
             left: '50%',
             marginLeft: '-375px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(200,130,10,0.09) 0%, transparent 65%)',
+            background: 'radial-gradient(circle, rgba(234,11,47,0.07) 0%, transparent 65%)',
             filter: 'blur(60px)',
             animation: 'orb-drift 32s ease-in-out infinite',
             opacity: 0,
           }} className="dark:!opacity-100" />
-          {/* Secondary orb — lower, gold-steel tint */}
+          {/* Secondary orb — lower, cool steel counterweight */}
           <div style={{
             position: 'absolute',
             width: '420px',
@@ -126,7 +135,7 @@ export default function RootLayout({
             top: '55%',
             left: '30%',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(160,110,8,0.07) 0%, transparent 65%)',
+            background: 'radial-gradient(circle, rgba(106,130,160,0.06) 0%, transparent 65%)',
             filter: 'blur(70px)',
             animation: 'orb-drift-2 26s ease-in-out infinite',
             animationDelay: '8s',
@@ -150,6 +159,7 @@ export default function RootLayout({
           }} className="dark:!opacity-100" />
         </div>
 
+        <CockpitChrome />
         <ThemeProvider>
           <UserProvider>
             <SubscriptionProvider>
