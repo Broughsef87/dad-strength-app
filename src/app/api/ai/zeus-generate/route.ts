@@ -340,6 +340,20 @@ function preprocessModelOutput(raw: any, dayNumber: number): any {
     }
   }
 
+  // Required top-level prose fields — backfill with serviceable defaults
+  // instead of failing the whole generation over a missing sentence.
+  // (Llama omitted coachNote in production; the rest of the workout was
+  // perfectly valid.)
+  if (typeof raw.dayName !== 'string' || !raw.dayName.trim()) {
+    raw.dayName = `Day ${dayNumber}`
+  }
+  if (typeof raw.sessionIntent !== 'string' || !raw.sessionIntent.trim()) {
+    raw.sessionIntent = 'Execute the prescribed blocks in order.'
+  }
+  if (typeof raw.coachNote !== 'string' || !raw.coachNote.trim()) {
+    raw.coachNote = 'Work the prescribed loads honestly and log everything.'
+  }
+
   return raw
 }
 
@@ -552,14 +566,13 @@ PROGRESSION for this week (${weekInMeso} of 4):
   ${weekInMeso === 1 ? 'Week 1 — RIR 3 baseline, establish the pattern.' : ''}${weekInMeso === 2 ? 'Week 2 — RIR 2, add a small amount of load or a rep.' : ''}${weekInMeso === 3 ? 'Week 3 — RIR 1, push hard, close to failure on last set.' : ''}${weekInMeso === 4 ? 'Week 4 — PEAK. Top heavy single/double OR a push-to-failure set on the last set.' : ''}
 `.trim()
 
-    // Groq model strategy:
-    //   Attempt 1: moonshotai/kimi-k2-instruct — supports strict structured
-    //              outputs on Groq (confirmed in the structured-outputs
-    //              whitelist). API-level schema enforcement means the
-    //              response is guaranteed to match the Zod schema.
-    //   Attempt 2: llama-3.3-70b-versatile — fallback using JSON mode if
-    //              Kimi is unavailable. Looser but usually works.
-    const MODELS = ['moonshotai/kimi-k2-instruct', 'llama-3.3-70b-versatile'] as const
+    // Groq model strategy (verified against the live /v1/models list,
+    // July 2026 — kimi-k2-instruct was removed from Groq and 404s):
+    //   Attempt 1: openai/gpt-oss-120b — strongest JSON discipline of the
+    //              currently-hosted models; the preprocessor absorbs its quirks.
+    //   Attempt 2: llama-3.3-70b-versatile — fallback.
+    // Both run in json_object mode; the preprocessor + Zod validate after.
+    const MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'] as const
     const startTime = Date.now()
     let day: unknown
     for (let attempt = 0; attempt < 2; attempt++) {
