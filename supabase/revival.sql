@@ -110,6 +110,9 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   -- NEW: columns the app selects but the old DB never had (dashboard 400s)
   program_data             jsonb,
   growth_data              jsonb,
+  body_composition         jsonb,
+  sleep_log                jsonb,
+  workout_notes            jsonb,
   created_at               timestamptz DEFAULT now()
 );
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
@@ -314,6 +317,7 @@ CREATE TABLE IF NOT EXISTS daily_checkins (
   growth_state       jsonb,
   forge_state        jsonb,
   habit_completions  jsonb,
+  sleep_quality      int,
   updated_at         timestamptz DEFAULT now(),
   UNIQUE (user_id, date)
 );
