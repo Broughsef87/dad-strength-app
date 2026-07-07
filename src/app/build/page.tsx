@@ -1,867 +1,205 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+// ── Training Path Selection ────────────────────────────────────────────────────
+// Three paths, config-driven. Selecting a path collects its required 1RMs
+// (stored in user_maxes so other paths can reuse them), activates the program
+// in user_programs, and launches Week 1 Day 1.
+
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
-import Image from 'next/image'
+import { ArrowLeft, ChevronRight, Lock } from 'lucide-react'
 import { useUser } from '../../contexts/UserContext'
 import { createClient } from '../../utils/supabase/client'
-import type { ActiveProgramData } from '../../types/program'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type God = 'adonis' | 'ares' | 'hercules' | 'atlas' | 'chronos' | 'zeus'
-
-type Weeks = 4 | 5 | 6
-type GymType = 'commercial' | 'home'
-type TrainingAge = 'beginner' | 'intermediate' | 'advanced'
-
-interface CustomConfig {
-  god: God
-  focusGroups: string[]
-  gymType: GymType
-  trainingAge: TrainingAge
-  injuryFlags: string[]
-  totalWeeks: number
-}
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const GODS = [
-  {
-    id: 'atlas' as God,
-    name: 'Atlas',
-    title: 'Titan of Strength',
-    tagline: 'Carry the World.',
-    description: 'Functional lifting meets strongman. Carries mandatory every session. Built to move heavy things in the real world.',
-    attributes: ['3–6 Reps', 'Strongman', 'Functional'],
-    avatar: '🌍',
-    avatarSrc: '/gods/atlas.jpg',
-    color: 'text-amber-400',
-    border: 'border-amber-500/50',
-    bg: 'bg-amber-500/10',
-    glow: 'shadow-amber-500/20',
-    dot: 'bg-amber-400',
-    sampleDays: [
-      { day: 'Day 1', name: 'Squat + Carries', exercises: ['Safety Bar Squat 5×5', 'Bulgarian Split Squat 3×8', 'Farmers Carry 6×80ft', 'Suitcase Carry finisher'] },
-      { day: 'Day 2', name: 'Press + Strongman', exercises: ['Log Press / OHP 5×4', 'Chest-Supported Row 4×8', 'Push Press 3×5', 'Sandbag Bear Hug Carry 4×60ft'] },
-      { day: 'Day 3', name: 'Hinge + Conditioning', exercises: ['Trap Bar Deadlift 5×4', 'Romanian DL 3×8', 'Sandbag to Shoulder 4×3', 'Sled Push 6×20m'] },
-      { day: 'Day 4', name: 'Full Body Functional', exercises: ['4 rounds: Goblet Squat 10 / Push Press 8 / DB Row 10 / Suitcase Carry 60ft'] },
-    ],
-  },
-  {
-    id: 'adonis' as God,
-    name: 'Adonis',
-    title: 'God of Beauty',
-    tagline: 'The Physique Above All.',
-    description: 'High volume. Full pumps. Cables, machines, isolation finishers. Built for the mirror.',
-    attributes: ['8–15 Reps', 'High Volume', 'Pump-Focused'],
-    avatar: '🏛️',
-    avatarSrc: '/gods/adonis.jpg',
-    color: 'text-brand',
-    border: 'border-brand',
-    bg: 'bg-brand/10',
-    glow: 'shadow-brand/20',
-    dot: 'bg-brand',
-    sampleDays: [
-      { day: 'Day 1', name: 'Chest + Back', exercises: ['Incline Bench Press 4×8', 'Weighted Pull-up 4×6', 'Incline DB Press 3×10', 'Chest-Supported Row 3×10', 'Cable Fly 3×15', 'Lateral Raise 3×15', 'Rear Delt Fly 3×20'] },
-      { day: 'Day 2', name: 'Legs — Quads', exercises: ['Back Squat 4×8', 'Leg Press 4×12', 'Bulgarian Split Squat 3×10', 'Leg Extension 3×15', 'Standing Calf Raise 4×15'] },
-      { day: 'Day 3', name: 'Shoulders + Arms', exercises: ['Seated DB Press 4×10', 'Cable Lateral Raise 5×15', 'Reverse Pec Deck 4×20', 'EZ-Bar Curl 3×12', 'Rope Pushdown 3×12', 'Incline DB Curl 3×12'] },
-      { day: 'Day 4', name: 'Legs — Posterior', exercises: ['Romanian DL 4×8', 'Hip Thrust 4×10', 'Seated Leg Curl 4×12', 'Reverse Lunge 3×10', 'Seated Calf Raise 4×15'] },
-    ],
-  },
-  {
-    id: 'ares' as God,
-    name: 'Ares',
-    title: 'God of War',
-    tagline: 'Train Like You Fight.',
-    description: 'Explosive primers. Heavy compounds. MetCon finishers. Functional and fierce — works in any gym or garage.',
-    attributes: ['3–10 Reps', 'Hybrid + CrossFit', 'Any Gym'],
-    avatar: '⚔️',
-    avatarSrc: '/gods/ares.jpg',
-    color: 'text-red-400',
-    border: 'border-red-500/50',
-    bg: 'bg-red-500/10',
-    glow: 'shadow-red-500/20',
-    dot: 'bg-red-400',
-    sampleDays: [
-      { day: 'Day 1', name: 'Strength + MetCon', exercises: ['Back Squat 5×4 (strength)', 'AMRAP 12: 5 pull-ups / 10 push-ups / 15 air squats'] },
-      { day: 'Day 2', name: 'Pure MetCon', exercises: ['For Time — 5 rounds: Run 400m / Power Clean 9 / Bar Muscle-Up 6'] },
-      { day: 'Day 3', name: 'EMOM', exercises: ['EMOM 18: Min 1 — Deadlift 5 / Min 2 — Ring Muscle-Up 3 / Min 3 — Hollow Rock 10'] },
-      { day: 'Day 4', name: 'Barbell + Gymnastics', exercises: ['Deadlift 5×3 (strength)', 'For Time 21-15-9: Thrusters / Pull-ups (Fran)'] },
-    ],
-  },
-  {
-    id: 'hercules' as God,
-    name: 'Hercules',
-    title: 'God of Strength',
-    tagline: 'Move Mountains.',
-    description: 'One primary barbell lift per day. Heavy and technical. Accessory work with DBs, cables, and machines to protect the joints.',
-    attributes: ['2–6 Reps', 'Barbell Core', 'Raw Power'],
-    avatar: '🗿',
-    avatarSrc: '/gods/hercules.jpg',
-    color: 'text-slate-300',
-    border: 'border-slate-500/40',
-    bg: 'bg-slate-500/10',
-    glow: 'shadow-slate-500/20',
-    dot: 'bg-slate-400',
-    sampleDays: [
-      { day: 'Day 1', name: 'Squat Day', exercises: ['Back Squat — top set ×4, backoffs 4×4', 'Pause Squat 3×4', 'Leg Press 3×10', 'Walking Lunge 3×10', 'Leg Curl 3×12'] },
-      { day: 'Day 2', name: 'Bench Day', exercises: ['Bench Press — top set ×4, backoffs 5×4', 'Close-Grip Bench 3×6', 'Chest-Supported Row 4×8', 'Lateral Raise 3×15', 'Rope Pushdown 3×12'] },
-      { day: 'Day 3', name: 'Deadlift Day', exercises: ['Deadlift — top set ×3, backoffs 3×3', 'Romanian DL 3×8', 'Pulldown 4×10', 'Back Extension 3×15', 'Hanging Leg Raise 3×12'] },
-      { day: 'Day 4', name: 'Upper Powerbuilding', exercises: ['Barbell OHP 4×6', 'Incline DB Press 3×10', 'Barbell Row 4×8', 'Lateral Raise 4×15', 'EZ-Bar Curl 3×12', 'Rope Pushdown 3×12'] },
-    ],
-  },
-  {
-    id: 'zeus' as God,
-    name: 'Zeus',
-    title: 'King of the Gods',
-    tagline: 'Command Everything.',
-    description: 'Weightlifting. CrossFit gymnastics. Intervals. Bodybuilding accessory work. 12-week structured mesos — built for the accomplished athlete who wants it all.',
-    attributes: ['3–8 Reps', 'Olympic + CrossFit', '12 Weeks'],
-    avatar: '⚡',
-    avatarSrc: '/gods/Zeus.png',
-    color: 'text-blue-400',
-    border: 'border-blue-500/50',
-    bg: 'bg-blue-500/10',
-    glow: 'shadow-blue-500/20',
-    dot: 'bg-blue-400',
-    sampleDays: [
-      { day: 'Day 1', name: 'Squat + Oly + Engine', exercises: ['Back Squat 4×5 (Paused)', 'Hang Power Clean build to heavy', 'T2B skill work 15 min', 'Bike intervals 6×2 min', 'AMRAP 12: Power Cleans + Box Jumps + Cal Row'] },
-      { day: 'Day 2', name: 'Hinge + Pull', exercises: ['Romanian Deadlift 4×6', 'Barbell Row 4×5', 'Push Jerk build to heavy', 'Row intervals 5×3 min', 'Accessories: Face pull, curl, leg curl'] },
-      { day: 'Day 3', name: 'Press + Skill + Metcon', exercises: ['Barbell OHP 4×6', 'Pull-up skill + kipping 20 min', 'Bike intervals 8×45s', 'For Time: 3 rounds — Row 500m + 15 Pull-ups + 10 HSPU'] },
-      { day: 'Day 4', name: 'Engine Day', exercises: ['Row 5×4 min @ 85%', 'Front Squat 3×5', 'Sprint finisher: 10×15s bike', 'Accessories: Carries, core, lateral raises'] },
-    ],
-  },
-  {
-    id: 'chronos' as God,
-    name: 'Chronos',
-    title: 'God of Time',
-    tagline: '15 Minutes. No Excuses.',
-    description: 'Time-crunched sessions for busy dads. A1 compound + A2 superset + finisher. Any equipment, any place.',
-    attributes: ['15–20 Min', 'Daily', 'Any Gym'],
-    avatar: '⏳',
-    avatarSrc: '/gods/chronos.jpg',
-    color: 'text-yellow-400',
-    border: 'border-yellow-500/50',
-    bg: 'bg-yellow-500/10',
-    glow: 'shadow-yellow-500/20',
-    dot: 'bg-yellow-400',
-    sampleDays: [
-      { day: 'Session 1', name: 'Hinge + Carry', exercises: ['Deadlift 3×5 (A1)', 'KB Swing + Row superset × 3 rounds (A2)', 'Farmer carry AMRAP 3min (Finisher)'] },
-      { day: 'Session 2', name: 'Squat + Cond.', exercises: ['Goblet Squat 3×5 (A1)', 'Box jump + Push-up superset × 3 rounds (A2)', 'Sprint / bike finisher'] },
-      { day: 'Session 3', name: 'Push + Core', exercises: ['DB Press 3×5 (A1)', 'Push-up + Band pull-apart × 3 rounds (A2)', 'Ab wheel AMRAP 3min (Finisher)'] },
-    ],
-  },
-]
-
-const FOCUS_MUSCLES = [
-  'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps',
-  'Quads', 'Hamstrings', 'Glutes', 'Core',
-]
-
-const INJURY_OPTIONS = [
-  'Shoulder', 'Low Back', 'Knee', 'Elbow', 'Hip', 'Wrist',
-]
-
-const TRAINING_AGE_OPTIONS: { value: TrainingAge; label: string; desc: string }[] = [
-  { value: 'beginner',     label: 'Beginner',     desc: 'Under 1 year consistent lifting' },
-  { value: 'intermediate', label: 'Intermediate', desc: '1–3 years, know the basics' },
-  { value: 'advanced',     label: 'Advanced',     desc: '3+ years, strong technique' },
-]
-
-const DAY_NAMES: Record<God, Record<number, string[]>> = {
-  zeus: {
-    4: ['Squat & Oly', 'Hinge & Pull', 'Press & Skill', 'Engine Day'],
-  },
-  adonis: {
-    3: ['Push', 'Pull', 'Legs'],
-    4: ['Chest + Triceps', 'Back + Biceps', 'Shoulders + Arms', 'Legs'],
-    5: ['Chest', 'Back', 'Shoulders + Arms', 'Legs', 'Glutes + Calves'],
-  },
-  ares: {
-    3: ['Upper Strength', 'Lower Power', 'Full Body Conditioning'],
-    4: ['Upper Push', 'Lower Squat', 'Upper Pull', 'Lower Hinge'],
-    5: ['Upper Push', 'Lower Squat', 'MetCon', 'Upper Pull', 'Lower Hinge'],
-  },
-  hercules: {
-    3: ['Squat Day', 'Bench Day', 'Deadlift Day'],
-    4: ['Squat Day', 'Bench Day', 'Deadlift Day', 'OHP Day'],
-    5: ['Squat Day', 'Bench Day', 'Deadlift Day', 'OHP Day', 'Weak Points'],
-  },
-  atlas: {
-    4: ['Squat + Carries', 'Press + Strongman', 'Deadlift + Carries', 'Pull + Conditioning'],
-  },
-  chronos: {
-    4: ['Session 1', 'Session 2', 'Session 3', 'Session 4'],
-  },
-}
-
-type CalibrationLift = {
-  key: string
-  label: string
-  repMax: 1 | 5
-}
-
-const BASE_CALIBRATION_LIFTS: CalibrationLift[] = [
-  { key: 'bench',    label: 'Bench Press',    repMax: 5 },
-  { key: 'squat',    label: 'Back Squat',     repMax: 5 },
-  { key: 'deadlift', label: 'Deadlift',       repMax: 5 },
-  { key: 'ohp',      label: 'Overhead Press', repMax: 5 },
-  { key: 'row',      label: 'Barbell Row',    repMax: 5 },
-]
-
-const OLYMPIC_CALIBRATION_LIFTS: CalibrationLift[] = [
-  { key: 'snatch',    label: 'Snatch',       repMax: 1 },
-  { key: 'cleanJerk', label: 'Clean & Jerk', repMax: 1 },
-]
-
-function getCalibrationLifts(god: God | null): CalibrationLift[] {
-  if (god === 'ares' || god === 'zeus') {
-    return [...BASE_CALIBRATION_LIFTS, ...OLYMPIC_CALIBRATION_LIFTS]
-  }
-  return BASE_CALIBRATION_LIFTS
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
+import { PROGRAMS, UPCOMING_PROGRAMS, ProgramConfig } from '../../lib/programs'
 
 export default function BuildPage() {
   const router = useRouter()
-  const { user, loading } = useUser()
-  const supabase = createClient()
+  const { user } = useUser()
+  const [supabase] = useState(() => createClient())
 
-  const [mounted, setMounted] = useState(false)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
-
-  // Selections
-  const [selectedGod, setSelectedGod] = useState<God | null>(null)
-  const [trainingAge, setTrainingAge] = useState<TrainingAge>('intermediate')
-  const [injuryFlags, setInjuryFlags] = useState<string[]>([])
-  const [focusGroups, setFocusGroups] = useState<string[]>([])
-
-  const [weeks, setWeeks] = useState<Weeks>(6)
-  const [gymType, setGymType] = useState<GymType>('commercial')
-  const [weights, setWeights] = useState<Record<string, string>>({
-    bench: '', squat: '', deadlift: '', ohp: '', row: '',
-    snatch: '', cleanJerk: '',
-  })
+  const [selected, setSelected] = useState<ProgramConfig | null>(null)
+  const [maxVals, setMaxVals] = useState<Record<string, string>>({})
   const [activating, setActivating] = useState(false)
-  const [done, setDone] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { setMounted(true) }, [])
+  const programs = Object.values(PROGRAMS)
 
-  if (!mounted || loading) return <div className="min-h-screen bg-background" />
-  if (!user) { router.push('/'); return null }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  function toggleFocus(muscle: string) {
-    setFocusGroups(prev =>
-      prev.includes(muscle)
-        ? prev.filter(m => m !== muscle)
-        : prev.length >= 2 ? prev : [...prev, muscle]
-    )
-  }
-
-  function toggleInjury(flag: string) {
-    setInjuryFlags(prev =>
-      prev.includes(flag) ? prev.filter(f => f !== flag) : [...prev, flag]
-    )
-  }
-
-  function getNextMonday(): Date {
-    const today = new Date()
-    const day = today.getDay()
-    const daysUntil = day === 1 ? 0 : day === 0 ? 1 : 8 - day
-    const monday = new Date(today)
-    monday.setDate(today.getDate() + daysUntil)
-    monday.setHours(0, 0, 0, 0)
-    return monday
-  }
-
-  async function activate() {
-    if (!user || !selectedGod) return
+  const startProgram = async () => {
+    if (!user || !selected) return
     setActivating(true)
-
-    const slug = selectedGod === 'chronos' ? 'chronos-4' : `${selectedGod}-4`
-    const startMonday = getNextMonday()
-
-    // Convert 5RMs → 1RMs (Epley: 5RM × 1.167). True 1RMs (Snatch, C&J) pass through unchanged.
-    const oneRepMaxes: Record<string, number> = {}
-    const activeLifts = getCalibrationLifts(selectedGod)
-    for (const lift of activeLifts) {
-      const num = parseFloat(weights[lift.key] ?? '') || 0
-      if (num > 0) {
-        const converted = lift.repMax === 1 ? num : num * 1.167
-        oneRepMaxes[lift.key] = Math.round(converted / 2.5) * 2.5
+    setError(null)
+    try {
+      // Persist maxes.
+      const rows = selected.requiredMaxes
+        .map(d => ({ key: d.key, val: parseFloat(maxVals[d.key] ?? '') }))
+        .filter(r => Number.isFinite(r.val) && r.val > 0)
+        .map(r => ({
+          user_id: user.id,
+          lift_key: r.key,
+          value_lbs: r.val,
+          updated_at: new Date().toISOString(),
+        }))
+      if (rows.length < selected.requiredMaxes.length) {
+        setError('Enter all maxes — percentages are computed from them.')
+        setActivating(false)
+        return
       }
+      const { error: maxErr } = await supabase
+        .from('user_maxes')
+        .upsert(rows, { onConflict: 'user_id,lift_key' })
+      if (maxErr) throw new Error(`Saving maxes failed: ${maxErr.message}`)
+
+      // One active program at a time.
+      await supabase
+        .from('user_programs')
+        .update({ status: 'inactive' })
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+
+      const { error: progErr } = await supabase.from('user_programs').insert({
+        user_id: user.id,
+        program_slug: selected.slug,
+        started_at: new Date().toISOString(),
+        current_week: 1,
+        status: 'active',
+        equipment: {},
+        preferences: {},
+      })
+      if (progErr) throw new Error(`Activating program failed: ${progErr.message}`)
+
+      router.push(`/train/${selected.slug}/1`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error')
+      setActivating(false)
     }
-
-    const godMeta = GODS.find(g => g.id === selectedGod)!
-
-    const primaryGoal =
-      selectedGod === 'adonis' ? 'hypertrophy' :
-      selectedGod === 'hercules' ? 'strength' :
-      selectedGod === 'chronos' ? 'conditioning' :
-      'athletic'
-
-    const data: ActiveProgramData = {
-      slug,
-      name: godMeta.name,
-      startedAt: startMonday.toISOString(),
-      currentWeek: 1,
-      trainingAge,
-      primaryGoal,
-      equipment: {},
-      daysCount: 4,
-      dayNames: DAY_NAMES[selectedGod][4],
-    }
-
-    const config: CustomConfig = { god: selectedGod, focusGroups, gymType, trainingAge, injuryFlags, totalWeeks: weeks }
-
-    // Persist
-    localStorage.setItem('dad-strength-active-program', JSON.stringify(data))
-    localStorage.setItem('dad-strength-one-rep-maxes', JSON.stringify(oneRepMaxes))
-    localStorage.setItem('dad-strength-custom-config', JSON.stringify(config))
-
-    // Clear old caches
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i)
-      if (k?.startsWith('dad-strength-wip-') || k?.startsWith('dad-strength-week-progress-')) {
-        localStorage.removeItem(k)
-      }
-    }
-
-    // Save to Supabase — deactivate any existing active programs first,
-    // then insert the new one so there is always exactly one active row.
-    await supabase
-      .from('user_programs')
-      .update({ status: 'inactive' })
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-
-    await supabase.from('user_programs').insert({
-      user_id: user.id,
-      program_slug: data.slug,
-      started_at: data.startedAt,
-      current_week: 1,
-      status: 'active',
-      equipment: {},
-      preferences: { gymType, weeks, focusGroups, trainingAge, injuryFlags, calibrationWeights: weights },
-    })
-
-    setActivating(false)
-    setDone(true)
-    const destination =
-      selectedGod === 'chronos' ? '/workout/squeeze' :
-      selectedGod === 'ares'    ? '/workout/ares/1' :
-      selectedGod === 'zeus'    ? '/workout/zeus/1' :
-      '/workout/program/1'
-    setTimeout(() => router.push(destination), 1200)
   }
-
-  const isChronos = selectedGod === 'chronos'
-  const activeCalibrationLifts = isChronos ? [] : getCalibrationLifts(selectedGod)
-  const allWeightsFilled = isChronos || activeCalibrationLifts.every(l => parseFloat(weights[l.key] ?? '') > 0)
-  const godMeta = selectedGod ? GODS.find(g => g.id === selectedGod)! : null
-  const TOTAL_STEPS = 3
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-background text-foreground pb-16">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-surface-2 border-b border-border flex-shrink-0">
-        <div className="max-w-md mx-auto px-4 h-14 flex items-center gap-3">
-          <button
-            onClick={() => step > 1 ? setStep((s) => (s - 1) as 1 | 2 | 3) : router.back()}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors"
-          >
-            <ArrowLeft size={18} />
-          </button>
-
-          {/* Step dots */}
-          <div className="flex items-center gap-1.5 flex-1">
-            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-              <div
-                key={i}
-                className={`rounded-full transition-all duration-300 ${
-                  i + 1 === step ? 'w-6 h-2 bg-brand' :
-                  i + 1 < step  ? 'w-2 h-2 bg-brand/40' :
-                                  'w-2 h-2 bg-border'
-                }`}
-              />
-            ))}
-          </div>
-
-          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.15em]">
-            {step} / {TOTAL_STEPS}
-          </span>
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={() => (selected ? setSelected(null) : router.push('/dashboard'))}
+          className="p-2 border border-border rounded-md text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft size={15} />
+        </button>
+        <div>
+          <p className="telemetry-dim">SYS // PATH.SELECT</p>
+          <h1 className="font-display text-xl tracking-[0.1em] uppercase">
+            {selected ? selected.name : 'Choose Your Path'}
+          </h1>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="status-dot" />
+          <span className="telemetry">Online</span>
         </div>
       </header>
 
-      <main className="flex-1 max-w-md mx-auto w-full px-5 pb-28 pt-6">
+      <main className="max-w-lg mx-auto px-4 pt-6 space-y-4">
         <AnimatePresence mode="wait">
-
-          {/* ── Step 1: Choose Your God ─────────────────────────────────────── */}
-          {step === 1 && (
+          {!selected ? (
             <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
+              key="paths"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="space-y-4"
             >
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-semibold font-display mb-1">
-                  Custom Program
-                </p>
-                <h1 className="font-display text-5xl tracking-[0.1em] uppercase leading-none">
-                  Choose Your God
-                </h1>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your god defines the philosophy. Rep ranges, exercise selection, and structure all follow.
-                </p>
-              </div>
+              <div className="readout-rule" />
 
-              <div className="space-y-3">
-                {GODS.map((god) => {
-                  const isSelected = selectedGod === god.id
-                  return (
-                    <div key={god.id} className={`ds-card border-2 transition-all duration-200 overflow-hidden ${
-                      isSelected ? `${god.border} shadow-lg ${god.glow}` : 'border-transparent hover:border-border'
-                    }`}>
-                      <button
-                        onClick={() => setSelectedGod(isSelected ? null : god.id)}
-                        className="w-full text-left p-5"
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex items-start gap-3">
-                            {/* Animated avatar */}
-                            <motion.div
-                              animate={isSelected ? { y: [0, -4, 0], scale: [1, 1.04, 1] } : { y: 0, scale: 1 }}
-                              transition={isSelected ? { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } : {}}
-                              className={`relative w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden border-2 transition-all duration-300 ${god.border} ${isSelected ? `shadow-xl` : ''}`}
-                            >
-                              <Image
-                                src={god.avatarSrc}
-                                alt={god.name}
-                                fill
-                                className="object-cover object-top"
-                                sizes="64px"
-                              />
-                            </motion.div>
-                            <div>
-                              <p className={`text-[10px] uppercase tracking-[0.2em] font-semibold mb-0.5 ${god.color}`}>
-                                {god.title}
-                              </p>
-                              <h2 className="font-display text-4xl tracking-[0.1em] uppercase leading-none text-foreground">
-                                {god.name}
-                              </h2>
-                              <p className={`text-xs font-semibold mt-0.5 ${god.color}`}>{god.tagline}</p>
-                            </div>
-                          </div>
-                          <CheckCircle2 size={20} className={`flex-shrink-0 mt-1 transition-opacity ${isSelected ? `${god.color} opacity-100` : 'opacity-0'}`} />
-                        </div>
-
-                        <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                          {god.description}
-                        </p>
-
-                        <div className="flex flex-wrap gap-2">
-                          {god.attributes.map(attr => (
-                            <span
-                              key={attr}
-                              className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wider ${god.color} ${god.bg} ${god.border}`}
-                            >
-                              {attr}
-                            </span>
-                          ))}
-                        </div>
-                      </button>
-
-                      {/* Sample programming — shown when selected */}
-                      <AnimatePresence>
-                        {isSelected && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25 }}
-                            className="overflow-hidden"
-                          >
-                            <div className={`mx-5 mb-5 rounded-xl border ${god.border} ${god.bg} p-4`}>
-                              <p className={`text-[10px] uppercase tracking-[0.2em] font-semibold mb-3 ${god.color}`}>
-                                Sample Week
-                              </p>
-                              <div className="space-y-3">
-                                {god.sampleDays.map((d) => (
-                                  <div key={d.day}>
-                                    <div className="flex items-baseline gap-2 mb-1">
-                                      <span className={`text-[10px] font-black uppercase tracking-widest ${god.color}`}>{d.day}</span>
-                                      <span className="text-xs font-semibold text-foreground">{d.name}</span>
-                                    </div>
-                                    <ul className="space-y-0.5">
-                                      {d.exercises.map((ex) => (
-                                        <li key={ex} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                                          <span className={`w-1 h-1 rounded-full flex-shrink-0 ${god.dot}`} />
-                                          {ex}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <button
-                onClick={() => setStep(2)}
-                disabled={!selectedGod}
-                className={`w-full py-4 rounded-xl font-display tracking-[0.08em] uppercase text-sm flex items-center justify-center gap-2 transition-all ${
-                  selectedGod
-                    ? `${godMeta?.bg ?? 'bg-brand/10'} ${godMeta?.color ?? 'text-brand'} border ${godMeta?.border ?? 'border-brand'}`
-                    : 'bg-surface-3 text-muted-foreground border border-border cursor-not-allowed'
-                }`}
-              >
-                Continue <ChevronRight size={15} />
-              </button>
-            </motion.div>
-          )}
-
-          {/* ── Step 2: Customize ──────────────────────────────────────────── */}
-          {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-7"
-            >
-              <div>
-                <p className={`text-[10px] uppercase tracking-[0.25em] font-semibold font-display mb-1 ${godMeta?.color}`}>
-                  {godMeta?.name}
-                </p>
-                <h1 className="font-display text-5xl tracking-[0.1em] uppercase leading-none">
-                  Customize
-                </h1>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Tell the AI who it&apos;s coaching so it can program appropriately.
-                </p>
-              </div>
-
-              {/* Training Experience */}
-              <div className="space-y-3">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
-                  Training Experience
-                </label>
-                <div className="space-y-2">
-                  {TRAINING_AGE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setTrainingAge(opt.value)}
-                      className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${
-                        trainingAge === opt.value
-                          ? `${godMeta?.border} ${godMeta?.bg}`
-                          : 'border-border bg-surface-3 hover:border-border/80'
-                      }`}
-                    >
-                      <div>
-                        <span className={`text-sm font-semibold block ${trainingAge === opt.value ? godMeta?.color : 'text-foreground'}`}>
-                          {opt.label}
+              {programs.map(p => (
+                <button
+                  key={p.slug}
+                  onClick={() => setSelected(p)}
+                  className="hud-frame hud-scan-hover w-full text-left ds-card p-5 hover:border-brand/50 transition-colors group"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="telemetry mb-1">{p.tagline}</p>
+                      <p className="font-display text-2xl tracking-[0.08em] uppercase text-foreground">
+                        {p.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{p.description}</p>
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        <span className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 border border-brand/30 text-brand rounded-sm">
+                          {p.daysPerWeek} days/week
                         </span>
-                        <span className="text-[11px] text-muted-foreground">{opt.desc}</span>
-                      </div>
-                      {trainingAge === opt.value && (
-                        <CheckCircle2 size={16} className={godMeta?.color} />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Injury Flags */}
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
-                    Anything to Work Around?
-                  </label>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    The AI will substitute or avoid movements that aggravate these areas.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {INJURY_OPTIONS.map((flag) => {
-                    const isSelected = injuryFlags.includes(flag)
-                    return (
-                      <button
-                        key={flag}
-                        onClick={() => toggleInjury(flag)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${
-                          isSelected
-                            ? 'text-red-400 bg-red-500/10 border-red-500/50'
-                            : 'text-foreground bg-surface-3 border-border hover:border-border/80'
-                        }`}
-                      >
-                        {flag}
-                      </button>
-                    )
-                  })}
-                </div>
-                {injuryFlags.length === 0 && (
-                  <p className="text-[11px] text-muted-foreground italic">None selected — no restrictions applied.</p>
-                )}
-              </div>
-
-              {/* Focus Muscles */}
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
-                    Priority Muscles <span className="normal-case text-muted-foreground/60">(optional, up to 2)</span>
-                  </label>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    These get extra sets and priority placement in the program.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {FOCUS_MUSCLES.map((muscle) => {
-                    const isSelected = focusGroups.includes(muscle)
-                    const isDisabled = !isSelected && focusGroups.length >= 2
-                    return (
-                      <button
-                        key={muscle}
-                        onClick={() => !isDisabled && toggleFocus(muscle)}
-                        disabled={isDisabled}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${
-                          isSelected
-                            ? `${godMeta?.color} ${godMeta?.bg} ${godMeta?.border}`
-                            : isDisabled
-                            ? 'text-muted-foreground/40 bg-surface-3/40 border-border/40 cursor-not-allowed'
-                            : 'text-foreground bg-surface-3 border-border hover:border-brand/40'
-                        }`}
-                      >
-                        {muscle}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <button
-                onClick={() => setStep(3)}
-                className={`w-full py-4 rounded-xl font-display tracking-[0.08em] uppercase text-sm flex items-center justify-center gap-2 ${godMeta?.bg} ${godMeta?.color} border ${godMeta?.border}`}
-              >
-                Continue <ChevronRight size={15} />
-              </button>
-            </motion.div>
-          )}
-
-          {/* ── Step 3: Calibrate + Activate ───────────────────────────────── */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
-            >
-              <div>
-                <p className={`text-[10px] uppercase tracking-[0.25em] font-semibold font-display mb-1 ${godMeta?.color}`}>
-                  {godMeta?.name}
-                </p>
-                <h1 className="font-display text-5xl tracking-[0.1em] uppercase leading-none">
-                  {isChronos ? 'Launch' : 'Calibrate'}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {isChronos ? (
-                    'No calibration needed — Chronos sessions work with any equipment. Just launch.'
-                  ) : selectedGod === 'ares' || selectedGod === 'zeus' ? (
-                    <>
-                      Your <span className="font-black text-yellow-400">5RM</span> for the main lifts, plus a{' '}
-                      <span className="font-black text-yellow-400">true 1RM</span> on Snatch and Clean &amp; Jerk.
-                      The AI uses these to anchor your starting weights.
-                    </>
-                  ) : (
-                    <>
-                      Your <span className="font-black text-yellow-400">5RM</span> — heaviest weight you can lift for{' '}
-                      <span className="font-black text-yellow-400">5 clean reps</span>. The AI uses these to calculate
-                      your starting weights.
-                    </>
-                  )}
-                </p>
-              </div>
-
-              {/* Summary card */}
-              <div className={`ds-card p-4 border ${godMeta?.border}`}>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className={`font-display text-xl tracking-widest uppercase ${godMeta?.color}`}>{godMeta?.name}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">God</p>
-                  </div>
-                  <div>
-                    <p className={`font-display text-xl tracking-widest ${godMeta?.color}`}>4</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Days</p>
-                  </div>
-                  <div>
-                    <p className={`font-display text-xl tracking-widest ${godMeta?.color}`}>
-                      {selectedGod === 'zeus' ? '12' : selectedGod === 'ares' ? '∞' : weeks}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                      {selectedGod === 'ares' ? 'Rolling' : 'Weeks'}
-                    </p>
-                  </div>
-                </div>
-                {focusGroups.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-1.5">
-                    {focusGroups.map(m => (
-                      <span key={m} className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wider ${godMeta?.color} ${godMeta?.bg} ${godMeta?.border}`}>
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Gym type */}
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
-                  Gym Type
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['commercial', 'home'] as GymType[]).map((g) => (
-                    <button
-                      key={g}
-                      onClick={() => setGymType(g)}
-                      className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
-                        gymType === g
-                          ? `${godMeta?.border} ${godMeta?.bg} ${godMeta?.color}`
-                          : 'border-border bg-surface-3 text-muted-foreground'
-                      }`}
-                    >
-                      {g === 'commercial' ? '🏋️ Commercial' : '🏠 Home'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Weeks — only for custom program gods; Ares/Zeus/Chronos have fixed structure */}
-              {selectedGod !== 'ares' && selectedGod !== 'zeus' && !isChronos && (
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold font-display">
-                    Program Length
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {([4, 5, 6] as Weeks[]).map((w) => (
-                      <button
-                        key={w}
-                        onClick={() => setWeeks(w)}
-                        className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
-                          weeks === w
-                            ? `${godMeta?.border} ${godMeta?.bg} ${godMeta?.color}`
-                            : 'border-border bg-surface-3 text-muted-foreground'
-                        }`}
-                      >
-                        {w} Weeks
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Structure note for fixed-length gods */}
-              {selectedGod === 'ares' && (
-                <div className="rounded-xl border border-border/60 bg-surface-3/40 px-4 py-3 text-[11px] text-muted-foreground leading-relaxed">
-                  <span className="font-semibold text-foreground">Ares runs on rolling monthly themes.</span>{' '}
-                  No deloads, no end date — hop on, hop off. Each month biases toward a different focus (posterior chain, snatch, engine, etc).
-                </div>
-              )}
-              {selectedGod === 'zeus' && (
-                <div className="rounded-xl border border-border/60 bg-surface-3/40 px-4 py-3 text-[11px] text-muted-foreground leading-relaxed">
-                  <span className="font-semibold text-foreground">Zeus is a fixed 12-week mesocycle.</span>{' '}
-                  Three 4-week mesos: Foundation → Shift → Accumulation. Sequential — week 1 through 12, no deloads.
-                </div>
-              )}
-
-              {/* Calibration inputs — hidden for Chronos */}
-              {!isChronos && (
-                <div className="ds-card divide-y divide-border overflow-hidden">
-                  {activeCalibrationLifts.map((lift) => (
-                    <div key={lift.key} className="flex items-center gap-4 px-4 py-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground">{lift.label}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">
-                          Heaviest set of{' '}
-                          <span className="font-black text-yellow-400">{lift.repMax}</span>
-                          {' '}clean rep{lift.repMax > 1 ? 's' : ''}
-                          {lift.repMax === 1 ? ' — true 1RM' : ''}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          placeholder="0"
-                          value={weights[lift.key] ?? ''}
-                          onChange={e => setWeights(prev => ({ ...prev, [lift.key]: e.target.value }))}
-                          className="w-16 text-right bg-surface-3 border border-border rounded-lg px-2 py-1.5 text-sm font-mono text-foreground focus:outline-none focus:border-brand transition-colors"
-                        />
-                        <span className="text-xs text-muted-foreground w-6">lbs</span>
+                        <span className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 border border-border text-muted-foreground rounded-sm">
+                          {p.macroWeeks}-week macro
+                        </span>
                       </div>
                     </div>
-                  ))}
+                    <ChevronRight size={16} className="text-muted-foreground group-hover:text-brand transition-colors mt-1 shrink-0" />
+                  </div>
+                </button>
+              ))}
+
+              {UPCOMING_PROGRAMS.map(p => (
+                <div key={p.slug} className="ds-card p-5 opacity-45 relative">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="telemetry-dim mb-1">{p.tagline}</p>
+                      <p className="font-display text-2xl tracking-[0.08em] uppercase text-foreground">{p.name}</p>
+                      <p className="text-xs text-muted-foreground mt-2">{p.description}</p>
+                    </div>
+                    <Lock size={14} className="text-muted-foreground mt-1 shrink-0" />
+                  </div>
                 </div>
-              )}
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="maxes"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="space-y-4"
+            >
+              <div className="readout-rule" />
+              <div className="hud-frame ds-card p-5 space-y-4">
+                <div>
+                  <p className="telemetry mb-1">CAL // ENTER.MAXES</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Every prescribed weight is computed from these. Use your best recent single —
+                    honest numbers, not all-time PRs from years ago. You&apos;ll retest at the end of the macro.
+                  </p>
+                </div>
 
-              {/* Activate */}
-              <AnimatePresence mode="wait">
-                {done ? (
-                  <motion.div
-                    key="done"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className={`w-full py-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-display tracking-[0.08em] uppercase ${godMeta?.bg} ${godMeta?.color} ${godMeta?.border}`}
-                  >
-                    <CheckCircle2 size={16} /> Activated — Loading Day 1
-                  </motion.div>
-                ) : (
-                  <motion.button
-                    key="activate"
-                    onClick={activate}
-                    disabled={activating || !allWeightsFilled}
-                    className={`w-full py-4 rounded-xl font-display tracking-[0.08em] uppercase text-sm flex items-center justify-center gap-2 transition-all duration-200 ${
-                      allWeightsFilled && !activating
-                        ? `${godMeta?.bg} ${godMeta?.color} border ${godMeta?.border} shadow-lg ${godMeta?.glow}`
-                        : 'bg-surface-3 text-muted-foreground border border-border cursor-not-allowed'
-                    }`}
-                  >
-                    {activating ? (
-                      <>
-                        <span className="w-4 h-4 rounded-full border-2 border-current/40 border-t-current animate-spin" />
-                        Building Your Program…
-                      </>
-                    ) : (
-                      <>Activate {godMeta?.name} <ChevronRight size={15} /></>
-                    )}
-                  </motion.button>
+                {selected.requiredMaxes.map(d => (
+                  <div key={d.key} className="space-y-1">
+                    <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      {d.label}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={maxVals[d.key] ?? ''}
+                        onChange={e => setMaxVals(v => ({ ...v, [d.key]: e.target.value }))}
+                        placeholder={d.hint ?? 'lbs'}
+                        className="flex-1 bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/60"
+                      />
+                      <span className="text-xs text-muted-foreground w-8">lbs</span>
+                    </div>
+                  </div>
+                ))}
+
+                {error && (
+                  <p className="text-xs text-red-400 border border-red-500/30 bg-red-500/5 rounded-lg px-3 py-2">{error}</p>
                 )}
-              </AnimatePresence>
 
-              {!allWeightsFilled && !activating && !isChronos && (
-                <p className="text-center text-[11px] text-muted-foreground">
-                  Fill in all {activeCalibrationLifts.length} lifts to continue
-                </p>
-              )}
+                <button
+                  onClick={() => void startProgram()}
+                  disabled={activating}
+                  className="mecha-glow w-full py-3.5 bg-brand text-white rounded-lg text-sm font-semibold uppercase tracking-[0.1em] hover:bg-brand/90 disabled:opacity-50 transition-all"
+                >
+                  {activating ? 'Igniting…' : 'Launch Week 1'}
+                </button>
+              </div>
             </motion.div>
           )}
-
         </AnimatePresence>
       </main>
     </div>

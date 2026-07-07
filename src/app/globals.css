@@ -90,11 +90,11 @@
 
     --border: 214 22% 80%;             /* #BDCAD8 — cool steel border    */
     --input: 214 18% 93%;
-    --ring: 38 90% 41%;
+    --ring: 351 92% 42%;
 
-    /* AMG Amber — earned accent, unchanged across modes */
-    --brand: 38 90% 41%;               /* #C8820A */
-    --brand-muted: 38 90% 41% / 0.12;
+    /* Rosso Corsa — Ferrari red, earned accent, unchanged across modes */
+    --brand: 351 92% 42%;              /* #CE0928 */
+    --brand-muted: 351 92% 42% / 0.12;
 
     /* Steel — same hue as dark mode steel */
     --steel: 214 22% 52%;              /* #6A82A0 */
@@ -135,11 +135,11 @@
 
     --border: 214 35% 18%;          /* #1E2C3E — cool steel border */
     --input: 220 31% 11%;
-    --ring: 38 90% 41%;
+    --ring: 351 92% 48%;
 
-    /* AMG Amber — earned sparingly */
-    --brand: 38 90% 41%;            /* #C8820A */
-    --brand-muted: 38 90% 41% / 0.10;
+    /* Rosso Corsa — Gundam-eye red, earned sparingly */
+    --brand: 351 92% 48%;           /* #EA0B2F */
+    --brand-muted: 351 92% 48% / 0.10;
 
     /* Steel chrome midtone */
     --steel: 213 22% 52%;           /* #6A82A0 */
@@ -649,4 +649,98 @@
 }
 .data-row:last-child {
   border-bottom: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MECHA HUD KIT — Gundam cockpit chrome, Eleiko restraint.
+   Corner brackets, telemetry micro-labels, readout lines.
+   Use sparingly: one HUD frame per view, telemetry on key stats.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Corner brackets — cockpit targeting frame on a card */
+.hud-frame {
+  position: relative;
+}
+.hud-frame::before,
+.hud-frame::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+.hud-frame::before {
+  top: 6px; left: 6px;
+  border-top: 1.5px solid hsl(var(--brand) / 0.8);
+  border-left: 1.5px solid hsl(var(--brand) / 0.8);
+}
+.hud-frame::after {
+  bottom: 6px; right: 6px;
+  border-bottom: 1.5px solid hsl(var(--brand) / 0.8);
+  border-right: 1.5px solid hsl(var(--brand) / 0.8);
+}
+
+/* Telemetry micro-label — uppercase mono readout */
+.telemetry {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: hsl(var(--brand) / 0.9);
+}
+.telemetry-dim {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground) / 0.7);
+}
+
+/* Readout rule — thin red line with a hot segment */
+.readout-rule {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--brand)) 0%,
+    hsl(var(--brand)) 18%,
+    hsl(var(--border)) 18.5%,
+    hsl(var(--border)) 100%
+  );
+}
+
+/* Red glow — Gundam eye. Replaces old amber glow on brand moments. */
+.mecha-glow {
+  box-shadow: 0 0 16px hsl(var(--brand) / 0.35), 0 0 42px hsl(var(--brand) / 0.12);
+}
+
+/* Scanline sweep on hover — subtle cockpit boot effect */
+@keyframes hud-scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  15% { opacity: 0.6; }
+  100% { transform: translateY(400%); opacity: 0; }
+}
+.hud-scan-hover {
+  position: relative;
+  overflow: hidden;
+}
+.hud-scan-hover::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 25%;
+  background: linear-gradient(180deg, transparent, hsl(var(--brand) / 0.06), transparent);
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+.hud-scan-hover:hover::after {
+  animation: hud-scan 0.9s ease-out;
+}
+
+/* Status dot — system-online indicator */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: hsl(var(--brand));
+  box-shadow: 0 0 6px hsl(var(--brand) / 0.9);
 }
