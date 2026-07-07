@@ -24,6 +24,7 @@ import MorningProtocol from '../../components/MorningProtocol'
 import ProgressRing from '../../components/ProgressRing'
 import { SectionLabel, HeroAccent } from '../../components/BarbellMark'
 import ForgeLoader from '../../components/ForgeLoader'
+import { getProgram } from '../../lib/programs'
 
 interface ActiveProgramData {
   slug: string
@@ -51,30 +52,6 @@ const PROGRAM_TOTAL_WEEKS: Record<string, number> = {
   hercules: 12,
   apollo: 8,
   chronos: 4,
-}
-
-function getCurrentWeekKey(): string {
-  const d = new Date()
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString().split('T')[0]
-}
-
-function getNextWorkoutDay(daysCount: number): number {
-  try {
-    const weekKey = getCurrentWeekKey()
-    const raw = localStorage.getItem(`dad-strength-week-progress-${weekKey}`)
-    if (raw) {
-      const progress = JSON.parse(raw)
-      for (let i = 0; i < daysCount; i++) {
-        if (progress[i] !== 'complete') return i + 1
-      }
-      // All days complete — start week fresh at Day 1
-    }
-  } catch {}
-  return 1
 }
 
 export default function Dashboard() {
@@ -162,30 +139,30 @@ export default function Dashboard() {
           .replace(/-\d+$/, '')
           .replace(/-/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
+        const registryProgram = getProgram(dbSlug)
         const programData = {
           slug: dbSlug,
-          name: programName,
+          name: registryProgram?.name ?? programName,
           startedAt: dbProgram.started_at,
           currentWeek: dbProgram.current_week,
-          daysCount: parseInt(dbSlug.split('-').pop() ?? '4'),
+          daysCount: registryProgram?.daysPerWeek ?? parseInt(dbSlug.split('-').pop() ?? '4'),
           dayNames: [],
           trainingAge: dbProgram.preferences?.trainingAge ?? '',
           primaryGoal: dbProgram.preferences?.primaryGoal ?? '',
           equipment: dbProgram.equipment ?? {},
         }
         setActiveProgram(programData)
-        // For Zeus, derive done_days from completed log rows rather than
-        // reading user_programs.done_days — the logs are the canonical
-        // record and stay consistent across devices.
-        if (dbSlug.startsWith('zeus')) {
+        // Registry programs derive done_days from session_complete sentinel
+        // rows — canonical, consistent across devices.
+        if (registryProgram) {
           const currentWeek = dbProgram.current_week ?? 1
-          const { data: zeusWorkouts } = await supabase
+          const { data: weekWorkouts } = await supabase
             .from('generated_workouts')
             .select('id')
             .eq('user_id', user.id)
-            .eq('program_slug', 'zeus')
+            .eq('program_slug', dbSlug)
             .eq('week_number', currentWeek)
-          const ids: string[] = (zeusWorkouts ?? []).map((w: { id: string }) => w.id)
+          const ids: string[] = (weekWorkouts ?? []).map((w: { id: string }) => w.id)
           if (ids.length > 0) {
             const { data: completionRows } = await supabase
               .from('ares_session_logs')
@@ -406,7 +383,7 @@ export default function Dashboard() {
                   <div className="data-row">
                     <span className="text-sm text-muted-foreground">Type</span>
                     <span className="text-sm font-semibold text-foreground">
-                      {activeProgram.slug?.startsWith('ares') ? 'Functional' : 'Strength'}
+                      {getProgram(activeProgram.slug ?? '')?.tagline ?? 'Strength'}
                     </span>
                   </div>
                 </div>
@@ -421,32 +398,16 @@ export default function Dashboard() {
               <div className="flex flex-col gap-2.5 relative z-10">
                 <button
                   onClick={() => {
-                    if (activeProgram) {
-                      if (activeProgram.slug?.startsWith('chronos')) {
-                        router.push('/workout/squeeze')
-                      } else if (activeProgram.slug?.startsWith('ares')) {
-                        const daysCount = activeProgram.daysCount || 4
-                        const nextDay = getNextWorkoutDay(daysCount)
-                        router.push(`/workout/ares/${nextDay}`)
-                      } else if (activeProgram.slug?.startsWith('zeus')) {
-                        // Zeus reads progression from user_programs.done_days (server),
-                        // not the old dad-strength-week-progress-* localStorage. This
-                        // keeps phone and desktop consistent and correctly routes the
-                        // user to the next unfinished day.
-                        const daysCount = activeProgram.daysCount || 4
-                        let nextDay = 1
-                        for (let i = 1; i <= daysCount; i++) {
-                          if (!zeusDoneDays.includes(i)) { nextDay = i; break }
-                        }
-                        // All 4 done → week auto-advances server-side on completion;
-                        // route to day 1 of the new week.
-                        router.push(`/workout/zeus/${nextDay}`)
-                      } else {
-                        const daysCount = activeProgram.daysCount || activeProgram.frequency || 3
-                        const nextDay = getNextWorkoutDay(daysCount)
-                        router.push(`/workout/program/${nextDay}`)
+                    const registryProgram = activeProgram ? getProgram(activeProgram.slug ?? '') : null
+                    if (activeProgram && registryProgram) {
+                      // Server-derived done days → first unfinished day this week.
+                      let nextDay = 1
+                      for (let i = 1; i <= registryProgram.daysPerWeek; i++) {
+                        if (!zeusDoneDays.includes(i)) { nextDay = i; break }
                       }
+                      router.push(`/train/${activeProgram.slug}/${nextDay}`)
                     } else {
+                      // No active program (or a retired legacy slug) → path select.
                       router.push('/build')
                     }
                   }}

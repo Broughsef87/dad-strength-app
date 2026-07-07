@@ -186,7 +186,7 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
       const activeProgram = localStorage.getItem('dad-strength-active-program')
       if (activeProgram) {
         const prog = JSON.parse(activeProgram)
-        router.push(prog.slug?.startsWith('ares') ? '/workout/ares/1' : '/workout/program/1')
+        router.push(prog.slug ? `/train/${prog.slug}/1` : '/build')
       }
       else if (activeWorkoutId) router.push(`/workout/${activeWorkoutId}`)
       return

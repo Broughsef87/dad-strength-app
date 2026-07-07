@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
+import { getProgram } from '../lib/programs'
 
 interface ActiveProgramData {
   slug: string
@@ -107,16 +108,15 @@ export default function ActiveProgram() {
         setProgram(data)
         const key = getWeekKey(new Date())
         setWeekKey(key)
-        // For Zeus, derive week progress from ares_session_logs.completed_at
-        // rather than reading user_programs.done_days. Logs are the canonical
-        // record and consistent across devices.
-        if (dbSlug.startsWith('zeus')) {
+        // Registry programs derive week progress from session_complete
+        // sentinel rows — canonical, consistent across devices.
+        if (getProgram(dbSlug)) {
           const currentWeek = dbProgram.current_week ?? 1
           const { data: zeusWorkouts } = await supabase
             .from('generated_workouts')
             .select('id')
             .eq('user_id', user.id)
-            .eq('program_slug', 'zeus')
+            .eq('program_slug', dbSlug)
             .eq('week_number', currentWeek)
           const ids: string[] = (zeusWorkouts ?? []).map((w: { id: string }) => w.id)
           const serverProgress: WeekProgress = {}
@@ -163,10 +163,10 @@ export default function ActiveProgram() {
   }, [loadProgram])
 
   const cycleStatus = (dayIndex: number) => {
-    // For Zeus, progress lives on the server (user_programs.done_days).
-    // Manual click-to-toggle here is disabled — users mark days done by
-    // completing the workout on the Zeus page, which updates the server.
-    if (program?.slug?.startsWith('zeus')) return
+    // Registry programs track progress server-side via session_complete
+    // sentinels — manual click-to-toggle is disabled; complete workouts
+    // on the training page instead.
+    if (getProgram(program?.slug ?? '')) return
     const current = weekProgress[dayIndex] ?? 'not_started'
     const next: DayStatus =
       current === 'not_started' ? 'in_progress' :
@@ -233,10 +233,8 @@ export default function ActiveProgram() {
     )
   }
 
-  const isChronos = program.slug?.startsWith('chronos')
-  const isAres = program.slug?.startsWith('ares')
   const workoutRoute = (day: number) =>
-    isChronos ? '/workout/squeeze' : isAres ? `/workout/ares/${day}` : `/workout/program/${day}`
+    getProgram(program.slug ?? '') ? `/train/${program.slug}/${day}` : '/build'
   const dayNames = program.dayNames ?? Array.from({ length: totalDays }, (_, i) => `Day ${i + 1}`)
 
   return (
