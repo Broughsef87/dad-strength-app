@@ -138,8 +138,9 @@ function WorkoutTimer() {
 
 // ── Lift card — per-set logging with prescribed load ─────────────────────────
 
-function LiftCard({ item, initialLogs, onLog }: {
+function LiftCard({ item, index, initialLogs, onLog }: {
   item: LiftPrescription
+  index: number
   initialLogs: SessionLogRow[]
   onLog: (sets: SetEntry[]) => void
 }) {
@@ -164,49 +165,62 @@ function LiftCard({ item, initialLogs, onLog }: {
     })
   }
   const doneCount = sets.filter(s => s.done).length
-
-  const prescription = item.percent != null
-    ? `${item.sets}×${item.reps} @ ${item.percent}%${item.targetWeightLbs != null ? ` · ${item.targetWeightLbs} lb` : ''}`
-    : item.rpe != null
-      ? `${item.sets}×${item.reps} @ RPE ${item.rpe}`
-      : `${item.sets}×${item.reps}`
+  const allDone = doneCount === item.sets
+  const panelId = `PNL-${String(index + 1).padStart(2, '0')} // ${item.slot.replace(/_/g, '.').toUpperCase()}`
 
   return (
-    <div className="ds-card overflow-hidden">
-      <button onClick={() => setExpanded(e => !e)} className="w-full flex items-center justify-between p-4">
-        <div className="flex items-center gap-3">
-          <Dumbbell size={15} className="text-blue-400 shrink-0" />
-          <div className="text-left">
-            <p className="font-medium text-sm text-foreground">{item.name}</p>
-            <p className="text-xs text-muted-foreground">{prescription}</p>
+    <div className={`panel-cut hud-frame relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
+      <span className="panel-id">{panelId}</span>
+
+      <button onClick={() => setExpanded(e => !e)} className="w-full text-left px-4 pt-6 pb-3">
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-display text-lg leading-tight uppercase tracking-wide text-foreground truncate">{item.name}</p>
+            {/* Prescription readout — target weight is the hero */}
+            {item.targetWeightLbs != null ? (
+              <div className="flex items-baseline gap-2 mt-1.5">
+                <span className="readout-num text-4xl text-brand" style={{ textShadow: '0 0 18px hsl(var(--brand) / 0.35)' }}>
+                  {item.targetWeightLbs}
+                </span>
+                <span className="telemetry-dim">LB @ {item.percent}% · {item.sets}×{item.reps}</span>
+              </div>
+            ) : (
+              <p className="telemetry-dim mt-1.5">
+                {item.sets}×{item.reps}{item.percent != null ? ` @ ${item.percent}%` : item.rpe != null ? ` @ RPE ${item.rpe}` : ''}
+              </p>
+            )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {doneCount === item.sets && <CheckCircle2 size={15} className="text-blue-400" />}
-          <span className="text-xs text-muted-foreground">{doneCount}/{item.sets}</span>
-          {expanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
+          <div className="flex flex-col items-end gap-1.5 shrink-0 pb-0.5">
+            {/* Ammo counter — spent rounds = completed sets */}
+            <div className="flex gap-1">
+              {sets.map((s, i) => (
+                <span key={i} className={`ammo-cell ${s.done ? 'spent' : ''}`} />
+              ))}
+            </div>
+            {expanded ? <ChevronUp size={13} className="text-muted-foreground" /> : <ChevronDown size={13} className="text-muted-foreground" />}
+          </div>
         </div>
       </button>
 
       {item.note && (
-        <p className="px-4 pb-2 text-xs text-muted-foreground italic border-t border-border pt-2 mx-4">{item.note}</p>
+        <p className="px-4 pb-2 text-xs text-muted-foreground italic">{item.note}</p>
       )}
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-2 border-t border-border pt-3">
-          <div className="grid grid-cols-4 gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-1">
-            <span>Set</span><span>Weight (lbs)</span><span>Reps</span><span></span>
+        <div className="px-4 pb-4 space-y-1.5 border-t border-border/60 pt-3">
+          <div className="grid grid-cols-4 gap-2 telemetry-dim px-1">
+            <span>SET</span><span>LOAD.LB</span><span>REPS</span><span></span>
           </div>
           {sets.map((s, idx) => (
-            <div key={idx} className={`grid grid-cols-4 gap-2 items-center p-2 rounded-lg border transition-colors ${s.done ? 'border-blue-500/30 bg-blue-500/5' : 'border-border bg-background'}`}>
-              <span className="text-xs font-mono text-muted-foreground pl-1">{idx + 1}</span>
+            <div key={idx} className={`panel-cut-sm grid grid-cols-4 gap-2 items-center p-2 border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+              <span className="readout-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
               <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)} placeholder="lbs"
-                className="w-full bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground/40 text-center" />
+                className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
-                className="w-full bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground/40 text-center" />
+                className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <button onClick={() => update(idx, 'done', !s.done)}
-                className={`text-xs font-medium rounded px-2 py-1 transition-colors ${s.done ? 'bg-blue-500/20 text-blue-400' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-                {s.done ? 'Done' : 'Log'}
+                className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                {s.done ? 'Hit' : 'Log'}
               </button>
             </div>
           ))}
@@ -226,19 +240,20 @@ function PlyoCard({ item, initialLog, onLog }: {
   const [notes, setNotes] = useState(initialLog?.notes ?? '')
   const [logged, setLogged] = useState(initialLog?.completed === true)
   return (
-    <div className="ds-card p-4 space-y-3">
+    <div className={`panel-cut relative bg-card border p-4 pt-7 space-y-3 ${logged ? 'border-brand/50' : 'border-border'}`}>
+      <span className="panel-id">ORD // {item.slot.replace(/_/g, '.').toUpperCase()}</span>
       <div className="flex items-center gap-3">
-        <Zap size={15} className="text-yellow-400 shrink-0" />
+        <Zap size={15} className="text-brand shrink-0" />
         <div className="flex-1">
-          <p className="font-medium text-sm text-foreground">{item.name}</p>
-          <p className="text-xs text-muted-foreground">{item.sets}×{item.reps}{item.note ? ` · ${item.note}` : ''}</p>
+          <p className="font-display text-base uppercase tracking-wide text-foreground">{item.name}</p>
+          <p className="telemetry-dim mt-0.5">{item.sets}×{item.reps}{item.note ? ` · ${item.note}` : ''}</p>
         </div>
-        {logged && <CheckCircle2 size={15} className="text-blue-400" />}
+        {logged && <CheckCircle2 size={15} className="text-brand" />}
       </div>
       <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (height, distance, how it felt)..."
-        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-blue-500/50" />
+        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50" />
       <button onClick={() => { onLog(notes); setLogged(true) }}
-        className="w-full py-2.5 bg-foreground text-background rounded-lg text-xs font-medium uppercase tracking-wider hover:bg-foreground/90 transition-colors">
+        className="panel-cut-sm w-full py-2.5 bg-foreground text-background text-xs font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-colors">
         {logged ? 'Logged ✓' : 'Log'}
       </button>
     </div>
@@ -259,16 +274,18 @@ function MetconCard({ item, initialLog, onLog }: {
   const [notes, setNotes] = useState(initialLog?.notes ?? '')
   const [logged, setLogged] = useState(initialLog?.completed === true)
   return (
-    <div className="ds-card overflow-hidden">
-      <div className="p-4 border-b border-border flex items-center gap-2">
+    <div className="panel-cut relative bg-card border border-brand/40 overflow-hidden">
+      <div className="hazard" />
+      <div className="p-4 pt-3 border-b border-border flex items-center gap-2">
         <Flame size={15} className="text-brand shrink-0" />
-        <div>
-          <p className="font-medium text-sm text-foreground">{item.name}</p>
-          <p className="text-xs text-muted-foreground capitalize">{item.format.replace(/_/g, ' ')} · {item.timeCapMinutes} min cap</p>
+        <div className="flex-1">
+          <p className="telemetry">COMBAT.SIM // {item.format.replace(/_/g, '.').toUpperCase()}</p>
+          <p className="font-display text-lg uppercase tracking-wide text-foreground mt-0.5">{item.name}</p>
         </div>
+        <span className="readout-num text-2xl text-brand">{item.timeCapMinutes}&apos;</span>
       </div>
       <div className="p-4 bg-background/50 border-b border-border">
-        <pre className="text-sm text-foreground/90 font-mono whitespace-pre-wrap leading-relaxed">{item.description}</pre>
+        <pre className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed" style={{ fontFamily: 'var(--font-telemetry)' }}>{item.description}</pre>
       </div>
       <div className="p-4 space-y-3">
         <WorkoutTimer />
@@ -302,25 +319,26 @@ function OutsideCard({ item, initialLog, onLog }: {
   const [notes, setNotes] = useState(initialLog?.notes ?? '')
   const [logged, setLogged] = useState(initialLog?.completed === true)
   return (
-    <div className="ds-card p-4 space-y-4">
+    <div className={`panel-cut hud-frame relative bg-card border p-4 pt-7 space-y-4 ${logged ? 'border-brand/50' : 'border-border'}`}>
+      <span className="panel-id">BRIEFING // {item.slot.replace(/_/g, '.').toUpperCase()}</span>
       <div className="flex items-center gap-3">
-        <Wind size={15} className="text-sky-400 shrink-0" />
-        <p className="font-medium text-sm text-foreground">{item.title}</p>
-        {logged && <CheckCircle2 size={15} className="text-blue-400 ml-auto" />}
+        <Wind size={15} className="text-steel shrink-0" />
+        <p className="font-display text-lg uppercase tracking-wide text-foreground">{item.title}</p>
+        {logged && <CheckCircle2 size={15} className="text-brand ml-auto" />}
       </div>
       <ul className="space-y-2">
         {item.parts.map((p, i) => (
-          <li key={i} className="flex items-start gap-2 text-xs text-foreground/85">
-            <span className="text-sky-400 mt-0.5">•</span>{p}
+          <li key={i} className="flex items-start gap-2.5 text-xs text-foreground/85">
+            <span className="readout-num text-brand/80 mt-px shrink-0">{String(i + 1).padStart(2, '0')}</span>{p}
           </li>
         ))}
       </ul>
-      {item.note && <p className="text-xs text-muted-foreground italic border-l-2 border-sky-500/30 pl-3">{item.note}</p>}
-      <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="How it went (times, distances, feel)..."
-        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-blue-500/50 resize-none" />
+      {item.note && <p className="text-xs text-muted-foreground italic border-l-2 border-brand/30 pl-3">{item.note}</p>}
+      <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Debrief (times, distances, feel)..."
+        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50 resize-none" />
       <button onClick={() => { onLog(notes); setLogged(true) }}
-        className="w-full py-2.5 bg-foreground text-background rounded-lg text-xs font-medium uppercase tracking-wider hover:bg-foreground/90 transition-colors">
-        {logged ? 'Logged ✓' : 'Mark Complete'}
+        className="panel-cut-sm w-full py-2.5 bg-foreground text-background text-xs font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-colors">
+        {logged ? 'Logged ✓' : 'Mission Complete'}
       </button>
     </div>
   )
@@ -567,24 +585,33 @@ export default function TrainingDayPage() {
 
   if (sessionComplete) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 p-6 text-center">
-        <div className="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-          <Zap className="w-9 h-9 text-blue-400" />
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 p-6 text-center">
+        <div className="stamp px-8 py-4">
+          <p className="font-display text-4xl tracking-[0.2em] uppercase">Cleared</p>
         </div>
         <div>
-          <p className="font-display text-3xl tracking-[0.12em] uppercase text-foreground mb-2">Session Done</p>
-          <p className="text-sm text-muted-foreground">Day {dayNumber} logged.</p>
+          <p className="telemetry mb-2">WK {weekRef.current} · DAY {dayNumber} // MISSION LOG SAVED</p>
+          <p className="text-sm text-muted-foreground">{program.name}</p>
+        </div>
+        {/* Week LED bar */}
+        <div className="w-full max-w-xs">
+          <div className="led-bar">
+            {Array.from({ length: program.daysPerWeek }).map((_, i) => (
+              <span key={i} className={`led-cell ${i < dayNumber ? 'lit' : ''}`} />
+            ))}
+          </div>
+          <p className="telemetry-dim mt-2">WEEK PROGRESS</p>
         </div>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           {dayNumber < program.daysPerWeek && (
             <button onClick={() => { setSessionComplete(false); setLoading(true); router.push(`/train/${slug}/${dayNumber + 1}`) }}
-              className="w-full py-3 bg-blue-500 text-white rounded-lg text-sm font-medium uppercase tracking-wider hover:bg-blue-600 transition-colors">
-              Next Day →
+              className="panel-cut-sm mecha-glow w-full py-3.5 bg-brand text-white text-sm font-semibold uppercase tracking-[0.12em] hover:bg-brand/90 transition-colors">
+              Next Mission →
             </button>
           )}
           <button onClick={() => router.push('/dashboard')}
-            className="w-full py-2.5 border border-border text-muted-foreground rounded-lg text-sm font-medium hover:text-foreground transition-colors">
-            Dashboard
+            className="panel-cut-sm w-full py-2.5 border border-border text-muted-foreground text-sm font-medium uppercase tracking-wider hover:text-foreground transition-colors">
+            Return to Bridge
           </button>
         </div>
       </div>
@@ -593,22 +620,36 @@ export default function TrainingDayPage() {
 
   const isTestWeek = plan.dayType === 'test'
   const missingMaxes = program.requiredMaxes.filter(d => !maxes[d.key])
+  // Session progress for the header LED bar: logged blocks / total items.
+  const loggedBlocks = new Set(sessionLogs.filter(l => l.completed && l.log_type !== 'session_complete').map(l => l.block_name)).size
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
-      <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.push('/dashboard')} className="p-2 border border-border rounded-md text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft size={15} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 border border-blue-500/30 bg-blue-500/10 rounded px-1.5 py-0.5">
-              Week {weekRef.current} · Day {dayNumber}
-            </span>
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{program.name}</span>
+      <header className={`carbon sticky top-0 z-10 border-b px-4 py-3 ${isTestWeek ? 'border-brand/60 red-alert' : 'border-border'}`}>
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push('/dashboard')} className="p-2 border border-border/70 text-muted-foreground hover:text-foreground transition-colors panel-cut-sm">
+            <ArrowLeft size={15} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="telemetry">WK {String(weekRef.current).padStart(2, '0')} // DAY {dayNumber}</span>
+              {isTestWeek && <span className="telemetry border border-brand/60 px-1.5 py-0.5">TRIAL PROTOCOL</span>}
+            </div>
+            <h1 className="font-display text-xl tracking-[0.08em] uppercase truncate mt-0.5 text-white">{plan.dayName}</h1>
           </div>
-          <h1 className="font-display text-xl tracking-[0.1em] uppercase truncate mt-0.5">{plan.dayName}</h1>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="status-dot" />
+              <span className="telemetry-dim">{program.name.split(' ')[0].toUpperCase()}</span>
+            </div>
+            <div className="led-bar w-20">
+              {Array.from({ length: Math.max(plan.items.length, 1) }).map((_, i) => (
+                <span key={i} className={`led-cell ${i < loggedBlocks ? 'lit' : ''}`} />
+              ))}
+            </div>
+          </div>
         </div>
+        {isTestWeek && <div className="hazard mt-2 -mx-4" />}
       </header>
 
       {logWriteError && (
@@ -634,13 +675,10 @@ export default function TrainingDayPage() {
           const logsFor = (name: string) => sessionLogs.filter(l => l.block_name === name)
           const firstLog = (name: string) => sessionLogs.find(l => l.block_name === name)
           return (
-            <div key={`${item.slot}-${i}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-mono text-muted-foreground/60">{i + 1}</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
+            <div key={`${item.slot}-${i}`} className="panel-mount" style={{ animationDelay: `${i * 45}ms` }}>
+              <div className="readout-rule mb-2" />
               {item.kind === 'lift' && (
-                <LiftCard item={item} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} />
+                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} />
               )}
               {item.kind === 'plyo' && (
                 <PlyoCard item={item} initialLog={firstLog(item.name)} onLog={n => logSimple(item.name, 'skill_work', n)} />
@@ -667,9 +705,9 @@ export default function TrainingDayPage() {
         )}
 
         <button onClick={() => void completeSession()}
-          className="w-full py-4 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-xl text-sm font-medium uppercase tracking-wider hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2">
+          className="panel-cut carbon mecha-glow w-full py-4 border border-brand/60 text-brand text-sm font-semibold uppercase tracking-[0.16em] hover:border-brand transition-colors flex items-center justify-center gap-2.5">
           <Trophy size={16} />
-          Complete Session
+          Mission Complete
         </button>
       </main>
     </div>
