@@ -23,17 +23,18 @@ export default function BottomNav() {
         background:
           'linear-gradient(180deg, hsl(224 31% 13%) 0%, hsl(222 21% 8%) 100%)',
         border: '1px solid hsl(214 35% 20%)',
-        borderRadius: '14px',
+        borderRadius: '4px',
+        clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))',
         boxShadow:
           '0 12px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.6)',
       }}
     >
-      {/* Forge amber underline — brand signature rail */}
+      {/* Rosso underline — brand signature rail */}
       <span
         className="pointer-events-none absolute bottom-0 left-6 right-6 h-px"
         style={{
           background:
-            'linear-gradient(90deg, transparent 0%, rgba(200,130,10,0.45) 50%, transparent 100%)',
+            'linear-gradient(90deg, transparent 0%, hsl(351 92% 48% / 0.55) 50%, transparent 100%)',
         }}
         aria-hidden="true"
       />
@@ -57,11 +58,11 @@ export default function BottomNav() {
                   className="absolute inset-0"
                   style={{
                     background:
-                      'linear-gradient(180deg, rgba(200,130,10,0.14) 0%, rgba(200,130,10,0.05) 100%)',
-                    border: '1px solid rgba(200,130,10,0.35)',
+                      'linear-gradient(180deg, rgba(234,11,47,0.14) 0%, rgba(234,11,47,0.05) 100%)',
+                    border: '1px solid rgba(234,11,47,0.35)',
                     borderRadius: '10px',
                     boxShadow:
-                      '0 0 14px 0 rgba(200,130,10,0.28), inset 0 1px 0 rgba(255,220,150,0.08)',
+                      '0 0 14px 0 rgba(234,11,47,0.28), inset 0 1px 0 rgba(255,180,190,0.08)',
                   }}
                   transition={{ type: 'spring', stiffness: 520, damping: 42 }}
                 />
@@ -69,7 +70,7 @@ export default function BottomNav() {
                 <motion.span
                   layoutId="nav-tick"
                   className="absolute -top-[1px] left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-brand"
-                  style={{ boxShadow: '0 0 6px 1px rgba(200,130,10,0.7)' }}
+                  style={{ boxShadow: '0 0 6px 1px rgba(234,11,47,0.7)' }}
                   transition={{ type: 'spring', stiffness: 520, damping: 42 }}
                 />
               </>
@@ -82,7 +83,7 @@ export default function BottomNav() {
               }`}
               style={
                 isActive
-                  ? { filter: 'drop-shadow(0 0 4px rgba(200,130,10,0.55))' }
+                  ? { filter: 'drop-shadow(0 0 4px rgba(234,11,47,0.55))' }
                   : undefined
               }
             />

@@ -266,7 +266,7 @@ export default function Dashboard() {
         {/* Large background "DS" — editorial depth mark */}
         <span
           className="absolute -top-4 -left-2 font-display leading-none pointer-events-none select-none"
-          style={{ fontSize: '9rem', color: 'rgba(200,130,10,0.045)', letterSpacing: '0.05em' }}
+          style={{ fontSize: '9rem', color: 'rgba(234,11,47,0.045)', letterSpacing: '0.05em' }}
           aria-hidden="true"
         >DS</span>
         <div className="relative">
@@ -285,7 +285,7 @@ export default function Dashboard() {
           {/* Amber accent line — brand signature */}
           <div className="flex items-center gap-1.5 mt-2">
             <div className="h-[2px] w-8 rounded-full bg-brand"
-              style={{ boxShadow: '0 0 8px 1px rgba(200,130,10,0.55)' }} />
+              style={{ boxShadow: '0 0 8px 1px rgba(234,11,47,0.55)' }} />
             <div className="h-[2px] w-4 rounded-full bg-brand/35" />
             <div className="h-[2px] w-2 rounded-full bg-brand/15" />
           </div>
@@ -326,72 +326,69 @@ export default function Dashboard() {
             }
           </motion.div>
 
-          {/* I. ACTIVE PROTOCOL — hero forge card */}
+          {/* I. ACTIVE PROTOCOL — mobile suit status board */}
           <motion.div variants={fadeUp} custom={0} className="space-y-2.5">
             <SectionLabel numeral="I" title="Active Protocol" />
-            <div className="forge-card p-6 overflow-hidden">
-              {/* Editorial background numeral — single depth mark */}
-              <span
-                className="absolute -top-3 right-3 font-display leading-none pointer-events-none select-none"
-                style={{ fontSize: '8rem', color: 'rgba(200,130,10,0.05)', letterSpacing: '0.05em' }}
-                aria-hidden="true"
-              >01</span>
+            <div className="panel-cut hud-frame relative bg-card border border-border p-6 pt-8 overflow-hidden">
+              <span className="panel-id">UNIT-01 // {(activeProgram?.slug ?? 'standby').replace(/-/g, '.').toUpperCase()}</span>
 
               <div className="flex items-start justify-between mb-4 relative z-10">
-                <div>
-                  <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground font-semibold font-display">
-                    <span className="w-1 h-1 bg-brand inline-block" />
-                    Active Protocol
-                  </span>
-                  <h2 className="text-3xl text-foreground leading-none mt-1">
+                <div className="livery-slash pl-4">
+                  <span className="telemetry">Active Protocol</span>
+                  <h2 className="font-display text-3xl text-foreground leading-none mt-1 uppercase tracking-wide">
                     {activeProgram?.name || 'Choose Program'}
                   </h2>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   {streak > 0 && (
-                    <div className="flex items-center gap-1.5 bg-brand/10 border border-brand/20 px-2.5 py-1.5 rounded-full">
+                    <div className="panel-cut-sm flex items-center gap-1.5 bg-brand/10 border border-brand/30 px-2.5 py-1.5">
                       <Flame size={11} className="text-brand" />
-                      <span className="text-[11px] font-bold text-brand">{streak}</span>
+                      <span className="readout-num text-[12px] text-brand">{streak}</span>
                     </div>
                   )}
                   {activeProgram && (
-                    <ProgressRing
-                      value={Math.round(((activeProgram.currentWeek - 1) / (PROGRAM_TOTAL_WEEKS[activeProgram.slug.split('-')[0]] ?? 12)) * 100)}
-                      size={58}
-                      strokeWidth={6}
-                      label={`W${activeProgram.currentWeek}`}
-                      sublabel="week"
-                    />
-                  )}
-                  {!activeProgram && (
-                    <Dumbbell size={28} className="text-muted-foreground/20" strokeWidth={1} />
+                    <div className="text-right">
+                      <p className="readout-num text-4xl text-brand" style={{ textShadow: '0 0 16px hsl(var(--brand) / 0.4)' }}>
+                        {String(activeProgram.currentWeek).padStart(2, '0')}
+                      </p>
+                      <p className="telemetry-dim">WEEK</p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Metadata rows */}
+              {/* Week LED bar — done days */}
+              {activeProgram && getProgram(activeProgram.slug ?? '') && (
+                <div className="relative z-10 mb-4">
+                  <div className="led-bar">
+                    {Array.from({ length: getProgram(activeProgram.slug ?? '')!.daysPerWeek }).map((_, i) => (
+                      <span key={i} className={`led-cell ${zeusDoneDays.includes(i + 1) ? 'lit' : ''}`} />
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    <p className="telemetry-dim">SESSIONS THIS WEEK</p>
+                    <p className="telemetry">{zeusDoneDays.length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Metadata readout */}
               {activeProgram && (
-                <div className="border-t border-border relative z-10 mb-4">
+                <div className="border-t border-border/60 relative z-10 mb-4">
                   <div className="data-row">
-                    <span className="text-sm text-muted-foreground">Week</span>
-                    <span className="text-sm font-semibold text-foreground">{activeProgram.currentWeek}</span>
+                    <span className="telemetry-dim">LOADOUT</span>
+                    <span className="text-sm font-semibold text-foreground">{getProgram(activeProgram.slug ?? '')?.tagline ?? 'Strength'}</span>
                   </div>
                   <div className="data-row">
-                    <span className="text-sm text-muted-foreground">Frequency</span>
-                    <span className="text-sm font-semibold text-foreground">{activeProgram.daysCount} days / week</span>
-                  </div>
-                  <div className="data-row">
-                    <span className="text-sm text-muted-foreground">Type</span>
-                    <span className="text-sm font-semibold text-foreground">
-                      {getProgram(activeProgram.slug ?? '')?.tagline ?? 'Strength'}
-                    </span>
+                    <span className="telemetry-dim">FREQUENCY</span>
+                    <span className="readout-num text-sm text-foreground">{activeProgram.daysCount} / WK</span>
                   </div>
                 </div>
               )}
 
               {!activeProgram && (
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 relative z-10">
-                  Deploy your first training protocol.
+                  No unit deployed. Select a training path.
                 </p>
               )}
 
@@ -411,22 +408,17 @@ export default function Dashboard() {
                       router.push('/build')
                     }
                   }}
-                  className="btn-forge-shimmer w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-background uppercase tracking-[0.1em] transition-all active:scale-[0.98]"
-                  style={{
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #d48a0a 0%, #8B5A00 100%)',
-                    boxShadow: '0 0 20px 3px rgba(200,130,10,0.30), 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
-                  }}
+                  className="panel-cut carbon mecha-glow w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-brand border border-brand/60 uppercase tracking-[0.14em] transition-all active:scale-[0.98] hover:border-brand"
                 >
                   <PlayCircle size={16} strokeWidth={2} />
-                  {activeProgram ? 'Begin Session' : 'Choose Program'}
+                  {activeProgram ? 'Launch Session' : 'Select Path'}
                 </button>
                 {activeProgram && (
                   <button
                     onClick={() => router.push('/build')}
-                    className="self-end inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-brand transition-colors uppercase tracking-[0.16em] font-display font-semibold mt-1 py-1"
+                    className="self-end inline-flex items-center gap-1 telemetry-dim hover:text-brand transition-colors mt-1 py-1"
                   >
-                    Change Program <ChevronRight size={11} strokeWidth={2} />
+                    CHANGE UNIT <ChevronRight size={11} strokeWidth={2} />
                   </button>
                 )}
               </div>
@@ -447,7 +439,7 @@ export default function Dashboard() {
               {/* Editorial depth numeral — matches section label II */}
               <span
                 className="absolute -top-2 right-3 font-display leading-none pointer-events-none select-none"
-                style={{ fontSize: '4.5rem', color: 'rgba(200,130,10,0.05)', letterSpacing: '0.05em' }}
+                style={{ fontSize: '4.5rem', color: 'rgba(234,11,47,0.05)', letterSpacing: '0.05em' }}
                 aria-hidden="true"
               >02</span>
               <div className="flex items-center gap-3 relative z-10">

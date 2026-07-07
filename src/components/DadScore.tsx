@@ -132,7 +132,7 @@ export default function DadScore() {
       {/* Editorial depth marks */}
       <span
         className="absolute -top-4 right-2 font-display leading-none pointer-events-none select-none"
-        style={{ fontSize: '7rem', color: 'rgba(200,130,10,0.045)', letterSpacing: '0.05em' }}
+        style={{ fontSize: '7rem', color: 'rgba(234,11,47,0.045)', letterSpacing: '0.05em' }}
         aria-hidden="true"
       >04</span>
       {/* Shield watermark */}

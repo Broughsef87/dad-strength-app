@@ -16,8 +16,8 @@ export default function Home() {
 
   const authColors = resolvedTheme === 'light'
     ? {
-        brand: '#C8820A',
-        brandAccent: '#a86808',
+        brand: '#CE0928',
+        brandAccent: '#9C0720',
         inputBackground: 'hsl(214 18% 93%)',
         inputBorder: 'hsl(214 22% 80%)',
         inputText: 'hsl(222 32% 11%)',
@@ -28,8 +28,8 @@ export default function Home() {
         dividerBackground: 'hsl(214 22% 80%)',
       }
     : {
-        brand: '#C8820A',
-        brandAccent: '#a86808',
+        brand: '#CE0928',
+        brandAccent: '#9C0720',
         inputBackground: 'hsl(222 21% 7%)',
         inputBorder: 'hsl(214 35% 18%)',
         inputText: 'hsl(210 24% 80%)',
@@ -87,8 +87,13 @@ export default function Home() {
           />
         </div>
 
-        {/* Auth card */}
-        <div className="ds-card p-6 shadow-2xl">
+        {/* Auth card — pilot authentication console */}
+        <div className="panel-cut hud-frame relative bg-card border border-border p-6 pt-9 shadow-2xl">
+          <span className="panel-id">ACCESS // PILOT.AUTH</span>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="status-dot" />
+            <span className="telemetry">Pilot Authentication</span>
+          </div>
           <Auth
             supabaseClient={supabase}
             appearance={{
@@ -100,8 +105,8 @@ export default function Home() {
           />
         </div>
 
-        <p className="text-center text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-[0.22em] font-display">
-          Dad Strength · Built for the Long Haul
+        <p className="telemetry-dim text-center">
+          DS-01 // BUILT FOR THE LONG HAUL
         </p>
       </div>
     </div>

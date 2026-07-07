@@ -47,13 +47,13 @@ export default function ProgressRing({
           {/* Main amber arc — dark→bright for lit-from-above look */}
           <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#6B4500" />
-            <stop offset="55%" stopColor="#C8820A" />
-            <stop offset="100%" stopColor="#F5A820" />
+            <stop offset="55%" stopColor="#CE0928" />
+            <stop offset="100%" stopColor="#FF4D6A" />
           </linearGradient>
           {/* Inner highlight — thin brighter amber layered on top */}
           <linearGradient id={`${id}-hi`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,220,150,0)" />
-            <stop offset="60%" stopColor="rgba(255,220,150,0.35)" />
+            <stop offset="0%" stopColor="rgba(255,180,190,0)" />
+            <stop offset="60%" stopColor="rgba(255,180,190,0.35)" />
             <stop offset="100%" stopColor="rgba(255,240,200,0.7)" />
           </linearGradient>
           <filter id={`glow-amber-${size}`}>
@@ -69,7 +69,7 @@ export default function ProgressRing({
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none"
-          stroke="rgba(200,130,10,0.10)"
+          stroke="rgba(234,11,47,0.10)"
           strokeWidth={strokeWidth}
         />
 

@@ -113,10 +113,11 @@ export default function BuildPage() {
                 <button
                   key={p.slug}
                   onClick={() => setSelected(p)}
-                  className="hud-frame hud-scan-hover w-full text-left ds-card p-5 hover:border-brand/50 transition-colors group"
+                  className="panel-cut hud-frame hud-scan-hover relative w-full text-left bg-card border border-border p-5 pt-7 hover:border-brand/60 transition-colors group"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
+                      <span className="panel-id">HANGAR // {p.slug.replace(/-/g, '.').toUpperCase()}</span>
                       <p className="telemetry mb-1">{p.tagline}</p>
                       <p className="font-display text-2xl tracking-[0.08em] uppercase text-foreground">
                         {p.name}
@@ -137,9 +138,10 @@ export default function BuildPage() {
               ))}
 
               {UPCOMING_PROGRAMS.map(p => (
-                <div key={p.slug} className="ds-card p-5 opacity-45 relative">
+                <div key={p.slug} className="panel-cut bg-card border border-border p-5 pt-7 opacity-45 relative">
                   <div className="flex items-start justify-between gap-3">
                     <div>
+                      <span className="panel-id">HANGAR // LOCKED</span>
                       <p className="telemetry-dim mb-1">{p.tagline}</p>
                       <p className="font-display text-2xl tracking-[0.08em] uppercase text-foreground">{p.name}</p>
                       <p className="text-xs text-muted-foreground mt-2">{p.description}</p>
@@ -158,8 +160,9 @@ export default function BuildPage() {
               className="space-y-4"
             >
               <div className="readout-rule" />
-              <div className="hud-frame ds-card p-5 space-y-4">
+              <div className="panel-cut hud-frame relative bg-card border border-border p-5 pt-8 space-y-4">
                 <div>
+                  <span className="panel-id">CALIBRATION CONSOLE</span>
                   <p className="telemetry mb-1">CAL // ENTER.MAXES</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Every prescribed weight is computed from these. Use your best recent single —
@@ -193,9 +196,9 @@ export default function BuildPage() {
                 <button
                   onClick={() => void startProgram()}
                   disabled={activating}
-                  className="mecha-glow w-full py-3.5 bg-brand text-white rounded-lg text-sm font-semibold uppercase tracking-[0.1em] hover:bg-brand/90 disabled:opacity-50 transition-all"
+                  className="panel-cut carbon mecha-glow w-full py-3.5 text-brand border border-brand/60 text-sm font-semibold uppercase tracking-[0.14em] hover:border-brand disabled:opacity-50 transition-all"
                 >
-                  {activating ? 'Igniting…' : 'Launch Week 1'}
+                  {activating ? 'IGNITION…' : 'Deploy Unit'}
                 </button>
               </div>
             </motion.div>

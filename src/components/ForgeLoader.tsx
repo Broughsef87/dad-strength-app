@@ -24,7 +24,7 @@ export default function ForgeLoader({
           className="absolute inset-0 rounded-full forge-pulse"
           style={{
             background:
-              'radial-gradient(circle, rgba(200,130,10,0.25) 0%, rgba(200,130,10,0) 70%)',
+              'radial-gradient(circle, rgba(234,11,47,0.25) 0%, rgba(234,11,47,0) 70%)',
           }}
           aria-hidden="true"
         />
@@ -36,9 +36,9 @@ export default function ForgeLoader({
             height: size * 0.62,
             background:
               'radial-gradient(circle at 35% 30%, hsl(220 31% 18%) 0%, hsl(222 21% 8%) 70%)',
-            border: '1px solid rgba(200,130,10,0.35)',
+            border: '1px solid rgba(234,11,47,0.35)',
             boxShadow:
-              '0 0 14px 1px rgba(200,130,10,0.35), inset 0 1px 0 rgba(255,220,150,0.08)',
+              '0 0 14px 1px rgba(234,11,47,0.35), inset 0 1px 0 rgba(255,180,190,0.08)',
           }}
           aria-hidden="true"
         />
@@ -53,9 +53,9 @@ export default function ForgeLoader({
         >
           <defs>
             <linearGradient id="forge-loader-arc" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(200,130,10,0)" />
-              <stop offset="50%" stopColor="#C8820A" />
-              <stop offset="100%" stopColor="#F5A820" />
+              <stop offset="0%" stopColor="rgba(234,11,47,0)" />
+              <stop offset="50%" stopColor="#CE0928" />
+              <stop offset="100%" stopColor="#FF4D6A" />
             </linearGradient>
           </defs>
           <circle
@@ -67,7 +67,7 @@ export default function ForgeLoader({
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeDasharray="40 200"
-            style={{ filter: 'drop-shadow(0 0 3px rgba(200,130,10,0.6))' }}
+            style={{ filter: 'drop-shadow(0 0 3px rgba(234,11,47,0.6))' }}
           />
         </svg>
       </div>
