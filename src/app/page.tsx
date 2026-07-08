@@ -9,7 +9,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import Logo from '../components/Logo';
 
 export default function Home() {
-  const supabase = createClient();
+  // Memoize the client — a fresh instance each render would re-subscribe
+  // the auth listener on every render and thrash the session check.
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
@@ -41,13 +43,24 @@ export default function Home() {
       };
 
   useEffect(() => {
+    // Initial check — already-authenticated visitors skip the login screen.
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) router.push('/dashboard');
+      if (session) { router.replace('/dashboard'); return; }
       setLoading(false);
     };
     checkUser();
-  }, [router, supabase.auth]);
+
+    // Live listener — THIS is what redirects after an in-place email/password
+    // or OAuth sign-in. Without it, a successful login updates the session but
+    // the page just sits there ("nothing happens on Sign In").
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: unknown) => {
+      if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        router.replace('/dashboard');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router, supabase]);
 
   if (loading) {
     return (
