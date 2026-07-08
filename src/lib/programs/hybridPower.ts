@@ -58,6 +58,20 @@ const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 9 }
 // Autoreg deltas are clamped so feedback can bend the wave, never break it.
 const MAX_ADJ = 6
 
+// Classic-lift floor. The snatch and clean & jerk are speed-strength skills,
+// not grinds — working under 65% teaches slow, sloppy positions. 65% is the
+// hard floor (reserved for slow-tempo work); everything else lives at 70%+.
+// This is a backstop: table waves are authored above it, and it also stops
+// autoregulation from ever dropping a classic working set below 65%.
+// Applies to the competition lifts and their receiving work — NOT to pulls
+// (which live at 88-105%) or squats (keyed to their own maxes).
+const CLASSIC_FLOOR = 65
+
+function isClassicLiftSlot(slot: string, maxKey: string): boolean {
+  if (maxKey !== 'snatch' && maxKey !== 'clean_jerk') return false
+  return !slot.includes('pull')
+}
+
 function liftFromSlot(
   slot: string,
   def: SlotMeso,
@@ -71,7 +85,10 @@ function liftFromSlot(
   const basePct = def.pctStart + def.pctStep * (weekInMeso - 1)
   const rawAdj = adjustments[slot] ?? 0
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, rawAdj))
-  const percent = Math.round((basePct + adj) * 2) / 2
+  let percent = Math.round((basePct + adj) * 2) / 2
+  if (percent > 0 && isClassicLiftSlot(slot, maxKey) && percent < CLASSIC_FLOOR) {
+    percent = CLASSIC_FLOOR
+  }
   return {
     kind: 'lift',
     slot,
@@ -183,12 +200,12 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
 
 // ── Day 1 — Oly A (Mon): snatch primary + C&J secondary + clean pull + BS heavy
 const D1_SNATCH: SlotMeso[] = [
-  { names: ['Pause Snatch, At Knee', 'Block Snatch, Below Knee', 'Hang Snatch, Above Knee', 'Snatch'], sets: 4, reps: 3, pctStart: 64, pctStep: 2 },
+  { names: ['Pause Snatch, At Knee', 'Block Snatch, Below Knee', 'Hang Snatch, Above Knee', 'Snatch'], sets: 4, reps: 3, pctStart: 68, pctStep: 2 },
   { names: ['Power Snatch', 'Snatch w/ Pause Below Knee', 'Snatch', 'Snatch'], sets: 4, reps: 2, pctStart: 73, pctStep: 2 },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 5, reps: 2, pctStart: 81, pctStep: 3 },
 ]
 const D1_CJ: SlotMeso[] = [
-  { names: ['Hang Clean, Above Knee + Jerk (1+1)', 'Power Clean + Push Jerk (1+1)', 'Clean + Front Squat + Jerk (1+1+1)', 'Clean & Jerk'], sets: 5, reps: 1, pctStart: 63, pctStep: 2, note: 'Complex — see name for sequence' },
+  { names: ['Hang Clean, Above Knee + Jerk (1+1)', 'Power Clean + Push Jerk (1+1)', 'Clean + Front Squat + Jerk (1+1+1)', 'Clean & Jerk'], sets: 5, reps: 1, pctStart: 68, pctStep: 2, note: 'Complex — see name for sequence' },
   { names: ['Clean & Jerk', 'Pause Clean + Jerk (1+1)', 'Clean & Jerk', 'Clean & Jerk'], sets: 5, reps: 1, pctStart: 72, pctStep: 2 },
   { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 5, reps: 1, pctStart: 80, pctStep: 3 },
 ]
@@ -203,10 +220,12 @@ const D1_SQUAT: SlotMeso[] = [
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 3, pctStart: 85, pctStep: 1.5 },
 ]
 
-// ── Day 3 — Oly B (Wed): snatch technique + snatch pull + FRONT SQUAT (pushed) + OHS/balance
+// ── Day 3 — Oly B (Wed): snatch technique + snatch pull + FRONT SQUAT (pushed)
+//   + receiving work (snatch balance / drop snatch — NEVER OHS: this is a heavy
+//   front-squat day, and OHS must not share a day with heavy squatting).
 const D3_SNATCH: SlotMeso[] = [
-  { names: ['Tempo Snatch (3s pull)', 'Muscle Snatch + Overhead Squat (1+2)', 'Snatch Balance', 'Pause Snatch, Below Knee'], sets: 4, reps: 3, pctStart: 60, pctStep: 2 },
-  { names: ['Snatch Balance', 'Power Snatch + Overhead Squat (1+1)', 'Pause Snatch, At Knee', 'Snatch'], sets: 4, reps: 2, pctStart: 70, pctStep: 2 },
+  { names: ['Tempo Snatch (3s pull)', 'Drop Snatch', 'Snatch Balance', 'Pause Snatch, Below Knee'], sets: 4, reps: 3, pctStart: 65, pctStep: 2 },
+  { names: ['Snatch Balance', 'Drop Snatch', 'Pause Snatch, At Knee', 'Snatch'], sets: 4, reps: 2, pctStart: 70, pctStep: 2 },
   { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 2, pctStart: 72, pctStep: 1, note: 'Technique primer — crisp, not heavy' },
 ]
 const D3_PULL: SlotMeso[] = [
@@ -377,13 +396,15 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('snatch_pull', D3_PULL[m], w, 'snatch', maxes, pos.meso, adjustments),
         liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments),
       ]
-      // OHS / balance slot: meso 1 OHS, meso 2 snatch balance, meso 3 omitted.
+      // Receiving slot — NEVER OHS on this heavy front-squat day. Meso 1 drop
+      // snatch (fast under the bar), meso 2 snatch balance (heavier catch),
+      // meso 3 omitted (CNS budget goes to the pulls + front squat).
       if (pos.meso === 1) {
-        const pct = 85 + 3 * (w - 1)
-        items.push({ kind: 'lift', slot: 'ohs', name: 'Overhead Squat', sets: 3, reps: 3, percent: pct, maxKey: 'snatch', targetWeightLbs: resolveWeight(pct, 'snatch', maxes) })
+        const pct = 75 + 3 * (w - 1)
+        items.push({ kind: 'lift', slot: 'receiving', name: 'Drop Snatch', sets: 3, reps: 2, percent: pct, maxKey: 'snatch', targetWeightLbs: resolveWeight(pct, 'snatch', maxes) })
       } else if (pos.meso === 2) {
-        const pct = 95 + 3 * (w - 1)
-        items.push({ kind: 'lift', slot: 'ohs', name: 'Snatch Balance', sets: 3, reps: 2, percent: pct, maxKey: 'snatch', targetWeightLbs: resolveWeight(pct, 'snatch', maxes) })
+        const pct = 85 + 3 * (w - 1)
+        items.push({ kind: 'lift', slot: 'receiving', name: 'Snatch Balance', sets: 3, reps: 2, percent: pct, maxKey: 'snatch', targetWeightLbs: resolveWeight(pct, 'snatch', maxes) })
       }
       items.push(
         accessory('acc_single_leg', 'Bulgarian Split Squat', 3, 10, '90s rest each leg'),
@@ -391,7 +412,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       )
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
-          .filter(i => !(i.kind === 'lift' && (i.slot === 'snatch_pull' || i.slot === 'ohs')))
+          .filter(i => !(i.kind === 'lift' && (i.slot === 'snatch_pull' || i.slot === 'receiving')))
       }
       return {
         dayNumber, dayName: 'Oly B — Technique + Front Squat', dayType: 'gym',
