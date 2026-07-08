@@ -20,6 +20,8 @@ export interface LiftPrescription {
   maxKey?: string          // which max the % references
   targetWeightLbs?: number // computed: round((percent/100) * max, nearest 5)
   rpe?: number             // accessories use RPE instead of %
+  targetRpe?: number       // expected difficulty for %-based work — autoreg anchor
+  appliedAdjustmentPct?: number // autoreg delta baked into `percent` (display)
   note?: string            // "1+1 — one clean, one jerk" / "90s rest"
 }
 
@@ -80,6 +82,7 @@ export interface ProgramConfig {
     weekNumber: number,        // absolute, 1..∞ — config maps into macro position
     dayNumber: number,         // 1-7
     maxes: Record<string, number>,
+    adjustments?: Record<string, number>, // slot → % delta from autoregulation
   ): DayPlan
 }
 

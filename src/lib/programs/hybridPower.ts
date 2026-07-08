@@ -48,8 +48,15 @@ interface SlotMeso {
   reps: number
   pctStart: number
   pctStep: number
+  targetRpe?: number  // overrides the meso default (pulls feel heavy by design)
   note?: string
 }
+
+// Default expected difficulty of %-based work per meso — the autoreg anchor.
+const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 9 }
+
+// Autoreg deltas are clamped so feedback can bend the wave, never break it.
+const MAX_ADJ = 6
 
 function liftFromSlot(
   slot: string,
@@ -57,9 +64,14 @@ function liftFromSlot(
   weekInMeso: number,
   maxKey: string,
   maxes: Record<string, number>,
+  meso: number,
+  adjustments: Record<string, number>,
   overrides?: Partial<LiftPrescription>,
 ): LiftPrescription {
-  const percent = Math.round((def.pctStart + def.pctStep * (weekInMeso - 1)) * 2) / 2
+  const basePct = def.pctStart + def.pctStep * (weekInMeso - 1)
+  const rawAdj = adjustments[slot] ?? 0
+  const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, rawAdj))
+  const percent = Math.round((basePct + adj) * 2) / 2
   return {
     kind: 'lift',
     slot,
@@ -69,6 +81,8 @@ function liftFromSlot(
     percent,
     maxKey,
     targetWeightLbs: resolveWeight(percent, maxKey, maxes),
+    targetRpe: def.targetRpe ?? MESO_TARGET_RPE[meso] ?? 8,
+    appliedAdjustmentPct: adj !== 0 ? adj : undefined,
     note: def.note,
     ...overrides,
   }
@@ -330,7 +344,7 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
   return { dayNumber, dayName: 'Easy Z2', dayType: 'outside', sessionIntent: 'Easy aerobic work.', items: [sundayConditioning(13, pos)] }
 }
 
-function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>): DayPlan {
+function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}): DayPlan {
   const pos = macroPos(weekNumber)
   if (pos.isTest) return testDay(dayNumber, maxes)
 
@@ -340,10 +354,10 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
   switch (dayNumber) {
     case 1: {
       let items: Prescription[] = [
-        liftFromSlot('snatch_primary', D1_SNATCH[m], w, 'snatch', maxes),
-        liftFromSlot('cj_secondary', D1_CJ[m], w, 'clean_jerk', maxes),
-        liftFromSlot('clean_pull', D1_PULL[m], w, 'clean_jerk', maxes),
-        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes),
+        liftFromSlot('snatch_primary', D1_SNATCH[m], w, 'snatch', maxes, pos.meso, adjustments),
+        liftFromSlot('cj_secondary', D1_CJ[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
+        liftFromSlot('clean_pull', D1_PULL[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
+        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         accessory('acc_pull', pos.meso === 3 ? 'Weighted Pull-Up' : 'Bent-Over Row', 3, pos.meso === 3 ? 6 : 10, '90s rest'),
         accessory('acc_core', 'Hanging Leg Raises', 3, 12, '60s rest'),
       ]
@@ -359,9 +373,9 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
     }
     case 3: {
       let items: Prescription[] = [
-        liftFromSlot('snatch_tech', D3_SNATCH[m], w, 'snatch', maxes),
-        liftFromSlot('snatch_pull', D3_PULL[m], w, 'snatch', maxes),
-        liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes),
+        liftFromSlot('snatch_tech', D3_SNATCH[m], w, 'snatch', maxes, pos.meso, adjustments),
+        liftFromSlot('snatch_pull', D3_PULL[m], w, 'snatch', maxes, pos.meso, adjustments),
+        liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments),
       ]
       // OHS / balance slot: meso 1 OHS, meso 2 snatch balance, meso 3 omitted.
       if (pos.meso === 1) {
@@ -387,15 +401,15 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
     }
     case 5: {
       let items: Prescription[] = [
-        liftFromSlot('snatch_express', D5_SNATCH[m], w, 'snatch', maxes),
-        liftFromSlot('cj_full', D5_CJ[m], w, 'clean_jerk', maxes),
+        liftFromSlot('snatch_express', D5_SNATCH[m], w, 'snatch', maxes, pos.meso, adjustments),
+        liftFromSlot('cj_full', D5_CJ[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
       ]
       if (D5_PULL[m].sets > 0) {
         const pullMaxKey = pos.meso === 2 ? 'clean_jerk' : 'snatch'
-        items.push(liftFromSlot('fri_pull', D5_PULL[m], w, pullMaxKey, maxes))
+        items.push(liftFromSlot('fri_pull', D5_PULL[m], w, pullMaxKey, maxes, pos.meso, adjustments))
       }
       items.push(
-        liftFromSlot('back_squat_light', D5_SQUAT[m], w, 'back_squat', maxes),
+        liftFromSlot('back_squat_light', D5_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy'),
         accessory('acc_core', 'Plank', 3, 45, 'Seconds, not reps'),
       )
@@ -411,7 +425,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
     }
     case 6: {
       const cleanWeek = weekNumber % 2 === 1
-      const dl = liftFromSlot('sat_dl', (cleanWeek ? D6_DL_CLEAN : D6_DL_SNATCH)[m], w, cleanWeek ? 'clean_jerk' : 'snatch', maxes)
+      const dl = liftFromSlot('sat_dl', (cleanWeek ? D6_DL_CLEAN : D6_DL_SNATCH)[m], w, cleanWeek ? 'clean_jerk' : 'snatch', maxes, pos.meso, adjustments)
       let items: Prescription[] = [dl, saturdayOverhead(pos, maxes), ...saturdayPlyo(pos)]
       if (pos.isDeload) {
         items = [

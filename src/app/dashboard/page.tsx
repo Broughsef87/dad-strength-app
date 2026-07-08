@@ -414,12 +414,20 @@ export default function Dashboard() {
                   {activeProgram ? 'Launch Session' : 'Select Path'}
                 </button>
                 {activeProgram && (
-                  <button
-                    onClick={() => router.push('/build')}
-                    className="self-end inline-flex items-center gap-1 telemetry-dim hover:text-brand transition-colors mt-1 py-1"
-                  >
-                    CHANGE UNIT <ChevronRight size={11} strokeWidth={2} />
-                  </button>
+                  <div className="flex items-center justify-between mt-1">
+                    <button
+                      onClick={() => router.push(`/train/${activeProgram.slug}`)}
+                      className="inline-flex items-center gap-1 telemetry hover:text-brand transition-colors py-1"
+                    >
+                      MISSION SCHEDULE <ChevronRight size={11} strokeWidth={2} />
+                    </button>
+                    <button
+                      onClick={() => router.push('/build')}
+                      className="inline-flex items-center gap-1 telemetry-dim hover:text-brand transition-colors py-1"
+                    >
+                      CHANGE UNIT <ChevronRight size={11} strokeWidth={2} />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

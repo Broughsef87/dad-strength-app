@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
+  ArrowLeft, CalendarRange, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
   AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw,
 } from 'lucide-react'
 import { createClient } from '../../../../utils/supabase/client'
@@ -21,6 +21,7 @@ import {
   DayPlan, LiftPrescription, MetconPrescription, OutsideSession,
   PlyoPrescription, getProgram,
 } from '../../../../lib/programs'
+import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,8 @@ interface SessionLogRow {
   set_number: number | null
   weight_lbs: number | null
   reps: number | null
+  rpe: number | null
+  slot: string | null
   completed: boolean | null
   completed_at: string | null
   notes: string | null
@@ -42,44 +45,52 @@ interface SetEntry {
   weight: string
   reps: string
   done: boolean
+  rpe: number | null
 }
 
 const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
 
 // ── Progression (server-derived, same pattern as Zeus) ────────────────────────
 
-async function fetchProgress(
+async function fetchCurrentWeek(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, userId: string, slug: string,
-): Promise<{ weekNumber: number; doneDays: number[] }> {
+): Promise<number> {
   const { data: prog } = await supabase
     .from('user_programs')
     .select('current_week')
     .eq('user_id', userId).eq('program_slug', slug).eq('status', 'active')
     .maybeSingle()
-  const weekNumber = prog?.current_week ?? 1
+  return prog?.current_week ?? 1
+}
 
+async function fetchDoneDays(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any, userId: string, slug: string, weekNumber: number,
+): Promise<number[]> {
   const { data: workouts } = await supabase
     .from('generated_workouts')
     .select('id')
     .eq('user_id', userId).eq('program_slug', slug).eq('week_number', weekNumber)
   const ids: string[] = (workouts ?? []).map((w: { id: string }) => w.id)
-  if (!ids.length) return { weekNumber, doneDays: [] }
+  if (!ids.length) return []
 
   const { data: rows } = await supabase
     .from('ares_session_logs')
     .select('day_number')
     .eq('user_id', userId).in('generated_workout_id', ids)
     .eq('log_type', 'session_complete')
-  const done = [...new Set((rows ?? []).map((r: { day_number: number }) => r.day_number))] as number[]
-  return { weekNumber, doneDays: done.sort() }
+  return [...new Set((rows ?? []).map((r: { day_number: number }) => r.day_number))].sort() as number[]
 }
 
+// Only advances user_programs.current_week when the CURRENT week is fully
+// logged — completing a previewed future/past week never moves the pointer.
 async function advanceWeekIfDone(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, userId: string, slug: string, daysPerWeek: number,
 ): Promise<void> {
-  const { weekNumber, doneDays } = await fetchProgress(supabase, userId, slug)
+  const weekNumber = await fetchCurrentWeek(supabase, userId, slug)
+  const doneDays = await fetchDoneDays(supabase, userId, slug, weekNumber)
   if (doneDays.length < daysPerWeek) return
   await supabase
     .from('user_programs')
@@ -106,7 +117,7 @@ async function fetchSessionLogs(
 ): Promise<SessionLogRow[]> {
   const { data } = await supabase
     .from('ares_session_logs')
-    .select('block_name, log_type, set_number, weight_lbs, reps, completed, completed_at, notes, metcon_time_seconds, metcon_rounds')
+    .select('block_name, log_type, set_number, weight_lbs, reps, rpe, slot, completed, completed_at, notes, metcon_time_seconds, metcon_rounds')
     .eq('generated_workout_id', generatedWorkoutId)
   return (data ?? []) as SessionLogRow[]
 }
@@ -152,6 +163,7 @@ function LiftCard({ item, index, initialLogs, onLog }: {
         weight: row?.weight_lbs != null ? String(row.weight_lbs) : (item.targetWeightLbs != null ? String(item.targetWeightLbs) : ''),
         reps: row?.reps != null ? String(row.reps) : String(item.reps),
         done: row?.completed === true,
+        rpe: row?.rpe ?? null,
       }
     }),
   )
@@ -178,11 +190,18 @@ function LiftCard({ item, index, initialLogs, onLog }: {
             <p className="font-display text-lg leading-tight uppercase tracking-wide text-foreground truncate">{item.name}</p>
             {/* Prescription readout — target weight is the hero */}
             {item.targetWeightLbs != null ? (
-              <div className="flex items-baseline gap-2 mt-1.5">
+              <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
                 <span className="readout-num text-4xl text-brand" style={{ textShadow: '0 0 18px hsl(var(--brand) / 0.35)' }}>
                   {item.targetWeightLbs}
                 </span>
-                <span className="telemetry-dim">LB @ {item.percent}% · {item.sets}×{item.reps}</span>
+                <span className="telemetry-dim">
+                  LB @ {item.percent}% · {item.sets}×{item.reps}{item.targetRpe != null ? ` · TGT RPE ${item.targetRpe}` : ''}
+                </span>
+                {item.appliedAdjustmentPct != null && (
+                  <span className="telemetry border border-brand/50 px-1.5 py-0.5 text-brand">
+                    AUTO {item.appliedAdjustmentPct > 0 ? '+' : ''}{item.appliedAdjustmentPct}%
+                  </span>
+                )}
               </div>
             ) : (
               <p className="telemetry-dim mt-1.5">
@@ -212,16 +231,46 @@ function LiftCard({ item, index, initialLogs, onLog }: {
             <span>SET</span><span>LOAD.LB</span><span>REPS</span><span></span>
           </div>
           {sets.map((s, idx) => (
-            <div key={idx} className={`panel-cut-sm grid grid-cols-4 gap-2 items-center p-2 border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
-              <span className="readout-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
-              <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)} placeholder="lbs"
-                className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
-              <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
-                className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
-              <button onClick={() => update(idx, 'done', !s.done)}
-                className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-                {s.done ? 'Hit' : 'Log'}
-              </button>
+            <div key={idx} className={`panel-cut-sm border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+              <div className="grid grid-cols-4 gap-2 items-center p-2">
+                <span className="readout-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+                <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)} placeholder="lbs"
+                  className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
+                <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
+                  className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
+                <button onClick={() => update(idx, 'done', !s.done)}
+                  className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                  {s.done ? (s.rpe != null ? `RPE ${s.rpe}` : 'Hit') : 'Log'}
+                </button>
+              </div>
+              {/* RPE strip — appears once the set is logged */}
+              {s.done && (
+                <div className="px-2 pb-2">
+                  <div className="flex gap-1">
+                    {Array.from({ length: 10 }, (_, r) => r + 1).map(r => (
+                      <button
+                        key={r}
+                        onClick={() => update(idx, 'rpe', s.rpe === r ? null : r)}
+                        className={`readout-num flex-1 py-1 text-[11px] border transition-colors ${
+                          s.rpe === r
+                            ? 'bg-brand text-white border-brand'
+                            : item.targetRpe === r
+                              ? 'border-brand/50 text-brand'
+                              : 'border-border/60 text-muted-foreground hover:text-foreground'
+                        }`}
+                        title={RPE_HINTS[r]}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="telemetry-dim mt-1">
+                    {s.rpe != null
+                      ? `RPE ${s.rpe} — ${RPE_HINTS[s.rpe]}`
+                      : `HOW HARD? ${item.targetRpe != null ? `TARGET ${item.targetRpe}` : 'TAP TO RATE'}`}
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -411,16 +460,30 @@ export default function TrainingDayPage() {
   const loadDay = useCallback(async () => {
     if (!user || !program) return
     try {
-      const [progress, userMaxes] = await Promise.all([
-        fetchProgress(supabase, user.id, slug),
+      // ?week=N override lets the schedule open any week of the macro —
+      // prescriptions are deterministic so every week is trainable.
+      let weekOverride: number | null = null
+      try {
+        const q = new URLSearchParams(window.location.search).get('week')
+        const n = q ? parseInt(q, 10) : NaN
+        if (Number.isFinite(n) && n >= 1) weekOverride = n
+      } catch { /* SSR-safe no-op */ }
+
+      const [currentWeek, userMaxes] = await Promise.all([
+        fetchCurrentWeek(supabase, user.id, slug),
         fetchMaxes(supabase, user.id),
       ])
-      weekRef.current = progress.weekNumber
+      const weekNumber = weekOverride ?? currentWeek
+      weekRef.current = weekNumber
       setMaxes(userMaxes)
-      if (progress.doneDays.includes(dayNumber)) setSessionComplete(true)
+      const doneDays = await fetchDoneDays(supabase, user.id, slug, weekNumber)
+      if (doneDays.includes(dayNumber)) setSessionComplete(true)
+
+      // Autoregulation: bounded % deltas from last week's per-set RPE.
+      const adjustments = await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber)
 
       // Deterministic build — instant, no AI.
-      const built = program.buildDay(progress.weekNumber, dayNumber, userMaxes)
+      const built = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments)
       setPlan(built)
 
       // Find-or-create the generated_workouts row for log linkage.
@@ -428,7 +491,7 @@ export default function TrainingDayPage() {
         .from('generated_workouts')
         .select('id')
         .eq('user_id', user.id).eq('program_slug', slug)
-        .eq('week_number', progress.weekNumber).eq('day_number', dayNumber)
+        .eq('week_number', weekNumber).eq('day_number', dayNumber)
         .order('id', { ascending: true }).limit(1)
 
       let workoutId: string | null = rows?.[0]?.id ?? null
@@ -438,7 +501,7 @@ export default function TrainingDayPage() {
           .insert({
             user_id: user.id,
             program_slug: slug,
-            week_number: progress.weekNumber,
+            week_number: weekNumber,
             day_number: dayNumber,
             workout_data: { plan: built },
             exercises: [],
@@ -449,7 +512,7 @@ export default function TrainingDayPage() {
           const { data: again } = await supabase
             .from('generated_workouts').select('id')
             .eq('user_id', user.id).eq('program_slug', slug)
-            .eq('week_number', progress.weekNumber).eq('day_number', dayNumber)
+            .eq('week_number', weekNumber).eq('day_number', dayNumber)
             .order('id', { ascending: true }).limit(1)
           workoutId = again?.[0]?.id ?? null
         } else if (insertError) {
@@ -495,9 +558,11 @@ export default function TrainingDayPage() {
       ...baseRow(),
       log_type: 'strength_set' as const,
       block_name: item.name,
+      slot: item.slot,
       set_number: s.setIndex + 1,
       weight_lbs: s.weight === '' ? null : parseFloat(s.weight) || null,
       reps: s.reps === '' ? null : parseInt(s.reps) || null,
+      rpe: s.rpe,
       completed: s.done,
       completed_at: s.done ? now : null,
     }))
