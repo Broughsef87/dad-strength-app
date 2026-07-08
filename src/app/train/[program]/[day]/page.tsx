@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  ArrowLeft, CalendarRange, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
+  ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
   AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw,
 } from 'lucide-react'
 import { createClient } from '../../../../utils/supabase/client'
@@ -692,7 +692,7 @@ export default function TrainingDayPage() {
     <div className="min-h-screen bg-background text-foreground pb-24">
       <header className={`carbon sticky top-0 z-10 border-b px-4 py-3 ${isTestWeek ? 'border-brand/60 red-alert' : 'border-border'}`}>
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/dashboard')} className="p-2 border border-border/70 text-muted-foreground hover:text-foreground transition-colors panel-cut-sm">
+          <button onClick={() => router.push(`/train/${slug}`)} title="Back to week" className="p-2 border border-border/70 text-muted-foreground hover:text-foreground transition-colors panel-cut-sm">
             <ArrowLeft size={15} />
           </button>
           <div className="flex-1 min-w-0">
