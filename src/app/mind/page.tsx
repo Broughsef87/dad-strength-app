@@ -100,7 +100,7 @@ export default function MindPage() {
           <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Mind</h1>
         </div>
         {[1,2,3].map(i => (
-          <div key={i} className="panel-cut bg-card border border-border p-6 animate-pulse space-y-3">
+          <div key={i} className="glass-card rounded-xl p-6 animate-pulse space-y-3">
             <div className="h-4 bg-muted rounded w-1/3" />
             <div className="h-3 bg-muted rounded w-2/3" />
             <div className="h-3 bg-muted rounded w-1/2" />
@@ -127,7 +127,7 @@ export default function MindPage() {
         >
 
         {/* Objectives */}
-        <motion.div variants={fadeUp} className="panel-cut hud-frame relative bg-card border border-border p-6 pt-8">
+        <motion.div variants={fadeUp} className="glass-card relative rounded-xl p-6 pt-8">
           <span className="panel-id">MND-01 // OBJECTIVES</span>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -226,18 +226,18 @@ export default function MindPage() {
           )}
         </motion.div>
 
-        <motion.div variants={fadeUp} className="panel-cut relative bg-card border border-border p-6 pt-8">
+        <motion.div variants={fadeUp} className="glass-card relative rounded-xl p-6 pt-8">
           <span className="panel-id">MND-02 // DEEP.WORK</span>
           <DeepWorkTimer availableObjectives={objectives} />
         </motion.div>
 
-        <motion.div variants={fadeUp} className="panel-cut relative bg-card border border-border p-6 pt-8">
+        <motion.div variants={fadeUp} className="glass-card relative rounded-xl p-6 pt-8">
           <span className="panel-id">MND-03 // SQUEEZE</span>
           <MindSqueeze objectives={objectives} />
         </motion.div>
 
         {/* Journal */}
-        <motion.div variants={fadeUp} className="panel-cut relative bg-card border border-border p-6 pt-8">
+        <motion.div variants={fadeUp} className="glass-card relative rounded-xl p-6 pt-8">
           <span className="panel-id">MND-04 // LOG</span>
           <div className="flex items-center gap-2 mb-4">
             <PenLine size={16} className="text-brand" />
@@ -250,7 +250,7 @@ export default function MindPage() {
               saveToLocal({ journal: e.target.value });
             }}
             placeholder="What's on your mind? Capture the signal, ignore the noise..."
-            className="panel-cut-sm w-full bg-background border border-border p-4 text-sm text-foreground h-48 resize-none outline-none focus:border-brand/50 transition-colors placeholder:text-muted-foreground"
+            className="w-full bg-surface-3/50 border border-border/50 rounded-xl p-4 text-sm text-foreground h-48 resize-none outline-none focus:border-brand transition-colors placeholder:text-muted-foreground"
           />
           <button
             onClick={handleSaveJournal}
