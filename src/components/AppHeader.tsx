@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
-import Image from 'next/image'
 import Logo from './Logo'
 import { createClient } from '../utils/supabase/client'
 
@@ -37,22 +36,12 @@ export default function AppHeader({ active }: AppHeaderProps) {
       <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-3.5 sticky top-0 z-40">
         <Link href="/dashboard">
           {/* PNG lockups — fonts baked in at export time */}
-          <Image
-            src="/logo-suite/ds_horizontal_dark.png"
-            alt="Dad Strength"
-            width={176}
-            height={44}
-            className="dark:block hidden"
-            priority
-          />
-          <Image
-            src="/logo-suite/ds_horizontal_light.png"
-            alt="Dad Strength"
-            width={176}
-            height={44}
-            className="dark:hidden block"
-            priority
-          />
+          <Logo className="w-10 h-10" />
+          <span
+            className="font-display font-semibold text-lg tracking-[0.14em] uppercase text-foreground"
+          >
+            Dad Strength
+          </span>
         </Link>
         <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
           {navItem('HQ', '/dashboard', 'hq')}
@@ -74,8 +63,7 @@ export default function AppHeader({ active }: AppHeaderProps) {
           <Logo className="w-9 h-9" />
           <div className="flex flex-col leading-none">
             <span
-              className="font-black text-base tracking-[0.08em] uppercase"
-              style={{ fontFamily: 'var(--font-bebas, "Arial Black", sans-serif)' }}
+              className="font-display font-semibold text-base tracking-[0.1em] uppercase"
             >
               Dad Strength
             </span>

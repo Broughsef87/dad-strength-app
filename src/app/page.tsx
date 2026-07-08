@@ -6,7 +6,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../contexts/ThemeContext';
-import Image from 'next/image';
+import Logo from '../components/Logo';
 
 export default function Home() {
   const supabase = createClient();
@@ -66,25 +66,10 @@ export default function Home() {
       <div className="relative z-10 w-full max-w-sm space-y-10">
         {/* Brand lockup — stacked suite asset, dark/light aware */}
         <div className="flex flex-col items-center">
-          {/* PNG lockups — fonts baked in at export time */}
-          <Image
-            src="/logo-suite/ds_stacked_dark.png"
-            alt="Dad Strength"
-            width={224}
-            height={112}
-            className="dark:block hidden drop-shadow-2xl"
-            draggable={false}
-            priority
-          />
-          <Image
-            src="/logo-suite/ds_stacked_light.png"
-            alt="Dad Strength"
-            width={224}
-            height={112}
-            className="dark:hidden block drop-shadow-2xl"
-            draggable={false}
-            priority
-          />
+          <Logo className="w-24 h-24 drop-shadow-2xl" />
+          <p className="font-display font-semibold text-2xl tracking-[0.2em] uppercase text-foreground mt-5">
+            Dad Strength
+          </p>
         </div>
 
         {/* Auth card — pilot authentication console */}

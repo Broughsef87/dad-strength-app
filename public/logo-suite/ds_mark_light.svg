@@ -5,15 +5,15 @@
       <stop offset="0%" stop-color="#EA0B2F"/><stop offset="100%" stop-color="#B00822"/>
     </linearGradient>
     <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1A212C"/><stop offset="100%" stop-color="#10141B"/>
+      <stop offset="0%" stop-color="#E3EAF2"/><stop offset="100%" stop-color="#CBD5E1"/>
     </linearGradient>
   </defs>
-  <path d="M28,28 H878 L996,146 V996 H146 L28,878 Z" fill="url(#plate)" stroke="#2A3442" stroke-width="10"/>
-  <path d="M52,52 H864 L972,160 V972 H160 L52,864 Z" fill="none" stroke="#2A3442" stroke-width="3" opacity="0.55"/>
+  <path d="M28,28 H878 L996,146 V996 H146 L28,878 Z" fill="url(#plate)" stroke="#B8C4D2" stroke-width="10"/>
+  <path d="M52,52 H864 L972,160 V972 H160 L52,864 Z" fill="none" stroke="#B8C4D2" stroke-width="3" opacity="0.55"/>
   <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z" transform="translate(179,306.5) scale(3.05)" fill="url(#rosso)" fill-rule="evenodd"/>
   <path d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z" transform="translate(540,306.5) scale(3.05)" fill="url(#rosso)" fill-rule="evenodd"/>
   
   <path d="M878,28 L996,146 L996,104 L920,28 Z" fill="#EA0B2F"/>
   <path d="M28,878 L146,996 L104,996 L28,920 Z" fill="#EA0B2F"/>
-  <rect x="179" y="779.5" width="666" height="16" fill="#E3EAF2" opacity="0.35"/>
+  <rect x="179" y="779.5" width="666" height="16" fill="#131826" opacity="0.35"/>
 </svg>
