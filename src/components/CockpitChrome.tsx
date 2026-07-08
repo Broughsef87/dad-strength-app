@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 const BOOT_KEY = 'ds-boot-played'
 
 const BOOT_LINES = [
-  'DS-01 // SYSTEMS ONLINE',
+  `DS-01 // SYSTEMS ONLINE · BUILD ${process.env.NEXT_PUBLIC_BUILD_SHA ?? 'dev'}`,
   'LOAD CELLS ......... CALIBRATED',
   'REACTOR ............ NOMINAL',
   'PILOT .............. AUTHENTICATED',
