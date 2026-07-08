@@ -23,9 +23,10 @@ export interface LiftPrescription {
   targetRpe?: number       // expected difficulty for %-based work — autoreg anchor
   appliedAdjustmentPct?: number // autoreg delta baked into `percent` (display)
   note?: string            // "1+1 — one clean, one jerk" / "90s rest"
+  superset?: string        // items sharing this id (and adjacent in the day) render linked
 }
 
-// Plyometrics / jumps — logged as done/notes, no load math.
+// Plyometrics / jumps — per-set logging like lifts, just no load math.
 export interface PlyoPrescription {
   kind: 'plyo'
   slot: string
@@ -33,6 +34,7 @@ export interface PlyoPrescription {
   sets: number
   reps: number
   note?: string
+  superset?: string        // see LiftPrescription.superset
 }
 
 // Saturday metcon — from the curated pool, not AI.

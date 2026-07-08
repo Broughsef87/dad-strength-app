@@ -312,7 +312,7 @@ function trapBarJumps(pos: MacroPos, maxes: Record<string, number>): PlyoPrescri
   const bs = maxes['back_squat']
   const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
   const sets = pos.meso === 3 ? 3 : 4
-  return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets, reps: 3, note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Pair ~30s after each front squat set.` }
+  return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets, reps: 3, superset: 'fs_contrast', note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Pair ~30s after each front squat set.` }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -413,9 +413,9 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
     case 3: {
       let items: Prescription[] = [
         liftFromSlot('push_press', D3_PUSH_PRESS[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
-        liftFromSlot('bench', D3_BENCH[m], w, 'bench', maxes, pos.meso, adjustments),
-        accessory('acc_wpu', 'Weighted Pull-Up', 4, pos.meso === 1 ? 6 : pos.meso === 2 ? 5 : 3, 'Superset with bench — add load as reps drop'),
-        liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments),
+        liftFromSlot('bench', D3_BENCH[m], w, 'bench', maxes, pos.meso, adjustments, { superset: 'press_pull' }),
+        { ...accessory('acc_wpu', 'Weighted Pull-Up', 4, pos.meso === 1 ? 6 : pos.meso === 2 ? 5 : 3, 'Superset with bench — add load as reps drop'), superset: 'press_pull' },
+        liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
         trapBarJumps(pos, maxes),
         accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, pos.meso === 1 ? 8 : pos.meso === 2 ? 6 : 5, 'Per leg, DBs in hand, 90s rest'),
       ]

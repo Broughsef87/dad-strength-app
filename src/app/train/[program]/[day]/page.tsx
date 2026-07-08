@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
-  AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw,
+  AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw, Link2,
 } from 'lucide-react'
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
@@ -279,32 +279,82 @@ function LiftCard({ item, index, initialLogs, onLog }: {
   )
 }
 
-// ── Plyo card — one-tap done ───────────────────────────────────────────────────
+// ── Plyo card — per-set logging (max-intent work deserves a real log) ──────────
 
-function PlyoCard({ item, initialLog, onLog }: {
+interface PlyoSetEntry {
+  setIndex: number
+  reps: string
+  done: boolean
+}
+
+function PlyoCard({ item, index, initialLogs, onLog }: {
   item: PlyoPrescription
-  initialLog?: SessionLogRow
-  onLog: (notes: string) => void
+  index: number
+  initialLogs: SessionLogRow[]
+  onLog: (sets: PlyoSetEntry[], notes: string) => void
 }) {
-  const [notes, setNotes] = useState(initialLog?.notes ?? '')
-  const [logged, setLogged] = useState(initialLog?.completed === true)
+  const [sets, setSets] = useState<PlyoSetEntry[]>(() =>
+    Array.from({ length: item.sets }, (_, i) => {
+      const row = initialLogs.find(r => r.set_number === i + 1)
+      return {
+        setIndex: i,
+        reps: row?.reps != null ? String(row.reps) : String(item.reps),
+        done: row?.completed === true,
+      }
+    }),
+  )
+  const [notes, setNotes] = useState(initialLogs.find(r => r.notes)?.notes ?? '')
+
+  const update = (idx: number, field: 'reps' | 'done', value: unknown) => {
+    setSets(prev => {
+      const next = prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
+      onLog(next, notes)
+      return next
+    })
+  }
+  const allDone = sets.filter(s => s.done).length === item.sets
+
   return (
-    <div className={`panel-cut relative bg-card border p-4 pt-7 space-y-3 ${logged ? 'border-brand/50' : 'border-border'}`}>
-      <span className="panel-id">ORD // {item.slot.replace(/_/g, '.').toUpperCase()}</span>
-      <div className="flex items-center gap-3">
-        <Zap size={15} className="text-brand shrink-0" />
-        <div className="flex-1">
-          <p className="font-display text-base uppercase tracking-wide text-foreground">{item.name}</p>
-          <p className="telemetry-dim mt-0.5">{item.sets}×{item.reps}{item.note ? ` · ${item.note}` : ''}</p>
+    <div className={`panel-cut relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
+      <span className="panel-id">ORD-{String(index + 1).padStart(2, '0')} // {item.slot.replace(/_/g, '.').toUpperCase()}</span>
+      <div className="px-4 pt-6 pb-3 flex items-end justify-between gap-3">
+        <div className="min-w-0 flex items-center gap-3">
+          <Zap size={15} className="text-brand shrink-0" />
+          <div className="min-w-0">
+            <p className="font-display text-lg leading-tight uppercase tracking-wide text-foreground truncate">{item.name}</p>
+            <p className="telemetry-dim mt-0.5">{item.sets}×{item.reps} · MAX INTENT</p>
+          </div>
         </div>
-        {logged && <CheckCircle2 size={15} className="text-brand" />}
+        <div className="flex gap-1 shrink-0 pb-0.5">
+          {sets.map((s, i) => (
+            <span key={i} className={`ammo-cell ${s.done ? 'spent' : ''}`} />
+          ))}
+        </div>
       </div>
-      <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (height, distance, how it felt)..."
-        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50" />
-      <button onClick={() => { onLog(notes); setLogged(true) }}
-        className="panel-cut-sm w-full py-2.5 bg-foreground text-background text-xs font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-colors">
-        {logged ? 'Logged ✓' : 'Log'}
-      </button>
+      {item.note && (
+        <p className="px-4 pb-2 text-xs text-muted-foreground italic">{item.note}</p>
+      )}
+      <div className="px-4 pb-4 space-y-1.5 border-t border-border/60 pt-3">
+        <div className="grid grid-cols-3 gap-2 telemetry-dim px-1">
+          <span>SET</span><span>REPS</span><span></span>
+        </div>
+        {sets.map((s, idx) => (
+          <div key={idx} className={`panel-cut-sm border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+            <div className="grid grid-cols-3 gap-2 items-center p-2">
+              <span className="readout-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+              <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
+                className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
+              <button onClick={() => update(idx, 'done', !s.done)}
+                className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                {s.done ? 'Hit' : 'Log'}
+              </button>
+            </div>
+          </div>
+        ))}
+        <input type="text" value={notes} onChange={e => { setNotes(e.target.value); onLog(sets, e.target.value) }}
+          placeholder="Notes (height, load, how it felt)..."
+          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50" />
+      </div>
     </div>
   )
 }
@@ -569,6 +619,23 @@ export default function TrainingDayPage() {
     report(item.name, await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT }))
   }
 
+  const logPlyoSets = async (item: PlyoPrescription, sets: PlyoSetEntry[], notes: string) => {
+    if (!user || !workoutIdRef.current) return
+    const now = new Date().toISOString()
+    const rows = sets.map(s => ({
+      ...baseRow(),
+      log_type: 'skill_work' as const,
+      block_name: item.name,
+      slot: item.slot,
+      set_number: s.setIndex + 1,
+      reps: s.reps === '' ? null : parseInt(s.reps) || null,
+      completed: s.done,
+      completed_at: s.done ? now : null,
+      notes: s.setIndex === 0 ? notes || null : null, // card-level notes ride on set 1
+    }))
+    report(item.name, await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT }))
+  }
+
   const logSimple = async (blockName: string, logType: string, notes: string, extra?: Record<string, unknown>) => {
     if (!user || !workoutIdRef.current) return
     report(blockName, await supabase.from('ares_session_logs').upsert({
@@ -736,17 +803,17 @@ export default function TrainingDayPage() {
           </div>
         )}
 
-        {plan.items.map((item, i) => {
+        {(() => {
           const logsFor = (name: string) => sessionLogs.filter(l => l.block_name === name)
           const firstLog = (name: string) => sessionLogs.find(l => l.block_name === name)
-          return (
-            <div key={`${item.slot}-${i}`} className="panel-mount" style={{ animationDelay: `${i * 45}ms` }}>
-              <div className="readout-rule mb-2" />
+          type Item = DayPlan['items'][number]
+          const renderCard = (item: Item, i: number) => (
+            <>
               {item.kind === 'lift' && (
                 <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} />
               )}
               {item.kind === 'plyo' && (
-                <PlyoCard item={item} initialLog={firstLog(item.name)} onLog={n => logSimple(item.name, 'skill_work', n)} />
+                <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} />
               )}
               {item.kind === 'metcon' && (
                 <MetconCard item={item} initialLog={firstLog(item.name)} onLog={r => {
@@ -761,9 +828,43 @@ export default function TrainingDayPage() {
               {item.kind === 'outside' && (
                 <OutsideCard item={item} initialLog={firstLog(item.title)} onLog={n => logSimple(item.title, 'monostructural', n)} />
               )}
-            </div>
+            </>
           )
-        })}
+          // Consecutive items sharing a superset id render as one linked unit.
+          const groups: Array<{ superset?: string; entries: Array<{ item: Item; i: number }> }> = []
+          plan.items.forEach((item, i) => {
+            const ss = item.kind === 'lift' || item.kind === 'plyo' ? item.superset : undefined
+            const last = groups[groups.length - 1]
+            if (ss && last?.superset === ss) last.entries.push({ item, i })
+            else groups.push({ superset: ss, entries: [{ item, i }] })
+          })
+          return groups.map(g =>
+            g.entries.length > 1 ? (
+              <div key={`ss-${g.superset}-${g.entries[0].i}`} className="panel-mount" style={{ animationDelay: `${g.entries[0].i * 45}ms` }}>
+                <div className="readout-rule mb-2" />
+                <div className="relative pl-3">
+                  {/* Link rail — one circuit, alternate between these cards */}
+                  <span className="absolute left-0 top-1 bottom-1 w-[2px] bg-brand/60" aria-hidden="true" />
+                  <span className="absolute left-0 top-1 w-2 h-[2px] bg-brand/60" aria-hidden="true" />
+                  <span className="absolute left-0 bottom-1 w-2 h-[2px] bg-brand/60" aria-hidden="true" />
+                  <div className="telemetry text-brand mb-2 flex items-center gap-1.5">
+                    <Link2 size={11} /> LINKED // SUPERSET · ALTERNATE SETS
+                  </div>
+                  <div className="space-y-2">
+                    {g.entries.map(({ item, i }) => (
+                      <div key={`${item.slot}-${i}`}>{renderCard(item, i)}</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div key={`${g.entries[0].item.slot}-${g.entries[0].i}`} className="panel-mount" style={{ animationDelay: `${g.entries[0].i * 45}ms` }}>
+                <div className="readout-rule mb-2" />
+                {renderCard(g.entries[0].item, g.entries[0].i)}
+              </div>
+            ),
+          )
+        })()}
 
         {isTestWeek && (
           <MaxesCard maxDefs={program.requiredMaxes} current={maxes} onSave={saveMaxes} />
