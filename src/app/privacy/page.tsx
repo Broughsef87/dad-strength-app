@@ -13,14 +13,14 @@ export default function PrivacyPolicy() {
 
         <div className="mb-10">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Legal</p>
-          <h1 className="text-3xl font-black italic uppercase tracking-tight">Privacy Policy</h1>
+          <h1 className="text-3xl font-display font-semibold uppercase tracking-wide">Privacy Policy</h1>
           <p className="text-sm text-muted-foreground mt-2">Last updated: {lastUpdated}</p>
         </div>
 
         <div className="space-y-8 text-sm text-muted-foreground leading-relaxed">
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Overview</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">Overview</h2>
             <p>
               Dad Strength (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy. This policy explains what
               information we collect when you use the Dad Strength app, how we use it, and your rights regarding
@@ -29,7 +29,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Information We Collect</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">Information We Collect</h2>
             <div className="space-y-4">
               <div>
                 <h3 className="font-bold text-foreground mb-1">Account Information</h3>
@@ -72,7 +72,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">How We Use Your Information</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">How We Use Your Information</h2>
             <ul className="space-y-2 list-none">
               {[
                 'To provide and personalize your Dad Strength experience',
@@ -91,7 +91,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Third-Party Services</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">Third-Party Services</h2>
             <p className="mb-3">We use the following trusted third-party services to operate the app:</p>
             <div className="space-y-3">
               {[
@@ -128,7 +128,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Data Retention</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">Data Retention</h2>
             <p>
               We retain your data for as long as your account is active. If you delete your account, your personal
               data is permanently removed from our database within 30 days. Anonymized, aggregated usage data
@@ -137,7 +137,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Your Rights</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">Your Rights</h2>
             <p className="mb-3">You have the right to:</p>
             <ul className="space-y-2 list-none">
               {[
@@ -160,7 +160,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Children&apos;s Privacy</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">Children&apos;s Privacy</h2>
             <p>
               Dad Strength is intended for users 13 years of age and older. We do not knowingly collect
               personal information from children under 13. If you believe a child under 13 has provided us
@@ -169,7 +169,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Changes to This Policy</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">Changes to This Policy</h2>
             <p>
               We may update this policy from time to time. When we do, we&apos;ll update the &quot;last updated&quot; date
               at the top of this page. For significant changes, we&apos;ll notify you via email or an in-app notice.
@@ -178,7 +178,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black uppercase tracking-wide text-foreground mb-3">Contact</h2>
+            <h2 className="text-base font-display font-semibold uppercase tracking-wide text-foreground mb-3">Contact</h2>
             <p>
               Questions about this policy or your data? Reach out:{' '}
               <a href={`mailto:${contactEmail}`} className="text-brand hover:underline">{contactEmail}</a>

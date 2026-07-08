@@ -198,7 +198,7 @@ export default function PersonalGrowth() {
           <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-xl font-black italic uppercase">Personal Growth</h1>
+          <h1 className="text-xl font-display font-semibold italic uppercase">Personal Growth</h1>
         </header>
         <main className="max-w-md mx-auto p-6 space-y-6">
           <SkeletonCard />
@@ -215,7 +215,7 @@ export default function PersonalGrowth() {
         <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft size={24} />
         </button>
-        <h1 className="text-xl font-black italic uppercase">Personal Growth</h1>
+        <h1 className="text-xl font-display font-semibold italic uppercase">Personal Growth</h1>
       </header>
 
       <main className="max-w-md mx-auto p-6 space-y-6">

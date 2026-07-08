@@ -80,7 +80,7 @@ export default function MissionPage() {
         <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft size={24} />
         </button>
-        <h1 className="text-xl font-black italic uppercase tracking-tight">My Mission</h1>
+        <h1 className="text-xl font-display font-semibold uppercase tracking-wide">My Mission</h1>
       </header>
 
       <main className="max-w-md mx-auto p-6 space-y-6">
@@ -125,7 +125,7 @@ export default function MissionPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Progress</label>
-            <span className="text-sm font-black text-brand">{progress}%</span>
+            <span className="text-sm font-display font-semibold text-brand">{progress}%</span>
           </div>
           <input
             type="range"
@@ -164,7 +164,7 @@ export default function MissionPage() {
         <button
           onClick={handleSave}
           disabled={saving || !title}
-          className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-black py-4 rounded-xl uppercase tracking-widest text-sm transition-all active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-display font-semibold py-4 rounded-xl uppercase tracking-widest text-sm transition-all active:scale-[0.98]"
         >
           {saving ? <Loader2 size={16} className="animate-spin" /> : 'Save Mission'}
         </button>
@@ -177,12 +177,12 @@ export default function MissionPage() {
             className="rounded-xl bg-card border border-border p-5 space-y-3"
           >
             <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Mission Preview</p>
-            <h3 className="text-lg font-black italic uppercase tracking-tight">{title}</h3>
+            <h3 className="text-lg font-display font-semibold uppercase tracking-wide">{title}</h3>
             {description && <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>}
             <div className="space-y-1">
               <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>Progress</span>
-                <span className="font-black text-brand">{progress}%</span>
+                <span className="font-display font-semibold text-brand">{progress}%</span>
               </div>
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div className="h-full bg-brand rounded-full" style={{ width: `${progress}%` }} />

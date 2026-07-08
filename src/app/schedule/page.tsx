@@ -127,7 +127,7 @@ export default function Schedule() {
           <ChevronLeft size={22} />
         </button>
         <div>
-          <h1 className="text-xl font-black italic uppercase tracking-tighter">This Week</h1>
+          <h1 className="text-xl font-display font-semibold uppercase tracking-wide">This Week</h1>
           <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">
             {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </p>
@@ -140,7 +140,7 @@ export default function Schedule() {
         <div className="grid grid-cols-7 gap-1.5">
           {weekDays.map((day, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5">
-              <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">
+              <span className="text-[9px] font-display font-semibold text-gray-600 uppercase tracking-widest">
                 {DAY_LABELS[day.date.getDay()]}
               </span>
               <div className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${
@@ -155,7 +155,7 @@ export default function Schedule() {
                 {day.hasWorkout ? (
                   <CheckCircle2 size={14} className={day.isToday ? 'text-foreground' : 'text-brand'} />
                 ) : (
-                  <span className={`text-xs font-black ${day.isToday ? 'text-foreground' : 'text-gray-700'}`}>
+                  <span className={`text-xs font-display font-semibold ${day.isToday ? 'text-foreground' : 'text-gray-700'}`}>
                     {day.date.getDate()}
                   </span>
                 )}
@@ -167,30 +167,30 @@ export default function Schedule() {
         {/* Week stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-card rounded-2xl p-4 border border-border text-center">
-            <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">Sessions</p>
-            <p className="font-black text-2xl">{weekSessions}</p>
+            <p className="text-[9px] font-display font-semibold text-gray-600 uppercase tracking-widest mb-1">Sessions</p>
+            <p className="font-display font-semibold text-2xl">{weekSessions}</p>
           </div>
           <div className="bg-card rounded-2xl p-4 border border-border text-center">
-            <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">Streak</p>
+            <p className="text-[9px] font-display font-semibold text-gray-600 uppercase tracking-widest mb-1">Streak</p>
             <div className="flex items-center justify-center gap-1">
               <Flame size={14} className="text-orange-500" />
-              <p className="font-black text-2xl">{streak}</p>
+              <p className="font-display font-semibold text-2xl">{streak}</p>
             </div>
           </div>
           <div className="bg-card rounded-2xl p-4 border border-border text-center">
-            <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">Volume</p>
-            <p className="font-black text-lg">{weekVolume > 0 ? `${(weekVolume/1000).toFixed(1)}k` : '—'}</p>
+            <p className="text-[9px] font-display font-semibold text-gray-600 uppercase tracking-widest mb-1">Volume</p>
+            <p className="font-display font-semibold text-lg">{weekVolume > 0 ? `${(weekVolume/1000).toFixed(1)}k` : '—'}</p>
           </div>
         </div>
 
         {/* Today's session */}
         <div>
-          <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3">Today&apos;s Session</p>
+          <p className="text-[10px] font-display font-semibold text-gray-600 uppercase tracking-widest mb-3">Today&apos;s Session</p>
           {todayData?.hasWorkout ? (
             <div className="bg-brand/10 border border-brand/30 rounded-3xl p-5 flex items-center gap-4">
               <CheckCircle2 size={28} className="text-brand flex-shrink-0" />
               <div>
-                <p className="font-black text-base">Session Complete</p>
+                <p className="font-display font-semibold text-base">Session Complete</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {todayData.sessionCount} sets · {Math.round(todayData.volume).toLocaleString()} lbs
                 </p>
@@ -203,7 +203,7 @@ export default function Schedule() {
                   <Dumbbell size={20} className="text-brand" />
                 </div>
                 <div>
-                  <p className="font-black text-base tracking-tight">{activeWorkout.name}</p>
+                  <p className="font-display font-semibold text-base tracking-tight">{activeWorkout.name}</p>
                   <p className="text-xs text-muted-foreground">{activeWorkout.description}</p>
                   <p className="text-[10px] text-brand font-bold uppercase tracking-widest mt-1">
                     {activeWorkout.exercises?.length || 0} exercises
@@ -212,7 +212,7 @@ export default function Schedule() {
               </div>
               <button
                 onClick={() => router.push(`/workout/${activeWorkout.id}`)}
-                className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-brand/20"
+                className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-display font-semibold py-4 rounded-2xl uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-brand/20"
               >
                 <PlayCircle size={16} /> Start Session
               </button>
@@ -223,7 +223,7 @@ export default function Schedule() {
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">No program active</p>
               <button
                 onClick={() => router.push('/build')}
-                className="mt-4 text-[10px] font-black text-brand uppercase tracking-widest border border-brand/30 px-4 py-2 rounded-lg hover:bg-brand/10 transition-colors"
+                className="mt-4 text-[10px] font-display font-semibold text-brand uppercase tracking-widest border border-brand/30 px-4 py-2 rounded-lg hover:bg-brand/10 transition-colors"
               >
                 Set Up Program →
               </button>
@@ -234,19 +234,19 @@ export default function Schedule() {
         {/* Past sessions this week */}
         {weekDays.some(d => d.hasWorkout && !d.isToday) && (
           <div>
-            <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-3">This Week</p>
+            <p className="text-[10px] font-display font-semibold text-gray-600 uppercase tracking-widest mb-3">This Week</p>
             <div className="space-y-2">
               {weekDays.filter(d => d.hasWorkout).map((day, i) => (
                 <div key={i} className="flex items-center justify-between bg-card rounded-2xl px-4 py-3 border border-border">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 size={16} className="text-brand" />
                     <div>
-                      <p className="font-black text-sm">{DAY_LABELS[day.date.getDay()]} {day.date.getDate()}</p>
+                      <p className="font-display font-semibold text-sm">{DAY_LABELS[day.date.getDay()]} {day.date.getDate()}</p>
                       <p className="text-[10px] text-gray-600 font-bold">{day.sessionCount} sets</p>
                     </div>
                   </div>
                   {day.volume > 0 && (
-                    <span className="text-xs font-black text-muted-foreground">{day.volume.toLocaleString()} lbs</span>
+                    <span className="text-xs font-display font-semibold text-muted-foreground">{day.volume.toLocaleString()} lbs</span>
                   )}
                 </div>
               ))}

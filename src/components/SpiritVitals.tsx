@@ -115,7 +115,7 @@ export default function SpiritVitals() {
           <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400">
             <Heart size={20} />
           </div>
-          <h3 className="font-black italic uppercase tracking-tighter text-sm">Spirit Vitals</h3>
+          <h3 className="font-display font-semibold uppercase tracking-wide text-sm">Spirit Vitals</h3>
         </div>
         <ChevronRight size={16} className="text-gray-600 group-hover:text-purple-400 transition-colors" />
       </div>
@@ -125,9 +125,9 @@ export default function SpiritVitals() {
         <div className="bg-card rounded-2xl p-4 border border-border group-hover:bg-purple-500/5 transition-colors">
           <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <Heart size={14} />
-            <span className="text-[10px] uppercase font-black tracking-widest">Family</span>
+            <span className="text-[10px] uppercase font-display font-semibold tracking-widest">Family</span>
           </div>
-          <p className={`text-2xl font-black font-mono tracking-tighter ${scoreColor(familyScore)}`}>
+          <p className={`text-2xl font-display font-semibold font-mono tracking-wide ${scoreColor(familyScore)}`}>
             {familyScore ? familyScore.toFixed(1) : '--'}
           </p>
           <p className="text-[10px] text-gray-600 mt-1 font-bold uppercase tracking-widest">
@@ -139,9 +139,9 @@ export default function SpiritVitals() {
         <div className="bg-card rounded-2xl p-4 border border-border group-hover:bg-purple-500/5 transition-colors">
           <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <Shield size={14} />
-            <span className="text-[10px] uppercase font-black tracking-widest">Brothers</span>
+            <span className="text-[10px] uppercase font-display font-semibold tracking-widest">Brothers</span>
           </div>
-          <p className={`text-2xl font-black font-mono tracking-tighter ${overdueCount > 0 ? 'text-orange-400' : 'text-green-400'}`}>
+          <p className={`text-2xl font-display font-semibold font-mono tracking-wide ${overdueCount > 0 ? 'text-orange-400' : 'text-green-400'}`}>
             {totalBrothers - overdueCount}/{totalBrothers}
           </p>
           <p className="text-[10px] text-gray-600 mt-1 font-bold uppercase tracking-widest">
@@ -155,7 +155,7 @@ export default function SpiritVitals() {
         <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center gap-3">
           <AlertTriangle size={14} className="text-orange-400 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">
+            <p className="text-[10px] font-display font-semibold text-orange-400 uppercase tracking-widest">
               {overdueNames.join(', ')}{overdueCount > 2 ? ` +${overdueCount - 2} more` : ''} — Call someone.
             </p>
           </div>
@@ -165,7 +165,7 @@ export default function SpiritVitals() {
       {overdueCount === 0 && totalBrothers > 0 && (
         <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3">
           <Flame size={14} className="text-green-400 shrink-0" />
-          <p className="text-[10px] font-black text-green-400 uppercase tracking-widest">
+          <p className="text-[10px] font-display font-semibold text-green-400 uppercase tracking-widest">
             Brotherhood is solid. Keep it that way.
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function SpiritVitals() {
       {totalBrothers === 0 && (
         <div className="p-3 bg-gray-800/50 border border-gray-700 rounded-xl flex items-center gap-3">
           <Shield size={14} className="text-muted-foreground shrink-0" />
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+          <p className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest">
             No brothers added yet → Spirit page
           </p>
         </div>

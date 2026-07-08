@@ -38,22 +38,22 @@ export default function DeepWorkTimer({ availableObjectives = [] }: DeepWorkTime
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Timer className="w-5 h-5 text-brand" />
-          <h3 className="font-bold text-foreground italic uppercase tracking-tighter">Deep Work Sprint</h3>
+          <h3 className="font-display font-semibold text-foreground uppercase tracking-wide">Deep Work Sprint</h3>
         </div>
         <div className="flex items-center gap-1 px-2 py-1 bg-brand/10 rounded-full border border-brand/20">
           <Baby size={10} className="text-brand" />
-          <span className="text-[8px] font-black text-brand uppercase">Nap-Squeeze Mode</span>
+          <span className="text-[8px] font-display font-semibold text-brand uppercase">Nap-Squeeze Mode</span>
         </div>
       </div>
 
       <div className="bg-background p-6 rounded-2xl border border-border shadow-inner">
-        <div className="text-5xl font-black text-foreground mb-6 font-mono tracking-tighter tabular-nums flex justify-center items-baseline gap-1">
+        <div className="text-5xl font-display font-semibold text-foreground mb-6 font-mono tracking-wide tabular-nums flex justify-center items-baseline gap-1">
           {minutes}<span className="text-gray-700 text-3xl">:</span>{seconds.toString().padStart(2, '0')}
         </div>
 
         {validObjectives.length > 0 && (
           <div className="mb-6">
-            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 text-center">
+            <label className="block text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest mb-2 text-center">
               Focusing On:
             </label>
             <select 
@@ -72,7 +72,7 @@ export default function DeepWorkTimer({ availableObjectives = [] }: DeepWorkTime
         <div className="flex gap-2">
           <button
             onClick={toggle}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black transition-all text-xs tracking-widest ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-display font-semibold transition-all text-xs tracking-widest ${
               isActive 
                 ? 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700' 
                 : 'bg-brand text-foreground shadow-lg shadow-brand/20 hover:bg-brand/90'

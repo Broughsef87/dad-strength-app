@@ -118,8 +118,8 @@ function PlayCard({ play }: { play: typeof AUTOMATION_PLAYS[0] }) {
             <Icon size={16} className="text-brand" />
           </div>
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{play.category} · {play.time}</p>
-            <h3 className="font-black text-base text-foreground leading-tight mt-0.5">{play.title}</h3>
+            <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{play.category} · {play.time}</p>
+            <h3 className="font-display font-semibold text-base text-foreground leading-tight mt-0.5">{play.title}</h3>
           </div>
         </div>
         <span className="text-[9px] font-bold uppercase tracking-wider text-brand bg-brand/10 px-2 py-1 rounded-lg border border-brand/20 shrink-0">
@@ -134,14 +134,14 @@ function PlayCard({ play }: { play: typeof AUTOMATION_PLAYS[0] }) {
           <div className="space-y-2.5 mb-4">
             {play.steps.map((step, i) => (
               <div key={i} className="flex gap-3">
-                <span className="text-[10px] font-black text-brand mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                <span className="text-[10px] font-display font-semibold text-brand mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
                 <p className="text-xs text-foreground/80 leading-relaxed">{step}</p>
               </div>
             ))}
           </div>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors"
+            className="flex items-center gap-2 text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors"
           >
             {copied ? <CheckCheck size={12} className="text-brand" /> : <Copy size={12} />}
             {copied ? 'Copied' : 'Copy play'}
@@ -178,15 +178,15 @@ export default function SystemsPage() {
         </button>
         <div className="flex items-center gap-3">
           <Zap className="w-8 h-8 text-brand" />
-          <h1 className="font-black text-2xl tracking-tighter italic uppercase">Systems</h1>
+          <h1 className="font-display font-semibold text-2xl tracking-wide italic uppercase">Systems</h1>
         </div>
       </header>
 
       <main className="max-w-md mx-auto space-y-8">
 
         <div className="bg-card border border-brand/20 rounded-3xl p-6">
-          <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">The Principle</p>
-          <p className="font-black text-lg leading-tight text-foreground mb-3">
+          <p className="text-[10px] font-display font-semibold text-brand uppercase tracking-widest mb-2">The Principle</p>
+          <p className="font-display font-semibold text-lg leading-tight text-foreground mb-3">
             Automate the noise.<br />Show up for what matters.
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
@@ -199,10 +199,10 @@ export default function SystemsPage() {
         <div className="bg-card border border-border rounded-3xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Daily Stack</p>
-              <h2 className="font-black text-lg mt-0.5">Today&apos;s 5</h2>
+              <p className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest">Daily Stack</p>
+              <h2 className="font-display font-semibold text-lg mt-0.5">Today&apos;s 5</h2>
             </div>
-            <div className={`text-2xl font-black tabular-nums ${checkedCount === 5 ? 'text-brand' : 'text-foreground'}`}>
+            <div className={`text-2xl font-display font-semibold tabular-nums ${checkedCount === 5 ? 'text-brand' : 'text-foreground'}`}>
               {checkedCount}/5
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function SystemsPage() {
             ))}
           </div>
           {checkedCount === 5 && (
-            <p className="mt-4 text-center text-[10px] font-black text-brand uppercase tracking-widest">
+            <p className="mt-4 text-center text-[10px] font-display font-semibold text-brand uppercase tracking-widest">
               System locked in. Good day.
             </p>
           )}
@@ -237,8 +237,8 @@ export default function SystemsPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Playbook</p>
-              <h2 className="font-black text-lg mt-0.5">Life Automation Plays</h2>
+              <p className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest">Playbook</p>
+              <h2 className="font-display font-semibold text-lg mt-0.5">Life Automation Plays</h2>
             </div>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
               {AUTOMATION_PLAYS.length} plays
@@ -252,7 +252,7 @@ export default function SystemsPage() {
         </div>
 
         <div className="bg-card/60 border border-dashed border-border rounded-2xl p-5 text-center">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Coming Soon</p>
+          <p className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest mb-2">Coming Soon</p>
           <p className="text-xs text-muted-foreground">AI-personalized system recommendations based on your week.</p>
         </div>
 

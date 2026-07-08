@@ -33,20 +33,20 @@ export default function SetRow({
           : 'border-border hover:border-gray-700'
       } rounded-2xl`}
     >
-      <div className={`flex-none w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black italic transition-colors ${
+      <div className={`flex-none w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-display font-semibold italic transition-colors ${
         isDone ? 'bg-brand text-foreground' : 'bg-gray-800 text-muted-foreground'
       }`}>
         {index + 1}
       </div>
 
       <div className="flex-grow min-w-0">
-        <p className={`font-black text-sm uppercase italic tracking-tighter truncate transition-colors ${isDone ? 'text-brand' : 'text-foreground'}`}>
+        <p className={`font-display font-semibold text-sm uppercase tracking-wide truncate transition-colors ${isDone ? 'text-brand' : 'text-foreground'}`}>
           {set.exercise}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isDone ? 'text-brand' : 'text-brand'}`}>{set.weight} LBS</span>
+          <span className={`text-[10px] font-display font-semibold uppercase tracking-widest transition-colors ${isDone ? 'text-brand' : 'text-brand'}`}>{set.weight} LBS</span>
           <span className="text-[8px] text-gray-700">/</span>
-          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isDone ? 'text-brand/50' : 'text-muted-foreground'}`}>{set.reps} REPS</span>
+          <span className={`text-[10px] font-display font-semibold uppercase tracking-widest transition-colors ${isDone ? 'text-brand/50' : 'text-muted-foreground'}`}>{set.reps} REPS</span>
         </div>
       </div>
 

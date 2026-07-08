@@ -95,12 +95,12 @@ export default function MindPage() {
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4 space-y-6">
-        <div className="mb-6">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Mental</p>
-          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Mind</h1>
+        <div className="mb-6 livery-slash pl-4">
+          <p className="telemetry mb-1">SYS // MENTAL.OPS</p>
+          <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Mind</h1>
         </div>
         {[1,2,3].map(i => (
-          <div key={i} className="ds-card p-6 animate-pulse space-y-3">
+          <div key={i} className="panel-cut bg-card border border-border p-6 animate-pulse space-y-3">
             <div className="h-4 bg-muted rounded w-1/3" />
             <div className="h-3 bg-muted rounded w-2/3" />
             <div className="h-3 bg-muted rounded w-1/2" />
@@ -115,9 +115,9 @@ export default function MindPage() {
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4">
-        <div className="mb-6">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Mental</p>
-          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Mind</h1>
+        <div className="mb-6 livery-slash pl-4">
+          <p className="telemetry mb-1">SYS // MENTAL.OPS</p>
+          <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Mind</h1>
         </div>
         <motion.div
           className="space-y-6"
@@ -127,11 +127,12 @@ export default function MindPage() {
         >
 
         {/* Objectives */}
-        <motion.div variants={fadeUp} className="ds-card p-6">
+        <motion.div variants={fadeUp} className="panel-cut hud-frame relative bg-card border border-border p-6 pt-8">
+          <span className="panel-id">MND-01 // OBJECTIVES</span>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Target size={16} className="text-brand" />
-              <h3 className="font-medium text-sm">Daily Objectives</h3>
+              <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Daily Objectives</h3>
             </div>
             <button
               onClick={() => {
@@ -147,7 +148,7 @@ export default function MindPage() {
             <div className="space-y-4">
             {objectives.map((obj, i) => (
               <div key={i} className="flex items-center gap-4 group">
-                <div className="text-xs text-muted-foreground w-5 font-medium tabular-nums shrink-0">
+                <div className="readout-num text-xs text-muted-foreground w-5 shrink-0">
                   {String(i + 1).padStart(2, '0')}
                 </div>
                 {lockedIn ? (
@@ -217,7 +218,7 @@ export default function MindPage() {
                   setLockedIn(true);
                   saveToLocal({ lockedIn: true });
                 }}
-                className="w-full bg-brand text-background py-3 rounded-md text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/90 transition-colors brand-glow"
+                className="panel-cut-sm mecha-glow w-full bg-brand text-white py-3 text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/90 transition-colors"
               >
                 Lock In Objectives
               </button>
@@ -225,19 +226,22 @@ export default function MindPage() {
           )}
         </motion.div>
 
-        <motion.div variants={fadeUp} className="ds-card p-6">
+        <motion.div variants={fadeUp} className="panel-cut relative bg-card border border-border p-6 pt-8">
+          <span className="panel-id">MND-02 // DEEP.WORK</span>
           <DeepWorkTimer availableObjectives={objectives} />
         </motion.div>
 
-        <motion.div variants={fadeUp} className="ds-card p-6">
+        <motion.div variants={fadeUp} className="panel-cut relative bg-card border border-border p-6 pt-8">
+          <span className="panel-id">MND-03 // SQUEEZE</span>
           <MindSqueeze objectives={objectives} />
         </motion.div>
 
         {/* Journal */}
-        <motion.div variants={fadeUp} className="ds-card p-6">
+        <motion.div variants={fadeUp} className="panel-cut relative bg-card border border-border p-6 pt-8">
+          <span className="panel-id">MND-04 // LOG</span>
           <div className="flex items-center gap-2 mb-4">
             <PenLine size={16} className="text-brand" />
-            <h3 className="font-medium text-sm">Journal</h3>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Journal</h3>
           </div>
           <textarea
             value={journal}
@@ -246,12 +250,12 @@ export default function MindPage() {
               saveToLocal({ journal: e.target.value });
             }}
             placeholder="What's on your mind? Capture the signal, ignore the noise..."
-            className="w-full bg-background border border-border rounded-lg p-4 text-sm text-foreground h-48 resize-none outline-none focus:border-foreground/40 transition-colors placeholder:text-muted-foreground"
+            className="panel-cut-sm w-full bg-background border border-border p-4 text-sm text-foreground h-48 resize-none outline-none focus:border-brand/50 transition-colors placeholder:text-muted-foreground"
           />
           <button
             onClick={handleSaveJournal}
             disabled={isSaving}
-            className={`w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-medium uppercase tracking-[0.1em] transition-all ${
+            className={`panel-cut-sm w-full mt-3 flex items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-[0.12em] transition-all ${
               savedMsg
                 ? 'bg-green-500/10 text-green-600 border border-green-500/20'
                 : isSaving

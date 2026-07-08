@@ -94,11 +94,11 @@ export default function MissionEditor() {
           <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft size={24} />
           </button>
-          <h1 className="text-xl font-black italic uppercase italic">Mission Editor</h1>
+          <h1 className="text-xl font-display font-semibold italic uppercase italic">Mission Editor</h1>
         </div>
         <button 
           onClick={handleSave}
-          className="bg-brand hover:bg-brand/90 text-foreground px-4 py-1.5 rounded-lg font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 text-foreground px-4 py-1.5 rounded-lg font-display font-semibold text-xs tracking-widest uppercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
         >
           <Save size={14} /> Save
         </button>
@@ -108,10 +108,10 @@ export default function MissionEditor() {
         
         {/* SECTION 1: THE MISSION TITLE */}
         <section className="space-y-4">
-          <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground pl-1">Project Identity</label>
+          <label className="text-xs uppercase font-display font-semibold tracking-[0.2em] text-muted-foreground pl-1">Project Identity</label>
           <div className="space-y-4 bg-card/40 p-6 rounded-3xl border border-border">
              <div>
-                <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 block mb-2">Pillar Name</label>
+                <label className="text-[10px] uppercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Pillar Name</label>
                 <input 
                   type="text" 
                   value={mission.title}
@@ -121,7 +121,7 @@ export default function MissionEditor() {
                 />
              </div>
              <div>
-                <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 block mb-2">North Star Name</label>
+                <label className="text-[10px] uppercase font-display font-semibold tracking-widest text-gray-700 block mb-2">North Star Name</label>
                 <input 
                   type="text" 
                   value={mission.primaryMetric}
@@ -135,11 +135,11 @@ export default function MissionEditor() {
 
         {/* SECTION 2: THE PRIMARY TARGET */}
         <section className="space-y-4">
-          <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground pl-1">Progress Tracking</label>
+          <label className="text-xs uppercase font-display font-semibold tracking-[0.2em] text-muted-foreground pl-1">Progress Tracking</label>
           <div className="bg-card/40 p-6 rounded-3xl border border-border space-y-6">
              <div className="grid grid-cols-2 gap-4">
                 <div>
-                   <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 block mb-2">Current Value</label>
+                   <label className="text-[10px] uppercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Current Value</label>
                    <input 
                      type="number" 
                      value={mission.current}
@@ -148,7 +148,7 @@ export default function MissionEditor() {
                    />
                 </div>
                 <div>
-                   <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 block mb-2">Target Value</label>
+                   <label className="text-[10px] uppercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Target Value</label>
                    <input 
                      type="number" 
                      value={mission.target}
@@ -158,13 +158,13 @@ export default function MissionEditor() {
                 </div>
              </div>
              <div>
-                <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 block mb-2">Unit Type</label>
+                <label className="text-[10px] uppercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Unit Type</label>
                 <div className="flex gap-2">
                    {['$', 'LBS', '%', 'HRS', 'QTY'].map(u => (
                      <button
                        key={u}
                        onClick={() => setMission({...mission, unit: u})}
-                       className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+                       className={`flex-1 py-2 rounded-lg text-[10px] font-display font-semibold uppercase tracking-widest border transition-all ${
                          mission.unit === u 
                            ? 'bg-brand border-brand text-foreground' 
                            : 'bg-background border-border text-gray-600 hover:text-muted-foreground'
@@ -180,7 +180,7 @@ export default function MissionEditor() {
 
         {/* SECTION 3: SECONDARY METRICS */}
         <section className="space-y-4">
-          <label className="text-xs uppercase font-black tracking-[0.2em] text-muted-foreground pl-1">Secondary Stats</label>
+          <label className="text-xs uppercase font-display font-semibold tracking-[0.2em] text-muted-foreground pl-1">Secondary Stats</label>
           
           {[1, 2].map((num) => {
             const prefix = num === 1 ? 'secondary1' : 'secondary2' as const;
@@ -188,7 +188,7 @@ export default function MissionEditor() {
               <div key={num} className="bg-card/40 p-6 rounded-3xl border border-border space-y-4">
                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                       <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 block mb-2">Stat Label</label>
+                       <label className="text-[10px] uppercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Stat Label</label>
                        <input 
                          type="text" 
                          value={mission[prefix + 'Label' as keyof typeof mission]}
@@ -198,7 +198,7 @@ export default function MissionEditor() {
                        />
                     </div>
                     <div>
-                       <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 block mb-2">Current Stat</label>
+                       <label className="text-[10px] uppercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Current Stat</label>
                        <input 
                          type="text" 
                          value={mission[prefix + 'Value' as keyof typeof mission]}
@@ -209,7 +209,7 @@ export default function MissionEditor() {
                     </div>
                  </div>
                  <div>
-                    <label className="text-[10px] uppercase font-black tracking-widest text-gray-700 block mb-2 text-center">Icon Select</label>
+                    <label className="text-[10px] uppercase font-display font-semibold tracking-widest text-gray-700 block mb-2 text-center">Icon Select</label>
                     <div className="flex justify-between bg-background p-2 rounded-xl border border-border">
                        {ICON_OPTIONS.map((opt) => {
                          const Icon = opt.icon;

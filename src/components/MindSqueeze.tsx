@@ -115,13 +115,13 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Brain size={18} className="text-brand" />
-        <h3 className="font-black text-lg uppercase italic tracking-tighter">Mind Squeeze</h3>
+        <h3 className="font-display font-semibold text-lg uppercase tracking-wide">Mind Squeeze</h3>
       </div>
       <p className="text-xs text-muted-foreground font-medium -mt-4">Stolen time. Optimized focus. Let&apos;s go.</p>
 
       {/* Time */}
       <div>
-        <label className="text-xs font-black text-gray-600 uppercase tracking-widest block mb-3">
+        <label className="text-xs font-display font-semibold text-gray-600 uppercase tracking-widest block mb-3">
           <Clock size={10} className="inline mr-1" /> Available Time
         </label>
         <div className="flex gap-2">
@@ -129,7 +129,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
             <button
               key={t}
               onClick={() => setMinutes(t)}
-              className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              className={`flex-1 py-3 rounded-xl text-xs font-display font-semibold uppercase tracking-widest transition-all ${
                 minutes === t ? 'bg-brand text-foreground shadow-lg' : 'bg-gray-800 text-muted-foreground hover:text-gray-300'
               }`}
             >
@@ -141,7 +141,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
 
       {/* Mental state */}
       <div>
-        <label className="text-xs font-black text-gray-600 uppercase tracking-widest block mb-3">Mental State</label>
+        <label className="text-xs font-display font-semibold text-gray-600 uppercase tracking-widest block mb-3">Mental State</label>
         <div className="space-y-2">
           {STATES.map(s => (
             <button
@@ -162,7 +162,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
       {/* Objectives preview */}
       {objectives.filter(Boolean).length > 0 && (
         <div className="bg-gray-800/30 rounded-2xl p-4 border border-border">
-          <p className="text-xs font-black text-gray-600 uppercase tracking-widest mb-2">Pulling from your objectives</p>
+          <p className="text-xs font-display font-semibold text-gray-600 uppercase tracking-widest mb-2">Pulling from your objectives</p>
           {objectives.filter(Boolean).map((o, i) => (
             <p key={i} className="text-xs text-muted-foreground font-medium">· {o}</p>
           ))}
@@ -172,7 +172,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
       <button
         onClick={generate}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-brand/20"
+        className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-display font-semibold py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-brand/20"
       >
         {loading
           ? <><Loader2 size={16} className="animate-spin" /> Building Sprint...</>
@@ -193,10 +193,10 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
 
           {/* Header */}
           <div>
-            <h4 className="font-black text-xl italic uppercase tracking-tight">{sprint.title}</h4>
+            <h4 className="font-display font-semibold text-xl uppercase tracking-wide">{sprint.title}</h4>
             <div className="flex items-center gap-2 mt-2">
               <Zap size={12} className="text-brand" />
-              <p className="text-xs font-black text-brand uppercase tracking-widest">{sprint.primaryFocus}</p>
+              <p className="text-xs font-display font-semibold text-brand uppercase tracking-widest">{sprint.primaryFocus}</p>
             </div>
           </div>
 
@@ -207,7 +207,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
 
           {/* Time blocks */}
           <div className="space-y-2">
-            <p className="text-xs font-black text-gray-600 uppercase tracking-widest">Sprint Protocol</p>
+            <p className="text-xs font-display font-semibold text-gray-600 uppercase tracking-widest">Sprint Protocol</p>
             {sprint.blocks.map((block, i) => {
               const Icon = BLOCK_ICONS[block.type] || Zap
               const isActive = active && activeBlock === i
@@ -220,7 +220,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
                       : BLOCK_COLORS[block.type] || BLOCK_COLORS.focus
                   }`}
                 >
-                  <div className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 font-black text-xs ${
+                  <div className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-semibold text-xs ${
                     isActive ? 'bg-brand text-foreground' : 'bg-gray-800/60 text-muted-foreground'
                   }`}>
                     {isActive ? formatBlockTime(blockSecondsLeft) : `${block.minutes}m`}
@@ -236,7 +236,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
           <div className="bg-red-500/5 border border-red-500/20 rounded-2xl px-4 py-3 flex gap-3 items-start">
             <Lock size={13} className="text-red-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-black text-red-400 uppercase tracking-widest mb-0.5">Do Not Touch</p>
+              <p className="text-xs font-display font-semibold text-red-400 uppercase tracking-widest mb-0.5">Do Not Touch</p>
               <p className="text-xs text-muted-foreground font-medium">{sprint.skip}</p>
             </div>
           </div>
@@ -245,7 +245,7 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
           {!active ? (
             <button
               onClick={() => { setActive(true); setActiveBlock(0) }}
-              className="w-full flex items-center justify-center gap-2 bg-white text-gray-950 font-black py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95 hover:bg-brand/90 shadow-xl"
+              className="w-full flex items-center justify-center gap-2 bg-white text-gray-950 font-display font-semibold py-4 rounded-2xl uppercase tracking-widest transition-all active:scale-95 hover:bg-brand/90 shadow-xl"
             >
               <Play size={16} /> Start Sprint
             </button>
@@ -257,13 +257,13 @@ export default function MindSqueeze({ objectives = [] }: { objectives?: string[]
                   setActiveBlock(b => Math.min(b + 1, sprint.blocks.length - 1))
                 }}
                 disabled={activeBlock >= sprint.blocks.length - 1}
-                className="flex-1 bg-brand hover:bg-brand/90 disabled:opacity-30 text-foreground font-black py-3 rounded-xl text-xs uppercase tracking-widest transition-all"
+                className="flex-1 bg-brand hover:bg-brand/90 disabled:opacity-30 text-foreground font-display font-semibold py-3 rounded-xl text-xs uppercase tracking-widest transition-all"
               >
                 Next Block →
               </button>
               <button
                 onClick={() => { if (timerRef.current) clearInterval(timerRef.current); setActive(false); setActiveBlock(0) }}
-                className="px-4 bg-gray-800 text-muted-foreground font-black py-3 rounded-xl text-xs uppercase tracking-widest hover:bg-gray-700 transition-all"
+                className="px-4 bg-gray-800 text-muted-foreground font-display font-semibold py-3 rounded-xl text-xs uppercase tracking-widest hover:bg-gray-700 transition-all"
               >
                 End
               </button>

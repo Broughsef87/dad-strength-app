@@ -145,14 +145,14 @@ export default function RelationshipLedger() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Heart className="w-5 h-5 text-rose-500" />
-        <h3 className="font-bold text-foreground uppercase tracking-tighter italic">Relationship Ledger</h3>
+        <h3 className="font-bold text-foreground uppercase tracking-wide italic">Relationship Ledger</h3>
       </div>
 
       {/* Weekly Intention */}
       <div className="bg-card/50 p-4 rounded-xl border border-border space-y-2">
         <div className="flex items-center gap-1.5">
           <Star size={11} className="text-rose-400" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Weekly Intention</p>
+          <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Weekly Intention</p>
         </div>
         <input
           type="text"
@@ -168,7 +168,7 @@ export default function RelationshipLedger() {
         <div className="flex rounded-xl bg-muted p-1 mb-4">
           <button
             onClick={() => setActiveTab('partner')}
-            className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+            className={`flex-1 py-2 rounded-lg text-[11px] font-display font-semibold uppercase tracking-wider transition-all ${
               activeTab === 'partner' ? 'bg-rose-500 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -176,7 +176,7 @@ export default function RelationshipLedger() {
           </button>
           <button
             onClick={() => setActiveTab('family')}
-            className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+            className={`flex-1 py-2 rounded-lg text-[11px] font-display font-semibold uppercase tracking-wider transition-all ${
               activeTab === 'family' ? 'bg-brand text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -185,10 +185,10 @@ export default function RelationshipLedger() {
         </div>
 
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
+          <p className="text-[10px] text-muted-foreground font-display font-semibold uppercase tracking-widest">
             {activeTab === 'partner' ? 'Daily Deposits — Her' : 'Daily Deposits — Kids'}
           </p>
-          <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">
+          <span className="text-[10px] font-display font-semibold text-rose-400 uppercase tracking-widest">
             {activeTab === 'partner' ? partnerDeposits.length : familyDeposits.length}/{target}
           </span>
         </div>
@@ -200,7 +200,7 @@ export default function RelationshipLedger() {
         )}
       </div>
 
-      <p className="text-[10px] text-center text-muted-foreground/40 uppercase font-black tracking-widest">
+      <p className="text-[10px] text-center text-muted-foreground/40 uppercase font-display font-semibold tracking-widest">
         Small wins build the legacy.
       </p>
     </div>

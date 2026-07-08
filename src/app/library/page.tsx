@@ -112,7 +112,7 @@ export default function Library() {
             <ChevronLeft size={22} />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-black italic uppercase tracking-tighter">Movement Library</h1>
+            <h1 className="text-xl font-display font-semibold uppercase tracking-wide">Movement Library</h1>
             <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">{filtered.length} exercises</p>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function Library() {
             <button
               key={eq}
               onClick={() => setEquipFilter(eq)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold uppercase tracking-widest border transition-all ${
                 equipFilter === eq
                   ? 'bg-brand border-brand text-foreground'
                   : 'bg-card border-border text-muted-foreground hover:border-gray-700'
@@ -152,7 +152,7 @@ export default function Library() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold uppercase tracking-widest transition-all ${
                 activeCategory === cat
                   ? 'bg-brand text-foreground shadow-lg shadow-brand/20'
                   : 'bg-card text-muted-foreground hover:text-gray-300 border border-border'
@@ -188,13 +188,13 @@ export default function Library() {
                     <Dumbbell size={18} />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-black text-sm tracking-tight truncate">{ex.name}</p>
+                    <p className="font-display font-semibold text-sm tracking-tight truncate">{ex.name}</p>
                     <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate">{ex.target}</p>
                     <div className="flex items-center gap-2 mt-1.5">
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest ${mechBadge}`}>
+                      <span className={`text-[9px] font-display font-semibold px-2 py-0.5 rounded uppercase tracking-widest ${mechBadge}`}>
                         {ex.mechanic}
                       </span>
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest ${catColor}`}>
+                      <span className={`text-[9px] font-display font-semibold px-2 py-0.5 rounded border uppercase tracking-widest ${catColor}`}>
                         {(ex as Record<string, string>).subcategory || ex.category}
                       </span>
                     </div>
@@ -204,7 +204,7 @@ export default function Library() {
                 <button
                   onClick={() => handleQuickStart(ex)}
                   disabled={!!loadingId}
-                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-foreground text-[10px] font-black px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
+                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-foreground text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
                 >
                   {isLoading
                     ? <Loader2 size={14} className="animate-spin" />

@@ -159,28 +159,28 @@ export default function FamilyPulse() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Heart className="w-5 h-5 text-rose-500" />
-          <h3 className="font-black text-foreground uppercase tracking-tighter italic text-lg">Family Pulse</h3>
+          <h3 className="font-display font-semibold text-foreground uppercase tracking-wide italic text-lg">Family Pulse</h3>
         </div>
         <div className="flex items-center gap-2">
           {saving && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-600 animate-pulse">Saving…</span>
+            <span className="text-[9px] font-display font-semibold uppercase tracking-widest text-gray-600 animate-pulse">Saving…</span>
           )}
-          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{weekLabel}</span>
+          <span className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{weekLabel}</span>
         </div>
       </div>
 
       {/* Pulse Score */}
       <div className="bg-background/80 rounded-2xl border border-border p-5 flex items-center gap-5">
         <div className="flex-1">
-          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Pulse Score</p>
+          <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-1">Pulse Score</p>
           <div className="flex items-end gap-2">
-            <span className="text-5xl font-black tracking-tighter text-foreground leading-none">
+            <span className="text-5xl font-display font-semibold tracking-wide text-foreground leading-none">
               {pulseScore !== null ? pulseScore.toFixed(1) : '–'}
             </span>
-            <span className="text-gray-600 font-black text-lg mb-1">/ 5</span>
+            <span className="text-gray-600 font-display font-semibold text-lg mb-1">/ 5</span>
           </div>
           {!hasAnyData && (
-            <p className="text-[9px] text-brand font-black uppercase tracking-widest mt-1">Rate below to start</p>
+            <p className="text-[9px] text-brand font-display font-semibold uppercase tracking-widest mt-1">Rate below to start</p>
           )}
         </div>
 
@@ -188,12 +188,12 @@ export default function FamilyPulse() {
         <div className="flex flex-col items-center gap-1">
           <TrendIcon size={28} className={trendColor} />
           {lastWeekScore !== null && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-600">
+            <span className="text-[9px] font-display font-semibold uppercase tracking-widest text-gray-600">
               Last: {lastWeekScore.toFixed(1)}
             </span>
           )}
           {lastWeekScore === null && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">No prev</span>
+            <span className="text-[9px] font-display font-semibold uppercase tracking-widest text-gray-700">No prev</span>
           )}
         </div>
       </div>
@@ -201,8 +201,8 @@ export default function FamilyPulse() {
       {/* Marriage Vibe */}
       <div className="bg-card/40 rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Marriage Vibe</p>
-          <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">
+          <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Marriage Vibe</p>
+          <span className="text-[9px] font-display font-semibold text-rose-400 uppercase tracking-widest">
             {current.marriage_vibe > 0 ? `${current.marriage_vibe}/5` : 'Not set'}
           </span>
         </div>
@@ -229,8 +229,8 @@ export default function FamilyPulse() {
       {/* Kid Connection */}
       <div className="bg-card/40 rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Kid Connection</p>
-          <span className="text-[9px] font-black text-brand uppercase tracking-widest">
+          <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Kid Connection</p>
+          <span className="text-[9px] font-display font-semibold text-brand uppercase tracking-widest">
             {current.kid_score > 0 ? `${current.kid_score}/5` : 'Not set'}
           </span>
         </div>
@@ -257,8 +257,8 @@ export default function FamilyPulse() {
       {/* Intentional Moments */}
       <div className="bg-card/40 rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Intentional Moments</p>
-          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+          <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Intentional Moments</p>
+          <span className="text-[9px] font-display font-semibold text-muted-foreground uppercase tracking-widest">
             {current.moments.length}/5
           </span>
         </div>
@@ -270,7 +270,7 @@ export default function FamilyPulse() {
         <div className="space-y-2">
           {current.moments.map((m, i) => (
             <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-background/60 border border-border group animate-in fade-in slide-in-from-left-1">
-              <span className="text-[9px] font-black text-brand uppercase tracking-widest w-4 shrink-0">{i + 1}</span>
+              <span className="text-[9px] font-display font-semibold text-brand uppercase tracking-widest w-4 shrink-0">{i + 1}</span>
               <p className="flex-1 text-xs text-gray-300 italic truncate">&quot;{m}&quot;</p>
               <button
                 onClick={() => removeMoment(i)}
@@ -302,7 +302,7 @@ export default function FamilyPulse() {
       </div>
 
       {/* Tagline */}
-      <p className="text-[10px] text-center text-gray-600 uppercase font-black tracking-widest italic">
+      <p className="text-[10px] text-center text-gray-600 uppercase font-display font-semibold tracking-widest italic">
         What gets measured gets protected.
       </p>
     </div>

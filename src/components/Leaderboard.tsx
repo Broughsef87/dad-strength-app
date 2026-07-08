@@ -11,11 +11,11 @@ export default function Leaderboard() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold flex items-center gap-2 text-foreground uppercase tracking-tighter italic">
+        <h2 className="text-lg font-bold flex items-center gap-2 text-foreground uppercase tracking-wide italic">
           <Trophy className="w-5 h-5 text-yellow-500" />
           The Feed
         </h2>
-        <span className="text-[10px] font-black bg-brand/10 text-brand px-3 py-1 rounded-full uppercase tracking-widest border border-brand/20">
+        <span className="text-[10px] font-display font-semibold bg-brand/10 text-brand px-3 py-1 rounded-full uppercase tracking-widest border border-brand/20">
           Global
         </span>
       </div>
@@ -36,7 +36,7 @@ export default function Leaderboard() {
                 PR: <span className="font-bold text-gray-300">{pr.exercise}</span>
               </p>
               <div className="mt-2">
-                <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md bg-card border border-border text-brand uppercase tracking-widest">
+                <span className="inline-flex items-center gap-1 text-[10px] font-display font-semibold px-2 py-1 rounded-md bg-card border border-border text-brand uppercase tracking-widest">
                   {pr.weight ? `${pr.weight} LBS x ${pr.reps}` : pr.reps}
                 </span>
               </div>
@@ -45,7 +45,7 @@ export default function Leaderboard() {
         ))}
       </div>
 
-      <button className="w-full pt-2 text-[10px] font-black text-gray-600 hover:text-muted-foreground transition-colors flex items-center justify-center gap-2 uppercase tracking-[0.3em]">
+      <button className="w-full pt-2 text-[10px] font-display font-semibold text-gray-600 hover:text-muted-foreground transition-colors flex items-center justify-center gap-2 uppercase tracking-[0.3em]">
         View Rankings
       </button>
     </div>

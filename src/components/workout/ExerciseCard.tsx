@@ -74,7 +74,7 @@ export default function ExerciseCard({
         }`}>
           <div className="flex-1 min-w-0 pr-2">
             <div className="flex items-center gap-2 mb-2.5 flex-wrap">
-              <h3 className={`font-black text-2xl tracking-tighter transition-all duration-500 ${
+              <h3 className={`font-display font-semibold text-2xl tracking-wide transition-all duration-500 ${
                 isCompleted ? 'text-emerald-400' : 'text-foreground'
               }`}>
                 {name.toUpperCase()}
@@ -89,7 +89,7 @@ export default function ExerciseCard({
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="flex items-center gap-1.5 px-3 py-1 bg-brand/10 border border-brand/20 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                <span className="text-[10px] font-black text-brand uppercase tracking-widest">
+                <span className="text-[10px] font-display font-semibold text-brand uppercase tracking-widest">
                   TARGET: {target}
                 </span>
               </div>
@@ -111,11 +111,11 @@ export default function ExerciseCard({
               <div className="flex flex-col items-end">
                 <div className="flex items-center gap-1.5 text-brand/80 mb-1.5">
                   <Zap size={14} className="animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Intensity</span>
+                  <span className="text-[10px] font-display font-semibold uppercase tracking-widest">Intensity</span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-foreground">{intensityScore}</span>
-                  <span className="text-[10px] font-black text-muted-foreground italic">pts</span>
+                  <span className="text-2xl font-display font-semibold text-foreground">{intensityScore}</span>
+                  <span className="text-[10px] font-display font-semibold text-muted-foreground italic">pts</span>
                 </div>
               </div>
             )}
@@ -143,7 +143,7 @@ export default function ExerciseCard({
             <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent" />
             <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity duration-500">
               <Activity size={10} className="text-brand" />
-              <span className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.3em]">Load Matrix</span>
+              <span className="text-[8px] font-display font-semibold text-muted-foreground uppercase tracking-[0.3em]">Load Matrix</span>
             </div>
           </div>
         )}
@@ -159,7 +159,7 @@ export default function ExerciseCard({
             <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/complete:translate-x-full transition-transform duration-1000 ease-in-out" />
             <div className="flex items-center justify-center gap-3 relative z-10">
               <Sparkles size={12} className="text-black/80" />
-              <p className="text-[10px] font-black text-black uppercase tracking-[0.4em]">Protocol Executed Successfully</p>
+              <p className="text-[10px] font-display font-semibold text-black uppercase tracking-[0.4em]">Protocol Executed Successfully</p>
               <Sparkles size={12} className="text-black/80 rotate-12" />
             </div>
           </div>
