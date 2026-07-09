@@ -5,7 +5,7 @@ import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, 
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
-import { localDay } from '../utils/day'
+import { localDay, localDayWithCutoff } from '../utils/day'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -54,7 +54,9 @@ type Protocol = {
 }
 
 const STORAGE_KEY = 'dad-strength-morning-protocol'
-const todayKey = () => localDay()
+// The morning routine's "day" runs 4am → 3:59am, so a late-night or pre-dawn
+// check-in doesn't wipe a routine completed that morning.
+const todayKey = () => localDayWithCutoff(4)
 
 export default function MorningProtocol({ objectives = [] }: { objectives?: string[] }) {
   const [minutes, setMinutes] = useState(20)

@@ -14,3 +14,11 @@ export function localDay(d: Date = new Date()): string {
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
 }
+
+// Local day with the boundary shifted `cutoffHour` hours past midnight.
+// A cutoff of 4 means the "day" runs 4:00am → 3:59am: a 1am session still
+// counts as the night before. Used for the morning routine so a late-night
+// or pre-dawn check-in doesn't wipe the completed routine.
+export function localDayWithCutoff(cutoffHour: number, d: Date = new Date()): string {
+  return localDay(new Date(d.getTime() - cutoffHour * 3_600_000))
+}
