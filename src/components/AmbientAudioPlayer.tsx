@@ -157,15 +157,15 @@ function birdChirp(rig: Rig): void {
 function waterBloop(rig: Rig): void {
   const { ctx, master } = rig
   const now = ctx.currentTime
-  const f0 = rand(600, 1900)
+  const f0 = rand(420, 1200)
   const o = ctx.createOscillator()
   o.type = 'sine'
   o.frequency.setValueAtTime(f0, now)
-  o.frequency.exponentialRampToValueAtTime(f0 * 0.5, now + 0.08)
+  o.frequency.exponentialRampToValueAtTime(f0 * 0.5, now + 0.1)
   const g = ctx.createGain()
   g.gain.setValueAtTime(0, now)
-  g.gain.linearRampToValueAtTime(rand(0.025, 0.07), now + 0.005)
-  g.gain.exponentialRampToValueAtTime(0.0004, now + 0.09)
+  g.gain.linearRampToValueAtTime(rand(0.015, 0.045), now + 0.008)
+  g.gain.exponentialRampToValueAtTime(0.0004, now + 0.12)
   o.connect(g); g.connect(master)
   o.start(now); o.stop(now + 0.12)
 }
@@ -264,20 +264,26 @@ function makeForest(ctx: AudioContext, vol: number): SourceHandle {
 
 function makeStream(ctx: AudioContext, vol: number): SourceHandle {
   const rig = createRig(ctx, vol)
-  // Moving water body: brown bed through a sweeping band-pass.
+  // Soft water body: brown bed, gently rolled off up top so there's no hiss.
+  // A steep low-pass keeps everything rounded; a slow sweep gives it movement.
   const body = ctx.createBiquadFilter()
-  body.type = 'bandpass'
-  body.frequency.value = 700
-  body.Q.value = 0.7
-  noiseBed(rig, 'brown', [body], 0.7)
-  lfo(rig, 0.13, 320, body.frequency) // 380–1020 Hz churn
-  // Rushing hiss on top.
-  const rush = ctx.createBiquadFilter()
-  rush.type = 'highpass'
-  rush.frequency.value = 2600
-  noiseBed(rig, 'white', [rush], 0.11)
-  // Steady bubbling.
-  rig.every(60, 200, 90, 360, () => waterBloop(rig))
+  body.type = 'lowpass'
+  body.frequency.value = 620
+  body.Q.value = 0.4
+  const body2 = ctx.createBiquadFilter()
+  body2.type = 'lowpass'
+  body2.frequency.value = 900 // second pole → gentler, less noisy top end
+  noiseBed(rig, 'brown', [body, body2], 0.5)
+  lfo(rig, 0.1, 150, body.frequency) // 470–770 Hz gentle current
+  // Quiet mid "trickle" — a narrow, soft band, no highs.
+  const trickle = ctx.createBiquadFilter()
+  trickle.type = 'bandpass'
+  trickle.frequency.value = 520
+  trickle.Q.value = 1.2
+  noiseBed(rig, 'brown', [trickle], 0.14)
+  lfo(rig, 0.17, 120, trickle.frequency)
+  // Bubbling carries the "running water" character — rounded, mid-low blips.
+  rig.every(120, 300, 140, 480, () => waterBloop(rig))
   return rig.handle
 }
 
