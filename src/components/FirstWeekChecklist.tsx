@@ -3,10 +3,8 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, X, Dumbbell, Target, Sun, Users } from 'lucide-react'
+import { CheckCircle2, X, Dumbbell, Target, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-
-const SKOOL_URL = process.env.NEXT_PUBLIC_SKOOL_URL || 'https://www.skool.com'
 
 interface ChecklistItem {
   key: string
@@ -42,21 +40,12 @@ const ITEMS: ChecklistItem[] = [
     href: '/spirit',
     icon: Sun,
   },
-  {
-    key: 'joined_brotherhood',
-    label: 'Join the Brotherhood',
-    description: 'Connect with dads in the Skool community.',
-    cta: 'Join Now',
-    href: SKOOL_URL,
-    icon: Users,
-  },
 ]
 
 interface ChecklistState {
   first_workout: boolean
   set_mission: boolean
   morning_protocol: boolean
-  joined_brotherhood: boolean
   dismissed: boolean
   dismissed_at: string | null
 }
@@ -65,7 +54,6 @@ const DEFAULT_STATE: ChecklistState = {
   first_workout: false,
   set_mission: false,
   morning_protocol: false,
-  joined_brotherhood: false,
   dismissed: false,
   dismissed_at: null,
 }
@@ -106,7 +94,7 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
       if (checklist.dismissed) { setVisible(false); return }
 
       // All done — persist dismissed + callback so dashboard can swap card
-      const allDone = checklist.first_workout && checklist.set_mission && checklist.morning_protocol && checklist.joined_brotherhood
+      const allDone = checklist.first_workout && checklist.set_mission && checklist.morning_protocol
       if (allDone) {
         if (!checklist.dismissed) {
           await supabase.from('user_profiles').update({
@@ -161,7 +149,7 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
     await supabase.from('user_profiles').update({ first_week_checklist: newState }).eq('id', userId)
 
     // Hide and persist dismissed if all items complete
-    const allDone = newState.first_workout && newState.set_mission && newState.morning_protocol && newState.joined_brotherhood
+    const allDone = newState.first_workout && newState.set_mission && newState.morning_protocol
     if (allDone) {
       const finalState = { ...newState, dismissed: true, dismissed_at: new Date().toISOString() }
       await supabase.from('user_profiles').update({ first_week_checklist: finalState }).eq('id', userId)
@@ -195,15 +183,11 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
       if (item.href.startsWith('http')) window.open(item.href, '_blank')
       else router.push(item.href)
     }
-    // joined_brotherhood: external link — mark on click (can't verify externally)
     // set_mission: mission page marks it done on save — don't mark here
     // morning_protocol: verified against localStorage when a pillar is completed
-    if (item.key === 'joined_brotherhood') {
-      updateItem('joined_brotherhood', true)
-    }
   }
 
-  const doneCount = [state.first_workout, state.set_mission, state.morning_protocol, state.joined_brotherhood].filter(Boolean).length
+  const doneCount = [state.first_workout, state.set_mission, state.morning_protocol].filter(Boolean).length
 
   if (!visible) return null
 
@@ -222,7 +206,7 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
             <h3 className="font-display text-xl tracking-[0.08em] uppercase mt-0.5">Your First Week</h3>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-muted-foreground font-medium">{doneCount}/4</span>
+            <span className="text-[10px] text-muted-foreground font-medium">{doneCount}/3</span>
             <button onClick={dismiss} className="text-muted-foreground hover:text-foreground transition-colors">
               <X size={14} />
             </button>
@@ -234,7 +218,7 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
           <motion.div
             className="h-full bg-brand"
             initial={{ width: 0 }}
-            animate={{ width: `${(doneCount / 4) * 100}%` }}
+            animate={{ width: `${(doneCount / 3) * 100}%` }}
             transition={{ duration: 0.5 }}
           />
         </div>

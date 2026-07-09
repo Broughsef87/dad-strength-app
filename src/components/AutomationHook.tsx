@@ -11,7 +11,7 @@ export default function AutomationHook() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // TODO: connect to Supabase/Skool when ready
+    // TODO: wire up when ready
 
     // Simulate API call
     setSubmitted(true);

@@ -102,8 +102,8 @@ export default function Dashboard() {
         .maybeSingle()
 
       // Check if first-week checklist is already fully complete so we can swap the card immediately
-      const cl = profile?.first_week_checklist as { first_workout?: boolean; set_mission?: boolean; morning_protocol?: boolean; joined_brotherhood?: boolean } | null
-      if (cl?.first_workout && cl?.set_mission && cl?.morning_protocol && cl?.joined_brotherhood) {
+      const cl = profile?.first_week_checklist as { first_workout?: boolean; set_mission?: boolean; morning_protocol?: boolean } | null
+      if (cl?.first_workout && cl?.set_mission && cl?.morning_protocol) {
         setChecklistDone(true)
       }
 
