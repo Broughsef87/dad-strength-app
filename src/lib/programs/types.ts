@@ -7,6 +7,7 @@ export interface MaxDef {
   key: string        // 'snatch' | 'clean_jerk' | 'back_squat' | 'front_squat' | ...
   label: string      // "Snatch"
   hint?: string      // "Best recent single, in lbs"
+  unit?: string      // display unit, defaults to 'lbs' (endurance benchmarks use 'min')
 }
 
 // One prescribed lift line on a gym day.
@@ -24,6 +25,7 @@ export interface LiftPrescription {
   appliedAdjustmentPct?: number // autoreg delta baked into `percent` (display)
   note?: string            // "1+1 — one clean, one jerk" / "90s rest"
   superset?: string        // items sharing this id (and adjacent in the day) render linked
+  subbedFrom?: string      // set client-side when a user substitution renamed this item
 }
 
 // Plyometrics / jumps — per-set logging like lifts, just no load math.
@@ -35,6 +37,7 @@ export interface PlyoPrescription {
   reps: number
   note?: string
   superset?: string        // see LiftPrescription.superset
+  subbedFrom?: string      // see LiftPrescription.subbedFrom
 }
 
 // Saturday metcon — from the curated pool, not AI.

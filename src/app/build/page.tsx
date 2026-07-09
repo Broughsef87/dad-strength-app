@@ -184,7 +184,7 @@ export default function BuildPage() {
                         placeholder={d.hint ?? 'lbs'}
                         className="flex-1 bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/60"
                       />
-                      <span className="text-xs text-muted-foreground w-8">lbs</span>
+                      <span className="text-xs text-muted-foreground w-8">{d.unit ?? 'lbs'}</span>
                     </div>
                   </div>
                 ))}

@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
-  AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw, Link2,
+  AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw, Link2, Repeat, Search,
 } from 'lucide-react'
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
@@ -22,6 +22,7 @@ import {
   PlyoPrescription, getProgram,
 } from '../../../../lib/programs'
 import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
+import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,24 @@ interface SetEntry {
 }
 
 const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
+
+// ── Exercise substitutions ─────────────────────────────────────────────────────
+// Persistent per (program, slot, original name) — a swap survives across weeks
+// because the plan is rebuilt deterministically and re-subbed on every load.
+
+type SubsMap = Record<string, string> // `${slot}::${originalName}` → subName
+
+function applySubs(plan: DayPlan, subs: SubsMap): DayPlan {
+  if (Object.keys(subs).length === 0) return plan
+  return {
+    ...plan,
+    items: plan.items.map(i => {
+      if (i.kind !== 'lift' && i.kind !== 'plyo') return i
+      const sub = subs[`${i.slot}::${i.name}`]
+      return sub && sub !== i.name ? { ...i, name: sub, subbedFrom: i.name } : i
+    }),
+  }
+}
 
 // ── Progression (server-derived, same pattern as Zeus) ────────────────────────
 
@@ -149,11 +168,12 @@ function WorkoutTimer() {
 
 // ── Lift card — per-set logging with prescribed load ─────────────────────────
 
-function LiftCard({ item, index, initialLogs, onLog }: {
+function LiftCard({ item, index, initialLogs, onLog, onSwap }: {
   item: LiftPrescription
   index: number
   initialLogs: SessionLogRow[]
   onLog: (sets: SetEntry[]) => void
+  onSwap?: () => void
 }) {
   const [sets, setSets] = useState<SetEntry[]>(() =>
     Array.from({ length: item.sets }, (_, i) => {
@@ -183,6 +203,12 @@ function LiftCard({ item, index, initialLogs, onLog }: {
   return (
     <div className={`panel-cut hud-frame relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <span className="panel-id">{panelId}</span>
+      {onSwap && (
+        <button onClick={onSwap} title="Substitute exercise"
+          className="absolute top-0.5 right-0.5 z-10 p-2 text-muted-foreground/70 hover:text-brand transition-colors">
+          <Repeat size={12} />
+        </button>
+      )}
 
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left px-4 pt-6 pb-3">
         <div className="flex items-end justify-between gap-3">
@@ -221,6 +247,9 @@ function LiftCard({ item, index, initialLogs, onLog }: {
         </div>
       </button>
 
+      {item.subbedFrom && (
+        <p className="px-4 pb-1 telemetry-dim">SUB // WAS {item.subbedFrom.toUpperCase()}</p>
+      )}
       {item.note && (
         <p className="px-4 pb-2 text-xs text-muted-foreground italic">{item.note}</p>
       )}
@@ -287,11 +316,12 @@ interface PlyoSetEntry {
   done: boolean
 }
 
-function PlyoCard({ item, index, initialLogs, onLog }: {
+function PlyoCard({ item, index, initialLogs, onLog, onSwap }: {
   item: PlyoPrescription
   index: number
   initialLogs: SessionLogRow[]
   onLog: (sets: PlyoSetEntry[], notes: string) => void
+  onSwap?: () => void
 }) {
   const [sets, setSets] = useState<PlyoSetEntry[]>(() =>
     Array.from({ length: item.sets }, (_, i) => {
@@ -317,6 +347,12 @@ function PlyoCard({ item, index, initialLogs, onLog }: {
   return (
     <div className={`panel-cut relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <span className="panel-id">ORD-{String(index + 1).padStart(2, '0')} // {item.slot.replace(/_/g, '.').toUpperCase()}</span>
+      {onSwap && (
+        <button onClick={onSwap} title="Substitute exercise"
+          className="absolute top-0.5 right-0.5 z-10 p-2 text-muted-foreground/70 hover:text-brand transition-colors">
+          <Repeat size={12} />
+        </button>
+      )}
       <div className="px-4 pt-6 pb-3 flex items-end justify-between gap-3">
         <div className="min-w-0 flex items-center gap-3">
           <Zap size={15} className="text-brand shrink-0" />
@@ -331,6 +367,9 @@ function PlyoCard({ item, index, initialLogs, onLog }: {
           ))}
         </div>
       </div>
+      {item.subbedFrom && (
+        <p className="px-4 pb-1 telemetry-dim">SUB // WAS {item.subbedFrom.toUpperCase()}</p>
+      )}
       {item.note && (
         <p className="px-4 pb-2 text-xs text-muted-foreground italic">{item.note}</p>
       )}
@@ -443,10 +482,96 @@ function OutsideCard({ item, initialLog, onLog }: {
   )
 }
 
+// ── Swap modal — searchable exercise library ───────────────────────────────────
+
+function SwapModal({ target, onPick, onRevert, onClose }: {
+  target: { slot: string; originalName: string; currentName: string }
+  onPick: (name: string) => void
+  onRevert: () => void
+  onClose: () => void
+}) {
+  const [q, setQ] = useState('')
+  const [cat, setCat] = useState<ExerciseCategory | null>(null)
+  const query = q.trim().toLowerCase()
+  const results = EXERCISE_LIBRARY.filter(e =>
+    e.name !== target.currentName &&
+    (cat == null || e.cat === cat) &&
+    (query === '' || e.name.toLowerCase().includes(query)),
+  ).slice(0, 40)
+  const exactMatch = EXERCISE_LIBRARY.some(e => e.name.toLowerCase() === query)
+  const isSubbed = target.currentName !== target.originalName
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div onClick={e => e.stopPropagation()}
+        className="relative panel-cut bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
+        <span className="panel-id">ARMORY // SWAP.{target.slot.replace(/_/g, '.').toUpperCase()}</span>
+
+        <div className="mb-3">
+          <p className="telemetry mb-1">SUBSTITUTE EXERCISE</p>
+          <p className="font-display text-base uppercase tracking-wide text-foreground">{target.currentName}</p>
+          {isSubbed && <p className="telemetry-dim mt-0.5">ORIGINAL // {target.originalName.toUpperCase()}</p>}
+        </div>
+
+        <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 mb-2">
+          <Search size={13} className="text-muted-foreground shrink-0" />
+          <input autoFocus type="text" value={q} onChange={e => setQ(e.target.value)} placeholder="Search the library..."
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none" />
+        </div>
+
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1 -mx-1 px-1">
+          {(Object.keys(CATEGORY_LABELS) as ExerciseCategory[]).map(c => (
+            <button key={c} onClick={() => setCat(cat === c ? null : c)}
+              className={`shrink-0 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border rounded-sm transition-colors ${
+                cat === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
+              }`}>
+              {CATEGORY_LABELS[c]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-[120px]">
+          {results.map(e => (
+            <button key={e.name} onClick={() => onPick(e.name)}
+              className="w-full text-left panel-cut-sm border border-border/60 bg-background hover:border-brand/50 px-3 py-2 transition-colors flex items-center justify-between gap-2">
+              <span className="text-sm text-foreground">{e.name}</span>
+              <span className="telemetry-dim shrink-0">{CATEGORY_LABELS[e.cat]}</span>
+            </button>
+          ))}
+          {query !== '' && !exactMatch && (
+            <button onClick={() => onPick(q.trim())}
+              className="w-full text-left panel-cut-sm border border-dashed border-border px-3 py-2 hover:border-brand/50 transition-colors">
+              <span className="text-sm text-muted-foreground">Use custom: </span>
+              <span className="text-sm text-foreground">{q.trim()}</span>
+            </button>
+          )}
+          {results.length === 0 && query === '' && (
+            <p className="telemetry-dim text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>
+          )}
+        </div>
+
+        <div className="pt-3 space-y-2">
+          {isSubbed && (
+            <button onClick={onRevert}
+              className="w-full py-2.5 border border-brand/50 text-brand text-xs font-semibold uppercase tracking-widest hover:bg-brand/10 transition-colors panel-cut-sm">
+              Revert to {target.originalName}
+            </button>
+          )}
+          <button onClick={onClose}
+            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold uppercase tracking-widest hover:text-foreground transition-colors panel-cut-sm">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Maxes update card (test week) ──────────────────────────────────────────────
 
 function MaxesCard({ maxDefs, current, onSave }: {
-  maxDefs: Array<{ key: string; label: string }>
+  maxDefs: Array<{ key: string; label: string; unit?: string }>
   current: Record<string, number>
   onSave: (vals: Record<string, number>) => Promise<void>
 }) {
@@ -463,7 +588,7 @@ function MaxesCard({ maxDefs, current, onSave }: {
           <span className="text-xs text-foreground w-32">{d.label}</span>
           <input type="number" value={vals[d.key]} onChange={e => { setVals(v => ({ ...v, [d.key]: e.target.value })); setSaved(false) }}
             className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand/50" />
-          <span className="text-xs text-muted-foreground">lbs</span>
+          <span className="text-xs text-muted-foreground">{d.unit ?? 'lbs'}</span>
         </div>
       ))}
       <button
@@ -506,6 +631,8 @@ export default function TrainingDayPage() {
   const workoutIdRef = useRef<string | null>(null)
   const weekRef = useRef<number>(1)
   const logErrTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const subsRef = useRef<SubsMap>({})
+  const [swapTarget, setSwapTarget] = useState<{ slot: string; originalName: string; currentName: string } | null>(null)
 
   const loadDay = useCallback(async () => {
     if (!user || !program) return
@@ -519,21 +646,29 @@ export default function TrainingDayPage() {
         if (Number.isFinite(n) && n >= 1) weekOverride = n
       } catch { /* SSR-safe no-op */ }
 
-      const [currentWeek, userMaxes] = await Promise.all([
+      const [currentWeek, userMaxes, subRes] = await Promise.all([
         fetchCurrentWeek(supabase, user.id, slug),
         fetchMaxes(supabase, user.id),
+        supabase.from('user_exercise_subs')
+          .select('slot, original_name, sub_name')
+          .eq('user_id', user.id).eq('program_slug', slug),
       ])
       const weekNumber = weekOverride ?? currentWeek
       weekRef.current = weekNumber
       setMaxes(userMaxes)
+      const subs: SubsMap = {}
+      for (const r of (subRes.data ?? []) as Array<{ slot: string; original_name: string; sub_name: string }>) {
+        subs[`${r.slot}::${r.original_name}`] = r.sub_name
+      }
+      subsRef.current = subs
       const doneDays = await fetchDoneDays(supabase, user.id, slug, weekNumber)
       if (doneDays.includes(dayNumber)) setSessionComplete(true)
 
       // Autoregulation: bounded % deltas from last week's per-set RPE.
       const adjustments = await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber)
 
-      // Deterministic build — instant, no AI.
-      const built = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments)
+      // Deterministic build — instant, no AI — then user substitutions on top.
+      const built = applySubs(program.buildDay(weekNumber, dayNumber, userMaxes, adjustments), subs)
       setPlan(built)
 
       // Find-or-create the generated_workouts row for log linkage.
@@ -673,6 +808,39 @@ export default function TrainingDayPage() {
     setSessionComplete(true)
   }
 
+  // Swap an exercise (subName) or revert to the original (null). Persists to
+  // user_exercise_subs and patches the in-memory plan without a reload.
+  const applySwap = async (subName: string | null) => {
+    if (!user || !swapTarget) return
+    const { slot, originalName } = swapTarget
+    if (subName == null || subName === originalName) {
+      const res = await supabase.from('user_exercise_subs').delete()
+        .eq('user_id', user.id).eq('program_slug', slug)
+        .eq('slot', slot).eq('original_name', originalName)
+      report('swap', res)
+      delete subsRef.current[`${slot}::${originalName}`]
+    } else {
+      const res = await supabase.from('user_exercise_subs').upsert({
+        user_id: user.id, program_slug: slug, slot,
+        original_name: originalName, sub_name: subName,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,program_slug,slot,original_name' })
+      report('swap', res)
+      subsRef.current[`${slot}::${originalName}`] = subName
+    }
+    setPlan(p => p && ({
+      ...p,
+      items: p.items.map(i => {
+        if ((i.kind !== 'lift' && i.kind !== 'plyo') || i.slot !== slot) return i
+        if ((i.subbedFrom ?? i.name) !== originalName) return i
+        return subName == null || subName === originalName
+          ? { ...i, name: originalName, subbedFrom: undefined }
+          : { ...i, name: subName, subbedFrom: originalName }
+      }),
+    }))
+    setSwapTarget(null)
+  }
+
   const saveMaxes = async (vals: Record<string, number>) => {
     if (!user) return
     const rows = Object.entries(vals).map(([lift_key, value_lbs]) => ({
@@ -807,13 +975,15 @@ export default function TrainingDayPage() {
           const logsFor = (name: string) => sessionLogs.filter(l => l.block_name === name)
           const firstLog = (name: string) => sessionLogs.find(l => l.block_name === name)
           type Item = DayPlan['items'][number]
+          const swapFor = (item: LiftPrescription | PlyoPrescription) => () =>
+            setSwapTarget({ slot: item.slot, originalName: item.subbedFrom ?? item.name, currentName: item.name })
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} />
+                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} />
               )}
               {item.kind === 'plyo' && (
-                <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} />
+                <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} onSwap={swapFor(item)} />
               )}
               {item.kind === 'metcon' && (
                 <MetconCard item={item} initialLog={firstLog(item.name)} onLog={r => {
@@ -852,13 +1022,13 @@ export default function TrainingDayPage() {
                   </div>
                   <div className="space-y-2">
                     {g.entries.map(({ item, i }) => (
-                      <div key={`${item.slot}-${i}`}>{renderCard(item, i)}</div>
+                      <div key={`${item.slot}-${'name' in item ? item.name : ''}-${i}`}>{renderCard(item, i)}</div>
                     ))}
                   </div>
                 </div>
               </div>
             ) : (
-              <div key={`${g.entries[0].item.slot}-${g.entries[0].i}`} className="panel-mount" style={{ animationDelay: `${g.entries[0].i * 45}ms` }}>
+              <div key={`${g.entries[0].item.slot}-${'name' in g.entries[0].item ? g.entries[0].item.name : ''}-${g.entries[0].i}`} className="panel-mount" style={{ animationDelay: `${g.entries[0].i * 45}ms` }}>
                 <div className="readout-rule mb-2" />
                 {renderCard(g.entries[0].item, g.entries[0].i)}
               </div>
@@ -876,6 +1046,15 @@ export default function TrainingDayPage() {
           Mission Complete
         </button>
       </main>
+
+      {swapTarget && (
+        <SwapModal
+          target={swapTarget}
+          onPick={name => void applySwap(name)}
+          onRevert={() => void applySwap(null)}
+          onClose={() => setSwapTarget(null)}
+        />
+      )}
     </div>
   )
 }
