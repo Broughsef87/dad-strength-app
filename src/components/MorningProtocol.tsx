@@ -5,6 +5,7 @@ import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, 
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
+import { localDay } from '../utils/day'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -53,7 +54,7 @@ type Protocol = {
 }
 
 const STORAGE_KEY = 'dad-strength-morning-protocol'
-const todayKey = () => new Date().toLocaleDateString()
+const todayKey = () => localDay()
 
 export default function MorningProtocol({ objectives = [] }: { objectives?: string[] }) {
   const [minutes, setMinutes] = useState(20)
@@ -75,9 +76,9 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
   const saveMindState = async () => {
     const supabase = createClient()
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDay()
     const state = {
-      date: new Date().toLocaleDateString(),
+      date: localDay(),
       objectives: mindObjectives,
       completedObjectives: [false, false, false],
       lockedIn: true,

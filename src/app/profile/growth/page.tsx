@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, BookOpen, Target, Flame, CheckCircle2, Circle, Edit2 } from 'lucide-react'
+import { localDay } from '../../../utils/day'
 
 type Habit = { name: string; done: boolean }
 type BookData = { title: string; author: string; currentChapter: number; totalChapters: number }
@@ -52,7 +53,7 @@ export default function PersonalGrowth() {
   // Habit streaks from checkins history
   const [habitStreaks, setHabitStreaks] = useState<number[]>([0, 0, 0])
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDay()
 
   useEffect(() => {
     setMounted(true)
@@ -71,7 +72,7 @@ export default function PersonalGrowth() {
     const savedState = typeof window !== 'undefined' ? localStorage.getItem('dad-strength-growth-state') : null
     if (savedState) {
       const s: GrowthState = JSON.parse(savedState)
-      if (s.date === new Date().toLocaleDateString()) {
+      if (s.date === localDay()) {
         setHabitsDone(s.habits || [false, false, false])
         setFamilyGoal(s.familyGoal || '')
         setFamilyGoalDone(s.familyGoalDone || false)
@@ -140,7 +141,7 @@ export default function PersonalGrowth() {
 
   const saveGrowthState = (overrides: Partial<GrowthState> = {}) => {
     const state: GrowthState = {
-      date: new Date().toLocaleDateString(),
+      date: localDay(),
       habits: habitsDone,
       familyGoal,
       familyGoalDone,

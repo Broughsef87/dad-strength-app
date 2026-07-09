@@ -10,6 +10,7 @@ import BottomNav from '../../components/BottomNav';
 import AppHeader from '../../components/AppHeader';
 import DeepWorkTimer from '../../components/DeepWorkTimer';
 import MindSqueeze from '../../components/MindSqueeze';
+import { localDay } from '../../utils/day';
 
 export default function MindPage() {
   const [supabase] = useState(() => createClient());
@@ -23,11 +24,11 @@ export default function MindPage() {
 
   useEffect(() => {
     setMounted(true);
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDay();
     const saved = localStorage.getItem('dad-strength-mind-state');
     if (saved) {
       const data = JSON.parse(saved);
-      if (data.date === new Date().toLocaleDateString()) {
+      if (data.date === localDay()) {
         setObjectives(data.objectives || ['', '', '']);
         setCompletedObjectives(data.completedObjectives || [false, false, false]);
         setLockedIn(data.lockedIn || false);
@@ -56,7 +57,7 @@ export default function MindPage() {
 
   const saveToLocal = (overrides = {}) => {
     const state = {
-      date: new Date().toLocaleDateString(),
+      date: localDay(),
       objectives,
       completedObjectives,
       lockedIn,
@@ -64,7 +65,7 @@ export default function MindPage() {
       ...overrides
     };
     localStorage.setItem('dad-strength-mind-state', JSON.stringify(state));
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDay();
     supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null }; error: Error | null }) => {
       if (!user) return;
       supabase.from('daily_checkins').upsert(

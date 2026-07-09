@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { localDay } from '../utils/day'
 
 export default function DailyObjectivesCard() {
   const [objectives, setObjectives] = useState<string[]>(['', '', ''])
@@ -14,13 +15,13 @@ export default function DailyObjectivesCard() {
 
   useEffect(() => {
     const load = async () => {
-      const today = new Date().toISOString().split('T')[0]
+      const today = localDay()
 
       // Try localStorage first for instant load
       const cached = localStorage.getItem('dad-strength-mind-state')
       if (cached) {
         const data = JSON.parse(cached)
-        if (data.date === new Date().toLocaleDateString()) {
+        if (data.date === localDay()) {
           setObjectives(data.objectives || ['', '', ''])
           setCompleted(data.completedObjectives || [false, false, false])
           setLocked(data.lockedIn || false)
@@ -57,10 +58,10 @@ export default function DailyObjectivesCard() {
     setCompleted(newCompleted)
 
     // Persist
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDay()
     const cached = localStorage.getItem('dad-strength-mind-state')
     const data = cached ? JSON.parse(cached) : {}
-    const updated = { ...data, completedObjectives: newCompleted, date: new Date().toLocaleDateString() }
+    const updated = { ...data, completedObjectives: newCompleted, date: localDay() }
     localStorage.setItem('dad-strength-mind-state', JSON.stringify(updated))
 
     const { data: { user } } = await supabase.auth.getUser()
