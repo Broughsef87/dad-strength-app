@@ -412,8 +412,8 @@ export default function SpiritPage() {
       <main className="max-w-md mx-auto px-6 pt-6">
 
         <div className="mb-8">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Inner Life</p>
-          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Spirit</h1>
+          <p className="telemetry mb-1">SYS // CORE.REACTOR</p>
+          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Reactor</h1>
         </div>
 
         <motion.div className="space-y-6" initial="hidden" animate="visible" variants={staggerContainer}>

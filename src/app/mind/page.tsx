@@ -96,8 +96,8 @@ export default function MindPage() {
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4 space-y-6">
         <div className="mb-6 livery-slash pl-4">
-          <p className="telemetry mb-1">SYS // MENTAL.OPS</p>
-          <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Mind</h1>
+          <p className="telemetry mb-1">SYS // NEURAL.LINK</p>
+          <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Neural</h1>
         </div>
         {[1,2,3].map(i => (
           <div key={i} className="glass-card rounded-xl p-6 animate-pulse space-y-3">
@@ -116,8 +116,8 @@ export default function MindPage() {
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4">
         <div className="mb-6 livery-slash pl-4">
-          <p className="telemetry mb-1">SYS // MENTAL.OPS</p>
-          <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Mind</h1>
+          <p className="telemetry mb-1">SYS // NEURAL.LINK</p>
+          <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Neural</h1>
         </div>
         <motion.div
           className="space-y-6"

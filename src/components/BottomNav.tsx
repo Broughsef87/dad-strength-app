@@ -3,13 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Shield, Brain, Dumbbell, Flame } from 'lucide-react'
+import { Shield, Cpu, Bot, Atom } from 'lucide-react'
 
 const NAV_ITEMS = [
   { id: 'hq', label: 'HQ', path: '/dashboard', icon: Shield },
-  { id: 'mind', label: 'Mind', path: '/mind', icon: Brain },
-  { id: 'body', label: 'Body', path: '/body', icon: Dumbbell },
-  { id: 'spirit', label: 'Spirit', path: '/spirit', icon: Flame },
+  { id: 'mind', label: 'Neural', path: '/mind', icon: Cpu },
+  { id: 'body', label: 'Chassis', path: '/body', icon: Bot },
+  { id: 'spirit', label: 'Reactor', path: '/spirit', icon: Atom },
 ]
 
 export default function BottomNav() {

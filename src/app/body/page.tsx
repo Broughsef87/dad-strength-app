@@ -19,8 +19,8 @@ export default function BodyPage() {
       <div className="max-w-md mx-auto px-6 pt-6">
 
         <div className="mb-8">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-2 font-display">Physical</p>
-          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Body</h1>
+          <p className="telemetry mb-1">SYS // CHASSIS.OPS</p>
+          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Chassis</h1>
         </div>
 
         <motion.div

@@ -172,7 +172,7 @@ export default function DadScore() {
           { label: 'Training', value: score.training, max: 40 },
           { label: 'Habits', value: score.habits, max: 30 },
           { label: 'Family', value: score.family, max: 20 },
-          { label: 'Mind', value: score.mind, max: 10 },
+          { label: 'Neural', value: score.mind, max: 10 },
         ].map(({ label, value, max }) => (
           <div key={label} className="flex items-center gap-3">
             <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium w-14">{label}</span>
