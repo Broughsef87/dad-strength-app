@@ -71,6 +71,25 @@ export async function requirePro(supabase: SupabaseClient, userId: string): Prom
 }
 
 /**
+ * The user's one program. `user_programs.user_id` is UNIQUE, so a user has
+ * exactly one row — `program_slug` IS their program. Returns null if they
+ * haven't claimed one yet.
+ *
+ * The tier rule rides on this shape: FREE claims a program once and is stuck
+ * with it; PRO may change the slug (switch programs). The switch itself is
+ * enforced in the DB by the user_programs_tier_gate trigger, so it holds even
+ * if a client writes to Supabase directly.
+ */
+export async function getActiveProgramSlug(supabase: SupabaseClient, userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('user_programs')
+    .select('program_slug')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return data?.program_slug ?? null
+}
+
+/**
  * Guard for metered AI routes. Enforces a per-day cap that scales with tier.
  * Free users who hit their cap get a 402 (upgrade), pro users who somehow hit
  * the high ceiling get a 429 (slow down). Returns null if allowed.
