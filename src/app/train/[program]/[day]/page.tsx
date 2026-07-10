@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
-  AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw, Link2, Repeat, Search,
+  AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw, Link2, Repeat, Search, History,
 } from 'lucide-react'
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
@@ -141,6 +141,60 @@ async function fetchSessionLogs(
   return (data ?? []) as SessionLogRow[]
 }
 
+// Per-lift history: the top logged set for each slot in the EARLIER weeks of the
+// current mesocycle. Lets you see "what did I hit last week on this movement"
+// right on the card. Scoped through generated_workouts so week numbers can't
+// collide with a program the user ran previously.
+export interface SlotHistoryEntry { week: number; weight: number; reps: number }
+type LiftHistory = Record<string, SlotHistoryEntry[]>
+
+async function fetchLiftHistory(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any, userId: string, slug: string, weekNumber: number, macroWeeks: number,
+): Promise<LiftHistory> {
+  const weekInMacro = ((weekNumber - 1) % macroWeeks) + 1
+  // Meso start within the macro: weeks 1-4 → 1, 5-8 → 5, 9-12 → 9 (test week 13
+  // has no history worth showing). 4-week mesos.
+  const mesoStartInMacro = weekInMacro > 12 ? 9 : Math.floor((weekInMacro - 1) / 4) * 4 + 1
+  const mesoStart = weekNumber - (weekInMacro - mesoStartInMacro)
+  if (weekNumber <= mesoStart) return {} // first week of the meso — nothing prior
+
+  const { data: workouts } = await supabase
+    .from('generated_workouts')
+    .select('id, week_number')
+    .eq('user_id', userId).eq('program_slug', slug)
+    .gte('week_number', mesoStart).lt('week_number', weekNumber)
+  const weekById: Record<string, number> = {}
+  for (const w of workouts ?? []) weekById[w.id] = w.week_number
+  const ids = Object.keys(weekById)
+  if (!ids.length) return {}
+
+  const { data: logs } = await supabase
+    .from('ares_session_logs')
+    .select('generated_workout_id, slot, weight_lbs, reps')
+    .eq('user_id', userId).eq('log_type', 'strength_set').eq('completed', true)
+    .in('generated_workout_id', ids)
+
+  // Best (heaviest) logged set per (slot, week).
+  const best: Record<string, SlotHistoryEntry> = {} // key: slot|week
+  for (const l of logs ?? []) {
+    if (!l.slot || l.weight_lbs == null) continue
+    const week = weekById[l.generated_workout_id as string]
+    if (!week) continue
+    const key = `${l.slot}|${week}`
+    const w = Number(l.weight_lbs)
+    if (!best[key] || w > best[key].weight) best[key] = { week, weight: w, reps: Number(l.reps ?? 0) }
+  }
+  const out: LiftHistory = {}
+  // Group by slot, most recent week first.
+  for (const key of Object.keys(best)) {
+    const slot = key.slice(0, key.lastIndexOf('|'))
+    ;(out[slot] ??= []).push(best[key])
+  }
+  for (const slot of Object.keys(out)) out[slot].sort((a, b) => b.week - a.week)
+  return out
+}
+
 // ── Timer (shared) ─────────────────────────────────────────────────────────────
 
 function WorkoutTimer() {
@@ -168,12 +222,13 @@ function WorkoutTimer() {
 
 // ── Lift card — per-set logging with prescribed load ─────────────────────────
 
-function LiftCard({ item, index, initialLogs, onLog, onSwap }: {
+function LiftCard({ item, index, initialLogs, onLog, onSwap, history }: {
   item: LiftPrescription
   index: number
   initialLogs: SessionLogRow[]
   onLog: (sets: SetEntry[]) => void
   onSwap?: () => void
+  history?: SlotHistoryEntry[]
 }) {
   const [sets, setSets] = useState<SetEntry[]>(() =>
     Array.from({ length: item.sets }, (_, i) => {
@@ -232,6 +287,17 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap }: {
             ) : (
               <p className="telemetry-dim mt-1.5">
                 {item.sets}×{item.reps}{item.percent != null ? ` @ ${item.percent}%` : item.rpe != null ? ` @ RPE ${item.rpe}` : ''}
+              </p>
+            )}
+            {/* Prior weeks of this meso — what you actually lifted here before */}
+            {history && history.length > 0 && (
+              <p className="telemetry-dim mt-1.5 flex items-center gap-1.5 flex-wrap">
+                <History size={9} className="text-muted-foreground/70 shrink-0" />
+                {history.slice(0, 3).map(h => (
+                  <span key={h.week}>
+                    W{String(h.week).padStart(2, '0')} <span className="text-foreground/70">{h.weight}×{h.reps}</span>
+                  </span>
+                ))}
               </p>
             )}
           </div>
@@ -626,6 +692,7 @@ export default function TrainingDayPage() {
   const [error, setError] = useState<string | null>(null)
   const [sessionComplete, setSessionComplete] = useState(false)
   const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
+  const [liftHistory, setLiftHistory] = useState<LiftHistory>({})
   const [logWriteError, setLogWriteError] = useState<string | null>(null)
 
   const workoutIdRef = useRef<string | null>(null)
@@ -706,6 +773,7 @@ export default function TrainingDayPage() {
       }
       workoutIdRef.current = workoutId
       if (workoutId) setSessionLogs(await fetchSessionLogs(supabase, workoutId))
+      setLiftHistory(await fetchLiftHistory(supabase, user.id, slug, weekNumber, program.macroWeeks))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
       console.error(e)
@@ -980,7 +1048,7 @@ export default function TrainingDayPage() {
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} />
+                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]} />
               )}
               {item.kind === 'plyo' && (
                 <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} onSwap={swapFor(item)} />
