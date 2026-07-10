@@ -65,14 +65,25 @@ const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 9 }
 // Autoreg deltas are clamped so feedback can bend the wave, never break it.
 const MAX_ADJ = 6
 
-// Classic-lift floor. The snatch and clean & jerk are speed-strength skills,
-// not grinds — working under 65% teaches slow, sloppy positions. 65% is the
-// hard floor (reserved for slow-tempo work); everything else lives at 70%+.
+// Classic-lift percent floors. The snatch and clean & jerk are speed-strength
+// skills, not grinds, and the sport's realities set the floor by rep/variation:
+//   • the PURE competition lift ("Snatch" / "Clean & Jerk") at ≤2 reps must be
+//     heavy — a light single or double of the full lift trains nothing
+//     (2 reps @ 66% is no stimulus). Floor 80%.
+//   • slow tempo / pause work at 3+ reps may drop to 65% — that IS the stimulus.
+//   • everything else classic lives at 70%+ (variations, higher-rep work).
 // This is a backstop: table waves are authored above it, and it also stops
-// autoregulation from ever dropping a classic working set below 65%.
-// Applies to the competition lifts and their receiving work — NOT to pulls
-// (which live at 88-114%) or squats/presses (keyed to their own maxes).
-const CLASSIC_FLOOR = 65
+// autoregulation from ever dropping a classic set below its floor.
+// Applies to the competition lifts + receiving work — NOT pulls (88-114%) or
+// squats/presses (keyed to their own maxes).
+function classicFloor(name: string, reps: number): number {
+  const n = name.trim().toLowerCase()
+  const isPureLift = n === 'snatch' || n === 'clean & jerk'
+  if (isPureLift && reps <= 2) return 80
+  const isTempo = /tempo|pause/.test(n)
+  if (isTempo && reps >= 3) return 65
+  return 70
+}
 
 function isClassicLiftSlot(slot: string, maxKey: string): boolean {
   if (maxKey !== 'snatch' && maxKey !== 'clean_jerk') return false
@@ -93,8 +104,9 @@ function liftFromSlot(
   const rawAdj = adjustments[slot] ?? 0
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, rawAdj))
   let percent = Math.round((basePct + adj) * 2) / 2
-  if (percent > 0 && isClassicLiftSlot(slot, maxKey) && percent < CLASSIC_FLOOR) {
-    percent = CLASSIC_FLOOR
+  if (percent > 0 && isClassicLiftSlot(slot, maxKey)) {
+    const floor = classicFloor(def.names[weekInMeso - 1], def.reps)
+    if (percent < floor) percent = floor
   }
   return {
     kind: 'lift',
@@ -208,19 +220,24 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
 // ── Day 1 — Oly A (Mon): snatch primary + C&J secondary + snatch pull + BS heavy
 // With 2 Oly days, primaries carry a touch more volume than the old 3-day split.
 const D1_SNATCH: SlotMeso[] = [
-  { names: ['Pause Snatch, At Knee', 'Block Snatch, Below Knee', 'Hang Snatch, Above Knee', 'Snatch'], sets: 5, reps: 3, pctStart: 65, pctStep: 2 },
-  { names: ['Power Snatch', 'Snatch w/ Pause Below Knee', 'Snatch', 'Snatch'], sets: 5, reps: 2, pctStart: 73, pctStep: 2 },
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 6, reps: 2, pctStart: 81, pctStep: 3 },
+  // Meso 1: technique triples on variations. The pure Snatch appears only at 3
+  // reps here (floor 70), so this block stays in the 68-74% teaching range.
+  { names: ['Pause Snatch, At Knee', 'Block Snatch, Below Knee', 'Hang Snatch, Above Knee', 'Snatch'], sets: 5, reps: 3, pctStart: 68, pctStep: 2 },
+  // Meso 2: variations early, pure Snatch doubles land at 80%+ (floor enforced).
+  { names: ['Power Snatch', 'Snatch w/ Pause Below Knee', 'Snatch', 'Snatch'], sets: 5, reps: 2, pctStart: 76, pctStep: 2 },
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 6, reps: 2, pctStart: 82, pctStep: 2.5 },
 ]
 const D1_CJ: SlotMeso[] = [
-  { names: ['Hang Clean, Above Knee + Jerk (1+1)', 'Power Clean + Push Jerk (1+1)', 'Clean + Front Squat + Jerk (1+1+1)', 'Clean & Jerk'], sets: 4, reps: 1, pctStart: 66, pctStep: 2, note: 'Complex — see name for sequence' },
-  { names: ['Clean & Jerk', 'Pause Clean + Jerk (1+1)', 'Clean & Jerk', 'Clean & Jerk'], sets: 4, reps: 1, pctStart: 73, pctStep: 2 },
-  { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 4, reps: 1, pctStart: 80, pctStep: 2 },
+  // Meso 1: technique complexes (exempt from the pure-lift floor), capped by a
+  // pure C&J single at 80% in W4.
+  { names: ['Hang Clean, Above Knee + Jerk (1+1)', 'Power Clean + Push Jerk (1+1)', 'Clean + Front Squat + Jerk (1+1+1)', 'Clean & Jerk'], sets: 4, reps: 1, pctStart: 74, pctStep: 2, note: 'Complex — see name for sequence' },
+  { names: ['Clean & Jerk', 'Pause Clean + Jerk (1+1)', 'Clean & Jerk', 'Clean & Jerk'], sets: 4, reps: 1, pctStart: 80, pctStep: 2 },
+  { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 4, reps: 1, pctStart: 82, pctStep: 2.5 },
 ]
 const D1_PULL: SlotMeso[] = [
   { names: ['Snatch High Pull', 'Snatch Pull', 'Snatch Pull w/ Pause Below Knee', 'Snatch Pull'], sets: 4, reps: 4, pctStart: 90, pctStep: 3 },
   { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull w/ Pause Above Knee', 'Snatch Pull'], sets: 4, reps: 3, pctStart: 96, pctStep: 2.5 },
-  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 3, reps: 2, pctStart: 102, pctStep: 4 },
+  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 3, reps: 2, pctStart: 102, pctStep: 3 },
 ]
 const D1_SQUAT: SlotMeso[] = [
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 5, reps: 5, pctStart: 70, pctStep: 2 },
@@ -249,19 +266,23 @@ const D3_FSQUAT: SlotMeso[] = [
 
 // ── Day 5 — Oly B (Fri): C&J primary + snatch secondary + clean pull + speed squat
 const D5_CJ: SlotMeso[] = [
-  { names: ['Clean & Jerk', 'Pause Clean + Jerk (1+1)', 'Power Clean + Jerk (1+1)', 'Clean & Jerk'], sets: 5, reps: 2, pctStart: 66, pctStep: 2, note: '1 clean + 1 jerk per rep' },
-  { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 6, reps: 1, pctStart: 74, pctStep: 2.5 },
-  { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 6, reps: 1, pctStart: 82, pctStep: 3 },
+  // Meso 1: full-lift variations (exempt), technique-focused at 70-76%.
+  { names: ['Clean + Jerk from Blocks (1+1)', 'Pause Clean + Jerk (1+1)', 'Power Clean + Jerk (1+1)', 'Hang Clean + Jerk (1+1)'], sets: 5, reps: 2, pctStart: 70, pctStep: 2, note: '1 clean + 1 jerk per rep' },
+  { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 6, reps: 1, pctStart: 80, pctStep: 2 },
+  { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 6, reps: 1, pctStart: 82, pctStep: 2.5 },
 ]
 const D5_SNATCH: SlotMeso[] = [
-  { names: ['Power Snatch', 'Snatch Balance', 'Hang Snatch, Above Knee', 'Snatch'], sets: 4, reps: 2, pctStart: 65, pctStep: 2 },
-  { names: ['Snatch', 'Pause Snatch, At Knee', 'Snatch', 'Snatch'], sets: 4, reps: 2, pctStart: 70, pctStep: 2 },
-  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 2, pctStart: 72, pctStep: 1, note: 'Technique primer — crisp, not heavy' },
+  // Friday's snatch is the secondary to the C&J primary — kept as power/speed
+  // variation work all macro so it never stacks heavy pure-lift doubles against
+  // the C&J. Stays a crisp 70-77%.
+  { names: ['Power Snatch', 'Snatch Balance', 'Hang Power Snatch', 'Power Snatch'], sets: 4, reps: 2, pctStart: 70, pctStep: 1.5 },
+  { names: ['Power Snatch', 'Snatch Balance', 'Hang Power Snatch', 'Power Snatch'], sets: 4, reps: 2, pctStart: 73, pctStep: 1.5 },
+  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 2, pctStart: 74, pctStep: 1, note: 'Technique primer — crisp, not heavy' },
 ]
 const D5_PULL: SlotMeso[] = [
   { names: ['Clean Pull', 'Clean High Pull', 'Clean Pull w/ Pause Below Knee', 'Clean Pull'], sets: 4, reps: 4, pctStart: 90, pctStep: 3 },
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull w/ Pause Above Knee', 'Clean Pull'], sets: 4, reps: 3, pctStart: 97, pctStep: 2.5 },
-  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 102, pctStep: 4 },
+  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 102, pctStep: 3 },
 ]
 // Speed-strength slot: box squat at dynamic-effort loads. Dead stop on the box
 // kills the stretch reflex — force from zero, max RFD. Autoreg anchors low:
@@ -321,9 +342,11 @@ function trapBarJumps(pos: MacroPos, maxes: Record<string, number>): PlyoPrescri
 
 const DELOAD_NOTE = 'Deload — bar speed crisp, leave feeling fresh'
 
+const DELOAD_CLASSIC_PCT = 65 // deload is recovery, not a working set — light
+                              // technique work is exempt from the ≥80 rule.
 function applyDeload(p: LiftPrescription): LiftPrescription {
-  // Classic lifts keep the 65% floor even on deload; everything else drops to 60.
-  const pct = p.maxKey && isClassicLiftSlot(p.slot, p.maxKey) ? CLASSIC_FLOOR : 60
+  // Classic lifts deload to a crisp 65%; everything else drops to 60.
+  const pct = p.maxKey && isClassicLiftSlot(p.slot, p.maxKey) ? DELOAD_CLASSIC_PCT : 60
   return {
     ...p,
     sets: Math.max(2, Math.ceil(p.sets / 2)),

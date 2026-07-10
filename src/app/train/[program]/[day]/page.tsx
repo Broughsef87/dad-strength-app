@@ -531,7 +531,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-1 min-h-[120px]">
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-[240px]">
           {results.map(e => (
             <button key={e.name} onClick={() => onPick(e.name)}
               className="w-full text-left panel-cut-sm border border-border/60 bg-background hover:border-brand/50 px-3 py-2 transition-colors flex items-center justify-between gap-2">
