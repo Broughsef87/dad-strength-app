@@ -78,8 +78,11 @@ const MAX_ADJ = 6
 // squats/presses (keyed to their own maxes).
 function classicFloor(name: string, reps: number): number {
   const n = name.trim().toLowerCase()
-  const isPureLift = n === 'snatch' || n === 'clean & jerk'
-  if (isPureLift && reps <= 2) return 80
+  // Block work is a full-lift expression from a raised start — it follows the
+  // SAME rules as the pure lift (a light block double trains nothing). Hangs
+  // may run a touch lighter (they fall through to the 70% floor).
+  const isFullLift = n === 'snatch' || n === 'clean & jerk' || /block/.test(n)
+  if (isFullLift && reps <= 2) return 80
   const isTempo = /tempo|pause/.test(n)
   if (isTempo && reps >= 3) return 65
   return 70
@@ -222,7 +225,7 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
 const D1_SNATCH: SlotMeso[] = [
   // Meso 1: technique triples on variations. The pure Snatch appears only at 3
   // reps here (floor 70), so this block stays in the 68-74% teaching range.
-  { names: ['Pause Snatch, At Knee', 'Block Snatch, Below Knee', 'Hang Snatch, Above Knee', 'Snatch'], sets: 5, reps: 3, pctStart: 68, pctStep: 2 },
+  { names: ['Pause Snatch, At Knee', 'Snatch, Pause Below Knee', 'Hang Snatch, Above Knee', 'Snatch'], sets: 5, reps: 3, pctStart: 68, pctStep: 2 },
   // Meso 2: variations early, pure Snatch doubles land at 80%+ (floor enforced).
   { names: ['Power Snatch', 'Snatch w/ Pause Below Knee', 'Snatch', 'Snatch'], sets: 5, reps: 2, pctStart: 76, pctStep: 2 },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 6, reps: 2, pctStart: 82, pctStep: 2.5 },
@@ -267,7 +270,7 @@ const D3_FSQUAT: SlotMeso[] = [
 // ── Day 5 — Oly B (Fri): C&J primary + snatch secondary + clean pull + speed squat
 const D5_CJ: SlotMeso[] = [
   // Meso 1: full-lift variations (exempt), technique-focused at 70-76%.
-  { names: ['Clean + Jerk from Blocks (1+1)', 'Pause Clean + Jerk (1+1)', 'Power Clean + Jerk (1+1)', 'Hang Clean + Jerk (1+1)'], sets: 5, reps: 2, pctStart: 70, pctStep: 2, note: '1 clean + 1 jerk per rep' },
+  { names: ['Hang Clean + Jerk, Below Knee (1+1)', 'Pause Clean + Jerk (1+1)', 'Power Clean + Jerk (1+1)', 'Hang Clean + Jerk (1+1)'], sets: 5, reps: 2, pctStart: 70, pctStep: 2, note: '1 clean + 1 jerk per rep' },
   { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 6, reps: 1, pctStart: 80, pctStep: 2 },
   { names: ['Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk', 'Clean & Jerk'], sets: 6, reps: 1, pctStart: 82, pctStep: 2.5 },
 ]
