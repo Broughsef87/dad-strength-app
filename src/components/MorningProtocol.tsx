@@ -6,6 +6,8 @@ import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
 import { localDay, localDayWithCutoff } from '../utils/day'
+import { isUpgradeRequired } from '../lib/upgradeRequired'
+import UpgradeModal from './UpgradeModal'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -65,6 +67,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   const [sleep, setSleep] = useState('ok')
   const [energy, setEnergy] = useState('medium')
   const [loading, setLoading] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const [protocol, setProtocol] = useState<Protocol | null>(null)
   const [completed, setCompleted] = useState<boolean[]>([])
   const [expanded, setExpanded] = useState<number | null>(0)
@@ -135,6 +138,12 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         }),
       })
       const data = await res.json()
+      // Paywall check must precede the generic error throw — a free user who
+      // has used their daily protocol isn't "broken", they've hit a tier cap.
+      if (isUpgradeRequired(res, data)) {
+        setShowUpgrade(true)
+        return
+      }
       if (data.error) throw new Error(data.error)
       const fresh = data.protocol as Protocol
       const freshCompleted = new Array(fresh.steps.length).fill(false)
@@ -264,6 +273,12 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
             : <><Sun size={16} /> Build My Morning</>
           }
         </button>
+
+        <UpgradeModal
+          isOpen={showUpgrade}
+          onClose={() => setShowUpgrade(false)}
+          trigger="Unlimited AI Morning Protocol"
+        />
       </div>
     )
   }
@@ -459,6 +474,12 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           <p className="text-sm font-light text-foreground leading-snug">{protocol.closingWord}</p>
         </div>
       )}
+
+      <UpgradeModal
+        isOpen={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        trigger="Unlimited AI Morning Protocol"
+      />
     </div>
   )
 }

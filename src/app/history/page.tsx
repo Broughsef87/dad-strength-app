@@ -8,6 +8,7 @@ import BottomNav from '../../components/BottomNav'
 import WeeklyDebrief from '../../components/WeeklyDebrief'
 import WeeklyMissionBrief from '../../components/WeeklyMissionBrief'
 import QuarterlyReview from '../../components/QuarterlyReview'
+import PremiumGate from '../../components/PremiumGate'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -199,19 +200,26 @@ export default function History() {
       </header>
 
       <main className="p-4 space-y-4 max-w-md mx-auto pb-28">
-        {/* Quarterly Review */}
+        {/* Quarterly Review — Pro. Gated here so free users never fire the
+            doomed request and hit a raw 402 from the server. */}
         <div>
-          <QuarterlyReview />
+          <PremiumGate feature="Quarterly AI Review" overlay>
+            <QuarterlyReview />
+          </PremiumGate>
         </div>
 
-        {/* Weekly Mission Brief */}
+        {/* Weekly Mission Brief — Pro */}
         <div>
-          <WeeklyMissionBrief />
+          <PremiumGate feature="Weekly Mission Brief" overlay>
+            <WeeklyMissionBrief />
+          </PremiumGate>
         </div>
 
-        {/* AI Weekly Debrief */}
+        {/* AI Weekly Debrief — Pro */}
         <div className="ds-card p-6">
-          <WeeklyDebrief />
+          <PremiumGate feature="AI Weekly Debrief" overlay>
+            <WeeklyDebrief />
+          </PremiumGate>
         </div>
 
         {/* Empty state */}
