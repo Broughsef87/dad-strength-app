@@ -5,11 +5,9 @@ import { staggerContainer, fadeUp } from '../../components/ui/motion';
 import { createClient } from '../../utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
-import { Target, PenLine, Lock, Unlock, CheckCircle2, Circle, Save, Plus, X } from 'lucide-react';
+import { Target, Lock, Unlock, CheckCircle2, Circle, Plus, X } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import AppHeader from '../../components/AppHeader';
-import DeepWorkTimer from '../../components/DeepWorkTimer';
-import MindSqueeze from '../../components/MindSqueeze';
 import { localDay } from '../../utils/day';
 
 export default function MindPage() {
@@ -17,9 +15,6 @@ export default function MindPage() {
   const [objectives, setObjectives] = useState(['', '', '']);
   const [completedObjectives, setCompletedObjectives] = useState<boolean[]>([false, false, false]);
   const [lockedIn, setLockedIn] = useState(false);
-  const [journal, setJournal] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [savedMsg, setSavedMsg] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -32,7 +27,6 @@ export default function MindPage() {
         setObjectives(data.objectives || ['', '', '']);
         setCompletedObjectives(data.completedObjectives || [false, false, false]);
         setLockedIn(data.lockedIn || false);
-        setJournal(data.journal || '');
       }
     }
     supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null }; error: Error | null }) => {
@@ -45,11 +39,10 @@ export default function MindPage() {
         .single()
         .then(({ data }: { data: { mind_state: unknown } | null; error: Error | null }) => {
           if (data?.mind_state) {
-            const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean; journal?: string };
+            const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean };
             setObjectives(ms.objectives || ['', '', '']);
             setCompletedObjectives(ms.completedObjectives || [false, false, false]);
             setLockedIn(ms.lockedIn || false);
-            setJournal(ms.journal || '');
           }
         });
     });
@@ -61,7 +54,6 @@ export default function MindPage() {
       objectives,
       completedObjectives,
       lockedIn,
-      journal,
       ...overrides
     };
     localStorage.setItem('dad-strength-mind-state', JSON.stringify(state));
@@ -73,16 +65,6 @@ export default function MindPage() {
         { onConflict: 'user_id,date' }
       ).then(() => {});
     });
-  };
-
-  const handleSaveJournal = () => {
-    setIsSaving(true);
-    saveToLocal();
-    setTimeout(() => {
-      setIsSaving(false);
-      setSavedMsg(true);
-      setTimeout(() => setSavedMsg(false), 2500);
-    }, 300);
   };
 
   const toggleObjective = (index: number) => {
@@ -225,47 +207,6 @@ export default function MindPage() {
               </button>
             </div>
           )}
-        </motion.div>
-
-        <motion.div variants={fadeUp} className="glass-card relative rounded-xl p-6 pt-8">
-          <span className="panel-id">MND-02 // DEEP.WORK</span>
-          <DeepWorkTimer availableObjectives={objectives} />
-        </motion.div>
-
-        <motion.div variants={fadeUp} className="glass-card relative rounded-xl p-6 pt-8">
-          <span className="panel-id">MND-03 // SQUEEZE</span>
-          <MindSqueeze objectives={objectives} />
-        </motion.div>
-
-        {/* Journal */}
-        <motion.div variants={fadeUp} className="glass-card relative rounded-xl p-6 pt-8">
-          <span className="panel-id">MND-04 // LOG</span>
-          <div className="flex items-center gap-2 mb-4">
-            <PenLine size={16} className="text-brand" />
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Journal</h3>
-          </div>
-          <textarea
-            value={journal}
-            onChange={(e) => {
-              setJournal(e.target.value);
-              saveToLocal({ journal: e.target.value });
-            }}
-            placeholder="What's on your mind? Capture the signal, ignore the noise..."
-            className="w-full bg-surface-3/50 border border-border/50 rounded-xl p-4 text-sm text-foreground h-48 resize-none outline-none focus:border-brand transition-colors placeholder:text-muted-foreground"
-          />
-          <button
-            onClick={handleSaveJournal}
-            disabled={isSaving}
-            className={`panel-cut-sm w-full mt-3 flex items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-[0.12em] transition-all ${
-              savedMsg
-                ? 'bg-green-500/10 text-green-600 border border-green-500/20'
-                : isSaving
-                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-muted text-foreground hover:bg-foreground hover:text-background'
-            }`}
-          >
-            {savedMsg ? '✓ Entry Saved' : isSaving ? 'Saving...' : <><Save size={12} /> Save Entry</>}
-          </button>
         </motion.div>
 
         </motion.div>

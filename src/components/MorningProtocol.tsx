@@ -27,7 +27,8 @@ const PILLAR_ICONS: Record<string, React.ComponentType<{ size?: number; classNam
   'Meditation':      Sun,
   'Reading':         BookOpen,
   'Gratitude':       Heart,
-  'Goals & Journal': Target,
+  'Goals':           Target,
+  'Goals & Journal': Target, // legacy — protocols cached before journaling was removed
 }
 
 const PILLAR_COLORS: Record<string, string> = {
@@ -35,7 +36,8 @@ const PILLAR_COLORS: Record<string, string> = {
   'Meditation':      'text-foreground bg-muted border-border',
   'Reading':         'text-foreground bg-muted border-border',
   'Gratitude':       'text-green-500 bg-green-500/10 border-green-500/20',
-  'Goals & Journal': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  'Goals':           'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  'Goals & Journal': 'text-blue-400 bg-blue-500/10 border-blue-500/20', // legacy
 }
 
 type Step = {
@@ -71,9 +73,8 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   // Gratitude entries: 3 text inputs
   const [gratitude, setGratitude] = useState(['', '', ''])
 
-  // Goals & Journal — synced to Mind tab storage
+  // Goals — synced to Mind tab storage
   const [mindObjectives, setMindObjectives] = useState(['', '', ''])
-  const [mindJournal, setMindJournal] = useState('')
   const [mindSaved, setMindSaved] = useState(false)
 
   const saveMindState = async () => {
@@ -84,7 +85,6 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       objectives: mindObjectives,
       completedObjectives: [false, false, false],
       lockedIn: true,
-      journal: mindJournal,
     }
     // Write to localStorage so DailyObjectivesCard picks it up instantly
     localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
@@ -379,8 +379,8 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                       ))}
                     </div>
 
-                  ) : step.pillar === 'Goals & Journal' ? (
-                    /* Goals & Journal — inline objectives + journal that sync to Mind tab */
+                  ) : step.pillar === 'Goals' || step.pillar === 'Goals & Journal' ? (
+                    /* Goals — inline objectives that sync to the Mind tab */
                     <div className="space-y-4">
                       {/* Daily Objectives */}
                       <div className="space-y-2">
@@ -406,18 +406,6 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                             />
                           </div>
                         ))}
-                      </div>
-
-                      {/* Journal */}
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">Journal</p>
-                        <textarea
-                          value={mindJournal}
-                          onChange={e => { setMindJournal(e.target.value); setMindSaved(false) }}
-                          placeholder="What's on your mind? Capture the signal, ignore the noise..."
-                          rows={4}
-                          className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-blue-500/40 transition-colors resize-none"
-                        />
                       </div>
 
                       {/* Save button */}

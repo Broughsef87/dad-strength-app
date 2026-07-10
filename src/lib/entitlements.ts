@@ -24,7 +24,6 @@ export interface Entitlement {
 
 // Coach-grade AI — Pro only. These are the "weekly debrief" class of features.
 export const PRO_ONLY_AI = new Set<string>([
-  'debrief',
   'debrief-personalized',
   'quarterly-review',
   'mission-brief',
@@ -33,9 +32,10 @@ export const PRO_ONLY_AI = new Set<string>([
 
 // Metered AI — free users get a daily taste, pro gets a high ceiling ("unlimited"
 // in practice). Keyed by route → per-day request cap for each tier.
+// 'squeeze-generate' has no route on this branch yet; the entry is inert
+// (requireAiQuota no-ops on unknown routes) and ready for when it lands.
 export const AI_DAILY_LIMITS: Record<string, { free: number; pro: number }> = {
   'morning-protocol': { free: 1, pro: 30 },
-  'mind-sprint':      { free: 2, pro: 60 },
   'workout':          { free: 1, pro: 60 },
   'squeeze-generate': { free: 2, pro: 60 },
 }

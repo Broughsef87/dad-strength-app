@@ -43,7 +43,7 @@ The flywheel: content → community → app → retention → content.
 | Pillar | Tab | What It Covers |
 |--------|-----|----------------|
 | Body | Body | Training, programs, The Squeeze, vitals, strength |
-| Mind | Mind | Daily objectives, deep work, journaling, morning protocol |
+| Mind | Neural | Daily objectives, morning protocol |
 | Spirit | Spirit | Prayer/meditation (optional), habits, family pulse, relationships |
 | Brotherhood | Community | Skool integration, leaderboard, accountability, Dad Score rankings |
 

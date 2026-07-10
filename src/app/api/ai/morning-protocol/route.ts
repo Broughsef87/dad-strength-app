@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     const { object: protocol } = await generateObject({
       model: google('gemini-2.5-flash'),
-      system: `You are a high-performance coach for busy dads with young babies. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Goals & Journal. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
+      system: `You are a high-performance coach for busy dads with young babies. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Goals. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
       prompt: `Today is ${dayOfWeek}.
 Available time: ${minutes} minutes
 Baby's night: ${babyNight}
@@ -48,7 +48,7 @@ Generate a morning protocol with exactly 4 steps — one for each pillar. Distri
         theme: z.string().describe("A short, punchy theme for today's morning — e.g. 'The Quiet Before the War'"),
         greeting: z.string().describe("1-2 sentence personal greeting acknowledging the baby's night and energy level. Direct, warm, stoic."),
         steps: z.array(z.object({
-          pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Goals & Journal']),
+          pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Goals']),
           minutes: z.number().describe('Minutes allocated to this pillar'),
           title: z.string().describe('Short action title for this pillar'),
           guidance: z.string().describe('2-3 sentence guidance for this block'),
