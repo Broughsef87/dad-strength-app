@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
+import { requireAiQuota } from '../../../../lib/entitlements'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const quota = await requireAiQuota(supabase, user.id, 'workout')
+  if (quota) return quota
 
   const { allowed } = await checkRateLimit(supabase, user.id, 'workout')
   if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })

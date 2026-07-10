@@ -4,6 +4,7 @@ import { generateObject } from 'ai'
 import { z } from 'zod'
 import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
+import { requirePro } from '../../../../lib/entitlements'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const gate = await requirePro(supabase, user.id)
+  if (gate) return gate
 
   const { allowed } = await checkRateLimit(supabase, user.id, 'mission-brief')
   if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })

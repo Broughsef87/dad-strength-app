@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
+import { requirePro } from '../../../../lib/entitlements'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const userId = user.id  // always use server-verified id
+
+  const gate = await requirePro(supabase, user.id)
+  if (gate) return gate
 
   const { allowed } = await checkRateLimit(supabase, user.id, 'debrief-personalized')
   if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })

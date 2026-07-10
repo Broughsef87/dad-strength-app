@@ -11,15 +11,14 @@ interface UpgradeModalProps {
 }
 
 const PRO_FEATURES = [
-  'All 5 training programs + program builder',
-  'The Squeeze — unlimited AI-generated sessions',
-  'AI Weekly Check-In (grades, wins, adjustments)',
+  'All 3 training paths — Dad Strong, Hybrid Power, Hybrid Endurance',
+  'Unlimited AI sessions — no daily caps',
+  'AI Weekly Debrief (grades, wins, adjustments)',
   'AI Morning Protocol — personalized daily',
   'Body composition tracking + nutrition',
   'Unlimited workout history + full heatmap',
   'My Mission tracker + milestone check-ins',
-  'Streak shields (1/month)',
-  'Brotherhood leaderboard + Dad Score rankings',
+  'Quarterly AI review + long-range planning',
 ]
 
 export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalProps) {
