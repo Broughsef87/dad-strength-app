@@ -60,12 +60,14 @@ export async function computeAdjustments(
   const workoutId: string | undefined = workouts?.[0]?.id
   if (!workoutId) return {}
 
-  // Completed sets with reported RPE, grouped by slot.
+  // Completed sets with reported RPE, grouped by slot. `completed = true` so a
+  // set that was rated but not actually finished can't skew the adjustment.
   const { data: rows } = await supabase
     .from('ares_session_logs')
     .select('slot, rpe')
     .eq('generated_workout_id', workoutId)
     .eq('log_type', 'strength_set')
+    .eq('completed', true)
     .not('rpe', 'is', null)
     .not('slot', 'is', null)
   if (!rows?.length) return {}

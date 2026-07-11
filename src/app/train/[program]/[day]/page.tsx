@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
+  ArrowLeft, CheckCircle2, Check, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
   AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw, Link2, Repeat, Search, History,
 } from 'lucide-react'
 import { createClient } from '../../../../utils/supabase/client'
@@ -67,6 +67,25 @@ function applySubs(plan: DayPlan, subs: SubsMap): DayPlan {
       return sub && sub !== i.name ? { ...i, name: sub, subbedFrom: i.name } : i
     }),
   }
+}
+
+// Last (absolute) week of the mesocycle that `week` falls in. Mesos are the
+// 4-week blocks 1-4 / 5-8 / 9-12; the test week (13) is its own.
+function mesoLastWeek(week: number, macroWeeks: number): number {
+  const wim = ((week - 1) % macroWeeks) + 1
+  const cycleStart = week - (wim - 1)
+  const lastWim = Math.min(Math.ceil(wim / 4) * 4, macroWeeks)
+  return cycleStart + lastWim - 1
+}
+
+// Whether a stored swap is in scope for the week being viewed.
+//   • created_week null → legacy swap, always applies (pre-scope behavior)
+//   • repeat_meso       → created_week through that meso's last week
+//   • otherwise         → only the exact session week it was made
+function subInScope(createdWeek: number | null, repeatMeso: boolean, currentWeek: number, macroWeeks: number): boolean {
+  if (createdWeek == null) return true
+  if (currentWeek < createdWeek) return false
+  return repeatMeso ? currentWeek <= mesoLastWeek(createdWeek, macroWeeks) : currentWeek === createdWeek
 }
 
 // ── Progression (server-derived, same pattern as Zeus) ────────────────────────
@@ -220,15 +239,98 @@ function WorkoutTimer() {
   )
 }
 
+// ── Rest timer — 2:00 countdown, restarts each time a set is logged ──────────
+
+function restBeep() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const ctx = new Ctx()
+    const now = ctx.currentTime
+    ;[0, 0.18].forEach(offset => {
+      const o = ctx.createOscillator(); const g = ctx.createGain()
+      o.type = 'sine'; o.frequency.value = 880
+      g.gain.setValueAtTime(0.0001, now + offset)
+      g.gain.exponentialRampToValueAtTime(0.25, now + offset + 0.02)
+      g.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.14)
+      o.connect(g); g.connect(ctx.destination)
+      o.start(now + offset); o.stop(now + offset + 0.16)
+    })
+    setTimeout(() => ctx.close(), 700)
+  } catch { /* audio blocked — the visual countdown still works */ }
+}
+
+const REST_SECONDS = 120
+
+function RestTimer({ trigger }: { trigger: number }) {
+  const [remaining, setRemaining] = useState(0)
+  const [active, setActive] = useState(false)
+  const endRef = useRef(0)
+  const beeped = useRef(false)
+
+  // Each set-log bumps `trigger` → (re)start the countdown.
+  useEffect(() => {
+    if (trigger === 0) return
+    endRef.current = Date.now() + REST_SECONDS * 1000
+    beeped.current = false
+    setRemaining(REST_SECONDS)
+    setActive(true)
+  }, [trigger])
+
+  useEffect(() => {
+    if (!active) return
+    const t = setInterval(() => {
+      const left = Math.max(0, Math.round((endRef.current - Date.now()) / 1000))
+      setRemaining(left)
+      if (left <= 0 && !beeped.current) {
+        beeped.current = true
+        restBeep()
+        try { navigator.vibrate?.([120, 60, 120]) } catch { /* unsupported */ }
+        setTimeout(() => setActive(false), 2600)
+      }
+    }, 250)
+    return () => clearInterval(t)
+  }, [active, trigger])
+
+  if (!active) return null
+  const done = remaining <= 0
+  const mm = Math.floor(remaining / 60)
+  const ss = remaining % 60
+  const pct = Math.max(0, Math.min(100, (remaining / REST_SECONDS) * 100))
+
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] w-[calc(100%-2rem)] max-w-sm panel-mount">
+      <div className={`panel-cut-sm carbon border px-4 py-3 shadow-2xl ${done ? 'border-brand red-alert' : 'border-brand/50 mecha-glow'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <Clock size={14} className={done ? 'text-brand' : 'text-brand'} />
+            <span className="telemetry text-brand">{done ? 'REST DONE' : 'REST'}</span>
+          </div>
+          <span className="readout-num text-2xl tabular-nums text-white">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button onClick={() => { endRef.current += 30_000; setRemaining(r => r + 30); beeped.current = false }}
+              className="panel-cut-sm border border-border/70 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors">+0:30</button>
+            <button onClick={() => setActive(false)}
+              className="panel-cut-sm border border-brand/50 text-[10px] font-semibold uppercase tracking-widest text-brand hover:bg-brand/10 px-2 py-1.5 transition-colors">Skip</button>
+          </div>
+        </div>
+        <div className="mt-2 h-1 bg-border/40 overflow-hidden">
+          <div className="h-full bg-brand" style={{ width: `${pct}%`, transition: 'width 250ms linear' }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Lift card — per-set logging with prescribed load ─────────────────────────
 
-function LiftCard({ item, index, initialLogs, onLog, onSwap, history }: {
+function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetComplete }: {
   item: LiftPrescription
   index: number
   initialLogs: SessionLogRow[]
   onLog: (sets: SetEntry[]) => void
   onSwap?: () => void
   history?: SlotHistoryEntry[]
+  onSetComplete?: () => void
 }) {
   const [sets, setSets] = useState<SetEntry[]>(() =>
     Array.from({ length: item.sets }, (_, i) => {
@@ -246,10 +348,21 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history }: {
 
   const update = (idx: number, field: keyof SetEntry, value: unknown) => {
     setSets(prev => {
-      const next = prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
+      const next = prev.map((s, i) => {
+        if (i === idx) return { ...s, [field]: value }
+        // Editing weight or reps cascades forward to the sets you haven't logged
+        // yet — set your working load once and the rest follow. Earlier sets and
+        // already-logged sets are never touched.
+        if ((field === 'weight' || field === 'reps') && i > idx && !s.done) {
+          return { ...s, [field]: value }
+        }
+        return s
+      })
       onLog(next)
       return next
     })
+    // Marking a set done kicks off the rest timer.
+    if (field === 'done' && value === true) onSetComplete?.()
   }
   const doneCount = sets.filter(s => s.done).length
   const allDone = doneCount === item.sets
@@ -382,12 +495,13 @@ interface PlyoSetEntry {
   done: boolean
 }
 
-function PlyoCard({ item, index, initialLogs, onLog, onSwap }: {
+function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete }: {
   item: PlyoPrescription
   index: number
   initialLogs: SessionLogRow[]
   onLog: (sets: PlyoSetEntry[], notes: string) => void
   onSwap?: () => void
+  onSetComplete?: () => void
 }) {
   const [sets, setSets] = useState<PlyoSetEntry[]>(() =>
     Array.from({ length: item.sets }, (_, i) => {
@@ -403,10 +517,15 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap }: {
 
   const update = (idx: number, field: 'reps' | 'done', value: unknown) => {
     setSets(prev => {
-      const next = prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
+      const next = prev.map((s, i) => {
+        if (i === idx) return { ...s, [field]: value }
+        if (field === 'reps' && i > idx && !s.done) return { ...s, reps: value as string }
+        return s
+      })
       onLog(next, notes)
       return next
     })
+    if (field === 'done' && value === true) onSetComplete?.()
   }
   const allDone = sets.filter(s => s.done).length === item.sets
 
@@ -552,12 +671,13 @@ function OutsideCard({ item, initialLog, onLog }: {
 
 function SwapModal({ target, onPick, onRevert, onClose }: {
   target: { slot: string; originalName: string; currentName: string }
-  onPick: (name: string) => void
+  onPick: (name: string, repeatMeso: boolean) => void
   onRevert: () => void
   onClose: () => void
 }) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<ExerciseCategory | null>(null)
+  const [repeat, setRepeat] = useState(true)
   const query = q.trim().toLowerCase()
   const results = EXERCISE_LIBRARY.filter(e =>
     e.name !== target.currentName &&
@@ -599,14 +719,14 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
 
         <div className="flex-1 overflow-y-auto space-y-1 min-h-[240px]">
           {results.map(e => (
-            <button key={e.name} onClick={() => onPick(e.name)}
+            <button key={e.name} onClick={() => onPick(e.name, repeat)}
               className="w-full text-left panel-cut-sm border border-border/60 bg-background hover:border-brand/50 px-3 py-2 transition-colors flex items-center justify-between gap-2">
               <span className="text-sm text-foreground">{e.name}</span>
               <span className="telemetry-dim shrink-0">{CATEGORY_LABELS[e.cat]}</span>
             </button>
           ))}
           {query !== '' && !exactMatch && (
-            <button onClick={() => onPick(q.trim())}
+            <button onClick={() => onPick(q.trim(), repeat)}
               className="w-full text-left panel-cut-sm border border-dashed border-border px-3 py-2 hover:border-brand/50 transition-colors">
               <span className="text-sm text-muted-foreground">Use custom: </span>
               <span className="text-sm text-foreground">{q.trim()}</span>
@@ -616,6 +736,18 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
             <p className="telemetry-dim text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>
           )}
         </div>
+
+        {/* Scope — repeat the swap for the rest of this mesocycle, or just today */}
+        <button onClick={() => setRepeat(r => !r)}
+          className="mt-3 flex items-center gap-2.5 text-left group">
+          <span className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${repeat ? 'bg-brand border-brand' : 'border-border group-hover:border-brand/50'}`}>
+            {repeat && <Check size={11} className="text-white" strokeWidth={3} />}
+          </span>
+          <span className="text-xs text-foreground/90">
+            Repeat for the rest of this mesocycle
+            <span className="block telemetry-dim mt-0.5">{repeat ? 'APPLIES TO EVERY WEEK THROUGH THIS MESO' : 'THIS SESSION ONLY'}</span>
+          </span>
+        </button>
 
         <div className="pt-3 space-y-2">
           {isSubbed && (
@@ -694,6 +826,7 @@ export default function TrainingDayPage() {
   const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
   const [liftHistory, setLiftHistory] = useState<LiftHistory>({})
   const [logWriteError, setLogWriteError] = useState<string | null>(null)
+  const [restTrigger, setRestTrigger] = useState(0)
 
   const workoutIdRef = useRef<string | null>(null)
   const weekRef = useRef<number>(1)
@@ -717,14 +850,15 @@ export default function TrainingDayPage() {
         fetchCurrentWeek(supabase, user.id, slug),
         fetchMaxes(supabase, user.id),
         supabase.from('user_exercise_subs')
-          .select('slot, original_name, sub_name')
+          .select('slot, original_name, sub_name, created_week, repeat_meso')
           .eq('user_id', user.id).eq('program_slug', slug),
       ])
       const weekNumber = weekOverride ?? currentWeek
       weekRef.current = weekNumber
       setMaxes(userMaxes)
       const subs: SubsMap = {}
-      for (const r of (subRes.data ?? []) as Array<{ slot: string; original_name: string; sub_name: string }>) {
+      for (const r of (subRes.data ?? []) as Array<{ slot: string; original_name: string; sub_name: string; created_week: number | null; repeat_meso: boolean | null }>) {
+        if (!subInScope(r.created_week, r.repeat_meso ?? true, weekNumber, program.macroWeeks)) continue
         subs[`${r.slot}::${r.original_name}`] = r.sub_name
       }
       subsRef.current = subs
@@ -878,7 +1012,7 @@ export default function TrainingDayPage() {
 
   // Swap an exercise (subName) or revert to the original (null). Persists to
   // user_exercise_subs and patches the in-memory plan without a reload.
-  const applySwap = async (subName: string | null) => {
+  const applySwap = async (subName: string | null, repeatMeso = true) => {
     if (!user || !swapTarget) return
     const { slot, originalName } = swapTarget
     if (subName == null || subName === originalName) {
@@ -891,6 +1025,7 @@ export default function TrainingDayPage() {
       const res = await supabase.from('user_exercise_subs').upsert({
         user_id: user.id, program_slug: slug, slot,
         original_name: originalName, sub_name: subName,
+        created_week: weekRef.current, repeat_meso: repeatMeso,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,program_slug,slot,original_name' })
       report('swap', res)
@@ -1048,10 +1183,10 @@ export default function TrainingDayPage() {
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]} />
+                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]} onSetComplete={() => setRestTrigger(t => t + 1)} />
               )}
               {item.kind === 'plyo' && (
-                <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} onSwap={swapFor(item)} />
+                <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} onSwap={swapFor(item)} onSetComplete={() => setRestTrigger(t => t + 1)} />
               )}
               {item.kind === 'metcon' && (
                 <MetconCard item={item} initialLog={firstLog(item.name)} onLog={r => {
@@ -1118,11 +1253,13 @@ export default function TrainingDayPage() {
       {swapTarget && (
         <SwapModal
           target={swapTarget}
-          onPick={name => void applySwap(name)}
+          onPick={(name, repeatMeso) => void applySwap(name, repeatMeso)}
           onRevert={() => void applySwap(null)}
           onClose={() => setSwapTarget(null)}
         />
       )}
+
+      <RestTimer trigger={restTrigger} />
     </div>
   )
 }
