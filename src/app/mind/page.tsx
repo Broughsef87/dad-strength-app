@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Target, Lock, Unlock, CheckCircle2, Circle, Plus, X } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 import AppHeader from '../../components/AppHeader';
+import LearningTracker from '../../components/LearningTracker';
 import { localDay } from '../../utils/day';
 
 export default function MindPage() {
@@ -207,6 +208,11 @@ export default function MindPage() {
               </button>
             </div>
           )}
+        </motion.div>
+
+        {/* Currently Learning */}
+        <motion.div variants={fadeUp}>
+          <LearningTracker />
         </motion.div>
 
         </motion.div>
