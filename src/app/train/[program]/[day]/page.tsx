@@ -13,6 +13,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, Check, ChevronDown, ChevronUp, Clock, Dumbbell, Flame,
   AlertTriangle, Trophy, Zap, Wind, Pause, Play, RotateCcw, Link2, Repeat, Search, History,
+  Plus, Minus, X,
 } from 'lucide-react'
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
@@ -67,6 +68,35 @@ function applySubs(plan: DayPlan, subs: SubsMap): DayPlan {
       return sub && sub !== i.name ? { ...i, name: sub, subbedFrom: i.name } : i
     }),
   }
+}
+
+// ── Session overrides — add/remove sets and exercises ──────────────────────────
+// Per-session customization stored on generated_workouts.workout_data.overrides
+// (jsonb — no migration). Scoped to that week+day: "extra set today", "skip
+// curls today", "add band pull-aparts". Recurring changes belong to swaps.
+
+interface SessionOverrides {
+  setCounts?: Record<string, number>          // slot → overridden set count
+  removedSlots?: string[]                     // hidden prescribed items
+  addedExercises?: Array<{ slot: string; name: string; sets: number; reps: number }>
+}
+
+function applyOverrides(plan: DayPlan, o: SessionOverrides): DayPlan {
+  const removed = new Set(o.removedSlots ?? [])
+  let items = plan.items.filter(i => !removed.has(i.slot))
+  if (o.setCounts) {
+    items = items.map(i => {
+      if ((i.kind === 'lift' || i.kind === 'plyo') && o.setCounts![i.slot] != null) {
+        return { ...i, sets: Math.max(1, o.setCounts![i.slot]) }
+      }
+      return i
+    })
+  }
+  for (const a of o.addedExercises ?? []) {
+    if (removed.has(a.slot)) continue
+    items = [...items, { kind: 'lift', slot: a.slot, name: a.name, sets: a.sets, reps: a.reps, rpe: 7 }]
+  }
+  return { ...plan, items }
 }
 
 // Last (absolute) week of the mesocycle that `week` falls in. Mesos are the
@@ -323,7 +353,7 @@ function RestTimer({ trigger }: { trigger: number }) {
 
 // ── Lift card — per-set logging with prescribed load ─────────────────────────
 
-function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetComplete }: {
+function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetComplete, onSetCountChange, onRemove }: {
   item: LiftPrescription
   index: number
   initialLogs: SessionLogRow[]
@@ -331,6 +361,8 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   onSwap?: () => void
   history?: SlotHistoryEntry[]
   onSetComplete?: () => void
+  onSetCountChange?: (newCount: number) => void
+  onRemove?: () => void
 }) {
   const [sets, setSets] = useState<SetEntry[]>(() =>
     Array.from({ length: item.sets }, (_, i) => {
@@ -371,12 +403,20 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   return (
     <div className={`panel-cut hud-frame relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <span className="panel-id">{panelId}</span>
-      {onSwap && (
-        <button onClick={onSwap} title="Substitute exercise"
-          className="absolute top-0.5 right-0.5 z-10 p-2 text-muted-foreground/70 hover:text-brand transition-colors">
-          <Repeat size={12} />
-        </button>
-      )}
+      <div className="absolute top-0.5 right-0.5 z-10 flex items-center">
+        {onSwap && (
+          <button onClick={onSwap} title="Substitute exercise"
+            className="p-2 text-muted-foreground/70 hover:text-brand transition-colors">
+            <Repeat size={12} />
+          </button>
+        )}
+        {onRemove && (
+          <button onClick={onRemove} title="Remove from today's session"
+            className="p-2 text-muted-foreground/70 hover:text-brand transition-colors">
+            <X size={12} />
+          </button>
+        )}
+      </div>
 
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left px-4 pt-6 pb-3">
         <div className="flex items-end justify-between gap-3">
@@ -481,6 +521,20 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
               )}
             </div>
           ))}
+          {onSetCountChange && (
+            <div className="flex gap-2 pt-1.5">
+              <button onClick={() => onSetCountChange(sets.length + 1)}
+                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors py-1">
+                <Plus size={11} /> Add set
+              </button>
+              {sets.length > 1 && (
+                <button onClick={() => onSetCountChange(sets.length - 1)}
+                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors py-1 ml-3">
+                  <Minus size={11} /> Remove set
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -495,13 +549,15 @@ interface PlyoSetEntry {
   done: boolean
 }
 
-function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete }: {
+function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSetCountChange, onRemove }: {
   item: PlyoPrescription
   index: number
   initialLogs: SessionLogRow[]
   onLog: (sets: PlyoSetEntry[], notes: string) => void
   onSwap?: () => void
   onSetComplete?: () => void
+  onSetCountChange?: (newCount: number) => void
+  onRemove?: () => void
 }) {
   const [sets, setSets] = useState<PlyoSetEntry[]>(() =>
     Array.from({ length: item.sets }, (_, i) => {
@@ -532,12 +588,20 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete }: {
   return (
     <div className={`panel-cut relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <span className="panel-id">ORD-{String(index + 1).padStart(2, '0')} // {item.slot.replace(/_/g, '.').toUpperCase()}</span>
-      {onSwap && (
-        <button onClick={onSwap} title="Substitute exercise"
-          className="absolute top-0.5 right-0.5 z-10 p-2 text-muted-foreground/70 hover:text-brand transition-colors">
-          <Repeat size={12} />
-        </button>
-      )}
+      <div className="absolute top-0.5 right-0.5 z-10 flex items-center">
+        {onSwap && (
+          <button onClick={onSwap} title="Substitute exercise"
+            className="p-2 text-muted-foreground/70 hover:text-brand transition-colors">
+            <Repeat size={12} />
+          </button>
+        )}
+        {onRemove && (
+          <button onClick={onRemove} title="Remove from today's session"
+            className="p-2 text-muted-foreground/70 hover:text-brand transition-colors">
+            <X size={12} />
+          </button>
+        )}
+      </div>
       <div className="px-4 pt-6 pb-3 flex items-end justify-between gap-3">
         <div className="min-w-0 flex items-center gap-3">
           <Zap size={15} className="text-brand shrink-0" />
@@ -575,6 +639,20 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete }: {
             </div>
           </div>
         ))}
+        {onSetCountChange && (
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => onSetCountChange(sets.length + 1)}
+              className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors py-1">
+              <Plus size={11} /> Add set
+            </button>
+            {sets.length > 1 && (
+              <button onClick={() => onSetCountChange(sets.length - 1)}
+                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors py-1 ml-3">
+                <Minus size={11} /> Remove set
+              </button>
+            )}
+          </div>
+        )}
         <input type="text" value={notes} onChange={e => { setNotes(e.target.value); onLog(sets, e.target.value) }}
           placeholder="Notes (height, load, how it felt)..."
           className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50" />
@@ -766,6 +844,81 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
   )
 }
 
+// ── Add-exercise modal — searchable library, adds to today's session ──────────
+
+function AddExerciseModal({ onPick, onClose }: {
+  onPick: (name: string) => void
+  onClose: () => void
+}) {
+  const [q, setQ] = useState('')
+  const [cat, setCat] = useState<ExerciseCategory | null>(null)
+  const query = q.trim().toLowerCase()
+  const results = EXERCISE_LIBRARY.filter(e =>
+    (cat == null || e.cat === cat) &&
+    (query === '' || e.name.toLowerCase().includes(query)),
+  ).slice(0, 40)
+  const exactMatch = EXERCISE_LIBRARY.some(e => e.name.toLowerCase() === query)
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div onClick={e => e.stopPropagation()}
+        className="relative panel-cut bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
+        <span className="panel-id">ARMORY // ADD.EXERCISE</span>
+
+        <div className="mb-3">
+          <p className="telemetry mb-1">ADD TO TODAY&apos;S SESSION</p>
+          <p className="telemetry-dim">STARTS AT 3×10 — EDIT SETS &amp; REPS ON THE CARD</p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 mb-2">
+          <Search size={13} className="text-muted-foreground shrink-0" />
+          <input autoFocus type="text" value={q} onChange={e => setQ(e.target.value)} placeholder="Search the library..."
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none" />
+        </div>
+
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1 -mx-1 px-1">
+          {(Object.keys(CATEGORY_LABELS) as ExerciseCategory[]).map(c => (
+            <button key={c} onClick={() => setCat(cat === c ? null : c)}
+              className={`shrink-0 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border rounded-sm transition-colors ${
+                cat === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
+              }`}>
+              {CATEGORY_LABELS[c]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-[240px]">
+          {results.map(e => (
+            <button key={e.name} onClick={() => onPick(e.name)}
+              className="w-full text-left panel-cut-sm border border-border/60 bg-background hover:border-brand/50 px-3 py-2 transition-colors flex items-center justify-between gap-2">
+              <span className="text-sm text-foreground">{e.name}</span>
+              <span className="telemetry-dim shrink-0">{CATEGORY_LABELS[e.cat]}</span>
+            </button>
+          ))}
+          {query !== '' && !exactMatch && (
+            <button onClick={() => onPick(q.trim())}
+              className="w-full text-left panel-cut-sm border border-dashed border-border px-3 py-2 hover:border-brand/50 transition-colors">
+              <span className="text-sm text-muted-foreground">Add custom: </span>
+              <span className="text-sm text-foreground">{q.trim()}</span>
+            </button>
+          )}
+          {results.length === 0 && query === '' && (
+            <p className="telemetry-dim text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>
+          )}
+        </div>
+
+        <div className="pt-3">
+          <button onClick={onClose}
+            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold uppercase tracking-widest hover:text-foreground transition-colors panel-cut-sm">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Maxes update card (test week) ──────────────────────────────────────────────
 
 function MaxesCard({ maxDefs, current, onSave }: {
@@ -827,6 +980,12 @@ export default function TrainingDayPage() {
   const [liftHistory, setLiftHistory] = useState<LiftHistory>({})
   const [logWriteError, setLogWriteError] = useState<string | null>(null)
   const [restTrigger, setRestTrigger] = useState(0)
+  const [overrides, setOverrides] = useState<SessionOverrides>({})
+  const [showAddExercise, setShowAddExercise] = useState(false)
+  // Plan after subs but BEFORE session overrides — overrides re-apply on top.
+  const basePlanRef = useRef<DayPlan | null>(null)
+  // Raw workout_data jsonb so override patches don't clobber the stored plan.
+  const workoutDataRef = useRef<Record<string, unknown>>({})
 
   const workoutIdRef = useRef<string | null>(null)
   const weekRef = useRef<number>(1)
@@ -870,17 +1029,28 @@ export default function TrainingDayPage() {
 
       // Deterministic build — instant, no AI — then user substitutions on top.
       const built = applySubs(program.buildDay(weekNumber, dayNumber, userMaxes, adjustments), subs)
+      basePlanRef.current = built
       setPlan(built)
+      setOverrides({})
+      workoutDataRef.current = { plan: built }
 
       // Find-or-create the generated_workouts row for log linkage.
       const { data: rows } = await supabase
         .from('generated_workouts')
-        .select('id')
+        .select('id, workout_data')
         .eq('user_id', user.id).eq('program_slug', slug)
         .eq('week_number', weekNumber).eq('day_number', dayNumber)
         .order('id', { ascending: true }).limit(1)
 
       let workoutId: string | null = rows?.[0]?.id ?? null
+      if (workoutId) {
+        // Session overrides (added/removed sets + exercises) live on the row.
+        const wd = (rows?.[0]?.workout_data ?? {}) as Record<string, unknown>
+        workoutDataRef.current = wd
+        const ovr = (wd.overrides ?? {}) as SessionOverrides
+        setOverrides(ovr)
+        setPlan(applyOverrides(built, ovr))
+      }
       if (!workoutId) {
         const { data: saved, error: insertError } = await supabase
           .from('generated_workouts')
@@ -1031,7 +1201,7 @@ export default function TrainingDayPage() {
       report('swap', res)
       subsRef.current[`${slot}::${originalName}`] = subName
     }
-    setPlan(p => p && ({
+    const patchItems = (p: DayPlan): DayPlan => ({
       ...p,
       items: p.items.map(i => {
         if ((i.kind !== 'lift' && i.kind !== 'plyo') || i.slot !== slot) return i
@@ -1040,8 +1210,56 @@ export default function TrainingDayPage() {
           ? { ...i, name: originalName, subbedFrom: undefined }
           : { ...i, name: subName, subbedFrom: originalName }
       }),
-    }))
+    })
+    if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)
+    setPlan(p => p && patchItems(p))
     setSwapTarget(null)
+  }
+
+  // ── Session overrides: add/remove sets + exercises (this week+day only) ─────
+  const updateOverrides = async (next: SessionOverrides) => {
+    setOverrides(next)
+    if (basePlanRef.current) setPlan(applyOverrides(basePlanRef.current, next))
+    if (!workoutIdRef.current) return
+    workoutDataRef.current = { ...workoutDataRef.current, overrides: next }
+    report('session edit', await supabase.from('generated_workouts')
+      .update({ workout_data: workoutDataRef.current })
+      .eq('id', workoutIdRef.current))
+  }
+
+  const changeSetCount = async (item: LiftPrescription | PlyoPrescription, newCount: number) => {
+    const n = Math.max(1, newCount)
+    // Shrinking: purge log rows beyond the new count so they don't resurface.
+    if (workoutIdRef.current) {
+      const current = overrides.setCounts?.[item.slot] ?? item.sets
+      if (n < current) {
+        await supabase.from('ares_session_logs').delete()
+          .eq('user_id', user!.id).eq('generated_workout_id', workoutIdRef.current)
+          .eq('block_name', item.name).gt('set_number', n)
+        setSessionLogs(logs => logs.filter(l => !(l.block_name === item.name && (l.set_number ?? 0) > n)))
+      }
+    }
+    await updateOverrides({ ...overrides, setCounts: { ...overrides.setCounts, [item.slot]: n } })
+  }
+
+  const removeExercise = (item: { slot: string }) => {
+    if (item.slot.startsWith('custom_')) {
+      void updateOverrides({
+        ...overrides,
+        addedExercises: (overrides.addedExercises ?? []).filter(a => a.slot !== item.slot),
+      })
+    } else {
+      void updateOverrides({ ...overrides, removedSlots: [...(overrides.removedSlots ?? []), item.slot] })
+    }
+  }
+
+  const addExercise = (name: string) => {
+    const slot = `custom_${(overrides.addedExercises?.length ?? 0) + 1}_${name.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24)}`
+    void updateOverrides({
+      ...overrides,
+      addedExercises: [...(overrides.addedExercises ?? []), { slot, name, sets: 3, reps: 10 }],
+    })
+    setShowAddExercise(false)
   }
 
   const saveMaxes = async (vals: Record<string, number>) => {
@@ -1178,15 +1396,18 @@ export default function TrainingDayPage() {
           const logsFor = (name: string) => sessionLogs.filter(l => l.block_name === name)
           const firstLog = (name: string) => sessionLogs.find(l => l.block_name === name)
           type Item = DayPlan['items'][number]
-          const swapFor = (item: LiftPrescription | PlyoPrescription) => () =>
-            setSwapTarget({ slot: item.slot, originalName: item.subbedFrom ?? item.name, currentName: item.name })
+          const swapFor = (item: LiftPrescription | PlyoPrescription) =>
+            item.slot.startsWith('custom_') ? undefined : () =>
+              setSwapTarget({ slot: item.slot, originalName: item.subbedFrom ?? item.name, currentName: item.name })
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]} onSetComplete={() => setRestTrigger(t => t + 1)} />
+                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]} onSetComplete={() => setRestTrigger(t => t + 1)}
+                  onSetCountChange={n => void changeSetCount(item, n)} onRemove={() => removeExercise(item)} />
               )}
               {item.kind === 'plyo' && (
-                <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} onSwap={swapFor(item)} onSetComplete={() => setRestTrigger(t => t + 1)} />
+                <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} onSwap={swapFor(item)} onSetComplete={() => setRestTrigger(t => t + 1)}
+                  onSetCountChange={n => void changeSetCount(item, n)} onRemove={() => removeExercise(item)} />
               )}
               {item.kind === 'metcon' && (
                 <MetconCard item={item} initialLog={firstLog(item.name)} onLog={r => {
@@ -1225,19 +1446,35 @@ export default function TrainingDayPage() {
                   </div>
                   <div className="space-y-2">
                     {g.entries.map(({ item, i }) => (
-                      <div key={`${item.slot}-${'name' in item ? item.name : ''}-${i}`}>{renderCard(item, i)}</div>
+                      <div key={`${item.slot}-${'name' in item ? item.name : ''}-${'sets' in item ? item.sets : 0}-${i}`}>{renderCard(item, i)}</div>
                     ))}
                   </div>
                 </div>
               </div>
             ) : (
-              <div key={`${g.entries[0].item.slot}-${'name' in g.entries[0].item ? g.entries[0].item.name : ''}-${g.entries[0].i}`} className="panel-mount" style={{ animationDelay: `${g.entries[0].i * 45}ms` }}>
+              <div key={`${g.entries[0].item.slot}-${'name' in g.entries[0].item ? g.entries[0].item.name : ''}-${'sets' in g.entries[0].item ? g.entries[0].item.sets : 0}-${g.entries[0].i}`} className="panel-mount" style={{ animationDelay: `${g.entries[0].i * 45}ms` }}>
                 <div className="readout-rule mb-2" />
                 {renderCard(g.entries[0].item, g.entries[0].i)}
               </div>
             ),
           )
         })()}
+
+        {/* Session edit rail — add exercises / restore hidden ones */}
+        {plan.dayType !== 'rest' && (
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowAddExercise(true)}
+              className="panel-cut-sm flex-1 py-2.5 border border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-widest hover:text-brand hover:border-brand/50 transition-colors flex items-center justify-center gap-1.5">
+              <Plus size={12} /> Add Exercise
+            </button>
+            {(overrides.removedSlots?.length ?? 0) > 0 && (
+              <button onClick={() => void updateOverrides({ ...overrides, removedSlots: [] })}
+                className="panel-cut-sm py-2.5 px-3 border border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-widest hover:text-foreground transition-colors">
+                Restore hidden ({overrides.removedSlots!.length})
+              </button>
+            )}
+          </div>
+        )}
 
         {(isTestWeek || missingMaxes.length > 0) && (
           <MaxesCard maxDefs={program.requiredMaxes} current={maxes} onSave={saveMaxes} />
@@ -1257,6 +1494,10 @@ export default function TrainingDayPage() {
           onRevert={() => void applySwap(null)}
           onClose={() => setSwapTarget(null)}
         />
+      )}
+
+      {showAddExercise && (
+        <AddExerciseModal onPick={addExercise} onClose={() => setShowAddExercise(false)} />
       )}
 
       <RestTimer trigger={restTrigger} />
