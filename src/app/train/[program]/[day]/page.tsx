@@ -1169,7 +1169,7 @@ export default function TrainingDayPage() {
         {missingMaxes.length > 0 && plan.dayType === 'gym' && (
           <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-lg px-4 py-3">
             <p className="text-xs text-yellow-400">
-              Missing maxes: {missingMaxes.map(d => d.label).join(', ')} — prescribed weights can&apos;t be computed. Set them in the program settings (or below on a test day).
+              Missing maxes: {missingMaxes.map(d => d.label).join(', ')} — prescribed weights can&apos;t be computed. Enter them below.
             </p>
           </div>
         )}
@@ -1239,7 +1239,7 @@ export default function TrainingDayPage() {
           )
         })()}
 
-        {isTestWeek && (
+        {(isTestWeek || missingMaxes.length > 0) && (
           <MaxesCard maxDefs={program.requiredMaxes} current={maxes} onSave={saveMaxes} />
         )}
 
