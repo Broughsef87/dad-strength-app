@@ -73,6 +73,8 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   const [expanded, setExpanded] = useState<number | null>(0)
   const [error, setError] = useState('')
   const [configured, setConfigured] = useState(false)
+  // Completed protocols collapse to a "systems green" stamp; review re-expands.
+  const [reviewOpen, setReviewOpen] = useState(false)
   // Gratitude entries: 3 text inputs
   const [gratitude, setGratitude] = useState(['', '', ''])
 
@@ -103,6 +105,8 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   }
 
   useEffect(() => {
+    // Local first (instant paint)…
+    let localDone = -1
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
@@ -112,13 +116,63 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
           setCompleted(data.completed || new Array(data.protocol.steps.length).fill(false))
           setGratitude(data.gratitude || ['', '', ''])
           setConfigured(true)
+          localDone = (data.completed ?? []).filter(Boolean).length
         }
       }
     } catch {}
+
+    // …then the DB copy, so completion made on another device wins. The 4am-
+    // cutoff day can span two calendar rows, so check today and yesterday.
+    void (async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const yesterday = localDay(new Date(Date.now() - 86_400_000))
+        const { data: rows } = await supabase
+          .from('daily_checkins')
+          .select('spirit_state')
+          .eq('user_id', user.id)
+          .in('date', [localDay(), yesterday])
+        for (const r of rows ?? []) {
+          const m = (r.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
+          if (!m?.protocol || m.date !== todayKey()) continue
+          const remoteDone = (m.completed ?? []).filter(Boolean).length
+          if (remoteDone > localDone) {
+            const c = m.completed ?? new Array(m.protocol.steps.length).fill(false)
+            const g = m.gratitude ?? ['', '', '']
+            setProtocol(m.protocol)
+            setCompleted(c)
+            setGratitude(g)
+            setConfigured(true)
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: m.protocol, completed: c, gratitude: g }))
+          }
+          break
+        }
+      } catch { /* offline — localStorage still works */ }
+    })()
   }, [])
 
   const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g }))
+    // Mirror to daily_checkins.spirit_state so state follows the user across
+    // devices. Upsert touches only the provided columns — mind_state is safe.
+    void (async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        await supabase.from('daily_checkins').upsert(
+          {
+            user_id: user.id,
+            date: localDay(),
+            spirit_state: { morning: { date: todayKey(), protocol: p, completed: c, gratitude: g } },
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,date' },
+        )
+      } catch { /* offline — will re-sync on next save */ }
+    })()
   }
 
   const generate = async () => {
@@ -304,6 +358,27 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         </button>
       </div>
 
+      {allDone && !reviewOpen ? (
+        /* ── Collapsed — all systems checked, pilot is go ── */
+        <div className="py-5 flex flex-col items-center gap-4">
+          <div className="stamp px-6 py-2.5">
+            <p className="font-display text-2xl tracking-[0.16em] uppercase">Systems Green</p>
+          </div>
+          <div className="text-center space-y-1.5">
+            <p className="telemetry">MORNING.OPS COMPLETE // PILOT READY FOR THE DAY</p>
+            {protocol?.closingWord && (
+              <p className="text-sm text-muted-foreground font-light leading-relaxed max-w-xs mx-auto">{protocol.closingWord}</p>
+            )}
+          </div>
+          <button
+            onClick={() => setReviewOpen(true)}
+            className="telemetry-dim hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            REVIEW PROTOCOL <ChevronDown size={11} />
+          </button>
+        </div>
+      ) : (
+      <>
       {/* Greeting */}
       <p className="text-sm text-muted-foreground font-light leading-relaxed">{protocol?.greeting}</p>
 
@@ -468,11 +543,15 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         })}
       </div>
 
-      {allDone && protocol?.closingWord && (
-        <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 text-center">
-          <p className="text-[10px] text-brand uppercase tracking-[0.12em] font-medium mb-2">Morning Complete</p>
-          <p className="text-sm font-light text-foreground leading-snug">{protocol.closingWord}</p>
-        </div>
+      {allDone && (
+        <button
+          onClick={() => setReviewOpen(false)}
+          className="panel-cut-sm w-full py-2.5 border border-brand/50 text-brand text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/10 transition-colors"
+        >
+          Collapse — Systems Green
+        </button>
+      )}
+      </>
       )}
 
       <UpgradeModal
