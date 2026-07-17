@@ -15,13 +15,15 @@ import {
 // The Olympic lifts are S&C tools here, not the sport: power variants ONLY
 // (power snatch / power clean / hangs), zero technique work — no pauses,
 // tempos, complexes, or receiving drills. No clean & jerk; overhead power is
-// push press + jerk-drive variants. Power lifts key off their OWN maxes
-// (power_snatch / power_clean) — %s of the full lifts would misload them.
-// Pulls key off the FULL-lift maxes and run heavy (100-116%).
+// push press + jerk-drive variants. EVERYTHING keys off the full-lift maxes
+// (snatch / clean) — for a proficient lifter the power variants sit close
+// enough to the full lifts that %-of-variant-max under-loads them.
+// Percent rules: any ≤2-rep set ≥75%; power/hang triples ≥65%.
+// Pulls key off the same full-lift maxes and run heavy (100-116%).
 //
 // 13-week macro: 3 × 4-week mesos + test week.
 //   Meso 1 (W1-4):   speed-strength base — straight triples @ 70-76%
-//   Meso 2 (W5-8):   power — top double (79-84%) + fast back-offs (-8%)
+//   Meso 2 (W5-8):   power — top double (79-84%) + back-off doubles (75%+)
 //   Meso 3 (W9-12):  peak power — top single (85-90%) + back-off doubles.
 //                    W12 = deload. W13 = TEST (PSn, PCl, squats, bench, DL).
 //
@@ -83,17 +85,20 @@ function classicFloor(name: string, reps: number): number {
   const n = name.trim().toLowerCase()
   // Block work is a full-lift expression from a raised start — it follows the
   // SAME rules as the pure lift (a light block double trains nothing). Hangs
-  // may run a touch lighter (they fall through to the 70% floor).
+  // may run a touch lighter (they fall through to the lower floors).
   const isFullLift = n === 'snatch' || n === 'clean & jerk' || /block/.test(n)
   if (isFullLift && reps <= 2) return 80
-  // Power variants key off their OWN maxes and are speed work — 65 floor.
+  // Doubles and singles are never light — a 2-rep set below 75% of the full
+  // lift is no stimulus, whatever the variation.
+  if (reps <= 2) return 75
+  // Triples+ on power/hang variants are speed work — 65 floor.
   if (/power|hang/.test(n)) return 65
   const isTempo = /tempo|pause/.test(n)
   if (isTempo && reps >= 3) return 65
   return 70
 }
 
-const OLY_MAX_KEYS = new Set(['snatch', 'clean_jerk', 'power_snatch', 'power_clean'])
+const OLY_MAX_KEYS = new Set(['snatch', 'clean_jerk'])
 
 function isClassicLiftSlot(slot: string, maxKey: string): boolean {
   if (!OLY_MAX_KEYS.has(maxKey)) return false
@@ -230,9 +235,10 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
 // ── Day 1 — Oly A (Mon): snatch primary + C&J secondary + snatch pull + BS heavy
 // With 2 Oly days, primaries carry a touch more volume than the old 3-day split.
 // Athletic-power rework: NO technique work — no pauses, tempos, or complexes.
-// Power variants ARE the lifts, and their percentages key off their OWN maxes
-// (power_snatch / power_clean) — a power double at 84% of the FULL lift max
-// would be ~98% of the variant max, which is a grind, not power work.
+// Power variants ARE the lifts. Percentages key off the FULL-lift maxes
+// (snatch / clean) — for a proficient lifter the power variants sit close
+// enough to the full lifts that %-of-variant-max under-loads them.
+// Rule: any ≤2-rep set is ≥75% (a light double is no stimulus).
 // Shape follows how the lifts are actually trained: straight speed-strength
 // triples in M1, then a top set + fast back-offs in M2/M3.
 const D1_PSN_TOP: SlotMeso[] = [
@@ -242,14 +248,15 @@ const D1_PSN_TOP: SlotMeso[] = [
 ]
 const D1_PSN_BACK: SlotMeso[] = [
   { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 }, // M1: straight sets, no back-offs
-  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 4, reps: 2, pctStart: 71, pctStep: 1.5, targetRpe: 6, note: 'Back-offs — every rep FAST' },
+  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 4, reps: 2, pctStart: 75, pctStep: 1.5, targetRpe: 6, note: 'Back-offs — every rep FAST' },
   { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 2, pctStart: 76, pctStep: 1, targetRpe: 7, note: 'Back-offs — speed over load' },
 ]
 // Overhead power without jerk specificity: from the rack, dip-drive-punch.
+// M1 triples build the pattern; M2/M3 doubles live at 75%+ per the rule.
 const D1_PJERK: SlotMeso[] = [
-  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 2, pctStart: 68, pctStep: 2, targetRpe: 7, note: 'No split — punch and hold' },
-  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 2, pctStart: 72, pctStep: 2, targetRpe: 7, note: 'No split — punch and hold' },
-  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 2, pctStart: 74, pctStep: 1.5, targetRpe: 7, note: 'No split — punch and hold' },
+  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 3, pctStart: 68, pctStep: 2, targetRpe: 7, note: 'No split — punch and hold' },
+  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 2, pctStart: 75, pctStep: 1.5, targetRpe: 7, note: 'No split — punch and hold' },
+  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 2, pctStart: 77, pctStep: 1.5, targetRpe: 7, note: 'No split — punch and hold' },
 ]
 // Pulls key off the FULL-lift maxes and run heavy — a strong puller gets
 // nothing from sub-95% pulls. 100 → 116% across the macro.
@@ -293,15 +300,15 @@ const D5_PCL_TOP: SlotMeso[] = [
 ]
 const D5_PCL_BACK: SlotMeso[] = [
   { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 2, pctStart: 71, pctStep: 1.5, targetRpe: 6, note: 'Back-offs — every rep FAST' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 2, pctStart: 75, pctStep: 1.5, targetRpe: 6, note: 'Back-offs — every rep FAST' },
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 3, reps: 2, pctStart: 76, pctStep: 1, targetRpe: 7, note: 'Back-offs — speed over load' },
 ]
-// Second snatch exposure of the week: hang power snatch, deliberately light
-// and fast (hang variant tops out well under the power snatch max).
+// Second snatch exposure of the week: hang power snatch as TRIPLES — hangs may
+// run lighter than 75, so they stay at 3 reps in the 65-72% speed zone.
 const D5_HPS: SlotMeso[] = [
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 4, reps: 2, pctStart: 65, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 4, reps: 2, pctStart: 68, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 2, pctStart: 70, pctStep: 1, targetRpe: 6, note: 'From the hang. Bar speed only.' },
+  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 4, reps: 3, pctStart: 65, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
+  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 4, reps: 3, pctStart: 68, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
+  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 70, pctStep: 1, targetRpe: 6, note: 'From the hang. Bar speed only.' },
 ]
 const D5_PULL: SlotMeso[] = [
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 4, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
@@ -394,7 +401,7 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
       dayNumber, dayName: 'TEST — Power Snatch 1RM', dayType: 'test',
       sessionIntent: 'Work to a new 1RM power snatch. Take your time between attempts.',
       items: [
-        { kind: 'lift', slot: 'test_psn', name: 'Power Snatch — work to 1RM', sets: 8, reps: 1, note: 'Climb 60/70/78/85/90/95%+ then PR attempts. Log your top single — it anchors next macro.' },
+        { kind: 'lift', slot: 'test_psn', name: 'Power Snatch — work to 1RM', sets: 8, reps: 1, note: 'Climb 60/70/78/85/90/95%+ then PR attempts. Update your Snatch reference max from it — that anchors next macro.' },
         accessory('test_acc', 'Easy bike flush', 1, 10, '10 min easy spin after'),
       ],
     },
@@ -402,7 +409,7 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
       dayNumber, dayName: 'TEST — Power Clean 1RM', dayType: 'test',
       sessionIntent: 'Work to a new 1RM power clean.',
       items: [
-        { kind: 'lift', slot: 'test_pcl', name: 'Power Clean — work to 1RM', sets: 8, reps: 1, note: 'Climb 60/70/78/85/90/95%+ then PR attempts. Log your top single — it anchors next macro.' },
+        { kind: 'lift', slot: 'test_pcl', name: 'Power Clean — work to 1RM', sets: 8, reps: 1, note: 'Climb 60/70/78/85/90/95%+ then PR attempts. Update your Clean reference max from it — that anchors next macro.' },
         accessory('test_acc', 'Easy bike flush', 1, 10, '10 min easy spin after'),
       ],
     },
@@ -442,10 +449,10 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
   switch (dayNumber) {
     case 1: {
       let items: Prescription[] = [
-        liftFromSlot('psn_top', D1_PSN_TOP[m], w, 'power_snatch', maxes, pos.meso, adjustments),
+        liftFromSlot('psn_top', D1_PSN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments),
       ]
       if (D1_PSN_BACK[m].sets > 0) {
-        items.push(liftFromSlot('psn_back', D1_PSN_BACK[m], w, 'power_snatch', maxes, pos.meso, adjustments))
+        items.push(liftFromSlot('psn_back', D1_PSN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
       }
       items.push(
         liftFromSlot('power_jerk', D1_PJERK[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
@@ -489,13 +496,13 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
     }
     case 5: {
       let items: Prescription[] = [
-        liftFromSlot('pcl_top', D5_PCL_TOP[m], w, 'power_clean', maxes, pos.meso, adjustments),
+        liftFromSlot('pcl_top', D5_PCL_TOP[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
       ]
       if (D5_PCL_BACK[m].sets > 0) {
-        items.push(liftFromSlot('pcl_back', D5_PCL_BACK[m], w, 'power_clean', maxes, pos.meso, adjustments))
+        items.push(liftFromSlot('pcl_back', D5_PCL_BACK[m], w, 'clean_jerk', maxes, pos.meso, adjustments))
       }
       items.push(
-        liftFromSlot('hang_psn', D5_HPS[m], w, 'power_snatch', maxes, pos.meso, adjustments),
+        liftFromSlot('hang_psn', D5_HPS[m], w, 'snatch', maxes, pos.meso, adjustments),
         liftFromSlot('clean_pull', D5_PULL[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
         liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy'),
@@ -552,10 +559,8 @@ export const hybridPower: ProgramConfig = {
   gymDayNumbers: [1, 3, 5, 6],
   macroWeeks: 13,
   requiredMaxes: [
-    { key: 'power_snatch', label: 'Power Snatch', hint: 'Best recent single (lbs)' },
-    { key: 'power_clean', label: 'Power Clean', hint: 'Best recent single (lbs)' },
-    { key: 'snatch', label: 'Snatch (full)', hint: 'Anchors pulls — estimate if untested' },
-    { key: 'clean_jerk', label: 'Clean', hint: 'Best clean single — anchors pulls + overhead' },
+    { key: 'snatch', label: 'Snatch', hint: 'Best full-lift single — all snatch work keys off this' },
+    { key: 'clean_jerk', label: 'Clean', hint: 'Best clean single — all clean work keys off this' },
     { key: 'back_squat', label: 'Back Squat', hint: 'Best recent single (lbs)' },
     { key: 'front_squat', label: 'Front Squat', hint: 'Best recent single (lbs)' },
     { key: 'bench', label: 'Bench Press', hint: 'Best recent single (lbs)' },
