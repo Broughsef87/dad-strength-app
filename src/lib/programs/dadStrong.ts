@@ -52,7 +52,8 @@ interface SlotMeso {
 }
 
 const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 9 }
-const MAX_ADJ = 6
+// 8 gives the weight-follow (re-anchoring to actual lifted loads) real room.
+const MAX_ADJ = 8
 
 function liftFromSlot(
   slot: string,

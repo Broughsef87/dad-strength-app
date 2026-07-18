@@ -1040,8 +1040,8 @@ export default function TrainingDayPage() {
       const doneDays = await fetchDoneDays(supabase, user.id, slug, weekNumber)
       if (doneDays.includes(dayNumber)) setSessionComplete(true)
 
-      // Autoregulation: bounded % deltas from last week's per-set RPE.
-      const adjustments = await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber)
+      // Autoregulation: bounded % deltas from last week's actual weights + RPE.
+      const adjustments = await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber, userMaxes)
 
       // Deterministic build — instant, no AI — then user substitutions on top.
       const built = applySubs(program.buildDay(weekNumber, dayNumber, userMaxes, adjustments), subs)

@@ -85,7 +85,8 @@ interface SlotMeso {
   note?: string
 }
 
-const MAX_ADJ = 6
+// 8 gives the weight-follow (re-anchoring to actual lifted loads) real room.
+const MAX_ADJ = 8
 const STRENGTH_TARGET_RPE = 7 // maintenance — never grinding
 
 function liftFromSlot(

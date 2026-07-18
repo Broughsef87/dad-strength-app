@@ -36,6 +36,10 @@ function deltaFor(diff: number): number {
   return 0
 }
 
+// Weight deviations under this are treated as noise (5-lb plate rounding on a
+// heavy lift is ~1%). Above it, the prescription re-anchors to what was lifted.
+const WEIGHT_DEADBAND_PCT = 1.5
+
 export async function computeAdjustments(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -43,6 +47,7 @@ export async function computeAdjustments(
   program: ProgramConfig,
   weekNumber: number,
   dayNumber: number,
+  maxes: Record<string, number> = {},
 ): Promise<Record<string, number>> {
   const weekInMacro = ((weekNumber - 1) % program.macroWeeks) + 1
   // Week 1 has no in-macro history; deload + test weeks run as written.
@@ -60,39 +65,62 @@ export async function computeAdjustments(
   const workoutId: string | undefined = workouts?.[0]?.id
   if (!workoutId) return {}
 
-  // Completed sets with reported RPE, grouped by slot. `completed = true` so a
-  // set that was rated but not actually finished can't skew the adjustment.
+  // Completed sets, grouped by slot. `completed = true` so a set that was
+  // rated or typed but not actually finished can't skew anything.
   const { data: rows } = await supabase
     .from('ares_session_logs')
-    .select('slot, rpe')
+    .select('slot, rpe, weight_lbs')
     .eq('generated_workout_id', workoutId)
     .eq('log_type', 'strength_set')
     .eq('completed', true)
-    .not('rpe', 'is', null)
     .not('slot', 'is', null)
   if (!rows?.length) return {}
 
-  const bySlot: Record<string, number[]> = {}
-  for (const r of rows as Array<{ slot: string; rpe: number }>) {
-    (bySlot[r.slot] ??= []).push(r.rpe)
+  const bySlot: Record<string, { rpes: number[]; weights: number[] }> = {}
+  for (const r of rows as Array<{ slot: string; rpe: number | null; weight_lbs: number | null }>) {
+    const s = (bySlot[r.slot] ??= { rpes: [], weights: [] })
+    if (r.rpe != null) s.rpes.push(r.rpe)
+    if (r.weight_lbs != null && r.weight_lbs > 0) s.weights.push(Number(r.weight_lbs))
   }
 
-  // Targets come from last week's deterministic plan (no maxes needed).
+  // Last week's prescription per slot (floors bake in even with empty maxes).
   const prevPlan = program.buildDay(prevWeek, dayNumber, {})
-  const targets: Record<string, number> = {}
+  const prescribed: Record<string, { percent: number; targetRpe?: number; maxKey?: string }> = {}
   for (const item of prevPlan.items) {
-    if (item.kind === 'lift' && item.targetRpe != null && item.percent != null) {
-      targets[item.slot] = item.targetRpe
+    if (item.kind === 'lift' && item.percent != null) {
+      prescribed[item.slot] = { percent: item.percent, targetRpe: item.targetRpe, maxKey: item.maxKey }
     }
   }
 
+  // The app follows the lifter, two signals per slot:
+  //  1. WEIGHT — if the loads actually lifted deviate from last week's
+  //     prescription, re-anchor: delta = avg(actual as % of max) − prescribed%.
+  //     This carries forward through the wave (the weekly step still applies on
+  //     top in the config tables), so lifting heavier moves next week up, and
+  //     backing off moves it down.
+  //  2. RPE — the existing difficulty correction, applied on top.
+  // Clamping (MAX_ADJ) and percent floors live in the program config.
   const adjustments: Record<string, number> = {}
-  for (const [slot, rpes] of Object.entries(bySlot)) {
-    const target = targets[slot]
-    if (target == null) continue
-    const avg = rpes.reduce((a, b) => a + b, 0) / rpes.length
-    const d = deltaFor(avg - target)
-    if (d !== 0) adjustments[slot] = d
+  for (const [slot, s] of Object.entries(bySlot)) {
+    const p = prescribed[slot]
+    if (!p) continue
+
+    let weightDelta = 0
+    const max = p.maxKey ? maxes[p.maxKey] : undefined
+    if (s.weights.length && max && max > 0) {
+      const actualPct = (s.weights.reduce((a, b) => a + b, 0) / s.weights.length / max) * 100
+      const d = actualPct - p.percent
+      if (Math.abs(d) >= WEIGHT_DEADBAND_PCT) weightDelta = d
+    }
+
+    let rpeDelta = 0
+    if (s.rpes.length && p.targetRpe != null) {
+      const avg = s.rpes.reduce((a, b) => a + b, 0) / s.rpes.length
+      rpeDelta = deltaFor(avg - p.targetRpe)
+    }
+
+    const total = Math.round((weightDelta + rpeDelta) * 2) / 2
+    if (total !== 0) adjustments[slot] = total
   }
   return adjustments
 }
