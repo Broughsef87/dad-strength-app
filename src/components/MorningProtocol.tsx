@@ -359,13 +359,21 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       </div>
 
       {allDone && !reviewOpen ? (
-        /* ── Collapsed — all systems checked, pilot is go ── */
+        /* ── Collapsed — all systems checked, pilot is go. Green means green. ── */
         <div className="py-5 flex flex-col items-center gap-4">
-          <div className="stamp px-6 py-2.5">
+          <div
+            className="stamp px-6 py-2.5"
+            style={{
+              borderColor: '#10B981',
+              color: '#10B981',
+              textShadow: '0 0 12px #10B98180',
+              boxShadow: 'inset 0 0 18px #10B98126, 0 0 24px #10B98140',
+            }}
+          >
             <p className="font-display text-2xl tracking-[0.16em] uppercase">Systems Green</p>
           </div>
           <div className="text-center space-y-1.5">
-            <p className="telemetry">MORNING.OPS COMPLETE // PILOT READY FOR THE DAY</p>
+            <p className="telemetry" style={{ color: '#10B981' }}>MORNING.OPS COMPLETE // PILOT READY FOR THE DAY</p>
             {protocol?.closingWord && (
               <p className="text-sm text-muted-foreground font-light leading-relaxed max-w-xs mx-auto">{protocol.closingWord}</p>
             )}
@@ -546,7 +554,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       {allDone && (
         <button
           onClick={() => setReviewOpen(false)}
-          className="panel-cut-sm w-full py-2.5 border border-brand/50 text-brand text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/10 transition-colors"
+          className="panel-cut-sm w-full py-2.5 border border-emerald-500/50 text-emerald-500 text-xs font-semibold uppercase tracking-[0.14em] hover:bg-emerald-500/10 transition-colors"
         >
           Collapse — Systems Green
         </button>
