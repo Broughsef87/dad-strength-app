@@ -108,14 +108,19 @@ function mesoLastWeek(week: number, macroWeeks: number): number {
   return cycleStart + lastWim - 1
 }
 
-// Whether a stored swap is in scope for the week being viewed.
+// Whether a stored swap is in scope for the session being viewed.
 //   • created_week null → legacy swap, always applies (pre-scope behavior)
 //   • repeat_meso       → created_week through that meso's last week
-//   • otherwise         → only the exact session week it was made
-function subInScope(createdWeek: number | null, repeatMeso: boolean, currentWeek: number, macroWeeks: number): boolean {
+//   • otherwise         → only the exact session (week + day) it was made;
+//                         legacy rows without created_day fall back to week-level
+function subInScope(
+  createdWeek: number | null, createdDay: number | null, repeatMeso: boolean,
+  currentWeek: number, currentDay: number, macroWeeks: number,
+): boolean {
   if (createdWeek == null) return true
   if (currentWeek < createdWeek) return false
-  return repeatMeso ? currentWeek <= mesoLastWeek(createdWeek, macroWeeks) : currentWeek === createdWeek
+  if (repeatMeso) return currentWeek <= mesoLastWeek(createdWeek, macroWeeks)
+  return currentWeek === createdWeek && (createdDay == null || createdDay === currentDay)
 }
 
 // ── Progression (server-derived, same pattern as Zeus) ────────────────────────
@@ -1009,15 +1014,26 @@ export default function TrainingDayPage() {
         fetchCurrentWeek(supabase, user.id, slug),
         fetchMaxes(supabase, user.id),
         supabase.from('user_exercise_subs')
-          .select('slot, original_name, sub_name, created_week, repeat_meso')
+          .select('slot, original_name, sub_name, created_week, created_day, repeat_meso')
           .eq('user_id', user.id).eq('program_slug', slug),
       ])
       const weekNumber = weekOverride ?? currentWeek
       weekRef.current = weekNumber
       setMaxes(userMaxes)
+      type SubRow = { slot: string; original_name: string; sub_name: string; created_week?: number | null; created_day?: number | null; repeat_meso?: boolean | null }
+      let subRows = (subRes.data ?? null) as SubRow[] | null
+      if (subRes.error) {
+        // Scope columns not migrated yet — the scoped select fails wholesale,
+        // which would silently drop EVERY swap. Fall back to the legacy shape
+        // (swaps then apply as always-on until the migration runs).
+        const legacy = await supabase.from('user_exercise_subs')
+          .select('slot, original_name, sub_name')
+          .eq('user_id', user.id).eq('program_slug', slug)
+        subRows = (legacy.data ?? null) as SubRow[] | null
+      }
       const subs: SubsMap = {}
-      for (const r of (subRes.data ?? []) as Array<{ slot: string; original_name: string; sub_name: string; created_week: number | null; repeat_meso: boolean | null }>) {
-        if (!subInScope(r.created_week, r.repeat_meso ?? true, weekNumber, program.macroWeeks)) continue
+      for (const r of subRows ?? []) {
+        if (!subInScope(r.created_week ?? null, r.created_day ?? null, r.repeat_meso ?? true, weekNumber, dayNumber, program.macroWeeks)) continue
         subs[`${r.slot}::${r.original_name}`] = r.sub_name
       }
       subsRef.current = subs
@@ -1192,12 +1208,22 @@ export default function TrainingDayPage() {
       report('swap', res)
       delete subsRef.current[`${slot}::${originalName}`]
     } else {
-      const res = await supabase.from('user_exercise_subs').upsert({
+      const scoped = {
         user_id: user.id, program_slug: slug, slot,
         original_name: originalName, sub_name: subName,
-        created_week: weekRef.current, repeat_meso: repeatMeso,
+        created_week: weekRef.current, created_day: dayNumber, repeat_meso: repeatMeso,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,program_slug,slot,original_name' })
+      }
+      let res = await supabase.from('user_exercise_subs')
+        .upsert(scoped, { onConflict: 'user_id,program_slug,slot,original_name' })
+      if (res?.error && (res.error.code === 'PGRST204' || res.error.code === '42703')) {
+        // Scope columns not migrated yet — persist as a legacy always-apply
+        // swap rather than losing the write entirely.
+        const { created_week: _w, created_day: _d, repeat_meso: _m, ...legacy } = scoped
+        void _w; void _d; void _m
+        res = await supabase.from('user_exercise_subs')
+          .upsert(legacy, { onConflict: 'user_id,program_slug,slot,original_name' })
+      }
       report('swap', res)
       subsRef.current[`${slot}::${originalName}`] = subName
     }

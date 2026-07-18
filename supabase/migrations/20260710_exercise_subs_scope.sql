@@ -13,4 +13,5 @@
 
 ALTER TABLE public.user_exercise_subs
   ADD COLUMN IF NOT EXISTS created_week INT,
+  ADD COLUMN IF NOT EXISTS created_day INT,
   ADD COLUMN IF NOT EXISTS repeat_meso BOOLEAN NOT NULL DEFAULT true;
