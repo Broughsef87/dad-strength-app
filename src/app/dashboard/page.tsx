@@ -433,47 +433,15 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
-          {/* II. THE SQUEEZE */}
-          <motion.div variants={fadeUp} custom={0.5} className="space-y-2.5">
-            <SectionLabel numeral="II" title="The Squeeze" />
-            <button
-              onClick={() => isPro ? router.push('/workout/squeeze') : setShowUpgrade(true)}
-              className="w-full steel-edge rounded-2xl p-4 flex items-center justify-between group transition-all relative overflow-hidden"
-              style={{
-                background: 'linear-gradient(150deg, hsl(220 31% 13%) 0%, hsl(222 21% 8%) 100%)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-              }}
-            >
-              {/* Editorial depth numeral — matches section label II */}
-              <span
-                className="absolute -top-2 right-3 font-display leading-none pointer-events-none select-none"
-                style={{ fontSize: '4.5rem', color: 'rgba(234,11,47,0.05)', letterSpacing: '0.05em' }}
-                aria-hidden="true"
-              >02</span>
-              <div className="flex items-center gap-3 relative z-10">
-                <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
-                  <Zap size={18} className="text-brand" />
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-sm text-foreground">Chronos</p>
-                  <p className="text-[12px] text-muted-foreground">15–20 min · Any equipment
-                    {!isPro && <span className="ml-2 text-[8px] bg-brand/10 text-brand px-1.5 py-0.5 uppercase tracking-widest font-semibold rounded" >Pro</span>}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-brand transition-colors relative z-10" strokeWidth={1.5} />
-            </button>
-          </motion.div>
-
-          {/* III. DAILY OBJECTIVES */}
+          {/* II. DAILY OBJECTIVES */}
           <motion.div variants={fadeUp} custom={1} className="space-y-2.5">
-            <SectionLabel numeral="III" title="Daily Objectives" />
+            <SectionLabel numeral="II" title="Daily Objectives" />
             <DailyObjectivesCard />
           </motion.div>
 
-          {/* IV. DAD SCORE */}
+          {/* III. DAD SCORE */}
           <motion.div variants={fadeUp} custom={2} className="space-y-2.5">
-            <SectionLabel numeral="IV" title="Dad Score" />
+            <SectionLabel numeral="III" title="Dad Score" />
             <DadScore />
           </motion.div>
 
