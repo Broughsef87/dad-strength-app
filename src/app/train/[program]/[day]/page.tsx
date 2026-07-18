@@ -125,16 +125,20 @@ function subInScope(
 
 // ── Progression (server-derived, same pattern as Zeus) ────────────────────────
 
-async function fetchCurrentWeek(
+async function fetchProgramState(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, userId: string, slug: string,
-): Promise<number> {
+): Promise<{ week: number; deloadWeeks: number[] }> {
   const { data: prog } = await supabase
     .from('user_programs')
-    .select('current_week')
+    .select('current_week, preferences')
     .eq('user_id', userId).eq('program_slug', slug).eq('status', 'active')
     .maybeSingle()
-  return prog?.current_week ?? 1
+  const dw = prog?.preferences?.deload_weeks
+  return {
+    week: prog?.current_week ?? 1,
+    deloadWeeks: Array.isArray(dw) ? dw.filter((n: unknown) => typeof n === 'number') : [],
+  }
 }
 
 async function fetchDoneDays(
@@ -162,7 +166,7 @@ async function advanceWeekIfDone(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, userId: string, slug: string, daysPerWeek: number,
 ): Promise<void> {
-  const weekNumber = await fetchCurrentWeek(supabase, userId, slug)
+  const { week: weekNumber } = await fetchProgramState(supabase, userId, slug)
   const doneDays = await fetchDoneDays(supabase, userId, slug, weekNumber)
   if (doneDays.length < daysPerWeek) return
   await supabase
@@ -1010,15 +1014,16 @@ export default function TrainingDayPage() {
         if (Number.isFinite(n) && n >= 1) weekOverride = n
       } catch { /* SSR-safe no-op */ }
 
-      const [currentWeek, userMaxes, subRes] = await Promise.all([
-        fetchCurrentWeek(supabase, user.id, slug),
+      const [progState, userMaxes, subRes] = await Promise.all([
+        fetchProgramState(supabase, user.id, slug),
         fetchMaxes(supabase, user.id),
         supabase.from('user_exercise_subs')
           .select('slot, original_name, sub_name, created_week, created_day, repeat_meso')
           .eq('user_id', user.id).eq('program_slug', slug),
       ])
-      const weekNumber = weekOverride ?? currentWeek
+      const weekNumber = weekOverride ?? progState.week
       weekRef.current = weekNumber
+      const forceDeload = progState.deloadWeeks.includes(weekNumber)
       setMaxes(userMaxes)
       type SubRow = { slot: string; original_name: string; sub_name: string; created_week?: number | null; created_day?: number | null; repeat_meso?: boolean | null }
       let subRows = (subRes.data ?? null) as SubRow[] | null
@@ -1041,10 +1046,14 @@ export default function TrainingDayPage() {
       if (doneDays.includes(dayNumber)) setSessionComplete(true)
 
       // Autoregulation: bounded % deltas from last week's actual weights + RPE.
-      const adjustments = await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber, userMaxes)
+      // Skipped when LAST week was a flagged deload — its light loads and easy
+      // RPEs would read as "way under target" and wrongly drag this week down.
+      const adjustments = progState.deloadWeeks.includes(weekNumber - 1)
+        ? {}
+        : await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber, userMaxes)
 
       // Deterministic build — instant, no AI — then user substitutions on top.
-      const built = applySubs(program.buildDay(weekNumber, dayNumber, userMaxes, adjustments), subs)
+      const built = applySubs(program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload }), subs)
       basePlanRef.current = built
       setPlan(built)
       setOverrides({})

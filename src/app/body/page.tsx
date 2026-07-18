@@ -6,6 +6,7 @@ import BodyVitals from '../../components/BodyVitals';
 import NapSqueeze from '../../components/NapSqueeze';
 import ProteinTracker from '../../components/ProteinTracker';
 import ActiveProgram from '../../components/ActiveProgram';
+import RecoveryProtocol from '../../components/RecoveryProtocol';
 import NutritionPeriodization from '../../components/NutritionPeriodization';
 import BodyComposition from '../../components/BodyComposition';
 import StrengthCalc from '../../components/StrengthCalc';
@@ -31,6 +32,10 @@ export default function BodyPage() {
         >
           <motion.div variants={fadeUp}>
             <ActiveProgram />
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <RecoveryProtocol />
           </motion.div>
 
           <motion.div variants={fadeUp}>

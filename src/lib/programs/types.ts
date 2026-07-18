@@ -88,7 +88,15 @@ export interface ProgramConfig {
     dayNumber: number,         // 1-7
     maxes: Record<string, number>,
     adjustments?: Record<string, number>, // slot → % delta from autoregulation
+    opts?: BuildDayOpts,
   ): DayPlan
+}
+
+export interface BuildDayOpts {
+  // Athlete-flagged fatigue deload: renders this week with the program's
+  // deload treatment regardless of macro position (test week excepted).
+  // Stored in user_programs.preferences.deload_weeks.
+  forceDeload?: boolean
 }
 
 // Round a computed barbell weight to the nearest 5 lb.

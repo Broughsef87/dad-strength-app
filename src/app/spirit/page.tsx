@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
-import { Zap, Users, Check, ScrollText, ArrowRight, PenLine, Trash2, Plus } from 'lucide-react'
+import { Zap, Check, ScrollText, ArrowRight, PenLine } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import AppHeader from '../../components/AppHeader'
 import MorningProtocol from '../../components/MorningProtocol'
 import { type StoicEntry, getTodaysStoicEntry } from '../../data/stoicEntries'
-import { createClient } from '../../utils/supabase/client'
 
 // ── Challenge data ─────────────────────────────────────────────────────────────
 
@@ -102,40 +101,7 @@ function pickChallenge(skipCategory?: Category): Challenge {
   return pool[day % pool.length]
 }
 
-// ── Heat map types ─────────────────────────────────────────────────────────────
-
-type Connection = { date: string; note?: string }
-type HeatSlot   = { id: string; label: string; name: string; connections: Connection[] }
-
-const DEFAULT_SLOTS: HeatSlot[] = [
-  { id: 'wife',   label: 'Wife',   name: '', connections: [] },
-  { id: 'kid1',   label: 'Kid 1',  name: '', connections: [] },
-  { id: 'kid2',   label: 'Kid 2',  name: '', connections: [] },
-  { id: 'kid3',   label: 'Kid 3',  name: '', connections: [] },
-  { id: 'friend', label: 'Friend', name: '', connections: [] },
-]
-
-function heatColor(slot: HeatSlot) {
-  if (!slot.connections.length)
-    return { bg: 'bg-surface-3/40', border: 'border-border/40', text: 'text-muted-foreground/50', label: 'No data' }
-  const days = Math.floor(
-    (Date.now() - new Date(slot.connections[slot.connections.length - 1].date).getTime()) / 86_400_000
-  )
-  if (days <= 1) return { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', label: days === 0 ? 'Today' : 'Yesterday' }
-  if (days <= 3) return { bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   text: 'text-amber-400',   label: `${days}d ago` }
-  return              { bg: 'bg-red-500/10',        border: 'border-red-500/30',     text: 'text-red-400',     label: `${days}d ago` }
-}
-
-const HEAT_KEY = 'dad-strength-spirit-heat'
 const ACT_KEY  = 'dad-strength-spirit-act'
-
-function getMondayIso(): string {
-  const d = new Date()
-  const day = d.getDay()
-  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1))
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString().split('T')[0]
-}
 
 const GOD_LABELS: Record<string, string> = {
   atlas:    'Atlas',
@@ -149,9 +115,6 @@ const GOD_LABELS: Record<string, string> = {
 
 export default function SpiritPage() {
   const [mounted, setMounted] = useState(false)
-  const [supabase] = useState(() => createClient())
-  const [userId, setUserId] = useState<string | null>(null)
-  const [weekStart, setWeekStart] = useState('')
 
   // Stoic
   const [stoic, setStoic] = useState<StoicEntry>(() => getTodaysStoicEntry())
@@ -160,14 +123,6 @@ export default function SpiritPage() {
   // Act
   const [challenge, setChallenge] = useState<Challenge>(() => pickChallenge())
   const [actDone, setActDone]     = useState(false)
-
-  // Heat map
-  const [slots, setSlots]         = useState<HeatSlot[]>(DEFAULT_SLOTS)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName]   = useState('')
-  const [loggingId, setLoggingId] = useState<string | null>(null)
-  const [logNote, setLogNote]     = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -198,79 +153,6 @@ export default function SpiritPage() {
       }
     } catch { /* ignore */ }
 
-    // Restore heat map from localStorage (fast, synchronous)
-    let localSlots: HeatSlot[] = DEFAULT_SLOTS
-    try {
-      const raw = localStorage.getItem(HEAT_KEY)
-      if (raw) { localSlots = JSON.parse(raw); setSlots(localSlots) }
-    } catch { /* ignore */ }
-
-    // Hydrate from Supabase in background (overwrites localStorage with fresh DB data)
-    const ws = getMondayIso()
-    setWeekStart(ws);
-    (async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        setUserId(user.id)
-
-        // family_pulse for wife/kid slots
-        const { data: pulse } = await supabase
-          .from('family_pulse')
-          .select('moments')
-          .eq('user_id', user.id)
-          .eq('week_start', ws)
-          .maybeSingle()
-
-        // brotherhood_contacts for friend slot
-        const { data: contacts } = await supabase
-          .from('brotherhood_contacts')
-          .select('name, last_contacted_at')
-          .eq('user_id', user.id)
-          .order('last_contacted_at', { ascending: false })
-
-        setSlots(prev => {
-          let next = [...prev]
-
-          // Merge family_pulse moments into wife/kid slots
-          if (pulse?.moments?.length) {
-            type Moment = { slot: string; date: string; note?: string }
-            const parsed = (pulse.moments as string[]).map((m: string) => {
-              try { return JSON.parse(m) as Moment } catch { return null }
-            }).filter((m): m is Moment => m !== null)
-
-            next = next.map(slot => {
-              if (slot.id === 'friend') return slot
-              const slotMoments = parsed.filter(m => m.slot === slot.id)
-              if (!slotMoments.length) return slot
-              const dbConns: Connection[] = slotMoments.map(m => ({ date: m.date, note: m.note }))
-              const localDates = new Set(slot.connections.map(c => c.date))
-              const merged = [...slot.connections, ...dbConns.filter(c => !localDates.has(c.date))]
-                .sort((a, b) => a.date.localeCompare(b.date))
-              return { ...slot, connections: merged }
-            })
-          }
-
-          // Merge most-recent brotherhood contact into friend slot
-          if (contacts && contacts.length > 0) {
-            const contact = contacts[0]
-            next = next.map(slot => {
-              if (slot.id !== 'friend') return slot
-              const dbConns: Connection[] = contact.last_contacted_at
-                ? [{ date: (contact.last_contacted_at as string).split('T')[0] }]
-                : []
-              const localDates = new Set(slot.connections.map(c => c.date))
-              const merged = [...slot.connections, ...dbConns.filter(c => !localDates.has(c.date))]
-                .sort((a, b) => a.date.localeCompare(b.date))
-              return { ...slot, name: slot.name || (contact.name as string) || '', connections: merged }
-            })
-          }
-
-          localStorage.setItem(HEAT_KEY, JSON.stringify(next))
-          return next
-        })
-      } catch { /* ignore — localStorage state remains */ }
-    })()
   }, [])
 
   // ── Act handlers ──────────────────────────────────────────────────────────────
@@ -291,101 +173,6 @@ export default function SpiritPage() {
     setChallenge(next)
     setActDone(false)
     saveAct(false, next)
-  }
-
-  // ── Heat map handlers ─────────────────────────────────────────────────────────
-
-  async function syncToSupabase(next: HeatSlot[]) {
-    if (!userId || !weekStart) return
-    try {
-      // ── family_pulse (wife / kids) ──────────────────────────────────────────
-      const familySlots = next.filter(s => s.id !== 'friend')
-      const moments: string[] = []
-      for (const slot of familySlots) {
-        for (const conn of slot.connections) {
-          moments.push(JSON.stringify({ slot: slot.id, date: conn.date, note: conn.note }))
-        }
-      }
-      const wCount = moments.filter(m => { try { return JSON.parse(m).slot === 'wife' } catch { return false } }).length
-      const kCount = moments.filter(m => { try { return ['kid1','kid2','kid3'].includes(JSON.parse(m).slot) } catch { return false } }).length
-      await supabase.from('family_pulse').upsert({
-        user_id: userId,
-        week_start: weekStart,
-        moments,
-        marriage_vibe: wCount > 0 ? Math.min(5, wCount) : null,
-        kid_score:     kCount > 0 ? Math.min(5, kCount) : null,
-      }, { onConflict: 'user_id,week_start' })
-
-      // ── brotherhood_contacts (friend slot) ──────────────────────────────────
-      const friendSlot = next.find(s => s.id === 'friend')
-      if (friendSlot && friendSlot.connections.length > 0) {
-        const name = friendSlot.name || 'Friend'
-        const lastDate = friendSlot.connections[friendSlot.connections.length - 1].date
-        const lastContactedAt = new Date(`${lastDate}T12:00:00`).toISOString()
-        const { data: existing } = await supabase
-          .from('brotherhood_contacts')
-          .select('id')
-          .eq('user_id', userId)
-          .order('created_at')
-          .limit(1)
-          .maybeSingle()
-        if (existing) {
-          await supabase.from('brotherhood_contacts')
-            .update({ name, last_contacted_at: lastContactedAt })
-            .eq('id', (existing as { id: string }).id)
-        } else {
-          await supabase.from('brotherhood_contacts')
-            .insert({ user_id: userId, name, last_contacted_at: lastContactedAt })
-        }
-      }
-    } catch (e) {
-      console.error('Connection sync error:', e)
-    }
-  }
-
-  function persistSlots(next: HeatSlot[]) {
-    setSlots(next)
-    localStorage.setItem(HEAT_KEY, JSON.stringify(next))
-    syncToSupabase(next)
-  }
-
-  function handleRename(id: string) {
-    persistSlots(slots.map(s => s.id === id ? { ...s, name: editName.trim() || s.label } : s))
-    setEditingId(null)
-    setEditName('')
-  }
-
-  function handleLogConnection(id: string) {
-    const today = new Date().toISOString().split('T')[0]
-    persistSlots(slots.map(s => {
-      if (s.id !== id) return s
-      const rest = s.connections.filter(c => c.date !== today)
-      return { ...s, connections: [...rest, { date: today, note: logNote.trim() || undefined }] }
-    }))
-    setLoggingId(null)
-    setLogNote('')
-  }
-
-  function handleUndoConnection(id: string) {
-    const today = new Date().toISOString().split('T')[0]
-    persistSlots(slots.map(s =>
-      s.id === id ? { ...s, connections: s.connections.filter(c => c.date !== today) } : s
-    ))
-  }
-
-  function handleDeleteSlot(id: string) {
-    // Don't allow deleting the wife slot — always required
-    if (id === 'wife') return
-    persistSlots(slots.filter(s => s.id !== id))
-    if (editingId === id) setEditingId(null)
-  }
-
-  function handleAddKid() {
-    const kidNums = slots
-      .filter(s => s.id.startsWith('kid'))
-      .map(s => parseInt(s.id.replace('kid', '')) || 0)
-    const next = kidNums.length ? Math.max(...kidNums) + 1 : 1
-    persistSlots([...slots, { id: `kid${next}`, label: `Kid ${next}`, name: '', connections: [] }])
   }
 
   if (!mounted) return (
@@ -554,173 +341,6 @@ export default function SpiritPage() {
                       Not today
                     </button>
                   )}
-                </div>
-
-              </div>
-            </div>
-          </motion.div>
-
-          {/* ── Connection Heat Map ───────────────────────────────────────────────── */}
-          <motion.div variants={fadeUp}>
-            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
-              <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
-              <div className="p-5 space-y-4">
-
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users size={14} className="text-brand" strokeWidth={2.5} />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground font-display">Connection</p>
-                  </div>
-                  <button
-                    onClick={() => { setIsEditing(!isEditing); setEditingId(null) }}
-                    className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {isEditing ? 'Done' : 'Edit Names'}
-                  </button>
-                </div>
-
-                {/* Slots */}
-                <div className="space-y-2">
-                  {slots.map(slot => {
-                    const { bg, border, text, label } = heatColor(slot)
-                    const displayName = slot.name || slot.label
-                    const loggedToday = slot.connections.some(c => c.date === today)
-
-                    /* Edit mode */
-                    if (isEditing) {
-                      return (
-                        <div key={slot.id} className="flex items-center gap-2 p-3 rounded-xl border border-border/40 bg-surface-3/30">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground w-12 flex-shrink-0">
-                            {slot.label}
-                          </span>
-                          {editingId === slot.id ? (
-                            <div className="flex gap-2 flex-1 items-center">
-                              <input
-                                autoFocus
-                                value={editName}
-                                onChange={e => setEditName(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleRename(slot.id)}
-                                placeholder={slot.label}
-                                className="flex-1 bg-transparent text-sm text-foreground outline-none border-b border-brand pb-0.5"
-                              />
-                              <button onClick={() => handleRename(slot.id)} className="text-brand text-xs font-black uppercase tracking-wider">
-                                Save
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => { setEditingId(slot.id); setEditName(slot.name) }}
-                              className="flex-1 text-left text-sm font-semibold text-foreground hover:text-brand transition-colors"
-                            >
-                              {displayName}
-                              <span className="text-muted-foreground/40 font-normal text-xs ml-2">tap to rename</span>
-                            </button>
-                          )}
-                          {slot.id !== 'wife' && (
-                            <button
-                              onClick={() => handleDeleteSlot(slot.id)}
-                              className="p-1.5 text-muted-foreground/40 hover:text-destructive transition-colors flex-shrink-0"
-                              aria-label={`Remove ${displayName}`}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      )
-                    }
-
-                    /* Normal mode */
-                    return (
-                      <div key={slot.id}>
-                        <button
-                          onClick={() => {
-                            if (loggedToday) {
-                              handleUndoConnection(slot.id)
-                            } else {
-                              setLoggingId(loggingId === slot.id ? null : slot.id)
-                              setLogNote('')
-                            }
-                          }}
-                          className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-all active:scale-[0.98] ${bg} ${border}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
-                              loggedToday ? 'bg-emerald-500/20 border-emerald-500/40' : 'border-border/60'
-                            }`}>
-                              {loggedToday && <Check size={10} className="text-emerald-400" strokeWidth={3} />}
-                            </div>
-                            <span className="text-sm font-bold text-foreground">{displayName}</span>
-                          </div>
-                          <span className={`text-[10px] font-black uppercase tracking-widest ${text}`}>
-                            {loggedToday ? 'Logged ✓' : label}
-                          </span>
-                        </button>
-
-                        {/* Note expander */}
-                        <AnimatePresence>
-                          {loggingId === slot.id && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.18 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="pt-2 pb-1 space-y-2">
-                                <input
-                                  autoFocus
-                                  value={logNote}
-                                  onChange={e => setLogNote(e.target.value)}
-                                  onKeyDown={e => e.key === 'Enter' && handleLogConnection(slot.id)}
-                                  placeholder="What did you do? (optional)"
-                                  className="w-full bg-surface-3/50 border border-border/50 rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-brand transition-colors"
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleLogConnection(slot.id)}
-                                    className="flex-1 py-2.5 bg-brand text-background text-xs font-black uppercase tracking-widest rounded-xl active:scale-95 brand-glow"
-                                  >
-                                    Log Connection
-                                  </button>
-                                  <button
-                                    onClick={() => setLoggingId(null)}
-                                    className="px-4 py-2.5 border border-border/50 text-muted-foreground rounded-xl text-xs font-bold uppercase tracking-wider active:scale-95"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Add kid slot (only visible in edit mode) */}
-                {isEditing && (
-                  <button
-                    onClick={handleAddKid}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-border/50 text-muted-foreground hover:text-foreground hover:border-brand/30 transition-all text-xs font-bold uppercase tracking-widest"
-                  >
-                    <Plus size={12} /> Add Kid
-                  </button>
-                )}
-
-                {/* Legend */}
-                <div className="flex items-center justify-center gap-4 pt-1">
-                  {[
-                    { dot: 'bg-emerald-500', label: 'Recent' },
-                    { dot: 'bg-amber-500',   label: '3+ days' },
-                    { dot: 'bg-red-500',     label: '7+ days' },
-                  ].map(({ dot, label }) => (
-                    <div key={label} className="flex items-center gap-1.5">
-                      <div className={`w-2 h-2 rounded-full ${dot} opacity-60`} />
-                      <span className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-medium">{label}</span>
-                    </div>
-                  ))}
                 </div>
 
               </div>

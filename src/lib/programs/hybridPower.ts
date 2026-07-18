@@ -1,4 +1,5 @@
 import {
+  BuildDayOpts,
   DayPlan,
   LiftPrescription,
   MetconPrescription,
@@ -200,17 +201,17 @@ function thursdayConditioning(weekNumber: number, pos: MacroPos): OutsideSession
       parts: ['25-30 min very easy bike or jog — conversational pace'],
     }
   }
-  const bikeWeek = weekNumber % 2 === 1
+  // Time-based intervals work on any modality — the athlete picks the tool.
   const byMeso: Record<number, string> = {
-    1: bikeWeek ? '5 × 4 min @ threshold, 2 min easy between' : '5 × 3 min hard run, 2 min walk/jog between',
-    2: bikeWeek ? '6 × 3 min @ slightly above threshold, 2 min easy' : '6 × 2 min hard run, 90s recovery',
-    3: bikeWeek ? '8 × 90s hard, 90s easy' : '8 × 1 min hard run, 1 min walk',
+    1: '5 × 4 min hard, 2 min easy between',
+    2: '6 × 3 min hard, 2 min easy between',
+    3: '8 × 90s hard, 90s easy between',
   }
   return {
     kind: 'outside', slot: 'cond_intervals',
-    title: bikeWeek ? 'Bike Intervals' : 'Run Intervals',
-    parts: ['10 min progressive warm-up', byMeso[pos.meso], '5-10 min easy cooldown'],
-    note: 'Hard but repeatable — last rep should match the first.',
+    title: 'Intervals — Bike / Row / Run',
+    parts: ['10 min progressive warm-up (any modality)', byMeso[pos.meso], '5-10 min easy cooldown'],
+    note: 'Pick bike, rower, or run — whichever suits you today. Hard but repeatable: the last rep should match the first.',
   }
 }
 
@@ -221,12 +222,11 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
       parts: ['30 min easy Z2 — opposite modality from Thursday', 'Nasal breathing pace'],
     }
   }
-  const thursdayWasBike = weekNumber % 2 === 1
-  const modality = thursdayWasBike ? 'run (or brisk ruck)' : 'bike / Peloton'
   const mins = pos.meso === 1 ? '40-50' : pos.meso === 2 ? '45-55' : '40-45'
   return {
-    kind: 'outside', slot: 'cond_steady', title: 'Steady Z2',
-    parts: [`${mins} min steady Z2 ${modality}`, 'Conversational the whole way — this builds the base, not the ego'],
+    kind: 'outside', slot: 'cond_steady', title: 'Steady Z2 — Your Pick',
+    parts: [`${mins} min steady Z2 — bike, row, run, or ruck`, 'Conversational the whole way — this builds the base, not the ego'],
+    note: 'Rotating modalities across weeks spreads the wear. Different tool than Thursday is a good default.',
   }
 }
 
@@ -441,8 +441,10 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
   return { dayNumber, dayName: 'Easy Z2', dayType: 'outside', sessionIntent: 'Easy aerobic work.', items: [sundayConditioning(13, pos)] }
 }
 
-function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}): DayPlan {
+function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}, opts?: BuildDayOpts): DayPlan {
   const pos = macroPos(weekNumber)
+  // Athlete-flagged fatigue deload — same treatment as the built-in W12.
+  if (opts?.forceDeload && !pos.isTest) pos.isDeload = true
   if (pos.isTest) return testDay(dayNumber, maxes)
 
   const m = pos.meso - 1
@@ -522,7 +524,9 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
     }
     case 6: {
       const dl = liftFromSlot('sat_dl', D6_DL[m], w, 'deadlift', maxes, pos.meso, adjustments)
-      let items: Prescription[] = [dl, saturdayOverhead(pos, maxes), ...saturdayPlyo(pos)]
+      const dips = accessory('acc_dips', 'Dips', 3, pos.meso === 1 ? 10 : pos.meso === 2 ? 8 : 6,
+        'Bodyweight+ — add load when every rep is crisp; log added lbs as the weight')
+      let items: Prescription[] = [dl, saturdayOverhead(pos, maxes), dips, ...saturdayPlyo(pos)]
       if (pos.isDeload) {
         items = [
           withResolvedDeload(dl, maxes),

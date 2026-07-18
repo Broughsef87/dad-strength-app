@@ -1,4 +1,5 @@
 import {
+  BuildDayOpts,
   DayPlan,
   LiftPrescription,
   OutsideSession,
@@ -292,8 +293,10 @@ function testDay(dayNumber: number, maxes: Record<string, number>, p: Paces | nu
   return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Recover — the TT and strength check need fresh legs.', items: [] }
 }
 
-function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}): DayPlan {
+function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}, opts?: BuildDayOpts): DayPlan {
   const pos = macroPos(weekNumber)
+  // Athlete-flagged fatigue deload — same treatment as the built-in W12.
+  if (opts?.forceDeload && !pos.isTest) pos.isDeload = true
   const paces = derivePaces(maxes['five_k_time'])
   if (pos.isTest) return testDay(dayNumber, maxes, paces)
 

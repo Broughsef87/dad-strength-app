@@ -1,4 +1,5 @@
 import {
+  BuildDayOpts,
   DayPlan,
   LiftPrescription,
   MetconPrescription,
@@ -237,8 +238,10 @@ function testDay(dayNumber: number): DayPlan {
   return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Recover between test days.', items: [] }
 }
 
-function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}): DayPlan {
+function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}, opts?: BuildDayOpts): DayPlan {
   const pos = macroPos(weekNumber)
+  // Athlete-flagged fatigue deload — same treatment as the built-in W12.
+  if (opts?.forceDeload && !pos.isTest) pos.isDeload = true
   if (pos.isTest) return testDay(dayNumber)
 
   const m = pos.meso - 1

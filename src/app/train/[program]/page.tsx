@@ -7,7 +7,7 @@
 // (the day page takes a ?week= override). Completed days are lit from
 // session_complete sentinel rows.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, AlertTriangle, Dumbbell, Wind, FlaskConical, ChevronRight } from 'lucide-react'
 import { createClient } from '../../../utils/supabase/client'
@@ -33,18 +33,23 @@ export default function MissionSchedulePage() {
   const [selectedWeek, setSelectedWeek] = useState(1)
   const [doneMap, setDoneMap] = useState<DoneMap>({})
   const [maxes, setMaxes] = useState<Record<string, number>>({})
+  const [deloadWeeks, setDeloadWeeks] = useState<number[]>([])
+  const prefsRef = useRef<Record<string, unknown>>({})
 
   const load = useCallback(async () => {
     if (!user || !program) return
     try {
       const [{ data: prog }, { data: maxRows }] = await Promise.all([
-        supabase.from('user_programs').select('current_week')
+        supabase.from('user_programs').select('current_week, preferences')
           .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active').maybeSingle(),
         supabase.from('user_maxes').select('lift_key, value_lbs').eq('user_id', user.id),
       ])
       const wk = prog?.current_week ?? 1
       setCurrentWeek(wk)
       setSelectedWeek(wk)
+      prefsRef.current = (prog?.preferences ?? {}) as Record<string, unknown>
+      const dw = (prefsRef.current as { deload_weeks?: unknown }).deload_weeks
+      setDeloadWeeks(Array.isArray(dw) ? dw.filter((n): n is number => typeof n === 'number') : [])
       const m: Record<string, number> = {}
       for (const r of maxRows ?? []) m[r.lift_key] = Number(r.value_lbs)
       setMaxes(m)
@@ -96,18 +101,36 @@ export default function MissionSchedulePage() {
   // Macro position for the selected week (mirror of config math).
   const weekInMacro = ((selectedWeek - 1) % program.macroWeeks) + 1
   const isTest = weekInMacro === program.macroWeeks
-  const isDeload = weekInMacro === program.macroWeeks - 1
+  const isNaturalDeload = weekInMacro === program.macroWeeks - 1
+  const isForcedDeload = deloadWeeks.includes(selectedWeek)
+  const isDeload = isNaturalDeload || isForcedDeload
 
   const macroStart = selectedWeek - (weekInMacro - 1)
   const macroWeeks = Array.from({ length: program.macroWeeks }, (_, i) => macroStart + i)
 
   const weekPlans = Array.from({ length: program.daysPerWeek }, (_, i) =>
-    program.buildDay(selectedWeek, i + 1, maxes),
+    program.buildDay(selectedWeek, i + 1, maxes, undefined, { forceDeload: isForcedDeload }),
   )
   const doneDays = doneMap[selectedWeek] ?? new Set<number>()
 
-  const weekTag = (wim: number) =>
-    wim === program.macroWeeks ? 'TEST' : wim === program.macroWeeks - 1 ? 'DELOAD' : `M${Math.ceil(wim / 4)}·W${((wim - 1) % 4) + 1}`
+  const weekTag = (wim: number, wk?: number) =>
+    wim === program.macroWeeks ? 'TEST'
+      : wim === program.macroWeeks - 1 || (wk != null && deloadWeeks.includes(wk)) ? 'DELOAD'
+      : `M${Math.ceil(wim / 4)}·W${((wim - 1) % 4) + 1}`
+
+  // Fatigue-flagged deload: toggle for the selected week, persisted on
+  // user_programs.preferences so the day pages render it too.
+  const toggleDeload = async () => {
+    if (!user) return
+    const next = isForcedDeload
+      ? deloadWeeks.filter(w => w !== selectedWeek)
+      : [...deloadWeeks, selectedWeek]
+    setDeloadWeeks(next)
+    prefsRef.current = { ...prefsRef.current, deload_weeks: next }
+    await supabase.from('user_programs')
+      .update({ preferences: prefsRef.current })
+      .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
@@ -133,11 +156,26 @@ export default function MissionSchedulePage() {
         <section className="space-y-2.5">
           <div className="flex items-center justify-between">
             <p className="telemetry">
-              WK {String(selectedWeek).padStart(2, '0')} // {weekTag(weekInMacro)}
+              WK {String(selectedWeek).padStart(2, '0')} // {weekTag(weekInMacro, selectedWeek)}
               {selectedWeek === currentWeek ? ' · ACTIVE' : ''}
             </p>
-            {isDeload && <span className="telemetry border border-brand/50 px-1.5 py-0.5">DELOAD</span>}
-            {isTest && <span className="telemetry border border-brand/50 px-1.5 py-0.5 red-alert">TRIAL PROTOCOL</span>}
+            <div className="flex items-center gap-2">
+              {isDeload && <span className="telemetry border border-brand/50 px-1.5 py-0.5">DELOAD</span>}
+              {isTest && <span className="telemetry border border-brand/50 px-1.5 py-0.5 red-alert">TRIAL PROTOCOL</span>}
+              {!isTest && !isNaturalDeload && (
+                <button
+                  onClick={() => void toggleDeload()}
+                  title="Fatigued? Render this week with the deload treatment."
+                  className={`telemetry border px-1.5 py-0.5 transition-colors ${
+                    isForcedDeload
+                      ? 'border-brand text-brand bg-brand/10 hover:bg-brand/20'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:border-brand/40'
+                  }`}
+                >
+                  {isForcedDeload ? 'UNFLAG DELOAD' : 'FLAG DELOAD'}
+                </button>
+              )}
+            </div>
           </div>
           <div className="readout-rule" />
 
@@ -203,7 +241,7 @@ export default function MissionSchedulePage() {
                           <span key={i} className={`led-cell ${done.has(i + 1) ? 'lit' : ''}`} />
                         ))}
                       </div>
-                      <span className="telemetry-dim w-14 text-right shrink-0">{weekTag(wim)}</span>
+                      <span className="telemetry-dim w-14 text-right shrink-0">{weekTag(wim, wk)}</span>
                     </button>
                   </div>
                 )
