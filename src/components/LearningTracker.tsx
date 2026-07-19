@@ -26,6 +26,31 @@ interface Skill {
 
 const MAX_ACTIVE = 3
 
+// ── Skill picker — broad categories, tap-first. Custom stays as fallback. ──────
+const SKILL_CATS: Array<{ key: string; label: string; kind: Category; skills: string[]; milestones: string[] }> = [
+  { key: 'language', label: 'Language', kind: 'hobby',
+    skills: ['Spanish', 'French', 'Japanese', 'Portuguese', 'Italian'],
+    milestones: ['Hold a 10-min conversation', 'Finish the A1 course', "Read a kids' book aloud"] },
+  { key: 'music', label: 'Music', kind: 'hobby',
+    skills: ['Guitar', 'Piano', 'Drums', 'Singing', 'Music production'],
+    milestones: ['Play one full song', 'Learn 5 chords', 'Play for the family'] },
+  { key: 'tech', label: 'Tech', kind: 'professional',
+    skills: ['Coding', 'AI tools', 'Excel / Sheets', 'Photo editing', '3D printing'],
+    milestones: ['Ship a small project', 'Automate one chore', 'Finish a course'] },
+  { key: 'craft', label: 'Craft & DIY', kind: 'hobby',
+    skills: ['Woodworking', 'Welding', 'Gardening', 'Leatherwork', 'Cooking'],
+    milestones: ['Finish the first project', 'Build something for the house', 'Master one technique'] },
+  { key: 'sport', label: 'Sport & Skill', kind: 'hobby',
+    skills: ['BJJ', 'Golf', 'Chess', 'Climbing', 'Skiing'],
+    milestones: ['Book the first class', 'Survive a full session', 'Enter a competition'] },
+  { key: 'career', label: 'Career', kind: 'professional',
+    skills: ['Public speaking', 'Sales', 'Writing', 'Investing', 'Leadership'],
+    milestones: ['Give one talk', 'Close one deal', 'Publish one piece'] },
+  { key: 'study', label: 'Study', kind: 'hobby',
+    skills: ['History', 'Philosophy', 'Theology', 'Science', 'Biographies'],
+    milestones: ['Finish one book', 'Teach the kids one lesson', 'Write a one-page summary'] },
+]
+
 function agoLabel(date: string | null): string {
   if (!date) return 'not yet'
   const today = localDay()
@@ -45,6 +70,8 @@ export default function LearningTracker() {
   const [name, setName] = useState('')
   const [category, setCategory] = useState<Category>('hobby')
   const [milestone, setMilestone] = useState('')
+  const [catKey, setCatKey] = useState<string | null>(null)
+  const activeCat = SKILL_CATS.find(c => c.key === catKey) ?? null
 
   // Inline milestone editing, keyed by skill id.
   const [editId, setEditId] = useState<string | null>(null)
@@ -77,7 +104,7 @@ export default function LearningTracker() {
       .select('id, skill, category, milestone, sessions, milestones_hit, last_practiced')
       .single()
     if (data) setSkills(prev => [...prev, data as Skill])
-    setName(''); setMilestone(''); setCategory('hobby'); setAdding(false)
+    setName(''); setMilestone(''); setCategory('hobby'); setCatKey(null); setAdding(false)
   }
 
   const patch = (id: string, fields: Partial<Skill>) => {
@@ -188,12 +215,72 @@ export default function LearningTracker() {
             </div>
           ))}
 
-          {/* Add form */}
+          {/* Add form — tap-first: category → skill → suggested milestone */}
           {adding ? (
-            <div className="panel-cut-sm border border-brand/30 bg-background/40 p-3.5 space-y-3">
-              <input autoFocus value={name} onChange={e => setName(e.target.value)}
-                placeholder="What are you learning?"
-                className="w-full bg-transparent border-b border-border focus:border-brand text-sm text-foreground py-1 outline-none placeholder:text-muted-foreground/50" />
+            <div className="panel-cut-sm border border-brand/30 bg-background/40 p-3.5 space-y-3.5">
+              {/* 1. Category */}
+              <div>
+                <p className="telemetry-dim mb-1.5">PICK A LANE</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {SKILL_CATS.map(c => (
+                    <button key={c.key}
+                      onClick={() => { setCatKey(c.key === catKey ? null : c.key); setCategory(c.kind); setName(''); setMilestone('') }}
+                      className={`text-[9px] font-mono uppercase tracking-widest px-2 py-1.5 border rounded-sm transition-colors ${
+                        catKey === c.key ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
+                      }`}>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Skill chips for the lane */}
+              {activeCat && (
+                <div>
+                  <p className="telemetry-dim mb-1.5">THE SKILL</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeCat.skills.map(s => (
+                      <button key={s} onClick={() => setName(name === s ? '' : s)}
+                        className={`panel-cut-sm border px-2.5 py-1.5 text-xs transition-colors ${
+                          name === s ? 'border-brand text-brand bg-brand/10' : 'border-border/70 text-foreground/80 hover:border-brand/40 hover:text-foreground'
+                        }`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom skill fallback */}
+              <input value={activeCat && activeCat.skills.includes(name) ? '' : name}
+                onChange={e => setName(e.target.value)}
+                placeholder={activeCat ? 'Or type your own…' : 'Or skip the lanes and type it…'}
+                className="w-full bg-transparent border-b border-border focus:border-brand text-xs text-foreground py-1 outline-none placeholder:text-muted-foreground/50" />
+
+              {/* 3. Milestone — suggested chips + custom */}
+              {name.trim() && (
+                <div>
+                  <p className="telemetry-dim mb-1.5">FIRST MILESTONE (OPTIONAL)</p>
+                  {activeCat && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {activeCat.milestones.map(m => (
+                        <button key={m} onClick={() => setMilestone(milestone === m ? '' : m)}
+                          className={`panel-cut-sm border px-2.5 py-1.5 text-[11px] transition-colors ${
+                            milestone === m ? 'border-brand text-brand bg-brand/10' : 'border-border/70 text-muted-foreground hover:border-brand/40 hover:text-foreground'
+                          }`}>
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <input value={activeCat && activeCat.milestones.includes(milestone) ? '' : milestone}
+                    onChange={e => setMilestone(e.target.value)}
+                    placeholder="Or type your own…"
+                    className="w-full bg-transparent border-b border-border focus:border-brand text-xs text-foreground py-1 outline-none placeholder:text-muted-foreground/50" />
+                </div>
+              )}
+
+              {/* Hobby / professional tag (auto-set by lane, still editable) */}
               <div className="flex gap-2">
                 {(['hobby', 'professional'] as Category[]).map(c => (
                   <button key={c} onClick={() => setCategory(c)}
@@ -204,15 +291,13 @@ export default function LearningTracker() {
                   </button>
                 ))}
               </div>
-              <input value={milestone} onChange={e => setMilestone(e.target.value)}
-                placeholder="First milestone (optional)…"
-                className="w-full bg-transparent border-b border-border focus:border-brand text-xs text-foreground py-1 outline-none placeholder:text-muted-foreground/50" />
+
               <div className="flex gap-2">
                 <button onClick={() => void addSkill()} disabled={!name.trim()}
                   className="panel-cut-sm flex-1 py-2 bg-brand text-white text-[10px] font-semibold uppercase tracking-widest hover:bg-brand/90 disabled:opacity-40 transition-colors">
                   Start Tracking
                 </button>
-                <button onClick={() => { setAdding(false); setName(''); setMilestone('') }}
+                <button onClick={() => { setAdding(false); setName(''); setMilestone(''); setCatKey(null) }}
                   className="panel-cut-sm py-2 px-3 border border-border/70 text-muted-foreground text-[10px] font-semibold uppercase tracking-widest hover:text-foreground transition-colors">
                   Cancel
                 </button>
