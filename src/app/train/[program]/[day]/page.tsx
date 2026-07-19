@@ -52,6 +52,46 @@ interface SetEntry {
 
 const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
 
+// ── Plate math + warm-up ramps ─────────────────────────────────────────────────
+
+const BAR = 45
+const PLATE_SIZES = [45, 35, 25, 10, 5, 2.5]
+
+// "45·25·5 /SIDE" for a total barbell weight; null when it's not plate-able.
+function plateString(total: number | null | undefined): string | null {
+  if (total == null || total < BAR) return null
+  if (total <= BAR + 2.5) return 'EMPTY BAR'
+  let side = (total - BAR) / 2
+  const out: string[] = []
+  for (const p of PLATE_SIZES) {
+    while (side >= p - 0.01) { out.push(p === 2.5 ? '2.5' : String(p)); side -= p }
+  }
+  if (!out.length) return 'EMPTY BAR'
+  return `${out.join('·')} /SIDE${side > 0.01 ? ' +' : ''}`
+}
+
+interface RampSet { weight: number; reps: number }
+
+// Deterministic warm-up climb to the first working weight: bar → 40 → 55 →
+// 70 → 82%, dropping rungs that land within 10 lb of the work weight.
+function rampFor(target: number | null | undefined): RampSet[] {
+  if (target == null || target <= BAR + 15) return []
+  const steps = [
+    { p: 0, reps: 8 }, { p: 0.4, reps: 5 }, { p: 0.55, reps: 4 },
+    { p: 0.7, reps: 3 }, { p: 0.82, reps: 1 },
+  ]
+  const out: RampSet[] = []
+  let last = 0
+  for (const s of steps) {
+    const w = s.p === 0 ? BAR : Math.max(BAR, Math.round((target * s.p) / 5) * 5)
+    if (w <= last) continue
+    if (w >= target - 10) break
+    out.push({ weight: w, reps: s.reps })
+    last = w
+  }
+  return out
+}
+
 // ── Exercise substitutions ─────────────────────────────────────────────────────
 // Persistent per (program, slot, original name) — a swap survives across weeks
 // because the plan is rebuilt deterministically and re-subbed on every load.
@@ -369,7 +409,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   onLog: (sets: SetEntry[]) => void
   onSwap?: () => void
   history?: SlotHistoryEntry[]
-  onSetComplete?: () => void
+  onSetComplete?: (entry: SetEntry) => void
   onSetCountChange?: (newCount: number) => void
   onRemove?: () => void
 }) {
@@ -386,6 +426,10 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
     }),
   )
   const [expanded, setExpanded] = useState(true)
+  // Warm-up ramp — session-local checks, not logged (they're warm-ups).
+  const ramp = item.percent != null ? rampFor(item.targetWeightLbs) : []
+  const [showRamp, setShowRamp] = useState(false)
+  const [rampDone, setRampDone] = useState<boolean[]>(() => ramp.map(() => false))
 
   const update = (idx: number, field: keyof SetEntry, value: unknown) => {
     setSets(prev => {
@@ -400,10 +444,11 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
         return s
       })
       onLog(next)
+      // Marking a set done kicks off the rest timer + PR check with the
+      // just-completed entry.
+      if (field === 'done' && value === true) onSetComplete?.(next[idx])
       return next
     })
-    // Marking a set done kicks off the rest timer.
-    if (field === 'done' && value === true) onSetComplete?.()
   }
   const doneCount = sets.filter(s => s.done).length
   const allDone = doneCount === item.sets
@@ -445,6 +490,9 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                     AUTO {item.appliedAdjustmentPct > 0 ? '+' : ''}{item.appliedAdjustmentPct}%
                   </span>
                 )}
+                {plateString(item.targetWeightLbs) && (
+                  <span className="telemetry-dim basis-full">{plateString(item.targetWeightLbs)}</span>
+                )}
               </div>
             ) : (
               <p className="telemetry-dim mt-1.5">
@@ -484,6 +532,33 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
 
       {expanded && (
         <div className="px-4 pb-4 space-y-1.5 border-t border-border/60 pt-3">
+          {ramp.length > 0 && (
+            <div className="pb-1">
+              <button onClick={() => setShowRamp(v => !v)}
+                className="telemetry-dim hover:text-foreground transition-colors flex items-center gap-1">
+                WARM-UP RAMP {showRamp ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              </button>
+              {showRamp && (
+                <div className="mt-2 space-y-1">
+                  {ramp.map((rs, i) => (
+                    <button key={i}
+                      onClick={() => setRampDone(prev => prev.map((d, j) => (j === i ? !d : d)))}
+                      className={`w-full flex items-center gap-3 panel-cut-sm border px-3 py-1.5 text-left transition-colors ${
+                        rampDone[i] ? 'border-brand/40 bg-brand/5' : 'border-border/50 bg-background/40'
+                      }`}>
+                      <span className={`readout-num text-[11px] w-5 shrink-0 ${rampDone[i] ? 'text-brand' : 'text-muted-foreground'}`}>
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span className={`readout-num text-sm flex-1 ${rampDone[i] ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                        {rs.weight} × {rs.reps}
+                      </span>
+                      <span className="telemetry-dim shrink-0">{plateString(rs.weight) ?? ''}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-4 gap-2 telemetry-dim px-1">
             <span>SET</span><span>LOAD.LB</span><span>REPS</span><span></span>
           </div>
@@ -991,6 +1066,17 @@ export default function TrainingDayPage() {
   const [restTrigger, setRestTrigger] = useState(0)
   const [overrides, setOverrides] = useState<SessionOverrides>({})
   const [showAddExercise, setShowAddExercise] = useState(false)
+  // PR tracking: all-time completed sets per exercise name → records detection.
+  const bestsRef = useRef<Record<string, Array<{ w: number; r: number }>>>({})
+  const sessionPRsRef = useRef<Array<{ name: string; weight: number; reps: number }>>([])
+  const [prToast, setPrToast] = useState<{ name: string; weight: number; reps: number } | null>(null)
+  const prTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [sessionSummary, setSessionSummary] = useState<{
+    tonnage: number; sets: number
+    top: Array<{ name: string; weight: number; reps: number }>
+    prs: Array<{ name: string; weight: number; reps: number }>
+    weekDone: number
+  } | null>(null)
   // Plan after subs but BEFORE session overrides — overrides re-apply on top.
   const basePlanRef = useRef<DayPlan | null>(null)
   // Raw workout_data jsonb so override patches don't clobber the stored plan.
@@ -1103,6 +1189,24 @@ export default function TrainingDayPage() {
       workoutIdRef.current = workoutId
       if (workoutId) setSessionLogs(await fetchSessionLogs(supabase, workoutId))
       setLiftHistory(await fetchLiftHistory(supabase, user.id, slug, weekNumber, program.macroWeeks))
+
+      // All-time bests for today's lifts — powers live PR detection.
+      const liftNames = [...new Set(built.items.filter(i => i.kind === 'lift').map(i => i.name))]
+      if (liftNames.length) {
+        const { data: prRows } = await supabase
+          .from('ares_session_logs')
+          .select('block_name, weight_lbs, reps')
+          .eq('user_id', user.id).eq('log_type', 'strength_set').eq('completed', true)
+          .in('block_name', liftNames)
+          .not('weight_lbs', 'is', null).gt('weight_lbs', 0)
+          .limit(4000)
+        const bests: Record<string, Array<{ w: number; r: number }>> = {}
+        for (const r of (prRows ?? []) as Array<{ block_name: string; weight_lbs: number; reps: number | null }>) {
+          (bests[r.block_name] ??= []).push({ w: Number(r.weight_lbs), r: r.reps ?? 1 })
+        }
+        bestsRef.current = bests
+      }
+      sessionPRsRef.current = []
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
       console.error(e)
@@ -1149,6 +1253,28 @@ export default function TrainingDayPage() {
       completed_at: s.done ? now : null,
     }))
     report(item.name, await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT }))
+  }
+
+  // PR check on set completion: beats your best weight at >= that rep count.
+  // Silent for an exercise's first-ever exposure (everything would be a "PR").
+  const checkPR = (item: LiftPrescription, s: SetEntry) => {
+    const w = parseFloat(s.weight)
+    const r = parseInt(s.reps)
+    if (!Number.isFinite(w) || w <= 0 || !Number.isFinite(r) || r <= 0) return
+    const hist = bestsRef.current[item.name]
+    if (!hist || hist.length === 0) {
+      bestsRef.current[item.name] = [{ w, r }]
+      return
+    }
+    const best = hist.reduce((m, x) => (x.r >= r && x.w > m ? x.w : m), 0)
+    hist.push({ w, r })
+    if (best > 0 && w > best) {
+      sessionPRsRef.current.push({ name: item.name, weight: w, reps: r })
+      setPrToast({ name: item.name, weight: w, reps: r })
+      if (prTimer.current) clearTimeout(prTimer.current)
+      prTimer.current = setTimeout(() => setPrToast(null), 4200)
+      try { navigator.vibrate?.([60, 40, 120]) } catch { /* unsupported */ }
+    }
   }
 
   const logPlyoSets = async (item: PlyoPrescription, sets: PlyoSetEntry[], notes: string) => {
@@ -1202,6 +1328,34 @@ export default function TrainingDayPage() {
       notes: JSON.stringify({ program: slug, week: weekRef.current, day: dayNumber }),
       created_at: new Date().toISOString(),
     }, { onConflict: 'user_id,generated_workout_id,exercise_name,set_number' })
+
+    // Session debrief — computed fresh from the DB so it matches what saved.
+    try {
+      const { data: rows } = await supabase
+        .from('ares_session_logs')
+        .select('block_name, weight_lbs, reps')
+        .eq('generated_workout_id', workoutIdRef.current)
+        .eq('log_type', 'strength_set').eq('completed', true)
+      let tonnage = 0; let setCount = 0
+      const topBy: Record<string, { name: string; weight: number; reps: number }> = {}
+      for (const r of (rows ?? []) as Array<{ block_name: string; weight_lbs: number | null; reps: number | null }>) {
+        const w = Number(r.weight_lbs ?? 0); const reps = Number(r.reps ?? 0)
+        if (w > 0 && reps > 0) {
+          tonnage += w * reps; setCount++
+          if (!topBy[r.block_name] || w > topBy[r.block_name].weight) {
+            topBy[r.block_name] = { name: r.block_name, weight: w, reps }
+          }
+        }
+      }
+      const doneNow = await fetchDoneDays(supabase, user.id, slug, weekRef.current)
+      setSessionSummary({
+        tonnage, sets: setCount,
+        top: Object.values(topBy).sort((a, b) => b.weight - a.weight).slice(0, 3),
+        prs: [...sessionPRsRef.current],
+        weekDone: doneNow.length,
+      })
+    } catch { /* debrief is decoration — never block the CLEARED screen */ }
+
     setSessionComplete(true)
   }
 
@@ -1345,6 +1499,53 @@ export default function TrainingDayPage() {
         <div className="stamp px-8 py-4">
           <p className="font-display text-4xl tracking-[0.2em] uppercase">Cleared</p>
         </div>
+
+        {sessionSummary && (sessionSummary.sets > 0 || sessionSummary.prs.length > 0) && (
+          <div className="panel-cut hud-frame relative bg-card border border-border p-5 pt-8 w-full max-w-sm text-left space-y-4">
+            <span className="panel-id">DEBRIEF // SESSION.STATS</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="readout-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.35)' }}>
+                  {sessionSummary.tonnage.toLocaleString()}
+                </p>
+                <p className="telemetry-dim">LB TONNAGE</p>
+              </div>
+              <div>
+                <p className="readout-num text-3xl text-foreground">{sessionSummary.sets}</p>
+                <p className="telemetry-dim">WORKING SETS</p>
+              </div>
+            </div>
+            {sessionSummary.prs.length > 0 && (
+              <div className="border-t border-border/60 pt-3">
+                <p className="telemetry text-brand mb-1.5">RECORDS SET</p>
+                {sessionSummary.prs.map((p, i) => (
+                  <p key={i} className="text-sm text-foreground">
+                    {p.name} — <span className="readout-num text-brand">{p.weight}×{p.reps}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+            {sessionSummary.top.length > 0 && (
+              <div className="border-t border-border/60 pt-3">
+                <p className="telemetry-dim mb-1.5">TOP SETS</p>
+                {sessionSummary.top.map((t, i) => (
+                  <p key={i} className="text-sm text-muted-foreground">
+                    {t.name} <span className="readout-num text-foreground">{t.weight}×{t.reps}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+            <div className="border-t border-border/60 pt-3">
+              <div className="led-bar">
+                {Array.from({ length: program.daysPerWeek }).map((_, i) => (
+                  <span key={i} className={`led-cell ${i < sessionSummary.weekDone ? 'lit' : ''}`} />
+                ))}
+              </div>
+              <p className="telemetry-dim mt-1.5">WEEK {sessionSummary.weekDone}/{program.daysPerWeek} SESSIONS</p>
+            </div>
+          </div>
+        )}
+
         <div>
           <p className="telemetry mb-2">WK {weekRef.current} · DAY {dayNumber} // MISSION LOG SAVED</p>
           <p className="text-sm text-muted-foreground">{program.name}</p>
@@ -1437,7 +1638,8 @@ export default function TrainingDayPage() {
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]} onSetComplete={() => setRestTrigger(t => t + 1)}
+                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]}
+                  onSetComplete={entry => { setRestTrigger(t => t + 1); checkPR(item, entry) }}
                   onSetCountChange={n => void changeSetCount(item, n)} onRemove={() => removeExercise(item)} />
               )}
               {item.kind === 'plyo' && (
@@ -1533,6 +1735,18 @@ export default function TrainingDayPage() {
 
       {showAddExercise && (
         <AddExerciseModal onPick={addExercise} onClose={() => setShowAddExercise(false)} />
+      )}
+
+      {/* PR moment — fires when a logged set beats an all-time best */}
+      {prToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[85] panel-mount pointer-events-none">
+          <div className="stamp px-5 py-2.5 bg-background/95 backdrop-blur-sm">
+            <p className="font-display text-lg tracking-[0.16em] uppercase text-center">New Record</p>
+            <p className="telemetry text-center mt-0.5">
+              {prToast.name.toUpperCase()} // {prToast.weight} LB × {prToast.reps}
+            </p>
+          </div>
+        </div>
       )}
 
       <RestTimer trigger={restTrigger} />
