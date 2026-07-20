@@ -253,12 +253,13 @@ const D1_PSN_BACK: SlotMeso[] = [
   { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 4, reps: 2, pctStart: 75, pctStep: 1.5, targetRpe: 6, note: 'Back-offs — every rep FAST' },
   { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 2, pctStart: 76, pctStep: 1, targetRpe: 7, note: 'Back-offs — speed over load' },
 ]
-// Overhead power without jerk specificity: from the rack, dip-drive-punch.
-// M1 triples build the pattern; M2/M3 doubles live at 75%+ per the rule.
-const D1_PJERK: SlotMeso[] = [
-  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 3, pctStart: 68, pctStep: 2, targetRpe: 7, note: 'No split — punch and hold' },
-  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 2, pctStart: 75, pctStep: 1.5, targetRpe: 7, note: 'No split — punch and hold' },
-  { names: ['Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack', 'Power Jerk from Rack'], sets: 4, reps: 2, pctStart: 77, pctStep: 1.5, targetRpe: 7, note: 'No split — punch and hold' },
+// Monday heavy bench — the week's heavy-upper anchor. Dip-drive overhead was
+// triple-booked (Mon power jerk + Wed push press + Sat jerk slot); the jerk
+// left Monday so pressing splits heavy (Mon) / volume (Wed) instead.
+const D1_BENCH_HEAVY: SlotMeso[] = [
+  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 4, pctStart: 75, pctStep: 2, targetRpe: 7, note: 'Heavy day — Wednesday stays the volume day' },
+  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 3, pctStart: 80, pctStep: 2, targetRpe: 8 },
+  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 3, reps: 2, pctStart: 86, pctStep: 1, targetRpe: 8 },
 ]
 // Pulls key off the FULL-lift maxes and run heavy — a strong puller gets
 // nothing from sub-95% pulls. 100 → 116% across the macro.
@@ -294,7 +295,7 @@ const D3_FSQUAT: SlotMeso[] = [
 
 // ── Day 5 — Oly B (Fri): C&J primary + snatch secondary + clean pull + speed squat
 // Friday mirrors Monday's shape with the clean as the primary. No jerk —
-// overhead lives on Monday (power jerk) and Wednesday (push press).
+// overhead lives on Wednesday (push press) and Saturday (jerk slot).
 const D5_PCL_TOP: SlotMeso[] = [
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 5, reps: 3, pctStart: 70, pctStep: 2, targetRpe: 7, note: 'Straight sets — crisp, fast triples' },
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 2, pctStart: 79, pctStep: 1.5, targetRpe: 7, note: 'Build to this top double — singles on the way up' },
@@ -459,7 +460,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         items.push(liftFromSlot('psn_back', D1_PSN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
       }
       items.push(
-        liftFromSlot('power_jerk', D1_PJERK[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
+        liftFromSlot('bench_heavy', D1_BENCH_HEAVY[m], w, 'bench', maxes, pos.meso, adjustments),
         liftFromSlot('snatch_pull', D1_PULL[m], w, 'snatch', maxes, pos.meso, adjustments),
         liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         accessory('acc_pull', 'Bent-Over Row', 3, pos.meso === 3 ? 8 : 10, '90s rest'),
@@ -471,7 +472,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
       return {
         dayNumber, dayName: 'Power A — Snatch', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — light, fast, out of the gym feeling fresh.' : 'Power snatch for speed-strength, jerk drive overhead, heavy pull, heavy squat.',
+        sessionIntent: pos.isDeload ? 'Deload — light, fast, out of the gym feeling fresh.' : 'Power snatch for speed-strength, heavy bench, heavy pull, heavy squat.',
         items,
       }
     }
