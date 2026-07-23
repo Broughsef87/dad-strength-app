@@ -175,6 +175,7 @@ function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
           `${trim ? 5 : 7} × 20-30m accelerations from 3-point or falling start, FULL recovery (2-3 min)`,
           `${trim ? 3 : 4} × 5 broad jumps, stick each landing`,
           'Cooldown walk 5 min',
+          'Neck: hand-resisted isometrics — 2 × 10s each direction (front/back/sides)',
         ],
         note: 'Every rep max intent. If quality drops, end the session.',
       }
@@ -185,6 +186,7 @@ function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
           `${trim ? 3 : 5} × flying 20s (20m build + 20m fly), full recovery`,
           `${trim ? 3 : 4} × 30m bounding`,
           '3 × 5 hurdle hops or line hops',
+          'Neck: hand-resisted isometrics — 2 × 10s each direction (front/back/sides)',
         ],
         note: 'Tall posture, relaxed face and hands at top speed.',
       }
@@ -222,7 +224,11 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
   const mins = pos.meso === 1 ? '40-50' : pos.meso === 2 ? '45-55' : '40-45'
   return {
     kind: 'outside', slot: 'cond_steady', title: 'Steady Z2 — Your Pick',
-    parts: [`${mins} min steady Z2 — bike, row, run, or ruck`, 'Conversational the whole way — this builds the base, not the ego'],
+    parts: [
+      `${mins} min steady Z2 — bike, row, run, or ruck`,
+      'Conversational the whole way — this builds the base, not the ego',
+      'Neck: 2 × 15 plate curls + extensions (bench, towel, 5-10 lb plate) — or isometrics at home',
+    ],
     note: 'Rotating modalities across weeks spreads the wear. Different tool than Thursday is a good default.',
   }
 }
