@@ -17,7 +17,7 @@ import {
 // technique work (no pauses, tempos, complexes, receiving drills), just heavy
 // doubles and singles at 80%+ per the fulls rule. Speed lives in Friday's
 // hang power snatch (triples, 65-72%) and the speed box squats. Overhead is
-// push press (Wed) + the Saturday jerk slot only.
+// push press (Wed, power) + strict OHP wave (Sat, strength) — jerk retired.
 // Percent rules: pure lifts ≤2 reps ≥80%; any ≤2-rep set ≥75%; power/hang
 // triples ≥65%. Pulls key off the full-lift maxes and run heavy (100-116%).
 //
@@ -331,20 +331,14 @@ const D6_DL: SlotMeso[] = [
   { names: ['Deadlift', 'Deadlift', 'Deadlift', 'Deadlift'], sets: 3, reps: 2, pctStart: 85, pctStep: 2 },
 ]
 
-// Saturday overhead: jerk-drive power, no receiving technique (Snatch Balance
-// retired with the athletic-power rework). "Jerk variations here and there."
-function saturdayOverhead(pos: MacroPos, maxes: Record<string, number>): LiftPrescription {
-  if (pos.meso === 1) {
-    const pct = 70 + 2.5 * (pos.weekInMeso - 1)
-    return { kind: 'lift', slot: 'sat_overhead', name: 'Push Jerk', sets: 3, reps: 3, percent: pct, maxKey: 'clean_jerk', targetRpe: 7, targetWeightLbs: resolveWeight(pct, 'clean_jerk', maxes), note: 'Dip-drive, fast punch under' }
-  }
-  if (pos.meso === 2) {
-    const pct = 78 + 3 * (pos.weekInMeso - 1)
-    return { kind: 'lift', slot: 'sat_overhead', name: 'Jerk from Rack', sets: 4, reps: 2, percent: pct, maxKey: 'clean_jerk', targetRpe: 7, targetWeightLbs: resolveWeight(pct, 'clean_jerk', maxes) }
-  }
-  const pct = 85 + 3 * (pos.weekInMeso - 1)
-  return { kind: 'lift', slot: 'sat_overhead', name: 'Jerk from Rack', sets: 4, reps: 1, percent: pct, maxKey: 'clean_jerk', targetRpe: 8, targetWeightLbs: resolveWeight(pct, 'clean_jerk', maxes) }
-}
+// Saturday overhead: strict press wave — the dedicated overhead-STRENGTH slot.
+// The jerk is fully retired (was triple-booked); Wednesday push press owns
+// overhead power, this owns the grind. Keyed to its own ohp max.
+const D6_OHP: SlotMeso[] = [
+  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 6, pctStart: 67, pctStep: 2, targetRpe: 7, note: 'Strict — no leg drive, glutes tight' },
+  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 4, pctStart: 75, pctStep: 2, targetRpe: 8, note: 'Strict — no leg drive, glutes tight' },
+  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 2, pctStart: 83, pctStep: 1.5, targetRpe: 8, note: 'Strict — no leg drive, glutes tight' },
+]
 
 function saturdayPlyo(pos: MacroPos): PlyoPrescription[] {
   if (pos.meso === 1) return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 4, reps: 5, note: 'Step down, reset each rep — max intent' }]
@@ -518,7 +512,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       const dl = liftFromSlot('sat_dl', D6_DL[m], w, 'deadlift', maxes, pos.meso, adjustments)
       const dips = accessory('acc_dips', 'Dips', 3, pos.meso === 1 ? 10 : pos.meso === 2 ? 8 : 6,
         'Bodyweight+ — add load when every rep is crisp; log added lbs as the weight')
-      let items: Prescription[] = [dl, saturdayOverhead(pos, maxes), dips, ...saturdayPlyo(pos)]
+      let items: Prescription[] = [dl, liftFromSlot('ohp_press', D6_OHP[m], w, 'ohp', maxes, pos.meso, adjustments), dips, ...saturdayPlyo(pos)]
       if (pos.isDeload) {
         items = [
           withResolvedDeload(dl, maxes),
@@ -562,6 +556,7 @@ export const hybridPower: ProgramConfig = {
     { key: 'front_squat', label: 'Front Squat', hint: 'Best recent single (lbs)' },
     { key: 'bench', label: 'Bench Press', hint: 'Best recent single (lbs)' },
     { key: 'deadlift', label: 'Deadlift', hint: 'Best recent single (lbs)' },
+    { key: 'ohp', label: 'Overhead Press', hint: 'Strict press single — estimate: best 5×5 × 1.15' },
   ],
   buildDay,
 }
