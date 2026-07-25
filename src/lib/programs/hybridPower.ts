@@ -19,7 +19,8 @@ import {
 // hang power snatch (triples, 65-72%) and the speed box squats. Overhead is
 // push press (Wed, power) + strict OHP wave (Sat, strength) — jerk retired.
 // Percent rules: pure lifts ≤2 reps ≥80%; any ≤2-rep set ≥75%; power/hang
-// triples ≥65%. Pulls key off the full-lift maxes and run heavy (100-116%).
+// triples ≥65%. Clean pulls (Fri) key off the clean max, heavy (100-116%);
+// Monday is squat-priority (squat leads) with Nordics as the hamstring slot.
 //
 // 13-week macro: 3 × 4-week mesos + test week.
 //   Meso 1 (W1-4):   straight heavy doubles @ 80-83%
@@ -262,13 +263,9 @@ const D1_BENCH_HEAVY: SlotMeso[] = [
   { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 3, pctStart: 80, pctStep: 2, targetRpe: 8 },
   { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 3, reps: 2, pctStart: 86, pctStep: 1, targetRpe: 8 },
 ]
-// Pulls key off the FULL-lift maxes and run heavy — a strong puller gets
-// nothing from sub-95% pulls. 100 → 116% across the macro.
-const D1_PULL: SlotMeso[] = [
-  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 4, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
-  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 4, reps: 3, pctStart: 105, pctStep: 2.5, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
-  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 3, reps: 2, pctStart: 110, pctStep: 3, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
-]
+// Monday's snatch pull retired (2026-07): the day is squat-priority now, and
+// the freed slot went to Nordic curls — the program's only knee-flexion work.
+// Positional pulling lives in Friday's clean pulls (100-116%).
 const D1_SQUAT: SlotMeso[] = [
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 5, reps: 5, pctStart: 70, pctStep: 2 },
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 4, pctStart: 78, pctStep: 2 },
@@ -449,6 +446,10 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
   switch (dayNumber) {
     case 1: {
       let items: Prescription[] = [
+        // Squat-priority day: back squat LEADS the session — fresh legs go to
+        // strength. Snatch follows (80%+ doubles tolerate pre-fatigue; the
+        // weight-follow autoreg tracks whatever actually goes on the bar).
+        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments),
       ]
       if (D1_SN_BACK[m].sets > 0) {
@@ -456,17 +457,19 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
       items.push(
         liftFromSlot('bench_heavy', D1_BENCH_HEAVY[m], w, 'bench', maxes, pos.meso, adjustments),
-        liftFromSlot('snatch_pull', D1_PULL[m], w, 'snatch', maxes, pos.meso, adjustments),
-        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
+        // Knee-flexion hamstring work — the one pattern pulls/DL don't cover.
+        // Snatch pull slot retired for this (positions still trained: full
+        // snatch here, hang power snatch Fri, clean pulls Fri at 100-116%).
+        accessory('acc_nordic', 'Nordic Curl', 3, 5, 'Heels under a lat-pulldown pad or loaded bar. Slow lower, push-up assist back up. Swap for Romanian Deadlift if needed.'),
         accessory('acc_core', 'Hanging Leg Raises', 3, 12, '60s rest'),
       )
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
-          .filter(i => !(i.kind === 'lift' && (i.slot === 'snatch_pull' || i.slot === 'sn_back')))
+          .filter(i => !(i.kind === 'lift' && i.slot === 'sn_back'))
       }
       return {
-        dayNumber, dayName: 'Power A — Snatch', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — light, fast, out of the gym feeling fresh.' : 'Heavy snatches, heavy bench, heavy pull, heavy squat.',
+        dayNumber, dayName: 'Squat + Snatch', dayType: 'gym',
+        sessionIntent: pos.isDeload ? 'Deload — light, fast, out of the gym feeling fresh.' : 'Squats first — build the base. Then heavy snatch doubles, bench, hamstrings.',
         items,
       }
     }
