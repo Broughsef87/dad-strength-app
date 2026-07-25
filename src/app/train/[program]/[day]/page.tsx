@@ -1566,6 +1566,12 @@ export default function TrainingDayPage() {
               Next Mission →
             </button>
           )}
+          {/* Completed sessions stay reviewable — logs, swaps, and edits all
+              still work; re-completing an already-counted day is harmless. */}
+          <button onClick={() => setSessionComplete(false)}
+            className="panel-cut-sm w-full py-2.5 border border-brand/50 text-brand text-sm font-medium uppercase tracking-wider hover:bg-brand/10 transition-colors">
+            Review / Edit Session
+          </button>
           <button onClick={() => router.push('/dashboard')}
             className="panel-cut-sm w-full py-2.5 border border-border text-muted-foreground text-sm font-medium uppercase tracking-wider hover:text-foreground transition-colors">
             Return to Bridge
