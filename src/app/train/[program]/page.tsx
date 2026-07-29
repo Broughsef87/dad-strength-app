@@ -34,6 +34,7 @@ export default function MissionSchedulePage() {
   const [doneMap, setDoneMap] = useState<DoneMap>({})
   const [maxes, setMaxes] = useState<Record<string, number>>({})
   const [deloadWeeks, setDeloadWeeks] = useState<number[]>([])
+  const [dismissedChecks, setDismissedChecks] = useState<number[]>([])
   const prefsRef = useRef<Record<string, unknown>>({})
 
   const load = useCallback(async () => {
@@ -50,6 +51,8 @@ export default function MissionSchedulePage() {
       prefsRef.current = (prog?.preferences ?? {}) as Record<string, unknown>
       const dw = (prefsRef.current as { deload_weeks?: unknown }).deload_weeks
       setDeloadWeeks(Array.isArray(dw) ? dw.filter((n): n is number => typeof n === 'number') : [])
+      const dc = (prefsRef.current as { deload_checks_dismissed?: unknown }).deload_checks_dismissed
+      setDismissedChecks(Array.isArray(dc) ? dc.filter((n): n is number => typeof n === 'number') : [])
       const m: Record<string, number> = {}
       for (const r of maxRows ?? []) m[r.lift_key] = Number(r.value_lbs)
       setMaxes(m)
@@ -108,6 +111,15 @@ export default function MissionSchedulePage() {
   const macroStart = selectedWeek - (weekInMacro - 1)
   const macroWeeks = Array.from({ length: program.macroWeeks }, (_, i) => macroStart + i)
 
+  // Fatigue checkpoint: entering the 4th (top) week of a meso, ask the athlete
+  // whether to ride into the heavy work or take the deload instead. W12/W13
+  // are excluded — the macro already deloads and tests there. Keyed to the
+  // absolute week so each macro's checkpoints ask fresh.
+  const fatigueCheckDue =
+    selectedWeek === currentWeek &&
+    weekInMacro % 4 === 0 && !isTest && !isNaturalDeload &&
+    !isForcedDeload && !dismissedChecks.includes(selectedWeek)
+
   const weekPlans = Array.from({ length: program.daysPerWeek }, (_, i) =>
     program.buildDay(selectedWeek, i + 1, maxes, undefined, { forceDeload: isForcedDeload }),
   )
@@ -127,6 +139,16 @@ export default function MissionSchedulePage() {
       : [...deloadWeeks, selectedWeek]
     setDeloadWeeks(next)
     prefsRef.current = { ...prefsRef.current, deload_weeks: next }
+    await supabase.from('user_programs')
+      .update({ preferences: prefsRef.current })
+      .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')
+  }
+
+  const dismissFatigueCheck = async () => {
+    if (!user) return
+    const next = [...dismissedChecks, selectedWeek]
+    setDismissedChecks(next)
+    prefsRef.current = { ...prefsRef.current, deload_checks_dismissed: next }
     await supabase.from('user_programs')
       .update({ preferences: prefsRef.current })
       .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')
@@ -178,6 +200,33 @@ export default function MissionSchedulePage() {
             </div>
           </div>
           <div className="readout-rule" />
+
+          {fatigueCheckDue && (
+            <div className="panel-cut-sm relative border border-amber-500/40 bg-amber-500/5 p-4 pt-6">
+              <span className="panel-id">SYS-FTG // FATIGUE CHECK</span>
+              <p className="text-sm font-medium text-foreground mb-1">
+                Top week of the meso — three loading weeks banked.
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                Feeling strong? Ride into the heavy work. Beat up? Flag the deload
+                and come back for these numbers fresh.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => void toggleDeload()}
+                  className="panel-cut-sm flex-1 py-2.5 border border-amber-500/60 text-amber-400 text-xs font-semibold uppercase tracking-widest hover:bg-amber-500/10 transition-colors"
+                >
+                  Flag Deload
+                </button>
+                <button
+                  onClick={() => void dismissFatigueCheck()}
+                  className="panel-cut-sm flex-1 py-2.5 border border-border text-muted-foreground text-xs font-semibold uppercase tracking-widest hover:text-foreground hover:border-brand/40 transition-colors"
+                >
+                  Ride On
+                </button>
+              </div>
+            </div>
+          )}
 
           {weekPlans.map((plan, i) => {
             const d = i + 1
