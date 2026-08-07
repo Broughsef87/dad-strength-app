@@ -27,10 +27,15 @@ import {
 //   Meso 2 (W5-8):   top double (83-86%) + back-off doubles @ 80%
 //   Meso 3 (W9-12):  top single (87-91%) + back-off singles @ 83-85%.
 //                    W12 = deload. W13 = TEST (Snatch, Clean, squats, bench, DL).
-// The SPINE (Snatch, Clean, squats, bench, DL, OHP, push press, pulls) never
-// rotates — you ride the same lift up the wave. The second tier DOES rotate
-// by meso (speed-oly slot, Wed volume bench → close-grip, Fri vertical pull →
-// row, core, unilateral) — variation isn't the enemy; frozen accessories are.
+// Variation model ("variation isn't the enemy"): vary the MIDDLE, get
+// specific at the end. M2 is the variation meso — hang-position back-offs on
+// both lifts, 1¼ bench, pause front squat, snatch pulls (off the snatch max),
+// close-grip Wed bench, floor power snatch — then M3 snaps back to the pure
+// lifts for realization. The top Snatch/Clean sets, OHP wave, and push press
+// never rotate. Back squat and deadlift stay STRAIGHT all macro — athlete's
+// explicit call (no pause squat, no deficit DL); don't re-propose them.
+// Pauses/tempos are allowed on STRENGTH lifts only — the oly technique ban
+// (complexes, balances, blocks, pause snatches) stands.
 //
 // Week: Mon Power A (snatch) · Tue sprint · Wed athletic strength ·
 //       Thu conditioning · Fri Power B (clean) · Sat power + engine · Sun Z2.
@@ -254,17 +259,24 @@ const D1_SN_TOP: SlotMeso[] = [
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
 ]
+// M2 back-offs move to the hang — same full-depth catch (heavy expression
+// preserved), new position, legal under the ≥75 doubles rule. M3 snaps back
+// to the pure lift for realization.
 const D1_SN_BACK: SlotMeso[] = [
   { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 }, // M1: straight sets, no back-offs
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — stay sharp' },
+  { names: ['Hang Snatch', 'Hang Snatch', 'Hang Snatch', 'Hang Snatch'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — full catch, sit in' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
 ]
 // Monday heavy bench — the week's heavy-upper anchor. Dip-drive overhead was
 // triple-booked (Mon power jerk + Wed push press + Sat jerk slot); the jerk
 // left Monday so pressing splits heavy (Mon) / volume (Wed) instead.
+// M2 rotates to the 1¼ bench (athlete's pick — "bench press with a pump
+// fake"): down, drive a quarter up, back down, then press to lockout = one
+// rep. Capacity runs ~85-90% of the comp bench, so the wave sits ~8% under
+// where straight triples would — M3 returns to straight bench to realize.
 const D1_BENCH_HEAVY: SlotMeso[] = [
   { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 4, pctStart: 75, pctStep: 2, targetRpe: 7, note: 'Heavy day — Wednesday stays the volume day' },
-  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 3, pctStart: 80, pctStep: 2, targetRpe: 8 },
+  { names: ['1¼ Bench Press', '1¼ Bench Press', '1¼ Bench Press', '1¼ Bench Press'], sets: 4, reps: 3, pctStart: 72, pctStep: 2, targetRpe: 8, note: 'Pump fake: down, quarter up, back down, press. That whole thing = 1 rep' },
   { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 3, reps: 2, pctStart: 86, pctStep: 1, targetRpe: 8 },
 ]
 // Monday's snatch pull retired (2026-07): the day is squat-priority now, and
@@ -292,9 +304,12 @@ const D3_BENCH: SlotMeso[] = [
   { names: ['Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press'], sets: 4, reps: 4, pctStart: 73, pctStep: 2, note: 'Index fingers just inside the rings — elbows tucked. Superset with weighted pull-ups' },
   { names: ['Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press'], sets: 3, reps: 3, pctStart: 79, pctStep: 2, note: 'Index fingers just inside the rings — elbows tucked. Superset with weighted pull-ups' },
 ]
+// M2 rotates to the pause front squat — contrast from a dead stop is the
+// best version of the jump pairing (strength lifts may pause; the oly
+// technique ban is about the classic lifts, not squats).
 const D3_FSQUAT: SlotMeso[] = [
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 4, reps: 5, pctStart: 72, pctStep: 2, note: 'Contrast: trap bar jumps ~30s after each set' },
-  { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 4, reps: 3, pctStart: 78, pctStep: 2.5, note: 'Contrast: trap bar jumps ~30s after each set' },
+  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 4, reps: 3, pctStart: 70, pctStep: 2, note: '2-count dead stop in the hole, then UP — trap bar jumps ~30s after each set' },
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 85, pctStep: 2.5, note: 'Contrast: trap bar jumps ~30s after each set' },
 ]
 
@@ -306,9 +321,10 @@ const D5_CL_TOP: SlotMeso[] = [
   { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
   { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
 ]
+// Mirrors the snatch: M2 back-offs from the hang, M3 pure singles.
 const D5_CL_BACK: SlotMeso[] = [
   { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 },
-  { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 3, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — stay sharp' },
+  { names: ['Hang Clean', 'Hang Clean', 'Hang Clean', 'Hang Clean'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — full catch, stand it up' },
   { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
 ]
 // Second snatch exposure of the week: speed-slot TRIPLES in the 65-74% zone
@@ -321,9 +337,15 @@ const D5_HPS: SlotMeso[] = [
   { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 4, reps: 3, pctStart: 68, pctStep: 2, targetRpe: 6, note: 'From the floor — full pull, crisp turnover, bar speed only.' },
   { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 71, pctStep: 1, targetRpe: 6, note: 'From the hang. Bar speed only.' },
 ]
+// M2 rotates to SNATCH pulls — the snatch otherwise gets zero heavy pulling
+// (Monday's snatch pull was cut), and 102-110% of the snatch max feeds M3's
+// 87-90% snatch singles directly. The call site swaps maxKey to 'snatch' for
+// meso 2; M1/M3 stay clean pulls off the clean max. Slot id stays
+// 'clean_pull' — autoreg continuity beats cosmetics (±8 clamp + the
+// weight-follow re-anchor absorb the cross-lift handoff).
 const D5_PULL: SlotMeso[] = [
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 4, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
-  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 4, reps: 3, pctStart: 105, pctStep: 2.5, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
+  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 4, reps: 3, pctStart: 102, pctStep: 2.5, targetRpe: 8, note: 'Of your SNATCH max. Heavy and fast — wide grip honest, bar tight' },
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 110, pctStep: 3, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
 ]
 // Speed-strength slot: box squat at dynamic-effort loads. Dead stop on the box
@@ -517,7 +539,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
       items.push(
         liftFromSlot('hang_psn', D5_HPS[m], w, 'snatch', maxes, pos.meso, adjustments),
-        liftFromSlot('clean_pull', D5_PULL[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
+        liftFromSlot('clean_pull', D5_PULL[m], w, pos.meso === 2 ? 'snatch' : 'clean_jerk', maxes, pos.meso, adjustments),
         liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         // Vertical pull rotates through the one horizontal-pull exposure the
         // program has (M2 row) — the bent-over row was cut by the 6-card law.
