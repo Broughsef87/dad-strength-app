@@ -27,6 +27,10 @@ import {
 //   Meso 2 (W5-8):   top double (83-86%) + back-off doubles @ 80%
 //   Meso 3 (W9-12):  top single (87-91%) + back-off singles @ 83-85%.
 //                    W12 = deload. W13 = TEST (Snatch, Clean, squats, bench, DL).
+// The SPINE (Snatch, Clean, squats, bench, DL, OHP, push press, pulls) never
+// rotates — you ride the same lift up the wave. The second tier DOES rotate
+// by meso (speed-oly slot, Wed volume bench → close-grip, Fri vertical pull →
+// row, core, unilateral) — variation isn't the enemy; frozen accessories are.
 //
 // Week: Mon Power A (snatch) · Tue sprint · Wed athletic strength ·
 //       Thu conditioning · Fri Power B (clean) · Sat power + engine · Sun Z2.
@@ -280,10 +284,13 @@ const D3_PUSH_PRESS: SlotMeso[] = [
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 3, pctStart: 72, pctStep: 2 },
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 2, pctStart: 78, pctStep: 2 },
 ]
+// M2/M3 rotate to close-grip — still keyed to the comp-bench max, waved ~5%
+// under the straight-bar numbers (CGB capacity ≈ low-90s% of comp bench).
+// Feeds OHP lockout, the athlete's stated overhead weakness.
 const D3_BENCH: SlotMeso[] = [
   { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 6, pctStart: 70, pctStep: 2, note: 'Superset with weighted pull-ups' },
-  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 4, pctStart: 77, pctStep: 2, note: 'Superset with weighted pull-ups' },
-  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 3, reps: 3, pctStart: 84, pctStep: 2, note: 'Superset with weighted pull-ups' },
+  { names: ['Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press'], sets: 4, reps: 4, pctStart: 73, pctStep: 2, note: 'Index fingers just inside the rings — elbows tucked. Superset with weighted pull-ups' },
+  { names: ['Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press'], sets: 3, reps: 3, pctStart: 79, pctStep: 2, note: 'Index fingers just inside the rings — elbows tucked. Superset with weighted pull-ups' },
 ]
 const D3_FSQUAT: SlotMeso[] = [
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 4, reps: 5, pctStart: 72, pctStep: 2, note: 'Contrast: trap bar jumps ~30s after each set' },
@@ -304,12 +311,15 @@ const D5_CL_BACK: SlotMeso[] = [
   { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 3, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — stay sharp' },
   { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
 ]
-// Second snatch exposure of the week: hang power snatch as TRIPLES — hangs may
-// run lighter than 75, so they stay at 3 reps in the 65-72% speed zone.
+// Second snatch exposure of the week: speed-slot TRIPLES in the 65-74% zone
+// (power/hang work may run lighter than 75, so 3s, never 2s). Rotates by meso:
+// hang (M1) → power snatch from the floor (M2 — restores the floor-speed pull
+// pattern after Monday's snatch pull was cut) → back to the hang, heavier (M3,
+// shorter ROM while CNS load peaks).
 const D5_HPS: SlotMeso[] = [
   { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 4, reps: 3, pctStart: 65, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 4, reps: 3, pctStart: 68, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 70, pctStep: 1, targetRpe: 6, note: 'From the hang. Bar speed only.' },
+  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 4, reps: 3, pctStart: 68, pctStep: 2, targetRpe: 6, note: 'From the floor — full pull, crisp turnover, bar speed only.' },
+  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 71, pctStep: 1, targetRpe: 6, note: 'From the hang. Bar speed only.' },
 ]
 const D5_PULL: SlotMeso[] = [
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 4, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
@@ -459,9 +469,11 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('bench_heavy', D1_BENCH_HEAVY[m], w, 'bench', maxes, pos.meso, adjustments),
         // Knee-flexion hamstring work — the one pattern pulls/DL don't cover.
         // Snatch pull slot retired for this (positions still trained: full
-        // snatch here, hang power snatch Fri, clean pulls Fri at 100-116%).
+        // snatch here, the Fri speed-oly slot, clean pulls Fri at 100-116%).
         accessory('acc_nordic', 'Nordic Curl', 3, 5, 'Heels under a lat-pulldown pad or loaded bar. Slow lower, push-up assist back up. Swap for Romanian Deadlift if needed.'),
-        accessory('acc_core', 'Hanging Leg Raises', 3, 12, '60s rest'),
+        pos.meso === 1 ? accessory('acc_core', 'Hanging Leg Raises', 3, 12, '60s rest')
+          : pos.meso === 2 ? accessory('acc_core', 'Ab Wheel Rollout', 3, 10, 'Knees down, flat back — stop the rep before the hips sag')
+          : accessory('acc_core', 'Weighted Hanging Leg Raise', 3, 8, 'DB between the feet — strict, no swing'),
       )
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
@@ -480,7 +492,9 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         { ...accessory('acc_wpu', 'Weighted Pull-Up', 4, pos.meso === 1 ? 6 : pos.meso === 2 ? 5 : 3, 'Superset with bench — add load as reps drop'), superset: 'press_pull' },
         liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
         trapBarJumps(pos, maxes),
-        accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, pos.meso === 1 ? 8 : pos.meso === 2 ? 6 : 5, 'Per leg, DBs in hand, 90s rest'),
+        pos.meso === 1 ? accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 8, 'Per leg, DBs in hand, 90s rest')
+          : pos.meso === 2 ? accessory('acc_single_leg', 'DB Reverse Lunge', 3, 8, 'Per leg, DBs in hand — control the descent, drive up tall, 90s rest')
+          : accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 5, 'Per leg — heavy DBs, 5s should be honest, 90s rest'),
       ]
       // Session diet: med-ball throws + farmer carries cut — ballistic work is
       // the trap bar jumps' job, carries recur in Saturday's metcon pool.
@@ -505,7 +519,11 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('hang_psn', D5_HPS[m], w, 'snatch', maxes, pos.meso, adjustments),
         liftFromSlot('clean_pull', D5_PULL[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
         liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
-        accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy'),
+        // Vertical pull rotates through the one horizontal-pull exposure the
+        // program has (M2 row) — the bent-over row was cut by the 6-card law.
+        pos.meso === 1 ? accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy')
+          : pos.meso === 2 ? accessory('acc_pullup', 'Chest-Supported DB Row', 3, 10, 'Chest on an incline bench — squeeze, no bounce')
+          : accessory('acc_pullup', 'Weighted Pull-Up', 3, 5, 'Moderate load — dead hang to chin over'),
       )
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
