@@ -13,10 +13,13 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 // HYBRID POWER ATHLETE — athletic power, not weightlifting
 //
-// The FULL snatch and clean (no jerk) are the heavy expression — zero
-// technique work (no pauses, tempos, complexes, receiving drills), just heavy
-// doubles and singles at 80%+ per the fulls rule. Speed lives in Friday's
-// hang power snatch (triples, 65-72%) and the speed box squats. Overhead is
+// The FULL snatch (Mon) and the POWER clean (Fri) are the heavy expression —
+// zero technique work (no pauses, tempos, complexes, receiving drills), just
+// heavy doubles and singles at 80%+ of the FULL-lift maxes. The clean side is
+// powers by the athlete's call, but the percentages stayed where the full
+// clean had them: %-of-power-max under-loads him, so the reference max stays
+// the full clean. Speed lives in the Friday hang/power snatch slot (triples,
+// 65-74%) and the speed box squats. Overhead is
 // push press (Wed, power) + strict OHP wave (Sat, strength) — jerk retired.
 // Percent rules: pure lifts ≤2 reps ≥80%; any ≤2-rep set ≥75%; power/hang
 // triples ≥65%. Clean pulls (Fri) key off the clean max, heavy (100-116%);
@@ -313,19 +316,23 @@ const D3_FSQUAT: SlotMeso[] = [
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 85, pctStep: 2.5, note: 'Contrast: trap bar jumps ~30s after each set' },
 ]
 
-// ── Day 5 — Oly B (Fri): C&J primary + snatch secondary + clean pull + speed squat
-// Friday mirrors Monday's shape with the clean as the primary. No jerk —
-// overhead lives on Wednesday (push press) and Saturday (jerk slot).
+// ── Day 5 — Oly B (Fri): power clean primary + snatch speed + pull + speed squat
+// Friday mirrors Monday's shape with the power clean as the primary. No jerk —
+// overhead lives on Wednesday (push press) and Saturday (strict OHP).
+// POWER cleans — catch above parallel, no jerk. Percentages still key off the
+// FULL clean max (athlete's locked rule: %-of-power-max under-loads him), and
+// the numbers are unchanged from when this slot ran full cleans: 80-83 → 83-86
+// → 87-90. Heavy by design.
 const D5_CL_TOP: SlotMeso[] = [
-  { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 4, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Straight heavy doubles — no jerk, stand it up' },
-  { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
-  { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Straight heavy doubles — catch above parallel, stand it up' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
 ]
-// Mirrors the snatch: M2 back-offs from the hang, M3 pure singles.
+// Mirrors the snatch: M2 back-offs from the hang, M3 back to the floor.
 const D5_CL_BACK: SlotMeso[] = [
   { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 },
-  { names: ['Hang Clean', 'Hang Clean', 'Hang Clean', 'Hang Clean'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — full catch, stand it up' },
-  { names: ['Clean', 'Clean', 'Clean', 'Clean'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
+  { names: ['Hang Power Clean', 'Hang Power Clean', 'Hang Power Clean', 'Hang Power Clean'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — catch above parallel, stand it up' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
 ]
 // Second snatch exposure of the week: speed-slot TRIPLES in the 65-74% zone
 // (power/hang work may run lighter than 75, so 3s, never 2s). Rotates by meso:
@@ -344,8 +351,8 @@ const D5_HPS: SlotMeso[] = [
 // 'clean_pull' — autoreg continuity beats cosmetics (±8 clamp + the
 // weight-follow re-anchor absorb the cross-lift handoff).
 const D5_PULL: SlotMeso[] = [
-  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 4, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
-  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 4, reps: 3, pctStart: 102, pctStep: 2.5, targetRpe: 8, note: 'Of your SNATCH max. Heavy and fast — wide grip honest, bar tight' },
+  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
+  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 3, reps: 3, pctStart: 102, pctStep: 2.5, targetRpe: 8, note: 'Of your SNATCH max. Heavy and fast — wide grip honest, bar tight' },
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 110, pctStep: 3, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
 ]
 // Speed-strength slot: box squat at dynamic-effort loads. Dead stop on the box
@@ -508,12 +515,15 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
     }
     case 3: {
+      // Order is rack-driven: push press and front squat share the bar and the
+      // rack, so they run back to back (with the jump contrast) before the
+      // session moves to the bench.
       let items: Prescription[] = [
         liftFromSlot('push_press', D3_PUSH_PRESS[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
-        liftFromSlot('bench', D3_BENCH[m], w, 'bench', maxes, pos.meso, adjustments, { superset: 'press_pull' }),
-        { ...accessory('acc_wpu', 'Weighted Pull-Up', 4, pos.meso === 1 ? 6 : pos.meso === 2 ? 5 : 3, 'Superset with bench — add load as reps drop'), superset: 'press_pull' },
         liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
         trapBarJumps(pos, maxes),
+        liftFromSlot('bench', D3_BENCH[m], w, 'bench', maxes, pos.meso, adjustments, { superset: 'press_pull' }),
+        { ...accessory('acc_wpu', 'Weighted Pull-Up', 4, pos.meso === 1 ? 6 : pos.meso === 2 ? 5 : 3, 'Superset with bench — add load as reps drop'), superset: 'press_pull' },
         pos.meso === 1 ? accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 8, 'Per leg, DBs in hand, 90s rest')
           : pos.meso === 2 ? accessory('acc_single_leg', 'DB Reverse Lunge', 3, 8, 'Per leg, DBs in hand — control the descent, drive up tall, 90s rest')
           : accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 5, 'Per leg — heavy DBs, 5s should be honest, 90s rest'),
@@ -553,7 +563,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
       return {
         dayNumber, dayName: 'Power B — Clean', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — a few crisp doubles, nothing else.' : 'Heavy cleans, hang snatch for speed, heavy pull, speed squats.',
+        sessionIntent: pos.isDeload ? 'Deload — a few crisp doubles, nothing else.' : 'Heavy power cleans, snatch speed work, heavy pull, speed squats.',
         items,
       }
     }
