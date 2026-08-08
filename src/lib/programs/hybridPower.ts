@@ -305,11 +305,16 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
       parts: ['30 min easy Z2 — opposite modality from Thursday', 'Nasal breathing pace'],
     }
   }
-  const mins = pos.meso === 1 ? '40-50' : pos.meso === 2 ? '45-55' : '40-45'
+  // The week has seven sessions and no valley in it — four hard gym days, a
+  // speed day, intervals, and this. That's the structural reason fatigue
+  // accumulates, so Sunday is the day the program gives back: shorter than it
+  // was, and explicitly skippable. Volume here was never the point.
+  const mins = pos.meso === 3 ? '30-40' : '35-45'
   return {
-    kind: 'outside', slot: 'cond_steady', title: 'Steady Z2 — Your Pick',
+    kind: 'outside', slot: 'cond_steady', title: 'Steady Z2 — Or Rest',
     parts: [
       `${mins} min steady Z2 — bike, row, run, or ruck`,
+      'Beat up? Cut it short or skip it entirely. This is the one session that owes you nothing',
       'Conversational the whole way — this builds the base, not the ego',
       'Neck: 2 × 15 plate curls + extensions (bench, towel, 5-10 lb plate) — or isometrics at home',
     ],
@@ -520,18 +525,21 @@ function withResolvedDeload(p: LiftPrescription, maxes: Record<string, number>):
 function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
   const plans: Record<number, DayPlan> = {
     1: {
-      dayNumber, dayName: 'TEST — Power Snatch 1RM', dayType: 'test',
-      sessionIntent: 'Work to a new 1RM power snatch. Take your time between attempts.',
+      dayNumber, dayName: 'TEST — Snatch 1RM', dayType: 'test',
+      sessionIntent: 'Work to a new 1RM snatch. Take your time between attempts.',
       items: [
         { kind: 'lift', slot: 'test_snatch', name: 'Snatch — work to 1RM', sets: 8, reps: 1, note: 'Climb 60/70/78/85/90/95%+ then PR attempts. Log the top single and update your Snatch max — it anchors next macro.' },
         accessory('test_acc', 'Easy bike flush', 1, 10, '10 min easy spin after'),
       ],
     },
     3: {
-      dayNumber, dayName: 'TEST — Power Clean 1RM', dayType: 'test',
-      sessionIntent: 'Work to a new 1RM power clean.',
+      dayNumber, dayName: 'TEST — Clean + Press 1RMs', dayType: 'test',
+      sessionIntent: 'Work to a new 1RM clean, then a strict press max.',
       items: [
         { kind: 'lift', slot: 'test_clean', name: 'Clean — work to 1RM (no jerk)', sets: 8, reps: 1, note: 'Climb 60/70/78/85/90/95%+ then PR attempts. Log the top single and update your Clean max — it anchors next macro.' },
+        // The OHP wave is the overhead-weakness project, and its max was never
+        // retested — so next macro kept computing off the number first entered.
+        { kind: 'lift', slot: 'test_ohp', name: 'Overhead Press — work to 1RM', sets: 5, reps: 1, note: 'Strict, no leg drive. Climb 60/72/82/90%+ then max attempts. Log it and update your OHP max — all of Saturday keys off it.' },
         accessory('test_acc', 'Easy bike flush', 1, 10, '10 min easy spin after'),
       ],
     },
@@ -593,8 +601,11 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         accessory('acc_nordic', 'Nordic Curl', 3, 5, 'Heels under a lat-pulldown pad or loaded bar. Slow lower, push-up assist back up. Swap for Romanian Deadlift if needed.'),
       )
       items.push(
+        // M1/M3 train the anterior core (flexion); M2 covers ANTI-ROTATION,
+        // which nothing else in the program touches now that the carries are
+        // gone. Ab wheel came out because it duplicates the leg raises.
         pos.meso === 1 ? accessory('acc_core', 'Hanging Leg Raises', 3, 12, '60s rest')
-          : pos.meso === 2 ? accessory('acc_core', 'Ab Wheel Rollout', 3, 10, 'Knees down, flat back — stop the rep before the hips sag')
+          : pos.meso === 2 ? accessory('acc_core', 'Pallof Press', 3, 12, 'Per side, cable or band at chest height. Resist the twist — hips square, ribs down.')
           : accessory('acc_core', 'Weighted Hanging Leg Raise', 3, 8, 'DB between the feet — strict, no swing'),
       )
       if (pos.isDeload) {
@@ -647,11 +658,12 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         // Same box as the speed squat — dead-stop jumps off the same station.
         seatedBoxJumps(),
-        // Vertical pull rotates through the one horizontal-pull exposure the
-        // program has (M2 row) — the bent-over row was cut by the 6-card law.
+        // This is the program's ONLY horizontal pulling, against five pressing
+        // exposures a week — so M2 and M3 both row. M3 used to repeat
+        // Wednesday's weighted pull-up exactly, which bought nothing.
         pos.meso === 1 ? accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy')
           : pos.meso === 2 ? accessory('acc_pullup', 'Pendlay Row', 3, 8, 'Barbell dead-stops on the floor every rep. Flat back, explosive pull to the sternum.')
-          : accessory('acc_pullup', 'Weighted Pull-Up', 3, 5, 'Moderate load — dead hang to chin over'),
+          : accessory('acc_pullup', 'Chest-Supported Row', 3, 10, 'Chest on an incline bench — strict, no bounce. Higher reps keep the shoulders healthy through the heaviest meso.'),
       )
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
@@ -668,7 +680,11 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       const dl = liftFromSlot('sat_dl', D6_DL[m], w, 'deadlift', maxes, pos.meso, adjustments)
       const dips = accessory('acc_dips', 'Dips', 3, pos.meso === 1 ? 10 : pos.meso === 2 ? 8 : 6,
         'Bodyweight+ — add load when every rep is crisp; log added lbs as the weight')
-      let items: Prescription[] = [dl, liftFromSlot('ohp_press', D6_OHP[m], w, 'ohp', maxes, pos.meso, adjustments), dips, ...saturdayPlyo(pos)]
+      // OHP LEADS: overhead strength is the stated weakness, and it was sitting
+      // behind a heavy deadlift at the end of the week — the worst slot in the
+      // program for the thing being prioritised. Same logic as squat-first
+      // Monday: the priority lift gets the fresh slot.
+      let items: Prescription[] = [liftFromSlot('ohp_press', D6_OHP[m], w, 'ohp', maxes, pos.meso, adjustments), dl, dips, ...saturdayPlyo(pos)]
       if (pos.isDeload) {
         items = [
           withResolvedDeload(dl, maxes),
@@ -681,7 +697,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
       return {
         dayNumber, dayName: 'Power + Engine', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — move, don\'t grind.' : 'Heavy deadlift, explosive jumps, then the week\'s metcon.',
+        sessionIntent: pos.isDeload ? 'Deload — move, don\'t grind.' : 'Strict press first, then heavy deadlift, jumps, and the week\'s metcon.',
         items,
       }
     }
@@ -701,7 +717,7 @@ export const hybridPower: ProgramConfig = {
   name: 'Hybrid Power Athlete',
   tagline: 'Olympic power · sprinting · engine',
   description:
-    '2 power days built on the Olympic lifts (power variants only — no technique work), an athletic strength day, and a power/engine day in the gym, plus sprint work and two conditioning sessions outside. 13-week macro, deload week 12, test week 13.',
+    'Two Olympic days — heavy full snatch and power clean, zero technique drills — plus an athletic strength day and a power/engine day in the gym, then a rotating speed day and two conditioning sessions outside. Every gym day caps at 6 blocks. 13-week macro: three mesos that vary the middle and realise on the pure lifts, deload week 12, test week 13. Flag a deload any week you need one.',
   daysPerWeek: 7,
   gymDayNumbers: [1, 3, 5, 6],
   macroWeeks: 13,

@@ -85,11 +85,23 @@ export async function computeAdjustments(
 
   // Last week's prescription per slot (floors bake in even with empty maxes).
   const prevPlan = program.buildDay(prevWeek, dayNumber, {})
-  const prescribed: Record<string, { percent: number; targetRpe?: number; maxKey?: string }> = {}
+  const prescribed: Record<string, { percent: number; targetRpe?: number; maxKey?: string; name: string }> = {}
   for (const item of prevPlan.items) {
     if (item.kind === 'lift' && item.percent != null) {
-      prescribed[item.slot] = { percent: item.percent, targetRpe: item.targetRpe, maxKey: item.maxKey }
+      prescribed[item.slot] = { percent: item.percent, targetRpe: item.targetRpe, maxKey: item.maxKey, name: item.name }
     }
+  }
+
+  // Mesos rotate exercises through STABLE slot ids, so at a meso boundary a
+  // slot can mean a different lift than it did last week — Clean Pull becomes
+  // Snatch Pull (and re-keys to the snatch max), Bench becomes 1¼ Bench, Front
+  // Squat becomes Pause Front Squat. Feedback about the old movement doesn't
+  // describe the new one: carrying it forward would open the new exercise up
+  // to 8 points heavy or light. When the lift or its reference max changes,
+  // drop the adjustment and let the new table's number stand.
+  const current: Record<string, { name: string; maxKey?: string }> = {}
+  for (const item of program.buildDay(weekNumber, dayNumber, {}).items) {
+    if (item.kind === 'lift') current[item.slot] = { name: item.name, maxKey: item.maxKey }
   }
 
   // The app follows the lifter, two signals per slot:
@@ -104,6 +116,9 @@ export async function computeAdjustments(
   for (const [slot, s] of Object.entries(bySlot)) {
     const p = prescribed[slot]
     if (!p) continue
+    // Rotated slot — last week was a different lift. Start this one clean.
+    const now = current[slot]
+    if (!now || now.name !== p.name || now.maxKey !== p.maxKey) continue
 
     let weightDelta = 0
     const max = p.maxKey ? maxes[p.maxKey] : undefined
