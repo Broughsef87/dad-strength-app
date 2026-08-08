@@ -322,11 +322,14 @@ const D3_FSQUAT: SlotMeso[] = [
 // POWER cleans — catch above parallel, no jerk. Percentages still key off the
 // FULL clean max (athlete's locked rule: %-of-power-max under-loads him), and
 // the numbers are unchanged from when this slot ran full cleans: 80-83 → 83-86
-// → 87-90. Heavy by design.
+// → 87-90. Heavy by design: at the top end the catch may ride down into a
+// squat clean, and that's an accepted outcome, not a missed rep — the athlete
+// doesn't police power-vs-squat at these percentages. Don't taper the wave
+// to keep every rep a true power.
 const D5_CL_TOP: SlotMeso[] = [
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Straight heavy doubles — catch above parallel, stand it up' },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up. If it rides down, ride it down and stand up.' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single. If it rides down, ride it down and stand up — the weight is the point up here.' },
 ]
 // Mirrors the snatch: M2 back-offs from the hang, M3 back to the floor.
 const D5_CL_BACK: SlotMeso[] = [
