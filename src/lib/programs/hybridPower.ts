@@ -42,7 +42,10 @@ import {
 //
 // Week: Mon Power A (snatch) · Tue sprint · Wed athletic strength ·
 //       Thu conditioning · Fri Power B (clean) · Sat power + engine · Sun Z2.
-// Session budget: every gym day caps at 6 cards.
+// Session budget: every gym day caps at 6 BLOCKS. A back-off slot (*_back) is
+// not its own block — it's the same bar, same station, immediately after the
+// top set, so it costs cards but not gym time. The budget is about the clock
+// ("I have a kid, I can't spend 2+ hours"), so it counts stations you set up.
 //
 // All loads are computed here — deterministic, never AI-generated.
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -184,9 +187,8 @@ function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
     ? {
         kind: 'outside', slot: 'sprint', title: 'Acceleration Day',
         parts: [
-          'Warm-up: 10 min jog + drills (A-skip, B-skip, high knees)',
-          `${trim ? 5 : 7} × 20-30m accelerations from 3-point or falling start, FULL recovery (2-3 min)`,
-          `${trim ? 3 : 4} × 5 broad jumps, stick each landing`,
+          'Warm-up (no jogging): pogo hops, A-skips, B-skips, high knees, butt kicks, leg swings',
+          `${trim ? 4 : 5} × 20-30m accelerations from 3-point or falling start, FULL recovery (2-3 min)`,
           'Cooldown walk 5 min',
           'Neck: hand-resisted isometrics — 2 × 10s each direction (front/back/sides)',
         ],
@@ -195,7 +197,7 @@ function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
     : {
         kind: 'outside', slot: 'sprint', title: 'Max Velocity Day',
         parts: [
-          'Warm-up: 10 min jog + drills + 2 build-up strides',
+          'Warm-up (no jogging): pogo hops, A-skips, B-skips, high knees, butt kicks, then 2 build-up strides',
           `${trim ? 3 : 5} × flying 20s (20m build + 20m fly), full recovery`,
           `${trim ? 3 : 4} × 30m bounding`,
           '3 × 5 hurdle hops or line hops',
@@ -334,8 +336,8 @@ const D5_CL_TOP: SlotMeso[] = [
 // Mirrors the snatch: M2 back-offs from the hang, M3 back to the floor.
 const D5_CL_BACK: SlotMeso[] = [
   { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 },
-  { names: ['Hang Power Clean', 'Hang Power Clean', 'Hang Power Clean', 'Hang Power Clean'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — catch above parallel, stand it up' },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
+  { names: ['Hang Power Clean', 'Hang Power Clean', 'Hang Power Clean', 'Hang Power Clean'], sets: 2, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — catch above parallel, stand it up' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off single' },
 ]
 // Second snatch exposure of the week: speed-slot TRIPLES in the 65-74% zone
 // (power/hang work may run lighter than 75, so 3s, never 2s). Rotates by meso:
@@ -343,9 +345,9 @@ const D5_CL_BACK: SlotMeso[] = [
 // pattern after Monday's snatch pull was cut) → back to the hang, heavier (M3,
 // shorter ROM while CNS load peaks).
 const D5_HPS: SlotMeso[] = [
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 4, reps: 3, pctStart: 65, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
-  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 4, reps: 3, pctStart: 68, pctStep: 2, targetRpe: 6, note: 'From the floor — full pull, crisp turnover, bar speed only.' },
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 71, pctStep: 1, targetRpe: 6, note: 'From the hang. Bar speed only.' },
+  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 65, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
+  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 3, pctStart: 68, pctStep: 2, targetRpe: 6, note: 'From the floor — full pull, crisp turnover, bar speed only.' },
+  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 2, reps: 3, pctStart: 71, pctStep: 1, targetRpe: 6, note: 'From the hang. Bar speed only.' },
 ]
 // M2 rotates to SNATCH pulls — the snatch otherwise gets zero heavy pulling
 // (Monday's snatch pull was cut), and 102-110% of the snatch max feeds M3's
@@ -395,6 +397,20 @@ function saturdayPlyo(pos: MacroPos): PlyoPrescription[] {
     { kind: 'plyo', slot: 'plyo', name: 'Depth Jumps', sets: 3, reps: 3, note: 'From ~18-24", rebound fast' },
     { kind: 'plyo', slot: 'plyo_2', name: 'Box Jumps', sets: 3, reps: 3, note: 'Max height, full recovery' },
   ]
+}
+
+// Monday's ballistic slot (MESO 2 ONLY): broad jumps, contrast-paired with the
+// back squat — horizontal power to balance the vertical jumps elsewhere.
+// Moved here off the sprint day at the athlete's request.
+function broadJumps(): PlyoPrescription {
+  return { kind: 'plyo', slot: 'broad_jump', name: 'Broad Jump', sets: 4, reps: 3, superset: 'sq_contrast', note: 'Stick every landing — no stumble-outs. ~30s after each back squat set.' }
+}
+
+// Friday's ballistic slot: seated box jump — dead-stop concentric, zero
+// stretch reflex, pure rate of force development. Shares the box with the
+// speed box squat, so it runs off the same station.
+function seatedBoxJumps(): PlyoPrescription {
+  return { kind: 'plyo', slot: 'seated_box_jump', name: 'Seated Box Jump', sets: 4, reps: 3, note: 'Sit tall on a box, shins vertical, NO rock or rebound — explode from a dead stop onto the box. Full reset between reps.' }
 }
 
 // Wednesday's ballistic slot: trap bar jumps, contrast-paired with front squat.
@@ -491,9 +507,12 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         // Squat-priority day: back squat LEADS the session — fresh legs go to
         // strength. Snatch follows (80%+ doubles tolerate pre-fatigue; the
         // weight-follow autoreg tracks whatever actually goes on the bar).
-        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
-        liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments),
+        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments,
+          pos.meso === 2 ? { superset: 'sq_contrast' } : undefined),
       ]
+      // M2 only: broad jumps contrast off the squat.
+      if (pos.meso === 2) items.push(broadJumps())
+      items.push(liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments))
       if (D1_SN_BACK[m].sets > 0) {
         items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
       }
@@ -503,6 +522,8 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         // Snatch pull slot retired for this (positions still trained: full
         // snatch here, the Fri speed-oly slot, clean pulls Fri at 100-116%).
         accessory('acc_nordic', 'Nordic Curl', 3, 5, 'Heels under a lat-pulldown pad or loaded bar. Slow lower, push-up assist back up. Swap for Romanian Deadlift if needed.'),
+      )
+      items.push(
         pos.meso === 1 ? accessory('acc_core', 'Hanging Leg Raises', 3, 12, '60s rest')
           : pos.meso === 2 ? accessory('acc_core', 'Ab Wheel Rollout', 3, 10, 'Knees down, flat back — stop the rep before the hips sag')
           : accessory('acc_core', 'Weighted Hanging Leg Raise', 3, 8, 'DB between the feet — strict, no swing'),
@@ -510,6 +531,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
           .filter(i => !(i.kind === 'lift' && i.slot === 'sn_back'))
+          .filter(i => !(i.kind === 'plyo' && i.slot === 'broad_jump'))
       }
       return {
         dayNumber, dayName: 'Squat + Snatch', dayType: 'gym',
@@ -554,15 +576,18 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('hang_psn', D5_HPS[m], w, 'snatch', maxes, pos.meso, adjustments),
         liftFromSlot('clean_pull', D5_PULL[m], w, pos.meso === 2 ? 'snatch' : 'clean_jerk', maxes, pos.meso, adjustments),
         liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
+        // Same box as the speed squat — dead-stop jumps off the same station.
+        seatedBoxJumps(),
         // Vertical pull rotates through the one horizontal-pull exposure the
         // program has (M2 row) — the bent-over row was cut by the 6-card law.
         pos.meso === 1 ? accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy')
-          : pos.meso === 2 ? accessory('acc_pullup', 'Chest-Supported DB Row', 3, 10, 'Chest on an incline bench — squeeze, no bounce')
+          : pos.meso === 2 ? accessory('acc_pullup', 'Pendlay Row', 3, 8, 'Barbell dead-stops on the floor every rep. Flat back, explosive pull to the sternum.')
           : accessory('acc_pullup', 'Weighted Pull-Up', 3, 5, 'Moderate load — dead hang to chin over'),
       )
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
           .filter(i => !(i.kind === 'lift' && (i.slot === 'clean_pull' || i.slot === 'cl_back')))
+          .filter(i => !(i.kind === 'plyo' && i.slot === 'seated_box_jump'))
       }
       return {
         dayNumber, dayName: 'Power B — Clean', dayType: 'gym',
