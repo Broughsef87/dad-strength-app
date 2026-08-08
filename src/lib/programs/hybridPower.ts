@@ -171,40 +171,109 @@ const METCON_POOL: Array<Omit<MetconPrescription, 'kind' | 'slot'>> = [
   { name: 'Short Circuit', format: 'amrap', timeCapMinutes: 8, description: 'AMRAP 8\n8 DB push press (45s)\n8 cal row\n8 V-ups' },
 ]
 
-// ── Sprint day (Tue) — A/B alternating by absolute week ───────────────────────
+// ── Sprint day (Tue) — pooled, alternating accel / max-velocity bias ──────────
+// Two pools instead of two fixed sessions. Odd weeks pull from the
+// acceleration pool, even weeks from the max-velocity pool, and each pool
+// advances one step per appearance — so the emphasis still alternates (never
+// two top-speed days back to back) but the session itself keeps changing.
+// NO JOGGING in any warm-up: drills only, athlete's rule.
+const SPRINT_WARMUP =
+  'Warm-up (no jogging): pogo hops, A-skips, B-skips, high knees, butt kicks, leg swings'
+const SPRINT_COOLDOWN = 'Cooldown walk 5 min'
+const NECK_ISO = 'Neck: hand-resisted isometrics — 2 × 10s each direction (front/back/sides)'
+
+// trim = meso 3: cut the volume, never the intent.
+type SprintSpec = { title: string; parts: string[]; note?: string }
+type SprintBuilder = (trim: boolean) => SprintSpec
+
+const ACCEL_POOL: SprintBuilder[] = [
+  trim => ({
+    title: 'Acceleration — Starts',
+    parts: [`${trim ? 4 : 5} × 20-30m accelerations from a 3-point or falling start, FULL recovery (2-3 min)`],
+    note: 'Every rep max intent. If quality drops, end the session.',
+  }),
+  trim => ({
+    title: 'Sprint Projection — 2-3 Step',
+    parts: [
+      `${trim ? 5 : 6} × 15-20m from a 2- or 3-step walk-in, FULL recovery (2 min)`,
+      'Walk the return slowly — the walk-back IS the rest',
+    ],
+    note: 'Projection is the whole point: push the ground back behind you, chest stays down through the first 8-10m. Out, not up.',
+  }),
+  trim => ({
+    title: 'Resisted Starts — Sled',
+    parts: [
+      `${trim ? 5 : 6} × 15m sled sprint, moderate load (~10-15% bodyweight), full recovery`,
+      '2 × 20m unresisted to finish — feel the contrast',
+    ],
+    note: 'The sled teaches the shin angle for you. If the load makes you shuffle or stand upright, strip a plate.',
+  }),
+  trim => ({
+    title: 'Hill Sprints',
+    parts: [
+      `${trim ? 6 : 8} × 20m uphill, hard effort`,
+      'Walk down = the recovery. Do not rush back to the bottom',
+    ],
+    note: 'Moderate grade — a park slope or driveway. The hill puts you in the acceleration position without you thinking about it.',
+  }),
+]
+
+const MAXV_POOL: SprintBuilder[] = [
+  trim => ({
+    title: 'Max Velocity — Flying 20s',
+    parts: [
+      '2 build-up strides: one at ~80%, one at ~90%',
+      `${trim ? 3 : 5} × flying 20s (20m build + 20m fly), FULL recovery (3-4 min)`,
+      `${trim ? 3 : 4} × 30m bounding`,
+    ],
+    note: 'Tall posture, relaxed face and hands at top speed.',
+  }),
+  trim => ({
+    title: 'Flying 10s',
+    parts: [
+      '2 build-up strides',
+      `${trim ? 4 : 6} × flying 10s (30m build-in + 10m fly), FULL recovery (3 min)`,
+      '3 × 5 hurdle hops or line hops',
+    ],
+    note: 'Longest build-in you can hold and still stay loose. That 10m is the fastest you will move all week — do not strain for it.',
+  }),
+  trim => ({
+    title: 'Sprint · Float · Sprint',
+    parts: [
+      '2 build-up strides',
+      `${trim ? 3 : 4} × (20m accelerate / 20m float / 20m re-accelerate), FULL recovery (4 min)`,
+    ],
+    note: 'The float is the skill — hold the speed without pressing, then pick it back up without tensing your jaw or shoulders.',
+  }),
+  trim => ({
+    title: 'Change of Direction',
+    parts: [
+      `${trim ? 4 : 6} × 5-10-5 shuttle, full recovery between reps`,
+      `${trim ? 3 : 4} × 20m curve runs, alternating the direction you lean`,
+      '3 × 5 lateral bounds, stick each landing',
+    ],
+    note: 'Plant, drop the hips, go. Braking well is what makes the cut fast — the change of direction is a deceleration skill.',
+  }),
+]
+
 function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
   if (pos.isDeload || pos.isTest) {
     return {
       kind: 'outside', slot: 'sprint',
       title: pos.isTest ? 'Easy Strides (test week)' : 'Easy Strides (deload)',
-      parts: ['Thorough warm-up + drills (A-skips, B-skips)', '4 × 15m relaxed strides @ ~70%', 'Full recovery walk-back'],
+      parts: [SPRINT_WARMUP, '4 × 15m relaxed strides @ ~70%', 'Full recovery walk-back'],
       note: 'Keep the legs alive, nothing more. No timing, no straining.',
     }
   }
   const isAccel = weekNumber % 2 === 1
-  const trim = pos.meso === 3 // meso 3: trim volume, keep intent maximal
-  return isAccel
-    ? {
-        kind: 'outside', slot: 'sprint', title: 'Acceleration Day',
-        parts: [
-          'Warm-up (no jogging): pogo hops, A-skips, B-skips, high knees, butt kicks, leg swings',
-          `${trim ? 4 : 5} × 20-30m accelerations from 3-point or falling start, FULL recovery (2-3 min)`,
-          'Cooldown walk 5 min',
-          'Neck: hand-resisted isometrics — 2 × 10s each direction (front/back/sides)',
-        ],
-        note: 'Every rep max intent. If quality drops, end the session.',
-      }
-    : {
-        kind: 'outside', slot: 'sprint', title: 'Max Velocity Day',
-        parts: [
-          'Warm-up (no jogging): pogo hops, A-skips, B-skips, high knees, butt kicks, then 2 build-up strides',
-          `${trim ? 3 : 5} × flying 20s (20m build + 20m fly), full recovery`,
-          `${trim ? 3 : 4} × 30m bounding`,
-          '3 × 5 hurdle hops or line hops',
-          'Neck: hand-resisted isometrics — 2 × 10s each direction (front/back/sides)',
-        ],
-        note: 'Tall posture, relaxed face and hands at top speed.',
-      }
+  const pool = isAccel ? ACCEL_POOL : MAXV_POOL
+  // Each pool advances once per appearance, not once per week.
+  const spec = pool[Math.floor((weekNumber - 1) / 2) % pool.length](pos.meso === 3)
+  return {
+    kind: 'outside', slot: 'sprint', title: spec.title,
+    parts: [SPRINT_WARMUP, ...spec.parts, SPRINT_COOLDOWN, NECK_ISO],
+    note: spec.note,
+  }
 }
 
 // ── Conditioning (Thu intervals / Sun steady) ─────────────────────────────────
@@ -617,7 +686,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
     }
     case 2:
-      return { dayNumber, dayName: 'Sprint / Jump / Bound', dayType: 'outside', sessionIntent: 'Speed work — quality over quantity, full recoveries.', items: [sprintSession(weekNumber, pos)] }
+      return { dayNumber, dayName: 'Speed Day', dayType: 'outside', sessionIntent: 'Speed work — quality over quantity, full recoveries.', items: [sprintSession(weekNumber, pos)] }
     case 4:
       return { dayNumber, dayName: 'Conditioning — Intervals', dayType: 'outside', sessionIntent: 'Interval engine work.', items: [thursdayConditioning(weekNumber, pos)] }
     case 7:
