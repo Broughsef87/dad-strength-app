@@ -473,11 +473,17 @@ function saturdayPlyo(pos: MacroPos): PlyoPrescription[] {
   ]
 }
 
-// Monday's ballistic slot (MESO 2 ONLY): broad jumps, contrast-paired with the
-// back squat — horizontal power to balance the vertical jumps elsewhere.
-// Moved here off the sprint day at the athlete's request.
+// Monday's ballistic slot (MESO 2 ONLY): broad jumps — horizontal power to
+// balance the vertical jumps on Friday and Saturday, and the quality that
+// feeds acceleration. Moved off the sprint day at the athlete's request.
+//
+// These OPEN the day rather than contrasting off the squat: there's no room to
+// broad jump by the racks, and pairing them would mean walking away from a
+// loaded bar on every set. Done first they're also the freshest jumps of the
+// week (max-intent power should never be fatigued) and they prime the squat
+// instead of competing with it.
 function broadJumps(): PlyoPrescription {
-  return { kind: 'plyo', slot: 'broad_jump', name: 'Broad Jump', sets: 4, reps: 3, superset: 'sq_contrast', note: 'Stick every landing — no stumble-outs. ~30s after each back squat set.' }
+  return { kind: 'plyo', slot: 'broad_jump', name: 'Broad Jump', sets: 4, reps: 3, note: 'Session opener — knock these out in the open floor before you claim a rack. Stick every landing, full reset between reps.' }
 }
 
 // Friday's ballistic slot: seated box jump — dead-stop concentric, zero
@@ -580,16 +586,16 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
 
   switch (dayNumber) {
     case 1: {
-      let items: Prescription[] = [
-        // Squat-priority day: back squat LEADS the session — fresh legs go to
-        // strength. Snatch follows (80%+ doubles tolerate pre-fatigue; the
-        // weight-follow autoreg tracks whatever actually goes on the bar).
-        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments,
-          pos.meso === 2 ? { superset: 'sq_contrast' } : undefined),
-      ]
-      // M2 only: broad jumps contrast off the squat.
-      if (pos.meso === 2) items.push(broadJumps())
-      items.push(liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments))
+      // M2 only: broad jumps open the day (a primer, not a competing lift).
+      let items: Prescription[] = pos.meso === 2 ? [broadJumps()] : []
+      items.push(
+        // Squat-priority day: the back squat leads the barbell work — fresh
+        // legs go to strength. Snatch follows (80%+ doubles tolerate
+        // pre-fatigue; the weight-follow autoreg tracks what actually gets
+        // loaded).
+        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
+        liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments),
+      )
       if (D1_SN_BACK[m].sets > 0) {
         items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
       }
@@ -614,7 +620,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
           .filter(i => !(i.kind === 'plyo' && i.slot === 'broad_jump'))
       }
       return {
-        dayNumber, dayName: 'Squat + Snatch', dayType: 'gym',
+        dayNumber, dayName: 'Power A — Snatch', dayType: 'gym',
         sessionIntent: pos.isDeload ? 'Deload — light, fast, out of the gym feeling fresh.' : 'Squats first — build the base. Then heavy snatch doubles, bench, hamstrings.',
         items,
       }

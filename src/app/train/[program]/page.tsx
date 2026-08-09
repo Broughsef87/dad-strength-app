@@ -14,8 +14,14 @@ import { createClient } from '../../../utils/supabase/client'
 import { useUser } from '../../../contexts/UserContext'
 import ForgeLoader from '../../../components/ForgeLoader'
 import { getProgram } from '../../../lib/programs'
+import type { DayPlan } from '../../../lib/programs/types'
 
 const DAY_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+
+// A back-off slot isn't its own block — it's the same bar, same station, right
+// after the top set. Counting it separately made a 6-block day read as 7 and
+// contradicted the program's own session budget.
+const blockCount = (plan: DayPlan) => plan.items.filter(i => !i.slot.endsWith('_back')).length
 
 interface DoneMap { [week: number]: Set<number> }
 
@@ -245,7 +251,7 @@ export default function MissionSchedulePage() {
                   <p className={`font-display text-sm uppercase tracking-wide truncate ${done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                     {plan.dayName}
                   </p>
-                  <p className="telemetry-dim truncate">{plan.items.length} BLOCKS · {plan.dayType.toUpperCase()}</p>
+                  <p className="telemetry-dim truncate">{blockCount(plan)} BLOCK{blockCount(plan) === 1 ? '' : 'S'} · {plan.dayType.toUpperCase()}</p>
                 </div>
                 {done
                   ? <span className="telemetry text-brand shrink-0">CLEARED</span>
