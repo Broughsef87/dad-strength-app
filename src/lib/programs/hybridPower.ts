@@ -31,8 +31,8 @@ import {
 //   Meso 3 (W9-12):  top single (87-91%) + back-off singles @ 83-85%.
 //                    W12 = deload. W13 = TEST (Snatch, Clean, squats, bench, DL).
 // Variation model ("variation isn't the enemy"): vary the MIDDLE, get
-// specific at the end. M2 is the variation meso — hang-position back-offs on
-// both lifts, 1¼ bench, pause front squat, snatch pulls (off the snatch max),
+// specific at the end. M2 is the variation meso — hang-position snatch
+// back-offs, 1¼ bench, pause front squat, snatch pulls (off the snatch max),
 // close-grip Wed bench, floor power snatch — then M3 snaps back to the pure
 // lifts for realization. The top Snatch/Clean sets, OHP wave, and push press
 // never rotate. Back squat and deadlift stay STRAIGHT all macro — athlete's
@@ -407,10 +407,13 @@ const D5_CL_TOP: SlotMeso[] = [
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up. If it rides down, ride it down and stand up.' },
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single. If it rides down, ride it down and stand up — the weight is the point up here.' },
 ]
-// Mirrors the snatch: M2 back-offs from the hang, M3 back to the floor.
+// Every clean stays off the FLOOR — athlete's preference, so no hang variant
+// here (the snatch side still hangs in M2). The M2 variation for this slot is
+// structural instead: a top double plus back-offs, where M1 ran straight sets.
+// Top set climbs 83→86 while the back-offs hold at 80 — that's the point.
 const D5_CL_BACK: SlotMeso[] = [
   { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 },
-  { names: ['Hang Power Clean', 'Hang Power Clean', 'Hang Power Clean', 'Hang Power Clean'], sets: 2, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — catch above parallel, stand it up' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 2, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — off the floor, stay sharp' },
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off single' },
 ]
 // Second snatch exposure of the week: speed-slot TRIPLES in the 65-74% zone
