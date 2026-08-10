@@ -1,41 +1,34 @@
 import type { Metadata, Viewport } from 'next'
-import { Chakra_Petch, Share_Tech_Mono, Space_Grotesk, Space_Mono, Playfair_Display } from 'next/font/google'
+import { Space_Grotesk, Geist_Mono, Space_Mono, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
-import CockpitChrome from '../components/CockpitChrome'
 import { UserProvider } from '../contexts/UserContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { SubscriptionProvider } from '../contexts/SubscriptionContext'
 
-// Squared Thai-tech letterforms — the closest Google font to Gundam panel type.
-const chakraPetch = Chakra_Petch({
-  subsets: ['latin'],
-  variable: '--font-chakra',
-  weight: ['500', '600', '700'],
-})
-
-// HUD readout mono — telemetry labels, weights, timers.
-const shareTechMono = Share_Tech_Mono({
-  subsets: ['latin'],
-  variable: '--font-telemetry',
-  weight: ['400'],
-})
-
+// CHALK/VOLT type: one confident grotesk carries the whole app —
+// display, body, and the giant hero numerals.
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-space-grotesk',
   weight: ['300', '400', '500', '600', '700'],
 })
 
+// The quiet mono for data: percentages, rep schemes, timers, week tags.
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
+  weight: ['400', '600', '700'],
+})
+
+// Fallback mono kept while legacy components migrate off --font-space-mono.
 const spaceMono = Space_Mono({
   subsets: ['latin'],
   variable: '--font-space-mono',
   weight: ['400', '700'],
 })
 
-// Editorial serif italic — used only inside <HeroAccent> for
-// gravitas moments (hero headlines, week themes, empty states).
-// Matches the forging-fathers.com marketing voice.
+// Editorial serif italic — marketing-voice accents only (<HeroAccent>).
 const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-playfair',
@@ -85,7 +78,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0D0F14',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FAF9F6' },
+    { media: '(prefers-color-scheme: dark)', color: '#0E0F10' },
+  ],
 }
 
 export default function RootLayout({
@@ -94,7 +90,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${chakraPetch.variable} ${shareTechMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
+    // suppressHydrationWarning: the FOUC script below adds .dark to <html>
+    // before React hydrates — without this, every load logs a class mismatch.
+    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${geistMono.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
@@ -110,56 +108,9 @@ export default function RootLayout({
           })();
         `}} />
       </head>
-      <body className={`${spaceGrotesk.className} overflow-x-hidden`}>
-        {/* ── Kinetic ambient — reactor glow, dark mode only ── */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-          {/* Primary orb — large, slow, rosso reactor bleed */}
-          <div style={{
-            position: 'absolute',
-            width: '750px',
-            height: '750px',
-            top: '5%',
-            left: '50%',
-            marginLeft: '-375px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(234,11,47,0.07) 0%, transparent 65%)',
-            filter: 'blur(60px)',
-            animation: 'orb-drift 32s ease-in-out infinite',
-            opacity: 0,
-          }} className="dark:!opacity-100" />
-          {/* Secondary orb — lower, cool steel counterweight */}
-          <div style={{
-            position: 'absolute',
-            width: '420px',
-            height: '420px',
-            top: '55%',
-            left: '30%',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(106,130,160,0.06) 0%, transparent 65%)',
-            filter: 'blur(70px)',
-            animation: 'orb-drift-2 26s ease-in-out infinite',
-            animationDelay: '8s',
-            opacity: 0,
-          }} className="dark:!opacity-100" />
-
-          {/* Edge vignettes — pull focus inward */}
-          <div style={{
-            position: 'absolute',
-            top: 0, left: 0, bottom: 0,
-            width: '200px',
-            background: 'linear-gradient(to right, rgba(0,0,0,0.50) 0%, transparent 100%)',
-            opacity: 0,
-          }} className="dark:!opacity-100" />
-          <div style={{
-            position: 'absolute',
-            top: 0, right: 0, bottom: 0,
-            width: '200px',
-            background: 'linear-gradient(to left, rgba(0,0,0,0.50) 0%, transparent 100%)',
-            opacity: 0,
-          }} className="dark:!opacity-100" />
-        </div>
-
-        <CockpitChrome />
+      {/* Chalk/volt grounds are flat — no ambient orbs, no vignettes, no
+          chrome layer. The body face comes from --font-sans in globals. */}
+      <body className="overflow-x-hidden">
         <ThemeProvider>
           <UserProvider>
             <SubscriptionProvider>
