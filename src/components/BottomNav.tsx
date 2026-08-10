@@ -58,9 +58,11 @@ export default function BottomNav() {
                   className="absolute inset-0"
                   style={{
                     background:
-                      'linear-gradient(180deg, hsl(var(--brand) / 0.14) 0%, hsl(var(--brand) / 0.05) 100%)',
-                    border: '1px solid hsl(var(--brand) / 0.35)',
+                      'linear-gradient(180deg, rgba(234,11,47,0.14) 0%, rgba(234,11,47,0.05) 100%)',
+                    border: '1px solid rgba(234,11,47,0.35)',
                     borderRadius: '10px',
+                    boxShadow:
+                      '0 0 14px 0 rgba(234,11,47,0.28), inset 0 1px 0 rgba(255,180,190,0.08)',
                   }}
                   transition={{ type: 'spring', stiffness: 520, damping: 42 }}
                 />
@@ -68,6 +70,7 @@ export default function BottomNav() {
                 <motion.span
                   layoutId="nav-tick"
                   className="absolute -top-[1px] left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-brand"
+                  style={{ boxShadow: '0 0 6px 1px rgba(234,11,47,0.7)' }}
                   transition={{ type: 'spring', stiffness: 520, damping: 42 }}
                 />
               </>
@@ -78,6 +81,11 @@ export default function BottomNav() {
               className={`relative z-10 transition-all duration-200 ${
                 isActive ? 'text-brand' : 'text-muted-foreground'
               }`}
+              style={
+                isActive
+                  ? { filter: 'drop-shadow(0 0 4px rgba(234,11,47,0.55))' }
+                  : undefined
+              }
             />
             <span
               className={`relative z-10 text-[9px] uppercase tracking-[0.16em] font-semibold transition-colors duration-200 font-display ${

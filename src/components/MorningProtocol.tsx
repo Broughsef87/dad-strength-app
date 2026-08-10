@@ -359,7 +359,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       </div>
 
       {allDone && !reviewOpen ? (
-        /* ── Collapsed — all systems checked, the day is issued. Green means green. ── */
+        /* ── Collapsed — all systems checked, pilot is go. Green means green. ── */
         <div className="py-5 flex flex-col items-center gap-4">
           <div
             className="stamp px-6 py-2.5"
@@ -373,7 +373,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
             <p className="font-display text-2xl tracking-[0.16em] uppercase">Systems Green</p>
           </div>
           <div className="text-center space-y-1.5">
-            <p className="telemetry" style={{ color: '#10B981' }}>MORNING.OPS COMPLETE // ISSUED FOR THE DAY</p>
+            <p className="telemetry" style={{ color: '#10B981' }}>MORNING.OPS COMPLETE // PILOT READY FOR THE DAY</p>
             {protocol?.closingWord && (
               <p className="text-sm text-muted-foreground font-light leading-relaxed max-w-xs mx-auto">{protocol.closingWord}</p>
             )}

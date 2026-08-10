@@ -245,7 +245,7 @@ export default function FamilyPulse() {
                 size={22}
                 className={`transition-all ${
                   n <= current.kid_score
-                    ? 'text-brand fill-brand'
+                    ? 'text-brand fill-brand drop-shadow-[0_0_6px_rgba(232,87,42,0.5)]'
                     : 'text-gray-700'
                 }`}
               />
@@ -293,7 +293,7 @@ export default function FamilyPulse() {
             />
             <button
               type="submit"
-              className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-brand text-brand-ink hover:bg-brand/90 transition-colors"
+              className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-brand text-foreground hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20"
             >
               <Plus size={16} />
             </button>

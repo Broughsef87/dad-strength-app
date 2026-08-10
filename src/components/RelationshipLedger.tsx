@@ -104,7 +104,7 @@ export default function RelationshipLedger() {
         {[...Array(target)].map((_, i) => (
           <div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${
             i < deposits.length
-              ? type === 'partner' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.3)]' : 'bg-brand'
+              ? type === 'partner' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.3)]' : 'bg-brand shadow-[0_0_8px_rgba(232,87,42,0.3)]'
               : 'bg-muted'
           }`} />
         ))}
@@ -133,8 +133,8 @@ export default function RelationshipLedger() {
           className="w-full bg-background border border-border rounded-xl p-3 pr-12 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-rose-500/50 transition-colors"
         />
         <button type="submit" className={`absolute right-2 top-1.5 p-1.5 rounded-lg transition-colors shadow-lg ${
-          type === 'partner' ? 'bg-rose-500 hover:bg-rose-400 shadow-rose-500/20 text-white' : 'bg-brand hover:bg-brand/80 text-brand-ink'
-        }`}>
+          type === 'partner' ? 'bg-rose-500 hover:bg-rose-400 shadow-rose-500/20' : 'bg-brand hover:bg-brand/80 shadow-brand/20'
+        } text-white`}>
           <Plus size={16} />
         </button>
       </form>
@@ -177,7 +177,7 @@ export default function RelationshipLedger() {
           <button
             onClick={() => setActiveTab('family')}
             className={`flex-1 py-2 rounded-lg text-[11px] font-display font-semibold uppercase tracking-wider transition-all ${
-              activeTab === 'family' ? 'bg-brand text-brand-ink shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              activeTab === 'family' ? 'bg-brand text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Kids

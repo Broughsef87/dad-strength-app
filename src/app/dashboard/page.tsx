@@ -238,7 +238,7 @@ export default function Dashboard() {
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -40, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-brand text-brand-ink text-center text-[10px] font-display tracking-[0.2em] uppercase py-3 px-4"
+          className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display tracking-[0.2em] uppercase py-3 px-4"
         >
           Welcome to Dad Strong+ — All Features Unlocked
         </motion.div>
@@ -266,7 +266,7 @@ export default function Dashboard() {
         {/* Large background "DS" — editorial depth mark */}
         <span
           className="absolute -top-4 -left-2 font-display leading-none pointer-events-none select-none"
-          style={{ fontSize: '9rem', color: 'hsl(var(--brand) / 0.045)', letterSpacing: '0.05em' }}
+          style={{ fontSize: '9rem', color: 'rgba(234,11,47,0.045)', letterSpacing: '0.05em' }}
           aria-hidden="true"
         >DS</span>
         <div className="relative">
@@ -284,7 +284,8 @@ export default function Dashboard() {
           </h1>
           {/* Amber accent line — brand signature */}
           <div className="flex items-center gap-1.5 mt-2">
-            <div className="h-[2px] w-8 rounded-full bg-brand" />
+            <div className="h-[2px] w-8 rounded-full bg-brand"
+              style={{ boxShadow: '0 0 8px 1px rgba(234,11,47,0.55)' }} />
             <div className="h-[2px] w-4 rounded-full bg-brand/35" />
             <div className="h-[2px] w-2 rounded-full bg-brand/15" />
           </div>

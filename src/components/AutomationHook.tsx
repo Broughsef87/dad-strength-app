@@ -59,7 +59,7 @@ export default function AutomationHook() {
             />
             <button
               type="submit"
-              className="bg-brand hover:bg-brand/90 text-brand-ink p-3 rounded-xl transition-all active:scale-95"
+              className="bg-brand hover:bg-brand/90 text-foreground p-3 rounded-xl transition-all active:scale-95"
             >
               <Send className="w-4 h-4" />
             </button>

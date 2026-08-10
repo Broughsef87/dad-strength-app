@@ -16,7 +16,7 @@ export default function NapSqueeze() {
             </div>
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand">Unlock The OS</span>
           </div>
-          <div className="px-3 py-1 bg-brand text-[10px] font-black uppercase tracking-widest text-brand-ink rounded-full">
+          <div className="px-3 py-1 bg-brand text-[10px] font-black uppercase tracking-widest text-foreground rounded-full">
             Limited Time
           </div>
         </div>

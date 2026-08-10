@@ -35,135 +35,114 @@
 
   --color-brand: hsl(var(--brand));
   --color-brand-muted: hsl(var(--brand-muted));
-  /* Ink that sits ON a solid brand (amber) fill — inverse video */
-  --color-brand-ink: hsl(var(--brand-ink));
-  /* Dried-highlighter yellow — the as-built / cleared record color */
-  --color-cleared: hsl(var(--cleared));
 
-  /* Steel chrome midtone — now the construction-line blue */
+  /* Steel chrome midtone */
   --color-steel: hsl(var(--steel));
 
   --radius-lg: var(--radius);
-  --radius-md: var(--radius);
-  --radius-sm: var(--radius);
-  /* Drawings have no fillets: the static Tailwind radii square off too.
-     rounded-full is untouched — dots, knobs, and avatars stay circular. */
-  --radius-xl: var(--radius);
-  --radius-2xl: var(--radius);
-  --radius-3xl: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 
-  /* ── Typography — AS BUILT lettering schedule ─────────────────
-     L1 display: Bahnschrift IS DIN 1451, the lettering standard of
-     engineering drawings, and it ships with the OS. DIN Alternate
-     covers macOS/iOS. Webfonts stay in the stack as fallbacks only.
-     L2 data: Cascadia/Consolas — every dimension and datum.
-     L3 the engineer's hand: Georgia italic — pencil notes only.    */
-  --font-sans: "Bahnschrift", "DIN Alternate", var(--font-space-grotesk, ui-sans-serif), system-ui, sans-serif;
-  --font-mono: "Cascadia Code", Consolas, var(--font-space-mono, ui-monospace), monospace;
-  --font-display: "Bahnschrift", "DIN Alternate", "Franklin Gothic Medium", "Arial Narrow", var(--font-chakra, sans-serif), sans-serif;
-  --font-hand: Georgia, "Iowan Old Style", "Times New Roman", serif;
-  /* Editorial italic accent — kept for marketing surfaces */
+  /* Typography system */
+  --font-sans: var(--font-space-grotesk, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-space-mono, ui-monospace, monospace);
+  --font-display: var(--font-chakra, 'Arial Black', sans-serif);
+  /* Editorial italic accent — used only via <HeroAccent> for
+     gravitas moments. Matches forging-fathers.com marketing voice. */
   --font-serif-accent: var(--font-playfair, 'Playfair Display', 'Georgia', serif);
 }
 
 @layer base {
   :root {
-    /* ── Light mode: VELLUM ────────────────────────────────────────
-       The original drawing before the cyanotype was pulled: warm
-       drafting paper, Prussian ink linework, the same amber crayon.
-       Light and dark are the same sheet, printed two ways.          */
+    /* ── Light mode: Linen × Steel ─────────────────────────────────
+       Warm linen canvas for the body, cool steel-slate for all
+       surfaces and cards — same warm/cool tension as dark mode.      */
 
-    --background: 42 30% 93%;          /* #F1EDE2 — drafting vellum      */
-    --foreground: 210 55% 18%;         /* #153048 — Prussian ink         */
+    --background: 38 22% 95%;          /* #F3EFE9 — warm linen           */
+    --foreground: 222 32% 11%;         /* #131826 — rich navy ink        */
 
-    /* Sheets read a touch cooler than the table they sit on */
-    --card: 210 30% 90%;               /* #DDE4EC — pale sheet           */
-    --card-foreground: 210 55% 18%;
+    /* Cards / elements float as cool steel against warm linen bg */
+    --card: 214 18% 93%;               /* #E3EAF2 — cool steel-linen     */
+    --card-foreground: 222 32% 11%;
 
-    --surface-1: 42 30% 93%;           /* vellum (body)                  */
-    --surface-2: 210 28% 86%;          /* #CFD9E3 — header bands         */
-    --surface-3: 210 30% 90%;          /* #DDE4EC — card sheets          */
+    /* 3-tier surfaces — warm base, cool raised elements */
+    --surface-1: 38 22% 95%;           /* #F3EFE9 — warm linen (body)    */
+    --surface-2: 214 22% 88%;          /* #D2DCE8 — cool slate nav bars  */
+    --surface-3: 214 18% 93%;          /* #E3EAF2 — cool steel cards     */
 
-    --popover: 210 30% 90%;
-    --popover-foreground: 210 55% 18%;
+    --popover: 214 18% 93%;
+    --popover-foreground: 222 32% 11%;
 
-    --primary: 210 55% 18%;
-    --primary-foreground: 42 30% 93%;
+    --primary: 222 32% 11%;
+    --primary-foreground: 38 22% 95%;
 
-    --secondary: 210 25% 87%;
-    --secondary-foreground: 210 55% 18%;
+    --secondary: 214 14% 90%;
+    --secondary-foreground: 222 32% 11%;
 
-    --muted: 210 25% 87%;
-    --muted-foreground: 210 30% 38%;   /* #44617E — construction ink     */
+    --muted: 214 14% 90%;              /* #DAEAF4-ish — cool muted fill  */
+    --muted-foreground: 215 18% 40%;   /* #55677C — steel blue-grey      */
 
-    --accent: 210 25% 87%;
-    --accent-foreground: 210 55% 18%;
+    --accent: 214 14% 90%;
+    --accent-foreground: 222 32% 11%;
 
-    --destructive: 0 64% 45%;          /* red pencil                     */
+    --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 30% 72%;             /* #A2B5C8 — blue hairline        */
-    --input: 210 30% 90%;
-    --ring: 39 100% 42%;
+    --border: 214 22% 80%;             /* #BDCAD8 — cool steel border    */
+    --input: 214 18% 93%;
+    --ring: 351 92% 42%;
 
-    /* Checker's amber — darker pull for ink-on-paper contrast */
-    --brand: 39 100% 42%;              /* #D68A00 */
-    --brand-muted: 39 100% 42% / 0.14;
-    --brand-ink: 210 63% 11%;          /* text on a solid amber fill     */
-    --cleared: 43 85% 52%;             /* dried highlighter on paper     */
+    /* Rosso Corsa — Ferrari red, earned accent, unchanged across modes */
+    --brand: 351 92% 42%;              /* #CE0928 */
+    --brand-muted: 351 92% 42% / 0.12;
 
-    /* Construction-line blue */
-    --steel: 210 30% 45%;
+    /* Steel — same hue as dark mode steel */
+    --steel: 214 22% 52%;              /* #6A82A0 */
 
-    /* Drawings have square corners. */
-    --radius: 0rem;
+    --radius: 0.375rem;
   }
 
   .dark {
-    /* ── Dark mode: CYANOTYPE ─────────────────────────────────────
-       AS BUILT — the Prussian-blue engineering print. The athlete
-       is the drawing; the amber is the one crayon on the table.    */
-    --background: 210 71% 11%;      /* #081C30 — Prussian ground      */
-    --foreground: 208 58% 91%;      /* #D9E8F5 — print-white ink      */
+    /* Deep Navy-Charcoal — Dad Strength locked direction */
+    --background: 222 21% 7%;       /* #0D0F14 */
+    --foreground: 210 24% 80%;      /* #C0CCD8 */
 
-    --card: 210 66% 16%;            /* #0E2A45 — sheet panel          */
-    --card-foreground: 208 58% 91%;
+    --card: 220 31% 11%;            /* #141A26 — visible blue-slate */
+    --card-foreground: 210 24% 80%;
 
     /* 3-tier surfaces */
-    --surface-1: 210 71% 11%;       /* ground                          */
-    --surface-2: 209 67% 13%;       /* #0B2238 — header/footer bands  */
-    --surface-3: 210 66% 16%;       /* #0E2A45 — card sheets          */
+    --surface-1: 222 21% 7%;        /* #0D0F14 — base */
+    --surface-2: 224 31% 10%;       /* #111520 — header/footer bands */
+    --surface-3: 220 31% 11%;       /* #141A26 — card surfaces */
 
-    --popover: 210 66% 16%;
-    --popover-foreground: 208 58% 91%;
+    --popover: 220 31% 11%;
+    --popover-foreground: 210 24% 80%;
 
-    --primary: 208 58% 91%;
-    --primary-foreground: 210 71% 11%;
+    --primary: 210 24% 80%;
+    --primary-foreground: 222 21% 7%;
 
-    --secondary: 210 55% 20%;
-    --secondary-foreground: 208 58% 91%;
+    --secondary: 214 33% 16%;
+    --secondary-foreground: 210 24% 80%;
 
-    --muted: 209 60% 14%;
-    --muted-foreground: 209 30% 57%;  /* #6F92B2 — construction line  */
+    --muted: 214 33% 14%;
+    --muted-foreground: 213 22% 42%;  /* #6A82A0 range — steel chrome */
 
-    --accent: 210 55% 20%;
-    --accent-foreground: 208 58% 91%;
+    --accent: 214 33% 16%;
+    --accent-foreground: 210 24% 80%;
 
-    --destructive: 0 64% 55%;       /* #D64545 — red pencil           */
+    --destructive: 0 62% 38%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 45% 24%;          /* blue hairline                  */
-    --input: 210 66% 16%;
-    --ring: 39 100% 56%;
+    --border: 214 35% 18%;          /* #1E2C3E — cool steel border */
+    --input: 220 31% 11%;
+    --ring: 351 92% 48%;
 
-    /* Checker's amber — the ONE crayon. Live work only. */
-    --brand: 39 100% 56%;           /* #FFB020 */
-    --brand-muted: 39 100% 56% / 0.10;
-    --brand-ink: 210 63% 11%;       /* #0A1B2C — text on solid amber  */
-    --cleared: 43 100% 74%;         /* #FFD97A — yellow-out           */
+    /* Rosso Corsa — Gundam-eye red, earned sparingly */
+    --brand: 351 92% 48%;           /* #EA0B2F */
+    --brand-muted: 351 92% 48% / 0.10;
 
-    /* Construction-line blue */
-    --steel: 209 30% 57%;
+    /* Steel chrome midtone */
+    --steel: 213 22% 52%;           /* #6A82A0 */
   }
 
   * {
@@ -179,23 +158,39 @@
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     text-rendering: optimizeLegibility;
-    /* Light mode: faint construction grid on vellum */
+    /* Light mode: linen weave with cool undertone */
     background-image:
-      repeating-linear-gradient(0deg,  transparent 0 7px, rgba(68, 97, 126, 0.06) 7px 8px),
-      repeating-linear-gradient(90deg, transparent 0 7px, rgba(68, 97, 126, 0.06) 7px 8px);
+      repeating-linear-gradient(
+        -38deg,
+        transparent 0, transparent 4px,
+        rgba(100, 130, 170, 0.04) 4px, rgba(100, 130, 170, 0.04) 5px
+      ),
+      repeating-linear-gradient(
+        52deg,
+        transparent 0, transparent 5px,
+        rgba(160, 130, 80, 0.035) 5px, rgba(160, 130, 80, 0.035) 6px
+      );
   }
 
-  /* Dark mode: the 8px construction grid of the drafting sheet */
+  /* Dark mode: carbon cross-hatch over brushed steel stripe */
   .dark body {
     background-image:
-      repeating-linear-gradient(0deg,  transparent 0 7px, rgba(111, 146, 178, 0.055) 7px 8px),
-      repeating-linear-gradient(90deg, transparent 0 7px, rgba(111, 146, 178, 0.055) 7px 8px);
+      repeating-linear-gradient(
+        -38deg,
+        transparent 0, transparent 3px,
+        rgba(100, 140, 210, 0.018) 3px, rgba(100, 140, 210, 0.018) 4px
+      ),
+      repeating-linear-gradient(
+        52deg,
+        transparent 0, transparent 3px,
+        rgba(100, 140, 210, 0.012) 3px, rgba(100, 140, 210, 0.012) 4px
+      );
   }
 
-  /* Display headings: DIN — the lettering of the drawing set */
+  /* Display headings: Bebas Neue — architectural, not gym-aggressive */
   h1, h2, h3 {
-    font-family: var(--font-display);
-    letter-spacing: 0.06em;
+    font-family: var(--font-chakra, 'Arial Black', sans-serif);
+    letter-spacing: 0.04em;
     font-weight: 600;
   }
   h4 {
@@ -339,17 +334,10 @@
   box-shadow: 0 0 30px hsl(142 70% 45% / 0.12), 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Display font utility — DIN lettering */
+/* Display font utility — Bebas Neue */
 .font-display {
-  font-family: var(--font-display);
+  font-family: var(--font-chakra, 'Arial Black', sans-serif);
   letter-spacing: 0.06em;
-}
-
-/* The engineer's hand — pencil annotations on the print. Sparingly. */
-.hand {
-  font-family: var(--font-hand);
-  font-style: italic;
-  color: hsl(var(--muted-foreground));
 }
 
 /* Stat numbers — Space Mono, tabular */
@@ -518,16 +506,16 @@
   }
 }
 
-/* ── Annual upgrade card — amber-washed sheet, both modes ── */
+/* ── Annual upgrade card — dark amber in dark mode, warm light in light mode ── */
 .annual-card {
-  background: linear-gradient(160deg, hsl(39 45% 15%) 0%, hsl(210 60% 12%) 100%);
-  border: 1px solid hsl(39 100% 50% / 0.40);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  background: linear-gradient(160deg, hsl(38 40% 14%) 0%, hsl(38 35% 10%) 100%);
+  border: 1px solid hsl(38 90% 41% / 0.40);
+  box-shadow: 0 0 12px 1px rgba(234,11,47,0.12), 0 2px 8px rgba(0,0,0,0.5);
 }
 :root:not(.dark) .annual-card {
-  background: linear-gradient(160deg, hsl(43 85% 92%) 0%, hsl(43 70% 86%) 100%);
-  border: 1px solid hsl(39 100% 42% / 0.50);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background: linear-gradient(160deg, hsl(38 85% 93%) 0%, hsl(38 75% 88%) 100%);
+  border: 1px solid hsl(38 90% 45% / 0.50);
+  box-shadow: 0 0 12px 1px rgba(234,11,47,0.18), 0 2px 8px rgba(0,0,0,0.08);
 }
 
 /* ── Premium surface — light mode override ─────────────────────── */
@@ -537,11 +525,11 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.12);
 }
 
-/* ── Forge card — hero sheet with layered depth + amber specular ── */
+/* ── Forge card — hero surface with layered depth + restrained amber highlight ── */
 .forge-card {
-  background: linear-gradient(165deg, hsl(210 62% 17%) 0%, hsl(210 68% 13%) 60%, hsl(210 71% 11%) 100%);
-  border: 1px solid hsl(var(--border));
-  border-radius: 0;
+  background: linear-gradient(165deg, hsl(220 31% 13%) 0%, hsl(222 25% 9%) 60%, hsl(222 21% 7%) 100%);
+  border: 1px solid hsl(214 35% 19%);
+  border-radius: 1rem;
   position: relative;
   /* Layered shadow: close depth + wide ambient */
   box-shadow:
@@ -562,7 +550,7 @@
     hsl(38 90% 41% / 0.35) 75%,
     transparent
   );
-  border-radius: 0;
+  border-radius: 1rem 1rem 0 0;
   pointer-events: none;
   z-index: 1;
 }
@@ -573,14 +561,14 @@
   bottom: 0; left: 0; right: 0;
   height: 60px;
   background: linear-gradient(0deg, hsl(38 90% 41% / 0.04) 0%, transparent 100%);
-  border-radius: 0;
+  border-radius: 0 0 1rem 1rem;
   pointer-events: none;
   z-index: 0;
 }
 
 /* ── Steel edge — secondary cards with cool chrome top ──────── */
 .steel-edge {
-  border: 1px solid hsl(var(--border));
+  border: 1px solid hsl(214 35% 18%);
   position: relative;
 }
 .dark .steel-edge::before {
@@ -599,18 +587,18 @@
   z-index: 1;
 }
 
-/* ── Dark mode sheet-panel card backgrounds ───────────────────── */
+/* ── Dark mode gradient card backgrounds ─────────────────────── */
 .dark .ds-card {
-  background: linear-gradient(160deg, hsl(210 62% 17%) 0%, hsl(210 70% 12%) 100%);
+  background: linear-gradient(160deg, hsl(220 31% 13%) 0%, hsl(222 21% 8%) 100%);
 }
 .dark .card-elevated {
-  background: linear-gradient(160deg, hsl(210 62% 17%) 0%, hsl(210 70% 12%) 100%);
+  background: linear-gradient(160deg, hsl(220 31% 13%) 0%, hsl(222 21% 8%) 100%);
 }
 .dark .card-base {
-  background: linear-gradient(160deg, hsl(210 62% 16%) 0%, hsl(210 70% 12%) 100%);
+  background: linear-gradient(160deg, hsl(220 31% 12%) 0%, hsl(222 21% 8%) 100%);
 }
 .dark .glass-card {
-  background: linear-gradient(160deg, hsl(210 62% 16%) 0%, hsl(210 70% 12%) 100%);
+  background: linear-gradient(160deg, hsl(220 31% 12%) 0%, hsl(222 21% 8%) 100%);
 }
 
 /* Amber bloom on dark ds-card top edge */
@@ -628,8 +616,8 @@
    Same layered depth as forge-card but with a steel-cool top
    instead of amber. Keeps hierarchy: amber = action, steel = premium container. */
 .premium-surface {
-  background: linear-gradient(165deg, hsl(210 64% 15%) 0%, hsl(210 70% 11%) 100%);
-  border: 1px solid hsl(var(--border));
+  background: linear-gradient(165deg, hsl(222 30% 12%) 0%, hsl(222 25% 8%) 100%);
+  border: 1px solid hsl(214 35% 20%);
   position: relative;
   box-shadow:
     0 1px 2px rgba(0,0,0,0.6),
@@ -664,14 +652,12 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   AS BUILT DRAFTING KIT — the drawing set's chrome.
-   Sheet corners, telemetry labels, dimension rules, stamps.
-   The cockpit classes keep their NAMES (dozens of call sites) but
-   now render drafting conventions. One rule: amber only marks what
-   is being built right now.
+   MECHA HUD KIT — Gundam cockpit chrome, Eleiko restraint.
+   Corner brackets, telemetry micro-labels, readout lines.
+   Use sparingly: one HUD frame per view, telemetry on key stats.
    ═══════════════════════════════════════════════════════════════ */
 
-/* Sheet corners — drafting registration ticks on a card (was HUD brackets) */
+/* Corner brackets — cockpit targeting frame on a card */
 .hud-frame {
   position: relative;
 }
@@ -679,19 +665,19 @@
 .hud-frame::after {
   content: '';
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   pointer-events: none;
 }
 .hud-frame::before {
   top: 6px; left: 6px;
-  border-top: 1px solid hsl(var(--steel) / 0.75);
-  border-left: 1px solid hsl(var(--steel) / 0.75);
+  border-top: 1.5px solid hsl(var(--brand) / 0.8);
+  border-left: 1.5px solid hsl(var(--brand) / 0.8);
 }
 .hud-frame::after {
   bottom: 6px; right: 6px;
-  border-bottom: 1px solid hsl(var(--steel) / 0.75);
-  border-right: 1px solid hsl(var(--steel) / 0.75);
+  border-bottom: 1.5px solid hsl(var(--brand) / 0.8);
+  border-right: 1.5px solid hsl(var(--brand) / 0.8);
 }
 
 /* Telemetry micro-label — uppercase mono readout */
@@ -710,7 +696,7 @@
   color: hsl(var(--muted-foreground) / 0.7);
 }
 
-/* Readout rule — construction line with the crayon's hot segment */
+/* Readout rule — thin red line with a hot segment */
 .readout-rule {
   height: 1px;
   background: linear-gradient(
@@ -722,9 +708,9 @@
   );
 }
 
-/* Crayon underline — drawings don't glow; the mark is just heavier */
+/* Red glow — Gundam eye. Replaces old amber glow on brand moments. */
 .mecha-glow {
-  box-shadow: 0 0 0 1px hsl(var(--brand) / 0.35);
+  box-shadow: 0 0 16px hsl(var(--brand) / 0.35), 0 0 42px hsl(var(--brand) / 0.12);
 }
 
 /* Scanline sweep on hover — subtle cockpit boot effect */
@@ -750,26 +736,41 @@
   animation: hud-scan 0.9s ease-out;
 }
 
-/* Status dot — a filled register mark, no glow */
+/* Status dot — system-online indicator */
 .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 9999px;
   background: hsl(var(--brand));
+  box-shadow: 0 0 6px hsl(var(--brand) / 0.9);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DRAFTING KIT v2 — sheet panels, as-built cells, set counters,
-   hold-point strips. Square everything: drawings have no fillets.
+   HUD KIT v2 — cockpit panels, LED bars, ammo counters, carbon,
+   hazard stripes, livery slash. The extreme pass.
    ═══════════════════════════════════════════════════════════════ */
 
-/* Sheet panel — square, hairline. The chamfers retired with the mech. */
+/* Gundam panel — opposing chamfered corners. Signature card shape. */
 .panel-cut {
-  clip-path: none;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
   border-radius: 0 !important;
 }
 .panel-cut-sm {
-  clip-path: none;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% 100%,
+    8px 100%,
+    0 calc(100% - 8px)
+  );
   border-radius: 0 !important;
 }
 
@@ -786,52 +787,62 @@
   pointer-events: none;
 }
 
-/* As-built cells — the campaign map's check boxes. A built day is
-   yellowed out, not lit: the record is highlighter, not LEDs. */
+/* Segmented LED progress bar — 10 cells. Set --led-fill (0-10). */
 .led-bar {
   display: flex;
   gap: 3px;
-  height: 7px;
+  height: 6px;
 }
 .led-cell {
   flex: 1;
-  background: transparent;
-  border: 1px solid hsl(var(--border));
+  background: hsl(var(--border) / 0.6);
+  clip-path: polygon(2px 0, 100% 0, calc(100% - 2px) 100%, 0 100%);
 }
 .led-cell.lit {
-  background: hsl(var(--cleared) / 0.6);
-  border-color: hsl(var(--cleared) / 0.75);
+  background: hsl(var(--brand));
+  box-shadow: 0 0 8px hsl(var(--brand) / 0.7);
 }
 
-/* Set-counter cells — a logged set is yellowed out (as-built) */
+/* Ammo-counter set cells — square rounds; spent = filled red */
 .ammo-cell {
   width: 14px;
   height: 18px;
-  border: 1px solid hsl(var(--steel) / 0.6);
+  border: 1.5px solid hsl(var(--brand) / 0.45);
+  clip-path: polygon(0 3px, 3px 0, 100% 0, 100% 100%, 0 100%);
   transition: all 150ms ease;
 }
 .ammo-cell.spent {
-  background: hsl(var(--cleared) / 0.65);
-  border-color: hsl(var(--cleared) / 0.8);
+  background: hsl(var(--brand));
+  border-color: hsl(var(--brand));
+  box-shadow: 0 0 8px hsl(var(--brand) / 0.6);
 }
 
-/* Header band — panel tone with the sheet's fine grid (was carbon) */
+/* Carbon fiber weave — header bands + CTA fills */
 .carbon {
-  background-color: hsl(var(--surface-2));
+  background-color: #101318;
   background-image:
-    repeating-linear-gradient(0deg,  transparent 0 7px, hsl(var(--steel) / 0.07) 7px 8px),
-    repeating-linear-gradient(90deg, transparent 0 7px, hsl(var(--steel) / 0.07) 7px 8px);
+    linear-gradient(27deg, #16191f 5px, transparent 5px),
+    linear-gradient(207deg, #16191f 5px, transparent 5px),
+    linear-gradient(27deg, #0c0e12 5px, transparent 5px),
+    linear-gradient(207deg, #0c0e12 5px, transparent 5px);
+  background-size: 10px 10px;
+  background-position: 0 0, 5px 5px, 5px 5px, 0 0;
 }
 
-/* Hold-point strip — red-pencil crosshatch (deload / test alerts) */
+/* Hazard stripes — deload / test week alert strip */
 .hazard {
   height: 6px;
-  background:
-    repeating-linear-gradient(45deg,  hsl(var(--destructive) / 0.55) 0 5px, transparent 5px 10px),
-    repeating-linear-gradient(-45deg, hsl(var(--destructive) / 0.55) 0 5px, transparent 5px 10px);
+  background: repeating-linear-gradient(
+    -45deg,
+    hsl(var(--brand)) 0,
+    hsl(var(--brand)) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  opacity: 0.75;
 }
 
-/* Straightedge — the amber rule laid beside hero text. One per screen. */
+/* Ferrari livery slash — skewed red blade behind hero text. One per screen. */
 .livery-slash {
   position: relative;
 }
@@ -839,10 +850,12 @@
   content: '';
   position: absolute;
   left: -8px;
-  top: 8%;
-  bottom: 8%;
-  width: 4px;
-  background: hsl(var(--brand));
+  top: 10%;
+  bottom: 10%;
+  width: 5px;
+  background: linear-gradient(180deg, hsl(var(--brand)), hsl(var(--brand) / 0.35));
+  transform: skewX(-18deg);
+  box-shadow: 0 0 12px hsl(var(--brand) / 0.5);
 }
 
 /* Big telemetry numeral — target weights, dial centers */
@@ -853,14 +866,13 @@
   letter-spacing: -0.01em;
 }
 
-/* Red-pencil alert (test week / trials) — the checker circles it */
+/* Red-alert theme (test week / PR) — pulsing border wash */
 @keyframes red-alert {
-  0%, 100% { border-color: hsl(var(--destructive) / 0.4); }
-  50% { border-color: hsl(var(--destructive) / 0.9); }
+  0%, 100% { border-color: hsl(var(--brand) / 0.35); }
+  50% { border-color: hsl(var(--brand) / 0.85); }
 }
 .red-alert {
   animation: red-alert 2.2s ease-in-out infinite;
-  color: hsl(var(--destructive));
 }
 
 /* Panel mount reveal */
@@ -872,118 +884,16 @@
   animation: panel-mount 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Inspection stamp — hand-struck ink, slightly crooked, permanent */
+/* Stamped CLEARED mark — session complete */
 @keyframes stamp {
-  0% { opacity: 0; transform: scale(1.6) rotate(-2.5deg); }
-  60% { opacity: 1; transform: scale(0.96) rotate(-2.5deg); }
-  100% { opacity: 1; transform: scale(1) rotate(-2.5deg); }
+  0% { opacity: 0; transform: scale(1.6) rotate(-8deg); }
+  60% { opacity: 1; transform: scale(0.96) rotate(-8deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-8deg); }
 }
 .stamp {
   animation: stamp 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  border: 2.5px solid hsl(var(--cleared));
-  color: hsl(var(--cleared));
-  text-shadow: 0 0 0.6px currentColor; /* ink bleed, not glow */
-  letter-spacing: 0.2em;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   DRAFTING DEVICES — hatching, yellow-out, dimension callouts,
-   title blocks. New with AS BUILT.
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Single hatch — "not cut yet": locked / upcoming work */
-.hatch {
-  background-image: repeating-linear-gradient(45deg, transparent 0 6px, hsl(var(--steel) / 0.14) 6px 7px);
-}
-/* Crosshatch — hold point / deload territory */
-.crosshatch {
-  background-image:
-    repeating-linear-gradient(45deg,  transparent 0 6px, hsl(var(--destructive) / 0.18) 6px 7px),
-    repeating-linear-gradient(-45deg, transparent 0 6px, hsl(var(--destructive) / 0.18) 6px 7px);
-}
-
-/* Yellow-out — the as-built highlighter sweep over completed work.
-   Slight rotation + overshoot: a crayon, not a CSS fill. */
-.yellow-out {
-  position: relative;
-}
-.yellow-out::after {
-  content: '';
-  position: absolute;
-  inset: 3px -3px;
-  pointer-events: none;
-  background: linear-gradient(90deg, hsl(var(--cleared) / 0.14), hsl(var(--cleared) / 0.22) 60%, hsl(var(--cleared) / 0.09));
-  border-radius: 9px;
-  transform: rotate(-0.6deg);
-}
-
-/* Dimension callout — extension lines, oblique wings, the value in
-   the gap. Hero numbers only (general note 6). */
-.dim {
-  display: flex;
-  align-items: center;
-}
-.dim-ext {
-  width: 1px;
-  align-self: stretch;
-  background: hsl(var(--steel) / 0.8);
-}
-.dim-wing {
-  flex: 1;
-  height: 1px;
-  background: hsl(var(--steel) / 0.8);
-  position: relative;
-  min-width: 12px;
-}
-.dim-wing::before {
-  content: '';
-  position: absolute;
-  top: -3px;
-  width: 8px;
-  height: 7px;
-}
-.dim-wing.l::before {
-  left: 0;
-  border-top: 1px solid hsl(var(--steel) / 0.8);
-  border-left: 1px solid hsl(var(--steel) / 0.8);
-  transform: skewX(45deg) translateX(2px);
-}
-.dim-wing.r::before {
-  right: 0;
-  border-top: 1px solid hsl(var(--steel) / 0.8);
-  border-right: 1px solid hsl(var(--steel) / 0.8);
-  transform: skewX(-45deg) translateX(-2px);
-}
-.dim-val {
-  padding: 0 12px;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  border: 3px solid hsl(var(--brand));
   color: hsl(var(--brand));
-  white-space: nowrap;
-}
-
-/* Title block — the bordered grid that closes a sheet */
-.tb-cell {
-  padding: 7px 10px 8px;
-  border-right: 1px dashed hsl(var(--border));
-  border-bottom: 1px dashed hsl(var(--border));
-  min-width: 0;
-}
-.tb-k {
-  font-family: var(--font-display);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: hsl(var(--muted-foreground));
-}
-.tb-v {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-shadow: 0 0 12px hsl(var(--brand) / 0.5);
+  box-shadow: inset 0 0 18px hsl(var(--brand) / 0.15), 0 0 24px hsl(var(--brand) / 0.25);
 }

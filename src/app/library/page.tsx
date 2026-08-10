@@ -137,7 +137,7 @@ export default function Library() {
               onClick={() => setEquipFilter(eq)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold uppercase tracking-widest border transition-all ${
                 equipFilter === eq
-                  ? 'bg-brand border-brand text-brand-ink'
+                  ? 'bg-brand border-brand text-foreground'
                   : 'bg-card border-border text-muted-foreground hover:border-gray-700'
               }`}
             >
@@ -154,7 +154,7 @@ export default function Library() {
               onClick={() => setActiveCategory(cat)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold uppercase tracking-widest transition-all ${
                 activeCategory === cat
-                  ? 'bg-brand text-brand-ink'
+                  ? 'bg-brand text-foreground shadow-lg shadow-brand/20'
                   : 'bg-card text-muted-foreground hover:text-gray-300 border border-border'
               }`}
             >
@@ -204,7 +204,7 @@ export default function Library() {
                 <button
                   onClick={() => handleQuickStart(ex)}
                   disabled={!!loadingId}
-                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-brand-ink text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0"
+                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-foreground text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all active:scale-95 uppercase tracking-widest ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
                 >
                   {isLoading
                     ? <Loader2 size={14} className="animate-spin" />

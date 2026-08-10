@@ -98,7 +98,7 @@ export default function MissionEditor() {
         </div>
         <button 
           onClick={handleSave}
-          className="bg-brand hover:bg-brand/90 text-brand-ink px-4 py-1.5 rounded-lg font-display font-semibold text-xs tracking-widest uppercase transition-all flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 text-foreground px-4 py-1.5 rounded-lg font-display font-semibold text-xs tracking-widest uppercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
         >
           <Save size={14} /> Save
         </button>
@@ -166,7 +166,7 @@ export default function MissionEditor() {
                        onClick={() => setMission({...mission, unit: u})}
                        className={`flex-1 py-2 rounded-lg text-[10px] font-display font-semibold uppercase tracking-widest border transition-all ${
                          mission.unit === u 
-                           ? 'bg-brand border-brand text-brand-ink'
+                           ? 'bg-brand border-brand text-foreground' 
                            : 'bg-background border-border text-gray-600 hover:text-muted-foreground'
                        }`}
                      >

@@ -94,9 +94,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    // The FOUC script below adds .dark to <html> before hydration — React
-    // would flag the class mismatch every load, so it's suppressed here.
-    <html lang="en" suppressHydrationWarning className={`${chakraPetch.variable} ${shareTechMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
+    <html lang="en" className={`${chakraPetch.variable} ${shareTechMono.variable} ${spaceGrotesk.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
@@ -112,12 +110,10 @@ export default function RootLayout({
           })();
         `}} />
       </head>
-      {/* Body face comes from --font-sans (DIN-first lettering schedule in
-          globals.css) — stamping a next/font className here would override it. */}
-      <body className="overflow-x-hidden">
+      <body className={`${spaceGrotesk.className} overflow-x-hidden`}>
         {/* ── Kinetic ambient — reactor glow, dark mode only ── */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-          {/* Primary orb — large, slow, amber crayon bleed */}
+          {/* Primary orb — large, slow, rosso reactor bleed */}
           <div style={{
             position: 'absolute',
             width: '750px',
@@ -126,7 +122,7 @@ export default function RootLayout({
             left: '50%',
             marginLeft: '-375px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255,176,32,0.06) 0%, transparent 65%)',
+            background: 'radial-gradient(circle, rgba(234,11,47,0.07) 0%, transparent 65%)',
             filter: 'blur(60px)',
             animation: 'orb-drift 32s ease-in-out infinite',
             opacity: 0,

@@ -158,7 +158,7 @@ export default function WeeklyMissionBrief() {
           <button
             onClick={generate}
             disabled={loading}
-            className="w-full bg-brand text-brand-ink font-black text-xs uppercase tracking-[0.15em] py-3.5 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50"
+            className="w-full bg-brand text-white font-black text-xs uppercase tracking-[0.15em] py-3.5 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50"
           >
             {loading ? 'Generating Mission Brief...' : 'Generate This Week\'s Brief'}
           </button>

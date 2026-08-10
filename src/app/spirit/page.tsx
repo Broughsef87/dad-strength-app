@@ -327,7 +327,7 @@ export default function SpiritPage() {
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 ${
                       actDone
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-brand text-brand-ink brand-glow hover:bg-brand/90'
+                        : 'bg-brand text-background brand-glow hover:bg-brand/90'
                     }`}
                   >
                     {actDone && <Check size={12} strokeWidth={3} />}

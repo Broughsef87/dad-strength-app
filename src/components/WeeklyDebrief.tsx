@@ -47,6 +47,7 @@ const GRADE_CONFIG: Record<
   'Strong':    { bg: 'bg-green-500/10',  text: 'text-green-400',  border: 'border-green-500/30' },
   'Dad Elite': {
     bg: 'bg-brand/10', text: 'text-brand', border: 'border-brand/40',
+    glow: 'shadow-[0_0_18px_rgba(249,115,22,0.25)]',
   },
 }
 
@@ -338,7 +339,7 @@ export default function WeeklyDebrief() {
         <button
           onClick={() => generate(!!debrief)}
           disabled={loading || !user}
-          className="w-full py-3 rounded-2xl bg-brand text-brand-ink font-display font-semibold text-sm uppercase tracking-widest hover:bg-brand/90 transition-colors disabled:opacity-50"
+          className="w-full py-3 rounded-2xl bg-brand text-white font-display font-semibold text-sm uppercase tracking-widest hover:bg-brand/90 transition-colors disabled:opacity-50"
         >
           {debrief ? 'Regenerate Debrief' : 'Generate My Debrief'}
         </button>

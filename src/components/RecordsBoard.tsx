@@ -78,14 +78,14 @@ export default function RecordsBoard() {
   const visible = showAll ? records : records.slice(0, SHOW_COLLAPSED)
 
   return (
-    <div className="glass-card relative p-6 pt-8">
-      <span className="panel-id">CHS-REC // REV.LOG</span>
+    <div className="glass-card relative rounded-xl p-6 pt-8">
+      <span className="panel-id">CHS-REC // RECORDS</span>
       <div className="flex items-center gap-2 mb-1.5">
         <Trophy size={16} className="text-brand" />
-        <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Rev Log</h3>
+        <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Records</h3>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-        The revision record, pulled straight from your logged sets — heaviest weight for 1, 3, and 5+ reps. Peak hold never falls back.
+        Pulled straight from your logged sets — heaviest weight for 1, 3, and 5+ reps.
       </p>
 
       {!loaded ? (
