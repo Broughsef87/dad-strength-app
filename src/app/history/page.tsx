@@ -240,7 +240,7 @@ export default function History() {
             </p>
             <button
               onClick={() => router.push('/body')}
-              className="flex items-center gap-2 bg-brand text-background font-semibold text-xs uppercase tracking-[0.14em] px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow"
+              className="flex items-center gap-2 bg-brand text-brand-ink font-semibold text-xs uppercase tracking-[0.14em] px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow"
             >
               <Dumbbell size={14} />
               Start First Session

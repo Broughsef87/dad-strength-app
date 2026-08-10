@@ -384,7 +384,7 @@ function RestTimer({ trigger }: { trigger: number }) {
             <Clock size={14} className={done ? 'text-brand' : 'text-brand'} />
             <span className="telemetry text-brand">{done ? 'REST DONE' : 'REST'}</span>
           </div>
-          <span className="readout-num text-2xl tabular-nums text-white">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
+          <span className="readout-num text-2xl tabular-nums text-foreground">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={() => { endRef.current += 30_000; setRemaining(r => r + 30); beeped.current = false }}
               className="panel-cut-sm border border-border/70 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors">+0:30</button>
@@ -452,10 +452,12 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   }
   const doneCount = sets.filter(s => s.done).length
   const allDone = doneCount === item.sets
+  // The working set — the one place on the card the crayon prints solid.
+  const nextIdx = sets.findIndex(s => !s.done)
   const panelId = `PNL-${String(index + 1).padStart(2, '0')} // ${item.slot.replace(/_/g, '.').toUpperCase()}`
 
   return (
-    <div className={`panel-cut hud-frame relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
+    <div className={`panel-cut hud-frame relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-cleared/50 yellow-out' : 'border-border'}`}>
       <span className="panel-id">{panelId}</span>
       <div className="absolute top-0.5 right-0.5 z-10 flex items-center">
         {onSwap && (
@@ -476,23 +478,30 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight uppercase tracking-wide text-foreground truncate">{item.name}</p>
-            {/* Prescription readout — target weight is the hero */}
+            {/* Prescription readout — the load is a dimensioned spec.
+                Dimension chrome on hero numbers only (general note 6). */}
             {item.targetWeightLbs != null ? (
-              <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
-                <span className="readout-num text-4xl text-brand" style={{ textShadow: '0 0 18px hsl(var(--brand) / 0.35)' }}>
-                  {item.targetWeightLbs}
-                </span>
-                <span className="telemetry-dim">
-                  LB @ {item.percent}% · {item.sets}×{item.reps}{item.targetRpe != null ? ` · TGT RPE ${item.targetRpe}` : ''}
-                </span>
-                {item.appliedAdjustmentPct != null && (
-                  <span className="telemetry border border-brand/50 px-1.5 py-0.5 text-brand">
-                    AUTO {item.appliedAdjustmentPct > 0 ? '+' : ''}{item.appliedAdjustmentPct}%
+              <div className="mt-2">
+                <div className="dim max-w-[230px]" aria-label={`Prescribed load ${item.targetWeightLbs} pounds`}>
+                  <span className="dim-ext" /><span className="dim-wing l" />
+                  <span className="dim-val text-3xl">
+                    {item.targetWeightLbs}<span className="text-[11px] text-muted-foreground font-semibold"> LB</span>
                   </span>
-                )}
-                {plateString(item.targetWeightLbs) && (
-                  <span className="telemetry-dim basis-full">{plateString(item.targetWeightLbs)}</span>
-                )}
+                  <span className="dim-wing r" /><span className="dim-ext" />
+                </div>
+                <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
+                  <span className="telemetry-dim">
+                    @ {item.percent}% · {item.sets}×{item.reps}{item.targetRpe != null ? ` · TGT RPE ${item.targetRpe}` : ''}
+                  </span>
+                  {item.appliedAdjustmentPct != null && (
+                    <span className="telemetry border border-brand/50 px-1.5 py-0.5 text-brand">
+                      Δ {item.appliedAdjustmentPct > 0 ? '+' : ''}{item.appliedAdjustmentPct}%
+                    </span>
+                  )}
+                  {plateString(item.targetWeightLbs) && (
+                    <span className="telemetry-dim basis-full">{plateString(item.targetWeightLbs)}</span>
+                  )}
+                </div>
               </div>
             ) : (
               <p className="telemetry-dim mt-1.5">
@@ -544,9 +553,9 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                     <button key={i}
                       onClick={() => setRampDone(prev => prev.map((d, j) => (j === i ? !d : d)))}
                       className={`w-full flex items-center gap-3 panel-cut-sm border px-3 py-1.5 text-left transition-colors ${
-                        rampDone[i] ? 'border-brand/40 bg-brand/5' : 'border-border/50 bg-background/40'
+                        rampDone[i] ? 'border-cleared/40 bg-cleared/5' : 'border-border/50 bg-background/40'
                       }`}>
-                      <span className={`readout-num text-[11px] w-5 shrink-0 ${rampDone[i] ? 'text-brand' : 'text-muted-foreground'}`}>
+                      <span className={`readout-num text-[11px] w-5 shrink-0 ${rampDone[i] ? 'text-cleared' : 'text-muted-foreground'}`}>
                         {String(i + 1).padStart(2, '0')}
                       </span>
                       <span className={`readout-num text-sm flex-1 ${rampDone[i] ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
@@ -563,7 +572,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
             <span>SET</span><span>LOAD.LB</span><span>REPS</span><span></span>
           </div>
           {sets.map((s, idx) => (
-            <div key={idx} className={`panel-cut-sm border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+            <div key={idx} className={`panel-cut-sm border transition-colors ${s.done ? 'border-cleared/40 bg-cleared/5' : 'border-border/60 bg-background'}`}>
               <div className="grid grid-cols-4 gap-2 items-center p-2">
                 <span className="readout-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
                 <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)} placeholder="lbs"
@@ -571,8 +580,12 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                 <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
                   className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
                 <button onClick={() => update(idx, 'done', !s.done)}
-                  className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-                  {s.done ? (s.rpe != null ? `RPE ${s.rpe}` : 'Hit') : 'Log'}
+                  className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${
+                    s.done ? 'bg-cleared text-brand-ink'
+                      : idx === nextIdx ? 'bg-brand text-brand-ink hover:opacity-90'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
+                  }`}>
+                  {s.done ? (s.rpe != null ? `RPE ${s.rpe}` : 'Built') : 'Log'}
                 </button>
               </div>
               {/* RPE strip — appears once the set is logged */}
@@ -585,7 +598,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                         onClick={() => update(idx, 'rpe', s.rpe === r ? null : r)}
                         className={`readout-num flex-1 py-1 text-[11px] border transition-colors ${
                           s.rpe === r
-                            ? 'bg-brand text-white border-brand'
+                            ? 'bg-brand text-brand-ink border-brand'
                             : item.targetRpe === r
                               ? 'border-brand/50 text-brand'
                               : 'border-border/60 text-muted-foreground hover:text-foreground'
@@ -711,14 +724,14 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
           <span>SET</span><span>REPS</span><span></span>
         </div>
         {sets.map((s, idx) => (
-          <div key={idx} className={`panel-cut-sm border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+          <div key={idx} className={`panel-cut-sm border transition-colors ${s.done ? 'border-cleared/40 bg-cleared/5' : 'border-border/60 bg-background'}`}>
             <div className="grid grid-cols-3 gap-2 items-center p-2">
               <span className="readout-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
               <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
                 className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <button onClick={() => update(idx, 'done', !s.done)}
-                className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-                {s.done ? 'Hit' : 'Log'}
+                className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-cleared text-brand-ink' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                {s.done ? 'Built' : 'Log'}
               </button>
             </div>
           </div>
@@ -903,7 +916,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
         <button onClick={() => setRepeat(r => !r)}
           className="mt-3 flex items-center gap-2.5 text-left group">
           <span className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${repeat ? 'bg-brand border-brand' : 'border-border group-hover:border-brand/50'}`}>
-            {repeat && <Check size={11} className="text-white" strokeWidth={3} />}
+            {repeat && <Check size={11} className="text-brand-ink" strokeWidth={3} />}
           </span>
           <span className="text-xs text-foreground/90">
             Repeat for the rest of this mesocycle
@@ -1486,7 +1499,7 @@ export default function TrainingDayPage() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
         <AlertTriangle className="w-10 h-10 text-red-400" />
         <p className="text-foreground font-medium">{error}</p>
-        <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Try Again</button>
+        <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="px-6 py-2.5 bg-brand text-brand-ink rounded-lg text-sm font-medium">Try Again</button>
       </div>
     )
   }
@@ -1497,7 +1510,8 @@ export default function TrainingDayPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 p-6 text-center">
         <div className="stamp px-8 py-4">
-          <p className="font-display text-4xl tracking-[0.2em] uppercase">Cleared</p>
+          <p className="font-display text-4xl tracking-[0.2em] uppercase">As Built</p>
+          <p className="font-display text-[10px] tracking-[0.3em] uppercase mt-1 opacity-85">Cleared — Inspected &amp; Accepted</p>
         </div>
 
         {sessionSummary && (sessionSummary.sets > 0 || sessionSummary.prs.length > 0) && (
@@ -1505,7 +1519,7 @@ export default function TrainingDayPage() {
             <span className="panel-id">DEBRIEF // SESSION.STATS</span>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="readout-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.35)' }}>
+                <p className="readout-num text-3xl text-brand">
                   {sessionSummary.tonnage.toLocaleString()}
                 </p>
                 <p className="telemetry-dim">LB TONNAGE</p>
@@ -1547,7 +1561,7 @@ export default function TrainingDayPage() {
         )}
 
         <div>
-          <p className="telemetry mb-2">WK {weekRef.current} · DAY {dayNumber} // MISSION LOG SAVED</p>
+          <p className="telemetry mb-2">WK {weekRef.current} · DAY {dayNumber} // SHEET FILED</p>
           <p className="text-sm text-muted-foreground">{program.name}</p>
         </div>
         {/* Week LED bar */}
@@ -1562,19 +1576,19 @@ export default function TrainingDayPage() {
         <div className="flex flex-col gap-3 w-full max-w-xs">
           {dayNumber < program.daysPerWeek && (
             <button onClick={() => { setSessionComplete(false); setLoading(true); router.push(`/train/${slug}/${dayNumber + 1}`) }}
-              className="panel-cut-sm mecha-glow w-full py-3.5 bg-brand text-white text-sm font-semibold uppercase tracking-[0.12em] hover:bg-brand/90 transition-colors">
-              Next Mission →
+              className="panel-cut-sm w-full py-3.5 bg-brand text-brand-ink text-sm font-semibold uppercase tracking-[0.12em] hover:bg-brand/90 transition-colors">
+              Next Sheet →
             </button>
           )}
           {/* Completed sessions stay reviewable — logs, swaps, and edits all
               still work; re-completing an already-counted day is harmless. */}
           <button onClick={() => setSessionComplete(false)}
             className="panel-cut-sm w-full py-2.5 border border-brand/50 text-brand text-sm font-medium uppercase tracking-wider hover:bg-brand/10 transition-colors">
-            Review / Edit Session
+            Back-Check / Edit Session
           </button>
           <button onClick={() => router.push('/dashboard')}
             className="panel-cut-sm w-full py-2.5 border border-border text-muted-foreground text-sm font-medium uppercase tracking-wider hover:text-foreground transition-colors">
-            Return to Bridge
+            Return to the Board
           </button>
         </div>
       </div>
@@ -1588,7 +1602,7 @@ export default function TrainingDayPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
-      <header className={`carbon sticky top-0 z-10 border-b px-4 py-3 ${isTestWeek ? 'border-brand/60 red-alert' : 'border-border'}`}>
+      <header className={`carbon sticky top-0 z-10 border-b px-4 py-3 ${isTestWeek ? 'border-destructive/60 red-alert' : 'border-border'}`}>
         <div className="flex items-center gap-3">
           <button onClick={() => router.push(`/train/${slug}`)} title="Back to week" className="p-2 border border-border/70 text-muted-foreground hover:text-foreground transition-colors panel-cut-sm">
             <ArrowLeft size={15} />
@@ -1596,9 +1610,9 @@ export default function TrainingDayPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="telemetry">WK {String(weekRef.current).padStart(2, '0')} // DAY {dayNumber}</span>
-              {isTestWeek && <span className="telemetry border border-brand/60 px-1.5 py-0.5">TRIAL PROTOCOL</span>}
+              {isTestWeek && <span className="telemetry border border-destructive/60 text-destructive px-1.5 py-0.5">TRIALS</span>}
             </div>
-            <h1 className="font-display text-xl tracking-[0.08em] uppercase truncate mt-0.5 text-white">{plan.dayName}</h1>
+            <h1 className="font-display text-xl tracking-[0.08em] uppercase truncate mt-0.5 text-foreground">{plan.dayName}</h1>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <div className="flex items-center gap-2">
@@ -1724,9 +1738,9 @@ export default function TrainingDayPage() {
         )}
 
         <button onClick={() => void completeSession()}
-          className="panel-cut carbon mecha-glow w-full py-4 border border-brand/60 text-brand text-sm font-semibold uppercase tracking-[0.16em] hover:border-brand transition-colors flex items-center justify-center gap-2.5">
+          className="panel-cut w-full py-4 bg-brand text-brand-ink text-sm font-semibold uppercase tracking-[0.16em] hover:bg-brand/90 transition-colors flex items-center justify-center gap-2.5">
           <Trophy size={16} />
-          Mission Complete
+          File the Sheet — Session Complete
         </button>
       </main>
 
@@ -1747,9 +1761,9 @@ export default function TrainingDayPage() {
       {prToast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[85] panel-mount pointer-events-none">
           <div className="stamp px-5 py-2.5 bg-background/95 backdrop-blur-sm">
-            <p className="font-display text-lg tracking-[0.16em] uppercase text-center">New Record</p>
+            <p className="font-display text-lg tracking-[0.16em] uppercase text-center">Rev — New Record</p>
             <p className="telemetry text-center mt-0.5">
-              {prToast.name.toUpperCase()} // {prToast.weight} LB × {prToast.reps}
+              Δ {prToast.name.toUpperCase()} // {prToast.weight} LB × {prToast.reps}
             </p>
           </div>
         </div>

@@ -220,7 +220,7 @@ export default function SystemsPage() {
                 <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all ${
                   habitChecks[habit.id] ? 'bg-brand border-brand' : 'border-border'
                 }`}>
-                  {habitChecks[habit.id] && <Check size={11} className="text-white" />}
+                  {habitChecks[habit.id] && <Check size={11} className="text-brand-ink" />}
                 </div>
                 <span className="text-xs font-bold">{habit.label}</span>
               </button>

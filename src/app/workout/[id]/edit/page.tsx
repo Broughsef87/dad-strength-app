@@ -131,7 +131,7 @@ export default function EditWorkout() {
         <button
           onClick={saveWorkout}
           disabled={saving}
-          className="bg-brand hover:bg-brand/90 text-background text-xs font-black px-4 py-2 rounded-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 text-brand-ink text-xs font-black px-4 py-2 rounded-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
         >
           {saving ? 'SAVING...' : <><Save size={14} /> SAVE</>}
         </button>

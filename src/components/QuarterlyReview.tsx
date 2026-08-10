@@ -427,7 +427,7 @@ export default function QuarterlyReview() {
               <button
                 onClick={generate}
                 disabled={generating}
-                className="w-full bg-brand text-white font-black text-xs uppercase tracking-[0.15em] py-3.5 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-brand text-brand-ink font-black text-xs uppercase tracking-[0.15em] py-3.5 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {generating ? (
                   <>

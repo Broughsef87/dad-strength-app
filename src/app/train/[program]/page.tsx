@@ -98,7 +98,7 @@ export default function MissionSchedulePage() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
         <AlertTriangle className="w-10 h-10 text-red-400" />
         <p className="text-foreground font-medium">Unknown program &ldquo;{slug}&rdquo;</p>
-        <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Choose Program</button>
+        <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-brand-ink rounded-lg text-sm font-medium">Choose Program</button>
       </div>
     )
   }
@@ -132,8 +132,8 @@ export default function MissionSchedulePage() {
   const doneDays = doneMap[selectedWeek] ?? new Set<number>()
 
   const weekTag = (wim: number, wk?: number) =>
-    wim === program.macroWeeks ? 'TEST'
-      : wim === program.macroWeeks - 1 || (wk != null && deloadWeeks.includes(wk)) ? 'DELOAD'
+    wim === program.macroWeeks ? 'TRIALS'
+      : wim === program.macroWeeks - 1 || (wk != null && deloadWeeks.includes(wk)) ? 'HOLD PT'
       : `M${Math.ceil(wim / 4)}·W${((wim - 1) % 4) + 1}`
 
   // Fatigue-flagged deload: toggle for the selected week, persisted on
@@ -188,19 +188,19 @@ export default function MissionSchedulePage() {
               {selectedWeek === currentWeek ? ' · ACTIVE' : ''}
             </p>
             <div className="flex items-center gap-2">
-              {isDeload && <span className="telemetry border border-brand/50 px-1.5 py-0.5">DELOAD</span>}
-              {isTest && <span className="telemetry border border-brand/50 px-1.5 py-0.5 red-alert">TRIAL PROTOCOL</span>}
+              {isDeload && <span className="telemetry border border-destructive/60 text-destructive px-1.5 py-0.5">HOLD POINT</span>}
+              {isTest && <span className="telemetry border border-destructive/60 px-1.5 py-0.5 red-alert">TRIALS</span>}
               {!isTest && !isNaturalDeload && (
                 <button
                   onClick={() => void toggleDeload()}
-                  title="Fatigued? Render this week with the deload treatment."
+                  title="Fatigued? Issue a hold point — the week renders with the deload treatment."
                   className={`telemetry border px-1.5 py-0.5 transition-colors ${
                     isForcedDeload
-                      ? 'border-brand text-brand bg-brand/10 hover:bg-brand/20'
+                      ? 'border-destructive text-destructive bg-destructive/10 hover:bg-destructive/20'
                       : 'border-border text-muted-foreground hover:text-foreground hover:border-brand/40'
                   }`}
                 >
-                  {isForcedDeload ? 'UNFLAG DELOAD' : 'FLAG DELOAD'}
+                  {isForcedDeload ? 'LIFT HOLD POINT' : 'ISSUE HOLD POINT'}
                 </button>
               )}
             </div>
@@ -208,21 +208,21 @@ export default function MissionSchedulePage() {
           <div className="readout-rule" />
 
           {fatigueCheckDue && (
-            <div className="panel-cut-sm relative border border-amber-500/40 bg-amber-500/5 p-4 pt-6">
+            <div className="panel-cut-sm relative border border-brand/40 bg-brand/5 p-4 pt-6">
               <span className="panel-id">SYS-FTG // FATIGUE CHECK</span>
               <p className="text-sm font-medium text-foreground mb-1">
                 Top week of the meso — three loading weeks banked.
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Feeling strong? Ride into the heavy work. Beat up? Flag the deload
-                and come back for these numbers fresh.
+                Feeling strong? Ride into the heavy work. Beat up? Issue a hold
+                point and come back for these numbers fresh.
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => void toggleDeload()}
-                  className="panel-cut-sm flex-1 py-2.5 border border-amber-500/60 text-amber-400 text-xs font-semibold uppercase tracking-widest hover:bg-amber-500/10 transition-colors"
+                  className="panel-cut-sm flex-1 py-2.5 border border-destructive/60 text-destructive text-xs font-semibold uppercase tracking-widest hover:bg-destructive/10 transition-colors"
                 >
-                  Flag Deload
+                  Issue Hold Point
                 </button>
                 <button
                   onClick={() => void dismissFatigueCheck()}
@@ -243,10 +243,10 @@ export default function MissionSchedulePage() {
               <button
                 key={d}
                 onClick={() => router.push(`/train/${slug}/${d}${selectedWeek !== currentWeek ? `?week=${selectedWeek}` : ''}`)}
-                className={`panel-cut-sm w-full text-left bg-card border p-3.5 flex items-center gap-3 transition-colors group ${done ? 'border-brand/50' : 'border-border hover:border-brand/40'}`}
+                className={`panel-cut-sm w-full text-left bg-card border p-3.5 flex items-center gap-3 transition-colors group ${done ? 'border-cleared/40 yellow-out' : 'border-border hover:border-brand/40'}`}
               >
                 <span className="readout-num text-lg text-muted-foreground w-9 shrink-0">{DAY_LABELS[i]}</span>
-                <Icon size={14} className={done ? 'text-brand' : 'text-muted-foreground'} />
+                <Icon size={14} className={done ? 'text-cleared' : 'text-muted-foreground'} />
                 <div className="flex-1 min-w-0">
                   <p className={`font-display text-sm uppercase tracking-wide truncate ${done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                     {plan.dayName}
@@ -254,7 +254,7 @@ export default function MissionSchedulePage() {
                   <p className="telemetry-dim truncate">{blockCount(plan)} BLOCK{blockCount(plan) === 1 ? '' : 'S'} · {plan.dayType.toUpperCase()}</p>
                 </div>
                 {done
-                  ? <span className="telemetry text-brand shrink-0">CLEARED</span>
+                  ? <span className="telemetry text-cleared shrink-0">AS BUILT</span>
                   : <ChevronRight size={14} className="text-muted-foreground group-hover:text-brand transition-colors shrink-0" />}
               </button>
             )
@@ -273,6 +273,9 @@ export default function MissionSchedulePage() {
                 const done = doneMap[wk] ?? new Set<number>()
                 const isSel = wk === selectedWeek
                 const isCur = wk === currentWeek
+                // Drafting reads: crosshatch = hold point, single hatch = not cut yet
+                const isHold = wim === program.macroWeeks - 1 || deloadWeeks.includes(wk)
+                const isFuture = wk > currentWeek
                 const mesoBoundary = wim === 1 || wim === 5 || wim === 9 || wim === program.macroWeeks - 1
                 return (
                   <div key={wk}>
@@ -281,12 +284,17 @@ export default function MissionSchedulePage() {
                         {wim === 1 ? 'MESO 1 // VOLUME + VARIATION'
                           : wim === 5 ? 'MESO 2 // INTENSIFICATION'
                           : wim === 9 ? 'MESO 3 // REALIZATION'
-                          : 'RESET // DELOAD + TRIALS'}
+                          : 'HOLD POINT // DELOAD + TRIALS'}
                       </p>
                     )}
                     <button
                       onClick={() => setSelectedWeek(wk)}
-                      className={`w-full flex items-center gap-2 px-2 py-1.5 transition-colors ${isSel ? 'bg-brand/10 border border-brand/40' : 'border border-transparent hover:bg-muted/40'}`}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 transition-colors ${
+                        isSel ? 'bg-brand/10 border border-brand/40'
+                          : isHold ? 'crosshatch border border-transparent hover:bg-muted/40'
+                          : isFuture ? 'hatch border border-transparent hover:bg-muted/40'
+                          : 'border border-transparent hover:bg-muted/40'
+                      }`}
                     >
                       <span className={`readout-num text-xs w-8 text-left shrink-0 ${isCur ? 'text-brand' : 'text-muted-foreground'}`}>
                         W{String(wk).padStart(2, '0')}

@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * Dad Strength DS mark v2 — chamfered plate, rosso monogram.
+ * Dad Strength DS mark v2 — chamfered plate, amber monogram.
  * Theme-aware: the plate reads carbon in dark mode and titanium in light
  * mode via CSS tokens, so one component works on every surface.
  * Geometry matches the raster suite generator (public/logo-suite/logo-v2.mjs).
@@ -20,9 +20,9 @@ export default function Logo({
       aria-label="Dad Strength"
     >
       <defs>
-        <linearGradient id="LogoV2_rosso" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#EA0B2F" />
-          <stop offset="100%" stopColor="#B00822" />
+        <linearGradient id="LogoV2_amber" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#FFB020" />
+          <stop offset="100%" stopColor="#B87400" />
         </linearGradient>
       </defs>
 
@@ -45,19 +45,19 @@ export default function Logo({
       <path
         d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z"
         transform="translate(206.5,292.6) scale(3.05)"
-        fill="url(#LogoV2_rosso)"
+        fill="url(#LogoV2_amber)"
         fillRule="evenodd"
       />
       <path
         d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z"
         transform="translate(567.5,292.6) scale(3.05)"
-        fill="url(#LogoV2_rosso)"
+        fill="url(#LogoV2_amber)"
         fillRule="evenodd"
       />
 
       {/* Chamfer accents + ground bar */}
-      <path d="M878,28 L996,146 L996,104 L920,28 Z" fill="#EA0B2F" />
-      <path d="M28,878 L146,996 L104,996 L28,920 Z" fill="#EA0B2F" />
+      <path d="M878,28 L996,146 L996,104 L920,28 Z" fill="#FFB020" />
+      <path d="M28,878 L146,996 L104,996 L28,920 Z" fill="#FFB020" />
       <rect
         x="206.5"
         y="765.6"

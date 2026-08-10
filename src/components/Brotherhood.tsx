@@ -142,7 +142,7 @@ export default function Brotherhood() {
                 {/* Status Dot */}
                 <div
                   className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                    overdue ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]' : 'bg-brand shadow-[0_0_6px_rgba(99,102,241,0.6)]'
+                    overdue ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]' : 'bg-brand'
                   }`}
                 />
 

@@ -16,10 +16,14 @@ export default function Home() {
   const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
 
+  // AS BUILT: checker's-amber sign-in button. Auth-UI renders white button
+  // text, so brand uses the darker amber rung for contrast; hover goes darker
+  // still rather than lighter — ink deepens, drawings don't glow.
   const authColors = resolvedTheme === 'light'
     ? {
-        brand: '#CE0928',
-        brandAccent: '#9C0720',
+        brand: '#B87400',
+        brandAccent: '#8F5A00',
+        brandButtonText: '#FFFFFF',
         inputBackground: 'hsl(214 18% 93%)',
         inputBorder: 'hsl(214 22% 80%)',
         inputText: 'hsl(222 32% 11%)',
@@ -30,16 +34,17 @@ export default function Home() {
         dividerBackground: 'hsl(214 22% 80%)',
       }
     : {
-        brand: '#CE0928',
-        brandAccent: '#9C0720',
-        inputBackground: 'hsl(222 21% 7%)',
-        inputBorder: 'hsl(214 35% 18%)',
-        inputText: 'hsl(210 24% 80%)',
-        inputPlaceholder: 'hsl(213 22% 32%)',
-        inputLabelText: 'hsl(213 22% 52%)',
-        messageText: 'hsl(213 22% 52%)',
-        anchorTextColor: 'hsl(38 90% 41%)',
-        dividerBackground: 'hsl(214 35% 18%)',
+        brand: '#FFB020',
+        brandAccent: '#D68A00',
+        brandButtonText: '#0A1B2C',
+        inputBackground: 'hsl(210 60% 11%)',
+        inputBorder: 'hsl(209 40% 26%)',
+        inputText: 'hsl(210 56% 91%)',
+        inputPlaceholder: 'hsl(209 30% 38%)',
+        inputLabelText: 'hsl(209 30% 57%)',
+        messageText: 'hsl(209 30% 57%)',
+        anchorTextColor: 'hsl(39 100% 56%)',
+        dividerBackground: 'hsl(209 40% 26%)',
       };
 
   useEffect(() => {
@@ -85,12 +90,13 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Auth card — pilot authentication console */}
+        {/* Auth card — signing the title block. You are not the pilot;
+            you are the drawing, and the drawing knows who drew it. */}
         <div className="panel-cut hud-frame relative bg-card border border-border p-6 pt-9 shadow-2xl">
-          <span className="panel-id">ACCESS // PILOT.AUTH</span>
+          <span className="panel-id">ACCESS // TITLE.BLOCK</span>
           <div className="flex items-center gap-2 mb-4">
             <span className="status-dot" />
-            <span className="telemetry">Pilot Authentication</span>
+            <span className="telemetry">Drawn By — Sign In</span>
           </div>
           <Auth
             supabaseClient={supabase}

@@ -294,7 +294,7 @@ export default function LearningTracker() {
 
               <div className="flex gap-2">
                 <button onClick={() => void addSkill()} disabled={!name.trim()}
-                  className="panel-cut-sm flex-1 py-2 bg-brand text-white text-[10px] font-semibold uppercase tracking-widest hover:bg-brand/90 disabled:opacity-40 transition-colors">
+                  className="panel-cut-sm flex-1 py-2 bg-brand text-brand-ink text-[10px] font-semibold uppercase tracking-widest hover:bg-brand/90 disabled:opacity-40 transition-colors">
                   Start Tracking
                 </button>
                 <button onClick={() => { setAdding(false); setName(''); setMilestone(''); setCatKey(null) }}

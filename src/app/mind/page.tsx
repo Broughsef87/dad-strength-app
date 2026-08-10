@@ -332,7 +332,7 @@ export default function MindPage() {
               <button
                 onClick={lockIn}
                 disabled={objectives.length === 0}
-                className="panel-cut-sm mecha-glow w-full bg-brand text-white py-3 text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="panel-cut-sm mecha-glow w-full bg-brand text-brand-ink py-3 text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Lock In Objectives
               </button>
