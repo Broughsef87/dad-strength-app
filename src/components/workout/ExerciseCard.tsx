@@ -59,10 +59,10 @@ export default function ExerciseCard({
   return (
     <>
       <div className={`group relative bg-card border-2 rounded-[40px] transition-all duration-700 overflow-hidden ${
-        isCompleted
-          ? 'border-emerald-500/40 bg-emerald-500/[0.02] shadow-[0_15px_40px_-10px_rgba(16,185,129,0.1)]'
-          : 'border-border/80 hover:border-brand/40 shadow-2xl'
-      }`}>
+ isCompleted
+ ? 'border-emerald-500/40 bg-emerald-500/[0.02] shadow-[0_15px_40px_-10px_rgba(16,185,129,0.1)]'
+ : 'border-border/80 hover:border-brand/40 shadow-2xl'
+ }`}>
         {/* Dynamic Background Element */}
         {!isCompleted && (
           <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 blur-[50px] rounded-full -mr-16 -mt-16 group-hover:bg-brand/10 transition-colors duration-700" />
@@ -70,13 +70,13 @@ export default function ExerciseCard({
 
         {/* Exercise Header Section */}
         <div className={`p-8 pb-5 flex justify-between items-start relative z-10 ${
-          isCompleted ? 'bg-emerald-500/[0.03]' : ''
-        }`}>
+ isCompleted ? 'bg-emerald-500/[0.03]' : ''
+ }`}>
           <div className="flex-1 min-w-0 pr-2">
             <div className="flex items-center gap-2 mb-2.5 flex-wrap">
               <h3 className={`font-display font-semibold text-2xl tracking-wide transition-all duration-500 ${
-                isCompleted ? 'text-emerald-400' : 'text-foreground'
-              }`}>
+ isCompleted ? 'text-emerald-400' : 'text-foreground'
+ }`}>
                 {name.toUpperCase()}
               </h3>
               {isCompleted && (
@@ -89,7 +89,7 @@ export default function ExerciseCard({
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="flex items-center gap-1.5 px-3 py-1 bg-brand/10 border border-brand/20 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                <span className="text-[10px] font-display font-semibold text-brand uppercase tracking-widest">
+                <span className="text-[10px] font-display font-semibold text-brand lowercase">
                   TARGET: {target}
                 </span>
               </div>
@@ -97,7 +97,7 @@ export default function ExerciseCard({
               {!isCompleted && (
                 <div className="flex items-center gap-1 px-2.5 py-1 bg-surface-3 rounded-full border border-border">
                   <History size={10} className="text-muted-foreground" />
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                  <span className="text-[9px] font-bold text-muted-foreground lowercase">
                     {lastPerformed}
                   </span>
                 </div>
@@ -111,7 +111,7 @@ export default function ExerciseCard({
               <div className="flex flex-col items-end">
                 <div className="flex items-center gap-1.5 text-brand/80 mb-1.5">
                   <Zap size={14} className="animate-pulse" />
-                  <span className="text-[10px] font-display font-semibold uppercase tracking-widest">Intensity</span>
+                  <span className="text-[10px] font-display font-semibold lowercase">Intensity</span>
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl font-display font-semibold text-foreground">{intensityScore}</span>
@@ -125,10 +125,10 @@ export default function ExerciseCard({
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(true); }}
                 className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border ${
-                  isCompleted
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400/60 hover:text-emerald-400'
-                    : 'bg-surface-3 border-border text-muted-foreground hover:text-foreground hover:border-brand/30'
-                }`}
+ isCompleted
+ ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400/60 hover:text-emerald-400'
+ : 'bg-surface-3 border-border text-muted-foreground hover:text-foreground hover:border-brand/30'
+ }`}
                 aria-label="Exercise options"
               >
                 <MoreVertical size={15} />
@@ -143,7 +143,7 @@ export default function ExerciseCard({
             <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent" />
             <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity duration-500">
               <Activity size={10} className="text-brand" />
-              <span className="text-[8px] font-display font-semibold text-muted-foreground uppercase tracking-[0.3em]">Load Matrix</span>
+              <span className="text-[8px] font-display font-semibold text-muted-foreground lowercase">Load Matrix</span>
             </div>
           </div>
         )}
@@ -159,7 +159,7 @@ export default function ExerciseCard({
             <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/complete:translate-x-full transition-transform duration-1000 ease-in-out" />
             <div className="flex items-center justify-center gap-3 relative z-10">
               <Sparkles size={12} className="text-black/80" />
-              <p className="text-[10px] font-display font-semibold text-black uppercase tracking-[0.4em]">Protocol Executed Successfully</p>
+              <p className="text-[10px] font-display font-semibold text-black lowercase">Protocol Executed Successfully</p>
               <Sparkles size={12} className="text-black/80 rotate-12" />
             </div>
           </div>
@@ -202,8 +202,8 @@ export default function ExerciseCard({
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Exercise</p>
-                  <p className="font-display tracking-[0.06em] uppercase text-sm text-foreground">{name}</p>
+                  <p className="text-[10px] lowercase text-muted-foreground font-semibold">Exercise</p>
+                  <p className="font-display lowercase text-sm text-foreground">{name}</p>
                 </div>
                 <button
                   onClick={() => setMenuOpen(false)}
@@ -309,7 +309,7 @@ function MenuGroup({ children }: { children: React.ReactNode }) {
   const valid = Array.isArray(children) ? children.filter(Boolean) : children;
   if (!valid || (Array.isArray(valid) && valid.length === 0)) return null;
   return (
-    <div className="ds-card overflow-hidden divide-y divide-border">
+    <div className="tile overflow-hidden divide-y divide-border">
       {children}
     </div>
   );
@@ -332,8 +332,8 @@ function MenuItem({
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors hover:bg-surface-3 active:bg-surface-3 ${
-        destructive ? 'text-red-400 hover:bg-red-500/5' : className
-      }`}
+ destructive ? 'text-red-400 hover:bg-red-500/5' : className
+ }`}
     >
       <Icon size={16} className="flex-shrink-0" />
       {label}

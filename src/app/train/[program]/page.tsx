@@ -1,7 +1,7 @@
 'use client'
 
-// ── Mission Schedule ───────────────────────────────────────────────────────────
-// Program overview: the current week as tappable day panels plus the full
+// ── Schedule ───────────────────────────────────────────────────────────────────
+// Program overview: the current week as tappable day rows plus the full
 // macro grid. Because prescriptions are deterministic, EVERY week of the
 // macro is preview-able and trainable — tap any day of any week to open it
 // (the day page takes a ?week= override). Completed days are lit from
@@ -16,7 +16,7 @@ import ForgeLoader from '../../../components/ForgeLoader'
 import { getProgram } from '../../../lib/programs'
 import type { DayPlan } from '../../../lib/programs/types'
 
-const DAY_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+const DAY_LABELS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
 // A back-off slot isn't its own block — it's the same bar, same station, right
 // after the top set. Counting it separately made a 6-block day read as 7 and
@@ -25,7 +25,7 @@ const blockCount = (plan: DayPlan) => plan.items.filter(i => !i.slot.endsWith('_
 
 interface DoneMap { [week: number]: Set<number> }
 
-export default function MissionSchedulePage() {
+export default function SchedulePage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useUser()
@@ -97,14 +97,14 @@ export default function MissionSchedulePage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
         <AlertTriangle className="w-10 h-10 text-red-400" />
-        <p className="text-foreground font-medium">Unknown program &ldquo;{slug}&rdquo;</p>
-        <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Choose Program</button>
+        <p className="text-foreground font-medium">unknown program &ldquo;{slug}&rdquo;</p>
+        <button onClick={() => router.push('/build')} className="pill-volt px-6 py-2.5 text-sm">choose program</button>
       </div>
     )
   }
 
   if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><ForgeLoader size={64} label="Loading Schedule" /></div>
+    return <div className="min-h-screen bg-background flex items-center justify-center"><ForgeLoader size={64} label="loading schedule" /></div>
   }
 
   // Macro position for the selected week (mirror of config math).
@@ -132,9 +132,9 @@ export default function MissionSchedulePage() {
   const doneDays = doneMap[selectedWeek] ?? new Set<number>()
 
   const weekTag = (wim: number, wk?: number) =>
-    wim === program.macroWeeks ? 'TEST'
-      : wim === program.macroWeeks - 1 || (wk != null && deloadWeeks.includes(wk)) ? 'DELOAD'
-      : `M${Math.ceil(wim / 4)}·W${((wim - 1) % 4) + 1}`
+    wim === program.macroWeeks ? 'test'
+      : wim === program.macroWeeks - 1 || (wk != null && deloadWeeks.includes(wk)) ? 'deload'
+      : `m${Math.ceil(wim / 4)}·w${((wim - 1) % 4) + 1}`
 
   // Fatigue-flagged deload: toggle for the selected week, persisted on
   // user_programs.preferences so the day pages render it too.
@@ -163,72 +163,68 @@ export default function MissionSchedulePage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
-      <header className="carbon sticky top-0 z-10 border-b border-border px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.push('/dashboard')} className="panel-cut-sm p-2 border border-border/70 text-muted-foreground hover:text-foreground transition-colors">
+      <header className="sticky top-0 z-10 bg-background/90 backdrop-blur px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={() => router.push('/dashboard')}
+          aria-label="back home"
+          className="pill-quiet p-2 hover:text-foreground transition-colors"
+        >
           <ArrowLeft size={15} />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="telemetry">OPS // MISSION.SCHEDULE</p>
-          <h1 className="font-display text-xl tracking-[0.08em] uppercase truncate mt-0.5 text-white">{program.name}</h1>
+          <h1 className="text-xl font-bold lowercase truncate">{program.name}</h1>
         </div>
         <div className="text-right shrink-0">
-          <p className="readout-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.4)' }}>
-            {String(currentWeek).padStart(2, '0')}
-          </p>
-          <p className="telemetry-dim">ACTIVE WK</p>
+          <p className="stat-num text-4xl">{currentWeek}</p>
+          <p className="eyebrow-mono mt-1">active week</p>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-6">
-        {/* ── Selected week — day panels ── */}
+        {/* ── Selected week — day rows ── */}
         <section className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <p className="telemetry">
-              WK {String(selectedWeek).padStart(2, '0')} // {weekTag(weekInMacro, selectedWeek)}
-              {selectedWeek === currentWeek ? ' · ACTIVE' : ''}
-            </p>
-            <div className="flex items-center gap-2">
-              {isDeload && <span className="telemetry border border-brand/50 px-1.5 py-0.5">DELOAD</span>}
-              {isTest && <span className="telemetry border border-brand/50 px-1.5 py-0.5 red-alert">TRIAL PROTOCOL</span>}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="data-mono truncate">week {selectedWeek} · {weekTag(weekInMacro, selectedWeek)}</p>
+              {selectedWeek === currentWeek && <span className="chip-live shrink-0">active</span>}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {isDeload && <span className="pill-quiet px-2.5 py-1 text-[11px]">deload</span>}
+              {isTest && <span className="pill-volt px-2.5 py-1 text-[11px]">test week</span>}
               {!isTest && !isNaturalDeload && (
                 <button
                   onClick={() => void toggleDeload()}
-                  title="Fatigued? Render this week with the deload treatment."
-                  className={`telemetry border px-1.5 py-0.5 transition-colors ${
-                    isForcedDeload
-                      ? 'border-brand text-brand bg-brand/10 hover:bg-brand/20'
-                      : 'border-border text-muted-foreground hover:text-foreground hover:border-brand/40'
-                  }`}
+                  title="fatigued? render this week with the deload treatment."
+                  className="pill-quiet px-2.5 py-1 text-[11px] hover:text-foreground transition-colors"
                 >
-                  {isForcedDeload ? 'UNFLAG DELOAD' : 'FLAG DELOAD'}
+                  {isForcedDeload ? 'unflag deload' : 'flag deload'}
                 </button>
               )}
             </div>
           </div>
-          <div className="readout-rule" />
 
           {fatigueCheckDue && (
-            <div className="panel-cut-sm relative border border-amber-500/40 bg-amber-500/5 p-4 pt-6">
-              <span className="panel-id">SYS-FTG // FATIGUE CHECK</span>
-              <p className="text-sm font-medium text-foreground mb-1">
-                Top week of the meso — three loading weeks banked.
+            <div className="tile p-4">
+              <p className="eyebrow-mono mb-2">fatigue check</p>
+              <p className="text-sm font-semibold mb-1">
+                top week of the meso — three loading weeks banked.
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Feeling strong? Ride into the heavy work. Beat up? Flag the deload
+                feeling strong? ride into the heavy work. beat up? flag the deload
                 and come back for these numbers fresh.
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => void toggleDeload()}
-                  className="panel-cut-sm flex-1 py-2.5 border border-amber-500/60 text-amber-400 text-xs font-semibold uppercase tracking-widest hover:bg-amber-500/10 transition-colors"
+                  className="pill-volt flex-1 py-2.5 text-xs"
                 >
-                  Flag Deload
+                  flag deload
                 </button>
                 <button
                   onClick={() => void dismissFatigueCheck()}
-                  className="panel-cut-sm flex-1 py-2.5 border border-border text-muted-foreground text-xs font-semibold uppercase tracking-widest hover:text-foreground hover:border-brand/40 transition-colors"
+                  className="pill-quiet flex-1 py-2.5 text-xs hover:text-foreground transition-colors"
                 >
-                  Ride On
+                  ride on
                 </button>
               </div>
             </div>
@@ -243,19 +239,19 @@ export default function MissionSchedulePage() {
               <button
                 key={d}
                 onClick={() => router.push(`/train/${slug}/${d}${selectedWeek !== currentWeek ? `?week=${selectedWeek}` : ''}`)}
-                className={`panel-cut-sm w-full text-left bg-card border p-3.5 flex items-center gap-3 transition-colors group ${done ? 'border-brand/50' : 'border-border hover:border-brand/40'}`}
+                className="tile w-full text-left p-3.5 flex items-center gap-3 group"
               >
-                <span className="readout-num text-lg text-muted-foreground w-9 shrink-0">{DAY_LABELS[i]}</span>
+                <span className="data-mono w-9 shrink-0">{DAY_LABELS[i]}</span>
                 <Icon size={14} className={done ? 'text-brand' : 'text-muted-foreground'} />
                 <div className="flex-1 min-w-0">
-                  <p className={`font-display text-sm uppercase tracking-wide truncate ${done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                  <p className={`text-sm font-bold lowercase truncate ${done ? 'text-muted-foreground line-through decoration-brand' : 'text-foreground'}`}>
                     {plan.dayName}
                   </p>
-                  <p className="telemetry-dim truncate">{blockCount(plan)} BLOCK{blockCount(plan) === 1 ? '' : 'S'} · {plan.dayType.toUpperCase()}</p>
+                  <p className="data-mono truncate">{blockCount(plan)} block{blockCount(plan) === 1 ? '' : 's'} · {plan.dayType.toLowerCase()}</p>
                 </div>
                 {done
-                  ? <span className="telemetry text-brand shrink-0">CLEARED</span>
-                  : <ChevronRight size={14} className="text-muted-foreground group-hover:text-brand transition-colors shrink-0" />}
+                  ? <span className="chip-live shrink-0">done</span>
+                  : <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />}
               </button>
             )
           })}
@@ -263,10 +259,8 @@ export default function MissionSchedulePage() {
 
         {/* ── Macro grid ── */}
         <section className="space-y-2.5">
-          <p className="telemetry">MACRO // {program.macroWeeks} WEEKS</p>
-          <div className="readout-rule" />
-          <div className="panel-cut hud-frame relative bg-card border border-border p-4 pt-7">
-            <span className="panel-id">CAMPAIGN MAP</span>
+          <p className="data-mono">macro · {program.macroWeeks} weeks</p>
+          <div className="tile-lg p-4">
             <div className="space-y-1.5">
               {macroWeeks.map(wk => {
                 const wim = ((wk - 1) % program.macroWeeks) + 1
@@ -277,26 +271,26 @@ export default function MissionSchedulePage() {
                 return (
                   <div key={wk}>
                     {mesoBoundary && (
-                      <p className="telemetry-dim mt-3 mb-1">
-                        {wim === 1 ? 'MESO 1 // VOLUME + VARIATION'
-                          : wim === 5 ? 'MESO 2 // INTENSIFICATION'
-                          : wim === 9 ? 'MESO 3 // REALIZATION'
-                          : 'RESET // DELOAD + TRIALS'}
+                      <p className="eyebrow-mono mt-3 mb-1">
+                        {wim === 1 ? 'meso 1 · volume + variation'
+                          : wim === 5 ? 'meso 2 · intensification'
+                          : wim === 9 ? 'meso 3 · realization'
+                          : 'reset · deload + test week'}
                       </p>
                     )}
                     <button
                       onClick={() => setSelectedWeek(wk)}
-                      className={`w-full flex items-center gap-2 px-2 py-1.5 transition-colors ${isSel ? 'bg-brand/10 border border-brand/40' : 'border border-transparent hover:bg-muted/40'}`}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-xl transition-colors ${isSel ? 'row-recessed' : 'hover:bg-muted/40'}`}
                     >
-                      <span className={`readout-num text-xs w-8 text-left shrink-0 ${isCur ? 'text-brand' : 'text-muted-foreground'}`}>
-                        W{String(wk).padStart(2, '0')}
+                      <span className={`data-mono w-8 text-left shrink-0 ${isCur ? 'text-brand font-semibold' : ''}`}>
+                        w{wk}
                       </span>
-                      <div className="led-bar flex-1">
+                      <div className="flex flex-1 items-center gap-1.5">
                         {Array.from({ length: program.daysPerWeek }).map((_, i) => (
-                          <span key={i} className={`led-cell ${done.has(i + 1) ? 'lit' : ''}`} />
+                          <span key={i} className={`h-2.5 w-2.5 rounded-[5px] ${done.has(i + 1) ? 'bg-brand' : 'bg-muted'}`} />
                         ))}
                       </div>
-                      <span className="telemetry-dim w-14 text-right shrink-0">{weekTag(wim, wk)}</span>
+                      <span className="data-mono w-14 text-right shrink-0">{weekTag(wim, wk)}</span>
                     </button>
                   </div>
                 )
@@ -304,8 +298,8 @@ export default function MissionSchedulePage() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Every week&apos;s loads are computed from your current maxes — tap any week to preview or train it.
-            Next macro&apos;s numbers appear after you log new maxes in the week-{program.macroWeeks} trials.
+            every week&apos;s loads are computed from your current maxes — tap any week to preview or train it.
+            next macro&apos;s numbers appear after you log new maxes in the week-{program.macroWeeks} tests.
           </p>
         </section>
       </main>

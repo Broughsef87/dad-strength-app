@@ -243,22 +243,22 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sun size={14} className="text-brand" />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium">Morning Protocol</span>
+            <span className="text-[10px] lowercase text-brand font-medium">Morning Protocol</span>
           </div>
           <p className="text-xs text-muted-foreground font-light">Build your morning. Own your day.</p>
         </div>
 
         {/* Time */}
         <div>
-          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How much time?</label>
+          <label className="text-[10px] text-muted-foreground lowercase font-medium block mb-2.5">How much time?</label>
           <div className="flex gap-2">
             {TIME_OPTIONS.map(t => (
               <button key={t} onClick={() => setMinutes(t)}
                 className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                  minutes === t
-                    ? 'bg-foreground text-background'
-                    : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
-                }`}
+ minutes === t
+ ? 'bg-foreground text-background'
+ : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
+ }`}
               >{t}m</button>
             ))}
           </div>
@@ -266,19 +266,19 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
         {/* Sleep quality */}
         <div>
-          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">How&apos;d you sleep?</label>
+          <label className="text-[10px] text-muted-foreground lowercase font-medium block mb-2.5">How&apos;d you sleep?</label>
           <div className="space-y-2">
             {SLEEP_QUALITY.map(s => (
               <button key={s.id} onClick={() => setSleep(s.id)}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all border ${
-                  sleep === s.id
-                    ? 'bg-brand/5 border-brand/30 text-foreground'
-                    : 'bg-muted border-transparent text-muted-foreground hover:border-border'
-                }`}
+ sleep === s.id
+ ? 'bg-brand/5 border-brand/30 text-foreground'
+ : 'bg-muted border-transparent text-muted-foreground hover:border-border'
+ }`}
               >
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                  sleep === s.id ? 'bg-brand/15 border border-brand/40' : 'bg-background/40 border border-border'
-                }`}>
+ sleep === s.id ? 'bg-brand/15 border border-brand/40' : 'bg-background/40 border border-border'
+ }`}>
                   <s.Icon size={14} className={sleep === s.id ? 'text-brand' : 'text-muted-foreground'} />
                 </span>
                 <span className="text-sm font-semibold">{s.label}</span>
@@ -289,19 +289,19 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
         {/* Energy */}
         <div>
-          <label className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium block mb-2.5">Your energy right now?</label>
+          <label className="text-[10px] text-muted-foreground lowercase font-medium block mb-2.5">Your energy right now?</label>
           <div className="space-y-2">
             {ENERGY_LEVELS.map(e => (
               <button key={e.id} onClick={() => setEnergy(e.id)}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all border ${
-                  energy === e.id
-                    ? 'bg-brand/5 border-brand/30 text-foreground'
-                    : 'bg-muted border-transparent text-muted-foreground hover:border-border'
-                }`}
+ energy === e.id
+ ? 'bg-brand/5 border-brand/30 text-foreground'
+ : 'bg-muted border-transparent text-muted-foreground hover:border-border'
+ }`}
               >
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                  energy === e.id ? 'bg-brand/15 border border-brand/40' : 'bg-background/40 border border-border'
-                }`}>
+ energy === e.id ? 'bg-brand/15 border border-brand/40' : 'bg-background/40 border border-border'
+ }`}>
                   <e.Icon size={14} className={energy === e.id ? 'text-brand' : 'text-muted-foreground'} />
                 </span>
                 <span className="text-sm font-semibold">{e.label}</span>
@@ -320,7 +320,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         <button
           onClick={() => generate()}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-foreground hover:opacity-90 disabled:opacity-50 text-background font-medium py-4 rounded-lg text-sm uppercase tracking-[0.1em] transition-all active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 bg-foreground hover:opacity-90 disabled:opacity-50 text-background font-medium py-4 rounded-lg text-sm lowercase transition-all active:scale-[0.98]"
         >
           {loading
             ? <><Loader2 size={16} className="animate-spin" /> Building...</>
@@ -345,7 +345,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
         <div>
           <div className="flex items-center gap-1.5 mb-1">
             <Sun size={13} className="text-brand" />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium">Morning Protocol</span>
+            <span className="text-[10px] lowercase text-brand font-medium">Morning Protocol</span>
           </div>
           <h3 className="font-light text-lg tracking-tight leading-tight">{protocol?.theme}</h3>
         </div>
@@ -359,28 +359,18 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       </div>
 
       {allDone && !reviewOpen ? (
-        /* ── Collapsed — all systems checked, pilot is go. Green means green. ── */
+        /* ── Collapsed — every check done. Volt marks what's earned. ── */
         <div className="py-5 flex flex-col items-center gap-4">
-          <div
-            className="stamp px-6 py-2.5"
-            style={{
-              borderColor: '#10B981',
-              color: '#10B981',
-              textShadow: '0 0 12px #10B98180',
-              boxShadow: 'inset 0 0 18px #10B98126, 0 0 24px #10B98140',
-            }}
-          >
-            <p className="font-display text-2xl tracking-[0.16em] uppercase">Systems Green</p>
-          </div>
+          <span className="chip-live text-base px-5 py-2.5">morning done</span>
           <div className="text-center space-y-1.5">
-            <p className="telemetry" style={{ color: '#10B981' }}>MORNING.OPS COMPLETE // PILOT READY FOR THE DAY</p>
+            <p className="eyebrow-mono">every check in · the day is yours</p>
             {protocol?.closingWord && (
               <p className="text-sm text-muted-foreground font-light leading-relaxed max-w-xs mx-auto">{protocol.closingWord}</p>
             )}
           </div>
           <button
             onClick={() => setReviewOpen(true)}
-            className="telemetry-dim hover:text-foreground transition-colors flex items-center gap-1"
+            className="eyebrow-mono hover:text-foreground transition-colors flex items-center gap-1"
           >
             REVIEW PROTOCOL <ChevronDown size={11} />
           </button>
@@ -393,7 +383,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       {/* Progress */}
       <div className="space-y-1.5">
         <div className="flex justify-between items-center">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Progress</span>
+          <span className="text-[10px] text-muted-foreground lowercase font-medium">Progress</span>
           <span className="text-[10px] text-brand font-medium">{doneCount}/{totalSteps}</span>
         </div>
         <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
@@ -438,7 +428,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                   <p className={`font-medium text-sm ${isDone ? 'line-through text-muted-foreground' : ''}`}>
                     {step.title}
                   </p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em] mt-0.5">
+                  <p className="text-[10px] text-muted-foreground lowercase mt-0.5">
                     {step.pillar} · {step.minutes}m
                   </p>
                 </div>
@@ -458,7 +448,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                   {/* Gratitude — 3 text inputs */}
                   {isGratitude ? (
                     <div className="space-y-2">
-                      <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">3 things you&apos;re grateful for</p>
+                      <p className="text-[10px] lowercase text-muted-foreground font-medium">3 things you&apos;re grateful for</p>
                       {[0, 1, 2].map(j => (
                         <div key={j} className="flex items-center gap-2">
                           <span className="text-[10px] text-muted-foreground font-medium w-4">{j + 1}.</span>
@@ -482,7 +472,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                     <div className="space-y-4">
                       {/* Daily Objectives */}
                       <div className="space-y-2">
-                        <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium">Today&apos;s objectives</p>
+                        <p className="text-[10px] lowercase text-muted-foreground font-medium">Today&apos;s objectives</p>
                         {[0, 1, 2].map(j => (
                           <div key={j} className="flex items-center gap-2">
                             <span className="text-[10px] text-muted-foreground font-mono w-5 shrink-0">0{j + 1}</span>
@@ -511,7 +501,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                         <button
                           onClick={saveMindState}
                           disabled={!mindObjectives.some(o => o.trim())}
-                          className="w-full flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-400 font-medium py-2.5 rounded-lg text-xs uppercase tracking-[0.12em] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-400 font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Target size={12} /> Save to Mind Tab
                         </button>
@@ -533,14 +523,14 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
                   ) : (
                     <div className={`rounded-lg px-4 py-3 border ${colors}`}>
-                      <p className="text-[10px] uppercase tracking-[0.1em] font-medium mb-1 opacity-70">Focus Prompt</p>
+                      <p className="text-[10px] lowercase font-medium mb-1 opacity-70">Focus Prompt</p>
                       <p className="text-sm font-light italic">{step.prompt}</p>
                     </div>
                   )}
 
                   <button
                     onClick={() => toggleStep(i)}
-                    className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs uppercase tracking-[0.1em] transition-all"
+                    className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all"
                   >
                     Mark Complete ✓
                   </button>
@@ -554,7 +544,7 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       {allDone && (
         <button
           onClick={() => setReviewOpen(false)}
-          className="panel-cut-sm w-full py-2.5 border border-emerald-500/50 text-emerald-500 text-xs font-semibold uppercase tracking-[0.14em] hover:bg-emerald-500/10 transition-colors"
+          className="w-full py-2.5 border border-emerald-500/50 text-emerald-500 text-xs font-semibold lowercase hover:bg-emerald-500/10 transition-colors"
         >
           Collapse — Systems Green
         </button>

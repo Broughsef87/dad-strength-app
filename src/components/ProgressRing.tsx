@@ -112,7 +112,7 @@ export default function ProgressRing({
             </span>
           )}
           {sublabel && (
-            <span className="uppercase tracking-widest text-muted-foreground" style={{ fontSize: size * 0.1 }}>
+            <span className="lowercase text-muted-foreground" style={{ fontSize: size * 0.1 }}>
               {sublabel}
             </span>
           )}

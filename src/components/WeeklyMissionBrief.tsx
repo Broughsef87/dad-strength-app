@@ -101,14 +101,14 @@ export default function WeeklyMissionBrief() {
           <div className="text-left">
             <h3 className="font-medium text-sm">Weekly Mission Brief</h3>
             {state.brief && (
-              <p className="text-[10px] text-brand font-black uppercase tracking-widest mt-0.5">{state.brief.weekTheme}</p>
+              <p className="text-[10px] text-brand font-black lowercase mt-0.5">{state.brief.weekTheme}</p>
             )}
           </div>
         </div>
         {hasBrief ? (
           expanded ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />
         ) : (
-          <span className="text-[10px] text-brand font-black uppercase tracking-widest">Generate →</span>
+          <span className="text-[10px] text-brand font-black lowercase">Generate →</span>
         )}
       </button>
 
@@ -118,7 +118,7 @@ export default function WeeklyMissionBrief() {
           <p className="text-xs text-muted-foreground">Answer three questions. The AI builds your week&apos;s battle plan.</p>
           <div className="space-y-3">
             <div>
-              <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium block mb-1.5">
+              <label className="text-[10px] lowercase text-muted-foreground font-medium block mb-1.5">
                 #1 Objective This Week
               </label>
               <input
@@ -130,7 +130,7 @@ export default function WeeklyMissionBrief() {
               />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium block mb-1.5">
+              <label className="text-[10px] lowercase text-muted-foreground font-medium block mb-1.5">
                 Family Intention
               </label>
               <input
@@ -142,7 +142,7 @@ export default function WeeklyMissionBrief() {
               />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium block mb-1.5">
+              <label className="text-[10px] lowercase text-muted-foreground font-medium block mb-1.5">
                 Training Focus
               </label>
               <input
@@ -158,7 +158,7 @@ export default function WeeklyMissionBrief() {
           <button
             onClick={generate}
             disabled={loading}
-            className="w-full bg-brand text-white font-black text-xs uppercase tracking-[0.15em] py-3.5 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50"
+            className="w-full bg-brand text-white font-black text-xs lowercase py-3.5 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50"
           >
             {loading ? 'Generating Mission Brief...' : 'Generate This Week\'s Brief'}
           </button>
@@ -178,28 +178,28 @@ export default function WeeklyMissionBrief() {
             <div className="flex gap-3">
               <Target size={14} className="text-brand shrink-0 mt-0.5" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-0.5">Primary Objective</p>
+                <p className="text-[10px] lowercase text-muted-foreground font-medium mb-0.5">Primary Objective</p>
                 <p className="text-xs text-foreground">{state.brief.primaryObjective}</p>
               </div>
             </div>
             <div className="flex gap-3">
               <Heart size={14} className="text-rose-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-0.5">Family Mission</p>
+                <p className="text-[10px] lowercase text-muted-foreground font-medium mb-0.5">Family Mission</p>
                 <p className="text-xs text-foreground">{state.brief.familyMission}</p>
               </div>
             </div>
             <div className="flex gap-3">
               <Dumbbell size={14} className="text-brand shrink-0 mt-0.5" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-0.5">Training Directive</p>
+                <p className="text-[10px] lowercase text-muted-foreground font-medium mb-0.5">Training Directive</p>
                 <p className="text-xs text-foreground">{state.brief.trainingDirective}</p>
               </div>
             </div>
             <div className="flex gap-3">
               <Zap size={14} className="text-yellow-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-0.5">Daily Edge</p>
+                <p className="text-[10px] lowercase text-muted-foreground font-medium mb-0.5">Daily Edge</p>
                 <p className="text-xs text-foreground italic">{state.brief.dailyEdge}</p>
               </div>
             </div>
@@ -208,7 +208,7 @@ export default function WeeklyMissionBrief() {
           {/* Regenerate */}
           <button
             onClick={() => { setState(s => ({ ...s, brief: null })); setShowForm(true); setExpanded(false) }}
-            className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest font-medium"
+            className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors lowercase font-medium"
           >
             <RefreshCw size={10} /> Regenerate
           </button>

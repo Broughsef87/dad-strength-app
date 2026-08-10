@@ -102,7 +102,7 @@ export default function EditWorkout() {
       .eq('id', workout.id)
 
     if (error) {
-      alert('Error updating workout')
+      alert('error updating workout')
       console.error(error)
     } else {
       router.push(`/workout/${workout.id}`)
@@ -115,7 +115,7 @@ export default function EditWorkout() {
     <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
       <div className="flex flex-col items-center gap-3">
         <div className="w-5 h-5 border border-brand border-t-transparent rounded-full animate-spin" />
-        <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em] font-display">Loading</p>
+        <p className="eyebrow-mono">loading</p>
       </div>
     </div>
   )
@@ -125,24 +125,24 @@ export default function EditWorkout() {
       <header className="sticky top-0 z-20 bg-surface-2 border-b border-border p-4 flex items-center justify-between">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground flex items-center gap-1">
           <ChevronLeft size={20} />
-          <span className="text-sm font-bold">Cancel</span>
+          <span className="text-sm font-bold">cancel</span>
         </button>
-        <h1 className="text-xs font-black uppercase tracking-widest text-muted-foreground font-display">Edit Program</h1>
+        <h1 className="eyebrow-mono">edit program</h1>
         <button
           onClick={saveWorkout}
           disabled={saving}
-          className="bg-brand hover:bg-brand/90 text-background text-xs font-black px-4 py-2 rounded-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 text-brand-ink text-xs font-bold px-4 py-2 rounded-full transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
         >
-          {saving ? 'SAVING...' : <><Save size={14} /> SAVE</>}
+          {saving ? 'saving...' : <><Save size={14} /> save</>}
         </button>
       </header>
 
       <div className="p-4 space-y-6 max-w-md mx-auto">
 
         {/* WORKOUT DETAILS */}
-        <div className="ds-card p-6 space-y-4">
+        <div className="tile p-6 space-y-4">
           <div>
-            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-2 font-display">Program Name</label>
+            <label className="eyebrow-mono block mb-2">program name</label>
             <input
               type="text"
               value={workout?.name || ''}
@@ -151,7 +151,7 @@ export default function EditWorkout() {
             />
           </div>
           <div>
-            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-2 font-display">Description</label>
+            <label className="eyebrow-mono block mb-2">description</label>
             <input
               type="text"
               value={workout?.description || ''}
@@ -164,17 +164,17 @@ export default function EditWorkout() {
         {/* EXERCISES */}
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest font-display">Exercises</h2>
+            <h2 className="eyebrow-mono">exercises</h2>
             <button
               onClick={addExercise}
-              className="text-brand text-xs font-black hover:text-brand/80 flex items-center gap-1 uppercase tracking-wider"
+              className="text-foreground text-xs font-bold hover:opacity-70 flex items-center gap-1"
             >
-              <Plus size={14} /> Add New
+              <Plus size={14} /> add new
             </button>
           </div>
 
           {workout?.exercises.map((exercise, index) => (
-            <div key={exercise.id || index} className="ds-card p-6 relative group">
+            <div key={exercise.id || index} className="tile p-6 relative group">
               <button
                 onClick={() => removeExercise(index)}
                 className="absolute top-4 right-4 text-muted-foreground/40 hover:text-destructive p-2 opacity-0 group-hover:opacity-100 transition-all"
@@ -184,7 +184,7 @@ export default function EditWorkout() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-2 font-display">Exercise Name</label>
+                  <label className="eyebrow-mono block mb-2">exercise name</label>
                   <input
                     type="text"
                     value={exercise.name}
@@ -196,7 +196,7 @@ export default function EditWorkout() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-2 font-display">Sets</label>
+                    <label className="eyebrow-mono block mb-2">sets</label>
                     <input
                       type="number"
                       value={exercise.sets}
@@ -205,7 +205,7 @@ export default function EditWorkout() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-2 font-display">Target Reps</label>
+                    <label className="eyebrow-mono block mb-2">target reps</label>
                     <input
                       type="text"
                       value={exercise.target_reps}
@@ -220,9 +220,9 @@ export default function EditWorkout() {
 
           <button
             onClick={addExercise}
-            className="w-full py-4 rounded-md border border-dashed border-border text-muted-foreground hover:border-brand hover:text-brand transition-all font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2"
+            className="w-full py-4 pill-quiet transition-all text-sm flex items-center justify-center gap-2"
           >
-            <Plus size={18} /> Add Exercise
+            <Plus size={18} /> add exercise
           </button>
         </div>
       </div>

@@ -296,7 +296,7 @@ export default function ActiveWorkout() {
     <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
       <div className="flex flex-col items-center gap-3">
         <div className="w-5 h-5 border border-brand border-t-transparent rounded-full animate-spin" />
-        <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em] font-display">Loading</p>
+        <p className="eyebrow-mono">loading</p>
       </div>
     </div>
   )
@@ -308,15 +308,15 @@ export default function ActiveWorkout() {
           <ChevronLeft />
         </button>
         <div className="text-center">
-          <h1 className="text-xs font-black uppercase tracking-widest text-muted-foreground font-display">Live Session</h1>
+          <h1 className="eyebrow-mono">live session</h1>
           <WorkoutTimer seconds={timer} formatTime={formatTime} />
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => router.push(`/workout/${params?.id}/edit`)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
             <Edit3 size={20} />
           </button>
-          <button onClick={() => setShowFinishConfirm(true)} className="bg-green-600 hover:bg-green-500 text-white text-xs font-black px-5 py-2.5 rounded-full transition-all active:scale-95 shadow-lg shadow-green-500/20">
-            FINISH
+          <button onClick={() => setShowFinishConfirm(true)} className="bg-brand text-brand-ink text-xs font-bold px-5 py-2.5 rounded-full transition-all active:scale-95">
+            finish
           </button>
         </div>
       </header>
@@ -384,21 +384,21 @@ export default function ActiveWorkout() {
       {/* FINISH CONFIRM OVERLAY */}
       {showFinishConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6" style={{ backdropFilter: 'none' }}>
-          <div className="ds-card p-8 w-full max-w-sm text-center space-y-6 shadow-2xl">
-            <h2 className="font-display text-3xl tracking-[0.08em] uppercase text-foreground">Finish Workout?</h2>
-            <p className="text-sm text-muted-foreground">This will log your session and end the timer.</p>
+          <div className="tile p-8 w-full max-w-sm text-center space-y-6">
+            <h2 className="font-display text-3xl text-foreground">finish workout?</h2>
+            <p className="text-sm text-muted-foreground">this will log your session and end the timer.</p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => { setShowFinishConfirm(false); finishWorkout() }}
-                className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3.5 rounded-md text-sm uppercase tracking-widest transition-all active:scale-95"
+                className="w-full bg-brand text-brand-ink font-bold py-3.5 rounded-full text-sm transition-all active:scale-95"
               >
-                Yes, I&apos;m Done
+                yes, i&apos;m done
               </button>
               <button
                 onClick={() => setShowFinishConfirm(false)}
-                className="w-full bg-muted hover:bg-muted/70 text-muted-foreground font-black py-3.5 rounded-md text-sm uppercase tracking-widest transition-all"
+                className="w-full pill-quiet py-3.5 text-sm transition-all"
               >
-                Keep Going
+                keep going
               </button>
             </div>
           </div>

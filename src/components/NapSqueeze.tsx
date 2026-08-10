@@ -14,14 +14,14 @@ export default function NapSqueeze() {
             <div className="p-2 bg-brand/20 rounded-lg">
               <Zap className="w-4 h-4 text-brand" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand">Unlock The OS</span>
+            <span className="text-[10px] font-black lowercase text-brand">Unlock The OS</span>
           </div>
-          <div className="px-3 py-1 bg-brand text-[10px] font-black uppercase tracking-widest text-foreground rounded-full">
+          <div className="px-3 py-1 bg-brand text-[10px] font-black lowercase text-foreground rounded-full">
             Limited Time
           </div>
         </div>
 
-        <h2 className="text-3xl font-black text-foreground tracking-tight mb-2 italic uppercase">
+        <h2 className="text-3xl font-black text-foreground tracking-tight mb-2 italic lowercase">
           Founder&apos;s Pass
         </h2>
         <p className="text-muted-foreground text-sm font-bold mb-8 leading-relaxed">
@@ -37,15 +37,15 @@ export default function NapSqueeze() {
           ].map((feature, i) => (
             <div key={i} className="flex items-center gap-3">
               <CheckCircle2 className="w-4 h-4 text-brand flex-shrink-0" />
-              <span className="text-xs font-bold text-gray-300 uppercase tracking-wide">{feature}</span>
+              <span className="text-xs font-bold text-gray-300 lowercase">{feature}</span>
             </div>
           ))}
         </div>
 
         <div className="flex items-baseline gap-2 mb-8">
           <span className="text-4xl font-black text-foreground leading-none">$47</span>
-          <span className="text-sm font-bold text-muted-foreground uppercase line-through">$149</span>
-          <span className="text-[10px] font-black text-brand uppercase tracking-widest ml-auto">One-Time Fee</span>
+          <span className="text-sm font-bold text-muted-foreground lowercase line-through">$149</span>
+          <span className="text-[10px] font-black text-brand lowercase ml-auto">One-Time Fee</span>
         </div>
 
         <button className="w-full bg-white hover:bg-brand/90 text-black font-black py-5 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3 group/btn">
@@ -55,7 +55,7 @@ export default function NapSqueeze() {
 
         <div className="mt-6 flex items-center justify-center gap-2">
           <ShieldCheck className="w-4 h-4 text-muted-foreground" />
-          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Secure Stripe Checkout</span>
+          <span className="text-[9px] font-black text-muted-foreground lowercase">Secure Stripe Checkout</span>
         </div>
       </div>
     </div>

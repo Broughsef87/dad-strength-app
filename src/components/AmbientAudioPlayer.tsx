@@ -383,7 +383,7 @@ export default function AmbientAudioPlayer() {
 
   return (
     <div className="mt-4 rounded-2xl bg-card border border-border p-4 space-y-3">
-      <p className="text-xs uppercase tracking-widest text-muted-foreground font-black">Ambient Sound</p>
+      <p className="text-xs lowercase text-muted-foreground font-black">Ambient Sound</p>
 
       {/* Track selector */}
       <div className="flex flex-wrap gap-2">

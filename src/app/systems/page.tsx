@@ -118,11 +118,11 @@ function PlayCard({ play }: { play: typeof AUTOMATION_PLAYS[0] }) {
             <Icon size={16} className="text-brand" />
           </div>
           <div>
-            <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{play.category} · {play.time}</p>
+            <p className="text-[9px] font-display font-semibold lowercase text-muted-foreground">{play.category} · {play.time}</p>
             <h3 className="font-display font-semibold text-base text-foreground leading-tight mt-0.5">{play.title}</h3>
           </div>
         </div>
-        <span className="text-[9px] font-bold uppercase tracking-wider text-brand bg-brand/10 px-2 py-1 rounded-lg border border-brand/20 shrink-0">
+        <span className="text-[9px] font-bold lowercase text-brand bg-brand/10 px-2 py-1 rounded-lg border border-brand/20 shrink-0">
           {play.tag}
         </span>
       </div>
@@ -141,7 +141,7 @@ function PlayCard({ play }: { play: typeof AUTOMATION_PLAYS[0] }) {
           </div>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-2 text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors"
+            className="flex items-center gap-2 text-[10px] font-display font-semibold lowercase text-muted-foreground hover:text-brand transition-colors"
           >
             {copied ? <CheckCheck size={12} className="text-brand" /> : <Copy size={12} />}
             {copied ? 'Copied' : 'Copy play'}
@@ -178,14 +178,14 @@ export default function SystemsPage() {
         </button>
         <div className="flex items-center gap-3">
           <Zap className="w-8 h-8 text-brand" />
-          <h1 className="font-display font-semibold text-2xl tracking-wide italic uppercase">Systems</h1>
+          <h1 className="font-display font-semibold text-2xl tracking-wide italic lowercase">Systems</h1>
         </div>
       </header>
 
       <main className="max-w-md mx-auto space-y-8">
 
         <div className="bg-card border border-brand/20 rounded-3xl p-6">
-          <p className="text-[10px] font-display font-semibold text-brand uppercase tracking-widest mb-2">The Principle</p>
+          <p className="text-[10px] font-display font-semibold text-brand lowercase mb-2">The Principle</p>
           <p className="font-display font-semibold text-lg leading-tight text-foreground mb-3">
             Automate the noise.<br />Show up for what matters.
           </p>
@@ -199,7 +199,7 @@ export default function SystemsPage() {
         <div className="bg-card border border-border rounded-3xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest">Daily Stack</p>
+              <p className="text-[10px] font-display font-semibold text-muted-foreground lowercase">Daily Stack</p>
               <h2 className="font-display font-semibold text-lg mt-0.5">Today&apos;s 5</h2>
             </div>
             <div className={`text-2xl font-display font-semibold tabular-nums ${checkedCount === 5 ? 'text-brand' : 'text-foreground'}`}>
@@ -227,7 +227,7 @@ export default function SystemsPage() {
             ))}
           </div>
           {checkedCount === 5 && (
-            <p className="mt-4 text-center text-[10px] font-display font-semibold text-brand uppercase tracking-widest">
+            <p className="mt-4 text-center text-[10px] font-display font-semibold text-brand lowercase">
               System locked in. Good day.
             </p>
           )}
@@ -237,10 +237,10 @@ export default function SystemsPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest">Playbook</p>
+              <p className="text-[10px] font-display font-semibold text-muted-foreground lowercase">Playbook</p>
               <h2 className="font-display font-semibold text-lg mt-0.5">Life Automation Plays</h2>
             </div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-muted-foreground lowercase">
               {AUTOMATION_PLAYS.length} plays
             </span>
           </div>
@@ -252,7 +252,7 @@ export default function SystemsPage() {
         </div>
 
         <div className="bg-card/60 border border-dashed border-border rounded-2xl p-5 text-center">
-          <p className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest mb-2">Coming Soon</p>
+          <p className="text-[10px] font-display font-semibold text-muted-foreground lowercase mb-2">Coming Soon</p>
           <p className="text-xs text-muted-foreground">AI-personalized system recommendations based on your week.</p>
         </div>
 

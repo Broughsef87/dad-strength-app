@@ -86,35 +86,24 @@ export default function RecoveryProtocol() {
   const complete = total >= WEEKLY_TARGET
 
   return (
-    <div className="glass-card relative rounded-xl p-6 pt-8">
-      <span className="panel-id">CHS-RCV // RECOVERY.OPS</span>
+    <div className="tile relative rounded-xl p-6 pt-8">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <Snowflake size={16} className={complete ? 'text-emerald-500' : 'text-brand'} />
-          <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Recovery Protocol</h3>
+          <h3 className="font-display font-semibold text-sm lowercase">Recovery Protocol</h3>
         </div>
-        <span className="telemetry-dim">{total}/{WEEKLY_TARGET} THIS WK</span>
+        <span className="eyebrow-mono">{total}/{WEEKLY_TARGET} THIS WK</span>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed mb-4">
         {WEEKLY_TARGET} sessions a week, any combination — stack what works for you. Resets Monday.
       </p>
 
       {complete ? (
-        /* ── RECOVERY GREEN — weekly target hit ── */
+        /* ── weekly target hit — volt marks what's earned ── */
         <div className="mb-4 flex flex-col items-center gap-2 py-3">
-          <div
-            className="stamp px-5 py-2"
-            style={{
-              borderColor: GREEN,
-              color: GREEN,
-              textShadow: `0 0 12px ${GREEN}80`,
-              boxShadow: `inset 0 0 18px ${GREEN}26, 0 0 24px ${GREEN}40`,
-            }}
-          >
-            <p className="font-display text-xl tracking-[0.16em] uppercase">Recovery Green</p>
-          </div>
-          <p className="telemetry" style={{ color: GREEN }}>
-            {total}/{WEEKLY_TARGET} LOGGED // CHASSIS ABSORBING THE WORK
+          <span className="chip-live text-sm px-4 py-2">recovery done</span>
+          <p className="eyebrow-mono">
+            {total} of {WEEKLY_TARGET} logged · absorbing the work
           </p>
         </div>
       ) : (
@@ -134,9 +123,9 @@ export default function RecoveryProtocol() {
           return (
             <div
               key={s.key}
-              className={`flex items-center gap-3 panel-cut-sm border px-3.5 py-2.5 transition-colors ${
-                active ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border/60 bg-background/40'
-              }`}
+              className={`flex items-center gap-3 border px-3.5 py-2.5 transition-colors ${
+ active ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border/60 bg-background/40'
+ }`}
             >
               <button
                 onClick={() => void setCount(s.key, n + 1)}
@@ -153,17 +142,17 @@ export default function RecoveryProtocol() {
               <div className="flex items-center gap-1.5 shrink-0">
                 {active && (
                   <>
-                    <span className="readout-num text-sm" style={{ color: GREEN }}>×{n}</span>
+                    <span className="stat-num text-sm" style={{ color: GREEN }}>×{n}</span>
                     <button onClick={() => void setCount(s.key, n - 1)} title="Remove one"
-                      className="p-1.5 border border-border/60 text-muted-foreground hover:text-foreground transition-colors panel-cut-sm">
+                      className="p-1.5 border border-border/60 text-muted-foreground hover:text-foreground transition-colors">
                       <Minus size={11} />
                     </button>
                   </>
                 )}
                 <button onClick={() => void setCount(s.key, n + 1)} disabled={!loaded} title="Log a session"
-                  className={`p-1.5 border transition-colors panel-cut-sm ${
-                    active ? 'border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/10' : 'border-border/60 text-muted-foreground hover:text-brand hover:border-brand/50'
-                  }`}>
+                  className={`p-1.5 border transition-colors ${
+ active ? 'border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/10' : 'border-border/60 text-muted-foreground hover:text-brand hover:border-brand/50'
+ }`}>
                   <Plus size={11} />
                 </button>
               </div>

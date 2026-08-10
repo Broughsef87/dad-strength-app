@@ -199,7 +199,7 @@ export default function PersonalGrowth() {
           <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-xl font-display font-semibold italic uppercase">Personal Growth</h1>
+          <h1 className="text-xl font-display font-semibold italic lowercase">Personal Growth</h1>
         </header>
         <main className="max-w-md mx-auto p-6 space-y-6">
           <SkeletonCard />
@@ -216,7 +216,7 @@ export default function PersonalGrowth() {
         <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft size={24} />
         </button>
-        <h1 className="text-xl font-display font-semibold italic uppercase">Personal Growth</h1>
+        <h1 className="text-xl font-display font-semibold italic lowercase">Personal Growth</h1>
       </header>
 
       <main className="max-w-md mx-auto p-6 space-y-6">
@@ -281,7 +281,7 @@ export default function PersonalGrowth() {
 
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-muted-foreground uppercase tracking-[0.1em] font-medium block mb-1">Title</label>
+              <label className="text-xs text-muted-foreground lowercase font-medium block mb-1">Title</label>
               <input
                 type="text"
                 value={book.title}
@@ -291,7 +291,7 @@ export default function PersonalGrowth() {
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground uppercase tracking-[0.1em] font-medium block mb-1">Author</label>
+              <label className="text-xs text-muted-foreground lowercase font-medium block mb-1">Author</label>
               <input
                 type="text"
                 value={book.author}
@@ -310,7 +310,7 @@ export default function PersonalGrowth() {
             )}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-[0.1em] font-medium block mb-1">Current Chapter</label>
+                <label className="text-xs text-muted-foreground lowercase font-medium block mb-1">Current Chapter</label>
                 <input
                   type="number"
                   value={book.currentChapter || ''}
@@ -321,7 +321,7 @@ export default function PersonalGrowth() {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground uppercase tracking-[0.1em] font-medium block mb-1">Total Chapters</label>
+                <label className="text-xs text-muted-foreground lowercase font-medium block mb-1">Total Chapters</label>
                 <input
                   type="number"
                   value={book.totalChapters || ''}

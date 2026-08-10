@@ -80,7 +80,7 @@ export default function MissionPage() {
         <button onClick={() => router.back()} className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft size={24} />
         </button>
-        <h1 className="text-xl font-display font-semibold uppercase tracking-wide">My Mission</h1>
+        <h1 className="text-xl font-display font-semibold lowercase">My Mission</h1>
       </header>
 
       <main className="max-w-md mx-auto p-6 space-y-6">
@@ -97,7 +97,7 @@ export default function MissionPage() {
 
         {/* Mission Title */}
         <div className="space-y-2">
-          <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Mission Name</label>
+          <label className="text-[10px] lowercase text-muted-foreground font-medium">Mission Name</label>
           <input
             type="text"
             value={title}
@@ -110,7 +110,7 @@ export default function MissionPage() {
 
         {/* Description */}
         <div className="space-y-2">
-          <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">What does it look like when you get there?</label>
+          <label className="text-[10px] lowercase text-muted-foreground font-medium">What does it look like when you get there?</label>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
@@ -124,7 +124,7 @@ export default function MissionPage() {
         {/* Progress */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Progress</label>
+            <label className="text-[10px] lowercase text-muted-foreground font-medium">Progress</label>
             <span className="text-sm font-display font-semibold text-brand">{progress}%</span>
           </div>
           <input
@@ -147,7 +147,7 @@ export default function MissionPage() {
 
         {/* Next Milestone */}
         <div className="space-y-2">
-          <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium flex items-center gap-1.5">
+          <label className="text-[10px] lowercase text-muted-foreground font-medium flex items-center gap-1.5">
             <TrendingUp size={11} /> Next Milestone
           </label>
           <input
@@ -164,7 +164,7 @@ export default function MissionPage() {
         <button
           onClick={handleSave}
           disabled={saving || !title}
-          className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-display font-semibold py-4 rounded-xl uppercase tracking-widest text-sm transition-all active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-display font-semibold py-4 rounded-xl lowercase text-sm transition-all active:scale-[0.98]"
         >
           {saving ? <Loader2 size={16} className="animate-spin" /> : 'Save Mission'}
         </button>
@@ -176,8 +176,8 @@ export default function MissionPage() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-xl bg-card border border-border p-5 space-y-3"
           >
-            <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Mission Preview</p>
-            <h3 className="text-lg font-display font-semibold uppercase tracking-wide">{title}</h3>
+            <p className="text-[10px] lowercase text-muted-foreground font-medium">Mission Preview</p>
+            <h3 className="text-lg font-display font-semibold lowercase">{title}</h3>
             {description && <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>}
             <div className="space-y-1">
               <div className="flex justify-between text-[10px] text-muted-foreground">

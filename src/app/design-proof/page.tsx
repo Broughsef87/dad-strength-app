@@ -32,7 +32,12 @@ const RECORDS = [
 ]
 
 export default function DesignProofPage() {
-  const [dark, setDark] = useState(true)
+  // ?theme=light pins the ground so a screenshot pass can capture either
+  // one deterministically instead of depending on click order.
+  const [dark, setDark] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return new URLSearchParams(window.location.search).get('theme') !== 'light'
+  })
 
   // Never ships to visitors: the harness is a dev tool.
   if (process.env.NODE_ENV === 'production') notFound()
@@ -137,12 +142,12 @@ export default function DesignProofPage() {
           <h2 className="text-[26px] lowercase -mt-2">power clean</h2>
 
           <div className="tile-lg p-4">
-            <div className="flex justify-between items-start">
-              <div>
+            <div className="flex justify-between items-start gap-3">
+              <div className="min-w-0">
                 <p className="text-[17px] font-bold lowercase tracking-tight">top double</p>
                 <p className="data-mono mt-1">83% · rpe 8 · singles up</p>
               </div>
-              <p className="stat-num text-[46px]">225<span className="text-[12px] font-medium tracking-normal text-muted-foreground"> lb</span></p>
+              <p className="stat-num text-[46px] shrink-0 whitespace-nowrap">225<span className="text-[12px] font-medium tracking-normal text-muted-foreground"> lb</span></p>
             </div>
             <div className="flex flex-col gap-2 mt-3.5">
               {SAMPLE_SETS.map(s => (
@@ -163,12 +168,12 @@ export default function DesignProofPage() {
           </div>
 
           <div className="tile p-4">
-            <div className="flex justify-between items-start">
-              <div>
+            <div className="flex justify-between items-start gap-3">
+              <div className="min-w-0">
                 <p className="text-[17px] font-bold lowercase tracking-tight">snatch pull</p>
-                <p className="data-mono mt-1">3 × 3 · 102% of snatch · heavy and fast</p>
+                <p className="data-mono mt-1">3 × 3 · 102% of snatch</p>
               </div>
-              <p className="stat-num text-[46px]">210<span className="text-[12px] font-medium tracking-normal text-muted-foreground"> lb</span></p>
+              <p className="stat-num text-[46px] shrink-0 whitespace-nowrap">210<span className="text-[12px] font-medium tracking-normal text-muted-foreground"> lb</span></p>
             </div>
           </div>
         </section>

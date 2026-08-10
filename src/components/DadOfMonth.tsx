@@ -99,7 +99,7 @@ export default function DadOfMonth() {
   const showBestMonth = currentPct >= 85 && delta > 0
 
   return (
-    <div className="glass-card rounded-xl p-5 space-y-4">
+    <div className="tile rounded-xl p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -108,7 +108,7 @@ export default function DadOfMonth() {
           </div>
           <h3 className="font-medium text-sm">This Month</h3>
         </div>
-        <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
+        <span className="text-[10px] lowercase text-muted-foreground font-medium">
           {monthLabel(year, month)}
         </span>
       </div>
@@ -117,7 +117,7 @@ export default function DadOfMonth() {
       <div className="flex items-end gap-3">
         <p className="stat-num text-5xl font-black leading-none">{currentPct}%</p>
         <div className="mb-1 space-y-0.5">
-          <p className={`text-sm font-black uppercase tracking-tight ${gradeColor}`}>{gradeLabel}</p>
+          <p className={`text-sm font-black lowercase tracking-tight ${gradeColor}`}>{gradeLabel}</p>
           <p className="text-[10px] text-muted-foreground">consistency</p>
         </div>
       </div>
@@ -141,9 +141,9 @@ export default function DadOfMonth() {
 
       {/* Best Month Yet banner */}
       {showBestMonth && (
-        <div className="flex items-center gap-2 bg-brand/10 border border-brand/25 rounded-xl px-3 py-2.5 brand-glow">
+        <div className="flex items-center gap-2 bg-brand/10 border border-brand/25 rounded-xl px-3 py-2.5">
           <span className="text-base leading-none">🏆</span>
-          <p className="text-xs font-bold text-brand uppercase tracking-[0.1em]">Best Month Yet</p>
+          <p className="text-xs font-bold text-brand lowercase">Best Month Yet</p>
         </div>
       )}
     </div>

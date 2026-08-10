@@ -54,6 +54,7 @@
   --color-brand: hsl(var(--brand));
   --color-brand-deep: hsl(var(--brand-deep));
   --color-brand-ink: hsl(var(--brand-ink));
+  --color-brand-text: hsl(var(--brand-text));
   --color-brand-muted: hsl(var(--brand-muted));
 
   /* concrete midtone (replaces "steel") */
@@ -112,6 +113,7 @@
     --brand: 78 100% 62%;              /* #C6FF3F */
     --brand-deep: 78 71% 53%;          /* #A8E32A */
     --brand-ink: 82 37% 6%;            /* #131608 text on volt */
+    --brand-text: 77 79% 27%;          /* #5C7A0E volt as INK on chalk (5.6:1) */
     --brand-muted: 78 100% 62% / 0.16;
 
     --shadow-tile: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px rgba(20, 20, 18, 0.06);
@@ -156,6 +158,7 @@
     --brand: 76 100% 65%;              /* #CDFF4D */
     --brand-deep: 76 85% 57%;          /* #B7EE33 */
     --brand-ink: 82 37% 6%;
+    --brand-text: 76 100% 65%;      /* on graphite, volt itself reads fine */
     --brand-muted: 76 100% 65% / 0.12;
 
     --shadow-tile: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px rgba(0, 0, 0, 0.45);
@@ -254,9 +257,8 @@
   font-weight: 700;
   text-transform: lowercase;
   background: hsl(var(--brand-muted));
-  color: hsl(var(--brand-deep));
+  color: hsl(var(--brand-text));
 }
-.dark .chip-live { color: hsl(var(--brand)); }
 .chip-live::before {
   content: "";
   width: 6px;
@@ -456,13 +458,12 @@
 .stamp {
   animation: pop-in 0.32s cubic-bezier(0.3, 1.4, 0.4, 1) both;
   border: 2px solid hsl(var(--brand));
-  color: hsl(var(--brand-deep));
+  color: hsl(var(--brand-text));
   border-radius: 999px;
   text-shadow: none;
   box-shadow: none;
   text-transform: lowercase;
 }
-.dark .stamp { color: hsl(var(--brand)); }
 
 /* glows, pulses, scanlines → gone (rule 03: nothing glows) */
 .brand-glow, .brand-glow-lg, .mecha-glow, .mind-glow, .spirit-glow { box-shadow: var(--shadow-tile); }
@@ -527,3 +528,14 @@
 @keyframes orb-drift-2 {
   0%, 100% { transform: none; }
 }
+
+/* ── Volt is a FILL, never an ink ──────────────────────────────────────────
+   On graphite, volt-on-dark reads at 15:1. On chalk, volt-on-white is 1.6:1 —
+   invisible. Rather than hunt 240+ call sites, text/icon utilities resolve to
+   --brand-text, which IS volt on graphite and a darkened volt on chalk. Solid
+   volt fills are unaffected: those pair with --brand-ink and stay legible. */
+.text-brand { color: hsl(var(--brand-text)); }
+.fill-brand { fill: hsl(var(--brand-text)); }
+.stroke-brand { stroke: hsl(var(--brand-text)); }
+/* ...but inside a solid volt fill, ink wins. */
+.bg-brand .text-brand, .pill-volt .text-brand { color: hsl(var(--brand-ink)); }

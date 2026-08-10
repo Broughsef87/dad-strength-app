@@ -202,8 +202,8 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-brand/10">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium font-display">Getting Started</p>
-            <h3 className="font-display text-xl tracking-[0.08em] uppercase mt-0.5">Your First Week</h3>
+            <p className="text-[10px] lowercase text-brand font-medium font-display">Getting Started</p>
+            <h3 className="font-display text-xl lowercase mt-0.5">Your First Week</h3>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[10px] text-muted-foreground font-medium">{doneCount}/3</span>
@@ -243,7 +243,7 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
                 {!done && (
                   <button
                     onClick={() => handleCTA(item)}
-                    className="text-[10px] font-black uppercase tracking-widest text-brand hover:text-brand/70 transition-colors shrink-0"
+                    className="text-[10px] font-black lowercase text-brand hover:text-brand/70 transition-colors shrink-0"
                   >
                     {item.cta} →
                   </button>

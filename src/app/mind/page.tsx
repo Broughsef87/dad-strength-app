@@ -176,12 +176,11 @@ export default function MindPage() {
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4 space-y-6">
-        <div className="mb-6 livery-slash pl-4">
-          <p className="telemetry mb-1">SYS // NEURAL.LINK</p>
-          <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Neural</h1>
+        <div className="mb-6">
+          <h1 className="font-display text-4xl">mind</h1>
         </div>
         {[1,2,3].map(i => (
-          <div key={i} className="glass-card rounded-xl p-6 animate-pulse space-y-3">
+          <div key={i} className="tile rounded-2xl p-6 animate-pulse space-y-3">
             <div className="h-4 bg-muted rounded w-1/3" />
             <div className="h-3 bg-muted rounded w-2/3" />
             <div className="h-3 bg-muted rounded w-1/2" />
@@ -196,9 +195,9 @@ export default function MindPage() {
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-4">
-        <div className="mb-6 livery-slash pl-4">
-          <p className="telemetry mb-1">SYS // NEURAL.LINK</p>
-          <h1 className="font-display text-4xl tracking-[0.08em] uppercase">Neural</h1>
+        <div className="mb-6 pl-4">
+          <p className="eyebrow-mono mb-1">focus · learn · reflect</p>
+          <h1 className="font-display text-4xl lowercase">mind</h1>
         </div>
         <motion.div
           className="space-y-6"
@@ -208,12 +207,11 @@ export default function MindPage() {
         >
 
         {/* Objectives */}
-        <motion.div variants={fadeUp} className="glass-card relative rounded-xl p-6 pt-8">
-          <span className="panel-id">MND-01 // OBJECTIVES</span>
+        <motion.div variants={fadeUp} className="tile relative rounded-xl p-6 pt-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Target size={16} className="text-brand" />
-              <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Daily Objectives</h3>
+              <h3 className="font-display font-semibold text-sm lowercase">Daily Objectives</h3>
             </div>
             <button
               onClick={() => {
@@ -235,7 +233,7 @@ export default function MindPage() {
             )}
             {objectives.map((obj, i) => (
               <div key={i} className="flex items-center gap-4 group">
-                <div className="readout-num text-xs text-muted-foreground w-5 shrink-0">
+                <div className="stat-num text-xs text-muted-foreground w-5 shrink-0">
                   {String(i + 1).padStart(2, '0')}
                 </div>
                 {lockedIn ? (
@@ -272,15 +270,15 @@ export default function MindPage() {
               {/* Your library — most-used chips first */}
               {library.length > 0 && (
                 <div>
-                  <p className="telemetry-dim mb-2">YOUR LIBRARY</p>
+                  <p className="eyebrow-mono mb-2">YOUR LIBRARY</p>
                   <div className="flex flex-wrap gap-1.5">
                     {library.map(l => {
                       const on = objectives.includes(l.label);
                       return (
                         <button key={l.label} onClick={() => selectChip(l.label)}
-                          className={`panel-cut-sm border px-2.5 py-1.5 text-xs transition-colors ${
-                            on ? 'border-brand text-brand bg-brand/10' : 'border-border text-foreground/80 hover:border-brand/40 hover:text-foreground'
-                          }`}>
+                          className={` border px-2.5 py-1.5 text-xs transition-colors ${
+ on ? 'border-brand text-brand bg-brand/10' : 'border-border text-foreground/80 hover:border-brand/40 hover:text-foreground'
+ }`}>
                           {l.label}
                         </button>
                       );
@@ -295,15 +293,15 @@ export default function MindPage() {
                 if (!items.length) return null;
                 return (
                   <div key={g.label}>
-                    <p className="telemetry-dim mb-2">{g.label.toUpperCase()}</p>
+                    <p className="eyebrow-mono mb-2">{g.label.toUpperCase()}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {items.map(s => {
                         const on = objectives.includes(s);
                         return (
                           <button key={s} onClick={() => selectChip(s)}
-                            className={`panel-cut-sm border px-2.5 py-1.5 text-xs transition-colors ${
-                              on ? 'border-brand text-brand bg-brand/10' : 'border-border/70 text-muted-foreground hover:border-brand/40 hover:text-foreground'
-                            }`}>
+                            className={` border px-2.5 py-1.5 text-xs transition-colors ${
+ on ? 'border-brand text-brand bg-brand/10' : 'border-border/70 text-muted-foreground hover:border-brand/40 hover:text-foreground'
+ }`}>
                             {s}
                           </button>
                         );
@@ -324,7 +322,7 @@ export default function MindPage() {
                   className="flex-1 bg-transparent border-b border-border focus:border-foreground text-sm text-foreground py-1.5 transition-colors outline-none placeholder:text-muted-foreground"
                 />
                 <button onClick={addCustom} disabled={!customObj.trim()}
-                  className="p-1.5 border border-border/70 text-muted-foreground hover:text-brand hover:border-brand/50 disabled:opacity-40 transition-colors panel-cut-sm">
+                  className="p-1.5 border border-border/70 text-muted-foreground hover:text-brand hover:border-brand/50 disabled:opacity-40 transition-colors">
                   <Plus size={13} />
                 </button>
               </div>
@@ -332,7 +330,7 @@ export default function MindPage() {
               <button
                 onClick={lockIn}
                 disabled={objectives.length === 0}
-                className="panel-cut-sm mecha-glow w-full bg-brand text-white py-3 text-xs font-semibold uppercase tracking-[0.14em] hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="w-full bg-brand text-white py-3 text-xs font-semibold lowercase hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Lock In Objectives
               </button>

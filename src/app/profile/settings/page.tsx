@@ -133,7 +133,7 @@ export default function Settings() {
 
         {/* Appearance */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground uppercase tracking-[0.15em] font-medium px-1">Appearance</h2>
+          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Appearance</h2>
           <div className="bg-card rounded-xl border border-border p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -169,7 +169,7 @@ export default function Settings() {
 
         {/* Notifications */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground uppercase tracking-[0.15em] font-medium px-1">Notifications</h2>
+          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Notifications</h2>
           <div className="bg-card rounded-xl border border-border overflow-hidden divide-y divide-border">
             <button
               onClick={toggleNotifWorkout}
@@ -220,7 +220,7 @@ export default function Settings() {
 
         {/* Data & Privacy */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground uppercase tracking-[0.15em] font-medium px-1">Data & Privacy</h2>
+          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Data & Privacy</h2>
           <div className="bg-card rounded-xl border border-border overflow-hidden divide-y divide-border">
             <button
               onClick={handleExportData}

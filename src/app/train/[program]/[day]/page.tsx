@@ -57,17 +57,17 @@ const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
 const BAR = 45
 const PLATE_SIZES = [45, 35, 25, 10, 5, 2.5]
 
-// "45·25·5 /SIDE" for a total barbell weight; null when it's not plate-able.
+// "45·25·5 /side" for a total barbell weight; null when it's not plate-able.
 function plateString(total: number | null | undefined): string | null {
   if (total == null || total < BAR) return null
-  if (total <= BAR + 2.5) return 'EMPTY BAR'
+  if (total <= BAR + 2.5) return 'empty bar'
   let side = (total - BAR) / 2
   const out: string[] = []
   for (const p of PLATE_SIZES) {
     while (side >= p - 0.01) { out.push(p === 2.5 ? '2.5' : String(p)); side -= p }
   }
-  if (!out.length) return 'EMPTY BAR'
-  return `${out.join('·')} /SIDE${side > 0.01 ? ' +' : ''}`
+  if (!out.length) return 'empty bar'
+  return `${out.join('·')} /side${side > 0.01 ? ' +' : ''}`
 }
 
 interface RampSet { weight: number; reps: number }
@@ -378,18 +378,18 @@ function RestTimer({ trigger }: { trigger: number }) {
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] w-[calc(100%-2rem)] max-w-sm panel-mount">
-      <div className={`panel-cut-sm carbon border px-4 py-3 shadow-2xl ${done ? 'border-brand red-alert' : 'border-brand/50 mecha-glow'}`}>
+      <div className={` border px-4 py-3 shadow-2xl ${done ? 'border-brand ' : 'border-brand/50 '}`}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 shrink-0">
             <Clock size={14} className={done ? 'text-brand' : 'text-brand'} />
-            <span className="telemetry text-brand">{done ? 'REST DONE' : 'REST'}</span>
+            <span className="eyebrow-mono text-brand">{done ? 'REST DONE' : 'REST'}</span>
           </div>
-          <span className="readout-num text-2xl tabular-nums text-white">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
+          <span className="stat-num text-2xl tabular-nums text-white">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={() => { endRef.current += 30_000; setRemaining(r => r + 30); beeped.current = false }}
-              className="panel-cut-sm border border-border/70 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors">+0:30</button>
+              className="border border-border/70 text-[10px] font-semibold lowercase text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors">+0:30</button>
             <button onClick={() => setActive(false)}
-              className="panel-cut-sm border border-brand/50 text-[10px] font-semibold uppercase tracking-widest text-brand hover:bg-brand/10 px-2 py-1.5 transition-colors">Skip</button>
+              className="border border-brand/50 text-[10px] font-semibold lowercase text-brand hover:bg-brand/10 px-2 py-1.5 transition-colors">Skip</button>
           </div>
         </div>
         <div className="mt-2 h-1 bg-border/40 overflow-hidden">
@@ -455,8 +455,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   const panelId = `PNL-${String(index + 1).padStart(2, '0')} // ${item.slot.replace(/_/g, '.').toUpperCase()}`
 
   return (
-    <div className={`panel-cut hud-frame relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
-      <span className="panel-id">{panelId}</span>
+    <div className={` relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <div className="absolute top-0.5 right-0.5 z-10 flex items-center">
         {onSwap && (
           <button onClick={onSwap} title="Substitute exercise"
@@ -475,33 +474,33 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left px-4 pt-6 pb-3">
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-display text-lg leading-tight uppercase tracking-wide text-foreground truncate">{item.name}</p>
+            <p className="font-display text-lg leading-tight lowercase text-foreground truncate">{item.name}</p>
             {/* Prescription readout — target weight is the hero */}
             {item.targetWeightLbs != null ? (
               <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
-                <span className="readout-num text-4xl text-brand" style={{ textShadow: '0 0 18px hsl(var(--brand) / 0.35)' }}>
+                <span className="stat-num text-4xl text-brand" style={{ textShadow: '0 0 18px hsl(var(--brand) / 0.35)' }}>
                   {item.targetWeightLbs}
                 </span>
-                <span className="telemetry-dim">
+                <span className="eyebrow-mono">
                   LB @ {item.percent}% · {item.sets}×{item.reps}{item.targetRpe != null ? ` · TGT RPE ${item.targetRpe}` : ''}
                 </span>
                 {item.appliedAdjustmentPct != null && (
-                  <span className="telemetry border border-brand/50 px-1.5 py-0.5 text-brand">
+                  <span className="eyebrow-mono border border-brand/50 px-1.5 py-0.5 text-brand">
                     AUTO {item.appliedAdjustmentPct > 0 ? '+' : ''}{item.appliedAdjustmentPct}%
                   </span>
                 )}
                 {plateString(item.targetWeightLbs) && (
-                  <span className="telemetry-dim basis-full">{plateString(item.targetWeightLbs)}</span>
+                  <span className="eyebrow-mono basis-full">{plateString(item.targetWeightLbs)}</span>
                 )}
               </div>
             ) : (
-              <p className="telemetry-dim mt-1.5">
+              <p className="eyebrow-mono mt-1.5">
                 {item.sets}×{item.reps}{item.percent != null ? ` @ ${item.percent}%` : item.rpe != null ? ` @ RPE ${item.rpe}` : ''}
               </p>
             )}
             {/* Prior weeks of this meso — what you actually lifted here before */}
             {history && history.length > 0 && (
-              <p className="telemetry-dim mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <p className="eyebrow-mono mt-1.5 flex items-center gap-1.5 flex-wrap">
                 <History size={9} className="text-muted-foreground/70 shrink-0" />
                 {history.slice(0, 3).map(h => (
                   <span key={h.week}>
@@ -524,7 +523,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
       </button>
 
       {item.subbedFrom && (
-        <p className="px-4 pb-1 telemetry-dim">SUB // WAS {item.subbedFrom.toUpperCase()}</p>
+        <p className="px-4 pb-1 eyebrow-mono">SUB // WAS {item.subbedFrom.toUpperCase()}</p>
       )}
       {item.note && (
         <p className="px-4 pb-2 text-xs text-muted-foreground italic">{item.note}</p>
@@ -535,7 +534,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
           {ramp.length > 0 && (
             <div className="pb-1">
               <button onClick={() => setShowRamp(v => !v)}
-                className="telemetry-dim hover:text-foreground transition-colors flex items-center gap-1">
+                className="eyebrow-mono hover:text-foreground transition-colors flex items-center gap-1">
                 WARM-UP RAMP {showRamp ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
               </button>
               {showRamp && (
@@ -543,35 +542,35 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                   {ramp.map((rs, i) => (
                     <button key={i}
                       onClick={() => setRampDone(prev => prev.map((d, j) => (j === i ? !d : d)))}
-                      className={`w-full flex items-center gap-3 panel-cut-sm border px-3 py-1.5 text-left transition-colors ${
-                        rampDone[i] ? 'border-brand/40 bg-brand/5' : 'border-border/50 bg-background/40'
-                      }`}>
-                      <span className={`readout-num text-[11px] w-5 shrink-0 ${rampDone[i] ? 'text-brand' : 'text-muted-foreground'}`}>
+                      className={`w-full flex items-center gap-3 border px-3 py-1.5 text-left transition-colors ${
+ rampDone[i] ? 'border-brand/40 bg-brand/5' : 'border-border/50 bg-background/40'
+ }`}>
+                      <span className={`stat-num text-[11px] w-5 shrink-0 ${rampDone[i] ? 'text-brand' : 'text-muted-foreground'}`}>
                         {String(i + 1).padStart(2, '0')}
                       </span>
-                      <span className={`readout-num text-sm flex-1 ${rampDone[i] ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                      <span className={`stat-num text-sm flex-1 ${rampDone[i] ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                         {rs.weight} × {rs.reps}
                       </span>
-                      <span className="telemetry-dim shrink-0">{plateString(rs.weight) ?? ''}</span>
+                      <span className="eyebrow-mono shrink-0">{plateString(rs.weight) ?? ''}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
           )}
-          <div className="grid grid-cols-4 gap-2 telemetry-dim px-1">
+          <div className="grid grid-cols-4 gap-2 eyebrow-mono px-1">
             <span>SET</span><span>LOAD.LB</span><span>REPS</span><span></span>
           </div>
           {sets.map((s, idx) => (
-            <div key={idx} className={`panel-cut-sm border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+            <div key={idx} className={` border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
               <div className="grid grid-cols-4 gap-2 items-center p-2">
-                <span className="readout-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+                <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
                 <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)} placeholder="lbs"
-                  className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
+                  className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
                 <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
-                  className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
+                  className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
                 <button onClick={() => update(idx, 'done', !s.done)}
-                  className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                  className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
                   {s.done ? (s.rpe != null ? `RPE ${s.rpe}` : 'Hit') : 'Log'}
                 </button>
               </div>
@@ -583,20 +582,20 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                       <button
                         key={r}
                         onClick={() => update(idx, 'rpe', s.rpe === r ? null : r)}
-                        className={`readout-num flex-1 py-1 text-[11px] border transition-colors ${
-                          s.rpe === r
-                            ? 'bg-brand text-white border-brand'
-                            : item.targetRpe === r
-                              ? 'border-brand/50 text-brand'
-                              : 'border-border/60 text-muted-foreground hover:text-foreground'
-                        }`}
+                        className={`stat-num flex-1 py-1 text-[11px] border transition-colors ${
+ s.rpe === r
+ ? 'bg-brand text-white border-brand'
+ : item.targetRpe === r
+ ? 'border-brand/50 text-brand'
+ : 'border-border/60 text-muted-foreground hover:text-foreground'
+ }`}
                         title={RPE_HINTS[r]}
                       >
                         {r}
                       </button>
                     ))}
                   </div>
-                  <p className="telemetry-dim mt-1">
+                  <p className="eyebrow-mono mt-1">
                     {s.rpe != null
                       ? `RPE ${s.rpe} — ${RPE_HINTS[s.rpe]}`
                       : `HOW HARD? ${item.targetRpe != null ? `TARGET ${item.targetRpe}` : 'TAP TO RATE'}`}
@@ -608,12 +607,12 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
           {onSetCountChange && (
             <div className="flex gap-2 pt-1.5">
               <button onClick={() => onSetCountChange(sets.length + 1)}
-                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors py-1">
+                className="flex items-center gap-1 text-[10px] font-semibold lowercase text-muted-foreground hover:text-brand transition-colors py-1">
                 <Plus size={11} /> Add set
               </button>
               {sets.length > 1 && (
                 <button onClick={() => onSetCountChange(sets.length - 1)}
-                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors py-1 ml-3">
+                  className="flex items-center gap-1 text-[10px] font-semibold lowercase text-muted-foreground hover:text-brand transition-colors py-1 ml-3">
                   <Minus size={11} /> Remove set
                 </button>
               )}
@@ -670,8 +669,7 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
   const allDone = sets.filter(s => s.done).length === item.sets
 
   return (
-    <div className={`panel-cut relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
-      <span className="panel-id">ORD-{String(index + 1).padStart(2, '0')} // {item.slot.replace(/_/g, '.').toUpperCase()}</span>
+    <div className={` relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <div className="absolute top-0.5 right-0.5 z-10 flex items-center">
         {onSwap && (
           <button onClick={onSwap} title="Substitute exercise"
@@ -690,8 +688,8 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
         <div className="min-w-0 flex items-center gap-3">
           <Zap size={15} className="text-brand shrink-0" />
           <div className="min-w-0">
-            <p className="font-display text-lg leading-tight uppercase tracking-wide text-foreground truncate">{item.name}</p>
-            <p className="telemetry-dim mt-0.5">{item.sets}×{item.reps} · MAX INTENT</p>
+            <p className="font-display text-lg leading-tight lowercase text-foreground truncate">{item.name}</p>
+            <p className="eyebrow-mono mt-0.5">{item.sets}×{item.reps} · MAX INTENT</p>
           </div>
         </div>
         <div className="flex gap-1 shrink-0 pb-0.5">
@@ -701,23 +699,23 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
         </div>
       </div>
       {item.subbedFrom && (
-        <p className="px-4 pb-1 telemetry-dim">SUB // WAS {item.subbedFrom.toUpperCase()}</p>
+        <p className="px-4 pb-1 eyebrow-mono">SUB // WAS {item.subbedFrom.toUpperCase()}</p>
       )}
       {item.note && (
         <p className="px-4 pb-2 text-xs text-muted-foreground italic">{item.note}</p>
       )}
       <div className="px-4 pb-4 space-y-1.5 border-t border-border/60 pt-3">
-        <div className="grid grid-cols-3 gap-2 telemetry-dim px-1">
+        <div className="grid grid-cols-3 gap-2 eyebrow-mono px-1">
           <span>SET</span><span>REPS</span><span></span>
         </div>
         {sets.map((s, idx) => (
-          <div key={idx} className={`panel-cut-sm border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+          <div key={idx} className={` border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
             <div className="grid grid-cols-3 gap-2 items-center p-2">
-              <span className="readout-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+              <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
               <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
-                className="readout-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
+                className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <button onClick={() => update(idx, 'done', !s.done)}
-                className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
                 {s.done ? 'Hit' : 'Log'}
               </button>
             </div>
@@ -726,12 +724,12 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
         {onSetCountChange && (
           <div className="flex gap-2 pt-1">
             <button onClick={() => onSetCountChange(sets.length + 1)}
-              className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors py-1">
+              className="flex items-center gap-1 text-[10px] font-semibold lowercase text-muted-foreground hover:text-brand transition-colors py-1">
               <Plus size={11} /> Add set
             </button>
             {sets.length > 1 && (
               <button onClick={() => onSetCountChange(sets.length - 1)}
-                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors py-1 ml-3">
+                className="flex items-center gap-1 text-[10px] font-semibold lowercase text-muted-foreground hover:text-brand transition-colors py-1 ml-3">
                 <Minus size={11} /> Remove set
               </button>
             )}
@@ -759,18 +757,18 @@ function MetconCard({ item, initialLog, onLog }: {
   const [notes, setNotes] = useState(initialLog?.notes ?? '')
   const [logged, setLogged] = useState(initialLog?.completed === true)
   return (
-    <div className="panel-cut relative bg-card border border-brand/40 overflow-hidden">
+    <div className="relative bg-card border border-brand/40 overflow-hidden">
       <div className="hazard" />
       <div className="p-4 pt-3 border-b border-border flex items-center gap-2">
         <Flame size={15} className="text-brand shrink-0" />
         <div className="flex-1">
-          <p className="telemetry">COMBAT.SIM // {item.format.replace(/_/g, '.').toUpperCase()}</p>
-          <p className="font-display text-lg uppercase tracking-wide text-foreground mt-0.5">{item.name}</p>
+          <p className="eyebrow-mono">COMBAT.SIM // {item.format.replace(/_/g, '.').toUpperCase()}</p>
+          <p className="font-display text-lg lowercase text-foreground mt-0.5">{item.name}</p>
         </div>
-        <span className="readout-num text-2xl text-brand">{item.timeCapMinutes}&apos;</span>
+        <span className="stat-num text-2xl text-brand">{item.timeCapMinutes}&apos;</span>
       </div>
       <div className="p-4 bg-background/50 border-b border-border">
-        <pre className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed" style={{ fontFamily: 'var(--font-telemetry)' }}>{item.description}</pre>
+        <pre className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed" style={{ fontFamily: 'var(--font-mono)' }}>{item.description}</pre>
       </div>
       <div className="p-4 space-y-3">
         <WorkoutTimer />
@@ -786,7 +784,7 @@ function MetconCard({ item, initialLog, onLog }: {
         <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes..."
           className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50" />
         <button onClick={() => { onLog({ timeMin, timeSec, rounds, notes }); setLogged(true) }}
-          className={`w-full py-3 rounded-lg text-sm font-medium uppercase tracking-wider transition-all ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-foreground hover:bg-brand/90'}`}>
+          className={`w-full py-3 rounded-lg text-sm font-medium lowercase transition-all ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-foreground hover:bg-brand/90'}`}>
           {logged ? '✓ MetCon Logged' : 'Log MetCon Result'}
         </button>
       </div>
@@ -804,17 +802,16 @@ function OutsideCard({ item, initialLog, onLog }: {
   const [notes, setNotes] = useState(initialLog?.notes ?? '')
   const [logged, setLogged] = useState(initialLog?.completed === true)
   return (
-    <div className={`panel-cut hud-frame relative bg-card border p-4 pt-7 space-y-4 ${logged ? 'border-brand/50' : 'border-border'}`}>
-      <span className="panel-id">BRIEFING // {item.slot.replace(/_/g, '.').toUpperCase()}</span>
+    <div className={` relative bg-card border p-4 pt-7 space-y-4 ${logged ? 'border-brand/50' : 'border-border'}`}>
       <div className="flex items-center gap-3">
         <Wind size={15} className="text-steel shrink-0" />
-        <p className="font-display text-lg uppercase tracking-wide text-foreground">{item.title}</p>
+        <p className="font-display text-lg lowercase text-foreground">{item.title}</p>
         {logged && <CheckCircle2 size={15} className="text-brand ml-auto" />}
       </div>
       <ul className="space-y-2">
         {item.parts.map((p, i) => (
           <li key={i} className="flex items-start gap-2.5 text-xs text-foreground/85">
-            <span className="readout-num text-brand/80 mt-px shrink-0">{String(i + 1).padStart(2, '0')}</span>{p}
+            <span className="stat-num text-brand/80 mt-px shrink-0">{String(i + 1).padStart(2, '0')}</span>{p}
           </li>
         ))}
       </ul>
@@ -822,8 +819,8 @@ function OutsideCard({ item, initialLog, onLog }: {
       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Debrief (times, distances, feel)..."
         className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50 resize-none" />
       <button onClick={() => { onLog(notes); setLogged(true) }}
-        className="panel-cut-sm w-full py-2.5 bg-foreground text-background text-xs font-semibold uppercase tracking-widest hover:bg-foreground/90 transition-colors">
-        {logged ? 'Logged ✓' : 'Mission Complete'}
+        className="w-full py-2.5 bg-foreground text-background text-xs font-semibold lowercase hover:bg-foreground/90 transition-colors">
+        {logged ? 'logged ✓' : 'log set'}
       </button>
     </div>
   )
@@ -853,13 +850,12 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
-        className="relative panel-cut bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
-        <span className="panel-id">ARMORY // SWAP.{target.slot.replace(/_/g, '.').toUpperCase()}</span>
+        className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
         <div className="mb-3">
-          <p className="telemetry mb-1">SUBSTITUTE EXERCISE</p>
-          <p className="font-display text-base uppercase tracking-wide text-foreground">{target.currentName}</p>
-          {isSubbed && <p className="telemetry-dim mt-0.5">ORIGINAL // {target.originalName.toUpperCase()}</p>}
+          <p className="eyebrow-mono mb-1">SUBSTITUTE EXERCISE</p>
+          <p className="font-display text-base lowercase text-foreground">{target.currentName}</p>
+          {isSubbed && <p className="eyebrow-mono mt-0.5">ORIGINAL // {target.originalName.toUpperCase()}</p>}
         </div>
 
         <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 mb-2">
@@ -871,9 +867,9 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
         <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1 -mx-1 px-1">
           {(Object.keys(CATEGORY_LABELS) as ExerciseCategory[]).map(c => (
             <button key={c} onClick={() => setCat(cat === c ? null : c)}
-              className={`shrink-0 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border rounded-sm transition-colors ${
-                cat === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
-              }`}>
+              className={`shrink-0 text-[9px] font-mono lowercase px-2 py-1 border rounded-sm transition-colors ${
+ cat === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
+ }`}>
               {CATEGORY_LABELS[c]}
             </button>
           ))}
@@ -882,20 +878,20 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
         <div className="flex-1 overflow-y-auto space-y-1 min-h-[240px]">
           {results.map(e => (
             <button key={e.name} onClick={() => onPick(e.name, repeat)}
-              className="w-full text-left panel-cut-sm border border-border/60 bg-background hover:border-brand/50 px-3 py-2 transition-colors flex items-center justify-between gap-2">
+              className="w-full text-left border border-border/60 bg-background hover:border-brand/50 px-3 py-2 transition-colors flex items-center justify-between gap-2">
               <span className="text-sm text-foreground">{e.name}</span>
-              <span className="telemetry-dim shrink-0">{CATEGORY_LABELS[e.cat]}</span>
+              <span className="eyebrow-mono shrink-0">{CATEGORY_LABELS[e.cat]}</span>
             </button>
           ))}
           {query !== '' && !exactMatch && (
             <button onClick={() => onPick(q.trim(), repeat)}
-              className="w-full text-left panel-cut-sm border border-dashed border-border px-3 py-2 hover:border-brand/50 transition-colors">
+              className="w-full text-left border border-dashed border-border px-3 py-2 hover:border-brand/50 transition-colors">
               <span className="text-sm text-muted-foreground">Use custom: </span>
               <span className="text-sm text-foreground">{q.trim()}</span>
             </button>
           )}
           {results.length === 0 && query === '' && (
-            <p className="telemetry-dim text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>
+            <p className="eyebrow-mono text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>
           )}
         </div>
 
@@ -907,19 +903,19 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
           </span>
           <span className="text-xs text-foreground/90">
             Repeat for the rest of this mesocycle
-            <span className="block telemetry-dim mt-0.5">{repeat ? 'APPLIES TO EVERY WEEK THROUGH THIS MESO' : 'THIS SESSION ONLY'}</span>
+            <span className="block eyebrow-mono mt-0.5">{repeat ? 'APPLIES TO EVERY WEEK THROUGH THIS MESO' : 'THIS SESSION ONLY'}</span>
           </span>
         </button>
 
         <div className="pt-3 space-y-2">
           {isSubbed && (
             <button onClick={onRevert}
-              className="w-full py-2.5 border border-brand/50 text-brand text-xs font-semibold uppercase tracking-widest hover:bg-brand/10 transition-colors panel-cut-sm">
+              className="w-full py-2.5 border border-brand/50 text-brand text-xs font-semibold lowercase hover:bg-brand/10 transition-colors">
               Revert to {target.originalName}
             </button>
           )}
           <button onClick={onClose}
-            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold uppercase tracking-widest hover:text-foreground transition-colors panel-cut-sm">
+            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold lowercase hover:text-foreground transition-colors">
             Cancel
           </button>
         </div>
@@ -947,12 +943,11 @@ function AddExerciseModal({ onPick, onClose }: {
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
-        className="relative panel-cut bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
-        <span className="panel-id">ARMORY // ADD.EXERCISE</span>
+        className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
         <div className="mb-3">
-          <p className="telemetry mb-1">ADD TO TODAY&apos;S SESSION</p>
-          <p className="telemetry-dim">STARTS AT 3×10 — EDIT SETS &amp; REPS ON THE CARD</p>
+          <p className="eyebrow-mono mb-1">ADD TO TODAY&apos;S SESSION</p>
+          <p className="eyebrow-mono">STARTS AT 3×10 — EDIT SETS &amp; REPS ON THE CARD</p>
         </div>
 
         <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 mb-2">
@@ -964,9 +959,9 @@ function AddExerciseModal({ onPick, onClose }: {
         <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1 -mx-1 px-1">
           {(Object.keys(CATEGORY_LABELS) as ExerciseCategory[]).map(c => (
             <button key={c} onClick={() => setCat(cat === c ? null : c)}
-              className={`shrink-0 text-[9px] font-mono uppercase tracking-widest px-2 py-1 border rounded-sm transition-colors ${
-                cat === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
-              }`}>
+              className={`shrink-0 text-[9px] font-mono lowercase px-2 py-1 border rounded-sm transition-colors ${
+ cat === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
+ }`}>
               {CATEGORY_LABELS[c]}
             </button>
           ))}
@@ -975,26 +970,26 @@ function AddExerciseModal({ onPick, onClose }: {
         <div className="flex-1 overflow-y-auto space-y-1 min-h-[240px]">
           {results.map(e => (
             <button key={e.name} onClick={() => onPick(e.name)}
-              className="w-full text-left panel-cut-sm border border-border/60 bg-background hover:border-brand/50 px-3 py-2 transition-colors flex items-center justify-between gap-2">
+              className="w-full text-left border border-border/60 bg-background hover:border-brand/50 px-3 py-2 transition-colors flex items-center justify-between gap-2">
               <span className="text-sm text-foreground">{e.name}</span>
-              <span className="telemetry-dim shrink-0">{CATEGORY_LABELS[e.cat]}</span>
+              <span className="eyebrow-mono shrink-0">{CATEGORY_LABELS[e.cat]}</span>
             </button>
           ))}
           {query !== '' && !exactMatch && (
             <button onClick={() => onPick(q.trim())}
-              className="w-full text-left panel-cut-sm border border-dashed border-border px-3 py-2 hover:border-brand/50 transition-colors">
+              className="w-full text-left border border-dashed border-border px-3 py-2 hover:border-brand/50 transition-colors">
               <span className="text-sm text-muted-foreground">Add custom: </span>
               <span className="text-sm text-foreground">{q.trim()}</span>
             </button>
           )}
           {results.length === 0 && query === '' && (
-            <p className="telemetry-dim text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>
+            <p className="eyebrow-mono text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>
           )}
         </div>
 
         <div className="pt-3">
           <button onClick={onClose}
-            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold uppercase tracking-widest hover:text-foreground transition-colors panel-cut-sm">
+            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold lowercase hover:text-foreground transition-colors">
             Cancel
           </button>
         </div>
@@ -1015,8 +1010,8 @@ function MaxesCard({ maxDefs, current, onSave }: {
   )
   const [saved, setSaved] = useState(false)
   return (
-    <div className="ds-card p-4 space-y-3 border border-brand/30">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-brand">Update Your Maxes</p>
+    <div className="tile p-4 space-y-3 border border-brand/30">
+      <p className="text-[10px] font-bold lowercase text-brand">Update Your Maxes</p>
       <p className="text-xs text-muted-foreground">New numbers drive next macro&apos;s percentages.</p>
       {maxDefs.map(d => (
         <div key={d.key} className="flex items-center gap-3">
@@ -1036,7 +1031,7 @@ function MaxesCard({ maxDefs, current, onSave }: {
           await onSave(out)
           setSaved(true)
         }}
-        className="w-full py-2.5 bg-brand text-foreground rounded-lg text-xs font-medium uppercase tracking-wider hover:bg-brand/90 transition-colors">
+        className="w-full py-2.5 bg-brand text-foreground rounded-lg text-xs font-medium lowercase hover:bg-brand/90 transition-colors">
         {saved ? 'Saved ✓' : 'Save Maxes'}
       </button>
     </div>
@@ -1496,41 +1491,42 @@ export default function TrainingDayPage() {
   if (sessionComplete) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 p-6 text-center">
-        <div className="stamp px-8 py-4">
-          <p className="font-display text-4xl tracking-[0.2em] uppercase">Cleared</p>
+        {/* The beat: a number you earned, then the quiet confirmation. */}
+        <div className="flex flex-col items-center gap-3">
+          <p className="stat-num text-[72px]">done.</p>
+          <span className="chip-live text-sm px-4 py-2">session complete</span>
         </div>
 
         {sessionSummary && (sessionSummary.sets > 0 || sessionSummary.prs.length > 0) && (
-          <div className="panel-cut hud-frame relative bg-card border border-border p-5 pt-8 w-full max-w-sm text-left space-y-4">
-            <span className="panel-id">DEBRIEF // SESSION.STATS</span>
+          <div className="relative bg-card border border-border p-5 pt-8 w-full max-w-sm text-left space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="readout-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.35)' }}>
+                <p className="stat-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.35)' }}>
                   {sessionSummary.tonnage.toLocaleString()}
                 </p>
-                <p className="telemetry-dim">LB TONNAGE</p>
+                <p className="eyebrow-mono">LB TONNAGE</p>
               </div>
               <div>
-                <p className="readout-num text-3xl text-foreground">{sessionSummary.sets}</p>
-                <p className="telemetry-dim">WORKING SETS</p>
+                <p className="stat-num text-3xl text-foreground">{sessionSummary.sets}</p>
+                <p className="eyebrow-mono">WORKING SETS</p>
               </div>
             </div>
             {sessionSummary.prs.length > 0 && (
               <div className="border-t border-border/60 pt-3">
-                <p className="telemetry text-brand mb-1.5">RECORDS SET</p>
+                <p className="eyebrow-mono text-brand mb-1.5">RECORDS SET</p>
                 {sessionSummary.prs.map((p, i) => (
                   <p key={i} className="text-sm text-foreground">
-                    {p.name} — <span className="readout-num text-brand">{p.weight}×{p.reps}</span>
+                    {p.name} — <span className="stat-num text-brand">{p.weight}×{p.reps}</span>
                   </p>
                 ))}
               </div>
             )}
             {sessionSummary.top.length > 0 && (
               <div className="border-t border-border/60 pt-3">
-                <p className="telemetry-dim mb-1.5">TOP SETS</p>
+                <p className="eyebrow-mono mb-1.5">TOP SETS</p>
                 {sessionSummary.top.map((t, i) => (
                   <p key={i} className="text-sm text-muted-foreground">
-                    {t.name} <span className="readout-num text-foreground">{t.weight}×{t.reps}</span>
+                    {t.name} <span className="stat-num text-foreground">{t.weight}×{t.reps}</span>
                   </p>
                 ))}
               </div>
@@ -1541,13 +1537,13 @@ export default function TrainingDayPage() {
                   <span key={i} className={`led-cell ${i < sessionSummary.weekDone ? 'lit' : ''}`} />
                 ))}
               </div>
-              <p className="telemetry-dim mt-1.5">WEEK {sessionSummary.weekDone}/{program.daysPerWeek} SESSIONS</p>
+              <p className="eyebrow-mono mt-1.5">WEEK {sessionSummary.weekDone}/{program.daysPerWeek} SESSIONS</p>
             </div>
           </div>
         )}
 
         <div>
-          <p className="telemetry mb-2">WK {weekRef.current} · DAY {dayNumber} // MISSION LOG SAVED</p>
+          <p className="eyebrow-mono mb-2">wk {weekRef.current} · day {dayNumber} · logged</p>
           <p className="text-sm text-muted-foreground">{program.name}</p>
         </div>
         {/* Week LED bar */}
@@ -1557,24 +1553,24 @@ export default function TrainingDayPage() {
               <span key={i} className={`led-cell ${i < dayNumber ? 'lit' : ''}`} />
             ))}
           </div>
-          <p className="telemetry-dim mt-2">WEEK PROGRESS</p>
+          <p className="eyebrow-mono mt-2">week progress</p>
         </div>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           {dayNumber < program.daysPerWeek && (
             <button onClick={() => { setSessionComplete(false); setLoading(true); router.push(`/train/${slug}/${dayNumber + 1}`) }}
-              className="panel-cut-sm mecha-glow w-full py-3.5 bg-brand text-white text-sm font-semibold uppercase tracking-[0.12em] hover:bg-brand/90 transition-colors">
-              Next Mission →
+              className="pill-volt w-full py-3.5 text-sm lowercase hover:opacity-90 transition-opacity">
+              next session →
             </button>
           )}
           {/* Completed sessions stay reviewable — logs, swaps, and edits all
               still work; re-completing an already-counted day is harmless. */}
           <button onClick={() => setSessionComplete(false)}
-            className="panel-cut-sm w-full py-2.5 border border-brand/50 text-brand text-sm font-medium uppercase tracking-wider hover:bg-brand/10 transition-colors">
-            Review / Edit Session
+            className="pill-quiet w-full py-2.5 text-sm lowercase hover:text-foreground transition-colors">
+            review / edit session
           </button>
           <button onClick={() => router.push('/dashboard')}
-            className="panel-cut-sm w-full py-2.5 border border-border text-muted-foreground text-sm font-medium uppercase tracking-wider hover:text-foreground transition-colors">
-            Return to Bridge
+            className="w-full py-2.5 text-sm lowercase text-muted-foreground hover:text-foreground transition-colors">
+            back home
           </button>
         </div>
       </div>
@@ -1588,22 +1584,22 @@ export default function TrainingDayPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
-      <header className={`carbon sticky top-0 z-10 border-b px-4 py-3 ${isTestWeek ? 'border-brand/60 red-alert' : 'border-border'}`}>
+      <header className={` sticky top-0 z-10 border-b px-4 py-3 ${isTestWeek ? 'border-brand/60 ' : 'border-border'}`}>
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push(`/train/${slug}`)} title="Back to week" className="p-2 border border-border/70 text-muted-foreground hover:text-foreground transition-colors panel-cut-sm">
+          <button onClick={() => router.push(`/train/${slug}`)} title="Back to week" className="p-2 border border-border/70 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft size={15} />
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="telemetry">WK {String(weekRef.current).padStart(2, '0')} // DAY {dayNumber}</span>
-              {isTestWeek && <span className="telemetry border border-brand/60 px-1.5 py-0.5">TRIAL PROTOCOL</span>}
+              <span className="eyebrow-mono">wk {String(weekRef.current).padStart(2, '0')} · day {dayNumber}</span>
+              {isTestWeek && <span className="pill-volt px-2 py-0.5 text-[10px] lowercase">test week</span>}
             </div>
-            <h1 className="font-display text-xl tracking-[0.08em] uppercase truncate mt-0.5 text-white">{plan.dayName}</h1>
+            <h1 className="font-display text-xl lowercase truncate mt-0.5">{plan.dayName.toLowerCase()}</h1>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <div className="flex items-center gap-2">
               <span className="status-dot" />
-              <span className="telemetry-dim">{program.name.split(' ')[0].toUpperCase()}</span>
+              <span className="eyebrow-mono">{program.name.split(' ')[0].toUpperCase()}</span>
             </div>
             <div className="led-bar w-20">
               {Array.from({ length: Math.max(plan.items.length, 1) }).map((_, i) => (
@@ -1619,7 +1615,7 @@ export default function TrainingDayPage() {
         <div className="sticky top-[60px] z-10 bg-red-500/10 border-b border-red-500/40 px-4 py-2 flex items-start gap-2">
           <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
           <p className="text-xs text-red-300 flex-1">{logWriteError}</p>
-          <button onClick={() => setLogWriteError(null)} className="text-[10px] uppercase tracking-wider text-red-300/80 hover:text-red-200 px-2">Dismiss</button>
+          <button onClick={() => setLogWriteError(null)} className="text-[10px] lowercase text-red-300/80 hover:text-red-200 px-2">Dismiss</button>
         </div>
       )}
 
@@ -1684,7 +1680,7 @@ export default function TrainingDayPage() {
                   <span className="absolute left-0 top-1 bottom-1 w-[2px] bg-brand/60" aria-hidden="true" />
                   <span className="absolute left-0 top-1 w-2 h-[2px] bg-brand/60" aria-hidden="true" />
                   <span className="absolute left-0 bottom-1 w-2 h-[2px] bg-brand/60" aria-hidden="true" />
-                  <div className="telemetry text-brand mb-2 flex items-center gap-1.5">
+                  <div className="eyebrow-mono text-brand mb-2 flex items-center gap-1.5">
                     <Link2 size={11} /> LINKED // SUPERSET · ALTERNATE SETS
                   </div>
                   <div className="space-y-2">
@@ -1707,12 +1703,12 @@ export default function TrainingDayPage() {
         {plan.dayType !== 'rest' && (
           <div className="flex items-center gap-3">
             <button onClick={() => setShowAddExercise(true)}
-              className="panel-cut-sm flex-1 py-2.5 border border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-widest hover:text-brand hover:border-brand/50 transition-colors flex items-center justify-center gap-1.5">
+              className="flex-1 py-2.5 border border-border text-muted-foreground text-[10px] font-semibold lowercase hover:text-brand hover:border-brand/50 transition-colors flex items-center justify-center gap-1.5">
               <Plus size={12} /> Add Exercise
             </button>
             {(overrides.removedSlots?.length ?? 0) > 0 && (
               <button onClick={() => void updateOverrides({ ...overrides, removedSlots: [] })}
-                className="panel-cut-sm py-2.5 px-3 border border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-widest hover:text-foreground transition-colors">
+                className="py-2.5 px-3 border border-border text-muted-foreground text-[10px] font-semibold lowercase hover:text-foreground transition-colors">
                 Restore hidden ({overrides.removedSlots!.length})
               </button>
             )}
@@ -1724,9 +1720,9 @@ export default function TrainingDayPage() {
         )}
 
         <button onClick={() => void completeSession()}
-          className="panel-cut carbon mecha-glow w-full py-4 border border-brand/60 text-brand text-sm font-semibold uppercase tracking-[0.16em] hover:border-brand transition-colors flex items-center justify-center gap-2.5">
+          className="pill-volt w-full py-4 text-sm lowercase hover:opacity-90 transition-opacity flex items-center justify-center gap-2.5">
           <Trophy size={16} />
-          Mission Complete
+          finish session
         </button>
       </main>
 
@@ -1746,11 +1742,10 @@ export default function TrainingDayPage() {
       {/* PR moment — fires when a logged set beats an all-time best */}
       {prToast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[85] panel-mount pointer-events-none">
-          <div className="stamp px-5 py-2.5 bg-background/95 backdrop-blur-sm">
-            <p className="font-display text-lg tracking-[0.16em] uppercase text-center">New Record</p>
-            <p className="telemetry text-center mt-0.5">
-              {prToast.name.toUpperCase()} // {prToast.weight} LB × {prToast.reps}
-            </p>
+          <div className="tile-lg px-5 py-3 text-center">
+            <span className="chip-live">new record</span>
+            <p className="stat-num text-2xl mt-1.5">{prToast.weight}<span className="text-[11px] font-medium tracking-normal text-muted-foreground ml-1">lb × {prToast.reps}</span></p>
+            <p className="eyebrow-mono mt-0.5">{prToast.name.toLowerCase()}</p>
           </div>
         </div>
       )}

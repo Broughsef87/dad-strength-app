@@ -99,7 +99,7 @@ export default function Profile() {
   }
 
   // Subscription badge config
-  const badgeLabel = isFounder ? 'Founder' : isPro ? 'Dad Strong+' : 'Free'
+  const badgeLabel = isFounder ? 'founder' : isPro ? 'dad strong+' : 'free'
   const badgeClass = isPro
     ? 'text-brand bg-brand/10'
     : 'text-muted-foreground bg-muted'
@@ -107,7 +107,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="flex items-center justify-between border-b border-border bg-surface-2 px-6 py-4 sticky top-0 z-10">
-        <h1 className="font-display text-3xl tracking-[0.1em] uppercase">Profile</h1>
+        <h1 className="font-display text-3xl">profile</h1>
         <button onClick={() => router.push('/profile/settings')} className="text-muted-foreground hover:text-foreground transition-colors">
           <SettingsIcon size={18} />
         </button>
@@ -116,7 +116,7 @@ export default function Profile() {
       <main className="max-w-md mx-auto p-6 pb-28 space-y-6">
 
         {/* User Card */}
-        <div className="ds-card p-5 flex items-center gap-5">
+        <div className="tile p-5 flex items-center gap-5">
           <div className="h-14 w-14 rounded-full bg-foreground flex items-center justify-center font-medium text-lg text-background shrink-0">
             {user?.email?.charAt(0).toUpperCase() || 'D'}
           </div>
@@ -151,15 +151,15 @@ export default function Profile() {
             {/* Real subscription badge */}
             {!subLoading && (
               <div className="flex items-center gap-2 mt-2">
-                <span className={`inline-block text-xs font-medium uppercase tracking-[0.12em] px-2 py-0.5 rounded ${badgeClass}`}>
+                <span className={`inline-block eyebrow-mono px-2 py-0.5 rounded-full ${badgeClass}`}>
                   {badgeLabel}
                 </span>
                 {!isPro && (
                   <button
                     onClick={() => setShowUpgrade(true)}
-                    className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-brand hover:text-brand/70 transition-colors"
+                    className="inline-flex items-center gap-1 eyebrow-mono text-brand hover:text-brand/70 transition-colors"
                   >
-                    <Zap size={9} /> Upgrade
+                    <Zap size={9} /> upgrade
                   </button>
                 )}
               </div>
@@ -171,7 +171,7 @@ export default function Profile() {
         <div className="grid grid-cols-2 gap-4">
           <button
             onClick={() => router.push('/profile/mission')}
-            className="ds-card p-5 hover:border-brand/30 transition-colors flex flex-col items-center text-center group"
+            className="tile p-5 hover:border-brand/30 transition-colors flex flex-col items-center text-center group"
           >
             <div className="h-10 w-10 rounded-full bg-brand/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
               <Target className="text-brand" size={20} />
@@ -182,7 +182,7 @@ export default function Profile() {
 
           <button
             onClick={() => router.push('/profile/growth')}
-            className="ds-card p-5 hover:border-brand/30 transition-colors flex flex-col items-center text-center group"
+            className="tile p-5 hover:border-brand/30 transition-colors flex flex-col items-center text-center group"
           >
             <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
               <BookOpen className="text-foreground" size={20} />
@@ -205,24 +205,24 @@ export default function Profile() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            <div className="card-base p-4">
+            <div className="tile p-4">
               <Flame className="text-brand mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium font-display">Streak</p>
+              <p className="text-xs text-muted-foreground lowercase font-medium font-display">Streak</p>
               <p className="font-light text-2xl mt-1 font-display">{stats.streak} <span className="text-xs text-muted-foreground">days</span></p>
             </div>
-            <div className="card-base p-4">
+            <div className="tile p-4">
               <Dumbbell className="text-muted-foreground mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium font-display">Sessions</p>
+              <p className="text-xs text-muted-foreground lowercase font-medium font-display">Sessions</p>
               <p className="font-light text-2xl mt-1 font-display">{stats.totalSessions}</p>
             </div>
-            <div className="card-base p-4">
+            <div className="tile p-4">
               <Activity className="text-green-600 mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium font-display">Total Volume</p>
+              <p className="text-xs text-muted-foreground lowercase font-medium font-display">Total Volume</p>
               <p className="font-light text-xl mt-1 font-display">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
             </div>
-            <div className="card-base p-4">
+            <div className="tile p-4">
               <Trophy className="text-yellow-600 mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase tracking-[0.12em] font-medium font-display">Top Lift</p>
+              <p className="text-xs text-muted-foreground lowercase font-medium font-display">Top Lift</p>
               <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>
             </div>
           </div>
@@ -232,10 +232,10 @@ export default function Profile() {
         {programName && (
           <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-brand uppercase tracking-[0.12em] font-medium font-display">Active Protocol</p>
+              <p className="text-xs text-brand lowercase font-medium font-display">Active Protocol</p>
               <p className="font-medium text-sm mt-0.5">{programName}</p>
             </div>
-            <button onClick={() => router.push('/build')} className="text-xs font-medium text-brand uppercase tracking-[0.12em] hover:opacity-70 transition-opacity">
+            <button onClick={() => router.push('/build')} className="text-xs font-medium text-brand lowercase hover:opacity-70 transition-opacity">
               Change →
             </button>
           </div>
@@ -243,11 +243,11 @@ export default function Profile() {
 
         {/* Settings */}
         <div className="space-y-2">
-          <h3 className="text-xs text-muted-foreground uppercase tracking-[0.15em] font-medium px-1 font-display">Settings</h3>
+          <h3 className="text-xs text-muted-foreground lowercase font-medium px-1 font-display">Settings</h3>
 
           <button
             onClick={() => router.push('/profile/settings')}
-            className="w-full flex items-center gap-4 p-4 card-base hover:border-brand/30 transition-colors"
+            className="w-full flex items-center gap-4 p-4 tile hover:border-brand/30 transition-colors"
           >
             <div className="p-2 bg-muted rounded-lg"><Bell size={16} className="text-foreground" /></div>
             <div className="text-left">
@@ -258,7 +258,7 @@ export default function Profile() {
 
           <button
             onClick={() => router.push('/profile/settings')}
-            className="w-full flex items-center gap-4 p-4 card-base hover:border-brand/30 transition-colors"
+            className="w-full flex items-center gap-4 p-4 tile hover:border-brand/30 transition-colors"
           >
             <div className="p-2 bg-muted rounded-lg"><Shield size={16} className="text-foreground" /></div>
             <div className="text-left">
@@ -275,7 +275,7 @@ export default function Profile() {
           <LogOut size={16} /> Sign Out
         </button>
 
-        <p className="text-center text-[10px] tracking-[0.15em] text-muted-foreground/50 uppercase mt-6">
+        <p className="text-center text-[10px] tracking-[0.15em] text-muted-foreground/50 lowercase mt-6">
           Dad Strength · Powered by Forge OS
         </p>
 

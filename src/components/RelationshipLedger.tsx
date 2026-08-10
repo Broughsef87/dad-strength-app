@@ -115,7 +115,7 @@ export default function RelationshipLedger() {
           <div key={d.id} className="flex items-center justify-between p-2.5 rounded-xl bg-background/50 border border-border group animate-in fade-in slide-in-from-left-1">
             <div className="min-w-0 flex-1">
               <p className="text-xs text-foreground font-medium truncate italic">&quot;{d.text}&quot;</p>
-              <p className="text-[9px] text-muted-foreground font-medium uppercase mt-0.5">{d.timestamp}</p>
+              <p className="text-[9px] text-muted-foreground font-medium lowercase mt-0.5">{d.timestamp}</p>
             </div>
             <button onClick={() => removeDeposit(type, d.id)} className="p-1 text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 ml-2 flex-shrink-0">
               <Trash2 size={12} />
@@ -145,14 +145,14 @@ export default function RelationshipLedger() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Heart className="w-5 h-5 text-rose-500" />
-        <h3 className="font-bold text-foreground uppercase tracking-wide italic">Relationship Ledger</h3>
+        <h3 className="font-bold text-foreground lowercase italic">Relationship Ledger</h3>
       </div>
 
       {/* Weekly Intention */}
       <div className="bg-card/50 p-4 rounded-xl border border-border space-y-2">
         <div className="flex items-center gap-1.5">
           <Star size={11} className="text-rose-400" />
-          <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Weekly Intention</p>
+          <p className="text-[10px] font-display font-semibold lowercase text-muted-foreground">Weekly Intention</p>
         </div>
         <input
           type="text"
@@ -168,7 +168,7 @@ export default function RelationshipLedger() {
         <div className="flex rounded-xl bg-muted p-1 mb-4">
           <button
             onClick={() => setActiveTab('partner')}
-            className={`flex-1 py-2 rounded-lg text-[11px] font-display font-semibold uppercase tracking-wider transition-all ${
+            className={`flex-1 py-2 rounded-lg text-[11px] font-display font-semibold lowercase transition-all ${
               activeTab === 'partner' ? 'bg-rose-500 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -176,7 +176,7 @@ export default function RelationshipLedger() {
           </button>
           <button
             onClick={() => setActiveTab('family')}
-            className={`flex-1 py-2 rounded-lg text-[11px] font-display font-semibold uppercase tracking-wider transition-all ${
+            className={`flex-1 py-2 rounded-lg text-[11px] font-display font-semibold lowercase transition-all ${
               activeTab === 'family' ? 'bg-brand text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -185,10 +185,10 @@ export default function RelationshipLedger() {
         </div>
 
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] text-muted-foreground font-display font-semibold uppercase tracking-widest">
+          <p className="text-[10px] text-muted-foreground font-display font-semibold lowercase">
             {activeTab === 'partner' ? 'Daily Deposits — Her' : 'Daily Deposits — Kids'}
           </p>
-          <span className="text-[10px] font-display font-semibold text-rose-400 uppercase tracking-widest">
+          <span className="text-[10px] font-display font-semibold text-rose-400 lowercase">
             {activeTab === 'partner' ? partnerDeposits.length : familyDeposits.length}/{target}
           </span>
         </div>
@@ -200,7 +200,7 @@ export default function RelationshipLedger() {
         )}
       </div>
 
-      <p className="text-[10px] text-center text-muted-foreground/40 uppercase font-display font-semibold tracking-widest">
+      <p className="text-[10px] text-center text-muted-foreground/40 lowercase font-display font-semibold tracking-widest">
         Small wins build the legacy.
       </p>
     </div>

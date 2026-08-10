@@ -170,7 +170,7 @@ export default function History() {
       <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground font-mono text-xs uppercase tracking-widest">Loading history...</p>
+          <p className="text-muted-foreground font-mono text-xs lowercase">Loading history...</p>
         </div>
       </div>
     )
@@ -192,8 +192,8 @@ export default function History() {
           <ChevronLeft />
         </button>
         <div>
-          <h1 className="font-display text-3xl tracking-[0.1em] uppercase leading-none">Battle Log</h1>
-          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.18em] font-display mt-0.5">
+          <h1 className="font-display text-3xl lowercase leading-none">Battle Log</h1>
+          <p className="text-[10px] text-muted-foreground lowercase font-semibold tracking-[0.18em] font-display mt-0.5">
             {sessions.length} Sessions
           </p>
         </div>
@@ -216,7 +216,7 @@ export default function History() {
         </div>
 
         {/* AI Weekly Debrief — Pro */}
-        <div className="ds-card p-6">
+        <div className="tile p-6">
           <PremiumGate feature="AI Weekly Debrief" overlay>
             <WeeklyDebrief />
           </PremiumGate>
@@ -231,7 +231,7 @@ export default function History() {
                 <Dumbbell size={36} className="text-brand" strokeWidth={1.5} />
               </div>
             </div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-brand mb-3">Battle Log Empty</p>
+            <p className="text-[10px] font-medium lowercase text-brand mb-3">Battle Log Empty</p>
             <h2 className="font-display text-4xl tracking-[0.08em] text-foreground mb-3 leading-none">
               The Log Is Empty.
             </h2>
@@ -240,7 +240,7 @@ export default function History() {
             </p>
             <button
               onClick={() => router.push('/body')}
-              className="flex items-center gap-2 bg-brand text-background font-semibold text-xs uppercase tracking-[0.14em] px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] brand-glow"
+              className="flex items-center gap-2 bg-brand text-background font-semibold text-xs lowercase px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97]"
             >
               <Dumbbell size={14} />
               Start First Session
@@ -266,7 +266,7 @@ export default function History() {
                   >
                     <div className="text-left">
                       <div className="flex items-center gap-2">
-                        <p className="text-xs font-black text-brand uppercase tracking-[0.15em]">
+                        <p className="text-xs font-black text-brand lowercase">
                           Week {weekNum}
                         </p>
                         {weekTheme && (
@@ -274,14 +274,14 @@ export default function History() {
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-muted-foreground lowercase">
                           {weekSessions.length} session{weekSessions.length !== 1 ? 's' : ''}
                         </span>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-muted-foreground lowercase">
                           {weekCompletedSets} sets
                         </span>
                         {weekVolume > 0 && (
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          <span className="text-[10px] font-bold text-muted-foreground lowercase">
                             {weekVolume >= 1000
                               ? `${(weekVolume / 1000).toFixed(1)}k`
                               : weekVolume}{' '}
@@ -318,7 +318,7 @@ export default function History() {
                         return (
                           <div
                             key={workout.id}
-                            className="card-base overflow-hidden"
+                            className="tile overflow-hidden"
                           >
                             {/* Session header */}
                             <button
@@ -335,14 +335,14 @@ export default function History() {
                                     {workout.day_name ? ` — ${workout.day_name}` : ''}
                                   </p>
                                   <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                                    <span className="text-[10px] font-bold text-muted-foreground lowercase flex items-center gap-1">
                                       <Calendar size={9} /> {dateLabel}
                                     </span>
-                                    <span className="text-[10px] font-bold text-brand uppercase">
+                                    <span className="text-[10px] font-bold text-brand lowercase">
                                       {completedSets} sets
                                     </span>
                                     {totalVolume > 0 && (
-                                      <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                      <span className="text-[10px] font-bold text-muted-foreground lowercase">
                                         {totalVolume >= 1000
                                           ? `${(totalVolume / 1000).toFixed(1)}k`
                                           : totalVolume}{' '}
@@ -363,7 +363,7 @@ export default function History() {
                                 {Object.entries(byExercise).map(([exerciseName, sets]) => (
                                   <div key={exerciseName}>
                                     <div className="flex items-center justify-between mb-2">
-                                      <p className="font-black text-xs uppercase tracking-tight">{exerciseName}</p>
+                                      <p className="font-black text-xs lowercase tracking-tight">{exerciseName}</p>
                                       <span className="text-[10px] font-bold text-muted-foreground">
                                         {sets.length} sets
                                       </span>
@@ -374,7 +374,7 @@ export default function History() {
                                           key={s.id}
                                           className="flex items-center justify-between bg-muted rounded-xl px-3 py-2"
                                         >
-                                          <span className="text-[10px] font-black text-muted-foreground uppercase w-6">
+                                          <span className="text-[10px] font-black text-muted-foreground lowercase w-6">
                                             S{i + 1}
                                           </span>
                                           <span className="text-sm font-bold">
@@ -382,7 +382,7 @@ export default function History() {
                                           </span>
                                           <span className="text-sm font-bold text-brand">× {s.reps}</span>
                                           {s.rir_actual !== null && (
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                            <span className="text-[10px] font-bold text-muted-foreground lowercase">
                                               RIR {s.rir_actual}
                                             </span>
                                           )}

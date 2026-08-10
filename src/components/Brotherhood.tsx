@@ -113,9 +113,9 @@ export default function Brotherhood() {
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <Shield size={18} className="text-brand" />
-        <h3 className="font-display font-semibold text-lg uppercase tracking-wide italic">The Brotherhood</h3>
+        <h3 className="font-display font-semibold text-lg lowercase italic">The Brotherhood</h3>
         {overdueCount > 0 && (
-          <span className="ml-auto text-[10px] font-display font-semibold uppercase tracking-widest text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+          <span className="ml-auto text-[10px] font-display font-semibold lowercase text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
             {overdueCount} overdue
           </span>
         )}
@@ -123,11 +123,11 @@ export default function Brotherhood() {
 
       {/* Brothers List */}
       {loading ? (
-        <div className="text-center py-6 text-gray-600 text-xs font-bold uppercase tracking-widest">Loading...</div>
+        <div className="text-center py-6 text-gray-600 text-xs font-bold lowercase">Loading...</div>
       ) : brothers.length === 0 ? (
         <div className="text-center py-8 text-gray-600">
           <Shield size={28} className="mx-auto mb-3 opacity-30" />
-          <p className="text-[10px] font-display font-semibold uppercase tracking-widest">No brothers added yet.</p>
+          <p className="text-[10px] font-display font-semibold lowercase">No brothers added yet.</p>
           <p className="text-[10px] font-bold text-gray-700 mt-1">Dads don&apos;t do this alone.</p>
         </div>
       ) : (
@@ -148,8 +148,8 @@ export default function Brotherhood() {
 
                 {/* Name + Status */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-display font-semibold text-sm uppercase tracking-tight truncate">{brother.name}</p>
-                  <p className={`text-[10px] font-bold uppercase tracking-widest ${overdue ? 'text-rose-400' : 'text-brand'}`}>
+                  <p className="font-display font-semibold text-sm lowercase tracking-tight truncate">{brother.name}</p>
+                  <p className={`text-[10px] font-bold lowercase ${overdue ? 'text-rose-400' : 'text-brand'}`}>
                     {overdue ? 'Overdue · ' : 'Solid · '}
                     <span className="text-muted-foreground">{formatLastContact(brother.last_contacted_at)}</span>
                   </p>
@@ -180,7 +180,7 @@ export default function Brotherhood() {
 
       {/* Add Brother Input */}
       {!userId ? (
-        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-gray-600 mt-4">
+        <p className="text-center text-[10px] font-bold lowercase text-gray-600 mt-4">
           Sign in to track your brotherhood.
         </p>
       ) : (
@@ -197,7 +197,7 @@ export default function Brotherhood() {
           <button
             onClick={addBrother}
             disabled={!newName.trim() || adding}
-            className="px-4 py-2.5 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center gap-1.5 text-[11px] font-display font-semibold uppercase tracking-widest"
+            className="px-4 py-2.5 bg-brand hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center gap-1.5 text-[11px] font-display font-semibold lowercase"
           >
             <Plus size={14} />
             Add
@@ -205,7 +205,7 @@ export default function Brotherhood() {
         </div>
       )}
 
-      <p className="mt-5 text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center italic">
+      <p className="mt-5 text-[10px] text-gray-600 font-bold lowercase text-center italic">
         &quot;Iron sharpens iron. You need your brothers.&quot;
       </p>
     </div>

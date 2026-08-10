@@ -122,7 +122,7 @@ export function SectionLabel({
             'linear-gradient(90deg, rgba(234,11,47,0.55) 0%, rgba(234,11,47,0.1) 100%)',
         }}
       />
-      <span className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground font-display font-semibold">
+      <span className="text-[9px] lowercase text-muted-foreground font-display font-semibold">
         {title}
       </span>
       <span className="h-px flex-1 bg-border" />
@@ -157,10 +157,10 @@ export function SectionDivider({ className = '' }: { className?: string }) {
  * HeroAccent — editorial italic-serif word inside a Bebas headline.
  *
  * The signature move from forging-fathers.com: pair disciplined
- * uppercase display type with a single italic-serif word for
+ * lowercase display type with a single italic-serif word for
  * moments of gravitas.
  *
- *   <h1 className="font-display text-4xl uppercase tracking-wider">
+ *   <h1 className="font-display text-4xl lowercase">
  *     Lead by <HeroAccent>Example.</HeroAccent>
  *   </h1>
  *
@@ -191,7 +191,7 @@ export function HeroAccent({
         // Slight optical bump — italic serif reads smaller than Bebas
         // at the same nominal size, so scale up a hair.
         fontSize: '1.08em',
-        // Kill Bebas uppercase inheritance — italic serif always lowercase
+        // Kill Bebas lowercase inheritance — italic serif always lowercase
         textTransform: 'none',
       }}
     >

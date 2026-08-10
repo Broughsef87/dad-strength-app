@@ -117,7 +117,7 @@ export default function DadScore() {
   }
 
   if (loading) return (
-    <div className="bg-card rounded-xl p-5 border border-border animate-pulse">
+    <div className="tile p-5 animate-pulse">
       <div className="h-3 bg-muted rounded w-1/3 mb-3" />
       <div className="h-12 bg-muted rounded w-1/2" />
     </div>
@@ -128,32 +128,21 @@ export default function DadScore() {
   const gradeColor = getGradeColor(score.grade)
 
   return (
-    <div className="bg-card rounded-xl p-5 border border-border space-y-4 relative overflow-hidden">
-      {/* Editorial depth marks */}
-      <span
-        className="absolute -top-4 right-2 font-display leading-none pointer-events-none select-none"
-        style={{ fontSize: '7rem', color: 'rgba(234,11,47,0.045)', letterSpacing: '0.05em' }}
-        aria-hidden="true"
-      >04</span>
-      {/* Shield watermark */}
-      <svg className="absolute -bottom-4 -right-4 w-28 h-28 pointer-events-none select-none" viewBox="0 0 100 100" fill="none" aria-hidden="true" style={{ opacity: 0.04, color: 'hsl(38 90% 50%)' }}>
-        <path d="M50 8 L88 22 L88 52 C88 72 68 88 50 95 C32 88 12 72 12 52 L12 22 Z" stroke="currentColor" strokeWidth="5" strokeLinejoin="round" />
-        <path d="M50 20 L78 31 L78 52 C78 67 65 80 50 86 C35 80 22 67 22 52 L22 31 Z" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
-      </svg>
+    <div className="tile p-5 space-y-4 relative overflow-hidden">
       <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-brand/10 rounded-lg">
             <Shield size={15} strokeWidth={1.5} className="text-brand" />
           </div>
-          <h3 className="font-medium text-sm font-display tracking-[0.06em]">Dad Score</h3>
+          <h3 className="font-medium text-sm font-display tracking-[0.06em]">dad score</h3>
         </div>
-        <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">This Week</span>
+        <span className="eyebrow-mono">this week</span>
       </div>
 
       <div className="flex items-end gap-3 relative z-10">
-        <p className="text-5xl font-black tabular-nums leading-none font-display">{score.total}</p>
+        <p className="stat-num text-5xl leading-none">{score.total}</p>
         <div className="mb-1">
-          <p className={`text-sm font-black uppercase tracking-[0.08em] font-display ${gradeColor}`}>{score.grade}</p>
+          <p className={`text-sm font-black lowercase font-display ${gradeColor}`}>{score.grade}</p>
           <p className="text-[10px] text-muted-foreground">/ 100</p>
         </div>
       </div>
@@ -169,13 +158,13 @@ export default function DadScore() {
       {/* Breakdown */}
       <div className="space-y-2 pt-1 relative z-10">
         {[
-          { label: 'Training', value: score.training, max: 40 },
-          { label: 'Habits', value: score.habits, max: 30 },
-          { label: 'Family', value: score.family, max: 20 },
-          { label: 'Neural', value: score.mind, max: 10 },
+          { label: 'training', value: score.training, max: 40 },
+          { label: 'habits', value: score.habits, max: 30 },
+          { label: 'family', value: score.family, max: 20 },
+          { label: 'mind', value: score.mind, max: 10 },
         ].map(({ label, value, max }) => (
           <div key={label} className="flex items-center gap-3">
-            <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium w-14">{label}</span>
+            <span className="eyebrow-mono w-14">{label}</span>
             <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-brand/60 rounded-full transition-all duration-700"

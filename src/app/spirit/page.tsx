@@ -180,7 +180,7 @@ export default function SpiritPage() {
       <AppHeader />
       <main className="max-w-md mx-auto px-6 pt-6 space-y-6">
         {[1, 2, 3].map(i => (
-          <div key={i} className="glass-card rounded-2xl border border-border/50 p-5 animate-pulse space-y-4">
+          <div key={i} className="tile rounded-2xl border border-border/50 p-5 animate-pulse space-y-4">
             <div className="h-3 bg-muted rounded w-1/4" />
             <div className="h-14 bg-muted rounded" />
             <div className="h-10 bg-muted rounded" />
@@ -199,15 +199,15 @@ export default function SpiritPage() {
       <main className="max-w-md mx-auto px-6 pt-6">
 
         <div className="mb-8">
-          <p className="telemetry mb-1">SYS // CORE.REACTOR</p>
-          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Reactor</h1>
+          <p className="eyebrow-mono mb-1">family · connection · purpose</p>
+          <h1 className="font-display text-4xl lowercase">spirit</h1>
         </div>
 
         <motion.div className="space-y-6" initial="hidden" animate="visible" variants={staggerContainer}>
 
           {/* ── Morning Protocol ──────────────────────────────────────────────── */}
           <motion.div variants={fadeUp}>
-            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
+            <div className="tile rounded-2xl border border-border/50 overflow-hidden">
               <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
               <div className="p-5">
                 <MorningProtocol />
@@ -217,7 +217,7 @@ export default function SpiritPage() {
 
           {/* ── Stoic for Today ───────────────────────────────────────────────── */}
           <motion.div variants={fadeUp}>
-            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
+            <div className="tile rounded-2xl border border-border/50 overflow-hidden">
               <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
               <div className="p-5 space-y-4">
 
@@ -225,14 +225,14 @@ export default function SpiritPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <ScrollText size={14} className="text-brand" strokeWidth={2.5} />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground font-display">Stoic for Today</p>
+                    <p className="text-[10px] font-black lowercase text-muted-foreground font-display">Stoic for Today</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                    <span className="text-[9px] font-black lowercase px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
                       {stoic.theme}
                     </span>
                     {activeGod && GOD_LABELS[activeGod] && (
-                      <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-brand/10 text-brand">
+                      <span className="text-[9px] font-black lowercase px-2.5 py-1 rounded-full bg-brand/10 text-brand">
                         {GOD_LABELS[activeGod]}
                       </span>
                     )}
@@ -244,7 +244,7 @@ export default function SpiritPage() {
                   <p className="text-sm font-semibold leading-relaxed text-foreground italic">
                     &ldquo;{stoic.quote}&rdquo;
                   </p>
-                  <footer className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                  <footer className="text-[10px] text-muted-foreground font-medium lowercase">
                     — {stoic.author}{stoic.work ? `, ${stoic.work}` : ''}
                   </footer>
                 </blockquote>
@@ -268,7 +268,7 @@ export default function SpiritPage() {
                       <ArrowRight size={12} className="text-brand" strokeWidth={2.5} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-1">Action</p>
+                      <p className="text-[10px] font-black lowercase text-brand mb-1">Action</p>
                       <p className="text-xs text-muted-foreground leading-relaxed">{stoic.action}</p>
                     </div>
                   </div>
@@ -277,7 +277,7 @@ export default function SpiritPage() {
                       <PenLine size={12} className="text-muted-foreground" strokeWidth={2.5} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Journal</p>
+                      <p className="text-[10px] font-black lowercase text-muted-foreground mb-1">Journal</p>
                       <p className="text-xs text-muted-foreground leading-relaxed italic">{stoic.journal}</p>
                     </div>
                   </div>
@@ -289,7 +289,7 @@ export default function SpiritPage() {
 
           {/* ── The Act ──────────────────────────────────────────────────────────── */}
           <motion.div variants={fadeUp}>
-            <div className="glass-card rounded-2xl border border-border/50 overflow-hidden">
+            <div className="tile rounded-2xl border border-border/50 overflow-hidden">
               <div className="h-0.5 w-full bg-gradient-to-r from-brand/60 via-brand to-brand/60" />
               <div className="p-5 space-y-4">
 
@@ -297,9 +297,9 @@ export default function SpiritPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Zap size={14} className="text-brand" strokeWidth={2.5} />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground font-display">The Act</p>
+                    <p className="text-[10px] font-black lowercase text-muted-foreground font-display">The Act</p>
                   </div>
-                  <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${catConfig.bg} ${catConfig.color}`}>
+                  <span className={`text-[9px] font-black lowercase px-2.5 py-1 rounded-full ${catConfig.bg} ${catConfig.color}`}>
                     {catConfig.label}
                   </span>
                 </div>
@@ -313,8 +313,8 @@ export default function SpiritPage() {
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.18 }}
                     className={`text-base font-semibold leading-relaxed transition-colors ${
-                      actDone ? 'text-muted-foreground line-through decoration-muted-foreground/40' : 'text-foreground'
-                    }`}
+ actDone ? 'text-muted-foreground line-through decoration-muted-foreground/40' : 'text-foreground'
+ }`}
                   >
                     {challenge.text}
                   </motion.p>
@@ -324,11 +324,11 @@ export default function SpiritPage() {
                 <div className="flex gap-2.5">
                   <button
                     onClick={handleToggleDone}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 ${
-                      actDone
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-brand text-background brand-glow hover:bg-brand/90'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs lowercase transition-all active:scale-95 ${
+ actDone
+ ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+ : 'bg-brand text-background hover:bg-brand/90'
+ }`}
                   >
                     {actDone && <Check size={12} strokeWidth={3} />}
                     {actDone ? 'Done' : 'Mark Done'}
@@ -336,7 +336,7 @@ export default function SpiritPage() {
                   {!actDone && (
                     <button
                       onClick={handleNotToday}
-                      className="px-4 py-3 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-all text-xs font-bold uppercase tracking-widest active:scale-95"
+                      className="px-4 py-3 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-all text-xs font-bold lowercase active:scale-95"
                     >
                       Not today
                     </button>

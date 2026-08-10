@@ -33,48 +33,38 @@ export default function AppHeader({ active }: AppHeaderProps) {
   return (
     <>
       {/* DESKTOP */}
-      <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-3.5 sticky top-0 z-40">
-        <Link href="/dashboard">
-          {/* PNG lockups — fonts baked in at export time */}
-          <Logo className="w-10 h-10" />
-          <span
-            className="font-display font-semibold text-lg tracking-[0.14em] uppercase text-foreground"
-          >
-            Dad Strength
+      <header className="hidden md:flex items-center justify-between bg-background px-8 py-3.5 sticky top-0 z-40 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Logo className="w-8 h-8" />
+          <span className="font-display font-semibold text-base lowercase text-foreground">
+            dad strength
           </span>
         </Link>
-        <nav className="flex gap-8 text-xs text-muted-foreground uppercase tracking-[0.12em]">
-          {navItem('HQ', '/dashboard', 'hq')}
-          {navItem('Train', '/body', 'train')}
-          {navItem('History', '/history', 'history')}
-          {navItem('Profile', '/profile', 'profile')}
+        <nav className="flex gap-8 text-sm text-muted-foreground lowercase">
+          {navItem('home', '/dashboard', 'hq')}
+          {navItem('train', '/body', 'train')}
+          {navItem('history', '/history', 'history')}
+          {navItem('profile', '/profile', 'profile')}
           <button
             onClick={handleSignOut}
-            className="text-red-500/60 hover:text-red-500 transition-colors"
+            className="text-red-500/60 hover:text-red-500 transition-colors lowercase"
           >
-            Sign Out
+            sign out
           </button>
         </nav>
       </header>
 
       {/* MOBILE */}
-      <header className="md:hidden flex items-center justify-between px-6 pt-6 pb-2">
+      <header className="md:hidden flex items-center justify-between bg-background px-6 pt-6 pb-2">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <Logo className="w-9 h-9" />
-          <div className="flex flex-col leading-none">
-            <span
-              className="font-display font-semibold text-base tracking-[0.1em] uppercase"
-            >
-              Dad Strength
-            </span>
-            <span className="text-[9px] tracking-[0.15em] text-muted-foreground uppercase mt-0.5">
-              by Forge OS
-            </span>
-          </div>
+          <Logo className="w-8 h-8" />
+          <span className="font-display font-semibold text-base lowercase leading-none">
+            dad strength
+          </span>
         </Link>
         <Link
           href="/profile"
-          className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+          className="p-2 rounded-full text-muted-foreground hover:text-foreground transition-colors"
         >
           <Settings size={16} />
         </Link>

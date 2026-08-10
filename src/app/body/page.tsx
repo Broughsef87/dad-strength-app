@@ -18,8 +18,8 @@ export default function BodyPage() {
       <div className="max-w-md mx-auto px-6 pt-6">
 
         <div className="mb-8">
-          <p className="telemetry mb-1">SYS // CHASSIS.OPS</p>
-          <h1 className="font-display text-4xl tracking-[0.1em] uppercase">Chassis</h1>
+          <p className="eyebrow-mono mb-1">train · recover · measure</p>
+          <h1 className="font-display text-4xl lowercase">body</h1>
         </div>
 
         <motion.div

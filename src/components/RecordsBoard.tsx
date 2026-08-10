@@ -78,11 +78,10 @@ export default function RecordsBoard() {
   const visible = showAll ? records : records.slice(0, SHOW_COLLAPSED)
 
   return (
-    <div className="glass-card relative rounded-xl p-6 pt-8">
-      <span className="panel-id">CHS-REC // RECORDS</span>
+    <div className="tile relative rounded-xl p-6 pt-8">
       <div className="flex items-center gap-2 mb-1.5">
         <Trophy size={16} className="text-brand" />
-        <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Records</h3>
+        <h3 className="font-display font-semibold text-sm lowercase">Records</h3>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed mb-4">
         Pulled straight from your logged sets — heaviest weight for 1, 3, and 5+ reps.
@@ -98,21 +97,21 @@ export default function RecordsBoard() {
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-[1fr_repeat(3,3.2rem)] gap-x-2 telemetry-dim px-1 mb-1.5">
+          <div className="grid grid-cols-[1fr_repeat(3,3.2rem)] gap-x-2 eyebrow-mono px-1 mb-1.5">
             <span>LIFT</span><span className="text-right">×1</span><span className="text-right">×3</span><span className="text-right">×5</span>
           </div>
           <div className="space-y-1.5">
             {visible.map(r => (
               <div key={r.name}
-                className={`grid grid-cols-[1fr_repeat(3,3.2rem)] gap-x-2 items-center panel-cut-sm border px-3 py-2 ${
-                  fresh(r.freshest) ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background/40'
-                }`}>
+                className={`grid grid-cols-[1fr_repeat(3,3.2rem)] gap-x-2 items-center border px-3 py-2 ${
+ fresh(r.freshest) ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background/40'
+ }`}>
                 <span className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
                   {fresh(r.freshest) && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" title="Set this week" />}
                   {r.name}
                 </span>
                 {[r.best1, r.best3, r.best5].map((v, i) => (
-                  <span key={i} className={`readout-num text-sm text-right ${v != null ? 'text-foreground' : 'text-muted-foreground/40'}`}>
+                  <span key={i} className={`stat-num text-sm text-right ${v != null ? 'text-foreground' : 'text-muted-foreground/40'}`}>
                     {v ?? '—'}
                   </span>
                 ))}
@@ -121,7 +120,7 @@ export default function RecordsBoard() {
           </div>
           {records.length > SHOW_COLLAPSED && (
             <button onClick={() => setShowAll(s => !s)}
-              className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors">
+              className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold lowercase text-muted-foreground hover:text-foreground transition-colors">
               {showAll ? <><ChevronUp size={12} /> Top {SHOW_COLLAPSED} only</> : <><ChevronDown size={12} /> All {records.length} lifts</>}
             </button>
           )}

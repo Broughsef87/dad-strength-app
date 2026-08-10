@@ -83,13 +83,13 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
             role="dialog"
             aria-modal="true"
             aria-labelledby="upgrade-modal-title"
-            className="relative w-full max-w-md overflow-hidden rounded-xl premium-surface"
+            className="relative w-full max-w-md overflow-hidden rounded-xl tile-lg"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
-            {/* Header — steel-edge platform feel */}
+            {/* Header —  platform feel */}
             <div className="relative p-6 border-b border-border/60">
               <button
                 onClick={onClose}
@@ -103,8 +103,8 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                   <Zap size={16} className="text-brand" />
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-[0.18em] text-brand font-semibold font-display">Dad Strong+</p>
-                  <h2 id="upgrade-modal-title" className="font-display text-2xl tracking-[0.06em] uppercase text-foreground leading-tight">Unlock Everything</h2>
+                  <p className="text-[9px] lowercase text-brand font-semibold font-display">Dad Strong+</p>
+                  <h2 id="upgrade-modal-title" className="font-display text-2xl lowercase text-foreground leading-tight">Unlock Everything</h2>
                 </div>
               </div>
               {trigger && (
@@ -131,9 +131,9 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               <button
                 onClick={() => handleCheckout('yearly')}
                 disabled={!!loading}
-                className="btn-forge-shimmer annual-card w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:opacity-50"
+                className="annual-card w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:opacity-50"
               >
-                <div className="absolute -top-2.5 left-4 bg-brand text-background text-[8px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 rounded-sm">
+                <div className="absolute -top-2.5 left-4 bg-brand text-background text-[8px] font-bold lowercase px-2 py-0.5 rounded-sm">
                   Best Value
                 </div>
                 <div className="text-left">
@@ -169,7 +169,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               {/* Divider */}
               <div className="flex items-center gap-3 py-0.5">
                 <div className="flex-1 h-px bg-border/50" />
-                <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Or</p>
+                <p className="text-[9px] text-muted-foreground lowercase">Or</p>
                 <div className="flex-1 h-px bg-border/50" />
               </div>
 

@@ -236,7 +236,7 @@ export default function WeeklyDebrief() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp size={16} className="text-brand" />
-          <h3 className="font-display font-semibold text-sm uppercase tracking-wide">Weekly Debrief</h3>
+          <h3 className="font-display font-semibold text-sm lowercase">Weekly Debrief</h3>
         </div>
         {debrief && (
           <button
@@ -253,19 +253,19 @@ export default function WeeklyDebrief() {
       {/* Week at a Glance */}
       {!statsLoading && weekStats && (
         <div>
-          <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+          <p className="text-xs font-display font-semibold text-muted-foreground lowercase mb-2">
             Your Week at a Glance
           </p>
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-gray-800/40 rounded-xl p-3 flex flex-col items-center gap-1">
               <Dumbbell size={14} className="text-brand" />
               <span className="text-xl font-display font-semibold text-foreground">{weekStats.workoutsCompleted}</span>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider text-center">Sessions</span>
+              <span className="text-[10px] text-muted-foreground font-bold lowercase text-center">Sessions</span>
             </div>
             <div className="bg-gray-800/40 rounded-xl p-3 flex flex-col items-center gap-1">
               <Moon size={14} className={weekStats.roughNights > 2 ? 'text-red-400' : 'text-yellow-500'} />
               <span className="text-xl font-display font-semibold text-foreground">{weekStats.roughNights}</span>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider text-center">Rough Nights</span>
+              <span className="text-[10px] text-muted-foreground font-bold lowercase text-center">Rough Nights</span>
             </div>
             <div className="bg-gray-800/40 rounded-xl p-3 flex flex-col items-center gap-1">
               <CheckSquare size={14} className="text-green-500" />
@@ -274,7 +274,7 @@ export default function WeeklyDebrief() {
                   ? `${weekStats.objectivesCompleted}/${weekStats.totalObjectives}`
                   : '—'}
               </span>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider text-center">Objectives</span>
+              <span className="text-[10px] text-muted-foreground font-bold lowercase text-center">Objectives</span>
             </div>
           </div>
         </div>
@@ -286,7 +286,7 @@ export default function WeeklyDebrief() {
           onClick={() => setFormOpen(v => !v)}
           className="w-full flex items-center justify-between px-4 py-3 text-left"
         >
-          <span className="text-xs font-display font-semibold uppercase tracking-widest text-muted-foreground">
+          <span className="text-xs font-display font-semibold lowercase text-muted-foreground">
             Add Your Reflection
           </span>
           {formOpen ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
@@ -295,7 +295,7 @@ export default function WeeklyDebrief() {
         {formOpen && (
           <div className="px-4 pb-4 space-y-3 border-t border-border">
             <div className="pt-3">
-              <label className="block text-xs font-display font-semibold text-muted-foreground uppercase tracking-widest mb-1">
+              <label className="block text-xs font-display font-semibold text-muted-foreground lowercase mb-1">
                 Biggest Win
               </label>
               <textarea
@@ -307,7 +307,7 @@ export default function WeeklyDebrief() {
               />
             </div>
             <div>
-              <label className="block text-xs font-display font-semibold text-muted-foreground uppercase tracking-widest mb-1">
+              <label className="block text-xs font-display font-semibold text-muted-foreground lowercase mb-1">
                 Biggest Challenge
               </label>
               <textarea
@@ -319,7 +319,7 @@ export default function WeeklyDebrief() {
               />
             </div>
             <div>
-              <label className="block text-xs font-display font-semibold text-muted-foreground uppercase tracking-widest mb-1">
+              <label className="block text-xs font-display font-semibold text-muted-foreground lowercase mb-1">
                 Intention for Next Week
               </label>
               <textarea
@@ -339,7 +339,7 @@ export default function WeeklyDebrief() {
         <button
           onClick={() => generate(!!debrief)}
           disabled={loading || !user}
-          className="w-full py-3 rounded-2xl bg-brand text-white font-display font-semibold text-sm uppercase tracking-widest hover:bg-brand/90 transition-colors disabled:opacity-50"
+          className="w-full py-3 rounded-2xl bg-brand text-white font-display font-semibold text-sm lowercase hover:bg-brand/90 transition-colors disabled:opacity-50"
         >
           {debrief ? 'Regenerate Debrief' : 'Generate My Debrief'}
         </button>
@@ -349,7 +349,7 @@ export default function WeeklyDebrief() {
       {loading && (
         <div className="flex flex-col items-center gap-3 py-8">
           <Loader2 size={20} className="animate-spin text-brand" />
-          <p className="text-xs font-display font-semibold uppercase tracking-widest text-gray-600">Analyzing your week...</p>
+          <p className="text-xs font-display font-semibold lowercase text-gray-600">Analyzing your week...</p>
         </div>
       )}
 
@@ -367,7 +367,7 @@ export default function WeeklyDebrief() {
           {/* Grade pill */}
           <div className="flex items-center justify-between">
             <span
-              className={`inline-flex items-center px-4 py-1.5 rounded-full border text-sm font-display font-semibold uppercase tracking-widest ${gradeConfig.bg} ${gradeConfig.text} ${gradeConfig.border} ${gradeConfig.glow ?? ''}`}
+              className={`inline-flex items-center px-4 py-1.5 rounded-full border text-sm font-display font-semibold lowercase ${gradeConfig.bg} ${gradeConfig.text} ${gradeConfig.border} ${gradeConfig.glow ?? ''}`}
             >
               {debrief.overallGrade}
             </span>
@@ -387,7 +387,7 @@ export default function WeeklyDebrief() {
 
           {/* Focus word */}
           <div className="text-center py-2">
-            <p className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-widest mb-1">
+            <p className="text-[10px] font-display font-semibold text-muted-foreground lowercase mb-1">
               Word of the Week
             </p>
             <p className="text-3xl font-display font-semibold italic tracking-wide text-brand">
@@ -400,7 +400,7 @@ export default function WeeklyDebrief() {
             <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-4 space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <Trophy size={13} className="text-green-500" />
-                <p className="text-xs font-display font-semibold text-green-600 uppercase tracking-widest">Wins</p>
+                <p className="text-xs font-display font-semibold text-green-600 lowercase">Wins</p>
               </div>
               {debrief.wins.map((win, i) => (
                 <div key={i} className="flex gap-2 items-start">
@@ -416,7 +416,7 @@ export default function WeeklyDebrief() {
             <div className="bg-red-500/5 border border-red-500/15 rounded-2xl p-4 space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <Target size={13} className="text-red-400/70" />
-                <p className="text-xs font-display font-semibold text-red-400/70 uppercase tracking-widest">Gaps</p>
+                <p className="text-xs font-display font-semibold text-red-400/70 lowercase">Gaps</p>
               </div>
               {debrief.gaps.map((gap, i) => (
                 <div key={i} className="flex gap-2 items-start">
@@ -432,7 +432,7 @@ export default function WeeklyDebrief() {
             <div className="bg-brand/5 border border-brand/20 rounded-2xl p-4 space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <Zap size={13} className="text-brand" />
-                <p className="text-xs font-display font-semibold text-brand uppercase tracking-widest">Next Week</p>
+                <p className="text-xs font-display font-semibold text-brand lowercase">Next Week</p>
               </div>
               {debrief.adjustments.map((adj, i) => (
                 <div key={i} className="flex gap-2 items-start">

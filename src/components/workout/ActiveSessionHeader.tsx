@@ -46,21 +46,21 @@ export default function ActiveSessionHeader({
             {isPaused ? <Coffee size={18} /> : <Activity size={18} className="animate-pulse" />}
           </div>
           <div className="flex flex-col">
-            <h2 className={`text-[10px] font-black uppercase tracking-[0.3em] leading-none mb-1 transition-colors ${
+            <h2 className={`text-[10px] font-black lowercase leading-none mb-1 transition-colors ${
               isPaused ? 'text-amber-500/70' : 'text-brand/80'
             }`}>
               {isPaused ? 'Grace Mode Active' : 'Live Protocol'}
             </h2>
             <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest">System Operational</span>
+                <span className="text-[10px] font-bold text-emerald-500/80 lowercase">System Operational</span>
             </div>
           </div>
         </div>
 
         <button
           onClick={onTogglePause}
-          className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-90 ${
+          className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black lowercase transition-all active:scale-90 ${
             isPaused
               ? 'bg-amber-500 border-amber-400 text-black shadow-[0_8px_25px_rgba(245,158,11,0.3)] hover:bg-amber-400'
               : 'bg-muted border-border text-muted-foreground hover:border-amber-500/50 hover:text-amber-400 hover:bg-amber-500/5'
@@ -84,7 +84,7 @@ export default function ActiveSessionHeader({
         <div className="relative">
           <h1 className="text-3xl font-black tracking-tight text-foreground mb-1.5 drop-shadow-sm">{workoutName}</h1>
           <div className="flex items-center gap-2">
-            <p className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${
+            <p className={`text-[11px] font-bold lowercase transition-colors ${
                 isPaused ? 'text-amber-500/60' : 'text-muted-foreground'
             }`}>
                 {isPaused ? 'Monitoring Parent Duty' : 'Executing Functional Cycle'}
@@ -100,7 +100,7 @@ export default function ActiveSessionHeader({
 
         <div className="flex gap-8 items-center">
           <div className="relative group/stat text-right">
-            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 group-hover/stat:text-brand/70 transition-colors">Session Time</p>
+            <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-brand/70 transition-colors">Session Time</p>
             <div className="flex items-baseline justify-end gap-1.5">
                 <Timer size={14} className={`mb-0.5 ${isPaused ? 'text-amber-400' : 'text-brand/50'}`} />
                 <p className={`text-2xl font-mono font-black tabular-nums transition-all ${
@@ -112,7 +112,7 @@ export default function ActiveSessionHeader({
           <div className="w-px h-10 bg-border" />
 
           <div className="relative group/stat text-right">
-            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 group-hover/stat:text-emerald-400/70 transition-colors">Load Moved</p>
+            <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-emerald-400/70 transition-colors">Load Moved</p>
             <div className="flex items-baseline justify-end gap-1">
                 <p className="text-3xl font-black text-foreground leading-none tracking-tight">
                     {volume.toLocaleString()}

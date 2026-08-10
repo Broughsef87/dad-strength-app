@@ -36,7 +36,7 @@ export default function PremiumGate({ children, feature, overlay = false }: Prem
           <div className="absolute inset-0 flex items-center justify-center">
             <button
               onClick={() => setShowUpgrade(true)}
-              className="flex items-center gap-2 bg-brand text-foreground text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full shadow-lg hover:bg-brand/90 transition-all active:scale-95"
+              className="flex items-center gap-2 bg-brand text-foreground text-xs font-black lowercase px-4 py-2 rounded-full shadow-lg hover:bg-brand/90 transition-all active:scale-95"
             >
               <Zap size={12} /> Upgrade to Unlock
             </button>
@@ -68,7 +68,7 @@ export default function PremiumGate({ children, feature, overlay = false }: Prem
             <p className="text-xs text-muted-foreground">Upgrade to Dad Strong+ to unlock</p>
           </div>
         </div>
-        <span className="text-xs font-black text-brand uppercase tracking-widest">
+        <span className="text-xs font-black text-brand lowercase">
           Upgrade →
         </span>
       </button>

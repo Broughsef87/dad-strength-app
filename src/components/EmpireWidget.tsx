@@ -76,7 +76,7 @@ export default function EmpireWidget() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-brand" strokeWidth={1.5} />
-          <h3 className="font-display font-semibold text-foreground uppercase tracking-wide italic">{mission.title}</h3>
+          <h3 className="font-display font-semibold text-foreground lowercase italic">{mission.title}</h3>
         </div>
         <Link href="/profile/edit-mission" className="text-muted-foreground hover:text-foreground transition-colors p-2 bg-background rounded-lg border border-border">
           <ArrowRight size={14} strokeWidth={1.5} />
@@ -87,7 +87,7 @@ export default function EmpireWidget() {
       <div className="bg-background/50 p-4 rounded-2xl border border-border shadow-inner">
         <div className="flex justify-between items-end mb-3">
           <div>
-            <p className="text-xs font-display font-semibold uppercase tracking-widest text-muted-foreground mb-1">{mission.primaryMetric}</p>
+            <p className="text-xs font-display font-semibold lowercase text-muted-foreground mb-1">{mission.primaryMetric}</p>
             <p className="font-display font-semibold text-xl text-foreground tracking-wide tabular-nums">
               {isCurrency && '$'}{displayCurrent}
               <span className="text-muted-foreground text-xs ml-1 font-bold">/ {isCurrency && '$'}{displayTarget} {mission.unit !== '$' && mission.unit}</span>
@@ -115,7 +115,7 @@ export default function EmpireWidget() {
              <S1Icon size={16} strokeWidth={1.5} className="text-brand group-hover:text-brand/80 transition-colors" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-widest truncate">{mission.secondary1Label}</p>
+            <p className="text-xs font-display font-semibold text-muted-foreground lowercase truncate">{mission.secondary1Label}</p>
             <p className="text-xs font-display font-semibold text-foreground tracking-wide tabular-nums">{mission.secondary1Value}</p>
           </div>
         </motion.div>
@@ -127,7 +127,7 @@ export default function EmpireWidget() {
              <S2Icon size={16} strokeWidth={1.5} className="text-brand group-hover:text-brand/80 transition-colors" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-widest truncate">{mission.secondary2Label}</p>
+            <p className="text-xs font-display font-semibold text-muted-foreground lowercase truncate">{mission.secondary2Label}</p>
             <p className="text-xs font-display font-semibold text-foreground tracking-wide tabular-nums">{mission.secondary2Value}</p>
           </div>
         </motion.div>

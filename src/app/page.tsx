@@ -67,7 +67,7 @@ export default function Home() {
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="w-5 h-5 border border-brand border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground text-[9px] uppercase tracking-[0.2em] font-display">Loading</p>
+          <p className="text-muted-foreground text-[9px] lowercase font-display">Loading</p>
         </div>
       </div>
     );
@@ -80,17 +80,16 @@ export default function Home() {
         {/* Brand lockup — stacked suite asset, dark/light aware */}
         <div className="flex flex-col items-center">
           <Logo className="w-24 h-24 drop-shadow-2xl" />
-          <p className="font-display font-semibold text-2xl tracking-[0.2em] uppercase text-foreground mt-5">
+          <p className="font-display font-semibold text-2xl lowercase text-foreground mt-5">
             Dad Strength
           </p>
         </div>
 
         {/* Auth card — pilot authentication console */}
-        <div className="panel-cut hud-frame relative bg-card border border-border p-6 pt-9 shadow-2xl">
-          <span className="panel-id">ACCESS // PILOT.AUTH</span>
+        <div className="relative bg-card border border-border p-6 pt-9 shadow-2xl">
           <div className="flex items-center gap-2 mb-4">
             <span className="status-dot" />
-            <span className="telemetry">Pilot Authentication</span>
+            <span className="eyebrow-mono">Pilot Authentication</span>
           </div>
           <Auth
             supabaseClient={supabase}
@@ -103,7 +102,7 @@ export default function Home() {
           />
         </div>
 
-        <p className="telemetry-dim text-center">
+        <p className="eyebrow-mono text-center">
           DS-01 // BUILT FOR THE LONG HAUL
         </p>
       </div>

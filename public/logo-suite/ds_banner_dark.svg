@@ -1,41 +1,15 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
-  <defs>
-    <linearGradient id="rosso" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#EA0B2F"/><stop offset="100%" stop-color="#B00822"/>
-    </linearGradient>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#151A23"/><stop offset="100%" stop-color="#0B0E14"/>
-    </linearGradient>
-    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1A212C"/><stop offset="100%" stop-color="#10141B"/>
-    </linearGradient>
-  </defs>
-  <rect width="1500" height="500" fill="url(#bg)"/>
-  <rect x="0" y="0" width="1500" height="3" fill="#EA0B2F" opacity="0.85"/>
-  <rect x="0" y="497" width="1500" height="3" fill="#EA0B2F" opacity="0.85"/>
-  <g transform="translate(70,100) scale(0.29296875)">
+  <rect width="1500" height="500" fill="#0E0F10" />
+  <g transform="translate(180,140) scale(0.229)">
+    <rect x="32" y="32" width="960" height="960" rx="216" fill="#17181A" />
     
-  <path d="M28,28 H878 L996,146 V996 H146 L28,878 Z" fill="url(#plate)" stroke="#2A3442" stroke-width="10"/>
-  <path d="M52,52 H864 L972,160 V972 H160 L52,864 Z" fill="none" stroke="#2A3442" stroke-width="3" opacity="0.55"/>
-  <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z" transform="translate(179,306.5) scale(3.05)" fill="url(#rosso)" fill-rule="evenodd"/>
-  <path d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z" transform="translate(540,306.5) scale(3.05)" fill="url(#rosso)" fill-rule="evenodd"/>
-  
-  <path d="M878,28 L996,146 L996,104 L920,28 Z" fill="#EA0B2F"/>
-  <path d="M28,878 L146,996 L104,996 L28,920 Z" fill="#EA0B2F"/>
-  <rect x="179" y="779.5" width="666" height="16" fill="#E3EAF2" opacity="0.35"/>
-
+  <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z"
+        transform="translate(206.5,292.6) scale(3.05)" fill="#CDFF4D" fill-rule="evenodd" />
+  <path d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z"
+        transform="translate(567.5,292.6) scale(3.05)" fill="#CDFF4D" fill-rule="evenodd" />
   </g>
-  <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z" transform="translate(442,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M0,140 V40 L40,0 H60 L100,40 V140 H74 V92 H26 V140 Z M26,44 L46,26 H54 L74,44 V66 H26 Z" transform="translate(529.4716981132076,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z" transform="translate(616.9433962264151,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z" transform="translate(746,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M0,0 H100 V26 H63 V140 H37 V26 H0 Z" transform="translate(833.4716981132076,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M0,0 H70 L100,30 V72 L80,90 L100,122 V140 H74 L46,96 H26 V140 H0 Z M26,26 H60 L74,38 V60 L60,70 H26 Z" transform="translate(920.9433962264151,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M0,0 H100 V26 H26 V57 H88 V83 H26 V114 H100 V140 H0 Z" transform="translate(1008.4150943396226,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M0,140 V0 H28 L72,82 V0 H100 V140 H72 L28,58 V140 Z" transform="translate(1095.8867924528302,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M100,26 H26 V114 H74 V88 H48 V62 H100 V140 H0 V0 H100 Z" transform="translate(1183.3584905660377,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M0,0 H100 V26 H63 V140 H37 V26 H0 Z" transform="translate(1270.830188679245,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <path d="M0,0 H26 V57 H74 V0 H100 V140 H74 V83 H26 V140 H0 Z" transform="translate(1358.301886792453,195) scale(0.7169811320754716)" fill="#E3EAF2" fill-rule="evenodd"/>
-  <rect x="442" y="335" width="987.9999999999999" height="6" fill="#EA0B2F"/>
+  <text x="450" y="268" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
+        font-size="104" font-weight="700" letter-spacing="-4" fill="#EDEDEA">dad strength</text>
+  <text x="452" y="330" font-family="Geist Mono, ui-monospace, monospace"
+        font-size="30" letter-spacing="2" fill="#EDEDEA" opacity="0.55">built for the long haul</text>
 </svg>

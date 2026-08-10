@@ -1,9 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="512" height="512">
   <rect width="1024" height="1024" rx="230" fill="#17181A" />
-  
+  <g transform="translate(512,512) scale(1.18) translate(-512,-512)">
   <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z"
         transform="translate(206.5,292.6) scale(3.05)" fill="#CDFF4D" fill-rule="evenodd" />
   <path d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z"
-        transform="translate(567.5,292.6) scale(3.05)" fill="#CDFF4D" fill-rule="evenodd" />
-  <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="#EDEDEA" opacity="0.22" />
+        transform="translate(567.5,292.6) scale(3.05)" fill="#CDFF4D" fill-rule="evenodd" /></g>
 </svg>

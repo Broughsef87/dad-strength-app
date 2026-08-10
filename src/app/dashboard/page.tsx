@@ -69,6 +69,13 @@ export default function Dashboard() {
   const [streak, setStreak] = useState(0)
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
   const [checklistDone, setChecklistDone] = useState(false)
+  const [firstName, setFirstName] = useState('')
+
+  // Time-of-day greeting — the header's whole job is to sound like a person.
+  const greeting = () => {
+    const h = new Date().getHours()
+    return h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening'
+  }
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -100,6 +107,14 @@ export default function Dashboard() {
         .select('*')
         .eq('id', user.id)
         .maybeSingle()
+
+      // Greeting name: profile first, then the auth metadata, then the local
+      // part of the email — whichever exists, first word only.
+      const raw = (profile?.full_name || profile?.name
+        || (user.user_metadata?.full_name as string | undefined)
+        || (user.user_metadata?.name as string | undefined)
+        || user.email?.split('@')[0] || '') as string
+      if (raw) setFirstName(raw.trim().split(/[\s._-]+/)[0].toLowerCase())
 
       // Check if first-week checklist is already fully complete so we can swap the card immediately
       const cl = profile?.first_week_checklist as { first_workout?: boolean; set_mission?: boolean; morning_protocol?: boolean } | null
@@ -238,7 +253,7 @@ export default function Dashboard() {
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -40, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display tracking-[0.2em] uppercase py-3 px-4"
+          className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display lowercase py-3 px-4"
         >
           Welcome to Dad Strong+ — All Features Unlocked
         </motion.div>
@@ -248,11 +263,11 @@ export default function Dashboard() {
       <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-4 sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <Logo className="w-8 h-8" />
-          <span className="font-display text-lg tracking-[0.1em] uppercase text-foreground">
+          <span className="font-display text-lg lowercase text-foreground">
             Dad Strength
           </span>
         </div>
-        <nav className="flex gap-8 text-[10px] text-muted-foreground uppercase tracking-[0.14em]">
+        <nav className="flex gap-8 text-[10px] text-muted-foreground lowercase">
           <button className="text-brand font-semibold">HQ</button>
           <button onClick={() => router.push('/body')} className="hover:text-foreground transition-colors">Train</button>
           <button onClick={() => router.push('/history')} className="hover:text-foreground transition-colors">History</button>
@@ -261,47 +276,29 @@ export default function Dashboard() {
         </nav>
       </header>
 
-      {/* MOBILE HEADER */}
-      <header className="md:hidden relative flex items-center justify-between px-5 pt-8 pb-4 overflow-hidden">
-        {/* Large background "DS" — editorial depth mark */}
-        <span
-          className="absolute -top-4 -left-2 font-display leading-none pointer-events-none select-none"
-          style={{ fontSize: '9rem', color: 'rgba(234,11,47,0.045)', letterSpacing: '0.05em' }}
-          aria-hidden="true"
-        >DS</span>
-        <div className="relative">
-          <p className="steel-label">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+      {/* MOBILE HEADER — quiet date line, then the greeting doing the talking */}
+      <header className="md:hidden flex items-start justify-between px-5 pt-8 pb-3">
+        <div>
+          <p className="eyebrow-mono">
+            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toLowerCase()}
           </p>
-          <h1 className="font-display text-[2.6rem] md:text-5xl tracking-[0.06em] uppercase text-foreground mt-0.5 leading-none">
-            Train <HeroAccent>Day.</HeroAccent>
-            {streak > 0 && (
-              <span className="text-brand ml-3 inline-flex items-center gap-1 text-2xl align-middle">
-                <Flame size={18} className="inline" strokeWidth={1.5} />
-                <span className="stat-num">{streak}</span>
-              </span>
-            )}
+          <h1 className="font-display text-[2rem] lowercase text-foreground mt-1 leading-none">
+            {greeting()}{firstName && `, ${firstName}`}
           </h1>
-          {/* Amber accent line — brand signature */}
-          <div className="flex items-center gap-1.5 mt-2">
-            <div className="h-[2px] w-8 rounded-full bg-brand"
-              style={{ boxShadow: '0 0 8px 1px rgba(234,11,47,0.55)' }} />
-            <div className="h-[2px] w-4 rounded-full bg-brand/35" />
-            <div className="h-[2px] w-2 rounded-full bg-brand/15" />
-          </div>
         </div>
-        <div className="flex items-center gap-2 relative">
+        <div className="flex items-center gap-2">
           {!isPro && !subLoading && (
             <button
               onClick={() => setShowUpgrade(true)}
-              className="flex items-center gap-1.5 text-[9px] font-display uppercase tracking-[0.16em] text-brand border border-brand/30 bg-brand/8 px-3 py-1.5 rounded-md hover:bg-brand/15 transition-colors"
+              className="pill-volt flex items-center gap-1.5 text-[10px] lowercase px-3 py-1.5"
             >
-              <Zap size={10} /> Upgrade
+              <Zap size={10} /> upgrade
             </button>
           )}
           <button
             onClick={() => router.push('/profile')}
-            className="p-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-brand/30 transition-colors"
+            className="p-2 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="settings"
           >
             <Settings size={15} />
           </button>
@@ -326,73 +323,63 @@ export default function Dashboard() {
             }
           </motion.div>
 
-          {/* I. ACTIVE PROTOCOL — mobile suit status board */}
-          <motion.div variants={fadeUp} custom={0} className="space-y-2.5">
-            <SectionLabel numeral="I" title="Active Protocol" />
-            <div className="panel-cut hud-frame relative bg-card border border-border p-6 pt-8 overflow-hidden">
-              <span className="panel-id">UNIT-01 // {(activeProgram?.slug ?? 'standby').replace(/-/g, '.').toUpperCase()}</span>
+          {/* The bento's hero tile: program, the week numeral, the week strip,
+              and the one volt action. Everything else on the page is quieter. */}
+          <motion.div variants={fadeUp} custom={0}>
+            <div className="tile-lg p-5">
 
-              <div className="flex items-start justify-between mb-4 relative z-10">
-                <div className="livery-slash pl-4">
-                  <span className="telemetry">Active Protocol</span>
-                  <h2 className="font-display text-3xl text-foreground leading-none mt-1 uppercase tracking-wide">
-                    {activeProgram?.name || 'Choose Program'}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <span className="eyebrow-mono">active program</span>
+                  <h2 className="font-display text-2xl text-foreground leading-tight mt-1 lowercase">
+                    {activeProgram?.name?.toLowerCase() || 'choose a program'}
                   </h2>
+                  {activeProgram && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5 lowercase">
+                      {getProgram(activeProgram.slug ?? '')?.tagline?.toLowerCase() ?? 'strength'}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   {streak > 0 && (
-                    <div className="panel-cut-sm flex items-center gap-1.5 bg-brand/10 border border-brand/30 px-2.5 py-1.5">
-                      <Flame size={11} className="text-brand" />
-                      <span className="readout-num text-[12px] text-brand">{streak}</span>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Flame size={12} />
+                      <span className="stat-num text-[13px]">{streak}</span>
                     </div>
                   )}
                   {activeProgram && (
                     <div className="text-right">
-                      <p className="readout-num text-4xl text-brand" style={{ textShadow: '0 0 16px hsl(var(--brand) / 0.4)' }}>
+                      <p className="stat-num text-[44px]">
                         {String(activeProgram.currentWeek).padStart(2, '0')}
                       </p>
-                      <p className="telemetry-dim">WEEK</p>
+                      <p className="eyebrow-mono">week</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Week LED bar — done days */}
+              {/* Week strip — one pill per day, volt for done */}
               {activeProgram && getProgram(activeProgram.slug ?? '') && (
-                <div className="relative z-10 mb-4">
-                  <div className="led-bar">
+                <div className="mb-4">
+                  <div className="day-pills">
                     {Array.from({ length: getProgram(activeProgram.slug ?? '')!.daysPerWeek }).map((_, i) => (
-                      <span key={i} className={`led-cell ${zeusDoneDays.includes(i + 1) ? 'lit' : ''}`} />
+                      <span key={i} className={`day-pill ${zeusDoneDays.includes(i + 1) ? 'on' : ''}`} />
                     ))}
                   </div>
-                  <div className="flex justify-between mt-1.5">
-                    <p className="telemetry-dim">SESSIONS THIS WEEK</p>
-                    <p className="telemetry">{zeusDoneDays.length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Metadata readout */}
-              {activeProgram && (
-                <div className="border-t border-border/60 relative z-10 mb-4">
-                  <div className="data-row">
-                    <span className="telemetry-dim">LOADOUT</span>
-                    <span className="text-sm font-semibold text-foreground">{getProgram(activeProgram.slug ?? '')?.tagline ?? 'Strength'}</span>
-                  </div>
-                  <div className="data-row">
-                    <span className="telemetry-dim">FREQUENCY</span>
-                    <span className="readout-num text-sm text-foreground">{activeProgram.daysCount} / WK</span>
+                  <div className="flex justify-between mt-1.5 data-mono">
+                    <span>sessions</span>
+                    <span className="v">{zeusDoneDays.length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</span>
                   </div>
                 </div>
               )}
 
               {!activeProgram && (
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4 relative z-10">
-                  No unit deployed. Select a training path.
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 lowercase">
+                  nothing running yet. pick a path and start.
                 </p>
               )}
 
-              <div className="flex flex-col gap-2.5 relative z-10">
+              <div className="flex flex-col gap-2.5">
                 <button
                   onClick={() => {
                     const registryProgram = activeProgram ? getProgram(activeProgram.slug ?? '') : null
@@ -408,24 +395,24 @@ export default function Dashboard() {
                       router.push('/build')
                     }
                   }}
-                  className="panel-cut carbon mecha-glow w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-brand border border-brand/60 uppercase tracking-[0.14em] transition-all active:scale-[0.98] hover:border-brand"
+                  className="pill-volt w-full flex items-center justify-center gap-2.5 py-3.5 text-sm lowercase transition-all active:scale-[0.98] hover:opacity-90"
                 >
                   <PlayCircle size={16} strokeWidth={2} />
-                  {activeProgram ? 'Launch Session' : 'Select Path'}
+                  {activeProgram ? 'start session' : 'pick a path'}
                 </button>
                 {activeProgram && (
                   <div className="flex items-center justify-between mt-1">
                     <button
                       onClick={() => router.push(`/train/${activeProgram.slug}`)}
-                      className="inline-flex items-center gap-1 telemetry hover:text-brand transition-colors py-1"
+                      className="inline-flex items-center gap-1 eyebrow-mono hover:text-foreground transition-colors py-1"
                     >
-                      MISSION SCHEDULE <ChevronRight size={11} strokeWidth={2} />
+                      the week <ChevronRight size={11} strokeWidth={2} />
                     </button>
                     <button
                       onClick={() => router.push('/build')}
-                      className="inline-flex items-center gap-1 telemetry-dim hover:text-brand transition-colors py-1"
+                      className="inline-flex items-center gap-1 eyebrow-mono hover:text-foreground transition-colors py-1"
                     >
-                      CHANGE UNIT <ChevronRight size={11} strokeWidth={2} />
+                      change program <ChevronRight size={11} strokeWidth={2} />
                     </button>
                   </div>
                 )}

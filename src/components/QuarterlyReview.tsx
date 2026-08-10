@@ -299,7 +299,7 @@ export default function QuarterlyReview() {
           <div className="text-left">
             <h3 className="font-medium text-sm">{quarter.label} Quarterly Review</h3>
             {hasReview ? (
-              <p className={`text-[10px] font-black uppercase tracking-widest mt-0.5 ${gradeStyle(cached!.review.quarterGrade).text}`}>
+              <p className={`text-[10px] font-black lowercase mt-0.5 ${gradeStyle(cached!.review.quarterGrade).text}`}>
                 {headerSub}
               </p>
             ) : (
@@ -320,14 +320,14 @@ export default function QuarterlyReview() {
           {/* Quarter at a Glance */}
           {quarterData && (
             <div className="px-5 pt-4 pb-3">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-3">
+              <p className="text-[10px] lowercase text-muted-foreground font-medium mb-3">
                 Quarter at a Glance
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-muted rounded-xl p-3">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Dumbbell size={11} className="text-brand" />
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Workouts</span>
+                    <span className="text-[10px] lowercase text-muted-foreground font-medium">Workouts</span>
                   </div>
                   <p className="text-2xl font-black tracking-tight stat-num">{quarterData.workoutCount}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{quarterData.weeklyAvgSessions.toFixed(1)}/week avg</p>
@@ -335,7 +335,7 @@ export default function QuarterlyReview() {
                 <div className="bg-muted rounded-xl p-3">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Target size={11} className="text-brand" />
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Consistency</span>
+                    <span className="text-[10px] lowercase text-muted-foreground font-medium">Consistency</span>
                   </div>
                   <p className="text-2xl font-black tracking-tight stat-num">{consistencyRate}%</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{quarterData.activeCheckinDays} active days</p>
@@ -344,7 +344,7 @@ export default function QuarterlyReview() {
                   <div className="bg-muted rounded-xl p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Zap size={11} className="text-yellow-500" />
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Rough Nights</span>
+                      <span className="text-[10px] lowercase text-muted-foreground font-medium">Rough Nights</span>
                     </div>
                     <p className="text-2xl font-black tracking-tight stat-num">{quarterData.roughSleepNights}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">poor sleep logged</p>
@@ -359,7 +359,7 @@ export default function QuarterlyReview() {
                         ? <TrendingDown size={11} className="text-green-500" />
                         : <Minus size={11} className="text-muted-foreground" />
                       }
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Weight</span>
+                      <span className="text-[10px] lowercase text-muted-foreground font-medium">Weight</span>
                     </div>
                     <p className="text-2xl font-black tracking-tight stat-num">
                       {quarterData.weightChange > 0 ? '+' : ''}{quarterData.weightChange.toFixed(1)}
@@ -387,7 +387,7 @@ export default function QuarterlyReview() {
               </p>
               <div className="space-y-3">
                 <div>
-                  <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium block mb-1.5">
+                  <label className="text-[10px] lowercase text-muted-foreground font-medium block mb-1.5">
                     What was your biggest win this quarter?
                   </label>
                   <textarea
@@ -399,7 +399,7 @@ export default function QuarterlyReview() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium block mb-1.5">
+                  <label className="text-[10px] lowercase text-muted-foreground font-medium block mb-1.5">
                     What held you back most?
                   </label>
                   <textarea
@@ -411,7 +411,7 @@ export default function QuarterlyReview() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium block mb-1.5">
+                  <label className="text-[10px] lowercase text-muted-foreground font-medium block mb-1.5">
                     What do you most want to be different next quarter?
                   </label>
                   <textarea
@@ -427,7 +427,7 @@ export default function QuarterlyReview() {
               <button
                 onClick={generate}
                 disabled={generating}
-                className="w-full bg-brand text-white font-black text-xs uppercase tracking-[0.15em] py-3.5 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-brand text-white font-black text-xs lowercase py-3.5 rounded-xl hover:opacity-90 transition-opacity active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {generating ? (
                   <>
@@ -448,7 +448,7 @@ export default function QuarterlyReview() {
               {/* Grade + headline */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2.5">
-                  <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${gradeStyle(cached.review.quarterGrade).bg} ${gradeStyle(cached.review.quarterGrade).text}`}>
+                  <span className={`text-[10px] font-black lowercase px-2.5 py-1 rounded-lg ${gradeStyle(cached.review.quarterGrade).bg} ${gradeStyle(cached.review.quarterGrade).text}`}>
                     {cached.review.quarterGrade}
                   </span>
                   <span className="text-[10px] text-muted-foreground">{quarter.label}</span>
@@ -460,7 +460,7 @@ export default function QuarterlyReview() {
 
               {/* Top Wins */}
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-2.5">Top Wins</p>
+                <p className="text-[10px] lowercase text-muted-foreground font-medium mb-2.5">Top Wins</p>
                 <div className="space-y-2">
                   {cached.review.topWins.map((win, i) => (
                     <div key={i} className="flex gap-2.5 items-start">
@@ -473,7 +473,7 @@ export default function QuarterlyReview() {
 
               {/* Core Gaps */}
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-2.5">Core Gaps</p>
+                <p className="text-[10px] lowercase text-muted-foreground font-medium mb-2.5">Core Gaps</p>
                 <div className="space-y-2">
                   {cached.review.coreGaps.map((gap, i) => (
                     <div key={i} className="flex gap-2.5 items-start">
@@ -487,28 +487,28 @@ export default function QuarterlyReview() {
               {/* Next 90 Days */}
               <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 space-y-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-1">Next 90 Days</p>
-                  <p className="text-lg font-black uppercase tracking-tight text-brand">{cached.review.next90Focus.theme}</p>
+                  <p className="text-[10px] lowercase text-muted-foreground font-medium mb-1">Next 90 Days</p>
+                  <p className="text-lg font-black lowercase tracking-tight text-brand">{cached.review.next90Focus.theme}</p>
                 </div>
                 <div className="space-y-2.5">
                   <div className="flex gap-2.5 items-start">
                     <Target size={12} className="text-brand shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-0.5">Primary Objective</p>
+                      <p className="text-[10px] lowercase text-muted-foreground font-medium mb-0.5">Primary Objective</p>
                       <p className="text-xs text-foreground">{cached.review.next90Focus.primaryObjective}</p>
                     </div>
                   </div>
                   <div className="flex gap-2.5 items-start">
                     <Dumbbell size={12} className="text-brand shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-0.5">Training Directive</p>
+                      <p className="text-[10px] lowercase text-muted-foreground font-medium mb-0.5">Training Directive</p>
                       <p className="text-xs text-foreground">{cached.review.next90Focus.trainingDirective}</p>
                     </div>
                   </div>
                   <div className="flex gap-2.5 items-start">
                     <Heart size={12} className="text-rose-500 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-0.5">Family Commitment</p>
+                      <p className="text-[10px] lowercase text-muted-foreground font-medium mb-0.5">Family Commitment</p>
                       <p className="text-xs text-foreground">{cached.review.next90Focus.familyCommitment}</p>
                     </div>
                   </div>
@@ -517,7 +517,7 @@ export default function QuarterlyReview() {
 
               {/* Letter to Self */}
               <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Letter to Self</p>
+                <p className="text-[10px] lowercase text-muted-foreground font-medium">Letter to Self</p>
                 <p className="text-xs text-muted-foreground leading-relaxed italic">
                   &quot;{cached.review.letterToSelf}&quot;
                 </p>
@@ -530,7 +530,7 @@ export default function QuarterlyReview() {
                 </p>
                 <button
                   onClick={regenerate}
-                  className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest font-medium"
+                  className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors lowercase font-medium"
                 >
                   <RefreshCw size={10} /> Regenerate
                 </button>

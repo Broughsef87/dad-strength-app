@@ -1,8 +1,8 @@
 'use client'
 
-// ── Active Protocol card (Chassis) ─────────────────────────────────────────────
-// The same UNIT-01 mobile-suit status board as the dashboard: panel-cut chrome,
-// week readout, LED bar of completed days, loadout rows, Launch Session.
+// ── active program card ────────────────────────────────────────────────────────
+// Chalk/volt status tile: week readout, day-progress bar of completed days,
+// program meta rows, start session.
 // Self-contained: fetches the active program + this week's session_complete
 // sentinels itself (server-derived — consistent across devices).
 
@@ -71,7 +71,7 @@ export default function ActiveProgram() {
 
   if (!loaded) {
     return (
-      <div className="panel-cut bg-card border border-border p-6 pt-8 animate-pulse">
+      <div className="tile p-6 animate-pulse">
         <div className="h-3 bg-muted rounded w-2/3 mb-3" />
         <div className="h-7 bg-muted rounded w-1/2" />
       </div>
@@ -91,27 +91,25 @@ export default function ActiveProgram() {
   }
 
   return (
-    <div className="panel-cut hud-frame relative bg-card border border-border p-6 pt-8 overflow-hidden">
-      <span className="panel-id">UNIT-01 // {(row?.slug ?? 'standby').replace(/-/g, '.').toUpperCase()}</span>
-
+    <div className="tile relative p-6 overflow-hidden">
       <div className="flex items-start justify-between mb-4 relative z-10">
-        <div className="livery-slash pl-4">
-          <span className="telemetry">Active Protocol</span>
-          <h2 className="font-display text-3xl text-foreground leading-none mt-1 uppercase tracking-wide">
-            {program?.name || 'Choose Program'}
+        <div>
+          <span className="eyebrow-mono">active program</span>
+          <h2 className="font-display text-3xl text-foreground leading-none mt-1 lowercase">
+            {program?.name || 'choose program'}
           </h2>
         </div>
         {row && (
           <div className="text-right shrink-0">
-            <p className="readout-num text-4xl text-brand" style={{ textShadow: '0 0 16px hsl(var(--brand) / 0.4)' }}>
+            <p className="stat-num text-4xl text-brand">
               {String(row.currentWeek).padStart(2, '0')}
             </p>
-            <p className="telemetry-dim">WEEK</p>
+            <p className="eyebrow-mono">week</p>
           </div>
         )}
       </div>
 
-      {/* Week LED bar — done days */}
+      {/* week progress bar — done days */}
       {row && program && (
         <div className="relative z-10 mb-4">
           <div className="led-bar">
@@ -120,8 +118,8 @@ export default function ActiveProgram() {
             ))}
           </div>
           <div className="flex justify-between mt-1.5">
-            <p className="telemetry-dim">SESSIONS THIS WEEK</p>
-            <p className="telemetry">{doneDays.length}/{program.daysPerWeek}</p>
+            <p className="eyebrow-mono">this week</p>
+            <p className="eyebrow-mono">{doneDays.length} of {program.daysPerWeek} logged</p>
           </div>
         </div>
       )}
@@ -130,12 +128,12 @@ export default function ActiveProgram() {
       {row && program && (
         <div className="border-t border-border/60 relative z-10 mb-4">
           <div className="data-row">
-            <span className="telemetry-dim">LOADOUT</span>
+            <span className="eyebrow-mono">LOADOUT</span>
             <span className="text-sm font-semibold text-foreground">{program.tagline}</span>
           </div>
           <div className="data-row">
-            <span className="telemetry-dim">FREQUENCY</span>
-            <span className="readout-num text-sm text-foreground">{program.daysPerWeek} / WK</span>
+            <span className="eyebrow-mono">FREQUENCY</span>
+            <span className="stat-num text-sm text-foreground">{program.daysPerWeek} / WK</span>
           </div>
         </div>
       )}
@@ -149,7 +147,7 @@ export default function ActiveProgram() {
       <div className="flex flex-col gap-2.5 relative z-10">
         <button
           onClick={launch}
-          className="panel-cut carbon mecha-glow w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-brand border border-brand/60 uppercase tracking-[0.14em] transition-all active:scale-[0.98] hover:border-brand"
+          className="w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-brand border border-brand/60 lowercase transition-all active:scale-[0.98] hover:border-brand"
         >
           <PlayCircle size={16} strokeWidth={2} />
           {row ? 'Launch Session' : 'Select Path'}
@@ -158,13 +156,13 @@ export default function ActiveProgram() {
           <div className="flex items-center justify-between mt-1">
             <button
               onClick={() => router.push(`/train/${row.slug}`)}
-              className="inline-flex items-center gap-1 telemetry hover:text-brand transition-colors py-1"
+              className="inline-flex items-center gap-1 eyebrow-mono hover:text-brand transition-colors py-1"
             >
               MISSION SCHEDULE <ChevronRight size={11} strokeWidth={2} />
             </button>
             <button
               onClick={() => router.push('/build')}
-              className="inline-flex items-center gap-1 telemetry-dim hover:text-brand transition-colors py-1"
+              className="inline-flex items-center gap-1 eyebrow-mono hover:text-brand transition-colors py-1"
             >
               CHANGE UNIT <ChevronRight size={11} strokeWidth={2} />
             </button>

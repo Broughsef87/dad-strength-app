@@ -110,7 +110,7 @@ export default function BabySleepTracker() {
         {inRecoveryMode && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full">
             <Zap size={11} className="text-yellow-500" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-yellow-500">Recovery Mode</span>
+            <span className="text-[10px] font-black lowercase text-yellow-500">Recovery Mode</span>
           </div>
         )}
       </div>
@@ -156,16 +156,16 @@ export default function BabySleepTracker() {
 
       {/* Log today */}
       <div className="pt-3 border-t border-border space-y-4">
-        <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Log Last Night</p>
+        <p className="text-[10px] lowercase text-muted-foreground font-medium">Log Last Night</p>
 
         <div>
-          <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2">Baby&apos;s Night</p>
+          <p className="text-[10px] lowercase text-muted-foreground font-medium mb-2">Baby&apos;s Night</p>
           <div className="grid grid-cols-3 gap-2">
             {(['good', 'ok', 'rough'] as const).map(q => (
               <button
                 key={q}
                 onClick={() => setBabyQuality(q)}
-                className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all active:scale-95 ${
+                className={`py-2.5 rounded-xl text-xs font-black lowercase border transition-all active:scale-95 ${
                   babyQuality === q ? QUALITY_COLORS[q] : 'bg-muted border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -176,7 +176,7 @@ export default function BabySleepTracker() {
         </div>
 
         <div>
-          <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2">Your Sleep (hrs)</p>
+          <p className="text-[10px] lowercase text-muted-foreground font-medium mb-2">Your Sleep (hrs)</p>
           <input
             type="number"
             inputMode="decimal"
@@ -193,7 +193,7 @@ export default function BabySleepTracker() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-[0.15em] transition-all active:scale-[0.97] disabled:opacity-40 ${
+          className={`w-full py-3 rounded-xl text-xs font-black lowercase transition-all active:scale-[0.97] disabled:opacity-40 ${
             savedMsg ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-foreground text-background hover:opacity-90'
           }`}
         >

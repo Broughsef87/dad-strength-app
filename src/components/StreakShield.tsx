@@ -66,7 +66,7 @@ export default function StreakShield() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-5 space-y-4">
+    <div className="tile rounded-xl p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export default function StreakShield() {
           </div>
           <h3 className="font-medium text-sm">Streak Shield</h3>
         </div>
-        <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
+        <span className="text-[10px] lowercase text-muted-foreground font-medium">
           Monthly
         </span>
       </div>
@@ -119,7 +119,7 @@ export default function StreakShield() {
       {!usedThisMonth && !activeToday && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-brand/10 rounded-full brand-pulse">
+            <div className="p-2 bg-brand/10 rounded-full">
               <Shield size={20} className="text-brand" />
             </div>
             <div>
@@ -129,7 +129,7 @@ export default function StreakShield() {
           </div>
           <button
             onClick={activateShield}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold tracking-wide hover:opacity-90 active:scale-[0.97] transition-all brand-glow"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold tracking-wide hover:opacity-90 active:scale-[0.97] transition-all"
           >
             <Shield size={15} />
             Activate Shield

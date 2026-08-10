@@ -77,36 +77,21 @@ export default function DailyObjectivesCard() {
   const hasObjectives = locked && filledObjectives.length > 0
 
   if (loading) {
-    return <div className="ds-card h-32 animate-pulse" />
+    return <div className="tile h-32 animate-pulse" />
   }
 
   return (
-    <div className="ds-card p-5 relative overflow-hidden">
-      {/* Editorial depth marks */}
-      <span
-        className="absolute -top-4 right-2 font-display leading-none pointer-events-none select-none"
-        style={{ fontSize: '7rem', color: 'rgba(234,11,47,0.045)', letterSpacing: '0.05em' }}
-        aria-hidden="true"
-      >03</span>
-      <svg className="absolute -bottom-4 -right-4 w-24 h-24 pointer-events-none select-none" viewBox="0 0 100 100" fill="none" aria-hidden="true" style={{ opacity: 0.04, color: 'hsl(38 90% 50%)' }}>
-        <circle cx="50" cy="50" r="44" stroke="currentColor" strokeWidth="5" />
-        <circle cx="50" cy="50" r="28" stroke="currentColor" strokeWidth="5" />
-        <circle cx="50" cy="50" r="12" stroke="currentColor" strokeWidth="5" />
-        <line x1="50" y1="6" x2="50" y2="22" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-        <line x1="50" y1="78" x2="50" y2="94" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-        <line x1="6" y1="50" x2="22" y2="50" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-        <line x1="78" y1="50" x2="94" y2="50" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-      </svg>
+    <div className="tile p-5 relative overflow-hidden">
       <div className="flex items-center justify-between mb-4 relative z-10">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-brand/10 rounded-lg">
             <Target size={14} className="text-brand" />
           </div>
-          <h3 className="font-medium text-sm font-display tracking-[0.06em]">Daily Objectives</h3>
+          <h3 className="font-medium text-sm font-display tracking-[0.06em]">daily objectives</h3>
         </div>
         {hasObjectives && (
-          <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
-            {doneCount}/{filledObjectives.length} done
+          <span className="eyebrow-mono text-muted-foreground">
+            {doneCount} of {filledObjectives.length} done
           </span>
         )}
       </div>
@@ -136,7 +121,7 @@ export default function DailyObjectivesCard() {
           ))}
 
           {doneCount === filledObjectives.length && filledObjectives.length > 0 && (
-            <p className="text-[10px] text-brand uppercase tracking-widest font-black pt-1 text-center">
+            <p className="text-[10px] text-brand lowercase font-black pt-1 text-center">
               Locked in. ⚡
             </p>
           )}

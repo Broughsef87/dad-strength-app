@@ -41,7 +41,7 @@ export default function TrainingHeatmap() {
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium font-display">7-Day Training</p>
+      <p className="text-[10px] lowercase text-muted-foreground font-medium font-display">7-Day Training</p>
       <div className="flex items-center gap-1.5">
         {days.map((day, i) => {
           const key = toLocalDateString(day)
@@ -54,16 +54,16 @@ export default function TrainingHeatmap() {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: i * 0.06, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
                 className={`w-full aspect-square rounded-md ${
-                  loading
-                    ? 'skeleton'
-                    : trained
-                    ? 'bg-brand brand-glow'
-                    : isToday
-                    ? 'bg-muted border-2 border-brand/40'
-                    : 'bg-muted'
-                }`}
+ loading
+ ? 'skeleton'
+ : trained
+ ? 'bg-brand '
+ : isToday
+ ? 'bg-muted border-2 border-brand/40'
+ : 'bg-muted'
+ }`}
               />
-              <span className={`text-[8px] font-medium uppercase ${isToday ? 'text-brand' : 'text-muted-foreground'}`}>
+              <span className={`text-[8px] font-medium lowercase ${isToday ? 'text-brand' : 'text-muted-foreground'}`}>
                 {dayLabels[day.getDay()]}
               </span>
             </div>

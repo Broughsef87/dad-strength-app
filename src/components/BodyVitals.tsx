@@ -107,7 +107,7 @@ export default function BodyVitals() {
       variants={fadeUp}
       initial="hidden"
       animate="visible"
-      className="glass-card rounded-xl p-5 cursor-pointer group active:scale-[0.98] transition-all duration-300 hover:border-brand/25"
+      className="tile rounded-xl p-5 cursor-pointer group active:scale-[0.98] transition-all duration-300 hover:border-brand/25"
       onClick={() => router.push(workoutId ? `/workout/${workoutId}` : '/body')}
     >
       <div className="flex items-center justify-between mb-5">
@@ -133,7 +133,7 @@ export default function BodyVitals() {
           />
           <div className="flex items-center gap-1 text-muted-foreground">
             <Flame size={10} strokeWidth={1.5} />
-            <span className="text-[9px] uppercase tracking-[0.1em] font-medium font-display">Streak</span>
+            <span className="text-[9px] lowercase font-medium font-display">Streak</span>
           </div>
         </div>
 
@@ -151,7 +151,7 @@ export default function BodyVitals() {
           />
           <div className="flex items-center gap-1 text-muted-foreground">
             <Dumbbell size={10} strokeWidth={1.5} />
-            <span className="text-[9px] uppercase tracking-[0.1em] font-medium font-display">This Week</span>
+            <span className="text-[9px] lowercase font-medium font-display">This Week</span>
           </div>
         </div>
       </div>
@@ -159,28 +159,28 @@ export default function BodyVitals() {
       {crushing ? (
         <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-2.5">
           <CheckCircle size={12} className="text-green-600 shrink-0" />
-          <p className="text-xs text-green-600 uppercase tracking-[0.1em] font-medium">
+          <p className="text-xs text-green-600 lowercase font-medium">
             Weekly target hit.
           </p>
         </div>
       ) : onTrack ? (
         <div className="p-3 bg-yellow-500/8 border border-yellow-500/20 rounded-lg flex items-center gap-2.5">
           <Flame size={12} className="text-yellow-600 shrink-0" />
-          <p className="text-xs text-yellow-600 uppercase tracking-[0.1em] font-medium">
+          <p className="text-xs text-yellow-600 lowercase font-medium">
             {weeklyTarget - sessionsThisWeek} session{weeklyTarget - sessionsThisWeek !== 1 ? 's' : ''} to go.
           </p>
         </div>
       ) : sessionsThisWeek === 0 ? (
         <div className="p-3 bg-brand/8 border border-brand/20 rounded-lg flex items-center gap-2.5">
           <Dumbbell size={12} className="text-brand shrink-0" />
-          <p className="text-xs text-brand uppercase tracking-[0.1em] font-medium">
+          <p className="text-xs text-brand lowercase font-medium">
             The iron waits. First session starts the streak.
           </p>
         </div>
       ) : (
         <div className="p-3 bg-red-500/8 border border-red-500/20 rounded-lg flex items-center gap-2.5">
           <AlertTriangle size={12} className="text-red-500 shrink-0" />
-          <p className="text-xs text-red-500 uppercase tracking-[0.1em] font-medium">
+          <p className="text-xs text-red-500 lowercase font-medium">
             Behind on the week.
           </p>
         </div>

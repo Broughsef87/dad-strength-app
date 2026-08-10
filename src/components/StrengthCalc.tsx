@@ -133,7 +133,7 @@ export default function StrengthCalc() {
   const standards = state.exercise !== 'Custom' ? STANDARDS[state.exercise] : null
 
   return (
-    <div className="glass-card rounded-xl overflow-hidden">
+    <div className="tile rounded-xl overflow-hidden">
       {/* Header / toggle */}
       <button
         onClick={() => setOpen(o => !o)}
@@ -157,7 +157,7 @@ export default function StrengthCalc() {
 
           {/* Bodyweight */}
           <div className="space-y-1.5">
-            <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
+            <label className="text-[10px] lowercase text-muted-foreground font-medium">
               Your Bodyweight (lbs)
             </label>
             <input
@@ -173,7 +173,7 @@ export default function StrengthCalc() {
           {/* Exercise + inputs row */}
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
+              <label className="text-[10px] lowercase text-muted-foreground font-medium">
                 Exercise
               </label>
               <select
@@ -189,7 +189,7 @@ export default function StrengthCalc() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
+                <label className="text-[10px] lowercase text-muted-foreground font-medium">
                   Weight (lbs)
                 </label>
                 <input
@@ -202,7 +202,7 @@ export default function StrengthCalc() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
+                <label className="text-[10px] lowercase text-muted-foreground font-medium">
                   Reps
                 </label>
                 <input
@@ -220,7 +220,7 @@ export default function StrengthCalc() {
           {/* 1RM Result */}
           {oneRM > 0 && (
             <div className="bg-brand/8 border border-brand/20 rounded-xl p-4 space-y-1">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-brand font-medium">Estimated 1RM</p>
+              <p className="text-[10px] lowercase text-brand font-medium">Estimated 1RM</p>
               <div className="flex items-end gap-1.5">
                 <span className="text-3xl font-light stat-num text-foreground">{Math.round(oneRM)}</span>
                 <span className="text-sm text-brand mb-1">lbs</span>
@@ -238,7 +238,7 @@ export default function StrengthCalc() {
           {oneRM > 0 && level && standards && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
+                <p className="text-[10px] lowercase text-muted-foreground font-medium">
                   Strength Level
                 </p>
                 <span className={`text-xs font-semibold ${LEVEL_COLORS[level]}`}>
@@ -268,7 +268,7 @@ export default function StrengthCalc() {
                   {LEVEL_ORDER.map(lvl => (
                     <span
                       key={lvl}
-                      className={`text-[9px] uppercase tracking-wider ${lvl === level ? 'text-brand font-semibold' : 'text-muted-foreground/60'}`}
+                      className={`text-[9px] lowercase ${lvl === level ? 'text-brand font-semibold' : 'text-muted-foreground/60'}`}
                     >
                       {lvl}
                     </span>
@@ -281,7 +281,7 @@ export default function StrengthCalc() {
           {/* Benchmarks table */}
           {standards && bw > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
+              <p className="text-[10px] lowercase text-muted-foreground font-medium">
                 {state.exercise} Standards at {bw}lbs BW
               </p>
               <div className="grid grid-cols-4 gap-1.5">
@@ -293,12 +293,12 @@ export default function StrengthCalc() {
                     <div
                       key={lvl}
                       className={`rounded-lg p-2 text-center border transition-colors ${
-                        isReached
-                          ? 'border-brand/30 bg-brand/8'
-                          : 'border-border/50 bg-muted/50'
-                      }`}
+ isReached
+ ? 'border-brand/30 bg-brand/8'
+ : 'border-border/50 bg-muted/50'
+ }`}
                     >
-                      <p className={`text-[9px] uppercase tracking-wider font-medium mb-0.5 ${isReached ? 'text-brand' : 'text-muted-foreground/60'}`}>
+                      <p className={`text-[9px] lowercase font-medium mb-0.5 ${isReached ? 'text-brand' : 'text-muted-foreground/60'}`}>
                         {lvl.slice(0, 3)}
                       </p>
                       <p className={`text-sm font-semibold stat-num ${isReached ? 'text-brand' : 'text-foreground'}`}>

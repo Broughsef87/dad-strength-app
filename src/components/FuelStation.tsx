@@ -68,7 +68,7 @@ export default function FuelStation() {
         </div>
       </div>
       
-      <p className="text-[10px] text-center text-gray-600 uppercase font-black tracking-widest">
+      <p className="text-[10px] text-center text-gray-600 lowercase font-black tracking-widest">
         Protein is the building block of dad strength.
       </p>
     </div>

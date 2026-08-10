@@ -119,14 +119,14 @@ export default function BuildPage() {
           <ArrowLeft size={15} />
         </button>
         <div>
-          <p className="telemetry-dim">SYS // PATH.SELECT</p>
-          <h1 className="font-display text-xl tracking-[0.1em] uppercase">
+          <p className="eyebrow-mono">SYS // PATH.SELECT</p>
+          <h1 className="font-display text-xl lowercase">
             {selected ? selected.name : 'Choose Your Path'}
           </h1>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="status-dot" />
-          <span className="telemetry">Online</span>
+          <span className="eyebrow-mono">Online</span>
         </div>
       </header>
 
@@ -148,29 +148,28 @@ export default function BuildPage() {
                 <button
                   key={p.slug}
                   onClick={() => (locked ? setShowUpgrade(true) : setSelected(p))}
-                  className={`panel-cut hud-frame hud-scan-hover relative w-full text-left bg-card border p-5 pt-7 transition-colors group ${
-                    locked ? 'border-border opacity-60 hover:border-brand/40' : 'border-border hover:border-brand/60'
-                  }`}
+                  className={` relative w-full text-left bg-card border p-5 pt-7 transition-colors group ${
+ locked ? 'border-border opacity-60 hover:border-brand/40' : 'border-border hover:border-brand/60'
+ }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <span className="panel-id">HANGAR // {locked ? 'PRO.LOCKED' : p.slug.replace(/-/g, '.').toUpperCase()}</span>
-                      <p className="telemetry mb-1">{p.tagline}</p>
-                      <p className="font-display text-2xl tracking-[0.08em] uppercase text-foreground">
+                      <p className="eyebrow-mono mb-1">{p.tagline}</p>
+                      <p className="font-display text-2xl lowercase text-foreground">
                         {p.name}
                       </p>
                       <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{p.description}</p>
                       <div className="flex gap-2 mt-3 flex-wrap">
                         {locked ? (
-                          <span className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 border border-brand/40 text-brand rounded-sm">
+                          <span className="text-[9px] font-mono lowercase px-2 py-0.5 border border-brand/40 text-brand rounded-sm">
                             Dad Strong+ to switch
                           </span>
                         ) : (
-                          <span className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 border border-brand/30 text-brand rounded-sm">
+                          <span className="text-[9px] font-mono lowercase px-2 py-0.5 border border-brand/30 text-brand rounded-sm">
                             {p.daysPerWeek} days/week
                           </span>
                         )}
-                        <span className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 border border-border text-muted-foreground rounded-sm">
+                        <span className="text-[9px] font-mono lowercase px-2 py-0.5 border border-border text-muted-foreground rounded-sm">
                           {p.macroWeeks}-week macro
                         </span>
                       </div>
@@ -185,12 +184,11 @@ export default function BuildPage() {
               })}
 
               {UPCOMING_PROGRAMS.map(p => (
-                <div key={p.slug} className="panel-cut bg-card border border-border p-5 pt-7 opacity-45 relative">
+                <div key={p.slug} className="bg-card border border-border p-5 pt-7 opacity-45 relative">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <span className="panel-id">HANGAR // LOCKED</span>
-                      <p className="telemetry-dim mb-1">{p.tagline}</p>
-                      <p className="font-display text-2xl tracking-[0.08em] uppercase text-foreground">{p.name}</p>
+                      <p className="eyebrow-mono mb-1">{p.tagline}</p>
+                      <p className="font-display text-2xl lowercase text-foreground">{p.name}</p>
                       <p className="text-xs text-muted-foreground mt-2">{p.description}</p>
                     </div>
                     <Lock size={14} className="text-muted-foreground mt-1 shrink-0" />
@@ -207,10 +205,9 @@ export default function BuildPage() {
               className="space-y-4"
             >
               <div className="readout-rule" />
-              <div className="panel-cut hud-frame relative bg-card border border-border p-5 pt-8 space-y-4">
+              <div className="relative bg-card border border-border p-5 pt-8 space-y-4">
                 <div>
-                  <span className="panel-id">CALIBRATION CONSOLE</span>
-                  <p className="telemetry mb-1">CAL // ENTER.MAXES</p>
+                  <p className="eyebrow-mono mb-1">CAL // ENTER.MAXES</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Every prescribed weight is computed from these. Use your best recent single —
                     honest numbers, not all-time PRs from years ago. You&apos;ll retest at the end of the macro.
@@ -219,7 +216,7 @@ export default function BuildPage() {
 
                 {selected.requiredMaxes.map(d => (
                   <div key={d.key} className="space-y-1">
-                    <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <label className="text-[10px] font-medium lowercase text-muted-foreground">
                       {d.label}
                     </label>
                     <div className="flex items-center gap-2">
@@ -243,7 +240,7 @@ export default function BuildPage() {
                 <button
                   onClick={() => void startProgram()}
                   disabled={activating}
-                  className="panel-cut carbon mecha-glow w-full py-3.5 text-brand border border-brand/60 text-sm font-semibold uppercase tracking-[0.14em] hover:border-brand disabled:opacity-50 transition-all"
+                  className="w-full py-3.5 text-brand border border-brand/60 text-sm font-semibold lowercase hover:border-brand disabled:opacity-50 transition-all"
                 >
                   {activating ? 'IGNITION…' : 'Deploy Unit'}
                 </button>

@@ -32,7 +32,7 @@ export default function AutomationHook() {
           <div className="p-2 bg-brand/10 rounded-lg">
             <Sparkles className="w-4 h-4 text-brand" />
           </div>
-          <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">The Mission</h2>
+          <h2 className="text-[10px] font-black text-muted-foreground lowercase">The Mission</h2>
         </div>
 
         <h3 className="text-xl font-black text-foreground mb-2 leading-tight">
@@ -46,7 +46,7 @@ export default function AutomationHook() {
 
         {submitted ? (
           <div className="bg-brand/10 border border-brand/30 rounded-2xl p-4 text-center">
-            <p className="text-brand font-bold text-xs uppercase tracking-widest">Wish Received. Processing...</p>
+            <p className="text-brand font-bold text-xs lowercase">Wish Received. Processing...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex gap-2">
