@@ -45,7 +45,7 @@ export default function Settings() {
         body: type === 'workout'
           ? 'Workout reminders enabled. You\'ll get a daily nudge to train.'
           : 'Check-in reminders enabled. Reflect each evening.',
-        icon: '/icons/icon-192x192.png',
+        icon: '/icon-192.png',
       })
     }
   }
