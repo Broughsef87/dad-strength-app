@@ -1138,7 +1138,10 @@ export default function TrainingDayPage() {
       basePlanRef.current = built
       setPlan(built)
       setOverrides({})
-      workoutDataRef.current = { plan: built }
+      // `adjustments` rides along on the row: next week's autoreg needs to know
+      // what this card actually SHOWED, not just what the table said, or it
+      // re-counts its own advice as freelancing and ratchets the load up.
+      workoutDataRef.current = { plan: built, adjustments }
 
       // Find-or-create the generated_workouts row for log linkage.
       const { data: rows } = await supabase
@@ -1153,6 +1156,13 @@ export default function TrainingDayPage() {
         // Session overrides (added/removed sets + exercises) live on the row.
         const wd = (rows?.[0]?.workout_data ?? {}) as Record<string, unknown>
         workoutDataRef.current = wd
+        // Rows written before adjustments were stored get backfilled once, so
+        // next week's autoreg has a truthful reference instead of the raw table.
+        if (wd.adjustments == null) {
+          wd.adjustments = adjustments
+          await supabase.from('generated_workouts')
+            .update({ workout_data: wd }).eq('id', workoutId)
+        }
         const ovr = (wd.overrides ?? {}) as SessionOverrides
         setOverrides(ovr)
         setPlan(applyOverrides(built, ovr))
@@ -1165,7 +1175,7 @@ export default function TrainingDayPage() {
             program_slug: slug,
             week_number: weekNumber,
             day_number: dayNumber,
-            workout_data: { plan: built },
+            workout_data: { plan: built, adjustments },
             exercises: [],
           })
           .select('id').single()

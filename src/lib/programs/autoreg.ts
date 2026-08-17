@@ -55,15 +55,20 @@ export async function computeAdjustments(
 
   const prevWeek = weekNumber - 1
 
-  // Last week's workout row for the same day.
+  // Last week's workout row for the same day. workout_data carries the
+  // adjustments that shaped what the athlete was actually SHOWN — without them
+  // the weight-follow compares his loads against the raw table and re-counts
+  // its own advice as if he'd freelanced heavier (see prevPlan below).
   const { data: workouts } = await supabase
     .from('generated_workouts')
-    .select('id')
+    .select('id, workout_data')
     .eq('user_id', userId).eq('program_slug', program.slug)
     .eq('week_number', prevWeek).eq('day_number', dayNumber)
     .order('id', { ascending: true }).limit(1)
   const workoutId: string | undefined = workouts?.[0]?.id
   if (!workoutId) return {}
+  const prevAdj = ((workouts?.[0]?.workout_data as { adjustments?: unknown } | null)?.adjustments
+    ?? {}) as Record<string, number>
 
   // Completed sets, grouped by slot. `completed = true` so a set that was
   // rated or typed but not actually finished can't skew anything.
@@ -83,12 +88,21 @@ export async function computeAdjustments(
     if (r.weight_lbs != null && r.weight_lbs > 0) s.weights.push(Number(r.weight_lbs))
   }
 
-  // Last week's prescription per slot (floors bake in even with empty maxes).
-  const prevPlan = program.buildDay(prevWeek, dayNumber, {})
-  const prescribed: Record<string, { percent: number; targetRpe?: number; maxKey?: string; name: string }> = {}
+  // Last week's prescription per slot — rebuilt WITH last week's adjustments,
+  // so `percent` is the number the athlete actually saw on the card. Building
+  // it bare (the old behaviour) made the weight-follow ratchet: the app says
+  // 60%, he loads 60%, and the engine reads that against the table's 57% as
+  // "+3% heavier than planned" and adds another +3 — every week, until the
+  // MAX_ADJ clamp stopped it 8 points above the wave. A speed squat designed
+  // for 55-70% drifted to 74% on nothing but obedience.
+  const prevPlan = program.buildDay(prevWeek, dayNumber, maxes, prevAdj)
+  const prescribed: Record<string, { percent: number; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
   for (const item of prevPlan.items) {
     if (item.kind === 'lift' && item.percent != null) {
-      prescribed[item.slot] = { percent: item.percent, targetRpe: item.targetRpe, maxKey: item.maxKey, name: item.name }
+      prescribed[item.slot] = {
+        percent: item.percent, targetRpe: item.targetRpe, maxKey: item.maxKey,
+        name: item.name, velocity: item.velocity,
+      }
     }
   }
 
@@ -126,6 +140,10 @@ export async function computeAdjustments(
       const actualPct = (s.weights.reduce((a, b) => a + b, 0) / s.weights.length / max) * 100
       const d = actualPct - p.percent
       if (Math.abs(d) >= WEIGHT_DEADBAND_PCT) weightDelta = d
+      // On a speed slot, going heavier than prescribed isn't a data point to
+      // build on — it's the failure mode of the slot. Following it up would
+      // reward the exact mistake it should flag. Only back off, never chase.
+      if (p.velocity && weightDelta > 0) weightDelta = 0
     }
 
     let rpeDelta = 0

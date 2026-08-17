@@ -77,6 +77,7 @@ interface SlotMeso {
   pctStart: number
   pctStep: number
   targetRpe?: number  // overrides the meso default (pulls feel heavy by design)
+  velocity?: boolean  // speed slot — bar speed governs, so no RPE anchor at all
   note?: string
 }
 
@@ -150,8 +151,12 @@ function liftFromSlot(
     percent,
     maxKey,
     targetWeightLbs: resolveWeight(percent, maxKey, maxes),
-    targetRpe: def.targetRpe ?? MESO_TARGET_RPE[meso] ?? 8,
+    // Speed slots carry NO difficulty anchor. A 55-64% double SHOULD feel like
+    // an RPE 4; against a target of 6 the autoreg read that honesty as "+3%
+    // too light" every single week and walked the slot out of its speed band.
+    targetRpe: def.velocity ? undefined : (def.targetRpe ?? MESO_TARGET_RPE[meso] ?? 8),
     appliedAdjustmentPct: adj !== 0 ? adj : undefined,
+    velocity: def.velocity,
     note: def.note,
     ...overrides,
   }
@@ -424,9 +429,9 @@ const D5_CL_BACK: SlotMeso[] = [
 // pattern after Monday's snatch pull was cut) → back to the hang, heavier (M3,
 // shorter ROM while CNS load peaks).
 const D5_HPS: SlotMeso[] = [
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 65, pctStep: 1.5, targetRpe: 6, note: 'From the hang. Bar speed only.' },
-  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 3, pctStart: 68, pctStep: 2, targetRpe: 6, note: 'From the floor — full pull, crisp turnover, bar speed only.' },
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 2, reps: 3, pctStart: 71, pctStep: 1, targetRpe: 6, note: 'From the hang. Bar speed only.' },
+  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 65, pctStep: 1.5, velocity: true, note: 'From the hang. Bar speed only.' },
+  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 3, pctStart: 68, pctStep: 2, velocity: true, note: 'From the floor — full pull, crisp turnover, bar speed only.' },
+  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 2, reps: 3, pctStart: 71, pctStep: 1, velocity: true, note: 'From the hang. Bar speed only.' },
 ]
 // M2 rotates to SNATCH pulls — the snatch otherwise gets zero heavy pulling
 // (Monday's snatch pull was cut), and 102-110% of the snatch max feeds M3's
@@ -443,9 +448,9 @@ const D5_PULL: SlotMeso[] = [
 // kills the stretch reflex — force from zero, max RFD. Autoreg anchors low:
 // this should never feel heavy; if bar speed dies the session is over.
 const D5_SPEED_SQUAT: SlotMeso[] = [
-  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 2, pctStart: 55, pctStep: 2, targetRpe: 6, note: 'Box at parallel. Sit, pause, EXPLODE. If bar speed dies, stop.' },
-  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 2, pctStart: 60, pctStep: 2, targetRpe: 6, note: 'Box at parallel. Sit, pause, EXPLODE. If bar speed dies, stop.' },
-  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 4, reps: 2, pctStart: 64, pctStep: 2, targetRpe: 6, note: 'Box at parallel. Sit, pause, EXPLODE. If bar speed dies, stop.' },
+  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 2, pctStart: 55, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
+  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 2, pctStart: 60, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
+  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 4, reps: 2, pctStart: 64, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
 ]
 
 // ── Day 6 — Sat: heavy conventional DL + overhead + plyos + metcon ────────────
@@ -657,24 +662,40 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
     }
     case 5: {
+      // ── THE SPEED DAY — ordered fast-to-heavy ──────────────────────────────
+      // This day always held the week's speed work; it was just ordered like a
+      // strength day, so every fast slot ran behind an 87-90% clean. Rate of
+      // force development is a quality, not a workload: it only exists while
+      // the CNS is fresh, so the jumps and the sub-75% bar speed work go first
+      // and the heavy clean — strength-speed, the ceiling-raiser — goes last.
+      // No load was added anywhere to achieve this. Reordering is the whole fix.
       let items: Prescription[] = [
+        // 1. Unloaded RFD, freshest moment of the week. Dead-stop, no rebound.
+        seatedBoxJumps(),
+        // 2. THE speed-strength block: a power variant at 65-74% of the FULL
+        //    snatch is the peak-power zone, and legal at 3 reps under the
+        //    athlete's own floor rule (power/hang triples may go to 65%).
+        liftFromSlot('hang_psn', D5_HPS[m], w, 'snatch', maxes, pos.meso, adjustments),
+        // 3. Dynamic-effort squat off the box — stretch reflex killed, force
+        //    from zero. Clamped to its band; never chased upward by autoreg.
+        liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
+        // 4. Strength-speed, not speed: the heaviest bar of the day, and now
+        //    the last one. Unchanged loads — "the weight is the point up here."
         liftFromSlot('cl_top', D5_CL_TOP[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
       ]
       if (D5_CL_BACK[m].sets > 0) {
         items.push(liftFromSlot('cl_back', D5_CL_BACK[m], w, 'clean_jerk', maxes, pos.meso, adjustments))
       }
       items.push(
-        liftFromSlot('hang_psn', D5_HPS[m], w, 'snatch', maxes, pos.meso, adjustments),
+        // 5. Heavy pull, unchanged at 100-116%.
         liftFromSlot('clean_pull', D5_PULL[m], w, pos.meso === 2 ? 'snatch' : 'clean_jerk', maxes, pos.meso, adjustments),
-        liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
-        // Same box as the speed squat — dead-stop jumps off the same station.
-        seatedBoxJumps(),
-        // This is the program's ONLY horizontal pulling, against five pressing
-        // exposures a week — so M2 and M3 both row. M3 used to repeat
-        // Wednesday's weighted pull-up exactly, which bought nothing.
-        pos.meso === 1 ? accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy')
-          : pos.meso === 2 ? accessory('acc_pullup', 'Pendlay Row', 3, 8, 'Barbell dead-stops on the floor every rep. Flat back, explosive pull to the sternum.')
-          : accessory('acc_pullup', 'Chest-Supported Row', 3, 10, 'Chest on an incline bench — strict, no bounce. Higher reps keep the shoulders healthy through the heaviest meso.'),
+        // 6. The program's ONLY horizontal pulling, against five pressing
+        //    exposures a week — so M2 and M3 both row. Deliberately last: this
+        //    is the designated overflow block, the one to cut when the clock
+        //    beats you. Nothing above it is optional.
+        pos.meso === 1 ? accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy. Cut this block first if the clock beats you.')
+          : pos.meso === 2 ? accessory('acc_pullup', 'Pendlay Row', 3, 8, 'Barbell dead-stops on the floor every rep. Flat back, explosive pull to the sternum. Cut this block first if the clock beats you.')
+          : accessory('acc_pullup', 'Chest-Supported Row', 3, 10, 'Chest on an incline bench — strict, no bounce. Cut this block first if the clock beats you.'),
       )
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
@@ -682,8 +703,10 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
           .filter(i => !(i.kind === 'plyo' && i.slot === 'seated_box_jump'))
       }
       return {
-        dayNumber, dayName: 'Power B — Clean', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — a few crisp doubles, nothing else.' : 'Heavy power cleans, snatch speed work, heavy pull, speed squats.',
+        dayNumber, dayName: 'Speed + Clean', dayType: 'gym',
+        sessionIntent: pos.isDeload
+          ? 'Deload — a few crisp doubles, nothing else.'
+          : 'Fast first: jumps, snatch speed, speed squats. Then the heavy clean and the pull.',
         items,
       }
     }

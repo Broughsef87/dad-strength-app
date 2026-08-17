@@ -22,6 +22,11 @@ export interface LiftPrescription {
   targetWeightLbs?: number // computed: round((percent/100) * max, nearest 5)
   rpe?: number             // accessories use RPE instead of %
   targetRpe?: number       // expected difficulty for %-based work — autoreg anchor
+  velocity?: boolean       // speed slot: bar speed is the target, not difficulty.
+                           // Carries NO targetRpe (an honest RPE 4 on a 57%
+                           // double would otherwise read as "too light"), and
+                           // autoreg never re-anchors it upward — loading above
+                           // the window is a violation of the slot, not data.
   appliedAdjustmentPct?: number // autoreg delta baked into `percent` (display)
   note?: string            // "1+1 — one clean, one jerk" / "90s rest"
   superset?: string        // items sharing this id (and adjacent in the day) render linked
