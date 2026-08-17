@@ -35,8 +35,10 @@ import {
 // back-offs, 1¼ bench, pause front squat, snatch pulls (off the snatch max),
 // close-grip Wed bench, floor power snatch — then M3 snaps back to the pure
 // lifts for realization. The top Snatch/Clean sets, OHP wave, and push press
-// never rotate. Back squat and deadlift stay STRAIGHT all macro — athlete's
-// explicit call (no pause squat, no deficit DL); don't re-propose them.
+// never rotate. Squat pausing caps at ONE pause-squat slot per week, any
+// variant (currently Wed's M2 pause front squat is the one). Deficit
+// deadlifts are legal for future mesos ("sometimes" — athlete, 2026-08);
+// this macro keeps back squat and deadlift straight.
 // Pauses/tempos are allowed on STRENGTH lifts only — the oly technique ban
 // (complexes, balances, blocks, pause snatches) stands.
 //
