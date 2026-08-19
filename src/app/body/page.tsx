@@ -7,6 +7,7 @@ import NapSqueeze from '../../components/NapSqueeze';
 import ActiveProgram from '../../components/ActiveProgram';
 import RecoveryProtocol from '../../components/RecoveryProtocol';
 import RecordsBoard from '../../components/RecordsBoard';
+import TrainingData from '../../components/TrainingData';
 import StrengthCalc from '../../components/StrengthCalc';
 import BottomNav from '../../components/BottomNav';
 import AppHeader from '../../components/AppHeader';
@@ -34,6 +35,10 @@ export default function BodyPage() {
 
           <motion.div variants={fadeUp}>
             <RecordsBoard />
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <TrainingData />
           </motion.div>
 
           <motion.div variants={fadeUp}>

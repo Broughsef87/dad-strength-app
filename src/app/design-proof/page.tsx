@@ -8,6 +8,53 @@
 
 import { useEffect, useState } from 'react'
 import { notFound } from 'next/navigation'
+import { TrainingDataView } from '../../components/TrainingData'
+import {
+  liftTrends, projections, adherence,
+  DEFAULT_VELOCITY_SLOTS, DEFAULT_VELOCITY_LIFT_NAMES,
+  type SetRow,
+} from '../../lib/analytics/training'
+
+// Synthetic history driven through the REAL analytics module, so this harness
+// proves the actual math and not a hand-written mock of its output. Includes
+// the traps: a deload week, a velocity slot, and a set at 11 reps.
+const PROOF_ROWS: SetRow[] = (() => {
+  const rows: SetRow[] = []
+  const push = (w: number, d: number, name: string, slot: string | null, lb: number, reps: number) =>
+    rows.push({ block_name: name, slot, weight_lbs: lb, reps, completed: true,
+                completed_at: '2026-0' + Math.min(9, 1 + (w % 9)) + '-0' + (1 + (d % 9)) + 'T06:30:00Z',
+                week_number: w, day_number: d, log_type: 'strength_set' })
+  const ramp = [0, 1, 2, 3, 4, 5, 6, 7]
+  ramp.forEach((i) => {
+    const w = i + 1
+    push(w, 1, 'Back Squat', 'back_squat_heavy', 255 + i * 10, 4)
+    push(w, 1, 'Snatch', 'sn_top', 150 + i * 4, 2)
+    push(w, 5, 'Power Clean', 'cl_top', 205 + i * 5, 2)
+    push(w, 6, 'Deadlift', 'sat_dl', 330 + i * 11, 3)
+    push(w, 6, 'Overhead Press', 'ohp_press', 105 + i * 3, 4)
+    push(w, 3, 'Bench Press', 'bench', 175 + i * 5, 5)
+    // traps: light by design, must never enter a strength trend
+    push(w, 5, 'Speed Box Squat', 'speed_squat', 205, 2)
+  })
+  // a flagged deload — light on purpose, must not read as a crash
+  push(9, 1, 'Back Squat', 'back_squat_heavy', 185, 5)
+  push(9, 6, 'Deadlift', 'sat_dl', 245, 5)
+  // Epley refuses above 10 reps
+  push(10, 1, 'Back Squat', 'back_squat_heavy', 400, 11)
+  return rows
+})()
+
+const PROOF_TRENDS = liftTrends(PROOF_ROWS, {
+  deloadWeeks: [9],
+  velocitySlots: [...DEFAULT_VELOCITY_SLOTS],
+  velocityNames: [...DEFAULT_VELOCITY_LIFT_NAMES],
+})
+const PROOF_PROJS = Object.values(projections(
+  PROOF_TRENDS,
+  { back_squat: 365, snatch: 205, clean_jerk: 260, bench: 250, deadlift: 465, ohp: 155, front_squat: 315 },
+  { latestWeek: 8 },
+))
+const PROOF_ADH = adherence(PROOF_ROWS, { daysPerWeek: 4 })
 
 const SAMPLE_SETS = [
   { idx: '01', wr: '225 × 2', state: 'hit' as const, label: 'hit · rpe 7' },
@@ -258,6 +305,16 @@ export default function DesignProofPage() {
               <button className="w-full rounded-full py-2 text-[11px] lowercase font-bold bg-destructive text-destructive-foreground">delete account</button>
             </div>
           </div>
+        </section>
+
+        <section className="space-y-3">
+          <p className="eyebrow-mono">training data card — real analytics, synthetic history</p>
+          <TrainingDataView
+            loaded
+            trends={Object.values(PROOF_TRENDS).sort((a, b) => b.current - a.current)}
+            projs={PROOF_PROJS}
+            adh={PROOF_ADH}
+          />
         </section>
 
         <p className="eyebrow-mono pb-6">dev harness · not linked · 404s in production</p>
