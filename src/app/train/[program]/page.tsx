@@ -14,6 +14,7 @@ import { createClient } from '../../../utils/supabase/client'
 import { useUser } from '../../../contexts/UserContext'
 import ForgeLoader from '../../../components/ForgeLoader'
 import { getProgram } from '../../../lib/programs'
+import WeekPulse from '../../../components/WeekPulse'
 import type { DayPlan } from '../../../lib/programs/types'
 
 const DAY_LABELS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']

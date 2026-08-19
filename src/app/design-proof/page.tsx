@@ -9,6 +9,8 @@
 import { useEffect, useState } from 'react'
 import { notFound } from 'next/navigation'
 import { TrainingDataView } from '../../components/TrainingData'
+import { WeekPulseView } from '../../components/WeekPulse'
+import { weeklyLoad } from '../../lib/analytics/training'
 import {
   liftTrends, projections, adherence,
   DEFAULT_VELOCITY_SLOTS, DEFAULT_VELOCITY_LIFT_NAMES,
@@ -55,6 +57,12 @@ const PROOF_PROJS = Object.values(projections(
   { latestWeek: 8 },
 ))
 const PROOF_ADH = adherence(PROOF_ROWS, { daysPerWeek: 4 })
+const PROOF_MAXES = { back_squat: 365, snatch: 205, clean_jerk: 260, bench: 250, deadlift: 465, ohp: 155, front_squat: 315 }
+const PROOF_LOAD = weeklyLoad(PROOF_ROWS, PROOF_MAXES, {
+  deloadWeeks: [9],
+  velocitySlots: [...DEFAULT_VELOCITY_SLOTS],
+  velocityNames: [...DEFAULT_VELOCITY_LIFT_NAMES],
+})
 
 const SAMPLE_SETS = [
   { idx: '01', wr: '225 × 2', state: 'hit' as const, label: 'hit · rpe 7' },
@@ -308,6 +316,16 @@ export default function DesignProofPage() {
         </section>
 
         <section className="space-y-3">
+          <p className="eyebrow-mono">week pulse — volume vs intensity, both grounds</p>
+          <WeekPulseView loaded weeks={PROOF_LOAD} />
+          <WeekPulseView loaded weeks={PROOF_LOAD.slice(0, 9)} compact />
+          <div className="data-mono text-[10px] space-y-0.5 mb-4">
+            {PROOF_LOAD.map(w => (
+              <p key={w.week}>
+                {`wk ${w.week}${w.isDeload ? ' (deload)' : ''} · ${Math.round(w.tonnage)} lb · ${w.sets} sets · ${w.avgIntensityPct ?? '—'}% avg`}
+              </p>
+            ))}
+          </div>
           <p className="eyebrow-mono">training data card — real analytics, synthetic history</p>
           <TrainingDataView
             loaded

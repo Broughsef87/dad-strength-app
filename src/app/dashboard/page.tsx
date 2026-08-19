@@ -21,6 +21,7 @@ import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 import MorningProtocol from '../../components/MorningProtocol'
+import WeekPulse from '../../components/WeekPulse'
 import ProgressRing from '../../components/ProgressRing'
 import { SectionLabel, HeroAccent } from '../../components/BarbellMark'
 import ForgeLoader from '../../components/ForgeLoader'
@@ -418,6 +419,11 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+          </motion.div>
+
+          {/* Load, right under the plan: what the week has actually cost. */}
+          <motion.div variants={fadeUp} custom={0.5}>
+            <WeekPulse compact />
           </motion.div>
 
           {/* II. DAILY OBJECTIVES */}

@@ -748,3 +748,80 @@ export function adherence(rows: SetRow[], opts: AdherenceOpts = {}): AdherenceRe
     sessions,
   }
 }
+
+// ── Weekly load ───────────────────────────────────────────────────────────────
+// Tonnage and average intensity, per week. These two belong TOGETHER and are
+// misleading apart: a periodised block deliberately trades volume for
+// intensity, so 5x5 in meso 1 becomes 4x3 at 85%+ in meso 3 and tonnage FALLS
+// while the athlete gets stronger. Shown alone, that reads as "you are doing
+// less" — the same class of lie as counting a deload as a crash.
+//
+// Tonnage counts EVERY completed set, speed work and deload weeks included:
+// it is total work done, and the deload dip is real and worth seeing.
+// Intensity deliberately does NOT — velocity slots run at 55-74% by design and
+// would drag the average toward a number that describes nothing.
+
+export interface WeekLoad {
+  week: number
+  tonnage: number
+  sets: number
+  /** Mean of (weight / entered max) across mapped, non-velocity sets. */
+  avgIntensityPct: number | null
+  intensitySets: number
+  isDeload: boolean
+}
+
+export function weeklyLoad(
+  rows: SetRow[],
+  currentMaxes: Record<string, number | string | null | undefined> | null | undefined,
+  opts: TrendOpts,
+): WeekLoad[] {
+  const velSlots = new Set((opts.velocitySlots ?? []).map(normKey))
+  const velNames = new Set(
+    (opts.velocityNames ?? (DEFAULT_VELOCITY_LIFT_NAMES as readonly string[])).map(normKey),
+  )
+  const macroWeeks = opts.macroWeeks ?? MACRO_WEEKS
+
+  const byWeek = new Map<number, { tonnage: number; sets: number; int: number[] }>()
+
+  for (const r of rows) {
+    if (r.log_type != null && r.log_type !== 'strength_set') continue
+    if (r.completed === false) continue
+    const w = int(r.week_number)
+    const lb = num(r.weight_lbs)
+    const reps = int(r.reps)
+    if (w == null || lb == null || lb <= 0 || reps == null || reps <= 0) continue
+    // A corrupt numeric must not become the week's headline.
+    if (!Number.isFinite(lb) || !Number.isFinite(reps) || lb > 5000 || reps > 100) continue
+
+    const bucket = byWeek.get(w) ?? { tonnage: 0, sets: 0, int: [] }
+    bucket.tonnage += lb * reps
+    bucket.sets += 1
+
+    const isVel = velSlots.has(normKey(r.slot ?? '')) ||
+      velSlots.has(normKey(r.block_name)) || velNames.has(normKey(r.block_name))
+    if (!isVel) {
+      const key = maxKeyForLift(r.block_name)
+      const max = key ? num(currentMaxes?.[key]) : null
+      if (max != null && max > 0) {
+        const pct = (lb / max) * 100
+        // Above ~120% of a max is a stale max or a typo, not a working set.
+        if (Number.isFinite(pct) && pct > 0 && pct <= 120) bucket.int.push(pct)
+      }
+    }
+    byWeek.set(w, bucket)
+  }
+
+  return [...byWeek.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([week, b]) => ({
+      week,
+      tonnage: Math.round(b.tonnage),
+      sets: b.sets,
+      avgIntensityPct: b.int.length
+        ? Math.round((b.int.reduce((s, v) => s + v, 0) / b.int.length) * 10) / 10
+        : null,
+      intensitySets: b.int.length,
+      isDeload: isDeloadWeek(week, opts.deloadWeeks ?? [], macroWeeks),
+    }))
+}
