@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '../../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Moon, Sun, Bell, Download, Lock, Check, Loader2, Monitor, CreditCard, FileText, Trash2 } from 'lucide-react'
+import { ArrowLeft, Moon, Sun, Bell, Download, Lock, Check, Loader2, Monitor, CreditCard, FileText, Trash2, Mail } from 'lucide-react'
 import BottomNav from '../../../components/BottomNav'
 import { useTheme, type Theme } from '../../../contexts/ThemeContext'
 import { useSubscription } from '../../../contexts/SubscriptionContext'
@@ -404,6 +404,25 @@ export default function Settings() {
             </p>
           </section>
         )}
+
+        {/* Support */}
+        <section className="space-y-3">
+          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Support</h2>
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <a
+              href="mailto:dad.strength@the-forge-agency.com?subject=Dad%20Strength%20support"
+              className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
+            >
+              <div className="p-2 bg-muted rounded-lg">
+                <Mail size={16} className="text-foreground" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="font-medium text-sm">Contact Support</p>
+                <p className="text-xs text-muted-foreground">dad.strength@the-forge-agency.com</p>
+              </div>
+            </a>
+          </div>
+        </section>
 
         {/* Legal */}
         <section className="space-y-3">
