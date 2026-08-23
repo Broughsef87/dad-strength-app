@@ -105,6 +105,13 @@ export default function Home() {
         <p className="eyebrow-mono text-center">
           DS-01 // BUILT FOR THE LONG HAUL
         </p>
+
+        {/* Legal footer */}
+        <div className="flex items-center justify-center gap-4 -mt-4">
+          <a href="/terms" className="text-[10px] lowercase text-muted-foreground/60 hover:text-muted-foreground transition-colors">terms</a>
+          <a href="/privacy" className="text-[10px] lowercase text-muted-foreground/60 hover:text-muted-foreground transition-colors">privacy</a>
+          <a href="/disclaimer" className="text-[10px] lowercase text-muted-foreground/60 hover:text-muted-foreground transition-colors">disclaimer</a>
+        </div>
       </div>
     </div>
   );

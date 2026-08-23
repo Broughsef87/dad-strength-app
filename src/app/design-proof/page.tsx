@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { notFound } from 'next/navigation'
 import { TrainingDataView } from '../../components/TrainingData'
 import { WeekPulseView } from '../../components/WeekPulse'
+import { LegalGateView } from '../../components/LegalGate'
 import { weeklyLoad } from '../../lib/analytics/training'
 import {
   liftTrends, projections, adherence,
@@ -93,6 +94,9 @@ export default function DesignProofPage() {
     if (typeof window === 'undefined') return true
     return new URLSearchParams(window.location.search).get('theme') !== 'light'
   })
+
+  // legal gate proof state — the view is pure, so the harness owns the checkbox
+  const [ackChecked, setAckChecked] = useState(false)
 
   // Never ships to visitors: the harness is a dev tool.
   if (process.env.NODE_ENV === 'production') notFound()
@@ -332,6 +336,17 @@ export default function DesignProofPage() {
             trends={Object.values(PROOF_TRENDS).sort((a, b) => b.current - a.current)}
             projs={PROOF_PROJS}
             adh={PROOF_ADH}
+          />
+        </section>
+
+        <section className="space-y-3">
+          <p className="eyebrow-mono">legal gate — first-run acknowledgement (rendered in flow; ships as an overlay)</p>
+          <LegalGateView
+            checked={ackChecked}
+            saving={false}
+            error=""
+            onCheckedChange={setAckChecked}
+            onAccept={() => setAckChecked(false)}
           />
         </section>
 
