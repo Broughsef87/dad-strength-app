@@ -22,22 +22,75 @@ type GeneratedWorkout = {
   generated_at: string
 }
 
-type WorkoutLog = {
+// Real per-set data lives in ares_session_logs — workout_logs only ever
+// receives a zero-weight "streak shim" row per session, which is why the
+// old version of this page summed 0 lbs for every session ever trained.
+type SessionLog = {
   id: string
-  exercise_name: string
-  weight_lbs: number
-  reps: number
+  generated_workout_id: string | null
+  log_type: string
+  block_name: string
+  set_number: number | null
+  weight_lbs: number | null
+  reps: number | null
+  rpe: number | null
   rir_actual: number | null
-  completed: boolean
-  generated_workout_id: string
+  completed: boolean | null
+  peak_weight_lbs: number | null
+  skill_duration_minutes: number | null
+  distance_meters: number | null
+  duration_seconds: number | null
+  metcon_format: string | null
+  metcon_time_seconds: number | null
+  metcon_rounds: number | null
   created_at: string
 }
 
 type SessionSummary = {
   workout: GeneratedWorkout
-  logs: WorkoutLog[]
+  logs: SessionLog[]
   completedSets: number
   totalVolume: number
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+const isSetLike = (l: SessionLog) =>
+  l.log_type === 'strength_set' || l.log_type === 'build_to_max'
+
+// Tonnage counts strength sets only — the same rule the dashboard's weekly
+// pulse uses (src/lib/analytics/training.ts), so the two surfaces agree.
+const setVolume = (l: SessionLog) =>
+  l.log_type === 'strength_set' ? (Number(l.weight_lbs) || 0) * (l.reps || 0) : 0
+
+function fmtDuration(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60)
+  const s = totalSeconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function setLine(l: SessionLog): string {
+  switch (l.log_type) {
+    case 'strength_set':
+      return `${l.weight_lbs && Number(l.weight_lbs) > 0 ? `${l.weight_lbs} lbs` : 'BW'} × ${l.reps ?? 0}`
+    case 'build_to_max':
+      return `top ${l.peak_weight_lbs ?? l.weight_lbs ?? '—'} lbs`
+    case 'skill_work':
+      return l.skill_duration_minutes ? `${l.skill_duration_minutes} min` : 'done'
+    case 'monostructural': {
+      const parts: string[] = []
+      if (l.distance_meters) parts.push(`${l.distance_meters}m`)
+      if (l.duration_seconds) parts.push(fmtDuration(l.duration_seconds))
+      return parts.join(' · ') || 'done'
+    }
+    case 'metcon': {
+      if (l.metcon_time_seconds) return `${l.metcon_format ?? 'metcon'} · ${fmtDuration(l.metcon_time_seconds)}`
+      if (l.metcon_rounds) return `${l.metcon_format ?? 'metcon'} · ${l.metcon_rounds} rds`
+      return l.metcon_format ?? 'metcon'
+    }
+    default:
+      return 'done'
+  }
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -81,24 +134,26 @@ export default function History() {
 
       const workoutIds = allWorkouts.map((w) => w.id)
 
-      // 2. Fetch workout_logs for those workout IDs
+      // 2. Fetch the real set data for those sessions
       const { data: logs, error: lErr } = await supabase
-        .from('workout_logs')
-        .select('id, exercise_name, weight_lbs, reps, rir_actual, completed, generated_workout_id, created_at')
+        .from('ares_session_logs')
+        .select('id, generated_workout_id, log_type, block_name, set_number, weight_lbs, reps, rpe, rir_actual, completed, peak_weight_lbs, skill_duration_minutes, distance_meters, duration_seconds, metcon_format, metcon_time_seconds, metcon_rounds, created_at')
+        .eq('user_id', user.id)
         .in('generated_workout_id', workoutIds)
         .order('created_at', { ascending: true })
 
       if (lErr) {
-        console.error('Error fetching workout_logs:', lErr)
+        console.error('Error fetching ares_session_logs:', lErr)
         setLoading(false)
         return
       }
 
-      const allLogs: WorkoutLog[] = logs ?? []
+      const allLogs: SessionLog[] = logs ?? []
 
-      // 3. Group logs by workout id
-      const logsByWorkoutId: Record<string, WorkoutLog[]> = {}
+      // 3. Group logs by workout id (skip the session_complete marker rows)
+      const logsByWorkoutId: Record<string, SessionLog[]> = {}
       for (const log of allLogs) {
+        if (!log.generated_workout_id || log.log_type === 'session_complete') continue
         if (!logsByWorkoutId[log.generated_workout_id]) {
           logsByWorkoutId[log.generated_workout_id] = []
         }
@@ -108,14 +163,11 @@ export default function History() {
       // 4. Build sessions — only include workouts with at least 1 completed log
       const built: SessionSummary[] = []
       for (const workout of allWorkouts) {
-        const wLogs = logsByWorkoutId[workout.id] ?? []
-        const hasCompleted = wLogs.some((l) => l.completed)
-        if (!hasCompleted) continue
+        const wLogs = (logsByWorkoutId[workout.id] ?? []).filter((l) => l.completed !== false)
+        if (wLogs.length === 0) continue
 
-        const completedSets = wLogs.filter((l) => l.completed).length
-        const totalVolume = wLogs
-          .filter((l) => l.completed)
-          .reduce((sum, l) => sum + (l.weight_lbs || 0) * (l.reps || 0), 0)
+        const completedSets = wLogs.filter(isSetLike).length
+        const totalVolume = wLogs.reduce((sum, l) => sum + setVolume(l), 0)
 
         built.push({ workout, logs: wLogs, completedSets, totalVolume })
       }
@@ -284,7 +336,7 @@ export default function History() {
                           <span className="text-[10px] font-bold text-muted-foreground lowercase">
                             {weekVolume >= 1000
                               ? `${(weekVolume / 1000).toFixed(1)}k`
-                              : weekVolume}{' '}
+                              : Math.round(weekVolume)}{' '}
                             lbs
                           </span>
                         )}
@@ -301,18 +353,17 @@ export default function History() {
                       {weekSessions.map((session) => {
                         const { workout, logs, completedSets, totalVolume } = session
                         const isExpanded = expandedSessions.has(workout.id)
-                        const dateLabel = new Date(workout.generated_at).toLocaleDateString('en-US', {
+                        const dateLabel = new Date(logs[0]?.created_at ?? workout.generated_at).toLocaleDateString('en-US', {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
                         })
 
-                        // Group completed logs by exercise name for display
-                        const completedLogs = logs.filter((l) => l.completed)
-                        const byExercise: Record<string, WorkoutLog[]> = {}
-                        for (const l of completedLogs) {
-                          if (!byExercise[l.exercise_name]) byExercise[l.exercise_name] = []
-                          byExercise[l.exercise_name].push(l)
+                        // Group logs by block for display
+                        const byBlock: Record<string, SessionLog[]> = {}
+                        for (const l of logs) {
+                          if (!byBlock[l.block_name]) byBlock[l.block_name] = []
+                          byBlock[l.block_name].push(l)
                         }
 
                         return (
@@ -345,7 +396,7 @@ export default function History() {
                                       <span className="text-[10px] font-bold text-muted-foreground lowercase">
                                         {totalVolume >= 1000
                                           ? `${(totalVolume / 1000).toFixed(1)}k`
-                                          : totalVolume}{' '}
+                                          : Math.round(totalVolume)}{' '}
                                         lbs
                                       </span>
                                     )}
@@ -357,16 +408,18 @@ export default function History() {
                               </div>
                             </button>
 
-                            {/* Exercise breakdown */}
+                            {/* Block breakdown */}
                             {isExpanded && (
                               <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
-                                {Object.entries(byExercise).map(([exerciseName, sets]) => (
-                                  <div key={exerciseName}>
+                                {Object.entries(byBlock).map(([blockName, sets]) => (
+                                  <div key={blockName}>
                                     <div className="flex items-center justify-between mb-2">
-                                      <p className="font-black text-xs lowercase tracking-tight">{exerciseName}</p>
-                                      <span className="text-[10px] font-bold text-muted-foreground">
-                                        {sets.length} sets
-                                      </span>
+                                      <p className="font-black text-xs lowercase tracking-tight">{blockName}</p>
+                                      {sets.filter(isSetLike).length > 0 && (
+                                        <span className="text-[10px] font-bold text-muted-foreground">
+                                          {sets.filter(isSetLike).length} sets
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="space-y-1.5">
                                       {sets.map((s, i) => (
@@ -375,15 +428,16 @@ export default function History() {
                                           className="flex items-center justify-between bg-muted rounded-xl px-3 py-2"
                                         >
                                           <span className="text-[10px] font-black text-muted-foreground lowercase w-6">
-                                            S{i + 1}
+                                            {s.set_number != null ? `S${s.set_number}` : `S${i + 1}`}
                                           </span>
-                                          <span className="text-sm font-bold">
-                                            {s.weight_lbs > 0 ? `${s.weight_lbs} lbs` : 'BW'}
-                                          </span>
-                                          <span className="text-sm font-bold text-brand">× {s.reps}</span>
-                                          {s.rir_actual !== null && (
+                                          <span className="text-sm font-bold">{setLine(s)}</span>
+                                          {s.log_type === 'strength_set' && (
                                             <span className="text-[10px] font-bold text-muted-foreground lowercase">
-                                              RIR {s.rir_actual}
+                                              {s.rpe != null
+                                                ? `RPE ${s.rpe}`
+                                                : s.rir_actual != null
+                                                  ? `RIR ${s.rir_actual}`
+                                                  : ''}
                                             </span>
                                           )}
                                         </div>
