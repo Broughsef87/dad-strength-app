@@ -6,8 +6,11 @@ Sentry.init({
 
   tracesSampleRate: process.env.NODE_ENV === 'development' ? 1.0 : 0.1,
 
-  // Attach local variable values to server stack frames
-  includeLocalVariables: true,
+  // Local variables ride along on stack frames — in this app that means
+  // workout data, Supabase rows, request bodies and Stripe objects would be
+  // shipped to Sentry on every server exception, defeating the PII masking
+  // configured on the client. Dev only.
+  includeLocalVariables: process.env.NODE_ENV === 'development',
 
   enableLogs: true,
 })

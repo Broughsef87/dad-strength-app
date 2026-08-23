@@ -22,7 +22,6 @@ import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 import MorningProtocol from '../../components/MorningProtocol'
 import WeekPulse from '../../components/WeekPulse'
-import ProgressRing from '../../components/ProgressRing'
 import { SectionLabel, HeroAccent } from '../../components/BarbellMark'
 import ForgeLoader from '../../components/ForgeLoader'
 import { getProgram } from '../../lib/programs'
@@ -44,15 +43,6 @@ interface WorkoutData {
   id: string
   name?: string
   description?: string
-}
-
-// Total weeks per program family — drives ProgressRing percentage
-const PROGRAM_TOTAL_WEEKS: Record<string, number> = {
-  ares: 12,
-  zeus: 12,
-  hercules: 12,
-  apollo: 8,
-  chronos: 4,
 }
 
 export default function Dashboard() {

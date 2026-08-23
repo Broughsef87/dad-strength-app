@@ -150,10 +150,20 @@ export default function History() {
 
       const allLogs: SessionLog[] = logs ?? []
 
-      // 3. Group logs by workout id (skip the session_complete marker rows)
+      // 3. Group logs by workout id. The session_complete marker is kept OUT
+      // of the per-set arrays (it has no weight/reps and would skew counts)
+      // but tracked separately: a session finished without logging individual
+      // blocks — every outside day, and any gym day you just tap done — has
+      // ONLY that marker. Dropping it here made those sessions disappear from
+      // the log entirely, even though the streak still counted them.
       const logsByWorkoutId: Record<string, SessionLog[]> = {}
+      const completedWorkoutIds = new Set<string>()
       for (const log of allLogs) {
-        if (!log.generated_workout_id || log.log_type === 'session_complete') continue
+        if (!log.generated_workout_id) continue
+        if (log.log_type === 'session_complete') {
+          completedWorkoutIds.add(log.generated_workout_id)
+          continue
+        }
         if (!logsByWorkoutId[log.generated_workout_id]) {
           logsByWorkoutId[log.generated_workout_id] = []
         }
@@ -164,7 +174,9 @@ export default function History() {
       const built: SessionSummary[] = []
       for (const workout of allWorkouts) {
         const wLogs = (logsByWorkoutId[workout.id] ?? []).filter((l) => l.completed !== false)
-        if (wLogs.length === 0) continue
+        // A session you marked done still belongs in the log, even with no
+        // sets behind it — it just shows zero volume, which is the truth.
+        if (wLogs.length === 0 && !completedWorkoutIds.has(workout.id)) continue
 
         const completedSets = wLogs.filter(isSetLike).length
         const totalVolume = wLogs.reduce((sum, l) => sum + setVolume(l), 0)
