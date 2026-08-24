@@ -99,8 +99,8 @@ for (let week = 1; week <= 13; week++) {
 
 // ── Double progression feeds the prescription ────────────────────────────────
 {
-  const bare = dadBuilt.buildDay(3, 3, MAXES)
-  const fed = dadBuilt.buildDay(3, 3, MAXES, {}, { loadTargets: { pb_lateral_a: 30 } })
+  const bare = dadBuilt.buildDay(3, 1, MAXES)
+  const fed = dadBuilt.buildDay(3, 1, MAXES, {}, { loadTargets: { pb_lateral_a: 30 } })
   assert(bare.items.find(i => i.slot === 'pb_lateral_a').targetWeightLbs == null,
     'no history should mean no invented accessory weight')
   assert(fed.items.find(i => i.slot === 'pb_lateral_a').targetWeightLbs === 30,
@@ -123,7 +123,8 @@ for (let d = 1; d <= dadBuilt.daysPerWeek; d++) {
 }
 
 // ── DoD 1: test week caps 8/8/6/8, W12 deload treatment ──────────────────────
-const CAPS = { 1: 8, 3: 8, 5: 6, 6: 8 }
+// Caps follow the LIFT through the reorder: bench 8, squat 8, press 8, deadlift 6.
+const CAPS = { 1: 8, 3: 8, 5: 8, 6: 6 }
 for (const [day, cap] of Object.entries(CAPS)) {
   const t = dadBuilt.buildDay(13, Number(day), MAXES)
   const lift = t.items.find(i => i.kind === 'lift')
@@ -148,7 +149,7 @@ for (const d of GYM) {
 
 // ── DoD 3: block counts ──────────────────────────────────────────────────────
 // Lower days dropped to 7 when the jump primers came out (2026-08-24).
-const EXPECTED_BLOCKS = { 1: 7, 3: 8, 5: 7, 6: 8 }
+const EXPECTED_BLOCKS = { 1: 8, 3: 7, 5: 8, 6: 7 }
 for (const d of GYM) {
   const n = dadBuilt.buildDay(1, d, MAXES).items.length
   assert(n === EXPECTED_BLOCKS[d], `D${d} should be ${EXPECTED_BLOCKS[d]} blocks, got ${n}`)
@@ -156,14 +157,35 @@ for (const d of GYM) {
 
 // ── Compound opens the lower days, carry closes Lower B ────────────────────
 {
-  const mon = dadBuilt.buildDay(1, 1, MAXES).items
-  const fri = dadBuilt.buildDay(1, 5, MAXES).items
-  assert(mon[0].slot === 'pb_squat', 'Back Squat must open Lower A')
-  assert(fri[0].slot === 'pb_deadlift', 'Deadlift must open Lower B')
-  assert(fri[fri.length - 1].slot === 'pb_carry', 'Farmer Carry must close Lower B')
+  const lowerA = dadBuilt.buildDay(1, 3, MAXES).items   // Wed
+  const lowerB = dadBuilt.buildDay(1, 6, MAXES).items   // Sat
+  assert(lowerA[0].slot === 'pb_squat', 'Back Squat must open Lower A')
+  assert(lowerB[0].slot === 'pb_deadlift', 'Deadlift must open Lower B')
+  assert(lowerB[lowerB.length - 1].slot === 'pb_carry', 'Farmer Carry must close Lower B')
   // Contest upheld on FOR-176: the Ab Wheel was the cut, not the calves.
-  assert(!fri.some(i => i.slot === 'pb_core_b'), 'Ab Wheel Rollout was the agreed cut')
-  assert(fri.some(i => i.slot === 'pb_calf_b'), 'Seated Calf Raise stays on Lower B')
+  assert(!lowerB.some(i => i.slot === 'pb_core_b'), 'Ab Wheel Rollout was the agreed cut')
+  assert(lowerB.some(i => i.slot === 'pb_calf_b'), 'Seated Calf Raise stays on Lower B')
+}
+
+// ── The week alternates upper / lower / upper / lower ──────────────────────
+// Athlete's call, 2026-08-24. Asserted on the built plan rather than on the
+// SESSION_BY_DAY table, so this fails if the table and the switch ever drift
+// apart — a table nobody reads is not a guarantee.
+{
+  const order = GYM.map(d => dadBuilt.buildDay(1, d, MAXES).dayName)
+  const kind = order.map(n => /Upper/.test(n) ? 'U' : /Lower/.test(n) ? 'L' : '?')
+  assert(kind.join('') === 'ULUL', `week must run upper/lower/upper/lower, got ${kind.join('')} (${order.join(' · ')})`)
+  // Same alternation must survive the test week, or the macro closes on two
+  // lower sessions back to back.
+  const tKind = GYM.map(d => {
+    const n = dadBuilt.buildDay(13, d, MAXES).dayName
+    return /Bench|Press/.test(n) ? 'U' : /Squat|Deadlift/.test(n) ? 'L' : '?'
+  })
+  assert(tKind.join('') === 'ULUL', `test week must alternate too, got ${tKind.join('')}`)
+  // No two consecutive gym days share a half of the body.
+  for (let i = 1; i < kind.length; i++) {
+    assert(kind[i] !== kind[i - 1], `D${GYM[i - 1]} and D${GYM[i]} are both ${kind[i]}`)
+  }
 }
 
 // ── No jumping, anywhere, any week ─────────────────────────────────────────

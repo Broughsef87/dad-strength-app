@@ -55,6 +55,26 @@ import {
 const MACRO_WEEKS = 13
 const BLOCK_BUDGET = 8
 
+/**
+ * Which session each gym day runs. Upper / lower / upper / lower — athlete's
+ * call, 2026-08-24 (it opened lower/upper/lower/upper).
+ *
+ * This is a declared table rather than case labels on the day number so the
+ * split is one line to change and impossible to get half-right. Anything keyed
+ * to a SESSION — the test-week AMRAP and its rep cap, the wrap card — must be
+ * looked up through here too, or reordering the week silently hands the
+ * deadlift's cap to the press.
+ *
+ * Day numbers are Mon=1 … Sun=7; 2 and 4 are dad miles, 7 is off.
+ */
+type Session = 'upperA' | 'lowerA' | 'upperB' | 'lowerB'
+const SESSION_BY_DAY: Record<number, Session> = {
+  1: 'upperA',   // Mon — Bench
+  3: 'lowerA',   // Wed — Squat
+  5: 'upperB',   // Fri — Press
+  6: 'lowerB',   // Sat — Deadlift, and the macro closes here
+}
+
 interface MacroPos {
   weekInMacro: number
   meso: number
@@ -254,38 +274,54 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
     note: 'Stop at ' + cap + ' even if you have more in the tank. ' + E1RM_NOTE,
   })
 
-  const plans: Record<number, DayPlan> = {
-    1: {
+  // Keyed by SESSION, not day number: each lift keeps its own rep cap when the
+  // week is reordered. Keying these to the day is how the deadlift's cap of 6
+  // would silently land on the press.
+  const wrapCard = {
+    kind: 'outside' as const, slot: 'pb_wrap', title: 'Update your maxes',
+    parts: [
+      'Convert each AMRAP: weight × (1 + reps/30)',
+      'Enter all four — squat, bench, deadlift, press',
+      'Next macro recomputes the moment you do',
+    ],
+  }
+  // The wrap closes the macro, so it belongs to whichever session runs last.
+  const lastSession = SESSION_BY_DAY[Math.max(...Object.keys(SESSION_BY_DAY).map(Number))]
+
+  const bySession: Record<Session, DayPlan> = {
+    lowerA: {
       dayNumber, dayName: 'TEST — Squat AMRAP', dayType: 'test',
       sessionIntent: 'One all-out set at 85%. Warm up properly, then send it — capped at 8.',
       items: [amrap('test_squat', 'Back Squat', 'back_squat', 8)],
     },
-    3: {
+    upperA: {
       dayNumber, dayName: 'TEST — Bench AMRAP', dayType: 'test',
       sessionIntent: 'One all-out set at 85%, capped at 8. Get a spot.',
       items: [amrap('test_bench', 'Bench Press', 'bench', 8)],
     },
-    5: {
+    lowerB: {
       dayNumber, dayName: 'TEST — Deadlift AMRAP', dayType: 'test',
       sessionIntent: 'One all-out set at 85%, capped at 6. Reset every rep.',
       items: [amrap('test_dl', 'Deadlift', 'deadlift', 6)],
     },
-    6: {
+    upperB: {
       dayNumber, dayName: 'TEST — Press AMRAP', dayType: 'test',
-      sessionIntent: 'Last one. Strict press at 85%, capped at 8, then close the macro.',
-      items: [
-        amrap('test_ohp', 'Overhead Press', 'ohp', 8),
-        {
-          kind: 'outside', slot: 'pb_wrap', title: 'Update your maxes',
-          parts: [
-            'Convert each AMRAP: weight × (1 + reps/30)',
-            'Enter all four — squat, bench, deadlift, press',
-            'Next macro recomputes the moment you do',
-          ],
-        },
-      ],
+      sessionIntent: 'Strict press at 85%, capped at 8.',
+      items: [amrap('test_ohp', 'Overhead Press', 'ohp', 8)],
     },
   }
+  for (const key of Object.keys(bySession) as Session[]) {
+    if (key === lastSession) {
+      bySession[key] = {
+        ...bySession[key],
+        sessionIntent: bySession[key].sessionIntent + ' Last one — then close the macro.',
+        items: [...bySession[key].items, wrapCard],
+      }
+    }
+  }
+  const plans: Record<number, DayPlan> = Object.fromEntries(
+    Object.entries(SESSION_BY_DAY).map(([day, sess]) => [Number(day), bySession[sess]]),
+  )
   if (plans[dayNumber]) return plans[dayNumber]
   const pos: MacroPos = { weekInMacro: 13, meso: 3, weekInMeso: 4, isDeload: false, isTest: true }
   return {
@@ -294,12 +330,6 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
   }
 }
 
-/**
- * A jump primer. Fixed 3x3, never progressed — this is a CNS primer that wakes
- * the legs up before the heavy bar, not volume. It earns no set credit in the
- * weekly audit for exactly that reason: counting it would inflate leg volume
- * with work that does not build tissue.
- */
 // Jump primers (Box Jump / Broad Jump) were removed 2026-08-24 at the athlete's
 // request — he moved onto this program to train around an injury, and max-intent
 // landings are the wrong thing to prescribe in that situation. They carried no
@@ -333,8 +363,8 @@ function buildDay(
   let dayName: string
   let intent: string
 
-  switch (dayNumber) {
-    case 1:
+  switch (SESSION_BY_DAY[dayNumber]) {
+    case 'lowerA':
       dayName = 'Lower A — Squat'
       intent = 'Squat heavy, then everything that makes legs bigger.'
       items = [
@@ -348,7 +378,7 @@ function buildDay(
       ]
       break
 
-    case 3:
+    case 'upperA':
       dayName = 'Upper A — Bench'
       intent = 'Press heavy, row hard, then chase the pump.'
       items = [
@@ -363,7 +393,7 @@ function buildDay(
       ]
       break
 
-    case 5:
+    case 'lowerB':
       dayName = 'Lower B — Hinge'
       intent = 'Pull heavy, then glutes and hams — and finish with the carry.'
       items = [
@@ -383,7 +413,7 @@ function buildDay(
       ]
       break
 
-    case 6:
+    case 'upperB':
       dayName = 'Upper B — Press'
       intent = 'Overhead first, then back thickness and the arms that show.'
       items = [
