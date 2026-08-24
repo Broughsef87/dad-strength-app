@@ -2,17 +2,20 @@ import { ProgramConfig } from './types'
 import { hybridPower } from './hybridPower'
 import { dadStrong } from './dadStrong'
 import { hybridEndurance } from './hybridEndurance'
+import { powerbuilding } from './powerbuilding'
 
 export * from './types'
+export * from './progression'
 
 // Registry of training paths — the engine is program-agnostic.
 export const PROGRAMS: Record<string, ProgramConfig> = {
   [dadStrong.slug]: dadStrong,
   [hybridPower.slug]: hybridPower,
   [hybridEndurance.slug]: hybridEndurance,
+  [powerbuilding.slug]: powerbuilding,
 }
 
-// All three paths are live; new paths queue here while their programming
+// All four paths are live; new paths queue here while their programming
 // is specced.
 export const UPCOMING_PROGRAMS: Array<{
   slug: string; name: string; tagline: string; description: string
