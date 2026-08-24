@@ -8,6 +8,11 @@
 //
 // Each suite is a standalone .mjs that exits non-zero on failure, so this is
 // just a runner: spawn them, surface the tail, fail loudly on the first break.
+//
+// --no-install is deliberate: without tsx in devDependencies, npx quietly
+// reaches for a global copy or downloads one, so the suites passed on the
+// machine that happened to have it and failed 5-of-6 everywhere else. Now they
+// resolve the local dep or fail honestly.
 
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -25,7 +30,7 @@ const SUITES = [
 ]
 
 const run = (file) => new Promise((resolve) => {
-  const p = spawn('npx', ['tsx', join(here, file)], { shell: true })
+  const p = spawn('npx', ['--no-install', 'tsx', join(here, file)], { shell: true })
   let out = ''
   p.stdout.on('data', d => { out += d })
   p.stderr.on('data', d => { out += d })

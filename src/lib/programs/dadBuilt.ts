@@ -112,9 +112,6 @@ export const MUSCLE_MAP: Record<string, MuscleShare> = {
   pb_rdl: { primary: ['hamstrings'], secondary: ['glutes'] },
   pb_legpress: { primary: ['quads'], secondary: ['glutes'] },
   pb_legcurl_a: { primary: ['hamstrings'] },
-  // Calves are Monday-only now: the jump primer and the carry pushed Lower B
-  // to 9 blocks and Seated Calf Raise was the ordered cut. That leaves calves
-  // at 4 sets/week — honest, and low. Flagged on FOR-176.
   pb_calf_a: { primary: ['calves'] },
   pb_split_squat: { primary: ['quads', 'glutes'] },
   pb_core_a: { primary: ['core'] },
@@ -133,7 +130,7 @@ export const MUSCLE_MAP: Record<string, MuscleShare> = {
   pb_hipthrust: { primary: ['glutes'] },
   pb_legext: { primary: ['quads'] },
   pb_legcurl_b: { primary: ['hamstrings'] },
-  pb_core_b: { primary: ['core'] },
+  pb_calf_b: { primary: ['calves'] },
   // The carry IS trunk work — anti-lateral-flexion under load — so it earns
   // credit. The jump primers earn none on purpose: they prime the CNS, they do
   // not build tissue, and counting them would inflate leg volume with work
@@ -375,9 +372,12 @@ function buildDay(
         range('pb_hipthrust', 'Hip Thrust', 3, r.mid, lt, { step: 10, note: 'Chin tucked, ribs down, pause at the top.' }),
         range('pb_legext', 'Leg Extension', 3, r.wide, lt, { rir: 1, superset: 'pb_ss_d' }),
         range('pb_legcurl_b', 'Lying Leg Curl', 3, r.mid, lt, { superset: 'pb_ss_d' }),
-        range('pb_core_b', 'Ab Wheel Rollout', 3, r.mid, lt, { rir: 1 }),
-        // Fixed finisher — the day's block ceiling is why Seated Calf Raise is
-        // not here. See the calf note on MUSCLE_MAP.
+        range('pb_calf_b', 'Seated Calf Raise', 4, r.wide, lt, { step: 10, note: 'Knees bent hits soleus — the half of the calf Monday misses.' }),
+        // Fixed finisher. The block ceiling forced a cut here, and the Ab Wheel
+        // lost rather than the calves: this carry is loaded trunk work landing
+        // on the same day, so dropping the wheel loses a stimulus that returns
+        // two blocks later — while nothing else on Lower B trains calves, and
+        // cutting them left calves the only muscle under band at 4 sets/week.
         { kind: 'plyo', slot: 'pb_carry', name: 'Farmer Carry', sets: 3, reps: 1,
           note: '40yd per trip, heavy. Grip is the event — walk tall, ribs down, no leaning.' },
       ]

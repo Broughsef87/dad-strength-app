@@ -13,6 +13,12 @@ const assert = (c, m) => { checks++; if (!c) fails.push(m) }
 
 const MIN_SETS = 10
 const MAX_SETS = 22
+// Calves and core carry their own floor rather than a blanket exemption.
+// Skipping them entirely means never noticing if one drops to two sets; the
+// major-muscle band is simply the wrong yardstick for a muscle that recovers
+// in a day and gets trained inside every squat and carry anyway.
+const SMALL = new Set(['calves', 'core'])
+const SMALL_MIN = 6
 
 const creditOf = (it) => (it.kind === 'lift' || it.kind === 'plyo') ? setCredit(it.slot, it.sets) : {}
 
@@ -74,8 +80,8 @@ for (let week = 1; week <= 13; week++) {
 
   if (!isDeload) {
     for (const [muscle, sets] of Object.entries(perMuscle)) {
-      if (muscle === 'core' || muscle === 'calves') continue
-      assert(sets >= MIN_SETS, `W${week}: ${muscle} only ${sets} sets/wk (min ${MIN_SETS})`)
+      const floor = SMALL.has(muscle) ? SMALL_MIN : MIN_SETS
+      assert(sets >= floor, `W${week}: ${muscle} only ${sets} sets/wk (min ${floor})`)
       assert(sets <= MAX_SETS, `W${week}: ${muscle} ${sets} sets/wk (max ${MAX_SETS})`)
     }
     for (const m of ['quads', 'hamstrings', 'glutes', 'chest', 'back', 'delts', 'biceps', 'triceps']) {
@@ -152,7 +158,9 @@ for (const d of GYM) {
   assert(mon[0].slot === 'pb_jump_a' && mon[0].kind === 'plyo', 'Box Jump must open Monday')
   assert(fri[0].slot === 'pb_jump_b' && fri[0].kind === 'plyo', 'Broad Jump must open Friday')
   assert(fri[fri.length - 1].slot === 'pb_carry', 'Farmer Carry must close Lower B')
-  assert(!fri.some(i => i.slot === 'pb_calf_b'), 'Seated Calf Raise was the ordered cut')
+  // Contest upheld on FOR-176: the Ab Wheel was the cut, not the calves.
+  assert(!fri.some(i => i.slot === 'pb_core_b'), 'Ab Wheel Rollout was the agreed cut')
+  assert(fri.some(i => i.slot === 'pb_calf_b'), 'Seated Calf Raise stays on Lower B')
 }
 
 // ── DoD 1: every % slot's computed weight, W1-W13 ───────────────────────────

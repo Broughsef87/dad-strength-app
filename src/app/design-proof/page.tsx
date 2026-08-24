@@ -12,6 +12,7 @@ import { TrainingDataView } from '../../components/TrainingData'
 import { WeekPulseView } from '../../components/WeekPulse'
 import { LegalGateView } from '../../components/LegalGate'
 import { weeklyLoad } from '../../lib/analytics/training'
+import { dadBuilt } from '../../lib/programs/dadBuilt'
 import {
   liftTrends, projections, adherence,
   DEFAULT_VELOCITY_SLOTS, DEFAULT_VELOCITY_LIFT_NAMES,
@@ -348,6 +349,43 @@ export default function DesignProofPage() {
             onCheckedChange={setAckChecked}
             onAccept={() => setAckChecked(false)}
           />
+        </section>
+
+        {/* DoD 4 (FOR-176): Dad Built rendered from REAL config output, not a
+            mock — buildDay is called here exactly as the training day page
+            calls it. Week 1 Day 1 with reference maxes. */}
+        <section className="space-y-3">
+          <p className="eyebrow-mono">dad built — week 1 day 1, from real config output</p>
+          {(() => {
+            const MAXES = { back_squat: 315, bench: 225, deadlift: 405, ohp: 135 }
+            const plan = dadBuilt.buildDay(1, 1, MAXES)
+            return (
+              <div className="tile p-5 space-y-3">
+                <div>
+                  <p className="eyebrow-mono">{dadBuilt.name} · {dadBuilt.tagline}</p>
+                  <h3 className="font-display text-lg lowercase mt-0.5">{plan.dayName}</h3>
+                  <p className="text-[11px] text-muted-foreground mt-1">{plan.sessionIntent}</p>
+                </div>
+                <div className="space-y-1.5">
+                  {plan.items.map((it, i) => (
+                    <div key={it.slot} className="row-recessed p-3 flex items-baseline gap-3">
+                      <span className="data-mono text-[10px] w-5 shrink-0">{i + 1}</span>
+                      <span className="text-[13px] lowercase flex-1 min-w-0 truncate">{it.kind === 'outside' ? it.title : it.name.toLowerCase()}</span>
+                      <span className="data-mono text-[11px] shrink-0">
+                        {it.kind === 'lift'
+                          ? `${it.sets}x${it.repRange ? it.repRange.join('-') : it.reps}` +
+                            (it.percent != null ? ` @ ${it.percent}% · ${it.targetWeightLbs} lb` : '')
+                          : it.kind === 'plyo' ? `${it.sets}x${it.reps}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="eyebrow-mono">
+                  {plan.items.length} blocks · gym days {dadBuilt.gymDayNumbers.join('/')} · {dadBuilt.daysPerWeek}-day week
+                </p>
+              </div>
+            )
+          })()}
         </section>
 
         <p className="eyebrow-mono pb-6">dev harness · not linked · 404s in production</p>
