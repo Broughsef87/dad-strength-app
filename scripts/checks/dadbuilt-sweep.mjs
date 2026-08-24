@@ -1,6 +1,7 @@
 // Deterministic sweep of the Dad Built config (v1.1, per FOR-176).
 // Hypertrophy's currency is HARD SETS PER MUSCLE PER WEEK, so that is what
 // this checks — the analogue of Power Dad's percentage floors.
+import { readFileSync } from 'node:fs'
 import { dadBuilt, MUSCLE_MAP, setCredit, DAD_BUILT_BLOCK_BUDGET }
   from '../../src/lib/programs/dadBuilt.ts'
 
@@ -146,21 +147,52 @@ for (const d of GYM) {
 }
 
 // ── DoD 3: block counts ──────────────────────────────────────────────────────
+// Lower days dropped to 7 when the jump primers came out (2026-08-24).
+const EXPECTED_BLOCKS = { 1: 7, 3: 8, 5: 7, 6: 8 }
 for (const d of GYM) {
   const n = dadBuilt.buildDay(1, d, MAXES).items.length
-  assert(n === 8, `D${d} should be 8 blocks, got ${n}`)
+  assert(n === EXPECTED_BLOCKS[d], `D${d} should be ${EXPECTED_BLOCKS[d]} blocks, got ${n}`)
 }
 
-// ── Ruling 4: primers open lower days, carry closes Lower B ─────────────────
+// ── Compound opens the lower days, carry closes Lower B ────────────────────
 {
   const mon = dadBuilt.buildDay(1, 1, MAXES).items
   const fri = dadBuilt.buildDay(1, 5, MAXES).items
-  assert(mon[0].slot === 'pb_jump_a' && mon[0].kind === 'plyo', 'Box Jump must open Monday')
-  assert(fri[0].slot === 'pb_jump_b' && fri[0].kind === 'plyo', 'Broad Jump must open Friday')
+  assert(mon[0].slot === 'pb_squat', 'Back Squat must open Lower A')
+  assert(fri[0].slot === 'pb_deadlift', 'Deadlift must open Lower B')
   assert(fri[fri.length - 1].slot === 'pb_carry', 'Farmer Carry must close Lower B')
   // Contest upheld on FOR-176: the Ab Wheel was the cut, not the calves.
   assert(!fri.some(i => i.slot === 'pb_core_b'), 'Ab Wheel Rollout was the agreed cut')
   assert(fri.some(i => i.slot === 'pb_calf_b'), 'Seated Calf Raise stays on Lower B')
+}
+
+// ── No jumping, anywhere, any week ─────────────────────────────────────────
+// The athlete moved onto this program to train around an injury. A jump can
+// only re-enter deliberately, not by a copy-paste from another program.
+for (let w = 1; w <= 13; w++) {
+  for (const d of GYM) {
+    for (const it of dadBuilt.buildDay(w, d, MAXES).items) {
+      assert(!/jump|bound|plyo/i.test(`${it.slot ?? ''} ${it.name ?? ''}`),
+        `W${w} D${d}: "${it.name}" is jump/plyo work — removed for injury`)
+    }
+  }
+}
+
+// ── Every range lift is autoregulated by a visible RIR ─────────────────────
+// targetRir shipped set-but-unrendered: the card printed a rep count with no
+// indication of how hard to take the set. Assert both ends — the value exists,
+// and the day page actually draws it.
+{
+  const page = readFileSync(new URL('../../src/app/train/[program]/[day]/page.tsx', import.meta.url), 'utf8')
+  assert(/targetRir/.test(page), 'day page must render targetRir')
+  assert(/repRange\[0\]/.test(page), 'day page must render the rep RANGE, not just its floor')
+  for (const d of GYM) {
+    for (const it of dadBuilt.buildDay(1, d, MAXES).items) {
+      if (it.kind === 'lift' && it.repRange) {
+        assert(it.targetRir != null, `D${d} ${it.slot}: range work with no RIR to display`)
+      }
+    }
+  }
 }
 
 // ── DoD 1: every % slot's computed weight, W1-W13 ───────────────────────────

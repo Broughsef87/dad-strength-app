@@ -300,9 +300,11 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
  * weekly audit for exactly that reason: counting it would inflate leg volume
  * with work that does not build tissue.
  */
-function jumpPrimer(slot: string, name: string, cue: string): PlyoPrescription {
-  return { kind: 'plyo', slot, name, sets: 3, reps: 3, note: cue }
-}
+// Jump primers (Box Jump / Broad Jump) were removed 2026-08-24 at the athlete's
+// request — he moved onto this program to train around an injury, and max-intent
+// landings are the wrong thing to prescribe in that situation. They carried no
+// MUSCLE_MAP credit, so weekly hard sets per muscle are unchanged. The Farmer
+// Carry stays: it is loaded carrying, not jumping.
 
 function buildDay(
   weekNumber: number, dayNumber: number,
@@ -334,9 +336,8 @@ function buildDay(
   switch (dayNumber) {
     case 1:
       dayName = 'Lower A — Squat'
-      intent = 'Jump, squat heavy, then everything that makes legs bigger.'
+      intent = 'Squat heavy, then everything that makes legs bigger.'
       items = [
-        jumpPrimer('pb_jump_a', 'Box Jump', 'Land quiet, step down. Three crisp reps — this wakes the legs up, it is not conditioning.'),
         compound('pb_squat', 'Back Squat', 'back_squat', pos, maxes, adjustments, 'The strength anchor — everything after this is volume.'),
         range('pb_rdl', 'Romanian Deadlift', 3, r.heavy, lt, { step: 10, note: 'Hinge, do not squat it. Stretch is the point.' }),
         range('pb_legpress', 'Leg Press', 3, r.mid, lt, { step: 10 }),
@@ -364,9 +365,8 @@ function buildDay(
 
     case 5:
       dayName = 'Lower B — Hinge'
-      intent = 'Jump, pull heavy, then glutes and hams — and finish with the carry.'
+      intent = 'Pull heavy, then glutes and hams — and finish with the carry.'
       items = [
-        jumpPrimer('pb_jump_b', 'Broad Jump', 'Stick every landing. Three reps, full reset — out, not up.'),
         compound('pb_deadlift', 'Deadlift', 'deadlift', pos, maxes, adjustments, 'Reset every rep. No touch-and-go on the heavy sets.'),
         range('pb_frontsquat', 'Front Squat', 3, r.heavy, lt, { step: 10, note: 'Upright torso — this is the quad answer to Monday.' }),
         range('pb_hipthrust', 'Hip Thrust', 3, r.mid, lt, { step: 10, note: 'Chin tucked, ribs down, pause at the top.' }),

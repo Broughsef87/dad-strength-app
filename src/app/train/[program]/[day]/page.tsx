@@ -455,6 +455,19 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   const allDone = doneCount === item.sets
   const panelId = `PNL-${String(index + 1).padStart(2, '0')} // ${item.slot.replace(/_/g, '.').toUpperCase()}`
 
+  // Prescription readout. Range work is prescribed as a WINDOW, not a number —
+  // showing the floor alone ("3×8") hides the whole instruction, since the point
+  // of double progression is to climb to the top of the range before adding load.
+  const repsLabel = item.repRange ? `${item.repRange[0]}–${item.repRange[1]}` : String(item.reps)
+  // Effort target. RIR is what range work is actually autoregulated by, and it
+  // was set on every accessory but never rendered — so the athlete saw a rep
+  // count with no indication of how hard to take the set.
+  const effortLabel =
+    item.targetRpe != null ? ` · TGT RPE ${item.targetRpe}`
+    : item.targetRir != null ? ` · ${item.targetRir} RIR`
+    : item.rpe != null ? ` · RPE ${item.rpe}`
+    : ''
+
   return (
     <div className={` relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <div className="absolute top-0.5 right-0.5 z-10 flex items-center">
@@ -483,7 +496,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                   {item.targetWeightLbs}
                 </span>
                 <span className="eyebrow-mono">
-                  LB @ {item.percent}% · {item.sets}×{item.reps}{item.targetRpe != null ? ` · TGT RPE ${item.targetRpe}` : ''}
+                  LB{item.percent != null ? ` @ ${item.percent}%` : ''} · {item.sets}×{repsLabel}{effortLabel}
                 </span>
                 {item.appliedAdjustmentPct != null && (
                   <span className="eyebrow-mono border border-brand/50 px-1.5 py-0.5 text-brand">
@@ -496,7 +509,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
               </div>
             ) : (
               <p className="eyebrow-mono mt-1.5">
-                {item.sets}×{item.reps}{item.percent != null ? ` @ ${item.percent}%` : item.rpe != null ? ` @ RPE ${item.rpe}` : ''}
+                {item.sets}×{repsLabel}{item.percent != null ? ` @ ${item.percent}%` : ''}{effortLabel}
               </p>
             )}
             {/* Prior weeks of this meso — what you actually lifted here before */}
