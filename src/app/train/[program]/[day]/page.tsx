@@ -1165,8 +1165,19 @@ export default function TrainingDayPage() {
           .eq('completed', true)
           .in('slot', Object.keys(ranges))
           .limit(2000)
+        // Drop THIS session's own rows before computing targets. Reopening a
+        // day after logging its sets would otherwise feed them straight back
+        // in: doubleProgression reads the most recent session, that session
+        // becomes this one, and the card's prescribed load moves while the
+        // athlete is still standing in front of the bar — disagreeing with
+        // the sets already logged on the same card. Progression is meant to
+        // apply to the NEXT exposure, never the current one.
+        type HistRow = { week_number?: number | string | null; day_number?: number | string | null }
+        const priorRows = ((histRows ?? []) as HistRow[]).filter(
+          r => !(Number(r.week_number) === weekNumber && Number(r.day_number) === dayNumber),
+        )
         progressionLoads = toLoadTargets(
-          doubleProgression((histRows ?? []) as Parameters<typeof doubleProgression>[0], { ranges, steps }),
+          doubleProgression(priorRows as Parameters<typeof doubleProgression>[0], { ranges, steps }),
         )
       }
 
