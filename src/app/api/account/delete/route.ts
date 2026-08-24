@@ -56,11 +56,26 @@ export async function POST(req: NextRequest) {
 
     // Look up billing state with the admin client — deletion must work even
     // if something is off with the user's own session-scoped reads.
-    const { data: profile } = await admin
+    const { data: profile, error: profileErr } = await admin
       .from('user_profiles')
       .select('stripe_customer_id, stripe_subscription_id')
       .eq('id', user.id)
       .maybeSingle()
+
+    // A FAILED lookup is not the same as "no billing". Swallowing the error
+    // leaves profile null, hasBilling false, and a paying subscriber deleted
+    // with their subscription still running — the exact orphan this route
+    // exists to prevent, reached through a transient PostgREST blip.
+    if (profileErr) {
+      console.error('Account deletion: billing lookup failed', profileErr)
+      return NextResponse.json(
+        {
+          error:
+            'We could not confirm your billing status, so your account was NOT deleted — deleting it now could leave a subscription running that you cannot cancel. Please try again shortly.',
+        },
+        { status: 503 }
+      )
+    }
 
     const hasBilling = Boolean(profile?.stripe_customer_id)
 

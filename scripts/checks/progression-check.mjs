@@ -89,6 +89,32 @@ const row = (slot, w, reps, week = 5, day = 2) =>
   ok('pure: same input, same output, no mutation', a === b, null)
 }
 
+// ── 14. THE WIRING. ────────────────────────────────────────────────────────
+// Codex found double progression fully built, fully tested, and never
+// connected: the day page called buildDay without loadTargets, so every
+// accessory would render blank forever. Every check above still passed,
+// because they all drive buildDay directly. These close that hole — one proves
+// the chain end to end, two assert the live call site still wires it.
+{
+  const { readFileSync } = await import('node:fs')
+  const { dadBuilt } = await import('../../src/lib/programs/dadBuilt.ts')
+
+  const MAXES = { back_squat: 315, bench: 225, deadlift: 405, ohp: 135 }
+  const acc = dadBuilt.buildDay(1, 1, MAXES).items.find(i => i.kind === 'lift' && i.repRange)
+  const top = acc.repRange[1]
+  const logs = [1, 2].map(() => ({
+    slot: acc.slot, block_name: acc.name, weight_lbs: 100, reps: top,
+    completed: true, week_number: 1, day_number: 1, log_type: 'strength_set',
+  }))
+  const lt = loadTargets(doubleProgression(logs, { ranges: { [acc.slot]: acc.repRange }, defaultStep: 5 }))
+  const after = dadBuilt.buildDay(2, 1, MAXES, {}, { loadTargets: lt }).items.find(i => i.slot === acc.slot)
+  ok('chain: logged sets become a prescribed accessory weight', after.targetWeightLbs === 105, after.targetWeightLbs)
+
+  const page = readFileSync(new URL('../../src/app/train/[program]/[day]/page.tsx', import.meta.url), 'utf8')
+  ok('day page computes double progression', page.includes('doubleProgression('), null)
+  ok('day page passes loadTargets into buildDay', /buildDay\([^)]*loadTargets/s.test(page), null)
+}
+
 console.log('\n' + '='.repeat(58))
 console.log(fails ? `✗ ${fails} FAILED of ${checks}` : `✓ ALL GREEN — ${checks} checks`)
 process.exit(fails ? 1 : 0)

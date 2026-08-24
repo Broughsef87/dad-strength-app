@@ -23,6 +23,7 @@ import {
   PlyoPrescription, getProgram,
 } from '../../../../lib/programs'
 import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
+import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -1133,8 +1134,47 @@ export default function TrainingDayPage() {
         ? {}
         : await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber, userMaxes)
 
+      // ── Double progression for range-based accessory slots ─────────────
+      // The percent engine handles the main lifts; accessories have no 1RM to
+      // take a percentage of, so their next load comes from what was actually
+      // logged. Build once bare to discover which slots are range-based (only
+      // Dad Built has any today, so every other program skips the query), then
+      // rebuild with the computed loads.
+      //
+      // Without this the engine still WORKS and every check still passes —
+      // buildDay just never receives loadTargets, so every accessory renders
+      // with no weight, forever. The whole feature is invisible from here.
+      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload })
+      const ranges: Record<string, [number, number]> = {}
+      const steps: Record<string, number> = {}
+      for (const it of probe.items) {
+        if (it.kind === 'lift' && it.repRange) {
+          ranges[it.slot] = it.repRange
+          if (it.loadStepLbs != null) steps[it.slot] = it.loadStepLbs
+        }
+      }
+      let progressionLoads: Record<string, number> = {}
+      if (Object.keys(ranges).length) {
+        // Slot ids are program-unique, so scoping by slot is enough — and it
+        // avoids joining through generated_workouts on every session open.
+        const { data: histRows } = await supabase
+          .from('ares_session_logs')
+          .select('slot, block_name, weight_lbs, reps, completed, week_number, day_number, log_type')
+          .eq('user_id', user.id)
+          .eq('log_type', 'strength_set')
+          .eq('completed', true)
+          .in('slot', Object.keys(ranges))
+          .limit(2000)
+        progressionLoads = toLoadTargets(
+          doubleProgression((histRows ?? []) as Parameters<typeof doubleProgression>[0], { ranges, steps }),
+        )
+      }
+
       // Deterministic build — instant, no AI — then user substitutions on top.
-      const built = applySubs(program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload }), subs)
+      const built = applySubs(
+        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads }),
+        subs,
+      )
       basePlanRef.current = built
       setPlan(built)
       setOverrides({})
