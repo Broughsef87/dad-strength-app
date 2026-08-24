@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '../../../utils/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { ChevronLeft, Edit3 } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import ActiveSetRow from '../../../components/workout/ActiveSetRow'
 import RestTimer from '../../../components/workout/RestTimer'
 import WorkoutTimer from '../../../components/WorkoutTimer'
@@ -312,9 +312,6 @@ export default function ActiveWorkout() {
           <WorkoutTimer seconds={timer} formatTime={formatTime} />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => router.push(`/workout/${params?.id}/edit`)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-            <Edit3 size={20} />
-          </button>
           <button onClick={() => setShowFinishConfirm(true)} className="bg-brand text-brand-ink text-xs font-bold px-5 py-2.5 rounded-full transition-all active:scale-95">
             finish
           </button>
