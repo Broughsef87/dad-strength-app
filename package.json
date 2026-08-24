@@ -6,7 +6,8 @@
     "dev": "next dev --webpack -p 3001",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "checks": "node scripts/checks/run-all.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.43",
