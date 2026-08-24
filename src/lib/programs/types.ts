@@ -22,6 +22,14 @@ export interface LiftPrescription {
   targetWeightLbs?: number // computed: round((percent/100) * max, nearest 5)
   rpe?: number             // accessories use RPE instead of %
   targetRpe?: number       // expected difficulty for %-based work — autoreg anchor
+  // ── Double progression (hypertrophy work) ──────────────────────────────
+  // A lateral raise has no 1RM, so percent-based waves say nothing about it.
+  // Range work instead holds the load until every set clears repRange[1],
+  // then adds a step. `reps` stays the BOTTOM of the range so existing
+  // consumers that read a single number still render something true.
+  repRange?: [number, number]
+  targetRir?: number       // reps in reserve — the effort target for range work
+  loadStepLbs?: number     // smallest useful jump once the top is cleared
   velocity?: boolean       // speed slot: bar speed is the target, not difficulty.
                            // Carries NO targetRpe (an honest RPE 4 on a 57%
                            // double would otherwise read as "too light"), and
@@ -102,6 +110,10 @@ export interface BuildDayOpts {
   // deload treatment regardless of macro position (test week excepted).
   // Stored in user_programs.preferences.deload_weeks.
   forceDeload?: boolean
+  // slot → next working load in lbs, from double progression over what was
+  // actually logged. Percent-based slots ignore this; range-based accessory
+  // slots use it instead of a percentage of a max they do not have.
+  loadTargets?: Record<string, number>
 }
 
 // Round a computed barbell weight to the nearest 5 lb.
