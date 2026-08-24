@@ -11,7 +11,7 @@ import {
 } from './types'
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HYBRID POWER ATHLETE — athletic power, not weightlifting
+// POWER DAD — athletic power, not weightlifting
 //
 // The FULL snatch (Mon) and the POWER clean (Fri) are the heavy expression —
 // zero technique work (no pauses, tempos, complexes, receiving drills), just
@@ -747,8 +747,12 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
 }
 
 export const hybridPower: ProgramConfig = {
+  // Slug stays 'hybrid-power' deliberately. It is an identifier, not branding:
+  // it keys user_programs, generated_workouts and user_exercise_subs, so
+  // renaming it without migrating those three tables would detach the athlete
+  // from his own history. Display name is what anyone actually reads.
   slug: 'hybrid-power',
-  name: 'Hybrid Power Athlete',
+  name: 'Power Dad',
   tagline: 'Olympic power · sprinting · engine',
   description:
     'Two Olympic days — heavy full snatch and power clean, zero technique drills — plus an athletic strength day and a power/engine day in the gym, then a rotating speed day and two conditioning sessions outside. Every gym day caps at 6 blocks. 13-week macro: three mesos that vary the middle and realise on the pure lifts, deload week 12, test week 13. Flag a deload any week you need one.',

@@ -41,14 +41,25 @@ export default function Schedule() {
       const endOfWeek = new Date(startOfWeek)
       endOfWeek.setDate(startOfWeek.getDate() + 7)
 
-      // Fetch this week's logs
-      const { data: logs } = await supabase
-        .from('workout_logs')
-        .select('created_at, weight_lbs, reps, generated_workout_id')
-        .eq('user_id', user.id)
-        .eq('completed', true)
-        .gte('created_at', startOfWeek.toISOString())
-        .lt('created_at', endOfWeek.toISOString())
+      // Session presence comes from the workout_logs streak shims (one row
+      // per session); volume comes from ares_session_logs, where the real
+      // sets live — shim rows are 0 lbs × 0 reps by design.
+      const [{ data: logs }, { data: sets }] = await Promise.all([
+        supabase
+          .from('workout_logs')
+          .select('created_at, generated_workout_id')
+          .eq('user_id', user.id)
+          .eq('completed', true)
+          .gte('created_at', startOfWeek.toISOString())
+          .lt('created_at', endOfWeek.toISOString()),
+        supabase
+          .from('ares_session_logs')
+          .select('created_at, weight_lbs, reps, log_type, completed')
+          .eq('user_id', user.id)
+          .eq('log_type', 'strength_set')
+          .gte('created_at', startOfWeek.toISOString())
+          .lt('created_at', endOfWeek.toISOString()),
+      ])
 
       // Group by date
       const byDate: Record<string, { count: number; volume: number }> = {}
@@ -56,7 +67,12 @@ export default function Schedule() {
         const key = new Date(log.created_at).toDateString()
         if (!byDate[key]) byDate[key] = { count: 0, volume: 0 }
         byDate[key].count++
-        byDate[key].volume += (log.weight_lbs || 0) * (log.reps || 0)
+      }
+      for (const s of sets || []) {
+        if (s.completed === false) continue
+        const key = new Date(s.created_at).toDateString()
+        if (!byDate[key]) byDate[key] = { count: 0, volume: 0 }
+        byDate[key].volume += (Number(s.weight_lbs) || 0) * (s.reps || 0)
       }
 
       // Build week days array

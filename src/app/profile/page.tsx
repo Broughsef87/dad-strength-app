@@ -44,17 +44,40 @@ export default function Profile() {
 
       setDisplayName(profile?.display_name || data.user.email?.split('@')[0] || 'Dad')
 
-      const { data: logs } = await supabase
-        .from('workout_logs')
-        .select('created_at, weight_lbs, reps, exercise_name')
-        .eq('user_id', data.user.id)
-        .eq('completed', true)
-        .order('created_at', { ascending: false })
+      // Session days + streak come from the workout_logs streak shims (one
+      // row per completed session). Volume and top lift come from
+      // ares_session_logs — the shims are always 0 lbs × 0 reps, so summing
+      // workout_logs here reported 0 volume forever.
+      const [{ data: logs }, { data: sets }] = await Promise.all([
+        supabase
+          .from('workout_logs')
+          .select('created_at')
+          .eq('user_id', data.user.id)
+          .eq('completed', true)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('ares_session_logs')
+          .select('block_name, weight_lbs, reps, log_type, completed')
+          .eq('user_id', data.user.id)
+          .eq('log_type', 'strength_set'),
+      ])
 
       if (logs) {
         const uniqueDays = new Set<string>(logs.map((l: { created_at: string }) => new Date(l.created_at).toDateString()))
-        const totalVolume = logs.reduce((sum: number, l: { weight_lbs?: number; reps?: number }) => sum + (l.weight_lbs || 0) * (l.reps || 0), 0)
-        const topLog = logs.reduce((best: { weight_lbs?: number; exercise_name?: string } | null, l: { weight_lbs?: number; exercise_name?: string }) => (l.weight_lbs || 0) > (best?.weight_lbs || 0) ? l : best, null)
+
+        const strengthSets = (sets ?? []).filter(
+          (s: { completed?: boolean | null }) => s.completed !== false
+        )
+        const totalVolume = strengthSets.reduce(
+          (sum: number, s: { weight_lbs?: number | null; reps?: number | null }) =>
+            sum + (Number(s.weight_lbs) || 0) * (s.reps || 0),
+          0
+        )
+        const topLog = strengthSets.reduce(
+          (best: { weight_lbs?: number | null; block_name?: string } | null, s: { weight_lbs?: number | null; block_name?: string }) =>
+            (Number(s.weight_lbs) || 0) > (Number(best?.weight_lbs) || 0) ? s : best,
+          null
+        )
 
         const days: string[] = Array.from(uniqueDays)
         let streak = 0
@@ -68,7 +91,7 @@ export default function Profile() {
         setStats({
           totalSessions: uniqueDays.size,
           totalVolume: Math.round(totalVolume),
-          topLift: topLog ? `${topLog.exercise_name} · ${topLog.weight_lbs}lbs` : 'None yet',
+          topLift: topLog ? `${topLog.block_name} · ${topLog.weight_lbs}lbs` : 'None yet',
           streak,
         })
       }

@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk, Geist_Mono, Space_Mono, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
+import LegalGate from '../components/LegalGate'
+import { Analytics } from '@vercel/analytics/next'
 import { UserProvider } from '../contexts/UserContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { SubscriptionProvider } from '../contexts/SubscriptionContext'
@@ -115,6 +117,10 @@ export default function RootLayout({
           <UserProvider>
             <SubscriptionProvider>
               <PageTransition>{children}</PageTransition>
+              {/* First-run fitness/medical acknowledgement — blocks the
+                  authed app until accepted once (per account, not device). */}
+              <LegalGate />
+              <Analytics />
             </SubscriptionProvider>
           </UserProvider>
         </ThemeProvider>

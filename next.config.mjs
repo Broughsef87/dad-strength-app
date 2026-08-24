@@ -1,4 +1,5 @@
 import withPWAInit from "next-pwa";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const withPWA = withPWAInit({
   dest: "public",
@@ -18,4 +19,15 @@ const nextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+// Sentry wraps the PWA-wrapped config. Source-map upload only runs when
+// SENTRY_AUTH_TOKEN is present in the build env; without it the build is
+// unchanged apart from SDK bundling.
+export default withSentryConfig(withPWA(nextConfig), {
+  org: "the-forge-agency",
+  project: "dad-strength-app",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+  // Proxy ingest through the app's own origin so ad-blockers don't eat events
+  tunnelRoute: "/monitoring",
+  silent: !process.env.CI,
+});
