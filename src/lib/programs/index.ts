@@ -2,7 +2,7 @@ import { ProgramConfig } from './types'
 import { hybridPower } from './hybridPower'
 import { dadStrong } from './dadStrong'
 import { hybridEndurance } from './hybridEndurance'
-import { powerbuilding } from './powerbuilding'
+import { dadBuilt } from './dadBuilt'
 
 export * from './types'
 export * from './progression'
@@ -12,7 +12,7 @@ export const PROGRAMS: Record<string, ProgramConfig> = {
   [dadStrong.slug]: dadStrong,
   [hybridPower.slug]: hybridPower,
   [hybridEndurance.slug]: hybridEndurance,
-  [powerbuilding.slug]: powerbuilding,
+  [dadBuilt.slug]: dadBuilt,
 }
 
 // All four paths are live; new paths queue here while their programming

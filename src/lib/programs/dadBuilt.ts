@@ -9,10 +9,10 @@ import {
 } from './types'
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// POWERBUILDING — size on top of strength
+// DAD BUILT — size on top of strength
 //
-// The sibling to hybrid-power. Same deterministic engine, opposite emphasis:
-// hybrid-power spends its week buying rate of force development, this one
+// The sibling to Power Dad. Same deterministic engine, opposite emphasis:
+// Power Dad spends its week buying rate of force development, this one
 // spends it buying tissue. Four gym days, upper/lower twice each, Mon-Fri with
 // the weekend genuinely off.
 //
@@ -36,10 +36,10 @@ import {
 // WEEKLY VOLUME IS THE CURRENCY. Hypertrophy is bought in hard sets per muscle
 // per week (the useful band is roughly 10-20), not in tonnage and not in
 // percentages. MUSCLE_MAP below tags every slot so the sweep can count it —
-// that count is this program's equivalent of hybrid-power's percentage floors,
+// that count is this program's equivalent of Power Dad's percentage floors,
 // and it is the thing to check when editing.
 //
-// SESSION BUDGET: 8 blocks (raised from the 6 that governs hybrid-power —
+// SESSION BUDGET: 8 blocks (raised from the 6 that governs Power Dad —
 // athlete's call for this program specifically). Eight is a CEILING, not a
 // quota: the lower days run seven because stuffing an eighth would add junk.
 //
@@ -366,9 +366,9 @@ function buildDay(
   return { dayNumber, dayName, dayType: 'gym', sessionIntent: intent, items }
 }
 
-export const powerbuilding: ProgramConfig = {
-  slug: 'powerbuilding',
-  name: 'Powerbuilding',
+export const dadBuilt: ProgramConfig = {
+  slug: 'dad-built',
+  name: 'Dad Built',
   tagline: 'Size on top of strength · 4 days',
   description:
     'Four gym days, upper/lower twice each, Monday to Friday with the weekend off. Every day opens with a percentage-based main lift off a tested 1RM, then range-based accessory work that progresses by double progression — hold the load until every set clears the top of the rep range, then add weight. Strength stays on a wave; size comes from the volume behind it. 13-week macro, deload week 12, test week 13.',
@@ -384,4 +384,4 @@ export const powerbuilding: ProgramConfig = {
   buildDay,
 }
 
-export const POWERBUILDING_BLOCK_BUDGET = BLOCK_BUDGET
+export const DAD_BUILT_BLOCK_BUDGET = BLOCK_BUDGET
