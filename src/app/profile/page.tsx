@@ -205,16 +205,6 @@ export default function Profile() {
             <p className="text-xs text-muted-foreground mt-0.5 tracking-wide">Goal & Progress</p>
           </button>
 
-          <button
-            onClick={() => router.push('/profile/growth')}
-            className="tile p-5 hover:border-brand/30 transition-colors flex flex-col items-center text-center group"
-          >
-            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-              <BookOpen className="text-foreground" size={20} />
-            </div>
-            <p className="font-medium text-sm">Growth</p>
-            <p className="text-xs text-muted-foreground mt-0.5 tracking-wide">Mindset & Family</p>
-          </button>
         </div>
 
         <DadScore />

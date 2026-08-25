@@ -15,8 +15,6 @@ import { motion } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
 import BottomNav from '../../components/BottomNav'
 import Logo from '../../components/Logo'
-import DadScore from '../../components/DadScore'
-import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
@@ -417,17 +415,8 @@ export default function Dashboard() {
           </motion.div>
 
           {/* II. DAILY OBJECTIVES */}
-          <motion.div variants={fadeUp} custom={1} className="space-y-2.5">
-            <SectionLabel numeral="II" title="Daily Objectives" />
-            <DailyObjectivesCard />
-          </motion.div>
 
           {/* III. DAD SCORE */}
-          <motion.div variants={fadeUp} custom={2} className="space-y-2.5">
-            <SectionLabel numeral="III" title="Dad Score" />
-            <DadScore />
-          </motion.div>
-
         </motion.div>
       </main>
 

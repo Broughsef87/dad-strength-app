@@ -506,17 +506,9 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                           <Target size={12} /> Save to Mind Tab
                         </button>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-blue-400 text-xs font-medium">
-                            <CheckCircle2 size={13} />
-                            Saved to Mind tab
-                          </div>
-                          <a
-                            href="/mind"
-                            className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 transition-colors font-medium"
-                          >
-                            View <ArrowRight size={11} />
-                          </a>
+                        <div className="flex items-center gap-1.5 text-blue-400 text-xs font-medium">
+                          <CheckCircle2 size={13} />
+                          Saved
                         </div>
                       )}
                     </div>
