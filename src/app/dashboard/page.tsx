@@ -260,7 +260,7 @@ export default function Dashboard() {
         </div>
         <nav className="flex gap-8 text-[10px] text-muted-foreground lowercase">
           <button className="text-brand font-semibold">HQ</button>
-          <button onClick={() => router.push('/body')} className="hover:text-foreground transition-colors">Train</button>
+          <button onClick={() => router.push('/train')} className="hover:text-foreground transition-colors">Train</button>
           <button onClick={() => router.push('/history')} className="hover:text-foreground transition-colors">History</button>
           <button onClick={() => router.push('/profile')} className="hover:text-foreground transition-colors">Profile</button>
           <button onClick={handleSignOut} className="text-destructive/60 hover:text-destructive transition-colors">Sign Out</button>

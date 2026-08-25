@@ -42,7 +42,7 @@ export default function AppHeader({ active }: AppHeaderProps) {
         </Link>
         <nav className="flex gap-8 text-sm text-muted-foreground lowercase">
           {navItem('home', '/dashboard', 'hq')}
-          {navItem('train', '/body', 'train')}
+          {navItem('train', '/train', 'train')}
           {navItem('history', '/history', 'history')}
           {navItem('profile', '/profile', 'profile')}
           <button

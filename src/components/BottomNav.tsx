@@ -8,7 +8,7 @@ import { Shield, Cpu, Bot, Atom } from 'lucide-react'
 const NAV_ITEMS = [
   { id: 'hq', label: 'home', path: '/dashboard', icon: Shield },
   { id: 'mind', label: 'mind', path: '/mind', icon: Cpu },
-  { id: 'body', label: 'body', path: '/body', icon: Bot },
+  { id: 'train', label: 'train', path: '/train', icon: Bot },
   { id: 'spirit', label: 'spirit', path: '/spirit', icon: Atom },
 ]
 
