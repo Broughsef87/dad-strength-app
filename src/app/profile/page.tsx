@@ -14,6 +14,8 @@ import DadOfMonth from '../../components/DadOfMonth'
 import StreakShield from '../../components/StreakShield'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
+import BodyVitals from '../../components/BodyVitals';
+import RecoveryProtocol from '../../components/RecoveryProtocol';
 
 export default function Profile() {
   const router = useRouter()
@@ -216,6 +218,13 @@ export default function Profile() {
         </div>
 
         <DadScore />
+
+        {/* Body composition and recovery live here rather than on Train: Train is
+            what you do, this is what you are. BodyVitals is also the actual
+            body-comp surface the Pro tier advertises. */}
+        <BodyVitals />
+
+        <RecoveryProtocol />
 
         <DadOfMonth />
 

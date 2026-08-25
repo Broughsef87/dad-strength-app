@@ -2,17 +2,14 @@
 
 import { motion } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
-import BodyVitals from '../../components/BodyVitals';
-import NapSqueeze from '../../components/NapSqueeze';
 import ActiveProgram from '../../components/ActiveProgram';
-import RecoveryProtocol from '../../components/RecoveryProtocol';
 import RecordsBoard from '../../components/RecordsBoard';
 import TrainingData from '../../components/TrainingData';
 import StrengthCalc from '../../components/StrengthCalc';
 import BottomNav from '../../components/BottomNav';
 import AppHeader from '../../components/AppHeader';
 
-export default function BodyPage() {
+export default function TrainPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-28">
       <AppHeader active="train" />
@@ -39,18 +36,6 @@ export default function BodyPage() {
 
           <motion.div variants={fadeUp}>
             <TrainingData />
-          </motion.div>
-
-          <motion.div variants={fadeUp}>
-            <RecoveryProtocol />
-          </motion.div>
-
-          <motion.div variants={fadeUp}>
-            <BodyVitals />
-          </motion.div>
-
-          <motion.div variants={fadeUp}>
-            <NapSqueeze />
           </motion.div>
 
           <motion.div variants={fadeUp}>
