@@ -140,6 +140,59 @@ const row = (slot, w, reps, week = 5, day = 2) =>
     /week_number\)\s*===\s*weekNumber\s*&&\s*Number\(r\.day_number\)\s*===\s*dayNumber/.test(page), null)
 }
 
+// ── Regressions found against Andrew's real session 1, 2026-08-25 ───────────
+// Both of these passed every synthetic test in this file and still produced a
+// wrong prescription on live data. They stay pinned to the actual logged rows.
+{
+  const S = (slot, w, reps, completed = true) =>
+    ({ slot, block_name: slot, weight_lbs: w, reps, completed,
+       week_number: 1, day_number: 1, log_type: 'strength_set' })
+
+  // A failed top set followed by the real working weight must NOT become the
+  // prescription. Logged 65x12, 55x12, 55x12 -> the working weight is 55.
+  const curl = doubleProgression(
+    [S('pb_curl_a', 65, 12), S('pb_curl_a', 55, 12), S('pb_curl_a', 55, 12)],
+    { ranges: { pb_curl_a: [12, 15] }, defaultStep: 5 })
+  ok('a dropped-to weight beats a one-off heavy single',
+    curl.pb_curl_a.suggested === 55, `got ${curl.pb_curl_a.suggested}, want 55`)
+
+  // A warm-up ramp must still resolve to the top, or this fix would have
+  // traded one wrong answer for another.
+  const row = doubleProgression(
+    [S('pb_row_a', 143, 12), S('pb_row_a', 165, 12), S('pb_row_a', 165, 12)],
+    { ranges: { pb_row_a: [12, 15] }, defaultStep: 5 })
+  ok('a warm-up ramp still resolves to the working top set',
+    row.pb_row_a.suggested === 165, `got ${row.pb_row_a.suggested}, want 165`)
+
+  // A tie breaks UPWARD. Incline logged 50x12, 55x12, and an incomplete 55 —
+  // the incomplete set drops out, leaving one rep at each weight. 55 is the
+  // weight reached but not yet repeated, so it is what you accumulate sets at.
+  const incline = doubleProgression(
+    [S('pb_incline', 50, 12), S('pb_incline', 55, 12), S('pb_incline', 55, 12, false)],
+    { ranges: { pb_incline: [12, 15] }, defaultStep: 5 })
+  ok('a tied session resolves to the heavier weight',
+    incline.pb_incline.suggested === 55, `got ${incline.pb_incline.suggested}, want 55`)
+
+  // Bodyweight logs weight_lbs as NULL. Those rows must enter progression
+  // rather than being dropped as missing data.
+  const pull = doubleProgression(
+    [S('pb_pullup', null, 6), S('pb_pullup', null, 6), S('pb_pullup', null, 5)],
+    { ranges: { pb_pullup: [8, 12] }, defaultStep: 5 })
+  ok('bodyweight sets are not treated as no-history',
+    pull.pb_pullup.action !== 'no-history', `action was ${pull.pb_pullup.action}`)
+  ok('bodyweight under the floor advises assistance, not less load',
+    /band|assisted/i.test(pull.pb_pullup.reason) && !/back down/i.test(pull.pb_pullup.reason),
+    pull.pb_pullup.reason)
+
+  // Holding the top of the range on bodyweight is when load finally enters.
+  const pullTop = doubleProgression(
+    [S('pb_pullup', null, 12), S('pb_pullup', null, 12), S('pb_pullup', null, 12)],
+    { ranges: { pb_pullup: [8, 12] }, defaultStep: 5 })
+  ok('bodyweight at the top of the range starts adding weight',
+    pullTop.pb_pullup.action === 'add-load' && pullTop.pb_pullup.suggested === 5,
+    `${pullTop.pb_pullup.action} / ${pullTop.pb_pullup.suggested}`)
+}
+
 console.log('\n' + '='.repeat(58))
 console.log(fails ? `✗ ${fails} FAILED of ${checks}` : `✓ ALL GREEN — ${checks} checks`)
 process.exit(fails ? 1 : 0)

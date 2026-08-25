@@ -91,13 +91,16 @@ export function doubleProgression(
 
     const week = int(r.week_number)
     const day = int(r.day_number) ?? 0
-    const load = num(r.weight_lbs)
+    // Bodyweight sets log weight_lbs as NULL, not 0 — the column is nullable and
+    // the logger writes nothing when the field is blank. The old guard dropped
+    // those rows entirely, so pull-ups and dips never entered progression at all
+    // and reported "first time through" forever. A set with real reps and no
+    // weight is a bodyweight set; that is load 0, not missing data.
+    const load = num(r.weight_lbs) ?? 0
     const reps = int(r.reps)
     if (week == null) continue
     if (opts.sinceWeek != null && week < opts.sinceWeek) continue
-    // A bodyweight accessory logs load 0 legitimately, so 0 is allowed —
-    // but reps must be real or the set says nothing.
-    if (load == null || load < 0 || reps == null || reps <= 0) continue
+    if (load < 0 || reps == null || reps <= 0) continue
     if (!Number.isFinite(load) || load > 5000 || reps > 100) continue
 
     const cur = latest[slot]
@@ -121,12 +124,53 @@ export function doubleProgression(
       continue
     }
 
-    // The working load is the heaviest thing moved that session; warm-ups and
-    // a dropped last set shouldn't decide the next prescription.
-    const lastLoad = Math.max(...s.sets.map(x => x.load))
-    const working = s.sets.filter(x => x.load >= lastLoad)
+    // The working load is the one carrying the MOST sets, not the heaviest.
+    //
+    // Taking the max was wrong in a way only real data showed: logged 65x12,
+    // 55x12, 55x12, it read 65 as the working weight and re-prescribed three
+    // sets of it. But dropping to 55 for the rest IS the athlete saying 65 was
+    // too heavy to repeat. Warm-up ramps and drop sets both still resolve
+    // correctly, because in every one of those the working weight is simply the
+    // one done most: 50/55/55 -> 55, 143/165/165 -> 165, 17.5/20/20/20 -> 20.
+    //
+    // Ties break to the HEAVIEST — Andrew's call, and the live data backs it.
+    // Session 1 logged incline 50x12 then 55x12, with a third set at 55 left
+    // incomplete. Dropping the incomplete set leaves one rep at each weight, a
+    // genuine tie. Breaking it downward reads an abandoned third set as failure
+    // at 55, when he had in fact completed 55 for a full set and was mid-ramp.
+    // A tie means the top weight was reached but not yet repeated, which is the
+    // definition of the working weight you are trying to accumulate sets at.
+    const byLoad = new Map<number, number>()
+    for (const x of s.sets) byLoad.set(x.load, (byLoad.get(x.load) ?? 0) + 1)
+    let lastLoad = s.sets[0].load
+    let bestCount = -1
+    for (const [load, count] of byLoad) {
+      if (count > bestCount || (count === bestCount && load > lastLoad)) {
+        lastLoad = load
+        bestCount = count
+      }
+    }
+    const working = s.sets.filter(x => x.load === lastLoad)
     const reps = working.map(x => x.reps)
     const minReps = Math.min(...reps)
+
+    // Bodyweight work (pull-ups, dips) has no load to move, so the load-based
+    // branches below are meaningless for it — backing off 5 lb from 0 is not a
+    // thing you can do. Reps are the only lever until the top of the range is
+    // held, and only then does added weight enter the picture.
+    if (lastLoad === 0) {
+      out[slot] = {
+        slot, lastLoad, lastReps: reps, lastWeek: s.week,
+        suggested: minReps >= hi ? step : 0,
+        action: minReps >= hi ? 'add-load' : 'hold',
+        reason: minReps >= hi
+          ? `Bodyweight is done — every set held ${hi}. Add ${step} lb and work back to ${hi}.`
+          : minReps < lo
+            ? `A set fell to ${minReps}, under the ${lo}-rep floor — use a band or the assisted machine so every set clears ${lo}.`
+            : `Bodyweight — chase ${hi} on every set before you hang weight on it.`,
+      }
+      continue
+    }
 
     let action: ProgressionAction
     let suggested: number
