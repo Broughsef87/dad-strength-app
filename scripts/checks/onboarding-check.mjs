@@ -69,6 +69,28 @@ ok('the checklist watcher depends on the tick',
   /\}, \[userId, state\.morning_protocol, protocolTick\]\)/.test(list),
   'watcher deps exclude protocolTick, so it never re-runs mid-session')
 
+// Same signal, same reason: the objectives card loads on mount and the
+// protocol writes objectives beside it. Without the key it shows "no
+// objectives set" next to the ones just entered.
+ok('the objectives card takes a refresh key',
+  /refreshKey/.test(read('../../src/components/DailyObjectivesCard.tsx')),
+  'mount-only loader with no signal — a same-page save is invisible to it')
+ok('dashboard feeds the tick to the objectives card',
+  /<DailyObjectivesCard[\s\S]*?refreshKey=\{protocolTick\}/.test(dash))
+
+// -- 2c. the scroll must survive the loading branch -------------------------
+// The dashboard early-returns while loading, so on a direct arrival the
+// protocol div does not exist when the flag is first read. Keyed on
+// forceProtocol alone the effect fires once against a null ref and never again.
+const scroll = dash.match(/useEffect\(\(\) => \{[^]*?scrollIntoView[^]*?\}, \[([^\]]*)\]\)/)
+ok('the protocol scroll effect exists', scroll != null)
+if (scroll) {
+  ok('the scroll effect re-runs once loading clears',
+    /loading/.test(scroll[1]),
+    'deps are [' + scroll[1] + ']; without `loading` the PWA shortcut and the ' +
+    '/mind and /spirit redirects land at the top of the page')
+}
+
 // -- 3. every deleted tab still has a way in --------------------------------
 for (const route of ['body', 'mind', 'spirit']) {
   let src = null

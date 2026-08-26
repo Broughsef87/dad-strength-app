@@ -6,7 +6,9 @@ import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
 
-export default function DailyObjectivesCard() {
+export default function DailyObjectivesCard(
+  { refreshKey = 0 }: { refreshKey?: number } = {},
+) {
   const [objectives, setObjectives] = useState<string[]>(['', '', ''])
   const [completed, setCompleted] = useState<boolean[]>([false, false, false])
   const [locked, setLocked] = useState(false)
@@ -49,7 +51,11 @@ export default function DailyObjectivesCard() {
       setLoading(false)
     }
     load()
-  }, [])
+    // refreshKey is bumped when MorningProtocol saves objectives from the
+    // same page. Its Goals step writes mind_state, and a same-tab
+    // localStorage write notifies no sibling — without this the card keeps
+    // saying "no objectives set" next to the ones just entered.
+  }, [refreshKey])
 
   const toggle = async (i: number) => {
     if (!locked) return

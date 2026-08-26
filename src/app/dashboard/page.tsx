@@ -82,13 +82,18 @@ export default function Dashboard() {
       }
     } catch {}
   }, [])
+  // `loading` is in the deps deliberately. On a DIRECT arrival — the PWA
+  // shortcut, or the /mind and /spirit redirects — this page is still on its
+  // loading branch, so the protocol div does not exist yet. Keyed on
+  // forceProtocol alone the effect fires once against a null ref and never
+  // again, and those entry points quietly land at the top of the dashboard.
   useEffect(() => {
-    if (!forceProtocol || !protocolRef.current) return
+    if (loading || !forceProtocol || !protocolRef.current) return
     protocolRef.current.scrollIntoView({
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
       block: 'start',
     })
-  }, [forceProtocol])
+  }, [forceProtocol, loading])
 
   // Time-of-day greeting — the header's whole job is to sound like a person.
   const greeting = () => {
@@ -363,7 +368,7 @@ export default function Dashboard() {
                   and lets you tick them off. Unmounting it while the protocol
                   still saves objectives left users with a "Saved" confirmation
                   and nowhere to see what they saved. */}
-              <DailyObjectivesCard />
+              <DailyObjectivesCard refreshKey={protocolTick} />
             </div>
           </motion.div>
 
