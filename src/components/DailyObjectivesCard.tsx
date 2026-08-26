@@ -17,6 +17,19 @@ export default function DailyObjectivesCard(
   const [saving, setSaving] = useState(false)
   const supabase = createClient()
 
+  // Rows written before objectives were stored dense can still be sparse, and
+  // the render path pairs objective i with completed i. Compact them TOGETHER
+  // so each flag keeps the objective it belongs to; compacting the strings
+  // alone is what silently shifts a completion onto the wrong line.
+  const normalise = (
+    objs: string[] | undefined,
+    done: boolean[] | undefined,
+  ): { objectives: string[]; completed: boolean[] } => {
+    const pairs: Array<[string, boolean]> = (objs ?? [])
+      .map((o, i): [string, boolean] => [String(o ?? ''), Boolean((done ?? [])[i])])
+      .filter(([o]) => o.trim().length > 0)
+    return { objectives: pairs.map(p => p[0]), completed: pairs.map(p => p[1]) }
+  }
   // Writes the same shape MorningProtocol's Goals step writes, to the same
   // localStorage key and the same daily_checkins column, so the two are
   // interchangeable and whichever the user reaches first works.
@@ -24,10 +37,16 @@ export default function DailyObjectivesCard(
     if (saving || !draft.some(o => o.trim())) return
     setSaving(true)
     const today = localDay()
+    // Store DENSE. The render path filters blanks and hands toggle() the
+    // filtered index, which then writes completedObjectives at that index — so
+    // a sparse save ('', 'B', 'C') puts B's completion flag on slot 0 while B
+    // lives at slot 1. Compacting here keeps stored order and rendered order
+    // identical, which is the only thing making those indices interchangeable.
+    const dense = draft.map(o => o.trim()).filter(Boolean)
     const state = {
       date: today,
-      objectives: draft,
-      completedObjectives: [false, false, false],
+      objectives: dense,
+      completedObjectives: dense.map(() => false),
       lockedIn: true,
     }
     try {
@@ -39,8 +58,8 @@ export default function DailyObjectivesCard(
           { onConflict: 'user_id,date' },
         )
       }
-      setObjectives(draft)
-      setCompleted([false, false, false])
+      setObjectives(dense)
+      setCompleted(dense.map(() => false))
       setLocked(true)
     } finally {
       setSaving(false)
@@ -56,8 +75,9 @@ export default function DailyObjectivesCard(
       if (cached) {
         const data = JSON.parse(cached)
         if (data.date === localDay()) {
-          setObjectives(data.objectives || ['', '', ''])
-          setCompleted(data.completedObjectives || [false, false, false])
+          const n = normalise(data.objectives, data.completedObjectives)
+          setObjectives(n.objectives)
+          setCompleted(n.completed)
           setLocked(data.lockedIn || false)
           setLoading(false)
           return
@@ -76,8 +96,9 @@ export default function DailyObjectivesCard(
 
       if (data?.mind_state) {
         const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean }
-        setObjectives(ms.objectives || ['', '', ''])
-        setCompleted(ms.completedObjectives || [false, false, false])
+        const n = normalise(ms.objectives, ms.completedObjectives)
+        setObjectives(n.objectives)
+        setCompleted(n.completed)
         setLocked(ms.lockedIn || false)
       }
       setLoading(false)

@@ -88,10 +88,14 @@ export default function MorningProtocol(
   const saveMindState = async () => {
     const supabase = createClient()
     const today = localDay()
+    // Dense, for the same reason DailyObjectivesCard stores dense: its render
+    // path filters blanks and toggles by the FILTERED index, so a sparse array
+    // misaligns completion flags against objectives. Both writers must agree.
+    const dense = mindObjectives.map(o => o.trim()).filter(Boolean)
     const state = {
       date: localDay(),
-      objectives: mindObjectives,
-      completedObjectives: [false, false, false],
+      objectives: dense,
+      completedObjectives: dense.map(() => false),
       lockedIn: true,
     }
     // Write to localStorage so DailyObjectivesCard picks it up instantly

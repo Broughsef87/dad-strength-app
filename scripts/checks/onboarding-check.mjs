@@ -118,6 +118,21 @@ for (const field of ['objectives', 'completedObjectives', 'lockedIn']) {
     'shapes diverge between the card and the protocol Goals step')
 }
 
+// Objectives render filtered and toggle by the FILTERED index, which writes
+// completedObjectives at that index. A sparse array therefore lands a
+// completion flag on the wrong objective: stored ['', 'A', 'B'] with
+// [false,true,false] renders B as done when A is. Both writers store dense,
+// and reads normalise legacy rows by pairing each objective with its own flag
+// BEFORE compacting — compacting the strings alone is the bug, not the fix.
+for (const [label, src] of [['card', objCard], ['protocol', mp]]) {
+  ok(`the ${label} stores objectives dense`,
+    /\.map\(o => o\.trim\(\)\)\.filter\(Boolean\)/.test(src),
+    'saves a sparse array; completion flags will misalign')
+}
+ok('the card realigns legacy sparse rows on read',
+  /normalise/.test(objCard) && /\[String\(o \?\? ''\), Boolean\(\(done \?\? \[\]\)\[i\]\)\]/.test(objCard),
+  'old rows keep their misalignment forever')
+
 // -- 2c. the scroll must survive the loading branch -------------------------
 // The dashboard early-returns while loading, so on a direct arrival the
 // protocol div does not exist when the flag is first read. Keyed on
