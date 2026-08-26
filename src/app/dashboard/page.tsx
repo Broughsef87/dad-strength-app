@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '../../utils/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   PlayCircle,
@@ -15,8 +15,6 @@ import { motion } from 'framer-motion'
 import { staggerContainer, fadeUp } from '../../components/ui/motion'
 import BottomNav from '../../components/BottomNav'
 import Logo from '../../components/Logo'
-import DadScore from '../../components/DadScore'
-import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
@@ -24,6 +22,7 @@ import MorningProtocol from '../../components/MorningProtocol'
 import WeekPulse from '../../components/WeekPulse'
 import { SectionLabel, HeroAccent } from '../../components/BarbellMark'
 import ForgeLoader from '../../components/ForgeLoader'
+import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
 
 interface ActiveProgramData {
@@ -61,6 +60,40 @@ export default function Dashboard() {
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
   const [checklistDone, setChecklistDone] = useState(false)
   const [firstName, setFirstName] = useState('')
+
+  // Bumped whenever a protocol pillar is completed, and passed to the checklist
+  // so its "did they run the protocol yet" effect re-runs. That effect reads
+  // localStorage, and a sibling component writing localStorage fires nothing a
+  // component in the same tab can observe — the storage event is cross-tab
+  // only. Without this the item stays unchecked for the whole session.
+  const [protocolTick, setProtocolTick] = useState(0)
+
+  // ?protocol=1 no longer gates whether the protocol renders — it always does.
+  // What it still has to do is FOCUS it. Arrivals from the /mind and /spirit
+  // shims, the PWA "Morning Protocol" shortcut, and the checklist CTA all
+  // promise to open the protocol; landing on the dashboard with it somewhere
+  // below the fold does not keep that promise. So the flag scrolls to it.
+  const protocolRef = useRef<HTMLDivElement | null>(null)
+  const [forceProtocol, setForceProtocol] = useState(false)
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('protocol') === '1') {
+        setForceProtocol(true)
+      }
+    } catch {}
+  }, [])
+  // `loading` is in the deps deliberately. On a DIRECT arrival — the PWA
+  // shortcut, or the /mind and /spirit redirects — this page is still on its
+  // loading branch, so the protocol div does not exist yet. Keyed on
+  // forceProtocol alone the effect fires once against a null ref and never
+  // again, and those entry points quietly land at the top of the dashboard.
+  useEffect(() => {
+    if (loading || !forceProtocol || !protocolRef.current) return
+    protocolRef.current.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  }, [forceProtocol, loading])
 
   // Time-of-day greeting — the header's whole job is to sound like a person.
   const greeting = () => {
@@ -260,7 +293,7 @@ export default function Dashboard() {
         </div>
         <nav className="flex gap-8 text-[10px] text-muted-foreground lowercase">
           <button className="text-brand font-semibold">HQ</button>
-          <button onClick={() => router.push('/body')} className="hover:text-foreground transition-colors">Train</button>
+          <button onClick={() => router.push('/train')} className="hover:text-foreground transition-colors">Train</button>
           <button onClick={() => router.push('/history')} className="hover:text-foreground transition-colors">History</button>
           <button onClick={() => router.push('/profile')} className="hover:text-foreground transition-colors">Profile</button>
           <button onClick={handleSignOut} className="text-destructive/60 hover:text-destructive transition-colors">Sign Out</button>
@@ -306,12 +339,37 @@ export default function Dashboard() {
           animate="visible"
           variants={staggerContainer}
         >
-          {/* First week checklist → swaps to Morning Protocol once all done */}
+          {/* The Morning Protocol is ALWAYS rendered. The first-week checklist
+              sits above it while it has something to say, and hides itself
+              otherwise (all done, dismissed, or expired past seven days).
+
+              It used to be the other way round — the protocol was revealed only
+              once the checklist finished — and that one conditional produced
+              five separate defects in review: onboarding deadlocked because
+              "run your morning protocol" is itself a checklist item; a query
+              flag meant to escape it never fired on a same-page navigation;
+              revealing the protocol unmounted the checklist and with it the
+              only thing that marks the item; and anyone who DISMISSED an
+              unfinished checklist lost the protocol entirely, since /spirit
+              used to be the other way in. Gating a daily surface on onboarding
+              state was the mistake. It is not gated any more. */}
           <motion.div variants={fadeUp} custom={-0.5}>
-            {checklistDone
-              ? <MorningProtocol />
-              : <FirstWeekChecklist onComplete={() => setChecklistDone(true)} />
-            }
+            <div className="space-y-6">
+              <FirstWeekChecklist
+                onComplete={() => setChecklistDone(true)}
+                onOpenProtocol={() => setForceProtocol(true)}
+                protocolTick={protocolTick}
+              />
+              <div ref={protocolRef}>
+                <MorningProtocol onSaved={() => setProtocolTick(t => t + 1)} />
+              </div>
+              {/* Objectives are SET in the protocol's Goals step, which writes
+                  mind_state; this card is the only thing that reads them back
+                  and lets you tick them off. Unmounting it while the protocol
+                  still saves objectives left users with a "Saved" confirmation
+                  and nowhere to see what they saved. */}
+              <DailyObjectivesCard refreshKey={protocolTick} />
+            </div>
           </motion.div>
 
           {/* The bento's hero tile: program, the week numeral, the week strip,
@@ -417,17 +475,8 @@ export default function Dashboard() {
           </motion.div>
 
           {/* II. DAILY OBJECTIVES */}
-          <motion.div variants={fadeUp} custom={1} className="space-y-2.5">
-            <SectionLabel numeral="II" title="Daily Objectives" />
-            <DailyObjectivesCard />
-          </motion.div>
 
           {/* III. DAD SCORE */}
-          <motion.div variants={fadeUp} custom={2} className="space-y-2.5">
-            <SectionLabel numeral="III" title="Dad Score" />
-            <DadScore />
-          </motion.div>
-
         </motion.div>
       </main>
 

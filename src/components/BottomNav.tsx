@@ -3,13 +3,25 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Shield, Cpu, Bot, Atom } from 'lucide-react'
+import { Shield, Bot, User } from 'lucide-react'
 
+// Three tabs, matching what the app actually is. The four-pillar shell
+// (home/mind/body/spirit) advertised pillars the product never grew: it left
+// training and morning protocol without a tab while /mind and /spirit held five
+// cards between them, one of which was a duplicate mount. Twelve dead components
+// and twenty-three unreachable routes accumulated in that gap.
+//
+// Adding a fourth entry later is one line HERE and nothing else — which is the
+// point of the table. Do not add a tab for a feature that does not exist yet;
+// that is the exact mistake being undone. Fuel gets an entry when Fuel ships.
+//
+// Profile is a genuine addition, not a survivor: the old nav had no Profile tab
+// at all, so settings, billing and account deletion were reachable only from a
+// desktop-only header.
 const NAV_ITEMS = [
-  { id: 'hq', label: 'home', path: '/dashboard', icon: Shield },
-  { id: 'mind', label: 'mind', path: '/mind', icon: Cpu },
-  { id: 'body', label: 'body', path: '/body', icon: Bot },
-  { id: 'spirit', label: 'spirit', path: '/spirit', icon: Atom },
+  { id: 'today', label: 'today', path: '/dashboard', icon: Shield },
+  { id: 'train', label: 'train', path: '/train', icon: Bot },
+  { id: 'profile', label: 'profile', path: '/profile', icon: User },
 ]
 
 export default function BottomNav() {

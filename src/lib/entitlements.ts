@@ -22,13 +22,12 @@ export interface Entitlement {
   isFounder: boolean
 }
 
-// Coach-grade AI — Pro only. These are the "weekly debrief" class of features.
-export const PRO_ONLY_AI = new Set<string>([
-  'debrief-personalized',
-  'quarterly-review',
-  'mission-brief',
-  'program-generate',
-])
+// There is no Pro-only AI tier any more. PRO_ONLY_AI listed debrief-personalized,
+// quarterly-review, mission-brief and program-generate; all four routes are gone
+// and nothing ever imported the set, so it was dead before it was emptied. The
+// surviving AI route (morning-protocol) is METERED rather than gated — free gets
+// a taste, Pro gets the ceiling — via AI_DAILY_LIMITS below. Reintroduce a gate
+// only when a feature actually warrants one.
 
 // Metered AI — free users get a daily taste, pro gets a high ceiling ("unlimited"
 // in practice). Keyed by route → per-day request cap for each tier.
@@ -36,7 +35,6 @@ export const PRO_ONLY_AI = new Set<string>([
 // (requireAiQuota no-ops on unknown routes) and ready for when it lands.
 export const AI_DAILY_LIMITS: Record<string, { free: number; pro: number }> = {
   'morning-protocol': { free: 1, pro: 30 },
-  'workout':          { free: 1, pro: 60 },
   'squeeze-generate': { free: 2, pro: 60 },
 }
 

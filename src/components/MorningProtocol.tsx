@@ -62,7 +62,10 @@ const STORAGE_KEY = 'dad-strength-morning-protocol'
 // check-in doesn't wipe a routine completed that morning.
 const todayKey = () => localDayWithCutoff(4)
 
-export default function MorningProtocol({ objectives = [] }: { objectives?: string[] }) {
+export default function MorningProtocol(
+  { objectives = [], onSaved }:
+  { objectives?: string[]; onSaved?: () => void } = {},
+) {
   const [minutes, setMinutes] = useState(20)
   const [sleep, setSleep] = useState('ok')
   const [energy, setEnergy] = useState('medium')
@@ -85,10 +88,14 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
   const saveMindState = async () => {
     const supabase = createClient()
     const today = localDay()
+    // Dense, for the same reason DailyObjectivesCard stores dense: its render
+    // path filters blanks and toggles by the FILTERED index, so a sparse array
+    // misaligns completion flags against objectives. Both writers must agree.
+    const dense = mindObjectives.map(o => o.trim()).filter(Boolean)
     const state = {
       date: localDay(),
-      objectives: mindObjectives,
-      completedObjectives: [false, false, false],
+      objectives: dense,
+      completedObjectives: dense.map(() => false),
       lockedIn: true,
     }
     // Write to localStorage so DailyObjectivesCard picks it up instantly
@@ -102,6 +109,11 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
       )
     }
     setMindSaved(true)
+    // Objectives are written HERE, not in saveCache — a separate path, so it
+    // needs the signal separately. DailyObjectivesCard renders directly below
+    // this component and reads mind_state; without this it keeps showing "no
+    // objectives set" beside the Saved confirmation until a reload.
+    onSaved?.()
   }
 
   useEffect(() => {
@@ -155,6 +167,17 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
   const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g }))
+    // Tell the parent this component just persisted state. Siblings on the
+    // dashboard — the first-week checklist and the objectives card — read that
+    // state back, and a same-tab localStorage write fires no event they can
+    // hear; the storage event is cross-tab only. So this is the notification.
+    //
+    // It fires on EVERY save, not only when a pillar is completed. Gating it on
+    // completion meant saving objectives from the Goals step, without having
+    // ticked a pillar yet, left the objectives card showing "no objectives set"
+    // right beside the Saved confirmation. Consumers decide what a save means
+    // to them; this signal only says that something was written.
+    onSaved?.()
     // Mirror to daily_checkins.spirit_state so state follows the user across
     // devices. Upsert touches only the provided columns — mind_state is safe.
     void (async () => {
@@ -506,17 +529,9 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
                           <Target size={12} /> Save to Mind Tab
                         </button>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-blue-400 text-xs font-medium">
-                            <CheckCircle2 size={13} />
-                            Saved to Mind tab
-                          </div>
-                          <a
-                            href="/mind"
-                            className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 transition-colors font-medium"
-                          >
-                            View <ArrowRight size={11} />
-                          </a>
+                        <div className="flex items-center gap-1.5 text-blue-400 text-xs font-medium">
+                          <CheckCircle2 size={13} />
+                          Saved
                         </div>
                       )}
                     </div>

@@ -27,6 +27,7 @@ const SUITES = [
   ['autoreg behaviour', 'autoreg-behaviour.mjs'],
   ['autoreg ratchet', 'autoreg-ratchet.mjs'],
   ['training analytics', 'analytics-check.mjs'],
+  ['onboarding reachability', 'onboarding-check.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

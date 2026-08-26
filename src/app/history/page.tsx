@@ -5,10 +5,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Dumbbell, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
-import WeeklyDebrief from '../../components/WeeklyDebrief'
-import WeeklyMissionBrief from '../../components/WeeklyMissionBrief'
-import QuarterlyReview from '../../components/QuarterlyReview'
-import PremiumGate from '../../components/PremiumGate'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -264,28 +260,6 @@ export default function History() {
       </header>
 
       <main className="p-4 space-y-4 max-w-md mx-auto pb-28">
-        {/* Quarterly Review — Pro. Gated here so free users never fire the
-            doomed request and hit a raw 402 from the server. */}
-        <div>
-          <PremiumGate feature="Quarterly AI Review" overlay>
-            <QuarterlyReview />
-          </PremiumGate>
-        </div>
-
-        {/* Weekly Mission Brief — Pro */}
-        <div>
-          <PremiumGate feature="Weekly Mission Brief" overlay>
-            <WeeklyMissionBrief />
-          </PremiumGate>
-        </div>
-
-        {/* AI Weekly Debrief — Pro */}
-        <div className="tile p-6">
-          <PremiumGate feature="AI Weekly Debrief" overlay>
-            <WeeklyDebrief />
-          </PremiumGate>
-        </div>
-
         {/* Empty state */}
         {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
@@ -303,7 +277,7 @@ export default function History() {
               Iron only counts when it&apos;s recorded. Every rep, every set — this is where your legacy is built.
             </p>
             <button
-              onClick={() => router.push('/body')}
+              onClick={() => router.push('/train')}
               className="flex items-center gap-2 bg-brand text-background font-semibold text-xs lowercase px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97]"
             >
               <Dumbbell size={14} />

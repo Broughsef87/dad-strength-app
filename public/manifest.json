@@ -57,7 +57,7 @@
       "name": "Start Training",
       "short_name": "Train",
       "description": "Jump into today's workout",
-      "url": "/body",
+      "url": "/train",
       "icons": [
         {
           "src": "/logo-suite/ds_app_icon.png",
@@ -69,7 +69,7 @@
       "name": "Morning Protocol",
       "short_name": "Morning",
       "description": "Run your morning protocol",
-      "url": "/mind",
+      "url": "/dashboard?protocol=1",
       "icons": [
         {
           "src": "/logo-suite/ds_app_icon.png",

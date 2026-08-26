@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Dumbbell, ChevronDown, ChevronUp } from 'lucide-react'
+import { e1rm, MAX_E1RM_REPS } from '../lib/analytics/training'
 
 const STORAGE_KEY = 'dad-strength-1rm-calc'
 const BW_KEY = 'dad-strength-bodyweight'
@@ -34,11 +35,12 @@ const EXERCISES: Exercise[] = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Pre
 
 type Level = 'Beginner' | 'Intermediate' | 'Advanced' | 'Elite' | null
 
-function calcOneRM(weight: number, reps: number): number {
-  if (reps <= 0 || weight <= 0) return 0
-  if (reps === 1) return weight
-  return weight * (1 + reps / 30)
-}
+// e1RM comes from src/lib/analytics/training.ts — there is exactly one estimator
+// in the app now. The local copy here was the same Epley formula MISSING the
+// >10-rep guard, so at 12 reps this card printed a confident number while
+// Training Data, one screen away, printed nothing for the same set. Two answers
+// to one question reads as a broken app, and a second copy of the rule would
+// drift again. See FOR-183 §2 item 7.
 
 function getLevel(oneRM: number, bw: number, exercise: Exercise): { level: Level; progress: number } {
   if (exercise === 'Custom' || bw <= 0 || oneRM <= 0) return { level: null, progress: 0 }
@@ -127,8 +129,13 @@ export default function StrengthCalc() {
   const w = parseFloat(state.weight)
   const r = parseFloat(state.reps)
   const bw = parseFloat(state.bodyweight)
-  const oneRM = (!isNaN(w) && !isNaN(r) && w > 0 && r > 0) ? calcOneRM(w, r) : 0
-  const { level, progress } = getLevel(oneRM, bw, state.exercise)
+  // Three states, not two: nothing entered yet, a usable estimate, or a set too
+  // long for Epley to mean anything. The old code collapsed the last two into 0
+  // and silently rendered nothing, which is why the disagreement went unnoticed.
+  const hasInput = !isNaN(w) && !isNaN(r) && w > 0 && r > 0
+  const oneRM = hasInput ? e1rm(w, r) : null
+  const overRepCap = hasInput && r > MAX_E1RM_REPS
+  const { level, progress } = getLevel(oneRM ?? 0, bw, state.exercise)
   const strengthAge = getStrengthAge(level)
   const standards = state.exercise !== 'Custom' ? STANDARDS[state.exercise] : null
 
@@ -217,8 +224,20 @@ export default function StrengthCalc() {
             </div>
           </div>
 
+          {/* Past the rep cap Epley stops estimating and starts guessing, so the
+              card says so instead of printing a number it cannot stand behind. */}
+          {overRepCap && (
+            <div className="row-recessed rounded-xl p-4 space-y-1">
+              <p className="eyebrow-mono">estimate unavailable</p>
+              <p className="text-sm text-muted-foreground">
+                Over {MAX_E1RM_REPS} reps — the estimate isn&apos;t reliable that far out.
+                Work up to a heavier set and try again.
+              </p>
+            </div>
+          )}
+
           {/* 1RM Result */}
-          {oneRM > 0 && (
+          {oneRM != null && (
             <div className="bg-brand/8 border border-brand/20 rounded-xl p-4 space-y-1">
               <p className="text-[10px] lowercase text-brand font-medium">Estimated 1RM</p>
               <div className="flex items-end gap-1.5">
@@ -235,7 +254,7 @@ export default function StrengthCalc() {
           )}
 
           {/* Level + progress */}
-          {oneRM > 0 && level && standards && (
+          {oneRM != null && level && standards && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] lowercase text-muted-foreground font-medium">
@@ -288,7 +307,7 @@ export default function StrengthCalc() {
                 {LEVEL_ORDER.map(lvl => {
                   const multiplier = standards[lvl.toLowerCase() as keyof Standards]
                   const target = Math.round(bw * multiplier)
-                  const isReached = oneRM > 0 && Math.round(oneRM) >= target
+                  const isReached = oneRM != null && Math.round(oneRM) >= target
                   return (
                     <div
                       key={lvl}

@@ -6,12 +6,65 @@ import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
 
-export default function DailyObjectivesCard() {
+export default function DailyObjectivesCard(
+  { refreshKey = 0 }: { refreshKey?: number } = {},
+) {
   const [objectives, setObjectives] = useState<string[]>(['', '', ''])
   const [completed, setCompleted] = useState<boolean[]>([false, false, false])
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [draft, setDraft] = useState<string[]>(['', '', ''])
+  const [saving, setSaving] = useState(false)
   const supabase = createClient()
+
+  // Rows written before objectives were stored dense can still be sparse, and
+  // the render path pairs objective i with completed i. Compact them TOGETHER
+  // so each flag keeps the objective it belongs to; compacting the strings
+  // alone is what silently shifts a completion onto the wrong line.
+  const normalise = (
+    objs: string[] | undefined,
+    done: boolean[] | undefined,
+  ): { objectives: string[]; completed: boolean[] } => {
+    const pairs: Array<[string, boolean]> = (objs ?? [])
+      .map((o, i): [string, boolean] => [String(o ?? ''), Boolean((done ?? [])[i])])
+      .filter(([o]) => o.trim().length > 0)
+    return { objectives: pairs.map(p => p[0]), completed: pairs.map(p => p[1]) }
+  }
+  // Writes the same shape MorningProtocol's Goals step writes, to the same
+  // localStorage key and the same daily_checkins column, so the two are
+  // interchangeable and whichever the user reaches first works.
+  const saveDraft = async () => {
+    if (saving || !draft.some(o => o.trim())) return
+    setSaving(true)
+    const today = localDay()
+    // Store DENSE. The render path filters blanks and hands toggle() the
+    // filtered index, which then writes completedObjectives at that index — so
+    // a sparse save ('', 'B', 'C') puts B's completion flag on slot 0 while B
+    // lives at slot 1. Compacting here keeps stored order and rendered order
+    // identical, which is the only thing making those indices interchangeable.
+    const dense = draft.map(o => o.trim()).filter(Boolean)
+    const state = {
+      date: today,
+      objectives: dense,
+      completedObjectives: dense.map(() => false),
+      lockedIn: true,
+    }
+    try {
+      localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from('daily_checkins').upsert(
+          { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,date' },
+        )
+      }
+      setObjectives(dense)
+      setCompleted(dense.map(() => false))
+      setLocked(true)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -22,8 +75,9 @@ export default function DailyObjectivesCard() {
       if (cached) {
         const data = JSON.parse(cached)
         if (data.date === localDay()) {
-          setObjectives(data.objectives || ['', '', ''])
-          setCompleted(data.completedObjectives || [false, false, false])
+          const n = normalise(data.objectives, data.completedObjectives)
+          setObjectives(n.objectives)
+          setCompleted(n.completed)
           setLocked(data.lockedIn || false)
           setLoading(false)
           return
@@ -42,14 +96,19 @@ export default function DailyObjectivesCard() {
 
       if (data?.mind_state) {
         const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean }
-        setObjectives(ms.objectives || ['', '', ''])
-        setCompleted(ms.completedObjectives || [false, false, false])
+        const n = normalise(ms.objectives, ms.completedObjectives)
+        setObjectives(n.objectives)
+        setCompleted(n.completed)
         setLocked(ms.lockedIn || false)
       }
       setLoading(false)
     }
     load()
-  }, [])
+    // refreshKey is bumped when MorningProtocol saves objectives from the
+    // same page. Its Goals step writes mind_state, and a same-tab
+    // localStorage write notifies no sibling — without this the card keeps
+    // saying "no objectives set" next to the ones just entered.
+  }, [refreshKey])
 
   const toggle = async (i: number) => {
     if (!locked) return
@@ -97,10 +156,35 @@ export default function DailyObjectivesCard() {
       </div>
 
       {!hasObjectives ? (
-        <a href="/mind" className="block text-center py-4 text-sm text-muted-foreground hover:text-foreground transition-colors relative z-10">
-          <p className="text-xs">No objectives set yet.</p>
-          <p className="text-brand text-xs font-medium mt-1">Set today&apos;s objectives →</p>
-        </a>
+        /* Set them here rather than sending the user somewhere. The old CTA
+           pointed at /mind, then at the protocol's Goals step — but that step
+           only exists once an AI protocol has been generated, so anyone with no
+           protocol yet, or out of free AI quota, or who already passed that
+           step, hit a dead end on a feature that needs no AI at all. */
+        <div className="space-y-2 relative z-10">
+          <p className="text-xs text-muted-foreground">Three things that would make today a win.</p>
+          {draft.map((v, i) => (
+            <input
+              key={i}
+              type="text"
+              value={v}
+              onChange={e => {
+                const next = [...draft]
+                next[i] = e.target.value
+                setDraft(next)
+              }}
+              placeholder={`Objective ${i + 1}`}
+              className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand/50 placeholder:text-muted-foreground/50"
+            />
+          ))}
+          <button
+            onClick={saveDraft}
+            disabled={saving || !draft.some(o => o.trim())}
+            className="w-full pill-volt text-xs font-bold py-2.5 disabled:opacity-40 transition-opacity"
+          >
+            {saving ? 'saving…' : 'lock them in'}
+          </button>
+        </div>
       ) : (
         <div className="space-y-2 relative z-10">
           {filledObjectives.map((obj, i) => (

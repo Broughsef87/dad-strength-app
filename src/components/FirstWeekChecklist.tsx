@@ -5,6 +5,7 @@ import { createClient } from '../utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, X, Dumbbell, Target, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { localDayWithCutoff } from '../utils/day'
 
 interface ChecklistItem {
   key: string
@@ -37,7 +38,7 @@ const ITEMS: ChecklistItem[] = [
     label: 'Run your morning protocol',
     description: 'Start the day with intention. Just once.',
     cta: 'Open Protocol',
-    href: '/spirit',
+    href: '/dashboard?protocol=1',
     icon: Sun,
   },
 ]
@@ -58,7 +59,10 @@ const DEFAULT_STATE: ChecklistState = {
   dismissed_at: null,
 }
 
-export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => void } = {}) {
+export default function FirstWeekChecklist(
+  { onComplete, onOpenProtocol, protocolTick = 0 }:
+  { onComplete?: () => void; onOpenProtocol?: () => void; protocolTick?: number } = {},
+) {
   const router = useRouter()
   const supabase = createClient()
   const [state, setState] = useState<ChecklistState>(DEFAULT_STATE)
@@ -135,12 +139,22 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
       const raw = localStorage.getItem('dad-strength-morning-protocol')
       if (!raw) return
       const saved = JSON.parse(raw)
-      const today = new Date().toLocaleDateString()
+      // MUST match how MorningProtocol writes the cache: localDayWithCutoff(4),
+      // i.e. YYYY-MM-DD on a 4am boundary. This compared against
+      // toLocaleDateString() — '2026-08-26' vs '8/26/2026' — so it was never
+      // equal in any normal locale, and this item could never auto-complete.
+      // day.ts documents the same mismatch being fixed elsewhere; this file
+      // was missed. Pre-existing, surfaced by wiring protocolTick in.
+      const today = localDayWithCutoff(4)
       if (saved.date === today && Array.isArray(saved.completed) && saved.completed.some(Boolean)) {
         updateItem('morning_protocol', true)
       }
     } catch { /* ignore */ }
-  }, [userId, state.morning_protocol])
+    // protocolTick is bumped by the dashboard when MorningProtocol saves a
+    // completed pillar. It is the only reason this effect re-runs mid-session:
+    // the check reads localStorage, and a sibling writing localStorage fires
+    // no event a component in the same tab can hear.
+  }, [userId, state.morning_protocol, protocolTick])
 
   const updateItem = async (key: keyof ChecklistState, value: boolean) => {
     const newState = { ...state, [key]: value }
@@ -177,6 +191,17 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
         router.push(prog.slug ? `/train/${prog.slug}/1` : '/build')
       }
       else if (activeWorkoutId) router.push(`/workout/${activeWorkoutId}`)
+      return
+    }
+    // The protocol lives on this very page, behind the checklist. Navigating to
+    // /dashboard?protocol=1 does NOT work from here: App Router keeps the same
+    // component mounted across a query-only change, so the dashboard never
+    // re-reads the flag and the checklist just re-renders. Ask the parent to
+    // reveal it instead. The query flag still earns its keep for arrivals from
+    // elsewhere — the /mind and /spirit shims and the PWA shortcut — where the
+    // page really does mount.
+    if (item.key === 'morning_protocol' && onOpenProtocol) {
+      onOpenProtocol()
       return
     }
     if (item.href) {

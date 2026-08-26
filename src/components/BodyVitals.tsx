@@ -108,7 +108,7 @@ export default function BodyVitals() {
       initial="hidden"
       animate="visible"
       className="tile rounded-xl p-5 cursor-pointer group active:scale-[0.98] transition-all duration-300 hover:border-brand/25"
-      onClick={() => router.push(workoutId ? `/workout/${workoutId}` : '/body')}
+      onClick={() => router.push(workoutId ? `/workout/${workoutId}` : '/train')}
     >
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
