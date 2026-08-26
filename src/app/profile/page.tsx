@@ -9,7 +9,6 @@ import {
   Pencil, Check, X, Zap
 } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
-import DadScore from '../../components/DadScore'
 import DadOfMonth from '../../components/DadOfMonth'
 import StreakShield from '../../components/StreakShield'
 import { useSubscription } from '../../contexts/SubscriptionContext'
@@ -207,7 +206,6 @@ export default function Profile() {
 
         </div>
 
-        <DadScore />
 
         {/* Body composition and recovery live here rather than on Train: Train is
             what you do, this is what you are. BodyVitals is also the actual
