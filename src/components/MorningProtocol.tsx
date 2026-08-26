@@ -62,7 +62,10 @@ const STORAGE_KEY = 'dad-strength-morning-protocol'
 // check-in doesn't wipe a routine completed that morning.
 const todayKey = () => localDayWithCutoff(4)
 
-export default function MorningProtocol({ objectives = [] }: { objectives?: string[] }) {
+export default function MorningProtocol(
+  { objectives = [], onPillarComplete }:
+  { objectives?: string[]; onPillarComplete?: () => void } = {},
+) {
   const [minutes, setMinutes] = useState(20)
   const [sleep, setSleep] = useState('ok')
   const [energy, setEnergy] = useState('medium')
@@ -155,6 +158,13 @@ export default function MorningProtocol({ objectives = [] }: { objectives?: stri
 
   const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g }))
+    // Tell the parent a pillar landed. FirstWeekChecklist ticks its
+    // morning_protocol item by READING this same localStorage key, but a write
+    // from here fires no event a sibling component in the same tab can hear —
+    // the storage event is cross-tab only. Without this callback the checklist
+    // sits there unchecked while the protocol it is asking for is completed
+    // right underneath it.
+    if (c.some(Boolean)) onPillarComplete?.()
     // Mirror to daily_checkins.spirit_state so state follows the user across
     // devices. Upsert touches only the provided columns — mind_state is safe.
     void (async () => {

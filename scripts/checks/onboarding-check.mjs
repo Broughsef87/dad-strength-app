@@ -1,19 +1,25 @@
 // Onboarding reachability — the first-week checklist and the Morning Protocol.
 //
-// This flow broke three times across four Codex passes during the FOR-183
-// restructure, every time in a way tsc and the program suites could not see:
+// This flow produced FIVE review findings across five Codex passes during the
+// FOR-183 restructure, every one invisible to tsc and to 4,000+ program
+// assertions:
 //
-//   1. the checklist CTA pointed at a surface that renders the checklist,
-//      so "Open Protocol" looped back to itself and onboarding deadlocked
+//   1. the checklist CTA pointed at a surface that renders the checklist, so
+//      "Open Protocol" looped back to itself and onboarding deadlocked
 //   2. the ?protocol=1 escape hatch was read only at mount, and the CTA is a
 //      query-only navigation, so the flag never fired
 //   3. revealing the protocol UNMOUNTED the checklist, and the effect that
-//      ticks morning_protocol off lives inside it — so running the protocol
-//      never marked the item
+//      ticks morning_protocol off lives inside it
+//   4. keeping it mounted was still not enough: that effect reads localStorage,
+//      and a sibling writing localStorage fires no same-tab event
+//   5. anyone who DISMISSED an unfinished checklist lost the protocol outright,
+//      because /spirit had been the other way in
 //
-// All three are structural: who renders what, and when. These are source
-// assertions rather than behaviour tests, which is the honest way to pin a
-// render branch without a DOM.
+// One root cause under all five: a daily surface gated on onboarding state.
+// The gate is gone, and section 2 exists to stop it coming back.
+//
+// These are source assertions rather than behaviour tests — the honest way to
+// pin a render branch without a DOM.
 import { readFileSync } from 'node:fs'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
@@ -29,28 +35,39 @@ const ok = (label, cond, detail) => {
 }
 
 // -- 1. the protocol is reachable while the checklist is still running -------
-ok('dashboard renders MorningProtocol', /<MorningProtocol\s*\/>/.test(dash))
+ok('dashboard renders MorningProtocol', /<MorningProtocol[\s\S]*?\/>/.test(dash))
 ok('dashboard wires onOpenProtocol to the checklist',
   /onOpenProtocol=\{/.test(dash))
 ok('the checklist CTA calls onOpenProtocol rather than navigating',
   /item\.key === 'morning_protocol' && onOpenProtocol/.test(list))
 
-// -- 2. revealing the protocol must NOT unmount the checklist ---------------
-// The bug shape: `checklistDone || forceProtocol ? <MorningProtocol/> : <FirstWeekChecklist/>`.
-// forceProtocol must not appear in the branch that chooses between them.
-const branch = dash.match(/\{checklistDone[^]*?<\/motion\.div>/)
-ok('dashboard has the checklist/protocol branch', branch != null)
-if (branch) {
-  const head = branch[0].slice(0, branch[0].indexOf('?') + 1)
-  ok('forceProtocol does not gate the checklist away',
-    !/forceProtocol/.test(head),
-    'forceProtocol is in the ternary head; revealing the protocol would unmount ' +
-    'FirstWeekChecklist, and its localStorage effect is the only thing that marks ' +
-    'morning_protocol done')
-  ok('both render together while the checklist is unfinished',
-    /<FirstWeekChecklist[^]*?forceProtocol && <MorningProtocol/.test(branch[0]) ||
-    /forceProtocol && <MorningProtocol[^]*?<FirstWeekChecklist/.test(branch[0]))
+// -- 2. the protocol must NOT be gated on onboarding state ------------------
+// Five review findings came from one conditional. The protocol is a DAILY
+// surface; hiding it behind checklist state produced a deadlock, a dead escape
+// hatch, an unmounted watcher, and a permanent loss for anyone who dismissed an
+// unfinished checklist. It renders unconditionally now, and must stay that way.
+const mount = dash.match(/<MorningProtocol[\s\S]*?\/>/)
+ok('dashboard renders MorningProtocol unconditionally', mount != null)
+if (mount) {
+  const before = dash.slice(0, dash.indexOf(mount[0]))
+  const openBraces = (before.match(/\{checklistDone|\{forceProtocol|checklistDone \?|forceProtocol \?/g) ?? [])
+  ok('MorningProtocol is not behind a checklistDone/forceProtocol conditional',
+    openBraces.length === 0,
+    'found ' + JSON.stringify(openBraces) + ' before the mount; gating this on ' +
+    'onboarding state is the defect class that produced five review findings')
 }
+
+// -- 2b. completing a pillar must reach the checklist in the same session ---
+// The checklist ticks morning_protocol by READING localStorage. A sibling
+// writing localStorage fires no same-tab event, so without an explicit signal
+// the item stays unchecked no matter how long the component stays mounted.
+ok('MorningProtocol reports completion upward',
+  /onPillarComplete/.test(read('../../src/components/MorningProtocol.tsx')),
+  'no callback — the checklist cannot learn the protocol was run')
+ok('dashboard wires that report to a tick', /onPillarComplete=\{/.test(dash))
+ok('the checklist watcher depends on the tick',
+  /\}, \[userId, state\.morning_protocol, protocolTick\]\)/.test(list),
+  'watcher deps exclude protocolTick, so it never re-runs mid-session')
 
 // -- 3. every deleted tab still has a way in --------------------------------
 for (const route of ['body', 'mind', 'spirit']) {

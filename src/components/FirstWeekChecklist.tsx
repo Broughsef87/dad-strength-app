@@ -59,8 +59,8 @@ const DEFAULT_STATE: ChecklistState = {
 }
 
 export default function FirstWeekChecklist(
-  { onComplete, onOpenProtocol }:
-  { onComplete?: () => void; onOpenProtocol?: () => void } = {},
+  { onComplete, onOpenProtocol, protocolTick = 0 }:
+  { onComplete?: () => void; onOpenProtocol?: () => void; protocolTick?: number } = {},
 ) {
   const router = useRouter()
   const supabase = createClient()
@@ -143,7 +143,11 @@ export default function FirstWeekChecklist(
         updateItem('morning_protocol', true)
       }
     } catch { /* ignore */ }
-  }, [userId, state.morning_protocol])
+    // protocolTick is bumped by the dashboard when MorningProtocol saves a
+    // completed pillar. It is the only reason this effect re-runs mid-session:
+    // the check reads localStorage, and a sibling writing localStorage fires
+    // no event a component in the same tab can hear.
+  }, [userId, state.morning_protocol, protocolTick])
 
   const updateItem = async (key: keyof ChecklistState, value: boolean) => {
     const newState = { ...state, [key]: value }

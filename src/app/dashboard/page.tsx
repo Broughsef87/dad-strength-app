@@ -60,17 +60,22 @@ export default function Dashboard() {
   const [checklistDone, setChecklistDone] = useState(false)
   const [firstName, setFirstName] = useState('')
 
-  // ?protocol=1 forces the Morning Protocol open even while the first-week
-  // checklist is still running. Without it the getting-started flow deadlocks:
-  // "Run your morning protocol" is itself a checklist item, but the protocol
-  // only replaces the checklist once EVERY item is done, so its CTA would
-  // navigate straight back to the checklist. /spirit used to be the way out.
-  // Read from window rather than useSearchParams to keep this page off the
-  // Suspense requirement that hook imposes at build time.
+  // Bumped whenever a protocol pillar is completed, and passed to the checklist
+  // so its "did they run the protocol yet" effect re-runs. That effect reads
+  // localStorage, and a sibling component writing localStorage fires nothing a
+  // component in the same tab can observe — the storage event is cross-tab
+  // only. Without this the item stays unchecked for the whole session.
+  const [protocolTick, setProtocolTick] = useState(0)
+
+  // ?protocol=1 survives for arrivals from the /mind and /spirit redirect shims
+  // and the PWA shortcut, so those land with the protocol scrolled into view.
+  // It no longer gates whether the protocol renders — it always does.
   const [forceProtocol, setForceProtocol] = useState(false)
   useEffect(() => {
     try {
-      setForceProtocol(new URLSearchParams(window.location.search).get('protocol') === '1')
+      if (new URLSearchParams(window.location.search).get('protocol') === '1') {
+        setForceProtocol(true)
+      }
     } catch {}
   }, [])
 
@@ -318,27 +323,29 @@ export default function Dashboard() {
           animate="visible"
           variants={staggerContainer}
         >
-          {/* First week checklist → swaps to Morning Protocol once all done.
-              While the checklist is still running, "Open Protocol" reveals the
-              protocol BELOW it rather than replacing it. That is not cosmetic:
-              the effect that ticks morning_protocol off lives inside
-              FirstWeekChecklist and watches localStorage, so swapping it out
-              unmounts the only thing that can mark the item — the user would
-              run the protocol and watch the checklist ignore it. The old
-              /spirit round-trip worked by accident, because coming back
-              remounted the checklist. */}
+          {/* The Morning Protocol is ALWAYS rendered. The first-week checklist
+              sits above it while it has something to say, and hides itself
+              otherwise (all done, dismissed, or expired past seven days).
+
+              It used to be the other way round — the protocol was revealed only
+              once the checklist finished — and that one conditional produced
+              five separate defects in review: onboarding deadlocked because
+              "run your morning protocol" is itself a checklist item; a query
+              flag meant to escape it never fired on a same-page navigation;
+              revealing the protocol unmounted the checklist and with it the
+              only thing that marks the item; and anyone who DISMISSED an
+              unfinished checklist lost the protocol entirely, since /spirit
+              used to be the other way in. Gating a daily surface on onboarding
+              state was the mistake. It is not gated any more. */}
           <motion.div variants={fadeUp} custom={-0.5}>
-            {checklistDone ? (
-              <MorningProtocol />
-            ) : (
-              <div className="space-y-6">
-                <FirstWeekChecklist
-                  onComplete={() => setChecklistDone(true)}
-                  onOpenProtocol={() => setForceProtocol(true)}
-                />
-                {forceProtocol && <MorningProtocol />}
-              </div>
-            )}
+            <div className="space-y-6">
+              <FirstWeekChecklist
+                onComplete={() => setChecklistDone(true)}
+                onOpenProtocol={() => setForceProtocol(true)}
+                protocolTick={protocolTick}
+              />
+              <MorningProtocol onPillarComplete={() => setProtocolTick(t => t + 1)} />
+            </div>
           </motion.div>
 
           {/* The bento's hero tile: program, the week numeral, the week strip,
