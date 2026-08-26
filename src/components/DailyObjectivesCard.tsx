@@ -13,7 +13,39 @@ export default function DailyObjectivesCard(
   const [completed, setCompleted] = useState<boolean[]>([false, false, false])
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [draft, setDraft] = useState<string[]>(['', '', ''])
+  const [saving, setSaving] = useState(false)
   const supabase = createClient()
+
+  // Writes the same shape MorningProtocol's Goals step writes, to the same
+  // localStorage key and the same daily_checkins column, so the two are
+  // interchangeable and whichever the user reaches first works.
+  const saveDraft = async () => {
+    if (saving || !draft.some(o => o.trim())) return
+    setSaving(true)
+    const today = localDay()
+    const state = {
+      date: today,
+      objectives: draft,
+      completedObjectives: [false, false, false],
+      lockedIn: true,
+    }
+    try {
+      localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from('daily_checkins').upsert(
+          { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,date' },
+        )
+      }
+      setObjectives(draft)
+      setCompleted([false, false, false])
+      setLocked(true)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -103,10 +135,35 @@ export default function DailyObjectivesCard(
       </div>
 
       {!hasObjectives ? (
-        <a href="/dashboard?protocol=1" className="block text-center py-4 text-sm text-muted-foreground hover:text-foreground transition-colors relative z-10">
-          <p className="text-xs">No objectives set yet.</p>
-          <p className="text-brand text-xs font-medium mt-1">Set today&apos;s objectives →</p>
-        </a>
+        /* Set them here rather than sending the user somewhere. The old CTA
+           pointed at /mind, then at the protocol's Goals step — but that step
+           only exists once an AI protocol has been generated, so anyone with no
+           protocol yet, or out of free AI quota, or who already passed that
+           step, hit a dead end on a feature that needs no AI at all. */
+        <div className="space-y-2 relative z-10">
+          <p className="text-xs text-muted-foreground">Three things that would make today a win.</p>
+          {draft.map((v, i) => (
+            <input
+              key={i}
+              type="text"
+              value={v}
+              onChange={e => {
+                const next = [...draft]
+                next[i] = e.target.value
+                setDraft(next)
+              }}
+              placeholder={`Objective ${i + 1}`}
+              className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand/50 placeholder:text-muted-foreground/50"
+            />
+          ))}
+          <button
+            onClick={saveDraft}
+            disabled={saving || !draft.some(o => o.trim())}
+            className="w-full pill-volt text-xs font-bold py-2.5 disabled:opacity-40 transition-opacity"
+          >
+            {saving ? 'saving…' : 'lock them in'}
+          </button>
+        </div>
       ) : (
         <div className="space-y-2 relative z-10">
           {filledObjectives.map((obj, i) => (

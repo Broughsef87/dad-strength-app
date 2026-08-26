@@ -98,6 +98,26 @@ ok('the objectives card takes a refresh key',
 ok('dashboard feeds the tick to the objectives card',
   /<DailyObjectivesCard[\s\S]*?refreshKey=\{protocolTick\}/.test(dash))
 
+// -- 2d. objectives must be settable without AI -----------------------------
+// The protocol's Goals step sits behind `if (!configured)`, which is only true
+// once /api/ai/morning-protocol has succeeded. Pointing the objectives empty
+// state at it dead-ended anyone with no protocol yet, out of free AI quota, or
+// already past that step — on a feature that needs no AI at all.
+const objCard = read('../../src/components/DailyObjectivesCard.tsx')
+ok('the objectives card can set objectives itself',
+  /saveDraft/.test(objCard) && /mind_state/.test(objCard),
+  'no inline editor — the empty state depends on an AI-gated surface')
+ok('the objectives empty state does not navigate away',
+  !/<a href="\/(mind|dashboard)/.test(objCard),
+  'still links out instead of editing in place')
+// Both editors write the same shape to the same place, or one silently
+// overwrites the other.
+for (const field of ['objectives', 'completedObjectives', 'lockedIn']) {
+  ok(`both objective writers persist ${field}`,
+    new RegExp(field).test(objCard) && new RegExp(field).test(mp),
+    'shapes diverge between the card and the protocol Goals step')
+}
+
 // -- 2c. the scroll must survive the loading branch -------------------------
 // The dashboard early-returns while loading, so on a direct arrival the
 // protocol div does not exist when the flag is first read. Keyed on
