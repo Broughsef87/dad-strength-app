@@ -11,14 +11,15 @@ interface UpgradeModalProps {
 }
 
 const PRO_FEATURES = [
-  'All 3 training paths — Dad Strong, Hybrid Power, Hybrid Endurance',
-  'Unlimited AI sessions — no daily caps',
-  'AI Weekly Debrief (grades, wins, adjustments)',
+  'All 4 training paths — Power Dad, Dad Built, Dad Strong, Hybrid Endurance',
   'AI Morning Protocol — personalized daily',
-  'Body composition tracking + nutrition',
-  'Unlimited workout history + full heatmap',
+  'Training Data — e1RM trends, projected maxes, adherence',
+  'Automatic progression — the app picks your next weight from what you lifted',
+  'Body composition tracking',
+  'Unlimited workout history',
   'My Mission tracker + milestone check-ins',
-  'Quarterly AI review + long-range planning',
+  // Meal planner + shopping list: held out until FOR-177 ships. Stripe is
+  // live, so a line here is a promise that can be charged for.
 ]
 
 export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalProps) {
