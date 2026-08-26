@@ -318,12 +318,27 @@ export default function Dashboard() {
           animate="visible"
           variants={staggerContainer}
         >
-          {/* First week checklist → swaps to Morning Protocol once all done */}
+          {/* First week checklist → swaps to Morning Protocol once all done.
+              While the checklist is still running, "Open Protocol" reveals the
+              protocol BELOW it rather than replacing it. That is not cosmetic:
+              the effect that ticks morning_protocol off lives inside
+              FirstWeekChecklist and watches localStorage, so swapping it out
+              unmounts the only thing that can mark the item — the user would
+              run the protocol and watch the checklist ignore it. The old
+              /spirit round-trip worked by accident, because coming back
+              remounted the checklist. */}
           <motion.div variants={fadeUp} custom={-0.5}>
-            {checklistDone || forceProtocol
-              ? <MorningProtocol />
-              : <FirstWeekChecklist onComplete={() => setChecklistDone(true)} onOpenProtocol={() => setForceProtocol(true)} />
-            }
+            {checklistDone ? (
+              <MorningProtocol />
+            ) : (
+              <div className="space-y-6">
+                <FirstWeekChecklist
+                  onComplete={() => setChecklistDone(true)}
+                  onOpenProtocol={() => setForceProtocol(true)}
+                />
+                {forceProtocol && <MorningProtocol />}
+              </div>
+            )}
           </motion.div>
 
           {/* The bento's hero tile: program, the week numeral, the week strip,
