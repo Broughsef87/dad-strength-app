@@ -60,6 +60,20 @@ export default function Dashboard() {
   const [checklistDone, setChecklistDone] = useState(false)
   const [firstName, setFirstName] = useState('')
 
+  // ?protocol=1 forces the Morning Protocol open even while the first-week
+  // checklist is still running. Without it the getting-started flow deadlocks:
+  // "Run your morning protocol" is itself a checklist item, but the protocol
+  // only replaces the checklist once EVERY item is done, so its CTA would
+  // navigate straight back to the checklist. /spirit used to be the way out.
+  // Read from window rather than useSearchParams to keep this page off the
+  // Suspense requirement that hook imposes at build time.
+  const [forceProtocol, setForceProtocol] = useState(false)
+  useEffect(() => {
+    try {
+      setForceProtocol(new URLSearchParams(window.location.search).get('protocol') === '1')
+    } catch {}
+  }, [])
+
   // Time-of-day greeting — the header's whole job is to sound like a person.
   const greeting = () => {
     const h = new Date().getHours()
@@ -306,7 +320,7 @@ export default function Dashboard() {
         >
           {/* First week checklist → swaps to Morning Protocol once all done */}
           <motion.div variants={fadeUp} custom={-0.5}>
-            {checklistDone
+            {checklistDone || forceProtocol
               ? <MorningProtocol />
               : <FirstWeekChecklist onComplete={() => setChecklistDone(true)} />
             }

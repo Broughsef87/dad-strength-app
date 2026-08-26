@@ -37,7 +37,7 @@ const ITEMS: ChecklistItem[] = [
     label: 'Run your morning protocol',
     description: 'Start the day with intention. Just once.',
     cta: 'Open Protocol',
-    href: '/dashboard',
+    href: '/dashboard?protocol=1',
     icon: Sun,
   },
 ]
