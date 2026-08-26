@@ -61,10 +61,30 @@ if (mount) {
 // The checklist ticks morning_protocol by READING localStorage. A sibling
 // writing localStorage fires no same-tab event, so without an explicit signal
 // the item stays unchecked no matter how long the component stays mounted.
-ok('MorningProtocol reports completion upward',
-  /onPillarComplete/.test(read('../../src/components/MorningProtocol.tsx')),
+// Both write paths must signal. saveCache persists pillar completion;
+// saveMindState persists objectives. They are separate functions, and wiring
+// only the first left objectives saves invisible to the card below them.
+const mp = read('../../src/components/MorningProtocol.tsx')
+ok('MorningProtocol reports completion upward', /onSaved/.test(mp),
   'no callback — the checklist cannot learn the protocol was run')
-ok('dashboard wires that report to a tick', /onPillarComplete=\{/.test(dash))
+const saveFns = mp.split(/const saveCache|const saveMindState/).slice(1)
+ok('every MorningProtocol save path signals the parent',
+  saveFns.length === 2 && saveFns.every((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))),
+  'found ' + saveFns.length + ' save paths, ' +
+  saveFns.filter((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))).length + ' signalling')
+
+// Date keys across the two components must agree, or the checklist can never
+// mark the item: MorningProtocol writes localDayWithCutoff(4) (YYYY-MM-DD) and
+// this compared toLocaleDateString() (8/26/2026). Never equal, so the item
+// could not auto-complete at all.
+// Comments in that file quote the old call while explaining the bug, so this
+// looks at code lines only — a guard that trips on its own documentation is
+// worse than no guard.
+const listCode = list.split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join('\n')
+ok('the checklist reads the same date key the protocol writes',
+  /localDayWithCutoff\(4\)/.test(listCode) && !/toLocaleDateString\(\)/.test(listCode),
+  'date formats diverge — YYYY-MM-DD vs a locale string')
+ok('dashboard wires that report to a tick', /onSaved=\{/.test(dash))
 ok('the checklist watcher depends on the tick',
   /\}, \[userId, state\.morning_protocol, protocolTick\]\)/.test(list),
   'watcher deps exclude protocolTick, so it never re-runs mid-session')

@@ -63,8 +63,8 @@ const STORAGE_KEY = 'dad-strength-morning-protocol'
 const todayKey = () => localDayWithCutoff(4)
 
 export default function MorningProtocol(
-  { objectives = [], onPillarComplete }:
-  { objectives?: string[]; onPillarComplete?: () => void } = {},
+  { objectives = [], onSaved }:
+  { objectives?: string[]; onSaved?: () => void } = {},
 ) {
   const [minutes, setMinutes] = useState(20)
   const [sleep, setSleep] = useState('ok')
@@ -105,6 +105,11 @@ export default function MorningProtocol(
       )
     }
     setMindSaved(true)
+    // Objectives are written HERE, not in saveCache — a separate path, so it
+    // needs the signal separately. DailyObjectivesCard renders directly below
+    // this component and reads mind_state; without this it keeps showing "no
+    // objectives set" beside the Saved confirmation until a reload.
+    onSaved?.()
   }
 
   useEffect(() => {
@@ -158,13 +163,17 @@ export default function MorningProtocol(
 
   const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g }))
-    // Tell the parent a pillar landed. FirstWeekChecklist ticks its
-    // morning_protocol item by READING this same localStorage key, but a write
-    // from here fires no event a sibling component in the same tab can hear —
-    // the storage event is cross-tab only. Without this callback the checklist
-    // sits there unchecked while the protocol it is asking for is completed
-    // right underneath it.
-    if (c.some(Boolean)) onPillarComplete?.()
+    // Tell the parent this component just persisted state. Siblings on the
+    // dashboard — the first-week checklist and the objectives card — read that
+    // state back, and a same-tab localStorage write fires no event they can
+    // hear; the storage event is cross-tab only. So this is the notification.
+    //
+    // It fires on EVERY save, not only when a pillar is completed. Gating it on
+    // completion meant saving objectives from the Goals step, without having
+    // ticked a pillar yet, left the objectives card showing "no objectives set"
+    // right beside the Saved confirmation. Consumers decide what a save means
+    // to them; this signal only says that something was written.
+    onSaved?.()
     // Mirror to daily_checkins.spirit_state so state follows the user across
     // devices. Upsert touches only the provided columns — mind_state is safe.
     void (async () => {

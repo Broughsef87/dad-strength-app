@@ -361,7 +361,7 @@ export default function Dashboard() {
                 protocolTick={protocolTick}
               />
               <div ref={protocolRef}>
-                <MorningProtocol onPillarComplete={() => setProtocolTick(t => t + 1)} />
+                <MorningProtocol onSaved={() => setProtocolTick(t => t + 1)} />
               </div>
               {/* Objectives are SET in the protocol's Goals step, which writes
                   mind_state; this card is the only thing that reads them back

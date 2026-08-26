@@ -5,6 +5,7 @@ import { createClient } from '../utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, X, Dumbbell, Target, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { localDayWithCutoff } from '../utils/day'
 
 interface ChecklistItem {
   key: string
@@ -138,7 +139,13 @@ export default function FirstWeekChecklist(
       const raw = localStorage.getItem('dad-strength-morning-protocol')
       if (!raw) return
       const saved = JSON.parse(raw)
-      const today = new Date().toLocaleDateString()
+      // MUST match how MorningProtocol writes the cache: localDayWithCutoff(4),
+      // i.e. YYYY-MM-DD on a 4am boundary. This compared against
+      // toLocaleDateString() — '2026-08-26' vs '8/26/2026' — so it was never
+      // equal in any normal locale, and this item could never auto-complete.
+      // day.ts documents the same mismatch being fixed elsewhere; this file
+      // was missed. Pre-existing, surfaced by wiring protocolTick in.
+      const today = localDayWithCutoff(4)
       if (saved.date === today && Array.isArray(saved.completed) && saved.completed.some(Boolean)) {
         updateItem('morning_protocol', true)
       }
