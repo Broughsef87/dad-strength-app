@@ -322,7 +322,7 @@ export default function Dashboard() {
           <motion.div variants={fadeUp} custom={-0.5}>
             {checklistDone || forceProtocol
               ? <MorningProtocol />
-              : <FirstWeekChecklist onComplete={() => setChecklistDone(true)} />
+              : <FirstWeekChecklist onComplete={() => setChecklistDone(true)} onOpenProtocol={() => setForceProtocol(true)} />
             }
           </motion.div>
 

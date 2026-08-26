@@ -58,7 +58,10 @@ const DEFAULT_STATE: ChecklistState = {
   dismissed_at: null,
 }
 
-export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => void } = {}) {
+export default function FirstWeekChecklist(
+  { onComplete, onOpenProtocol }:
+  { onComplete?: () => void; onOpenProtocol?: () => void } = {},
+) {
   const router = useRouter()
   const supabase = createClient()
   const [state, setState] = useState<ChecklistState>(DEFAULT_STATE)
@@ -177,6 +180,17 @@ export default function FirstWeekChecklist({ onComplete }: { onComplete?: () => 
         router.push(prog.slug ? `/train/${prog.slug}/1` : '/build')
       }
       else if (activeWorkoutId) router.push(`/workout/${activeWorkoutId}`)
+      return
+    }
+    // The protocol lives on this very page, behind the checklist. Navigating to
+    // /dashboard?protocol=1 does NOT work from here: App Router keeps the same
+    // component mounted across a query-only change, so the dashboard never
+    // re-reads the flag and the checklist just re-renders. Ask the parent to
+    // reveal it instead. The query flag still earns its keep for arrivals from
+    // elsewhere — the /mind and /spirit shims and the PWA shortcut — where the
+    // page really does mount.
+    if (item.key === 'morning_protocol' && onOpenProtocol) {
+      onOpenProtocol()
       return
     }
     if (item.href) {
