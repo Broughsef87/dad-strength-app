@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '../../utils/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   PlayCircle,
@@ -22,6 +22,7 @@ import MorningProtocol from '../../components/MorningProtocol'
 import WeekPulse from '../../components/WeekPulse'
 import { SectionLabel, HeroAccent } from '../../components/BarbellMark'
 import ForgeLoader from '../../components/ForgeLoader'
+import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
 
 interface ActiveProgramData {
@@ -67,9 +68,12 @@ export default function Dashboard() {
   // only. Without this the item stays unchecked for the whole session.
   const [protocolTick, setProtocolTick] = useState(0)
 
-  // ?protocol=1 survives for arrivals from the /mind and /spirit redirect shims
-  // and the PWA shortcut, so those land with the protocol scrolled into view.
-  // It no longer gates whether the protocol renders — it always does.
+  // ?protocol=1 no longer gates whether the protocol renders — it always does.
+  // What it still has to do is FOCUS it. Arrivals from the /mind and /spirit
+  // shims, the PWA "Morning Protocol" shortcut, and the checklist CTA all
+  // promise to open the protocol; landing on the dashboard with it somewhere
+  // below the fold does not keep that promise. So the flag scrolls to it.
+  const protocolRef = useRef<HTMLDivElement | null>(null)
   const [forceProtocol, setForceProtocol] = useState(false)
   useEffect(() => {
     try {
@@ -78,6 +82,13 @@ export default function Dashboard() {
       }
     } catch {}
   }, [])
+  useEffect(() => {
+    if (!forceProtocol || !protocolRef.current) return
+    protocolRef.current.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  }, [forceProtocol])
 
   // Time-of-day greeting — the header's whole job is to sound like a person.
   const greeting = () => {
@@ -344,7 +355,15 @@ export default function Dashboard() {
                 onOpenProtocol={() => setForceProtocol(true)}
                 protocolTick={protocolTick}
               />
-              <MorningProtocol onPillarComplete={() => setProtocolTick(t => t + 1)} />
+              <div ref={protocolRef}>
+                <MorningProtocol onPillarComplete={() => setProtocolTick(t => t + 1)} />
+              </div>
+              {/* Objectives are SET in the protocol's Goals step, which writes
+                  mind_state; this card is the only thing that reads them back
+                  and lets you tick them off. Unmounting it while the protocol
+                  still saves objectives left users with a "Saved" confirmation
+                  and nowhere to see what they saved. */}
+              <DailyObjectivesCard />
             </div>
           </motion.div>
 

@@ -97,7 +97,7 @@ export default function DailyObjectivesCard() {
       </div>
 
       {!hasObjectives ? (
-        <a href="/mind" className="block text-center py-4 text-sm text-muted-foreground hover:text-foreground transition-colors relative z-10">
+        <a href="/dashboard?protocol=1" className="block text-center py-4 text-sm text-muted-foreground hover:text-foreground transition-colors relative z-10">
           <p className="text-xs">No objectives set yet.</p>
           <p className="text-brand text-xs font-medium mt-1">Set today&apos;s objectives →</p>
         </a>
