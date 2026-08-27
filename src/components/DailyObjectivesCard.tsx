@@ -167,16 +167,16 @@ export default function DailyObjectivesCard(
             <div key={i} className="ledger-row">
               <span className="ledger-no">{String(i + 1).padStart(2, '0')}</span>
               <input
-              type="text"
-              value={v}
-              onChange={e => {
-                const next = [...draft]
-                next[i] = e.target.value
-                setDraft(next)
-              }}
-              placeholder="—"
-              className="flex-1 min-w-0 bg-transparent border-none outline-none ink-written placeholder:text-[hsl(var(--border))]"
-            />
+                type="text"
+                value={v}
+                onChange={e => {
+                  const next = [...draft]
+                  next[i] = e.target.value
+                  setDraft(next)
+                }}
+                placeholder="—"
+                className="flex-1 min-w-0 bg-transparent border-none outline-none ink-written placeholder:text-[hsl(var(--border))]"
+              />
             </div>
           ))}
           <button
