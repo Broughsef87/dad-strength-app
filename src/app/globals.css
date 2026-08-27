@@ -164,7 +164,13 @@
     --accent: 44 39% 78%;
     --accent-foreground: 42 17% 11%;
 
-    --destructive: 11 74% 43%;         /* #BE3A1D — the stamp red, danger only */
+    /* Darker than the stamp, on purpose. The stamp is 22px and only has to
+       clear the 3:1 large-text bar, which #BE3A1D does at 4.23:1. But the
+       palette collapse routed every error message here too, and those are
+       text-xs/text-sm — normal text, needing 4.5:1, which #BE3A1D fails.
+       Same hue, four steps darker: 4.90:1. The stamp keeps its own ink in
+       --ink-stamped, so the two uses stopped sharing a value. */
+    --destructive: 10 75% 39%;         /* #AE3319 — error copy, 4.90:1 on paper */
     --destructive-foreground: 43 49% 85%;
 
     --border: 43 29% 70%;              /* #C9BC9C the printed rule */

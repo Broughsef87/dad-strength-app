@@ -238,6 +238,23 @@ ok('the logo tile is cut, not moulded (radius <= 32 on a 1024 box)',
   (() => { const m = appIcon.match(/rx="(\d+)"/g) || []
     return m.every(v => parseInt(v.replace(/\D/g, ''), 10) <= 32) })(),
   'a 216px radius on a 1024 viewBox is an app tile, not a printed mark')
+// ── 4e. the stamp ink and the error ink are not the same red ───────────
+// They were, and it failed AA. --ink-stamped only ever renders at 22px, so it
+// needs 3:1; --destructive carries text-xs error copy, so it needs 4.5:1. One
+// value cannot serve both, and sharing one is how the error text ended up at
+// 4.23:1 on paper.
+{
+  const lightBlock = css.slice(css.indexOf(':root {'), css.indexOf('.dark {'))
+  const dest = (lightBlock.match(/--destructive:\s*([^;]+);/) || [])[1]
+  const stamp = (lightBlock.match(/--ink-stamped:\s*([^;]+);/) || [])[1]
+  ok('error red is darker than stamp red in light mode',
+    dest && stamp && dest.trim() !== stamp.trim(),
+    `both are ${dest} — error copy is small text and needs 4.5:1, the stamp only needs 3:1`)
+  const lightness = (v) => parseFloat((v || '').trim().split(/\s+/)[2] || '99')
+  ok('the error red is dark enough for small text',
+    lightness(dest) <= 40,
+    `L=${lightness(dest)}% — #BE3A1D at 43% measures 4.23:1 on paper and fails AA`)
+}
 // ── 5. the sheet casts onto the desk ────────────────────────────────────────
 // Paper #EBE0C4 on desk #F0EDE6 is 1.11:1 and the 1px rule is 1.61:1, so with
 // no shadow the card edge is invisible and the layout flattens to one field.
