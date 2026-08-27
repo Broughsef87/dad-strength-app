@@ -122,12 +122,18 @@
      These map onto the EXISTING token names on purpose, so every component
      inherits paper before any of them is restyled.
 
-     One mapping deserves explanation: --brand is no longer a hue. It was volt,
-     used as a fill on every CTA. The contract reserves red for verdicts and
-     caps them at two per screen, so brand-as-red would flood every surface and
-     destroy the thing that makes a stamp mean something. On a printed form
-     emphasis comes from WEIGHT and FACE, not colour — so brand is ink, and red
-     belongs to <Stamp> alone.
+     One mapping deserves explanation: --brand is a HUE, and must stay one.
+     The first cut of this design set it to ink, reasoning that on a printed
+     form emphasis comes from weight and face rather than colour. That is true
+     of DATA and false of CHROME. Every accent in the product resolves through
+     --brand, so setting it equal to --foreground removed the last thing making
+     a button look like a button — roughly 164 accent call sites rendered as
+     plain body text, and the app read as flat and colourless. Andrew's verdict
+     on seeing it, and he was right.
+
+     It is ink green now: near enough to volt to keep the lineage, far enough
+     from stamp red and ballpoint blue that neither reserved ink is muddied.
+     Red still belongs to <Stamp> alone, capped at two marks per screen.
 
      Contrast, measured on paper #EBE0C4 (DoD 4):
        ink       #221F18   12.52:1
@@ -201,11 +207,28 @@
     --ring: 222 56% 40%;               /* focus is ballpoint — the athlete's own mark */
 
     /* brand = ink. See the note above. */
-    --brand: 42 17% 11%;               /* #221F18 */
-    --brand-deep: 38 22% 7%;           /* #16130E pressed */
-    --brand-ink: 43 49% 85%;           /* paper, for text on an ink fill */
-    --brand-text: 42 17% 11%;          /* ink; emphasis is weight, not hue */
-    --brand-muted: 42 17% 11% / 0.10;
+    /* --brand IS a hue again. Collapsing it to ink was the single decision
+       that made the app look flat: every accent in the product resolves
+       through this token, so making it equal to --foreground left nothing to
+       distinguish a button from a paragraph. "Three inks" is the right rule
+       for DATA — engine, athlete, verdict — and the wrong rule for chrome.
+
+       Ink green keeps lineage with volt without being neon, and stays clear
+       of both reserved inks: stamp red (11 74% 43%) and ballpoint blue
+       (222 56% 40%). A printed form can carry a second ink colour; what it
+       cannot carry is an accent that is the same colour as the body text. */
+    --brand: 158 55% 26%;              /* #1E6B4F ink green */
+    --brand-deep: 158 60% 19%;         /* #144E39 pressed */
+    --brand-ink: 43 49% 85%;           /* paper, for text on a green fill */
+    --brand-text: 158 62% 21%;         /* #145440 darkened for text on paper */
+    --brand-muted: 158 55% 26% / 0.10;
+
+    /* Semantic states. Not the old rainbow — four things that each MEAN
+       something, so a glance tells you which. The sweep pushed all of them
+       into bg-muted, which is why a personal record and an unstarted set
+       became the same grey chip. */
+    --state-pr: 45 94% 23%;            /* #72590A  a record, gold */
+    --state-hold: 28 84% 26%;          /* #7A3D0A  paused / caution */
 
     /* the three inks, addressable directly where the rule is applied */
     --ink-printed: 42 17% 11%;         /* #221F18 */
@@ -274,11 +297,13 @@
     --ring: 221 41% 64%;               /* ballpoint, lit */
 
     /* brand stays ink — which at night is the pale one */
-    --brand: 42 26% 87%;
-    --brand-deep: 42 20% 76%;
-    --brand-ink: 45 11% 7%;
-    --brand-text: 42 26% 87%;
-    --brand-muted: 42 26% 87% / 0.10;
+    --brand: 158 42% 52%;              /* #4FBF92 the same green, lit */
+    --brand-deep: 158 40% 42%;
+    --brand-ink: 45 11% 7%;            /* near-black, for text on green */
+    --brand-text: 158 45% 62%;         /* lifted for text on lamplight */
+    --brand-muted: 158 42% 52% / 0.12;
+    --state-pr: 45 88% 62%;
+    --state-hold: 32 86% 60%;
 
     --ink-printed: 42 26% 87%;
     --ink-written: 221 41% 64%;        /* #7E96C9 — the artifact's own dark hand */
@@ -460,6 +485,13 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .40 0 0 0 0 .28 0 0 0 .018 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E");
   background-repeat: repeat;
 }
+/* Layered for the same reason .tile is: Tailwind v4 emits utilities into a
+   layer, and unlayered CSS beats every layered rule no matter the specificity.
+   Each of these sets background / radius / colour, so unlayered they silently
+   swallow any bg-*, rounded-* or text-* utility written on the same element.
+   The .tile case proved it is not theoretical: five live call sites had dead
+   borders. Same shape, same fix. */
+@layer components {
 /* recessed row inside a tile (set rows, list items) */
 .row-recessed {
   background: hsl(var(--surface-2));
@@ -506,6 +538,7 @@
   height: 6px;
   border-radius: 999px;
   background: currentColor;
+}
 }
 
 /* ── eyebrows: quiet lowercase mono micro-labels ── */
@@ -644,11 +677,13 @@
 }
 .dark .ds-card::before { content: none; }
 .steel-edge { border: none; }
+@layer components {
 .annual-card {
   background: hsl(var(--surface-3));
   border: none;
   border-radius: 1.25rem;
   box-shadow: var(--shadow-tile-lg);
+}
 }
 :root:not(.dark) .annual-card { background: hsl(var(--surface-3)); border: none; box-shadow: var(--shadow-tile-lg); }
 :root:not(.dark) .premium-surface { background: hsl(var(--surface-3)); border: none; box-shadow: var(--shadow-tile-lg); }
