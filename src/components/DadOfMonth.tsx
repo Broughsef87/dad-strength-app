@@ -108,7 +108,7 @@ export default function DadOfMonth() {
           </div>
           <h3 className="font-medium text-sm">This Month</h3>
         </div>
-        <span className="text-[10px] lowercase text-muted-foreground font-medium">
+        <span className="text-[10px] uppercase text-muted-foreground font-medium tracking-[0.08em]">
           {monthLabel(year, month)}
         </span>
       </div>
@@ -143,7 +143,7 @@ export default function DadOfMonth() {
       {showBestMonth && (
         <div className="flex items-center gap-2 bg-brand/10 border border-brand/25 rounded-xl px-3 py-2.5">
           <span className="text-base leading-none">🏆</span>
-          <p className="text-xs font-bold text-brand lowercase">Best Month Yet</p>
+          <p className="text-xs font-bold text-brand uppercase tracking-[0.08em]">Best Month Yet</p>
         </div>
       )}
     </div>

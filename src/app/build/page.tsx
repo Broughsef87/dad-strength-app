@@ -120,7 +120,7 @@ export default function BuildPage() {
         </button>
         <div>
           <p className="eyebrow-mono">SYS // PATH.SELECT</p>
-          <h1 className="font-display text-xl lowercase">
+          <h1 className="font-display text-xl uppercase tracking-[0.08em]">
             {selected ? selected.name : 'Choose Your Path'}
           </h1>
         </div>
@@ -155,21 +155,21 @@ export default function BuildPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="eyebrow-mono mb-1">{p.tagline}</p>
-                      <p className="font-display text-2xl lowercase text-foreground">
+                      <p className="font-display text-2xl uppercase text-foreground tracking-[0.08em]">
                         {p.name}
                       </p>
                       <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{p.description}</p>
                       <div className="flex gap-2 mt-3 flex-wrap">
                         {locked ? (
-                          <span className="text-[9px] font-mono lowercase px-2 py-0.5 border border-brand/40 text-brand rounded-sm">
+                          <span className="text-[9px] font-mono uppercase px-2 py-0.5 border border-brand/40 text-brand rounded-sm tracking-[0.08em]">
                             Dad Strong+ to switch
                           </span>
                         ) : (
-                          <span className="text-[9px] font-mono lowercase px-2 py-0.5 border border-brand/30 text-brand rounded-sm">
+                          <span className="text-[9px] font-mono uppercase px-2 py-0.5 border border-brand/30 text-brand rounded-sm tracking-[0.08em]">
                             {p.daysPerWeek} days/week
                           </span>
                         )}
-                        <span className="text-[9px] font-mono lowercase px-2 py-0.5 border border-border text-muted-foreground rounded-sm">
+                        <span className="text-[9px] font-mono uppercase px-2 py-0.5 border border-border text-muted-foreground rounded-sm tracking-[0.08em]">
                           {p.macroWeeks}-week macro
                         </span>
                       </div>
@@ -188,7 +188,7 @@ export default function BuildPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="eyebrow-mono mb-1">{p.tagline}</p>
-                      <p className="font-display text-2xl lowercase text-foreground">{p.name}</p>
+                      <p className="font-display text-2xl uppercase text-foreground tracking-[0.08em]">{p.name}</p>
                       <p className="text-xs text-muted-foreground mt-2">{p.description}</p>
                     </div>
                     <Lock size={14} className="text-muted-foreground mt-1 shrink-0" />
@@ -216,7 +216,7 @@ export default function BuildPage() {
 
                 {selected.requiredMaxes.map(d => (
                   <div key={d.key} className="space-y-1">
-                    <label className="text-[10px] font-medium lowercase text-muted-foreground">
+                    <label className="text-[10px] font-medium uppercase text-muted-foreground tracking-[0.08em]">
                       {d.label}
                     </label>
                     <div className="flex items-center gap-2">

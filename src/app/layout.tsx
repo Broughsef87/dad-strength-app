@@ -130,7 +130,7 @@ export default function RootLayout({
           (function(){
             try{
               var t=localStorage.getItem('dad-strength-theme');
-              var dark=t==='dark'||((!t||t==='auto')&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+              var dark=t==='dark'||(t==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);
               if(dark)document.documentElement.classList.add('dark');
             }catch(e){}
           })();

@@ -394,9 +394,9 @@ function RestTimer({ trigger }: { trigger: number }) {
           <span className="stat-num text-2xl tabular-nums text-[hsl(var(--foreground))]">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={() => { endRef.current += 30_000; setRemaining(r => r + 30); beeped.current = false }}
-              className="border border-border/70 text-[10px] font-semibold lowercase text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors">+0:30</button>
+              className="border border-border/70 text-[10px] font-semibold uppercase text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors tracking-[0.08em]">+0:30</button>
             <button onClick={() => setActive(false)}
-              className="border border-brand/50 text-[10px] font-semibold lowercase text-brand hover:bg-brand/10 px-2 py-1.5 transition-colors">Skip</button>
+              className="border border-brand/50 text-[10px] font-semibold uppercase text-brand hover:bg-brand/10 px-2 py-1.5 transition-colors tracking-[0.08em]">Skip</button>
           </div>
         </div>
         <div className="mt-2 h-1 bg-border/40 overflow-hidden">
@@ -494,7 +494,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left px-4 pt-6 pb-3">
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-display text-lg leading-tight lowercase text-foreground truncate">{item.name}</p>
+            <p className="font-display text-lg leading-tight uppercase text-foreground truncate tracking-[0.08em]">{item.name}</p>
             {/* Prescription readout — target weight is the hero */}
             {item.targetWeightLbs != null ? (
               <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
@@ -643,12 +643,12 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
           {onSetCountChange && (
             <div className="flex gap-2 pt-1.5">
               <button onClick={() => onSetCountChange(sets.length + 1)}
-                className="flex items-center gap-1 text-[10px] font-semibold lowercase text-muted-foreground hover:text-brand transition-colors py-1">
+                className="flex items-center gap-1 text-[10px] font-semibold uppercase text-muted-foreground hover:text-brand transition-colors py-1 tracking-[0.08em]">
                 <Plus size={11} /> Add set
               </button>
               {sets.length > 1 && (
                 <button onClick={() => onSetCountChange(sets.length - 1)}
-                  className="flex items-center gap-1 text-[10px] font-semibold lowercase text-muted-foreground hover:text-brand transition-colors py-1 ml-3">
+                  className="flex items-center gap-1 text-[10px] font-semibold uppercase text-muted-foreground hover:text-brand transition-colors py-1 ml-3 tracking-[0.08em]">
                   <Minus size={11} /> Remove set
                 </button>
               )}
@@ -762,12 +762,12 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
         {onSetCountChange && (
           <div className="flex gap-2 pt-1">
             <button onClick={() => onSetCountChange(sets.length + 1)}
-              className="flex items-center gap-1 text-[10px] font-semibold lowercase text-muted-foreground hover:text-brand transition-colors py-1">
+              className="flex items-center gap-1 text-[10px] font-semibold uppercase text-muted-foreground hover:text-brand transition-colors py-1 tracking-[0.08em]">
               <Plus size={11} /> Add set
             </button>
             {sets.length > 1 && (
               <button onClick={() => onSetCountChange(sets.length - 1)}
-                className="flex items-center gap-1 text-[10px] font-semibold lowercase text-muted-foreground hover:text-brand transition-colors py-1 ml-3">
+                className="flex items-center gap-1 text-[10px] font-semibold uppercase text-muted-foreground hover:text-brand transition-colors py-1 ml-3 tracking-[0.08em]">
                 <Minus size={11} /> Remove set
               </button>
             )}
@@ -843,7 +843,7 @@ function OutsideCard({ item, initialLog, onLog }: {
     <div className={` relative tile border p-4 pt-7 space-y-4 ${logged ? 'border-brand/50' : 'border-border'}`}>
       <div className="flex items-center gap-3">
         <Wind size={15} className="text-steel shrink-0" />
-        <p className="font-display text-lg lowercase text-foreground">{item.title}</p>
+        <p className="font-display text-lg uppercase text-foreground tracking-[0.08em]">{item.title}</p>
         {logged && <CheckCircle2 size={15} className="text-brand ml-auto" />}
       </div>
       <ul className="space-y-2">
@@ -857,7 +857,7 @@ function OutsideCard({ item, initialLog, onLog }: {
       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Debrief (times, distances, feel)..."
         className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50 resize-none" />
       <button onClick={() => { onLog(notes); setLogged(true) }}
-        className="w-full py-2.5 bg-foreground text-[hsl(var(--brand-ink))] text-xs font-semibold lowercase hover:bg-foreground/90 transition-colors">
+        className="w-full py-2.5 bg-foreground text-[hsl(var(--brand-ink))] text-xs font-semibold uppercase hover:bg-foreground/90 transition-colors tracking-[0.08em]">
         {logged ? 'logged ✓' : 'log set'}
       </button>
     </div>
@@ -892,7 +892,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
 
         <div className="mb-3">
           <p className="eyebrow-mono mb-1">SUBSTITUTE EXERCISE</p>
-          <p className="font-display text-base lowercase text-foreground">{target.currentName}</p>
+          <p className="font-display text-base uppercase text-foreground tracking-[0.08em]">{target.currentName}</p>
           {isSubbed && <p className="eyebrow-mono mt-0.5">ORIGINAL // {target.originalName.toUpperCase()}</p>}
         </div>
 
@@ -905,9 +905,9 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
         <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1 -mx-1 px-1">
           {(Object.keys(CATEGORY_LABELS) as ExerciseCategory[]).map(c => (
             <button key={c} onClick={() => setCat(cat === c ? null : c)}
-              className={`shrink-0 text-[9px] font-mono lowercase px-2 py-1 border rounded-sm transition-colors ${
+              className={`shrink-0 text-[9px] font-mono uppercase px-2 py-1 border rounded-sm transition-colors ${
  cat === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
- }`}>
+ } tracking-[0.08em]`}>
               {CATEGORY_LABELS[c]}
             </button>
           ))}
@@ -948,12 +948,12 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
         <div className="pt-3 space-y-2">
           {isSubbed && (
             <button onClick={onRevert}
-              className="w-full py-2.5 border border-brand/50 text-brand text-xs font-semibold lowercase hover:bg-brand/10 transition-colors">
+              className="w-full py-2.5 border border-brand/50 text-brand text-xs font-semibold uppercase hover:bg-brand/10 transition-colors tracking-[0.08em]">
               Revert to {target.originalName}
             </button>
           )}
           <button onClick={onClose}
-            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold lowercase hover:text-foreground transition-colors">
+            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold uppercase hover:text-foreground transition-colors tracking-[0.08em]">
             Cancel
           </button>
         </div>
@@ -997,9 +997,9 @@ function AddExerciseModal({ onPick, onClose }: {
         <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1 -mx-1 px-1">
           {(Object.keys(CATEGORY_LABELS) as ExerciseCategory[]).map(c => (
             <button key={c} onClick={() => setCat(cat === c ? null : c)}
-              className={`shrink-0 text-[9px] font-mono lowercase px-2 py-1 border rounded-sm transition-colors ${
+              className={`shrink-0 text-[9px] font-mono uppercase px-2 py-1 border rounded-sm transition-colors ${
  cat === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
- }`}>
+ } tracking-[0.08em]`}>
               {CATEGORY_LABELS[c]}
             </button>
           ))}
@@ -1027,7 +1027,7 @@ function AddExerciseModal({ onPick, onClose }: {
 
         <div className="pt-3">
           <button onClick={onClose}
-            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold lowercase hover:text-foreground transition-colors">
+            className="w-full py-2.5 bg-muted text-muted-foreground text-xs font-semibold uppercase hover:text-foreground transition-colors tracking-[0.08em]">
             Cancel
           </button>
         </div>
@@ -1049,7 +1049,7 @@ function MaxesCard({ maxDefs, current, onSave }: {
   const [saved, setSaved] = useState(false)
   return (
     <div className="tile p-4 space-y-3 border border-brand/30">
-      <p className="text-[10px] font-bold lowercase text-brand">Update Your Maxes</p>
+      <p className="text-[10px] font-bold uppercase text-brand tracking-[0.08em]">Update Your Maxes</p>
       <p className="text-xs text-muted-foreground">New numbers drive next macro&apos;s percentages.</p>
       {maxDefs.map(d => (
         <div key={d.key} className="flex items-center gap-3">
@@ -1069,7 +1069,7 @@ function MaxesCard({ maxDefs, current, onSave }: {
           await onSave(out)
           setSaved(true)
         }}
-        className="w-full py-2.5 bg-brand text-[hsl(var(--brand-ink))] rounded-lg text-xs font-medium lowercase hover:bg-brand/90 transition-colors">
+        className="w-full py-2.5 bg-brand text-[hsl(var(--brand-ink))] rounded-lg text-xs font-medium uppercase hover:bg-brand/90 transition-colors tracking-[0.08em]">
         {saved ? 'Saved ✓' : 'Save Maxes'}
       </button>
     </div>
@@ -1694,9 +1694,9 @@ export default function TrainingDayPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="eyebrow-mono">wk {String(weekRef.current).padStart(2, '0')} · day {dayNumber}</span>
-              {isTestWeek && <span className="pill-volt px-2 py-0.5 text-[10px] lowercase">test week</span>}
+              {isTestWeek && <span className="pill-volt px-2 py-0.5 text-[10px] uppercase tracking-[0.08em]">test week</span>}
             </div>
-            <h1 className="font-display text-xl lowercase truncate mt-0.5">{plan.dayName.toLowerCase()}</h1>
+            <h1 className="font-display text-xl uppercase truncate mt-0.5 tracking-[0.08em]">{plan.dayName.toLowerCase()}</h1>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <div className="flex items-center gap-2">
@@ -1717,7 +1717,7 @@ export default function TrainingDayPage() {
         <div className="sticky top-[60px] z-10 bg-destructive/10 border-b border-destructive/40 px-4 py-2 flex items-start gap-2">
           <AlertTriangle size={14} className="text-destructive shrink-0 mt-0.5" />
           <p className="text-xs text-destructive flex-1">{logWriteError}</p>
-          <button onClick={() => setLogWriteError(null)} className="text-[10px] lowercase text-destructive hover:text-destructive px-2">Dismiss</button>
+          <button onClick={() => setLogWriteError(null)} className="text-[10px] uppercase text-destructive hover:text-destructive px-2 tracking-[0.08em]">Dismiss</button>
         </div>
       )}
 
@@ -1805,12 +1805,12 @@ export default function TrainingDayPage() {
         {plan.dayType !== 'rest' && (
           <div className="flex items-center gap-3">
             <button onClick={() => setShowAddExercise(true)}
-              className="flex-1 py-2.5 border border-border text-muted-foreground text-[10px] font-semibold lowercase hover:text-brand hover:border-brand/50 transition-colors flex items-center justify-center gap-1.5">
+              className="flex-1 py-2.5 border border-border text-muted-foreground text-[10px] font-semibold uppercase hover:text-brand hover:border-brand/50 transition-colors flex items-center justify-center gap-1.5 tracking-[0.08em]">
               <Plus size={12} /> Add Exercise
             </button>
             {(overrides.removedSlots?.length ?? 0) > 0 && (
               <button onClick={() => void updateOverrides({ ...overrides, removedSlots: [] })}
-                className="py-2.5 px-3 border border-border text-muted-foreground text-[10px] font-semibold lowercase hover:text-foreground transition-colors">
+                className="py-2.5 px-3 border border-border text-muted-foreground text-[10px] font-semibold uppercase hover:text-foreground transition-colors tracking-[0.08em]">
                 Restore hidden ({overrides.removedSlots!.length})
               </button>
             )}

@@ -95,7 +95,7 @@ export default function ActiveProgram() {
       <div className="flex items-start justify-between mb-4 relative z-10">
         <div>
           <span className="eyebrow-mono">active program</span>
-          <h2 className="font-display text-3xl text-foreground leading-none mt-1 lowercase">
+          <h2 className="font-display text-3xl text-foreground leading-none mt-1 uppercase tracking-[0.08em]">
             {program?.name || 'choose program'}
           </h2>
         </div>

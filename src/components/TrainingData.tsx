@@ -104,7 +104,7 @@ export function TrainingDataView({
     <div className="tile p-6">
       <div className="flex items-center gap-2 mb-1">
         <LineChart size={15} className="text-muted-foreground" />
-        <h3 className="font-display text-base lowercase">training data</h3>
+        <h3 className="font-display text-base uppercase tracking-[0.08em]">training data</h3>
       </div>
       <p className="eyebrow-mono mb-5">built from every set you have logged</p>
 
@@ -145,7 +145,7 @@ export function TrainingDataView({
             <div className="grid grid-cols-2 gap-2.5">
               {trends.slice(0, 8).map(t => (
                 <div key={t.name} className="row-recessed p-3">
-                  <p className="text-[11px] lowercase text-muted-foreground truncate" title={t.name}>
+                  <p className="text-[11px] uppercase text-muted-foreground truncate tracking-[0.08em]" title={t.name}>
                     {t.name.toLowerCase()}
                   </p>
                   <div className="flex items-baseline gap-1.5 mt-0.5">

@@ -35,9 +35,9 @@ export default function ActiveSetRow({
     }`}>
       {/* Set Number Indicator */}
       <div className="col-span-1 flex flex-col items-center justify-center">
-        <span className={`text-[9px] font-display font-semibold lowercase mb-0.5 transition-colors ${
+        <span className={`text-[9px] font-display font-semibold uppercase mb-0.5 transition-colors ${
           isDone ? 'text-muted-foreground' : 'text-muted-foreground group-hover:text-brand/50'
-        }`}>
+        } tracking-[0.08em]`}>
           Set
         </span>
         <span className={`text-base font-display font-semibold italic leading-none ${
@@ -63,7 +63,7 @@ export default function ActiveSetRow({
           onChange={(e) => onWeightChange(e.target.value)}
         />
         {weight && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-[hsl(var(--brand-ink))] lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-[hsl(var(--brand-ink))] uppercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200 tracking-[0.08em]">
             LBS
           </span>
         )}
@@ -91,7 +91,7 @@ export default function ActiveSetRow({
           onChange={(e) => onRepsChange(e.target.value)}
         />
         {reps && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-[hsl(var(--brand-ink))] lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-[hsl(var(--brand-ink))] uppercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200 tracking-[0.08em]">
             REPS
           </span>
         )}
@@ -123,12 +123,12 @@ export default function ActiveSetRow({
       {!isDone && !weight && !reps && previousWeight && (
           <div className="absolute -left-1 top-1/2 -translate-y-1/2 -translate-x-full pr-2 hidden lg:block">
               <div className="bg-muted px-2 py-1 rounded-lg border border-border whitespace-nowrap">
-                  <p className="text-[8px] font-display font-semibold text-muted-foreground lowercase">Last: {previousWeight}x{previousReps}</p>
+                  <p className="text-[8px] font-display font-semibold text-muted-foreground uppercase tracking-[0.08em]">Last: {previousWeight}x{previousReps}</p>
               </div>
           </div>
       )}
       {isDone && isPR && (
-        <div className="absolute -top-2 -right-2 bg-[hsl(var(--state-pr))] text-[hsl(var(--brand-ink))] text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-[hsl(var(--foreground))]/30 animate-in zoom-in duration-300 z-10">
+        <div className="absolute -top-2 -right-2 bg-[hsl(var(--state-pr))] text-[hsl(var(--brand-ink))] text-[8px] font-display font-semibold px-2 py-0.5 rounded-full uppercase shadow-lg shadow-[hsl(var(--foreground))]/30 animate-in zoom-in duration-300 z-10 tracking-[0.08em]">
           PR
         </div>
       )}

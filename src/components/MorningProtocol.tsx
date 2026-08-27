@@ -271,14 +271,14 @@ export default function MorningProtocol(
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sun size={14} className="text-brand" />
-            <span className="text-[10px] lowercase text-brand font-medium">Morning Protocol</span>
+            <span className="text-[10px] uppercase text-brand font-medium tracking-[0.08em]">Morning Protocol</span>
           </div>
           <p className="text-xs text-muted-foreground font-light">Build your morning. Own your day.</p>
         </div>
 
         {/* Time */}
         <div>
-          <label className="text-[10px] text-muted-foreground lowercase font-medium block mb-2.5">How much time?</label>
+          <label className="text-[10px] text-muted-foreground uppercase font-medium block mb-2.5 tracking-[0.08em]">How much time?</label>
           <div className="flex gap-2">
             {TIME_OPTIONS.map(t => (
               <button key={t} onClick={() => setMinutes(t)}
@@ -294,7 +294,7 @@ export default function MorningProtocol(
 
         {/* Sleep quality */}
         <div>
-          <label className="text-[10px] text-muted-foreground lowercase font-medium block mb-2.5">How&apos;d you sleep?</label>
+          <label className="text-[10px] text-muted-foreground uppercase font-medium block mb-2.5 tracking-[0.08em]">How&apos;d you sleep?</label>
           <div className="space-y-2">
             {SLEEP_QUALITY.map(s => (
               <button key={s.id} onClick={() => setSleep(s.id)}
@@ -317,7 +317,7 @@ export default function MorningProtocol(
 
         {/* Energy */}
         <div>
-          <label className="text-[10px] text-muted-foreground lowercase font-medium block mb-2.5">Your energy right now?</label>
+          <label className="text-[10px] text-muted-foreground uppercase font-medium block mb-2.5 tracking-[0.08em]">Your energy right now?</label>
           <div className="space-y-2">
             {ENERGY_LEVELS.map(e => (
               <button key={e.id} onClick={() => setEnergy(e.id)}
@@ -373,7 +373,7 @@ export default function MorningProtocol(
         <div>
           <div className="flex items-center gap-1.5 mb-1">
             <Sun size={13} className="text-brand" />
-            <span className="text-[10px] lowercase text-brand font-medium">Morning Protocol</span>
+            <span className="text-[10px] uppercase text-brand font-medium tracking-[0.08em]">Morning Protocol</span>
           </div>
           <h3 className="font-light text-lg tracking-tight leading-tight">{protocol?.theme}</h3>
         </div>
@@ -411,7 +411,7 @@ export default function MorningProtocol(
       {/* Progress */}
       <div className="space-y-1.5">
         <div className="flex justify-between items-center">
-          <span className="text-[10px] text-muted-foreground lowercase font-medium">Progress</span>
+          <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-[0.08em]">Progress</span>
           <span className="text-[10px] text-brand font-medium">{doneCount}/{totalSteps}</span>
         </div>
         <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
@@ -456,7 +456,7 @@ export default function MorningProtocol(
                   <p className={`font-medium text-sm ${isDone ? 'line-through text-muted-foreground' : ''}`}>
                     {step.title}
                   </p>
-                  <p className="text-[10px] text-muted-foreground lowercase mt-0.5">
+                  <p className="text-[10px] text-muted-foreground uppercase mt-0.5 tracking-[0.08em]">
                     {step.pillar} · {step.minutes}m
                   </p>
                 </div>
@@ -476,7 +476,7 @@ export default function MorningProtocol(
                   {/* Gratitude — 3 text inputs */}
                   {isGratitude ? (
                     <div className="space-y-2">
-                      <p className="text-[10px] lowercase text-muted-foreground font-medium">3 things you&apos;re grateful for</p>
+                      <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-[0.08em]">3 things you&apos;re grateful for</p>
                       {[0, 1, 2].map(j => (
                         <div key={j} className="flex items-center gap-2">
                           <span className="text-[10px] text-muted-foreground font-medium w-4">{j + 1}.</span>
@@ -500,7 +500,7 @@ export default function MorningProtocol(
                     <div className="space-y-4">
                       {/* Daily Objectives */}
                       <div className="space-y-2">
-                        <p className="text-[10px] lowercase text-muted-foreground font-medium">Today&apos;s objectives</p>
+                        <p className="text-[10px] uppercase text-muted-foreground font-medium tracking-[0.08em]">Today&apos;s objectives</p>
                         {[0, 1, 2].map(j => (
                           <div key={j} className="flex items-center gap-2">
                             <span className="text-[10px] text-muted-foreground font-mono w-5 shrink-0">0{j + 1}</span>
@@ -529,7 +529,7 @@ export default function MorningProtocol(
                         <button
                           onClick={saveMindState}
                           disabled={!mindObjectives.some(o => o.trim())}
-                          className="w-full flex items-center justify-center gap-2 bg-muted/10 border border-border/30 hover:bg-muted/20 text-muted-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-2 bg-muted/10 border border-border/30 hover:bg-muted/20 text-muted-foreground font-medium py-2.5 rounded-lg text-xs uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed tracking-[0.08em]"
                         >
                           <Target size={12} /> Save to Mind Tab
                         </button>
@@ -543,14 +543,14 @@ export default function MorningProtocol(
 
                   ) : (
                     <div className={`rounded-lg px-4 py-3 border ${colors}`}>
-                      <p className="text-[10px] lowercase font-medium mb-1 opacity-70">Focus Prompt</p>
+                      <p className="text-[10px] uppercase font-medium mb-1 opacity-70 tracking-[0.08em]">Focus Prompt</p>
                       <p className="text-sm font-light italic">{step.prompt}</p>
                     </div>
                   )}
 
                   <button
                     onClick={() => toggleStep(i)}
-                    className="w-full bg-muted hover:bg-foreground hover:text-[hsl(var(--brand-ink))] text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all"
+                    className="w-full bg-muted hover:bg-foreground hover:text-[hsl(var(--brand-ink))] text-foreground font-medium py-2.5 rounded-lg text-xs uppercase transition-all tracking-[0.08em]"
                   >
                     Mark Complete ✓
                   </button>
@@ -564,7 +564,7 @@ export default function MorningProtocol(
       {allDone && (
         <button
           onClick={() => setReviewOpen(false)}
-          className="w-full py-2.5 border border-border/50 text-foreground text-xs font-semibold lowercase hover:bg-muted/10 transition-colors"
+          className="w-full py-2.5 border border-border/50 text-foreground text-xs font-semibold uppercase hover:bg-muted/10 transition-colors tracking-[0.08em]"
         >
           Collapse — Systems Green
         </button>

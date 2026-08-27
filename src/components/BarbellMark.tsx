@@ -118,7 +118,7 @@ export function SectionLabel({
         /* a printed tick before the title, then the rule continues past it */
         className="h-px w-3 bg-foreground"
       />
-      <span className="text-[9px] lowercase text-muted-foreground font-display font-semibold">
+      <span className="text-[9px] uppercase text-muted-foreground font-display font-semibold tracking-[0.08em]">
         {title}
       </span>
       <span className="h-px flex-1 bg-border" />
@@ -156,7 +156,7 @@ export function SectionDivider({ className = '' }: { className?: string }) {
  * lowercase display type with a single italic-serif word for
  * moments of gravitas.
  *
- *   <h1 className="font-display text-4xl lowercase">
+ *   <h1 className="font-display text-4xl uppercase tracking-[0.08em]">
  *     Lead by <HeroAccent>Example.</HeroAccent>
  *   </h1>
  *
