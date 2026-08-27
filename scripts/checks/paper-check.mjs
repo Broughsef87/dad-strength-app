@@ -343,6 +343,32 @@ ok('the grain is a background layer, not a stacking contest',
     hits.length === 0,
     hits.join('  |  ') + ' — stamp red on a fill is 2.61:1; verdicts go on the paper')
 }
+// ── 4b-viii. the sign-in widget takes tokens, never literals ────────────────
+// <Auth> is third-party and takes its palette as VALUES rather than classes,
+// so it is the one surface a reskin cannot reach by restyling. It had been
+// handed two hand-maintained lists of hex literals — one per theme — and had
+// therefore been silently left behind for a whole design generation: the
+// primary button still rendered #CE0928, the retired cockpit red, on paper,
+// and the Google button was pure white, which the contract bans outright.
+//
+// Nothing caught it because nothing was wrong in the app's own CSS. The bug
+// lived in a JS object that no stylesheet, token or class-based guard reads.
+//
+// Every value must now be hsl(var(--token)), so the widget resolves through
+// the same cascade as everything else and cannot drift again. This also
+// deleted the light/dark duplication that made the drift invisible: one list
+// that follows the theme beats two that have to be remembered.
+{
+  const src = readFileSync(join(SRC, 'app', 'page.tsx'), 'utf8')
+  const m = src.match(/const authColors = \{([\s\S]*?)\n  \}/)
+  const body = m ? m[1].replace(/\/\/[^\n]*/g, '') : ''
+  const values = [...body.matchAll(/:\s*'([^']*)'/g)].map((v) => v[1])
+  const literals = values.filter((v) => !/^hsl\(var\(--[a-z0-9-]+\)\)$/.test(v))
+  ok('sign-in widget palette is tokens, not literals',
+    !!m && values.length >= 12 && literals.length === 0,
+    !m ? 'authColors object not found in page.tsx'
+       : `raw literals in the auth palette: ${literals.join(' ')} — it will drift`)
+}
 
 // ── 4c. focus must never equal the resting border ───────────────────────────
 // Collapsing the palette turned focus:border-{hue} into focus:border-border,
