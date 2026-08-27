@@ -51,11 +51,11 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
 
       <button
         onClick={onSkip}
-        className="group relative z-10 p-2 rounded-xl bg-card/50 border border-border hover:border-gray-700 transition-all"
+        className="group relative z-10 p-2 rounded-xl bg-card/50 border border-border hover:border-border transition-all"
       >
         <div className="flex items-center gap-2 px-1">
           <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground lowercase transition-colors">Skip</span>
-          <X className="w-4 h-4 text-gray-600 group-hover:text-destructive transition-colors" />
+          <X className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
         </div>
       </button>
     </div>

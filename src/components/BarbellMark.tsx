@@ -181,7 +181,7 @@ export function HeroAccent({
   tone?: 'amber' | 'foreground'
   className?: string
 }) {
-  const color = tone === 'amber' ? 'text-brand' : 'text-foreground'
+  const color = tone === 'amber' ? 'text-foreground' : 'text-muted-foreground'
   return (
     <span
       className={`font-serif italic normal-case tracking-normal ${color} ${className}`}

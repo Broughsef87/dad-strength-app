@@ -89,7 +89,7 @@ export default function RecoveryProtocol() {
     <div className="tile relative rounded-xl p-6 pt-8">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <Snowflake size={16} className={complete ? 'text-foreground' : 'text-brand'} />
+          <Snowflake size={16} className={complete ? 'text-muted-foreground' : 'text-foreground'} />
           <h3 className="font-display font-semibold text-sm lowercase">Recovery Protocol</h3>
         </div>
         <span className="eyebrow-mono">{total}/{WEEKLY_TARGET} THIS WK</span>

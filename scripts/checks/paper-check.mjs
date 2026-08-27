@@ -97,7 +97,10 @@ for (const p of pages) {
 // that means nothing in this system — a green chip on a beige form is a
 // sticker. State is carried by weight and by the one ink that means stop.
 {
-  const HUES = 'red|rose|green|emerald|lime|teal|amber|yellow|orange|blue|sky|indigo|violet|purple|fuchsia|pink|cyan'
+  // Neutrals count. gray/slate/zinc/etc were absent from the first list, and
+  // 49 of them survived the collapse — a grey box on a beige card is as
+  // off-palette as a green one.
+  const HUES = 'red|rose|green|emerald|lime|teal|amber|yellow|orange|blue|sky|indigo|violet|purple|fuchsia|pink|cyan|gray|grey|slate|zinc|neutral|stone'
   const re = new RegExp(`\\b(?:text|bg|border|from|to|ring)-(?:${HUES})-\\d{2,3}\\b`, 'g')
   const offenders = []
   const walkSrc = (dir) => {
@@ -147,7 +150,7 @@ ok('the grain is a background layer, not a stacking contest',
 // The first pass covered text/bg/border/from/to/ring and missed shadow-, and
 // missed hard-coded black/white entirely. Both showed up in review.
 {
-  const HUES2 = 'red|rose|green|emerald|lime|teal|amber|yellow|orange|blue|sky|indigo|violet|purple|fuchsia|pink|cyan'
+  const HUES2 = 'red|rose|green|emerald|lime|teal|amber|yellow|orange|blue|sky|indigo|violet|purple|fuchsia|pink|cyan|gray|grey|slate|zinc|neutral|stone'
   const extra = new RegExp(`\\b(?:shadow|fill|stroke|divide|outline|decoration|caret|accent)-(?:${HUES2})-\\d{2,3}\\b`)
   const hard = /\b(?:text|bg|border)-(?:black|white)\b/
   let all = ''
@@ -180,8 +183,19 @@ ok('the grain is a background layer, not a stacking contest',
       if (statSync(p).isDirectory()) { w(p); continue }
       if (!/\.tsx$/.test(e)) continue
       const src = readFileSync(p, 'utf8')
-      for (const m of src.matchAll(/className="([^"]*)"/g)) {
-        const c = m[1]
+      // BOTH className forms. The first version of this guard scanned only
+      // className="..." and passed green while seven collisions sat in
+      // className={`...`} — which is where conditional state classes live, so
+      // it was blind to exactly the case it existed for. A guard that reports
+      // verified while the bug ships is worse than no guard.
+      const spans = [
+        ...[...src.matchAll(/className="([^"]*)"/g)].map((m) => m[1]),
+        ...[...src.matchAll(/className=\{`([^`]*)`\}/gs)].flatMap((m) =>
+          // per quoted branch: `${on ? 'A' : 'B'}` is two independent states
+          [...m[1].matchAll(/'([^']*)'/g)].map((q) => q[1]).concat(m[1].split('${')[0])
+        ),
+      ]
+      for (const c of spans) {
         // a hover: variant that changes BOTH is not a collision
         const bare = c.replace(/\bhover:[^\s]+/g, '')
         for (const [fill, text] of SAME.slice(0, 2)) {

@@ -43,7 +43,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const MECHANIC_BADGE: Record<string, string> = {
   Compound:  'text-brand bg-brand/10',
-  Isolation: 'text-muted-foreground bg-gray-800',
+  Isolation: 'text-muted-foreground bg-muted',
   Isometric: 'text-foreground bg-muted/10',
 }
 
@@ -113,19 +113,19 @@ export default function Library() {
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-display font-semibold lowercase">Movement Library</h1>
-            <p className="text-[10px] text-gray-600 font-bold lowercase">{filtered.length} exercises</p>
+            <p className="text-[10px] text-muted-foreground font-bold lowercase">{filtered.length} exercises</p>
           </div>
         </div>
 
         {/* SEARCH */}
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input
             type="text"
             placeholder="Search exercises or muscles..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-gray-700 focus:outline-none focus:border-brand transition-all font-medium"
+            className="w-full bg-card border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand transition-all font-medium"
           />
         </div>
 
@@ -137,8 +137,8 @@ export default function Library() {
               onClick={() => setEquipFilter(eq)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold lowercase border transition-all ${
                 equipFilter === eq
-                  ? 'bg-brand border-brand text-foreground'
-                  : 'bg-card border-border text-muted-foreground hover:border-gray-700'
+                  ? 'bg-brand border-brand text-[hsl(var(--brand-ink))]'
+                  : 'bg-card border-border text-muted-foreground hover:border-border'
               }`}
             >
               {eq === 'all' ? '🏋️ All' : eq === 'iron' ? '🔩 Full Gym' : '🏠 At Home'}
@@ -154,8 +154,8 @@ export default function Library() {
               onClick={() => setActiveCategory(cat)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold lowercase transition-all ${
                 activeCategory === cat
-                  ? 'bg-brand text-foreground shadow-lg shadow-brand/20'
-                  : 'bg-card text-muted-foreground hover:text-gray-300 border border-border'
+                  ? 'bg-brand text-[hsl(var(--brand-ink))] shadow-lg shadow-brand/20'
+                  : 'bg-card text-muted-foreground hover:text-muted-foreground border border-border'
               }`}
             >
               {cat}
@@ -181,7 +181,7 @@ export default function Library() {
             return (
               <div
                 key={ex.id}
-                className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between group hover:border-gray-700 transition-all shadow-lg"
+                className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between group hover:border-border transition-all shadow-lg"
               >
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   <div className={`h-10 w-10 rounded-xl flex items-center justify-center border flex-shrink-0 ${catColor}`}>

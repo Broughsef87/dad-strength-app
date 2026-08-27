@@ -818,7 +818,7 @@ function MetconCard({ item, initialLog, onLog }: {
         <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes..."
           className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50" />
         <button onClick={() => { onLog({ timeMin, timeSec, rounds, notes }); setLogged(true) }}
-          className={`w-full py-3 rounded-lg text-sm font-medium lowercase transition-all ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-foreground hover:bg-brand/90'}`}>
+          className={`w-full py-3 rounded-lg text-sm font-medium lowercase transition-all ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-[hsl(var(--brand-ink))] hover:bg-brand/90'}`}>
           {logged ? '✓ MetCon Logged' : 'Log MetCon Result'}
         </button>
       </div>
