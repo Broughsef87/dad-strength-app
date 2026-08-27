@@ -559,9 +559,44 @@ ok('the logo tile is cut, not moulded (radius <= 32 on a 1024 box)',
   const lightBlock = css.slice(css.indexOf(':root {'), css.indexOf('.dark {'))
   const dest = (lightBlock.match(/--destructive:\s*([^;]+);/) || [])[1]
   const stamp = (lightBlock.match(/--ink-stamped:\s*([^;]+);/) || [])[1]
-  ok('error red is darker than stamp red in light mode',
-    dest && stamp && dest.trim() !== stamp.trim(),
-    `both are ${dest} — error copy is small text and needs 4.5:1, the stamp only needs 3:1`)
+  // This used to assert `dest !== stamp` — two different STRINGS — under a name
+  // that promised a lightness ordering. It stayed green the entire time the two
+  // reds were deltaE 6 apart on paper and BYTE-IDENTICAL on lamplight, because
+  // it never looked at the .dark block at all. A verdict stamp and an error
+  // message rendered in the same ink and nothing said so.
+  //
+  // Now it measures. HSL -> sRGB -> CIE Lab -> deltaE76, in both themes: under
+  // 10 is confusable at a glance, over 20 is clearly a different colour.
+  const darkBlock = css.slice(css.indexOf('.dark {'))
+  const hsl2rgb = (v) => {
+    const [h, sp, lp] = (v || '').trim().split(/[\s%]+/).map(parseFloat)
+    const S = sp / 100, L2 = lp / 100
+    const c = (1 - Math.abs(2 * L2 - 1)) * S, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = L2 - c / 2
+    const t = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x]
+            : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]
+    return t.map((u) => (u + m) * 255)
+  }
+  const toLab = (rgb) => {
+    const lin = (u) => { u /= 255; return u <= 0.03928 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4) }
+    const [r, g, b] = rgb.map(lin)
+    const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116)
+    const X = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047)
+    const Y = f(0.2126 * r + 0.7152 * g + 0.0722 * b)
+    const Z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883)
+    return [116 * Y - 16, 500 * (X - Y), 200 * (Y - Z)]
+  }
+  const deltaE = (a, b) => {
+    const A = toLab(hsl2rgb(a)), B = toLab(hsl2rgb(b))
+    return Math.sqrt((A[0] - B[0]) ** 2 + (A[1] - B[1]) ** 2 + (A[2] - B[2]) ** 2)
+  }
+  const dDest = (darkBlock.match(/--destructive:\s*([^;]+);/) || [])[1]
+  const dStamp = (darkBlock.match(/--ink-stamped:\s*([^;]+);/) || [])[1]
+  const dLight = dest && stamp ? deltaE(dest, stamp) : 0
+  const dDark = dDest && dStamp ? deltaE(dDest, dStamp) : 0
+  ok('the verdict stamp and the error red are different colours, both themes',
+    dLight > 20 && dDark > 20,
+    `deltaE light ${dLight.toFixed(1)}, dark ${dDark.toFixed(1)} — under 20 a DONE stamp `
+    + `and an error message read as the same ink, and red is supposed to mean verdict`)
   const lightness = (v) => parseFloat((v || '').trim().split(/\s+/)[2] || '99')
   ok('the error red is dark enough for small text',
     lightness(dest) <= 40,

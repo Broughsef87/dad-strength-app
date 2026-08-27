@@ -228,12 +228,12 @@
        into bg-muted, which is why a personal record and an unstarted set
        became the same grey chip. */
     --state-pr: 45 94% 23%;            /* #72590A  a record, gold */
-    --state-hold: 28 84% 26%;          /* #7A3D0A  paused / caution */
+    --state-hold: 208 42% 30%;         /* #2C4C6D  paused, a cold session */
 
     /* the three inks, addressable directly where the rule is applied */
     --ink-printed: 42 17% 11%;         /* #221F18 */
     --ink-written: 222 56% 40%;        /* #2D4E9E ballpoint */
-    --ink-stamped: 11 74% 43%;         /* #BE3A1D grease red */
+    --ink-stamped: 28 92% 35%;         /* #AB5806 grease orange */
     --rule-dotted: 45 22% 62%;         /* #B3A887 the dotted blank */
 
     /* The card lifts off the desk; nothing lifts off the card.
@@ -303,11 +303,11 @@
     --brand-text: 158 45% 62%;         /* lifted for text on lamplight */
     --brand-muted: 158 42% 52% / 0.12;
     --state-pr: 45 88% 62%;
-    --state-hold: 32 86% 60%;
+    --state-hold: 194 42% 54%;
 
     --ink-printed: 42 26% 87%;
     --ink-written: 221 41% 64%;        /* #7E96C9 — the artifact's own dark hand */
-    --ink-stamped: 12 71% 58%;         /* #E0674A */
+    --ink-stamped: 30 90% 57%;         /* #F59122 */
     --rule-dotted: 43 12% 30%;
 
     /* At night the sheet sits closer to the desk — less lift, darker cast. */
