@@ -169,10 +169,15 @@
     --ink-stamped: 11 74% 43%;         /* #BE3A1D grease red */
     --rule-dotted: 45 22% 62%;         /* #B3A887 the dotted blank */
 
-    /* Paper does not cast shadows onto itself. Hairline rules carry the
-       structure now; the tile shadows that led the chalk/volt system off. */
-    --shadow-tile: none;
-    --shadow-tile-lg: none;
+    /* The card lifts off the desk; nothing lifts off the card.
+       "in-card shadows off" means sub-panels INSIDE a card use hairline rules
+       instead of stacked shadows — it does not mean the sheet stops casting.
+       It has to cast: paper #EBE0C4 on desk #F0EDE6 is 1.11:1, and the 1px
+       rule is 1.61:1 against the desk, so with no shadow the card edge is
+       essentially invisible and the whole layout flattens into one field.
+       This is the artifact's own card shadow, verbatim. */
+    --shadow-tile: 0 1px 0 #cfc3a2, 0 14px 40px rgba(30, 25, 10, 0.28);
+    --shadow-tile-lg: 0 1px 0 #cfc3a2, 0 22px 60px rgba(30, 25, 10, 0.32);
   }
 
   /* ── LAMPLIGHT — the same card, read at night ────────────────────────────
@@ -236,8 +241,9 @@
     --ink-stamped: 12 71% 58%;         /* #E0674A */
     --rule-dotted: 43 12% 30%;
 
-    --shadow-tile: none;
-    --shadow-tile-lg: none;
+    /* At night the sheet sits closer to the desk — less lift, darker cast. */
+    --shadow-tile: 0 1px 0 #0d0b08, 0 10px 30px rgba(0, 0, 0, 0.55);
+    --shadow-tile-lg: 0 1px 0 #0d0b08, 0 18px 44px rgba(0, 0, 0, 0.6);
   }
 
   * {
@@ -374,7 +380,7 @@
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: 4px;
-  box-shadow: none;
+  box-shadow: var(--shadow-tile);
 }
 .tile-lg { border-radius: 6px; }
 
