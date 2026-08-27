@@ -137,6 +137,9 @@ for (const wk of [1, 2, 5, 9, 11]) {
   assert(pos('hang_psn') === -1, `W${wk} Fri: hang_psn was removed (FOR-188)`)
   // M1 only: M2/M3 add the clean back-off, so Friday is legitimately 6 there.
   if (wk <= 4) assert(s.length === 5, `W${wk} Fri: 5 stations in M1 after the hang-snatch cut, got ${s.length}`)
+  // both present first: indexOf gives -1 for a missing slot, and -1 < n is
+  // true, so the ordering assert alone would survive either one vanishing
+  assert(pos('speed_squat') >= 0 && pos('cl_top') >= 0, `W${wk} Fri: speed squat and clean must both exist`)
   assert(pos('speed_squat') < pos('cl_top'), `W${wk} Fri: speed squat must precede the heavy clean`)
   assert(pos('cl_top') < pos('clean_pull'), `W${wk} Fri: clean before the pull`)
   assert(pos('acc_pullup') === s.length - 1, `W${wk} Fri: the row is the overflow block, must be last`)
@@ -190,6 +193,7 @@ assert([1, 5, 9].some(wk => /pallof/i.test(nameAt(wk, 1, 'acc_core') ?? '')), 'n
 // leftovers behind a heavy deadlift.
 for (const wk of [1, 5, 9]) {
   const slots = hybridPower.buildDay(wk, 6, MAXES).items.map(i => i.slot)
+  assert(slots.includes('ohp_press') && slots.includes('sat_dl'), `W${wk}: OHP and deadlift must both exist`)
   assert(slots.indexOf('ohp_press') < slots.indexOf('sat_dl'), `W${wk}: OHP must come before the deadlift`)
 }
 // Test week has to retest every max the program consumes, OHP included —

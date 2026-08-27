@@ -40,21 +40,27 @@ let exemptVelocity = 0
 let exemptTest = 0
 
 for (const [slug, program] of Object.entries(PROGRAMS)) {
-  const days = program.daysPerWeek ?? 7
+  // NOT daysPerWeek — that is a count, not a range. dad-strong is
+  // daysPerWeek: 5 with gymDayNumbers [1, 2, 4, 6], so trusting the count
+  // skipped Saturday entirely and a 5-set block there would have passed.
+  const days = Array.isArray(program.gymDayNumbers) && program.gymDayNumbers.length
+    ? program.gymDayNumbers
+    : [1, 2, 3, 4, 5, 6, 7]
   for (let week = 1; week <= 13; week++) {
-    for (let day = 1; day <= days; day++) {
-      let plan
-      try {
-        plan = program.buildDay(week, day, MAXES)
-      } catch {
-        continue                       // a day this program does not build
-      }
+    for (const day of days) {
+      // No try/catch. buildDay returns a rest day rather than throwing for a
+      // day it does not program, so a throw here is a genuinely broken config
+      // path — and swallowing it would report "no violations" for a program
+      // that never built at all.
+      const plan = program.buildDay(week, day, MAXES)
       for (const item of plan?.items ?? []) {
         if (typeof item.sets !== 'number') continue
         inspected++
         if (item.sets <= CEILING) continue
         if (item.velocity === true) { exemptVelocity++; continue }
-        const isTestRamp = week === 13 || String(item.slot ?? '').startsWith('test_')
+        // BOTH, not either: week 13 alone excused every accessory in the test
+        // week, and the slot prefix alone excused a test_ slot in any week.
+        const isTestRamp = week === 13 && String(item.slot ?? '').startsWith('test_')
         if (isTestRamp) { exemptTest++; continue }
         const key = `${slug}:${item.slot}`
         if (allow.some((a) => a === key || a?.entry === key)) continue

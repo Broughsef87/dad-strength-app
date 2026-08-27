@@ -699,7 +699,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         dayNumber, dayName: 'Speed + Clean', dayType: 'gym',
         sessionIntent: pos.isDeload
           ? 'Deload — a few crisp doubles, nothing else.'
-          : 'Fast first: jumps, snatch speed, speed squats. Then the heavy clean and the pull.',
+          : 'Fast first: jumps, then speed squats. Then the heavy clean and the pull.',
         items,
       }
     }
