@@ -137,6 +137,29 @@
   ────────────────────────────────────────────────────────────────────────── */
   :root {
     --background: 42 25% 92%;          /* #F0EDE6 the desk */
+
+    /* A scrim is the one colour in the system that must NOT follow the theme.
+       Its whole job is to push the page back behind a modal, so it has to be
+       dark on paper AND dark on lamplight. Deliberately defined here in :root
+       and NOT overridden in .dark — the absence below is the feature.
+
+       This exists because I got it wrong. The palette sweep replaced bg-black/70
+       with bg-[hsl(var(--foreground))]/70, which is correct on paper (ink) and
+       inverts on lamplight, where --foreground is cream. Measured in the
+       production build: the scrim composited to rgb(167,163,154), luminance
+       0.367 over a page at 0.007 — a bright grey sheet dropped over the whole
+       dark UI, where it had been 0.002. Five modals, including the legal gate
+       every user meets. Banning pure black was right; reaching for --foreground
+       as the replacement was not. */
+    --scrim: 45 12% 4%;                /* #0B0A08 — dark in BOTH themes */
+
+    /* The scrim's opposite number, and the same rule. A sheen is a specular
+       highlight sliding across a surface, so it must be LIGHT in both themes.
+       It was bg-white/10; the sweep repointed it to --card, which is paper on
+       one theme and near-black on the other. Measured over bg-muted: in
+       lamplight the highlight DARKENED by 0.0016 where it used to lighten by
+       0.0257 — the shine animation still ran and did nothing. Also :root only. */
+    --sheen: 45 40% 96%;               /* #FAF6EC — light in BOTH themes */
     --foreground: 42 17% 11%;          /* #221F18 ink */
 
     --card: 43 49% 85%;                /* #EBE0C4 paper — warmer than the desk */

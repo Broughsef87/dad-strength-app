@@ -89,7 +89,7 @@ export default function LegalGate() {
   if (!needsAck || !userId || EXEMPT_PATHS.includes(pathname)) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-[hsl(var(--foreground))]/70">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-[hsl(var(--scrim))]/70">
       <LegalGateView
         checked={checked}
         saving={saving}

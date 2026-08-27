@@ -882,7 +882,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-[hsl(var(--foreground))]/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
@@ -975,7 +975,7 @@ function AddExerciseModal({ onPick, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-[hsl(var(--foreground))]/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 

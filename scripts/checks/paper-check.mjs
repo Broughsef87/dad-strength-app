@@ -449,6 +449,61 @@ ok('the grain is a background layer, not a stacking contest',
     offenders.length === 0,
     offenders.slice(0, 5).join('  |  ') + ' — a hex cannot follow the theme')
 }
+// ── 4b-x. a scrim must not be keyed to a colour that flips ──────────────────
+// Found by a pre-merge audit, in five modals, one commit from production.
+//
+// The palette sweep replaced bg-black/70 with bg-[hsl(var(--foreground))]/70.
+// Banning pure black was right. Reaching for --foreground was not: it is ink on
+// paper and CREAM on lamplight, so the scrim inverted. Measured in the
+// production build, dark theme:
+//
+//   page behind the modal      L 0.007
+//   scrim, before the sweep    L 0.002   (bg-black/70)   recedes the page
+//   scrim, after the sweep     L 0.367   rgb(167,163,154) a grey sheet over
+//                                        the entire dark UI
+//
+// A scrim's entire job is to push the page back, so it is the one colour in the
+// system that must NOT follow the theme. --scrim is defined in :root and
+// deliberately not overridden in .dark; the absence is the feature.
+//
+// tsc, the build, all 41 other checks and four Codex passes were green over
+// this the whole time. Nothing here was wrong as CSS — it was wrong as
+// meaning, and only in one theme.
+{
+  const FLIPPING = /bg-\[hsl\(var\(--(foreground|brand|card|popover|primary)\)\)\]\/\d+/
+  const OVERLAY = /\b(fixed|absolute)\s+inset-0\b/
+  const bad = []
+  const w = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e)
+      if (statSync(p).isDirectory()) { w(p); continue }
+      if (!/\.tsx$/.test(e)) continue
+      const L = readFileSync(p, 'utf8').split('\n')
+      for (let i = 0; i < L.length; i++) {
+        if (!OVERLAY.test(L[i])) continue
+        // the fill may sit on the overlay's own line or the className below it
+        for (let j = i; j < Math.min(i + 3, L.length); j++) {
+          const m = L[j].match(FLIPPING)
+          if (m) {
+            bad.push(`${p.split(/[\\/]/).slice(-2).join('/')}:${j + 1} ${m[0]}`)
+            break
+          }
+        }
+      }
+    }
+  }
+  w(SRC)
+  ok('no scrim keyed to a theme-flipping colour',
+    bad.length === 0,
+    bad.join('  |  ') + ' — use --scrim; these invert on lamplight')
+
+  const css = readFileSync(join(SRC, 'app', 'globals.css'), 'utf8')
+  const root = css.match(/:root\s*\{[\s\S]*?\n  \}/)
+  const dark = css.match(/\.dark\s*\{[\s\S]*?\n  \}/)
+  ok('--scrim is defined once and does NOT follow the theme',
+    !!root && /--scrim:/.test(root[0]) && !!dark && !/--scrim:/.test(dark[0]),
+    'define --scrim in :root only — overriding it in .dark is what re-inverts the scrim')
+}
 
 // ── 4c. focus must never equal the resting border ───────────────────────────
 // Collapsing the palette turned focus:border-{hue} into focus:border-border,

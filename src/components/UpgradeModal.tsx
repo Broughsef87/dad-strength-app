@@ -75,7 +75,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-[hsl(var(--foreground))]/70"
+            className="absolute inset-0 bg-[hsl(var(--scrim))]/70"
             onClick={onClose}
           />
 
