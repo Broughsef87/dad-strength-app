@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Space_Grotesk, Geist_Mono, Space_Mono, Playfair_Display } from 'next/font/google'
+import { Oswald, Courier_Prime, Kalam, Saira_Stencil_One, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
 import LegalGate from '../components/LegalGate'
@@ -8,26 +8,54 @@ import { UserProvider } from '../contexts/UserContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { SubscriptionProvider } from '../contexts/SubscriptionContext'
 
-// CHALK/VOLT type: one confident grotesk carries the whole app —
-// display, body, and the giant hero numerals.
-const spaceGrotesk = Space_Grotesk({
+// THE PROGRAM CARD type (FOR-186). Four faces, and each one is a voice rather
+// than a decoration — see the note at the top of globals.css.
+//
+// The variable names are the OLD ones on purpose. Every component already
+// references --font-space-grotesk / --font-geist-mono through the @theme
+// aliases, so repointing here turns the type over app-wide without editing a
+// single component. They get renamed when the branch is merged, not tonight.
+
+// CHROME. Labels, headings, tab names, the card masthead. Condensed and
+// mechanical, the way a form's printed furniture is set.
+const oswald = Oswald({
   subsets: ['latin'],
   variable: '--font-space-grotesk',
-  weight: ['300', '400', '500', '600', '700'],
+  // 700 is NOT optional: font-bold appears 59 times and font-black 26 more,
+  // and a weight the family does not carry is SYNTHESISED by the browser —
+  // it smears the 600 outline. On a condensed face that reads as a rendering
+  // fault rather than emphasis. Master shipped 300-700; trimming the array to
+  // save bytes quietly faux-bolded 85 elements. Verified via document.fonts:
+  // Oswald had 400/500/600 while Courier Prime, Kalam and Playfair all had 700.
+  weight: ['400', '500', '600', '700'],
 })
 
-// The quiet mono for data: percentages, rep schemes, timers, week tags.
-const geistMono = Geist_Mono({
+// PRINTED — the engine's voice, and the app's body face. This app is mostly
+// numbers and short labels inside cards, and inside a card the body text IS
+// the printed prescription, so the typewriter face is the default rather than
+// an accent. It is also a true monospace, which is what makes the columns of
+// sets and loads line up.
+const courierPrime = Courier_Prime({
   subsets: ['latin'],
   variable: '--font-geist-mono',
-  weight: ['400', '600', '700'],
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
 })
 
-// Fallback mono kept while legacy components migrate off --font-space-mono.
-const spaceMono = Space_Mono({
+// WRITTEN — the athlete's hand. Logged loads, reps, RPE, ticked boxes.
+// Never used for anything the engine decided.
+const kalam = Kalam({
   subsets: ['latin'],
-  variable: '--font-space-mono',
+  variable: '--font-hand-face',
   weight: ['400', '700'],
+})
+
+// STAMPED — verdicts only, max two per screen. One weight exists and that is
+// the whole family; a stamp does not have options.
+const sairaStencil = Saira_Stencil_One({
+  subsets: ['latin'],
+  variable: '--font-stamp-face',
+  weight: ['400'],
 })
 
 // Editorial serif italic — marketing-voice accents only (<HeroAccent>).
@@ -44,6 +72,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
+      { url: '/logo-suite/ds_favicon.svg', type: 'image/svg+xml' },
       { url: '/favicon.ico' },
       { url: '/logo-suite/ds_app_icon.png', type: 'image/png', sizes: '1024x1024' },
     ],
@@ -81,8 +110,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FAF9F6' },
-    { media: '(prefers-color-scheme: dark)', color: '#0E0F10' },
+    { media: '(prefers-color-scheme: light)', color: '#F0EDE6' },
+    { media: '(prefers-color-scheme: dark)', color: '#141310' },
   ],
 }
 
@@ -94,8 +123,12 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: the FOUC script below adds .dark to <html>
     // before React hydrates — without this, every load logs a class mismatch.
-    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${geistMono.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
+    <html lang="en" suppressHydrationWarning className={`${oswald.variable} ${courierPrime.variable} ${kalam.variable} ${sairaStencil.variable} ${playfair.variable} overflow-x-hidden`}>
       <head>
+        {/* SVG first: browsers that support it get the regenerated paper mark.
+            The .ico is a legacy fallback and is still the volt-era raster —
+            see the note in the commit; rasterising it is a manual step. */}
+        <link rel="icon" href="/logo-suite/ds_favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
         <link rel="apple-touch-icon" href="/logo-suite/ds_app_icon.png" />

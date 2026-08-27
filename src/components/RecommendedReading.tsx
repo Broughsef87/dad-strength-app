@@ -93,7 +93,7 @@ export default function RecommendedReading() {
               <button
                 onClick={() => toggleReading(book.id)}
                 title={active ? 'Currently reading' : 'Mark as reading'}
-                className={`transition-colors ${active ? 'text-emerald-400' : 'text-gray-700 hover:text-muted-foreground'}`}
+                className={`transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-muted-foreground'}`}
               >
                 <CheckCircle2 className="w-4 h-4" />
               </button>

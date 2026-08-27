@@ -1,20 +1,35 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHALK / VOLT — the live design system (direction 03, built 2026-08).
-   Radical neutrality plus one electric color. Warm chalk grounds, borderless
-   cards that separate by shadow, lowercase voice, enormous numerals doing
-   the talking. Volt appears only where something is LIVE, EARNED, or DONE.
+   THE PROGRAM CARD — the design system on this branch (FOR-186, 2026-08-26).
+   The app is a paper instrument: a printed training card you fill in by hand.
 
-   The five rules:
-     01 one accent, earned — volt marks live/earned/done, nothing else
-     02 numerals are heroes — the biggest thing on screen is a number you made
-     03 shadows, not borders — no panel-cuts, no hairlines, no chrome
-     04 lowercase voice — terse and human, never military
-     05 springy, brief motion — count-ups, spring pills, one fade per screen
+   Three inks, three voices — and the split is the point, because it encodes
+   the product's actual architecture:
 
-   Rosso is retired to destructive states only. The mech era is over: no
-   telemetry, no stamps, no cockpit vocabulary anywhere in the UI.
+     01 PRINTED   Courier Prime, ink black       the engine's prescription.
+                  Sets, reps, percentages, target loads — everything buildDay
+                  decided before you walked in. It is typeset, not written.
+     02 WRITTEN   Kalam, ballpoint blue          what the ATHLETE put there.
+                  Logged loads, reps, RPE, ticked boxes. Your marks on their form.
+     03 STAMPED   Saira Stencil One, grease red  the verdict. DONE. ADD LOAD.
+                  Max TWO per screen — a stamp that appears everywhere means
+                  nothing. This is a hard rule, not a guideline.
+
+   Courier marks engine-printed VALUES only — never prose, never labels. If
+   every word is typeset, "printed" stops meaning the engine decided this, and
+   the face is doing nothing. Oswald carries prose and chrome; Courier appears
+   where a number came out of buildDay.
+
+   Structure: hairline rules and cut corners (≤6px), the sheet casts onto the
+   desk but nothing casts onto the sheet, a faint grain over the card.
+
+   Where the ink rule fights legibility, LEGIBILITY WINS: athlete values never
+   go below 15px, and any column of numbers uses the printed face with tabular
+   figures rather than a handwriting face that cannot align.
+
+   Supersedes CHALK / VOLT on this branch only. Volt is not retired — it is
+   still what ships on master until this is merged.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme {
@@ -60,109 +75,219 @@
   /* concrete midtone (replaces "steel") */
   --color-steel: hsl(var(--muted-foreground));
 
-  --radius-lg: 1.25rem;
-  --radius-md: 1rem;
-  --radius-sm: 0.875rem;
-  --radius-3xl: 1.5rem;
+  /* FOR-186: paper is cut, not moulded. Everything caps at 6px so a card reads
+     as a card rather than a pill. The names stay so nothing has to be renamed.
+     xl and 2xl are here because they were NOT overridden at first, and Tailwind
+     quietly served its own 12px and 16px to 82 elements — a cap you only apply
+     to the names you remember is not a cap. */
+  --radius-lg: 6px;
+  --radius-md: 4px;
+  --radius-sm: 3px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+  --radius-3xl: 6px;
 
-  /* ── type: a confident grotesk lowercase and tight, a quiet mono for data ── */
-  --font-sans: var(--font-space-grotesk, "Segoe UI Variable Display", system-ui, sans-serif);
-  --font-mono: var(--font-geist-mono, var(--font-space-mono, ui-monospace, "Cascadia Code", Consolas, monospace));
-  --font-display: var(--font-space-grotesk, "Segoe UI Variable Display", system-ui, sans-serif);
-  /* legacy alias some components still reference */
-  --font-telemetry: var(--font-geist-mono, var(--font-space-mono, ui-monospace, monospace));
+  /* ── type: three inks and the chrome that frames them ──────────────────────
+     The --font-space-grotesk / --font-geist-mono variable NAMES are inherited;
+     layout.tsx now points them at Oswald and Courier Prime. Renaming them is a
+     merge-day chore, not a tonight chore.
+
+     COURIER IS NOT THE BODY FACE. It marks engine-printed VALUES and nothing
+     else. I had it as --font-sans, which made the whole app typewriter — and
+     a distinction that applies to everything stops being a distinction. If all
+     text is printed, "printed" no longer says the engine decided this, which is
+     the entire job the face was hired for. Athlete's call, and correct.
+
+     So: Oswald carries prose and chrome, Courier appears ONLY through
+     --font-mono / .ink-printed, on values that came out of buildDay. */
+  --font-sans: var(--font-space-grotesk, "Oswald", "Haettenschweiler", system-ui, sans-serif);
+  --font-mono: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
+  --font-display: var(--font-space-grotesk, "Oswald", "Haettenschweiler", system-ui, sans-serif);
+  --font-telemetry: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
   --font-serif-accent: var(--font-playfair, Georgia, serif);
+
+  /* the two inks that are not the default */
+  --font-hand: var(--font-hand-face, "Bradley Hand", "Segoe Script", cursive);
+  --font-stamp: var(--font-stamp-face, "Stencil", "Saira Stencil One", Impact, sans-serif);
 }
 
 @layer base {
+  /* ══ THE PROGRAM CARD — paper, three inks ══════════════════════════════
+     FOR-186. The app is a paper instrument. Three inks carry three voices:
+
+       printed    Courier Prime, ink black      the engine's prescription
+       written    Kalam, ballpoint blue         what the athlete logged
+       stamped    Saira Stencil One, grease red verdicts, max two per screen
+
+     These map onto the EXISTING token names on purpose, so every component
+     inherits paper before any of them is restyled.
+
+     One mapping deserves explanation: --brand is no longer a hue. It was volt,
+     used as a fill on every CTA. The contract reserves red for verdicts and
+     caps them at two per screen, so brand-as-red would flood every surface and
+     destroy the thing that makes a stamp mean something. On a printed form
+     emphasis comes from WEIGHT and FACE, not colour — so brand is ink, and red
+     belongs to <Stamp> alone.
+
+     Contrast, measured on paper #EBE0C4 (DoD 4):
+       ink       #221F18   12.52:1
+       ballpoint #2D4E9E    5.93:1
+       meta ink  #5E5747    5.46:1
+       stamp red #BE3A1D    4.19:1  — large text only, and it clears 3:1
+  ────────────────────────────────────────────────────────────────────────── */
   :root {
-    /* ── CHALK — the light ground (default). Warm like gym chalk and paper. ── */
-    --background: 45 25% 97%;          /* #FAF9F6 chalk */
-    --foreground: 60 5% 8%;            /* #141412 ink */
+    --background: 42 25% 92%;          /* #F0EDE6 the desk */
 
-    --card: 0 0% 100%;                 /* #FFFFFF tile */
-    --card-foreground: 60 5% 8%;
+    /* A scrim is the one colour in the system that must NOT follow the theme.
+       Its whole job is to push the page back behind a modal, so it has to be
+       dark on paper AND dark on lamplight. Deliberately defined here in :root
+       and NOT overridden in .dark — the absence below is the feature.
 
-    --surface-1: 45 25% 97%;           /* ground */
-    --surface-2: 45 20% 94%;           /* recessed row  #F4F2EC */
-    --surface-3: 0 0% 100%;            /* tile */
+       This exists because I got it wrong. The palette sweep replaced bg-black/70
+       with bg-[hsl(var(--foreground))]/70, which is correct on paper (ink) and
+       inverts on lamplight, where --foreground is cream. Measured in the
+       production build: the scrim composited to rgb(167,163,154), luminance
+       0.367 over a page at 0.007 — a bright grey sheet dropped over the whole
+       dark UI, where it had been 0.002. Five modals, including the legal gate
+       every user meets. Banning pure black was right; reaching for --foreground
+       as the replacement was not. */
+    --scrim: 45 12% 4%;                /* #0B0A08 — dark in BOTH themes */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 60 5% 8%;
+    /* The scrim's opposite number, and the same rule. A sheen is a specular
+       highlight sliding across a surface, so it must be LIGHT in both themes.
+       It was bg-white/10; the sweep repointed it to --card, which is paper on
+       one theme and near-black on the other. Measured over bg-muted: in
+       lamplight the highlight DARKENED by 0.0016 where it used to lighten by
+       0.0257 — the shine animation still ran and did nothing. Also :root only. */
+    --sheen: 45 40% 96%;               /* #FAF6EC — light in BOTH themes */
+    --foreground: 42 17% 11%;          /* #221F18 ink */
 
-    --primary: 60 5% 8%;
-    --primary-foreground: 45 25% 97%;
+    --card: 43 49% 85%;                /* #EBE0C4 paper — warmer than the desk */
+    --card-foreground: 42 17% 11%;
 
-    --secondary: 45 20% 94%;
-    --secondary-foreground: 60 5% 8%;
+    --surface-1: 42 25% 92%;           /* desk */
+    --surface-2: 43 42% 80%;           /* #E2D6B8 recessed row */
+    --surface-3: 43 49% 85%;           /* paper */
 
-    --muted: 45 18% 89%;               /* #E9E7DF line/fill */
-    --muted-foreground: 55 3% 42%;     /* #6F6F68 concrete */
+    --popover: 43 49% 85%;
+    --popover-foreground: 42 17% 11%;
 
-    --accent: 45 20% 94%;
-    --accent-foreground: 60 5% 8%;
+    --primary: 42 17% 11%;
+    --primary-foreground: 43 49% 85%;
 
-    --destructive: 0 62% 42%;          /* rosso's retirement home: danger only */
-    --destructive-foreground: 0 0% 98%;
+    --secondary: 44 39% 78%;           /* #DCD0B0 */
+    --secondary-foreground: 42 17% 11%;
 
-    --border: 45 18% 89%;              /* #E9E7DF — used sparingly; shadows lead */
-    --input: 45 20% 94%;
-    --ring: 78 100% 52%;
+    --muted: 44 39% 78%;               /* #DCD0B0 fills, closed folder tabs */
+    --muted-foreground: 42 14% 32%;    /* #5E5747 — the contract had #6b6350,
+                                          which is 3.88:1 on a closed tab and
+                                          fails AA at the 11px tab size. Same
+                                          hue, darkened until it passes. */
 
-    /* volt — light ground gets the slightly deeper cut for contrast */
-    --brand: 78 100% 62%;              /* #C6FF3F */
-    --brand-deep: 78 71% 53%;          /* #A8E32A */
-    --brand-ink: 82 37% 6%;            /* #131608 text on volt */
-    --brand-text: 77 79% 27%;          /* #5C7A0E volt as INK on chalk (5.6:1) */
-    --brand-muted: 78 100% 62% / 0.16;
+    --accent: 44 39% 78%;
+    --accent-foreground: 42 17% 11%;
 
-    --shadow-tile: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px rgba(20, 20, 18, 0.06);
-    --shadow-tile-lg: 0 2px 4px rgba(20, 20, 18, 0.05), 0 18px 48px rgba(20, 20, 18, 0.10);
+    /* Darker than the stamp, on purpose. The stamp is 22px and only has to
+       clear the 3:1 large-text bar, which #BE3A1D does at 4.23:1. But the
+       palette collapse routed every error message here too, and those are
+       text-xs/text-sm — normal text, needing 4.5:1, which #BE3A1D fails.
+       Same hue, four steps darker: 4.90:1. The stamp keeps its own ink in
+       --ink-stamped, so the two uses stopped sharing a value. */
+    --destructive: 10 75% 39%;         /* #AE3319 — error copy, 4.90:1 on paper */
+    --destructive-foreground: 43 49% 85%;
+
+    --border: 43 29% 70%;              /* #C9BC9C the printed rule */
+    --input: 44 39% 78%;
+    --ring: 222 56% 40%;               /* focus is ballpoint — the athlete's own mark */
+
+    /* brand = ink. See the note above. */
+    --brand: 42 17% 11%;               /* #221F18 */
+    --brand-deep: 38 22% 7%;           /* #16130E pressed */
+    --brand-ink: 43 49% 85%;           /* paper, for text on an ink fill */
+    --brand-text: 42 17% 11%;          /* ink; emphasis is weight, not hue */
+    --brand-muted: 42 17% 11% / 0.10;
+
+    /* the three inks, addressable directly where the rule is applied */
+    --ink-printed: 42 17% 11%;         /* #221F18 */
+    --ink-written: 222 56% 40%;        /* #2D4E9E ballpoint */
+    --ink-stamped: 11 74% 43%;         /* #BE3A1D grease red */
+    --rule-dotted: 45 22% 62%;         /* #B3A887 the dotted blank */
+
+    /* The card lifts off the desk; nothing lifts off the card.
+       "in-card shadows off" means sub-panels INSIDE a card use hairline rules
+       instead of stacked shadows — it does not mean the sheet stops casting.
+       It has to cast: paper #EBE0C4 on desk #F0EDE6 is 1.11:1, and the 1px
+       rule is 1.61:1 against the desk, so with no shadow the card edge is
+       essentially invisible and the whole layout flattens into one field.
+       This is the artifact's own card shadow, verbatim. */
+    --shadow-tile: 0 1px 0 #cfc3a2, 0 14px 40px rgba(30, 25, 10, 0.28);
+    --shadow-tile-lg: 0 1px 0 #cfc3a2, 0 22px 60px rgba(30, 25, 10, 0.32);
   }
 
+  /* ── LAMPLIGHT — the same card, read at night ────────────────────────────
+     The full 5am auto-dim is phase 2 and explicitly out of scope. This is the
+     minimum that keeps dark mode HONEST rather than broken: the app already
+     ships a .dark theme, so leaving it on graphite would have paper cards on a
+     grey desk, and inverting it would make "paper" a lie.
+
+     So the paper dims instead of inverting — a card under a desk lamp. Every
+     value is the artifact's own dark set where it specifies one, including the
+     ballpoint, which it lightens to #7E96C9 for exactly this reason: a 40%-
+     lightness blue is unreadable on a dark ground.
+
+     Contrast on dimmed paper #23201A:
+       ink       #E7E2D6   12.57:1
+       ballpoint #7E96C9    5.49:1
+       stamp red #E0674A    4.80:1
+  ─────────────────────────────────────────────────────────────────────────── */
   .dark {
-    /* ── GRAPHITE — the dark ground. Soft, never pure black. ── */
-    --background: 210 7% 6%;           /* #0E0F10 graphite */
-    --foreground: 60 5% 92%;           /* #EDEDEA */
+    --background: 45 11% 7%;           /* #141310 the desk, unlit */
+    --foreground: 42 26% 87%;          /* #E7E2D6 ink, now the light thing */
 
-    --card: 220 6% 10%;                /* #17181A tile */
-    --card-foreground: 60 5% 92%;
+    --card: 40 15% 12%;                /* #23201A paper under the lamp */
+    --card-foreground: 42 26% 87%;
 
-    --surface-1: 210 7% 6%;
-    --surface-2: 220 6% 7%;            /* recessed row #101113 */
-    --surface-3: 220 6% 10%;
+    --surface-1: 45 11% 7%;
+    --surface-2: 40 16% 15%;           /* #2C2820 recessed row */
+    --surface-3: 40 15% 12%;
 
-    --popover: 220 6% 10%;
-    --popover-foreground: 60 5% 92%;
+    --popover: 40 15% 12%;
+    --popover-foreground: 42 26% 87%;
 
-    --primary: 60 5% 92%;
-    --primary-foreground: 210 7% 6%;
+    --primary: 42 26% 87%;
+    --primary-foreground: 45 11% 7%;
 
-    --secondary: 220 6% 13%;
-    --secondary-foreground: 60 5% 92%;
+    --secondary: 40 16% 15%;
+    --secondary-foreground: 42 26% 87%;
 
-    --muted: 220 6% 15%;               /* #26282B line/fill */
-    --muted-foreground: 60 3% 53%;     /* #8B8B85 */
+    --muted: 40 16% 15%;               /* #2C2820 fills, closed tabs */
+    --muted-foreground: 44 13% 59%;    /* #A39C88 */
 
-    --accent: 220 6% 13%;
-    --accent-foreground: 60 5% 92%;
+    --accent: 40 16% 15%;
+    --accent-foreground: 42 26% 87%;
 
-    --destructive: 0 62% 46%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 12 71% 58%;         /* #E0674A stamp red, lit */
+    --destructive-foreground: 45 11% 7%;
 
-    --border: 220 6% 15%;
-    --input: 220 6% 10%;
-    --ring: 76 100% 65%;
+    --border: 43 14% 20%;              /* #3A362C the rule, dimmed */
+    --input: 40 16% 15%;
+    --ring: 221 41% 64%;               /* ballpoint, lit */
 
-    /* volt brightens a step on graphite */
-    --brand: 76 100% 65%;              /* #CDFF4D */
-    --brand-deep: 76 85% 57%;          /* #B7EE33 */
-    --brand-ink: 82 37% 6%;
-    --brand-text: 76 100% 65%;      /* on graphite, volt itself reads fine */
-    --brand-muted: 76 100% 65% / 0.12;
+    /* brand stays ink — which at night is the pale one */
+    --brand: 42 26% 87%;
+    --brand-deep: 42 20% 76%;
+    --brand-ink: 45 11% 7%;
+    --brand-text: 42 26% 87%;
+    --brand-muted: 42 26% 87% / 0.10;
 
-    --shadow-tile: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px rgba(0, 0, 0, 0.45);
-    --shadow-tile-lg: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 22px 56px rgba(0, 0, 0, 0.55);
+    --ink-printed: 42 26% 87%;
+    --ink-written: 221 41% 64%;        /* #7E96C9 — the artifact's own dark hand */
+    --ink-stamped: 12 71% 58%;         /* #E0674A */
+    --rule-dotted: 43 12% 30%;
+
+    /* At night the sheet sits closer to the desk — less lift, darker cast. */
+    --shadow-tile: 0 1px 0 #0d0b08, 0 10px 30px rgba(0, 0, 0, 0.55);
+    --shadow-tile-lg: 0 1px 0 #0d0b08, 0 18px 44px rgba(0, 0, 0, 0.6);
   }
 
   * {
@@ -213,15 +338,127 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── tiles: borderless, shadow-separated (rule 03) ── */
-.tile {
-  background: hsl(var(--surface-3));
-  border-radius: 1.25rem;
-  box-shadow: var(--shadow-tile);
+/* ── THE THREE INKS ─────────────────────────────────────────────────────────
+   Apply these where DATA renders, not as decoration. The distinction they draw
+   is real: printed is what the engine decided, written is what the athlete did,
+   stamped is the verdict. If a value could take either of the first two, it is
+   printed — the engine is the default author on a prescription form. */
+
+/* PRINTED — buildDay's output. Sets, reps, percentages, target loads. */
+.ink-printed {
+  font-family: var(--font-mono);
+  color: hsl(var(--ink-printed));
+  font-variant-numeric: tabular-nums;
 }
+
+/* WRITTEN — the athlete's own marks. Never below 15px: a handwriting face at
+   13px is a texture, not a number, and this is where load goes wrong. */
+.ink-written {
+  font-family: var(--font-hand);
+  color: hsl(var(--ink-written));
+  font-size: max(15px, 1em);
+  line-height: 1.15;
+}
+
+/* Columns beat handwriting. A ledger of logged sets has to align, and Kalam
+   has no tabular figures — so a column reverts to the printed face and keeps
+   ONLY the ballpoint colour to say who wrote it. The ticket calls this out
+   explicitly: the ink rule bends to readability, never the reverse. */
+.ink-written-col {
+  font-family: var(--font-mono);
+  color: hsl(var(--ink-written));
+  font-variant-numeric: tabular-nums;
+}
+
+/* STAMPED — verdicts only. See <Stamp>; this is the bare ink for cases that
+   are not a full stamp block. */
+.ink-stamped {
+  font-family: var(--font-stamp);
+  color: hsl(var(--ink-stamped));
+  letter-spacing: 0.08em;
+}
+
+/* ── <Stamp> ────────────────────────────────────────────────────────────────
+   The rotation is the tell that a hand did this, not a renderer, so it is part
+   of the mark rather than a hover flourish. multiply is what sinks the ink into
+   the paper instead of sitting on top of it. */
+.ds-stamp {
+  font-family: var(--font-stamp);
+  /* resting opacity travels as a variable so the theme can override it:
+     a keyframe held by fill-mode: both beats any plain declaration. */
+  --stamp-o: 0.82;
+  letter-spacing: 0.08em;
+  opacity: 0.82;
+  mix-blend-mode: multiply;
+  transform: rotate(-7deg);
+  animation: ds-stamp-set 200ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.ds-stamp[data-stamp-size='sm'] { transform: rotate(-3deg); }
+
+/* One animation: the stamp lands slightly oversized and settles. 200ms, once. */
+@keyframes ds-stamp-set {
+  from { transform: rotate(-7deg) scale(1.18); opacity: 0; }
+  to   { transform: rotate(-7deg) scale(1);    opacity: var(--stamp-o); }
+}
+@keyframes ds-stamp-set-sm {
+  from { transform: rotate(-3deg) scale(1.18); opacity: 0; }
+  to   { transform: rotate(-3deg) scale(1);    opacity: var(--stamp-o); }
+}
+.ds-stamp[data-stamp-size='sm'] { animation-name: ds-stamp-set-sm; }
+
+/* multiply darkens toward the ground — on a dark desk it would bury the red.
+   At night the stamp sits on the paper rather than sinking into it. */
+.dark .ds-stamp { mix-blend-mode: normal; --stamp-o: 0.95; opacity: var(--stamp-o); }
+
+/* Reduced motion gets the FINAL state, not a faster animation. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-stamp { animation: none; opacity: var(--stamp-o); }
+  .dark .ds-stamp { --stamp-o: 0.95; }
+}
+
+/* ── paper ──────────────────────────────────────────────────────────────────
+   .tile is the card class every surface already uses, so paper arrives through
+   it and the whole app turns over without touching a component. Shadow out,
+   hairline rule in, grain on top. The grain is one inline SVG turbulence — no
+   asset, no request, and it is the artifact's own filter verbatim. */
+/* In @layer components on purpose. Tailwind v4 emits utilities into a layer,
+   and ANY unlayered rule beats every layered one regardless of specificity — so
+   an unlayered `.tile { border: ... }` silently defeats every border-* utility
+   written on a card. Master's .tile had no border, so those utilities worked;
+   adding the hairline here broke five live call sites, including the accent
+   border on the "Update Your Maxes" panel and three hover:border-brand/30
+   states on the profile screen. Nothing failed — the borders just stopped
+   changing, which is the kind of thing you only notice by hovering.
+
+   Putting the block in a layer restores the normal order: the card supplies
+   defaults, a utility on the element overrides them. */
+@layer components {
+  .tile,
+  .tile-lg {
+    position: relative;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 4px;
+    box-shadow: var(--shadow-tile);
+  }
+  .tile-lg { border-radius: 6px; }
+}
+
+/* The grain is a BACKGROUND LAYER on the card itself, not a pseudo-element.
+   It was a ::before with `.tile > * { position: relative }` underneath it to
+   keep content on top — and that rule has the same specificity as Tailwind's
+   `.absolute`, is emitted after it, and therefore silently un-positioned every
+   absolutely-placed direct child of a card. The UpgradeModal close button and
+   the summary accent bar both fall out of place from one line of texture.
+
+   As a background layer there is no stacking contest to win: it paints under
+   content by definition, needs no pseudo-element, and no child has to be told
+   where it sits. The alpha (.018) is the old feColorMatrix .05 pre-multiplied
+   by the .35 opacity the pseudo-element used to apply. */
+.tile,
 .tile-lg {
-  background: hsl(var(--surface-3));
-  border-radius: 1.5rem;
-  box-shadow: var(--shadow-tile-lg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .40 0 0 0 0 .28 0 0 0 .018 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 /* recessed row inside a tile (set rows, list items) */
 .row-recessed {
@@ -230,11 +467,15 @@
 }
 
 /* ── pills ── */
+/* A form's buttons are boxes, not lozenges. The 999px pill was chalk/volt's
+   signature shape and it is the single most un-paper thing left in the kit;
+   circles survive elsewhere (avatars, status dots, skeletons) because a circle
+   is a mark, but a stadium-shaped button is an app affordance. */
 .pill {
-  border-radius: 999px;
+  border-radius: 4px;
 }
 .pill-volt {
-  border-radius: 999px;
+  border-radius: 4px;
   background: hsl(var(--brand));
   color: hsl(var(--brand-ink));
   font-weight: 700;
@@ -268,21 +509,41 @@
 }
 
 /* ── eyebrows: quiet lowercase mono micro-labels ── */
+/* An eyebrow is a LABEL — the form's printed furniture, not a value the engine
+   produced. It was on the mono face, which under the ink rule would have said
+   "the engine decided this" about the word "active program". Labels are chrome,
+   so they are Oswald, uppercased and tracked the way a form's headings are set. */
 .eyebrow-mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: lowercase;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
   color: hsl(var(--muted-foreground));
 }
 
 /* hero numerals — tabular, tight, huge (rule 02) */
+/* The hero numeral. Almost every one of these is an engine value — the week
+   you are on, the sets prescribed, the target load — so it is PRINTED. The
+   tight negative tracking came from a grotesk; a typewriter face is already
+   monospaced and pulling it tighter just collides the glyphs. */
 .stat-num {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 0.92;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+}
+
+/* The same numeral when the ATHLETE produced it — a streak, a session count,
+   a logged load. Same size and weight, different hand. Kalam runs small for
+   its point size, so it is nudged up to hold its own beside a printed figure. */
+.stat-num.is-written {
+  font-family: var(--font-hand);
+  color: hsl(var(--ink-written));
+  font-weight: 700;
+  letter-spacing: 0;
+  font-size: 1.08em;
 }
 /* data lines — the quiet mono voice for %, rpe, wk */
 .data-mono {
@@ -539,3 +800,104 @@
 .stroke-brand { stroke: hsl(var(--brand-text)); }
 /* ...but inside a solid volt fill, ink wins. */
 .bg-brand .text-brand, .pill-volt .text-brand { color: hsl(var(--brand-ink)); }
+
+/* ── an ink fill carries its own text colour ────────────────────────────────
+   --brand is now ink, the same value as --foreground. That is deliberate (see
+   the token block), but it collapsed a distinction the old palette was holding
+   up for free: under volt, a `bg-brand` with no text colour inherited dark text
+   onto a bright fill and read fine by accident. Under ink it inherits ink onto
+   ink and disappears.
+
+   Chasing instances was never going to converge. I fixed eleven, Codex found
+   seven more, then found a third round on parent/descendant boundaries — each
+   pass fixed the examples in the report rather than the class of bug, which is
+   how you get a fourth round.
+
+   So the fill declares its own text colour. :where() gives the rule ZERO
+   specificity, which is the entire trick: it applies wherever nothing else has
+   an opinion, and any explicit utility — text-brand-text, ink-written, a stamp
+   — still wins without needing !important or a more specific selector. A
+   default, not an override.
+
+   Note this deliberately does NOT catch the tinted fills (bg-brand/5,
+   bg-brand/10). Those are a few percent of ink over paper, so they ARE paper,
+   and their text must stay ink. CSS agrees for free: class matching is on whole
+   tokens, so `.bg-brand` never matches an element classed `bg-brand/5`. The
+   sweep script I first wrote did not have that property — \bbg-brand\b matched
+   the tints, because "/" is a word boundary — and it repointed sixteen tinted
+   labels to paper-on-paper. That is the exact bug being fixed here, reintroduced
+   by the fix for it. Caught by reading the diff; worth the paranoia. */
+:where(.bg-brand, .bg-foreground, .bg-primary, .bg-destructive) {
+  color: hsl(var(--brand-ink));
+}
+
+/* ...and inside a fill, an ink keeps its FACE but yields its COLOUR.
+   The :where() default above cannot cover this, by design: it is zero
+   specificity so explicit utilities beat it, which is exactly what makes it
+   safe everywhere else. But .ink-printed resolves to --ink-printed, and on
+   lamplight a solid brand fill IS that colour — measured 1.00:1, the text and
+   its background identical. .ink-written measured 2.29:1, under the 4.5:1 floor.
+
+   Nothing in the app does this today (scanned: zero occurrences, same element
+   or descendant). It is a trap laid for whoever next puts a prescribed number
+   on a filled button, so it is closed now rather than documented as folklore.
+
+   The contract survives the concession. Printed vs written is carried by the
+   FACE — Courier against Kalam is legible at a glance, colour or not — and the
+   face is untouched here; only the hue yields. That is the standing rule:
+   legibility beats the ink rule wherever they fight.
+
+   Stamped is deliberately NOT in this list. A stamp is a verdict and red IS the
+   whole of its meaning; recolouring it leaves a stencil face saying nothing.
+   That is a real trade, so the numbers, measured on lamplight where it is
+   worst:
+
+     stamp on the desk    5.45:1     its home
+     stamp on a card      4.77:1     its home
+     stamp on a FILL      2.61:1     fails even the 3:1 large-text floor
+
+   So a stamp does not go on a filled surface. Nothing does that today (zero
+   occurrences), and the rule above cannot rescue it without destroying it, so
+   this one stays a design constraint rather than a CSS fallback: put the
+   verdict on the paper, which is where a verdict belongs. */
+/* Both positions, deliberately. The first draft of this rule was descendant-
+   only, which reads as complete until you notice that a fill and its ink are
+   very often the SAME element — className="bg-brand ink-printed" is one span,
+   not two, and it measured 1.00:1 in both themes. Codex caught it; the guard
+   I had written to protect this rule asserted the descendant selector existed
+   and so reported green over it, which is the same false confidence I have now
+   hit three times on this branch.
+
+   text-brand is in the list for the same reason: --brand-text resolves to ink
+   now, so className="bg-brand text-brand" is ink on ink, and .text-brand is an
+   unlayered class that outranks the :where() default.
+
+   :is() carries the specificity of its most specific argument, so both of these
+   selectors weigh 0-2-0 and beat the 0-1-0 utilities they are correcting —
+   while the :where() default above stays at 0-0-0 and keeps losing to anything
+   with an opinion, which is what makes it safe. */
+:is(.bg-brand, .bg-foreground, .bg-primary, .bg-destructive)
+  :is(.ink-printed, .ink-written, .text-brand),
+:is(.bg-brand, .bg-foreground, .bg-primary, .bg-destructive):is(.ink-printed, .ink-written, .text-brand) {
+  color: hsl(var(--brand-ink));
+}
+
+/* ── the document voice ─────────────────────────────────────────────────────
+   Terms, privacy and the disclaimer are DOCUMENTS, not training cards. Oswald
+   is condensed display type — it sets a heading beautifully and punishes a
+   paragraph, and these three pages carry 56 of them between them.
+
+   A serif is also the honest answer for the metaphor: the form is typeset and
+   filled in, the terms are a printed document you were handed with it. This is
+   a system stack, so it costs no download and adds no dependency. */
+.prose-paper {
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.65;
+  letter-spacing: 0.005em;
+}
+.prose-paper h1, .prose-paper h2, .prose-paper h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

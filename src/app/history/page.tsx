@@ -278,7 +278,7 @@ export default function History() {
             </p>
             <button
               onClick={() => router.push('/train')}
-              className="flex items-center gap-2 bg-brand text-background font-semibold text-xs lowercase px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97]"
+              className="flex items-center gap-2 bg-brand text-[hsl(var(--brand-ink))] font-semibold text-xs lowercase px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97]"
             >
               <Dumbbell size={14} />
               Start First Session
@@ -304,25 +304,38 @@ export default function History() {
                   >
                     <div className="text-left">
                       <div className="flex items-center gap-2">
-                        <p className="text-xs font-black text-brand lowercase">
-                          Week {weekNum}
+                        {/* A week heading is chrome. Oswald tops out at 600 in
+                            this build, so font-black would have been faked by
+                            the browser rather than drawn. */}
+                        <p className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-foreground">
+                          Week <span className="ink-printed">{weekNum}</span>
                         </p>
                         {weekTheme && (
                           <span className="text-xs text-muted-foreground font-bold">· {weekTheme}</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-[10px] font-bold text-muted-foreground lowercase">
-                          {weekSessions.length} session{weekSessions.length !== 1 ? 's' : ''}
+                      {/* History is a LEDGER — a record of what you did, not of
+                          what was asked. So the figures are the athlete's, in
+                          ballpoint. But they stack down a list and have to
+                          align, which is precisely the case my own rule sends
+                          back to the printed face: colour says who wrote it,
+                          the monospace keeps the column readable. The units
+                          stay chrome; only the numbers carry ink. */}
+                      <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground">
+                        <span className="eyebrow-mono">
+                          <span className="ink-written-col">{weekSessions.length}</span>{' '}
+                          session{weekSessions.length !== 1 ? 's' : ''}
                         </span>
-                        <span className="text-[10px] font-bold text-muted-foreground lowercase">
-                          {weekCompletedSets} sets
+                        <span className="eyebrow-mono">
+                          <span className="ink-written-col">{weekCompletedSets}</span> sets
                         </span>
                         {weekVolume > 0 && (
-                          <span className="text-[10px] font-bold text-muted-foreground lowercase">
-                            {weekVolume >= 1000
-                              ? `${(weekVolume / 1000).toFixed(1)}k`
-                              : Math.round(weekVolume)}{' '}
+                          <span className="eyebrow-mono">
+                            <span className="ink-written-col">
+                              {weekVolume >= 1000
+                                ? `${(weekVolume / 1000).toFixed(1)}k`
+                                : Math.round(weekVolume)}
+                            </span>{' '}
                             lbs
                           </span>
                         )}

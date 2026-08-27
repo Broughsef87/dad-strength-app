@@ -1,0 +1,147 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Dad Strength — rasterise the logo suite</title>
+<style>
+  body { font: 15px/1.6 system-ui, sans-serif; background: #F0EDE6; color: #221F18;
+         max-width: 720px; margin: 0 auto; padding: 40px 20px 80px }
+  h1 { font-size: 21px; letter-spacing: .04em; text-transform: uppercase; margin: 0 0 6px }
+  p, li { color: #5E5747 }
+  code { background: #E2D6B8; padding: 1px 5px; border-radius: 3px; font-size: .9em }
+  button { font: 600 13px system-ui; background: #221F18; color: #EBE0C4; border: 0;
+           border-radius: 4px; padding: 11px 18px; cursor: pointer }
+  button:disabled { opacity: .4; cursor: default }
+  #log { font: 12px/1.7 ui-monospace, monospace; white-space: pre-wrap; margin-top: 18px }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; margin: 22px 0; align-items: flex-end }
+  canvas { background: #DCD0B0; border: 1px solid #C9BC9C; border-radius: 4px; display: block }
+</style>
+
+<h1>Rasterise the logo suite</h1>
+<p>
+  The mark is <b>inlined below</b>, so this works opened straight from disk — no server.
+  <code>fetch()</code> is blocked on <code>file://</code> origins, which is why an earlier
+  version could never load the SVG by double-click.
+</p>
+<p>
+  Click, then move the four downloads into the repo:
+</p>
+<ol>
+  <li><code>favicon.ico</code> · <code>icon-192.png</code> · <code>icon-512.png</code> → <code>public/</code></li>
+  <li><code>ds_app_icon.png</code> → <code>public/logo-suite/</code></li>
+</ol>
+
+<div class="row" id="prev"></div>
+<button id="go">Render &amp; download</button>
+<div id="log"></div>
+
+<script>
+// Kept in sync with public/logo-suite/ds_app_icon.svg. If the suite is
+// regenerated with a different palette, paste the new file here — the tile
+// probe below will shout if this has gone stale, because rasterising an old
+// mark and shipping it with fresh timestamps is the failure that matters.
+const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" rx="24" fill="#EBE0C4" />
+  <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z"
+        transform="translate(206.5,292.6) scale(3.05)" fill="#221F18" fill-rule="evenodd" />
+  <path d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z"
+        transform="translate(567.5,292.6) scale(3.05)" fill="#221F18" fill-rule="evenodd" />
+  <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="#221F18" opacity="0.22" />
+</svg>`;
+
+const ICO_SIZES = [16, 32, 48];
+const PNGS = [
+  { size: 1024, name: 'ds_app_icon.png', dest: 'public/logo-suite/' },
+  { size: 512,  name: 'icon-512.png',    dest: 'public/' },
+  { size: 192,  name: 'icon-192.png',    dest: 'public/' },
+];
+
+const log = (m) => { document.getElementById('log').textContent += m + '\n'; };
+
+function draw(img, s) {
+  const c = document.createElement('canvas');
+  c.width = c.height = s;
+  const x = c.getContext('2d');
+  x.imageSmoothingEnabled = true;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(img, 0, 0, s, s);
+  return c;
+}
+
+const blobOf = (c) => new Promise((r) => c.toBlob(r, 'image/png'));
+
+function save(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+
+// A real ICO container: 6-byte header, one 16-byte directory entry per image,
+// then the payloads. PNG payloads are legal since Vista.
+//
+// Multi-size on purpose. The file this replaces carries three entries
+// (16/32/48); a single 32px would silently drop the contexts that still ask
+// for 16 — Windows shortcuts, some bookmark bars.
+async function buildIco(items) {
+  const dir = 6 + 16 * items.length;
+  const out = new Uint8Array(dir + items.reduce((n, i) => n + i.bytes.length, 0));
+  const dv = new DataView(out.buffer);
+  dv.setUint16(0, 0, true);
+  dv.setUint16(2, 1, true);
+  dv.setUint16(4, items.length, true);
+  let off = dir;
+  items.forEach((it, i) => {
+    const e = 6 + 16 * i;
+    out[e] = it.px >= 256 ? 0 : it.px;
+    out[e + 1] = it.px >= 256 ? 0 : it.px;
+    out[e + 2] = 0;
+    out[e + 3] = 0;
+    dv.setUint16(e + 4, 1, true);
+    dv.setUint16(e + 6, 32, true);
+    dv.setUint32(e + 8, it.bytes.length, true);
+    dv.setUint32(e + 12, off, true);
+    out.set(it.bytes, off);
+    off += it.bytes.length;
+  });
+  return new Blob([out], { type: 'image/x-icon' });
+}
+
+document.getElementById('go').addEventListener('click', async (ev) => {
+  ev.target.disabled = true;
+  try {
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(SVG)));
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('inlined SVG failed to decode'));
+      i.src = url;
+    });
+
+    const px = draw(img, 64).getContext('2d').getImageData(32, 8, 1, 1).data;
+    log('tile pixel rgb(' + px[0] + ',' + px[1] + ',' + px[2] + ')'
+        + (px[0] > 200 ? '   paper OK' : '   NOT paper — this page is stale'));
+
+    for (const t of PNGS) {
+      const b = await blobOf(draw(img, t.size));
+      save(b, t.name);
+      log('wrote ' + t.name.padEnd(17) + t.size + 'px  ' + b.size + ' bytes  -> ' + t.dest);
+      document.getElementById('prev').append(draw(img, Math.min(t.size, 88)));
+    }
+
+    const items = [];
+    for (const s of ICO_SIZES) {
+      const b = await blobOf(draw(img, s));
+      items.push({ px: s, bytes: new Uint8Array(await b.arrayBuffer()) });
+    }
+    const ico = await buildIco(items);
+    save(ico, 'favicon.ico');
+    log('wrote favicon.ico      ' + ICO_SIZES.join('/') + 'px  ' + ico.size + ' bytes  -> public/');
+
+    log('\ndone — move the four files into the repo.');
+  } catch (e) {
+    log('FAILED: ' + e.message);
+    ev.target.disabled = false;
+  }
+});
+</script>

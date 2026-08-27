@@ -36,7 +36,7 @@ export default function PremiumGate({ children, feature, overlay = false }: Prem
           <div className="absolute inset-0 flex items-center justify-center">
             <button
               onClick={() => setShowUpgrade(true)}
-              className="flex items-center gap-2 bg-brand text-foreground text-xs font-black lowercase px-4 py-2 rounded-full shadow-lg hover:bg-brand/90 transition-all active:scale-95"
+              className="flex items-center gap-2 bg-brand text-[hsl(var(--brand-ink))] text-xs font-black lowercase px-4 py-2 rounded-full shadow-lg hover:bg-brand/90 transition-all active:scale-95"
             >
               <Zap size={12} /> Upgrade to Unlock
             </button>

@@ -320,7 +320,7 @@ export default function StrengthCalc() {
                       <p className={`text-[9px] lowercase font-medium mb-0.5 ${isReached ? 'text-brand' : 'text-muted-foreground/60'}`}>
                         {lvl.slice(0, 3)}
                       </p>
-                      <p className={`text-sm font-semibold stat-num ${isReached ? 'text-brand' : 'text-foreground'}`}>
+                      <p className={`text-sm font-semibold stat-num ${isReached ? 'text-foreground' : 'text-muted-foreground'}`}>
                         {target}
                       </p>
                       <p className="text-[9px] text-muted-foreground/60">{multiplier}×</p>

@@ -60,7 +60,7 @@ export default function ExerciseCard({
     <>
       <div className={`group relative bg-card border-2 rounded-[40px] transition-all duration-700 overflow-hidden ${
  isCompleted
- ? 'border-emerald-500/40 bg-emerald-500/[0.02] shadow-[0_15px_40px_-10px_rgba(16,185,129,0.1)]'
+ ? 'border-border/40 bg-muted/[0.02]'
  : 'border-border/80 hover:border-brand/40 shadow-2xl'
  }`}>
         {/* Dynamic Background Element */}
@@ -70,18 +70,18 @@ export default function ExerciseCard({
 
         {/* Exercise Header Section */}
         <div className={`p-8 pb-5 flex justify-between items-start relative z-10 ${
- isCompleted ? 'bg-emerald-500/[0.03]' : ''
+ isCompleted ? 'bg-muted/[0.03]' : ''
  }`}>
           <div className="flex-1 min-w-0 pr-2">
             <div className="flex items-center gap-2 mb-2.5 flex-wrap">
               <h3 className={`font-display font-semibold text-2xl tracking-wide transition-all duration-500 ${
- isCompleted ? 'text-emerald-400' : 'text-foreground'
+ isCompleted ? 'text-foreground' : 'text-foreground'
  }`}>
                 {name.toUpperCase()}
               </h3>
               {isCompleted && (
-                <div className="bg-emerald-500/20 p-1.5 rounded-full animate-in zoom-in duration-500">
-                  <CheckCircle2 size={18} className="text-emerald-400" strokeWidth={3} />
+                <div className="bg-muted/20 p-1.5 rounded-full animate-in zoom-in duration-500">
+                  <CheckCircle2 size={18} className="text-foreground" strokeWidth={3} />
                 </div>
               )}
             </div>
@@ -126,7 +126,7 @@ export default function ExerciseCard({
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(true); }}
                 className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border ${
  isCompleted
- ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400/60 hover:text-emerald-400'
+ ? 'bg-muted/10 border-border/20 text-foreground/60 hover:text-foreground'
  : 'bg-surface-3 border-border text-muted-foreground hover:text-foreground hover:border-brand/30'
  }`}
                 aria-label="Exercise options"
@@ -155,12 +155,12 @@ export default function ExerciseCard({
 
         {/* Completion Footer */}
         {isCompleted ? (
-          <div className="bg-emerald-500 relative overflow-hidden py-2.5 group/complete">
-            <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/complete:translate-x-full transition-transform duration-1000 ease-in-out" />
+          <div className="bg-muted relative overflow-hidden py-2.5 group/complete">
+            <div className="absolute inset-0 bg-[hsl(var(--sheen))]/10 -translate-x-full group-hover/complete:translate-x-full transition-transform duration-1000 ease-in-out" />
             <div className="flex items-center justify-center gap-3 relative z-10">
-              <Sparkles size={12} className="text-black/80" />
-              <p className="text-[10px] font-display font-semibold text-black lowercase">Protocol Executed Successfully</p>
-              <Sparkles size={12} className="text-black/80 rotate-12" />
+              <Sparkles size={12} className="text-[hsl(var(--foreground))]/80" />
+              <p className="text-[10px] font-display font-semibold text-[hsl(var(--foreground))] lowercase">Protocol Executed Successfully</p>
+              <Sparkles size={12} className="text-[hsl(var(--foreground))]/80 rotate-12" />
             </div>
           </div>
         ) : (
@@ -182,7 +182,7 @@ export default function ExerciseCard({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-40 bg-black/60"
+              className="fixed inset-0 z-40 bg-[hsl(var(--scrim))]/60"
               onClick={() => setMenuOpen(false)}
             />
 
@@ -276,7 +276,7 @@ export default function ExerciseCard({
                         icon={AlertTriangle}
                         label="Joint Pain Modifier"
                         onClick={() => handleAction(onJointPain)}
-                        className="text-amber-400"
+                        className="text-foreground"
                       />
                     )}
                     {onRemove && (
@@ -284,7 +284,7 @@ export default function ExerciseCard({
                         icon={Trash2}
                         label="Remove Exercise"
                         onClick={() => handleAction(onRemove)}
-                        className="text-red-400"
+                        className="text-destructive"
                         destructive
                       />
                     )}
@@ -332,7 +332,7 @@ function MenuItem({
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors hover:bg-surface-3 active:bg-surface-3 ${
- destructive ? 'text-red-400 hover:bg-red-500/5' : className
+ destructive ? 'text-destructive hover:bg-destructive/5' : className
  }`}
     >
       <Icon size={16} className="flex-shrink-0" />

@@ -25,26 +25,26 @@ const CATEGORY_FILTER: Record<string, { field: 'category' | 'subcategory'; value
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Chest:      'text-rose-400 bg-rose-500/10 border-rose-500/20',
-  Back:       'text-sky-400 bg-sky-500/10 border-sky-500/20',
-  Shoulders:  'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  Biceps:     'text-purple-400 bg-purple-500/10 border-purple-500/20',
-  Triceps:    'text-violet-400 bg-violet-500/10 border-violet-500/20',
-  Quads:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  Hamstrings: 'text-teal-400 bg-teal-500/10 border-teal-500/20',
-  Glutes:     'text-green-400 bg-green-500/10 border-green-500/20',
-  Calves:     'text-lime-400 bg-lime-500/10 border-lime-500/20',
-  Core:       'text-orange-400 bg-orange-500/10 border-orange-500/20',
+  Chest:      'text-foreground bg-muted/10 border-border/20',
+  Back:       'text-muted-foreground bg-muted/10 border-border/20',
+  Shoulders:  'text-foreground bg-muted/10 border-border/20',
+  Biceps:     'text-muted-foreground bg-muted/10 border-border/20',
+  Triceps:    'text-muted-foreground bg-muted/10 border-border/20',
+  Quads:      'text-foreground bg-muted/10 border-border/20',
+  Hamstrings: 'text-foreground bg-muted/10 border-border/20',
+  Glutes:     'text-foreground bg-muted/10 border-border/20',
+  Calves:     'text-foreground bg-muted/10 border-border/20',
+  Core:       'text-foreground bg-muted/10 border-border/20',
   'Full Body':'text-brand bg-brand/10 border-brand/20',
-  Arms:       'text-purple-400 bg-purple-500/10 border-purple-500/20',
-  Legs:       'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  Arms:       'text-muted-foreground bg-muted/10 border-border/20',
+  Legs:       'text-foreground bg-muted/10 border-border/20',
   Cardio:     'text-brand bg-brand/10 border-brand/20',
 }
 
 const MECHANIC_BADGE: Record<string, string> = {
   Compound:  'text-brand bg-brand/10',
-  Isolation: 'text-muted-foreground bg-gray-800',
-  Isometric: 'text-teal-400 bg-teal-500/10',
+  Isolation: 'text-muted-foreground bg-muted',
+  Isometric: 'text-foreground bg-muted/10',
 }
 
 type Exercise = typeof EXERCISES[0]
@@ -113,19 +113,19 @@ export default function Library() {
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-display font-semibold lowercase">Movement Library</h1>
-            <p className="text-[10px] text-gray-600 font-bold lowercase">{filtered.length} exercises</p>
+            <p className="text-[10px] text-muted-foreground font-bold lowercase">{filtered.length} exercises</p>
           </div>
         </div>
 
         {/* SEARCH */}
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input
             type="text"
             placeholder="Search exercises or muscles..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-gray-700 focus:outline-none focus:border-brand transition-all font-medium"
+            className="w-full bg-card border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand transition-all font-medium"
           />
         </div>
 
@@ -137,8 +137,8 @@ export default function Library() {
               onClick={() => setEquipFilter(eq)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold lowercase border transition-all ${
                 equipFilter === eq
-                  ? 'bg-brand border-brand text-foreground'
-                  : 'bg-card border-border text-muted-foreground hover:border-gray-700'
+                  ? 'bg-brand border-brand text-[hsl(var(--brand-ink))]'
+                  : 'bg-card border-border text-muted-foreground hover:border-border'
               }`}
             >
               {eq === 'all' ? '🏋️ All' : eq === 'iron' ? '🔩 Full Gym' : '🏠 At Home'}
@@ -154,8 +154,8 @@ export default function Library() {
               onClick={() => setActiveCategory(cat)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold lowercase transition-all ${
                 activeCategory === cat
-                  ? 'bg-brand text-foreground shadow-lg shadow-brand/20'
-                  : 'bg-card text-muted-foreground hover:text-gray-300 border border-border'
+                  ? 'bg-brand text-[hsl(var(--brand-ink))] shadow-lg shadow-brand/20'
+                  : 'bg-card text-muted-foreground hover:text-muted-foreground border border-border'
               }`}
             >
               {cat}
@@ -181,7 +181,7 @@ export default function Library() {
             return (
               <div
                 key={ex.id}
-                className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between group hover:border-gray-700 transition-all shadow-lg"
+                className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between group hover:border-border transition-all shadow-lg"
               >
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   <div className={`h-10 w-10 rounded-xl flex items-center justify-center border flex-shrink-0 ${catColor}`}>
@@ -204,7 +204,7 @@ export default function Library() {
                 <button
                   onClick={() => handleQuickStart(ex)}
                   disabled={!!loadingId}
-                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-foreground text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all active:scale-95 lowercase ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
+                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-[hsl(var(--brand-ink))] text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all active:scale-95 lowercase ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
                 >
                   {isLoading
                     ? <Loader2 size={14} className="animate-spin" />

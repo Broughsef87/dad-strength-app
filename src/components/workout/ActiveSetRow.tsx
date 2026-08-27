@@ -30,18 +30,18 @@ export default function ActiveSetRow({
   return (
     <div className={`group relative grid grid-cols-12 gap-3 items-center p-3 rounded-2xl transition-all duration-500 ${
       isDone
-        ? 'bg-emerald-500/5 border border-emerald-500/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.02)]'
-        : 'bg-gray-800/20 border border-border/40 hover:border-brand/30 hover:bg-gray-800/30'
+        ? 'bg-muted/5 border border-border/20'
+        : 'bg-muted/20 border border-border/40 hover:border-brand/30 hover:bg-muted/30'
     }`}>
       {/* Set Number Indicator */}
       <div className="col-span-1 flex flex-col items-center justify-center">
         <span className={`text-[9px] font-display font-semibold lowercase mb-0.5 transition-colors ${
-          isDone ? 'text-emerald-500/50' : 'text-gray-600 group-hover:text-brand/50'
+          isDone ? 'text-muted-foreground' : 'text-muted-foreground group-hover:text-brand/50'
         }`}>
           Set
         </span>
         <span className={`text-base font-display font-semibold italic leading-none ${
-          isDone ? 'text-emerald-500' : 'text-muted-foreground group-hover:text-foreground'
+          isDone ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
         }`}>
           {index + 1}
         </span>
@@ -55,7 +55,7 @@ export default function ActiveSetRow({
           placeholder={previousWeight || "0"}
           disabled={isDone}
           value={weight}
-          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-display font-semibold text-xl stat-num text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
+          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-display font-semibold text-xl stat-num text-foreground outline-none transition-all placeholder:text-muted-foreground disabled:opacity-40 ${
             isDone
               ? 'border-transparent'
               : 'border-border/50 focus:border-brand focus:bg-background focus:ring-4 focus:ring-brand/10'
@@ -63,14 +63,14 @@ export default function ActiveSetRow({
           onChange={(e) => onWeightChange(e.target.value)}
         />
         {weight && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-foreground lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-[hsl(var(--brand-ink))] lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
             LBS
           </span>
         )}
         {previousWeight && !weight && !isDone && (
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/input:opacity-100 transition-opacity">
-                <History size={8} className="text-gray-600" />
-                <span className="text-[8px] font-bold text-gray-600">{previousWeight}</span>
+                <History size={8} className="text-muted-foreground" />
+                <span className="text-[8px] font-bold text-muted-foreground">{previousWeight}</span>
             </div>
         )}
       </div>
@@ -83,7 +83,7 @@ export default function ActiveSetRow({
           placeholder={previousReps || "0"}
           disabled={isDone}
           value={reps}
-          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-display font-semibold text-xl stat-num text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
+          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-display font-semibold text-xl stat-num text-foreground outline-none transition-all placeholder:text-muted-foreground disabled:opacity-40 ${
             isDone
               ? 'border-transparent'
               : 'border-border/50 focus:border-brand focus:bg-background focus:ring-4 focus:ring-brand/10'
@@ -91,14 +91,14 @@ export default function ActiveSetRow({
           onChange={(e) => onRepsChange(e.target.value)}
         />
         {reps && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-foreground lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-[hsl(var(--brand-ink))] lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
             REPS
           </span>
         )}
         {previousReps && !reps && !isDone && (
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/input:opacity-100 transition-opacity">
-                <History size={8} className="text-gray-600" />
-                <span className="text-[8px] font-bold text-gray-600">{previousReps}</span>
+                <History size={8} className="text-muted-foreground" />
+                <span className="text-[8px] font-bold text-muted-foreground">{previousReps}</span>
             </div>
         )}
       </div>
@@ -108,8 +108,8 @@ export default function ActiveSetRow({
         onClick={onToggle}
         className={`col-span-3 h-14 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
           isDone
-            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 rotate-0'
-            : 'bg-card border border-border text-gray-700 hover:text-brand hover:border-brand/50 hover:bg-gray-800 shadow-sm'
+            ? 'bg-muted text-[hsl(var(--foreground))] shadow-lg shadow-[hsl(var(--foreground))]/20 rotate-0'
+            : 'bg-card border border-border text-muted-foreground hover:text-brand hover:border-brand/50 hover:bg-muted shadow-sm'
         }`}
       >
         {isDone ? (
@@ -122,13 +122,13 @@ export default function ActiveSetRow({
       {/* Previous Data Tooltip / Hint (Mobile Optimized) */}
       {!isDone && !weight && !reps && previousWeight && (
           <div className="absolute -left-1 top-1/2 -translate-y-1/2 -translate-x-full pr-2 hidden lg:block">
-              <div className="bg-gray-800 px-2 py-1 rounded-lg border border-gray-700 whitespace-nowrap">
+              <div className="bg-muted px-2 py-1 rounded-lg border border-border whitespace-nowrap">
                   <p className="text-[8px] font-display font-semibold text-muted-foreground lowercase">Last: {previousWeight}x{previousReps}</p>
               </div>
           </div>
       )}
       {isDone && isPR && (
-        <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-yellow-400/30 animate-in zoom-in duration-300 z-10">
+        <div className="absolute -top-2 -right-2 bg-muted text-[hsl(var(--foreground))] text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-[hsl(var(--foreground))]/30 animate-in zoom-in duration-300 z-10">
           PR
         </div>
       )}

@@ -117,9 +117,15 @@ export default function ActiveProgram() {
               <span key={i} className={`led-cell ${doneDays.includes(i + 1) ? 'lit' : ''}`} />
             ))}
           </div>
+          {/* "3 of 4 logged" — the 3 is yours, the 4 was printed on the form
+              before you got here. The words stay chrome; only the figures
+              carry ink. */}
           <div className="flex justify-between mt-1.5">
             <p className="eyebrow-mono">this week</p>
-            <p className="eyebrow-mono">{doneDays.length} of {program.daysPerWeek} logged</p>
+            <p className="eyebrow-mono">
+              <span className="ink-written-col">{doneDays.length}</span> of{' '}
+              <span className="ink-printed">{program.daysPerWeek}</span> logged
+            </p>
           </div>
         </div>
       )}

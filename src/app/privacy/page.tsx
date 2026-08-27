@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
           <p className="text-sm text-muted-foreground mt-2">Last updated: {lastUpdated}</p>
         </div>
 
-        <div className="space-y-8 text-sm text-muted-foreground leading-relaxed">
+        <div className="prose-paper space-y-8 text-sm text-muted-foreground leading-relaxed">
 
           <section>
             <h2 className="text-base font-display font-semibold lowercase text-foreground mb-3">Overview</h2>
@@ -119,7 +119,7 @@ export default function PrivacyPolicy() {
                 <div key={name} className="p-4 rounded-xl border border-border/50 bg-card/30">
                   <p className="font-bold text-foreground mb-1">{name}</p>
                   <p className="text-xs mb-1">{desc}</p>
-                  <a href={link} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline">
+                  <a href={link} target="_blank" rel="noopener noreferrer" className="text-xs text-brand underline underline-offset-2 hover:decoration-2">
                     Privacy Policy →
                   </a>
                 </div>
@@ -155,7 +155,7 @@ export default function PrivacyPolicy() {
             </ul>
             <p className="mt-3">
               To exercise any of these rights, email us at{' '}
-              <a href={`mailto:${contactEmail}`} className="text-brand hover:underline">{contactEmail}</a>.
+              <a href={`mailto:${contactEmail}`} className="text-brand underline underline-offset-2 hover:decoration-2">{contactEmail}</a>.
             </p>
           </section>
 
@@ -181,7 +181,7 @@ export default function PrivacyPolicy() {
             <h2 className="text-base font-display font-semibold lowercase text-foreground mb-3">Contact</h2>
             <p>
               Questions about this policy or your data? Reach out:{' '}
-              <a href={`mailto:${contactEmail}`} className="text-brand hover:underline">{contactEmail}</a>
+              <a href={`mailto:${contactEmail}`} className="text-brand underline underline-offset-2 hover:decoration-2">{contactEmail}</a>
             </p>
           </section>
 

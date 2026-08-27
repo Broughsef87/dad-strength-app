@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
-  <rect width="1200" height="300" fill="#0E0F10" />
+  <rect width="1200" height="300" fill="#141310" />
   <g transform="translate(60,42) scale(0.212)">
-    <rect x="32" y="32" width="960" height="960" rx="216" fill="#17181A" />
+    <rect x="32" y="32" width="960" height="960" rx="24" fill="#23201A" />
     
   <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z"
-        transform="translate(206.5,292.6) scale(3.05)" fill="#CDFF4D" fill-rule="evenodd" />
+        transform="translate(206.5,292.6) scale(3.05)" fill="#E7E2D6" fill-rule="evenodd" />
   <path d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z"
-        transform="translate(567.5,292.6) scale(3.05)" fill="#CDFF4D" fill-rule="evenodd" />
+        transform="translate(567.5,292.6) scale(3.05)" fill="#E7E2D6" fill-rule="evenodd" />
   </g>
   <text x="330" y="178" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
-        font-size="96" font-weight="700" letter-spacing="-4" fill="#EDEDEA">dad strength</text>
+        font-size="96" font-weight="700" letter-spacing="-4" fill="#E7E2D6">dad strength</text>
 </svg>
