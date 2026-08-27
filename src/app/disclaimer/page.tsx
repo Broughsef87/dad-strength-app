@@ -17,7 +17,7 @@ export default function FitnessDisclaimer() {
           <p className="text-sm text-muted-foreground mt-2">Last updated: {lastUpdated}</p>
         </div>
 
-        <div className="space-y-8 text-sm text-muted-foreground leading-relaxed">
+        <div className="prose-paper space-y-8 text-sm text-muted-foreground leading-relaxed">
 
           <section className="p-4 rounded-xl border border-brand/30 bg-brand/5">
             <p className="text-foreground font-bold mb-2">The short version</p>

@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
           <p className="text-sm text-muted-foreground mt-2">Last updated: {lastUpdated}</p>
         </div>
 
-        <div className="space-y-8 text-sm text-muted-foreground leading-relaxed">
+        <div className="prose-paper space-y-8 text-sm text-muted-foreground leading-relaxed">
 
           <section>
             <h2 className="text-base font-display font-semibold lowercase text-foreground mb-3">Overview</h2>

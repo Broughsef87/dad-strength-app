@@ -76,10 +76,15 @@
   --color-steel: hsl(var(--muted-foreground));
 
   /* FOR-186: paper is cut, not moulded. Everything caps at 6px so a card reads
-     as a card rather than a pill. The names stay so nothing has to be renamed. */
+     as a card rather than a pill. The names stay so nothing has to be renamed.
+     xl and 2xl are here because they were NOT overridden at first, and Tailwind
+     quietly served its own 12px and 16px to 82 elements — a cap you only apply
+     to the names you remember is not a cap. */
   --radius-lg: 6px;
   --radius-md: 4px;
   --radius-sm: 3px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
   --radius-3xl: 6px;
 
   /* ── type: three inks and the chrome that frames them ──────────────────────
@@ -414,11 +419,15 @@
 }
 
 /* ── pills ── */
+/* A form's buttons are boxes, not lozenges. The 999px pill was chalk/volt's
+   signature shape and it is the single most un-paper thing left in the kit;
+   circles survive elsewhere (avatars, status dots, skeletons) because a circle
+   is a mark, but a stadium-shaped button is an app affordance. */
 .pill {
-  border-radius: 999px;
+  border-radius: 4px;
 }
 .pill-volt {
-  border-radius: 999px;
+  border-radius: 4px;
   background: hsl(var(--brand));
   color: hsl(var(--brand-ink));
   font-weight: 700;
@@ -743,3 +752,23 @@
 .stroke-brand { stroke: hsl(var(--brand-text)); }
 /* ...but inside a solid volt fill, ink wins. */
 .bg-brand .text-brand, .pill-volt .text-brand { color: hsl(var(--brand-ink)); }
+
+/* ── the document voice ─────────────────────────────────────────────────────
+   Terms, privacy and the disclaimer are DOCUMENTS, not training cards. Oswald
+   is condensed display type — it sets a heading beautifully and punishes a
+   paragraph, and these three pages carry 56 of them between them.
+
+   A serif is also the honest answer for the metaphor: the form is typeset and
+   filled in, the terms are a printed document you were handed with it. This is
+   a system stack, so it costs no download and adds no dependency. */
+.prose-paper {
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.65;
+  letter-spacing: 0.005em;
+}
+.prose-paper h1, .prose-paper h2, .prose-paper h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
