@@ -16,8 +16,13 @@
                   Max TWO per screen — a stamp that appears everywhere means
                   nothing. This is a hard rule, not a guideline.
 
-   Structure: hairline rules and cut corners (≤6px), no shadows between paper
-   and itself, a faint grain over the card. Chrome and labels are Oswald.
+   Courier marks engine-printed VALUES only — never prose, never labels. If
+   every word is typeset, "printed" stops meaning the engine decided this, and
+   the face is doing nothing. Oswald carries prose and chrome; Courier appears
+   where a number came out of buildDay.
+
+   Structure: hairline rules and cut corners (≤6px), the sheet casts onto the
+   desk but nothing casts onto the sheet, a faint grain over the card.
 
    Where the ink rule fights legibility, LEGIBILITY WINS: athlete values never
    go below 15px, and any column of numbers uses the printed face with tabular
@@ -82,10 +87,15 @@
      layout.tsx now points them at Oswald and Courier Prime. Renaming them is a
      merge-day chore, not a tonight chore.
 
-     --font-sans is the PRINTED face, not the grotesk. Inside a card the body
-     text is the engine's prescription, so the typewriter is the default voice
-     and Oswald is reserved for chrome — labels, headings, tabs, the masthead. */
-  --font-sans: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
+     COURIER IS NOT THE BODY FACE. It marks engine-printed VALUES and nothing
+     else. I had it as --font-sans, which made the whole app typewriter — and
+     a distinction that applies to everything stops being a distinction. If all
+     text is printed, "printed" no longer says the engine decided this, which is
+     the entire job the face was hired for. Athlete's call, and correct.
+
+     So: Oswald carries prose and chrome, Courier appears ONLY through
+     --font-mono / .ink-printed, on values that came out of buildDay. */
+  --font-sans: var(--font-space-grotesk, "Oswald", "Haettenschweiler", system-ui, sans-serif);
   --font-mono: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
   --font-display: var(--font-space-grotesk, "Oswald", "Haettenschweiler", system-ui, sans-serif);
   --font-telemetry: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
