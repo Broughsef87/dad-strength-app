@@ -1065,7 +1065,7 @@ function MaxesCard({ maxDefs, current, onSave }: {
           await onSave(out)
           setSaved(true)
         }}
-        className="w-full py-2.5 bg-brand text-foreground rounded-lg text-xs font-medium lowercase hover:bg-brand/90 transition-colors">
+        className="w-full py-2.5 bg-brand text-[hsl(var(--brand-ink))] rounded-lg text-xs font-medium lowercase hover:bg-brand/90 transition-colors">
         {saved ? 'Saved ✓' : 'Save Maxes'}
       </button>
     </div>
@@ -1557,7 +1557,7 @@ export default function TrainingDayPage() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
         <AlertTriangle className="w-10 h-10 text-destructive" />
         <p className="text-foreground font-medium">Unknown program &ldquo;{slug}&rdquo;</p>
-        <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Choose Program</button>
+        <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-[hsl(var(--brand-ink))] rounded-lg text-sm font-medium">Choose Program</button>
       </div>
     )
   }
@@ -1575,7 +1575,7 @@ export default function TrainingDayPage() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
         <AlertTriangle className="w-10 h-10 text-destructive" />
         <p className="text-foreground font-medium">{error}</p>
-        <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Try Again</button>
+        <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="px-6 py-2.5 bg-brand text-[hsl(var(--brand-ink))] rounded-lg text-sm font-medium">Try Again</button>
       </div>
     )
   }

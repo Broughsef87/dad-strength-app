@@ -228,7 +228,7 @@ export default function Schedule() {
               </div>
               <button
                 onClick={() => router.push(`/workout/${activeWorkout.id}`)}
-                className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-foreground font-display font-semibold py-4 rounded-2xl lowercase text-xs transition-all active:scale-95 shadow-lg shadow-brand/20"
+                className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-[hsl(var(--brand-ink))] font-display font-semibold py-4 rounded-2xl lowercase text-xs transition-all active:scale-95 shadow-lg shadow-brand/20"
               >
                 <PlayCircle size={16} /> Start Session
               </button>

@@ -204,7 +204,7 @@ export default function Library() {
                 <button
                   onClick={() => handleQuickStart(ex)}
                   disabled={!!loadingId}
-                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-foreground text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all active:scale-95 lowercase ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
+                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:opacity-40 text-[hsl(var(--brand-ink))] text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all active:scale-95 lowercase ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
                 >
                   {isLoading
                     ? <Loader2 size={14} className="animate-spin" />

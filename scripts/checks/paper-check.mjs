@@ -161,6 +161,45 @@ ok('the grain is a background layer, not a stacking contest',
     'neither is on the palette, and neither is theme-aware')
 }
 
+// ── 4b-iv. a fill and its text must not be the same ink ─────────────────────
+// The worst bug of this reskin, and it came straight from a token decision:
+// --brand used to be volt, so `bg-brand text-foreground` was near-black on
+// bright green and read perfectly. Collapsing brand to INK made fill and text
+// the same colour, and eleven primary CTAs became blank rectangles across ten
+// files. Nothing in tsc, the build or a diff notices that.
+{
+  const SAME = [
+    ['bg-brand', 'text-foreground'],       // both ink
+    ['bg-foreground', 'text-foreground'],
+    ['bg-card', 'text-card-foreground'],   // fine, listed to document the shape
+  ]
+  const collisions = []
+  const w = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e)
+      if (statSync(p).isDirectory()) { w(p); continue }
+      if (!/\.tsx$/.test(e)) continue
+      const src = readFileSync(p, 'utf8')
+      for (const m of src.matchAll(/className="([^"]*)"/g)) {
+        const c = m[1]
+        // a hover: variant that changes BOTH is not a collision
+        const bare = c.replace(/\bhover:[^\s]+/g, '')
+        for (const [fill, text] of SAME.slice(0, 2)) {
+          const hasFill = new RegExp(`(^|\\s)${fill}(\\s|$)`).test(bare)
+          const hasText = new RegExp(`(^|\\s)${text}(\\s|$)`).test(bare)
+          if (hasFill && hasText) {
+            collisions.push(`${p.split(/[\\/]/).slice(-2).join('/')}: ${fill} + ${text}`)
+          }
+        }
+      }
+    }
+  }
+  w(SRC)
+  ok('no fill paired with text of the same ink',
+    collisions.length === 0,
+    collisions.slice(0, 5).join('  |  ') + ' — invisible text')
+}
+
 // ── 4c. focus must never equal the resting border ───────────────────────────
 // Collapsing the palette turned focus:border-{hue} into focus:border-border,
 // which is the SAME as the resting state — an invisible focus ring.

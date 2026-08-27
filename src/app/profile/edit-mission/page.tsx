@@ -98,7 +98,7 @@ export default function MissionEditor() {
         </div>
         <button 
           onClick={handleSave}
-          className="bg-brand hover:bg-brand/90 text-foreground px-4 py-1.5 rounded-lg font-display font-semibold text-xs lowercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 text-[hsl(var(--brand-ink))] px-4 py-1.5 rounded-lg font-display font-semibold text-xs lowercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
         >
           <Save size={14} /> Save
         </button>
