@@ -390,10 +390,12 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
+                  {/* WRITTEN: a streak is not prescribed, it is accumulated.
+                      Nudged to 15px — the floor for anything in the hand. */}
                   {streak > 0 && (
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Flame size={12} />
-                      <span className="stat-num text-[13px]">{streak}</span>
+                      <span className="stat-num is-written text-[15px]">{streak}</span>
                     </div>
                   )}
                   {activeProgram && (
@@ -415,9 +417,17 @@ export default function Dashboard() {
                       <span key={i} className={`day-pill ${zeusDoneDays.includes(i + 1) ? 'on' : ''}`} />
                     ))}
                   </div>
+                  {/* Both inks in one value, and this is the clearest case in
+                      the app: you did the numerator, the engine set the
+                      denominator. 2/4 means two sessions written onto a form
+                      that was printed asking for four. */}
                   <div className="flex justify-between mt-1.5 data-mono">
-                    <span>sessions</span>
-                    <span className="v">{zeusDoneDays.length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</span>
+                    <span className="eyebrow-mono">sessions</span>
+                    <span className="v">
+                      <span className="ink-written-col">{zeusDoneDays.length}</span>
+                      <span className="text-[hsl(var(--muted-foreground))]">/</span>
+                      {getProgram(activeProgram.slug ?? '')!.daysPerWeek}
+                    </span>
                   </div>
                 </div>
               )}

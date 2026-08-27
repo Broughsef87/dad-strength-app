@@ -452,21 +452,41 @@
 }
 
 /* ── eyebrows: quiet lowercase mono micro-labels ── */
+/* An eyebrow is a LABEL — the form's printed furniture, not a value the engine
+   produced. It was on the mono face, which under the ink rule would have said
+   "the engine decided this" about the word "active program". Labels are chrome,
+   so they are Oswald, uppercased and tracked the way a form's headings are set. */
 .eyebrow-mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: lowercase;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
   color: hsl(var(--muted-foreground));
 }
 
 /* hero numerals — tabular, tight, huge (rule 02) */
+/* The hero numeral. Almost every one of these is an engine value — the week
+   you are on, the sets prescribed, the target load — so it is PRINTED. The
+   tight negative tracking came from a grotesk; a typewriter face is already
+   monospaced and pulling it tighter just collides the glyphs. */
 .stat-num {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 0.92;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+}
+
+/* The same numeral when the ATHLETE produced it — a streak, a session count,
+   a logged load. Same size and weight, different hand. Kalam runs small for
+   its point size, so it is nudged up to hold its own beside a printed figure. */
+.stat-num.is-written {
+  font-family: var(--font-hand);
+  color: hsl(var(--ink-written));
+  font-weight: 700;
+  letter-spacing: 0;
+  font-size: 1.08em;
 }
 /* data lines — the quiet mono voice for %, rpe, wk */
 .data-mono {
