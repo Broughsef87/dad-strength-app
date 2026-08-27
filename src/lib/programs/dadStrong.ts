@@ -120,8 +120,14 @@ function sundayZ2(pos: MacroPos): OutsideSession {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Day 1 — Squat
+// The 4-set ceiling is a HOUSE rule, not one athlete's preference: no block
+// over 4 sets unless it is genuinely sub-maximal (velocity work) or a ramp to
+// a 1RM. M1 was 5x6 here for the same accumulation instinct that put a fifth
+// set in Power Dad; that one was disproven over months of the athlete cutting
+// it by hand every week. Percentages and reps are untouched — cut sets, never
+// intensity. Enforced by scripts/checks/set-ceiling.mjs.
 const D1_SQUAT: SlotMeso[] = [
-  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 5, reps: 6, pctStart: 67, pctStep: 2 },
+  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 6, pctStart: 67, pctStep: 2 },
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 4, pctStart: 77, pctStep: 2 },
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 3, reps: 2, pctStart: 87, pctStep: 1.5 },
 ]

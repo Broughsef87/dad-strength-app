@@ -134,7 +134,12 @@ for (const wk of [1, 2, 5, 9, 11]) {
   const s = hybridPower.buildDay(wk, 5, MAXES).items.map(i => i.slot)
   const pos = k => s.indexOf(k)
   assert(pos('seated_box_jump') === 0, `W${wk} Fri: jumps must open the day, got ${s[0]}`)
-  assert(pos('hang_psn') < pos('cl_top'), `W${wk} Fri: speed-oly must precede the heavy clean`)
+  assert(pos('hang_psn') === -1, `W${wk} Fri: hang_psn was removed (FOR-188)`)
+  // M1 only: M2/M3 add the clean back-off, so Friday is legitimately 6 there.
+  if (wk <= 4) assert(s.length === 5, `W${wk} Fri: 5 stations in M1 after the hang-snatch cut, got ${s.length}`)
+  // both present first: indexOf gives -1 for a missing slot, and -1 < n is
+  // true, so the ordering assert alone would survive either one vanishing
+  assert(pos('speed_squat') >= 0 && pos('cl_top') >= 0, `W${wk} Fri: speed squat and clean must both exist`)
   assert(pos('speed_squat') < pos('cl_top'), `W${wk} Fri: speed squat must precede the heavy clean`)
   assert(pos('cl_top') < pos('clean_pull'), `W${wk} Fri: clean before the pull`)
   assert(pos('acc_pullup') === s.length - 1, `W${wk} Fri: the row is the overflow block, must be last`)
@@ -142,7 +147,7 @@ for (const wk of [1, 2, 5, 9, 11]) {
 // Speed slots carry NO RPE anchor (a 57% double honestly rates ~4; against a
 // target of 6 the autoreg read that as "+3% too light" every week).
 for (const wk of [1, 5, 9]) {
-  for (const slot of ['speed_squat', 'hang_psn']) {
+  for (const slot of ['speed_squat']) {
     const it = itemAt(wk, 5, slot)
     assert(it?.velocity === true, `W${wk} ${slot} must be flagged velocity`)
     assert(it?.targetRpe === undefined, `W${wk} ${slot} must carry no targetRpe, got ${it?.targetRpe}`)
@@ -175,7 +180,6 @@ for (const wk of [1, 5, 9]) {
   }
   assert(pauseSquats <= 1, `W${wk}: ${pauseSquats} pause-squat slots — cap is 1/week`)
 }
-assert(nameAt(1, 5, 'hang_psn') === 'Hang Power Snatch' && nameAt(5, 5, 'hang_psn') === 'Power Snatch' && nameAt(9, 5, 'hang_psn') === 'Hang Power Snatch', 'speed-oly slot should rotate hang→floor→hang')
 assert(nameAt(1, 3, 'bench') === 'Bench Press' && nameAt(5, 3, 'bench') === 'Close-Grip Bench Press', 'Wed bench should rotate to close-grip in M2')
 assert(nameAt(1, 5, 'acc_pullup') === 'Pull-Up' && nameAt(5, 5, 'acc_pullup') === 'Pendlay Row' && nameAt(9, 5, 'acc_pullup') === 'Chest-Supported Row', 'Fri pull slot should rotate')
 // Horizontal pulling must exist in M2 AND M3 — five pressing exposures a week
@@ -189,6 +193,7 @@ assert([1, 5, 9].some(wk => /pallof/i.test(nameAt(wk, 1, 'acc_core') ?? '')), 'n
 // leftovers behind a heavy deadlift.
 for (const wk of [1, 5, 9]) {
   const slots = hybridPower.buildDay(wk, 6, MAXES).items.map(i => i.slot)
+  assert(slots.includes('ohp_press') && slots.includes('sat_dl'), `W${wk}: OHP and deadlift must both exist`)
   assert(slots.indexOf('ohp_press') < slots.indexOf('sat_dl'), `W${wk}: OHP must come before the deadlift`)
 }
 // Test week has to retest every max the program consumes, OHP included —
@@ -244,7 +249,8 @@ for (let wk = 1; wk <= 11; wk++) {
   assert(MAXV_TITLES.has(t) === (wk % 2 === 0), `W${wk} "${t}": wrong pool for an ${wk % 2 === 1 ? 'odd (accel)' : 'even (max-V)'} week`)
 }
 // Friday volume trims (athlete's call): speed-oly −1 set, clean back-off −1 set.
-assert(itemAt(1, 5, 'hang_psn')?.sets === 3 && itemAt(5, 5, 'hang_psn')?.sets === 3 && itemAt(9, 5, 'hang_psn')?.sets === 2, 'speed-oly slot should be 3/3/2 sets')
+assert([1, 5, 9].every(wk => itemAt(wk, 5, 'hang_psn') === undefined),
+  'hang_psn was removed from Friday (FOR-188) and must not return')
 assert(itemAt(5, 5, 'cl_back')?.sets === 2 && itemAt(9, 5, 'cl_back')?.sets === 1, 'clean back-offs should be 2 (M2) / 1 (M3)')
 // Core survives on Monday in every meso — top+back-off is one block, so the
 // broad jumps didn't have to displace it.
@@ -255,11 +261,21 @@ for (const [d, s] of [[1, 'sn_top'], [5, 'cl_top'], [1, 'back_squat_heavy'], [6,
   assert(nameAt(1, d, s) === nameAt(5, d, s) && nameAt(5, d, s) === nameAt(9, d, s), `spine slot ${s} must NOT rotate`)
 }
 
+// The 4-set ceiling (FOR-188). Nothing pinned this before, which is how the
+// config kept prescribing a fifth Monday squat that the athlete cut by hand
+// every week for months — the suite passed the whole time.
+for (const wk of [1, 2, 3, 4]) {
+  const sq = itemAt(wk, 1, 'back_squat_heavy')
+  assert(sq?.sets === 4, `W${wk} Mon squat should be 4 sets in M1, got ${sq?.sets}`)
+}
+assert(itemAt(1, 1, 'sn_top')?.note?.includes('65-70%'),
+  'M1 snatch must carry the 65-70% warm-up singles that replace the Friday speed work')
+
 // 9. Autoreg clamp extremes can't break floors (adjustments ±8 — the new
 // MAX_ADJ, wide enough for the weight-follow — on every slot).
 for (const sign of [-8, 8]) {
   const adj = {}
-  for (const s of ['sn_top', 'sn_back', 'cl_top', 'cl_back', 'hang_psn', 'clean_pull', 'bench_heavy', 'back_squat_heavy']) adj[s] = sign
+  for (const s of ['sn_top', 'sn_back', 'cl_top', 'cl_back', 'clean_pull', 'bench_heavy', 'back_squat_heavy']) adj[s] = sign
   for (const [week, day] of [[1, 1], [5, 1], [9, 5], [1, 5], [11, 1]]) {
     const plan = hybridPower.buildDay(week, day, MAXES, adj)
     for (const item of plan.items) {
@@ -293,17 +309,16 @@ console.log('── Friday Clean (of FULL clean max', MAXES.clean_jerk, 'lb) ─
 show(5, 'cl_top', '  top'); show(5, 'cl_back', '  back')
 console.log('── Pulls / squat (of full-lift maxes) ──')
 show(1, 'back_squat_heavy', '  mon squat'); show(5, 'clean_pull', '  clean pull')
-console.log('── Fri speed-oly slot / Wed volume bench (rotating) ──')
-show(5, 'hang_psn', '  speed oly'); show(3, 'bench', '  wed bench')
+console.log('── Wed volume bench (rotating) ──')
+show(3, 'bench', '  wed bench')
 
 // ── Autoreg meso-boundary guard ───────────────────────────────────────────────
-// Week 5 is the M2 boundary: hang_psn becomes Power Snatch and clean_pull
-// becomes Snatch Pull off a DIFFERENT max. Feedback from week 4 describes the
-// old lifts and must not carry over. Slots whose lift is unchanged still must.
+// Week 5 is the M2 boundary: clean_pull becomes Snatch Pull off a DIFFERENT
+// max. Feedback from week 4 describes the old lift and must not carry over.
+// Slots whose lift is unchanged still must.
 const { computeAdjustments } = await import('../../src/lib/programs/autoreg.ts')
 const W4_LOGS = [
   { slot: 'cl_top', rpe: 8, weight_lbs: 230 },       // Power Clean → Power Clean (unchanged)
-  { slot: 'hang_psn', rpe: 6, weight_lbs: 160 },     // Hang Power Snatch → Power Snatch (rotated)
   { slot: 'clean_pull', rpe: 8, weight_lbs: 300 },   // Clean Pull → Snatch Pull (rotated + re-keyed)
   { slot: 'speed_squat', rpe: 6, weight_lbs: 250 },  // Speed Box Squat (unchanged)
 ]
@@ -313,7 +328,6 @@ const chain = data => {
 }
 const fakeDb = { from: t => chain(t === 'generated_workouts' ? [{ id: 'w4' }] : W4_LOGS) }
 const adj = await computeAdjustments(fakeDb, 'u1', hybridPower, 5, 5, MAXES)
-assert(adj.hang_psn === undefined, `rotated hang_psn carried an adjustment (${adj.hang_psn})`)
 assert(adj.clean_pull === undefined, `rotated clean_pull carried an adjustment (${adj.clean_pull})`)
 assert(adj.cl_top != null && adj.cl_top > 0, `unchanged cl_top lost its adjustment (${adj.cl_top})`)
 // speed_squat is unchanged across the boundary too, but it's a VELOCITY slot:
@@ -322,7 +336,7 @@ assert(adj.cl_top != null && adj.cl_top > 0, `unchanged cl_top lost its adjustme
 assert((adj.speed_squat ?? 0) <= 0, `velocity slot chased an overload (${adj.speed_squat})`)
 console.log('\n── Autoreg at the M2 boundary (W4 logs → W5 build) ──')
 console.log(`  carried: ${Object.entries(adj).map(([k, v]) => `${k}:${v > 0 ? '+' : ''}${v}`).join('  ') || '(none)'}`)
-console.log('  blocked: hang_psn, clean_pull (rotated lifts)')
+console.log('  blocked: clean_pull (rotated lift)')
 
 console.log('\n── Speed day rotation (Tue) ──')
 for (let wk = 1; wk <= 13; wk++) {

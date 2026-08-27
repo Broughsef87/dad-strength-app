@@ -71,9 +71,7 @@ const shown = (wk, day, slot) =>
 // ── 5. SPEED slot carries no RPE anchor at all ───────────────────────────────
 {
   const sq = shown(2, 5, 'speed_squat')
-  const hp = shown(2, 5, 'hang_psn')
   check('speed squat targetRpe is unset', sq.targetRpe === undefined ? 'undefined' : sq.targetRpe, v => v === 'undefined')
-  check('speed-oly targetRpe is unset   ', hp.targetRpe === undefined ? 'undefined' : hp.targetRpe, v => v === 'undefined')
   check('speed squat flagged velocity   ', String(sq.velocity), v => v === 'true')
 }
 
