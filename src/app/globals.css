@@ -77,13 +77,23 @@
   --radius-sm: 3px;
   --radius-3xl: 6px;
 
-  /* ── type: a confident grotesk lowercase and tight, a quiet mono for data ── */
-  --font-sans: var(--font-space-grotesk, "Segoe UI Variable Display", system-ui, sans-serif);
-  --font-mono: var(--font-geist-mono, var(--font-space-mono, ui-monospace, "Cascadia Code", Consolas, monospace));
-  --font-display: var(--font-space-grotesk, "Segoe UI Variable Display", system-ui, sans-serif);
-  /* legacy alias some components still reference */
-  --font-telemetry: var(--font-geist-mono, var(--font-space-mono, ui-monospace, monospace));
+  /* ── type: three inks and the chrome that frames them ──────────────────────
+     The --font-space-grotesk / --font-geist-mono variable NAMES are inherited;
+     layout.tsx now points them at Oswald and Courier Prime. Renaming them is a
+     merge-day chore, not a tonight chore.
+
+     --font-sans is the PRINTED face, not the grotesk. Inside a card the body
+     text is the engine's prescription, so the typewriter is the default voice
+     and Oswald is reserved for chrome — labels, headings, tabs, the masthead. */
+  --font-sans: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
+  --font-mono: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
+  --font-display: var(--font-space-grotesk, "Oswald", "Haettenschweiler", system-ui, sans-serif);
+  --font-telemetry: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
   --font-serif-accent: var(--font-playfair, Georgia, serif);
+
+  /* the two inks that are not the default */
+  --font-hand: var(--font-hand-face, "Bradley Hand", "Segoe Script", cursive);
+  --font-stamp: var(--font-stamp-face, "Stencil", "Saira Stencil One", Impact, sans-serif);
 }
 
 @layer base {
@@ -278,6 +288,46 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── tiles: borderless, shadow-separated (rule 03) ── */
+/* ── THE THREE INKS ─────────────────────────────────────────────────────────
+   Apply these where DATA renders, not as decoration. The distinction they draw
+   is real: printed is what the engine decided, written is what the athlete did,
+   stamped is the verdict. If a value could take either of the first two, it is
+   printed — the engine is the default author on a prescription form. */
+
+/* PRINTED — buildDay's output. Sets, reps, percentages, target loads. */
+.ink-printed {
+  font-family: var(--font-mono);
+  color: hsl(var(--ink-printed));
+  font-variant-numeric: tabular-nums;
+}
+
+/* WRITTEN — the athlete's own marks. Never below 15px: a handwriting face at
+   13px is a texture, not a number, and this is where load goes wrong. */
+.ink-written {
+  font-family: var(--font-hand);
+  color: hsl(var(--ink-written));
+  font-size: max(15px, 1em);
+  line-height: 1.15;
+}
+
+/* Columns beat handwriting. A ledger of logged sets has to align, and Kalam
+   has no tabular figures — so a column reverts to the printed face and keeps
+   ONLY the ballpoint colour to say who wrote it. The ticket calls this out
+   explicitly: the ink rule bends to readability, never the reverse. */
+.ink-written-col {
+  font-family: var(--font-mono);
+  color: hsl(var(--ink-written));
+  font-variant-numeric: tabular-nums;
+}
+
+/* STAMPED — verdicts only. See <Stamp>; this is the bare ink for cases that
+   are not a full stamp block. */
+.ink-stamped {
+  font-family: var(--font-stamp);
+  color: hsl(var(--ink-stamped));
+  letter-spacing: 0.08em;
+}
+
 /* ── paper ──────────────────────────────────────────────────────────────────
    .tile is the card class every surface already uses, so paper arrives through
    it and the whole app turns over without touching a component. Shadow out,
