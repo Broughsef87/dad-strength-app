@@ -228,20 +228,20 @@ export default function Profile() {
             <div className="tile p-4">
               <Flame className="text-brand mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Streak</p>
-              <p className="font-light text-2xl mt-1 font-display">{stats.streak} <span className="text-xs text-muted-foreground">days</span></p>
+              <p className="text-2xl mt-1"><span className="ink-written-col font-bold">{stats.streak}</span> <span className="eyebrow-mono">days</span></p>
             </div>
             <div className="tile p-4">
               <Dumbbell className="text-muted-foreground mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Sessions</p>
-              <p className="font-light text-2xl mt-1 font-display">{stats.totalSessions}</p>
+              <p className="text-2xl mt-1"><span className="ink-written-col font-bold">{stats.totalSessions}</span></p>
             </div>
             <div className="tile p-4">
-              <Activity className="text-green-600 mb-2" size={16} />
+              <Activity className="text-muted-foreground mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Total Volume</p>
-              <p className="font-light text-xl mt-1 font-display">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
+              <p className="text-xl mt-1"><span className="ink-written-col font-bold">{stats.totalVolume.toLocaleString()}</span> <span className="eyebrow-mono">lbs</span></p>
             </div>
             <div className="tile p-4">
-              <Trophy className="text-yellow-600 mb-2" size={16} />
+              <Trophy className="text-muted-foreground mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Top Lift</p>
               <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>
             </div>
