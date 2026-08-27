@@ -293,7 +293,7 @@ export default function LearningTracker() {
 
               <div className="flex gap-2">
                 <button onClick={() => void addSkill()} disabled={!name.trim()}
-                  className="flex-1 py-2 bg-brand text-background text-[10px] font-semibold lowercase hover:bg-brand/90 disabled:opacity-40 transition-colors">
+                  className="flex-1 py-2 bg-brand text-[hsl(var(--brand-ink))] text-[10px] font-semibold lowercase hover:bg-brand/90 disabled:opacity-40 transition-colors">
                   Start Tracking
                 </button>
                 <button onClick={() => { setAdding(false); setName(''); setMilestone(''); setCatKey(null) }}

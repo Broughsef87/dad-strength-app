@@ -357,7 +357,7 @@ export default function Settings() {
                     <button
                       onClick={handleSendReset}
                       disabled={resetLoading}
-                      className="w-full flex items-center justify-center gap-2 bg-foreground text-background font-medium text-sm py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-foreground text-[hsl(var(--brand-ink))] font-medium text-sm py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                     >
                       {resetLoading ? (
                         <><Loader2 size={14} className="animate-spin" /> Sending...</>
@@ -488,7 +488,7 @@ export default function Settings() {
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteInput.trim().toLowerCase() !== 'delete' || deleteLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-destructive text-background font-medium text-sm py-2.5 rounded-lg hover:bg-destructive transition-colors disabled:opacity-40"
+                  className="w-full flex items-center justify-center gap-2 bg-destructive text-[hsl(var(--brand-ink))] font-medium text-sm py-2.5 rounded-lg hover:bg-destructive transition-colors disabled:opacity-40"
                 >
                   {deleteLoading ? (
                     <><Loader2 size={14} className="animate-spin" /> Deleting…</>

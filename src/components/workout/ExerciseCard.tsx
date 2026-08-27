@@ -156,11 +156,11 @@ export default function ExerciseCard({
         {/* Completion Footer */}
         {isCompleted ? (
           <div className="bg-muted relative overflow-hidden py-2.5 group/complete">
-            <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/complete:translate-x-full transition-transform duration-1000 ease-in-out" />
+            <div className="absolute inset-0 bg-[hsl(var(--card))]/10 -translate-x-full group-hover/complete:translate-x-full transition-transform duration-1000 ease-in-out" />
             <div className="flex items-center justify-center gap-3 relative z-10">
-              <Sparkles size={12} className="text-black/80" />
-              <p className="text-[10px] font-display font-semibold text-black lowercase">Protocol Executed Successfully</p>
-              <Sparkles size={12} className="text-black/80 rotate-12" />
+              <Sparkles size={12} className="text-[hsl(var(--foreground))]/80" />
+              <p className="text-[10px] font-display font-semibold text-[hsl(var(--foreground))] lowercase">Protocol Executed Successfully</p>
+              <Sparkles size={12} className="text-[hsl(var(--foreground))]/80 rotate-12" />
             </div>
           </div>
         ) : (
@@ -182,7 +182,7 @@ export default function ExerciseCard({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-40 bg-black/60"
+              className="fixed inset-0 z-40 bg-[hsl(var(--foreground))]/60"
               onClick={() => setMenuOpen(false)}
             />
 

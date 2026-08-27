@@ -284,7 +284,7 @@ export default function MorningProtocol(
               <button key={t} onClick={() => setMinutes(t)}
                 className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all ${
  minutes === t
- ? 'bg-foreground text-background'
+ ? 'bg-foreground text-[hsl(var(--brand-ink))]'
  : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
  }`}
               >{t}m</button>
@@ -348,7 +348,7 @@ export default function MorningProtocol(
         <button
           onClick={() => generate()}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-foreground hover:opacity-90 disabled:opacity-50 text-background font-medium py-4 rounded-lg text-sm lowercase transition-all active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 bg-foreground hover:opacity-90 disabled:opacity-50 text-[hsl(var(--brand-ink))] font-medium py-4 rounded-lg text-sm lowercase transition-all active:scale-[0.98]"
         >
           {loading
             ? <><Loader2 size={16} className="animate-spin" /> Building...</>
@@ -550,7 +550,7 @@ export default function MorningProtocol(
 
                   <button
                     onClick={() => toggleStep(i)}
-                    className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all"
+                    className="w-full bg-muted hover:bg-foreground hover:text-[hsl(var(--brand-ink))] text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all"
                   >
                     Mark Complete ✓
                   </button>

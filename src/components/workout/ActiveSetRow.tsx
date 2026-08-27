@@ -108,7 +108,7 @@ export default function ActiveSetRow({
         onClick={onToggle}
         className={`col-span-3 h-14 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
           isDone
-            ? 'bg-muted text-black shadow-lg shadow-emerald-500/20 rotate-0'
+            ? 'bg-muted text-[hsl(var(--foreground))] shadow-lg shadow-[hsl(var(--foreground))]/20 rotate-0'
             : 'bg-card border border-border text-gray-700 hover:text-brand hover:border-brand/50 hover:bg-gray-800 shadow-sm'
         }`}
       >
@@ -128,7 +128,7 @@ export default function ActiveSetRow({
           </div>
       )}
       {isDone && isPR && (
-        <div className="absolute -top-2 -right-2 bg-muted text-black text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-yellow-400/30 animate-in zoom-in duration-300 z-10">
+        <div className="absolute -top-2 -right-2 bg-muted text-[hsl(var(--foreground))] text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-[hsl(var(--foreground))]/30 animate-in zoom-in duration-300 z-10">
           PR
         </div>
       )}

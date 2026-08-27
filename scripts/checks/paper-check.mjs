@@ -14,6 +14,10 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const css = read('../../src/app/globals.css')
 const SRC = new URL('../../src', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
 const layout = read('../../src/app/layout.tsx')
+// Comments in globals.css quote the old selectors while explaining why they
+// were removed. A guard that trips on its own documentation is worse than no
+// guard, so structural checks read the DECLARATIONS only.
+const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, '')
 
 let checks = 0
 const fails = []
@@ -124,6 +128,37 @@ for (const p of pages) {
   }
   walkWhite(SRC)
   ok('no pure white text', whites.length === 0, whites.slice(0, 4).join(', '))
+}
+
+// ── 4b-ii. the grain must not fight the layout ──────────────────────────────
+// The grain lived on a ::before with `.tile > * { position: relative }` beneath
+// it. That rule has the SAME specificity as Tailwind's .absolute and is emitted
+// after it, so it silently un-positioned every absolutely-placed direct child
+// of a card. Texture must never take a position away from content.
+ok('the grain does not force positioning on card children',
+  !/\.tile\s*>\s*\*|\.tile-lg\s*>\s*\*/.test(cssCode),
+  'a `.tile > *` rule outranks .absolute and breaks positioned children')
+ok('the grain is a background layer, not a stacking contest',
+  /\.tile,\s*\n?\s*\.tile-lg\s*\{[^}]*background-image:\s*url\("data:image\/svg\+xml/.test(css) ||
+  /background-image:\s*url\("data:image\/svg\+xml[^"]*"\);\s*\n\s*background-repeat/.test(css),
+  'grain should paint from the card background, where it cannot outrank anything')
+
+// ── 4b-iii. colours the sweep is prone to miss ──────────────────────────────
+// The first pass covered text/bg/border/from/to/ring and missed shadow-, and
+// missed hard-coded black/white entirely. Both showed up in review.
+{
+  const HUES2 = 'red|rose|green|emerald|lime|teal|amber|yellow|orange|blue|sky|indigo|violet|purple|fuchsia|pink|cyan'
+  const extra = new RegExp(`\\b(?:shadow|fill|stroke|divide|outline|decoration|caret|accent)-(?:${HUES2})-\\d{2,3}\\b`)
+  const hard = /\b(?:text|bg|border)-(?:black|white)\b/
+  let all = ''
+  const w = (d) => { for (const e of readdirSync(d)) {
+    const p = join(d, e); if (statSync(p).isDirectory()) w(p)
+    else if (/\.tsx?$/.test(e)) all += readFileSync(p, 'utf8') } }
+  w(SRC)
+  ok('no coloured shadows or other tinted utilities', !extra.test(all),
+    'shadow-/fill-/stroke- carry hue too — the first sweep only covered six prefixes')
+  ok('no hard-coded black or white', !hard.test(all),
+    'neither is on the palette, and neither is theme-aware')
 }
 
 // ── 4c. focus must never equal the resting border ───────────────────────────

@@ -380,13 +380,18 @@ function RestTimer({ trigger }: { trigger: number }) {
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] w-[calc(100%-2rem)] max-w-sm panel-mount">
-      <div className={` border px-4 py-3 shadow-2xl ${done ? 'border-brand ' : 'border-brand/50 '}`}>
+      {/* The rest timer floats over the session, and it had no fill at all —
+          only a border and a shadow, so it inherited whatever was behind it.
+          That is why the digits went invisible in one mode or the other no
+          matter which token they used. It is a card now: paper fill, so the
+          shadow reads and the ink has something to sit on. */}
+      <div className={` border px-4 py-3 shadow-2xl bg-[hsl(var(--card))] ${done ? 'border-brand ' : 'border-brand/50 '}`}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 shrink-0">
             <Clock size={14} className={done ? 'text-brand' : 'text-brand'} />
             <span className="eyebrow-mono text-brand">{done ? 'REST DONE' : 'REST'}</span>
           </div>
-          <span className="stat-num text-2xl tabular-nums text-background">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
+          <span className="stat-num text-2xl tabular-nums text-[hsl(var(--foreground))]">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={() => { endRef.current += 30_000; setRemaining(r => r + 30); beeped.current = false }}
               className="border border-border/70 text-[10px] font-semibold lowercase text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors">+0:30</button>
@@ -613,7 +618,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                         onClick={() => update(idx, 'rpe', s.rpe === r ? null : r)}
                         className={`stat-num flex-1 py-1 text-[11px] border transition-colors ${
  s.rpe === r
- ? 'bg-brand text-background border-brand'
+ ? 'bg-brand text-[hsl(var(--brand-ink))] border-brand'
  : item.targetRpe === r
  ? 'border-brand/50 text-brand'
  : 'border-border/60 text-muted-foreground hover:text-foreground'
@@ -744,7 +749,7 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
               <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
                 className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <button onClick={() => update(idx, 'done', !s.done)}
-                className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-[hsl(var(--brand-ink))]' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
                 {s.done ? 'Hit' : 'Log'}
               </button>
             </div>
@@ -848,7 +853,7 @@ function OutsideCard({ item, initialLog, onLog }: {
       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Debrief (times, distances, feel)..."
         className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50 resize-none" />
       <button onClick={() => { onLog(notes); setLogged(true) }}
-        className="w-full py-2.5 bg-foreground text-background text-xs font-semibold lowercase hover:bg-foreground/90 transition-colors">
+        className="w-full py-2.5 bg-foreground text-[hsl(var(--brand-ink))] text-xs font-semibold lowercase hover:bg-foreground/90 transition-colors">
         {logged ? 'logged ✓' : 'log set'}
       </button>
     </div>
@@ -877,7 +882,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[hsl(var(--foreground))]/60 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
@@ -928,7 +933,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
         <button onClick={() => setRepeat(r => !r)}
           className="mt-3 flex items-center gap-2.5 text-left group">
           <span className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${repeat ? 'bg-brand border-brand' : 'border-border group-hover:border-brand/50'}`}>
-            {repeat && <Check size={11} className="text-background" strokeWidth={3} />}
+            {repeat && <Check size={11} className="text-[hsl(var(--brand-ink))]" strokeWidth={3} />}
           </span>
           <span className="text-xs text-foreground/90">
             Repeat for the rest of this mesocycle
@@ -970,7 +975,7 @@ function AddExerciseModal({ onPick, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[hsl(var(--foreground))]/60 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 

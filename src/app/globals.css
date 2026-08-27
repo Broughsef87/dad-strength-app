@@ -399,19 +399,22 @@
 }
 .tile-lg { border-radius: 6px; }
 
-.tile::before,
-.tile-lg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  opacity: 0.35;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .40 0 0 0 0 .28 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E");
+/* The grain is a BACKGROUND LAYER on the card itself, not a pseudo-element.
+   It was a ::before with `.tile > * { position: relative }` underneath it to
+   keep content on top — and that rule has the same specificity as Tailwind's
+   `.absolute`, is emitted after it, and therefore silently un-positioned every
+   absolutely-placed direct child of a card. The UpgradeModal close button and
+   the summary accent bar both fall out of place from one line of texture.
+
+   As a background layer there is no stacking contest to win: it paints under
+   content by definition, needs no pseudo-element, and no child has to be told
+   where it sits. The alpha (.018) is the old feColorMatrix .05 pre-multiplied
+   by the .35 opacity the pseudo-element used to apply. */
+.tile,
+.tile-lg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .40 0 0 0 0 .28 0 0 0 .018 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
-/* Grain is texture, not content — it must never sit over interactive children. */
-.tile > *,
-.tile-lg > * { position: relative; z-index: 1; }
 /* recessed row inside a tile (set rows, list items) */
 .row-recessed {
   background: hsl(var(--surface-2));

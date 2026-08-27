@@ -141,7 +141,7 @@ export default function Profile() {
 
         {/* User Card */}
         <div className="tile p-5 flex items-center gap-5">
-          <div className="h-14 w-14 rounded-full bg-foreground flex items-center justify-center font-medium text-lg text-background shrink-0">
+          <div className="h-14 w-14 rounded-full bg-foreground flex items-center justify-center font-medium text-lg text-[hsl(var(--brand-ink))] shrink-0">
             {user?.email?.charAt(0).toUpperCase() || 'D'}
           </div>
           <div className="flex-1 min-w-0">
