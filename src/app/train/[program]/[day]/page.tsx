@@ -485,7 +485,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
         )}
         {onRemove && (
           <button onClick={onRemove} title="Remove from today's session"
-            className="p-2 text-muted-foreground/70 hover:text-brand transition-colors">
+            className="p-2 text-muted-foreground hover:text-brand transition-colors">
             <X size={12} />
           </button>
         )}
@@ -588,11 +588,11 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
             <span>SET</span><span>LOAD.LB</span><span>REPS</span><span></span>
           </div>
           {sets.map((s, idx) => (
-            <div key={idx} className={` border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+            <div key={idx} className={` rule-leader transition-colors ${s.done ? 'bg-brand/5' : ''}`}>
               <div className="grid grid-cols-4 gap-2 items-center p-2">
                 {/* The set number is printed furniture — the form came with
                     numbered rows. Everything you type into them is WRITTEN. */}
-                <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+                <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}{s.done && <Check size={11} strokeWidth={3} className="inline-block ml-1 text-[hsl(var(--ink-written))] align-[-1px]" />}</span>
 
                 {/* WRITTEN, and this is the payoff moment of the whole system:
                     the load and reps you actually hit, in ballpoint, on the
@@ -715,7 +715,7 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
         )}
         {onRemove && (
           <button onClick={onRemove} title="Remove from today's session"
-            className="p-2 text-muted-foreground/70 hover:text-brand transition-colors">
+            className="p-2 text-muted-foreground hover:text-brand transition-colors">
             <X size={12} />
           </button>
         )}
@@ -747,9 +747,9 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
           <span>SET</span><span>REPS</span><span></span>
         </div>
         {sets.map((s, idx) => (
-          <div key={idx} className={` border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
+          <div key={idx} className={` rule-leader transition-colors ${s.done ? 'bg-brand/5' : ''}`}>
             <div className="grid grid-cols-3 gap-2 items-center p-2">
-              <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+              <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}{s.done && <Check size={11} strokeWidth={3} className="inline-block ml-1 text-[hsl(var(--ink-written))] align-[-1px]" />}</span>
               <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
                 className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <button onClick={() => update(idx, 'done', !s.done)}
