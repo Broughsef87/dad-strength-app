@@ -34,7 +34,7 @@ export default function SetRow({
       } rounded-2xl`}
     >
       <div className={`flex-none w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-display font-semibold italic transition-colors ${
-        isDone ? 'bg-brand text-[hsl(var(--brand-ink))]' : 'bg-muted text-muted-foreground'
+        isDone ? 'bg-brand text-[hsl(var(--brand-ink))]' : 'border border-border text-foreground'
       }`}>
         {index + 1}
       </div>

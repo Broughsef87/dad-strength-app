@@ -128,7 +128,7 @@ export default function ActiveSetRow({
           </div>
       )}
       {isDone && isPR && (
-        <div className="absolute -top-2 -right-2 bg-muted text-[hsl(var(--foreground))] text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-[hsl(var(--foreground))]/30 animate-in zoom-in duration-300 z-10">
+        <div className="absolute -top-2 -right-2 bg-[hsl(var(--state-pr))] text-[hsl(var(--brand-ink))] text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-[hsl(var(--foreground))]/30 animate-in zoom-in duration-300 z-10">
           PR
         </div>
       )}
