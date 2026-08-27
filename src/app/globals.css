@@ -821,9 +821,25 @@
    occurrences), and the rule above cannot rescue it without destroying it, so
    this one stays a design constraint rather than a CSS fallback: put the
    verdict on the paper, which is where a verdict belongs. */
-.bg-brand .ink-printed, .bg-brand .ink-written,
-.bg-foreground .ink-printed, .bg-foreground .ink-written,
-.bg-primary .ink-printed, .bg-primary .ink-written {
+/* Both positions, deliberately. The first draft of this rule was descendant-
+   only, which reads as complete until you notice that a fill and its ink are
+   very often the SAME element — className="bg-brand ink-printed" is one span,
+   not two, and it measured 1.00:1 in both themes. Codex caught it; the guard
+   I had written to protect this rule asserted the descendant selector existed
+   and so reported green over it, which is the same false confidence I have now
+   hit three times on this branch.
+
+   text-brand is in the list for the same reason: --brand-text resolves to ink
+   now, so className="bg-brand text-brand" is ink on ink, and .text-brand is an
+   unlayered class that outranks the :where() default.
+
+   :is() carries the specificity of its most specific argument, so both of these
+   selectors weigh 0-2-0 and beat the 0-1-0 utilities they are correcting —
+   while the :where() default above stays at 0-0-0 and keeps losing to anything
+   with an opinion, which is what makes it safe. */
+:is(.bg-brand, .bg-foreground, .bg-primary, .bg-destructive)
+  :is(.ink-printed, .ink-written, .text-brand),
+:is(.bg-brand, .bg-foreground, .bg-primary, .bg-destructive):is(.ink-printed, .ink-written, .text-brand) {
   color: hsl(var(--brand-ink));
 }
 

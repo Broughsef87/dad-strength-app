@@ -3,7 +3,7 @@
 // ── Recovery Protocol (Chassis) ────────────────────────────────────────────────
 // Weekly target: 4 recovery sessions in ANY combination — 3 cold plunges and a
 // stretch counts the same as one of each. Tap a modality to log a session
-// (tap − to take one back). Hits 4 → RECOVERY GREEN. Resets Monday, DB-synced.
+// (tap − to take one back). Hits 4 → week complete. Resets Monday, DB-synced.
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '../utils/supabase/client'
@@ -28,7 +28,6 @@ const SESSIONS: RecoverySession[] = [
 ]
 
 const WEEKLY_TARGET = 4
-const GREEN = '#10B981'
 
 function mondayKey(): string {
   const d = new Date()
@@ -142,7 +141,7 @@ export default function RecoveryProtocol() {
               <div className="flex items-center gap-1.5 shrink-0">
                 {active && (
                   <>
-                    <span className="stat-num text-sm" style={{ color: GREEN }}>×{n}</span>
+                    <span className="stat-num is-written text-sm">×{n}</span>
                     <button onClick={() => void setCount(s.key, n - 1)} title="Remove one"
                       className="p-1.5 border border-border/60 text-muted-foreground hover:text-foreground transition-colors">
                       <Minus size={11} />

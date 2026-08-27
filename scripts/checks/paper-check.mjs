@@ -171,10 +171,18 @@ ok('the grain is a background layer, not a stacking contest',
 // the same colour, and eleven primary CTAs became blank rectangles across ten
 // files. Nothing in tsc, the build or a diff notices that.
 {
+  // Every pair here is CHECKED. There used to be a fourth entry — the benign
+  // bg-card / text-card-foreground — kept "to document the shape" and excluded
+  // by taking SAME.slice(0, 2) at the loop. That worked until a pair was added
+  // in the middle, which silently pushed bg-foreground out of the slice and
+  // deleted a live check without failing anything. A positional exclusion is a
+  // booby trap for the next person to touch the list, so the documentation
+  // moved into this comment where it cannot be indexed by accident:
+  //   bg-card + text-card-foreground is the CORRECT pairing, not a collision.
   const SAME = [
-    ['bg-brand', 'text-foreground'],       // both ink
+    ['bg-brand', 'text-foreground'],       // both resolve to ink
+    ['bg-brand', 'text-brand'],            // --brand-text is ink now, so also both
     ['bg-foreground', 'text-foreground'],
-    ['bg-card', 'text-card-foreground'],   // fine, listed to document the shape
   ]
   const collisions = []
   const w = (d) => {
@@ -198,7 +206,7 @@ ok('the grain is a background layer, not a stacking contest',
       for (const c of spans) {
         // a hover: variant that changes BOTH is not a collision
         const bare = c.replace(/\bhover:[^\s]+/g, '')
-        for (const [fill, text] of SAME.slice(0, 2)) {
+        for (const [fill, text] of SAME) {
           const hasFill = new RegExp(`(^|\\s)${fill}(\\s|$)`).test(bare)
           const hasText = new RegExp(`(^|\\s)${text}(\\s|$)`).test(bare)
           if (hasFill && hasText) {
@@ -315,9 +323,16 @@ ok('the grain is a background layer, not a stacking contest',
 {
   const css = readFileSync(join(SRC, 'app', 'globals.css'), 'utf8')
   ok('inks inside a fill yield colour, keep face',
-    /\.bg-brand\s+\.ink-printed[^{]*\{\s*[^}]*color:\s*hsl\(var\(--brand-ink\)\)/.test(
-      css.replace(/,\s*\n/g, ', ')),
-    'the .bg-brand .ink-* companion rule is missing — printed ink on a fill is 1.00:1')
+    (() => {
+      const flat = css.replace(/\s+/g, ' ')   // a selector may wrap lines
+      const DESC = /:is\([^)]*\.bg-brand[^)]*\) :is\([^)]*\.ink-printed[^)]*\)/
+      const SAME = /:is\([^)]*\.bg-brand[^)]*\):is\([^)]*\.ink-printed[^)]*\)/
+      // BOTH positions. Descendant-only was the shipped bug: a fill and its
+      // ink are very often the SAME element, and a guard that asserts only
+      // the descendant form reports green straight over it.
+      return DESC.test(flat) && SAME.test(flat)
+    })(),
+    'the fill/ink correction is missing a position — same-element bg-brand + ink-printed is 1.00:1')
 
   const hits = []
   const w = (d) => {
@@ -327,7 +342,7 @@ ok('the grain is a background layer, not a stacking contest',
       if (!/\.tsx$/.test(e)) continue
       const L = readFileSync(p, 'utf8').split('\n')
       for (let i = 0; i < L.length; i++) {
-        if (!/(^|[\s"'`])bg-(brand|foreground|primary)(\s|$|['"`])/.test(L[i])) continue
+        if (!/(^|[\s"'`])bg-(brand|foreground|primary|destructive)(\s|$|['"`])/.test(L[i])) continue
         if (L[i].trimEnd().endsWith('/>')) continue
         for (let j = i; j < Math.min(i + 8, L.length); j++) {
           if (/<Stamp\b|\bds-stamp\b/.test(L[j])) {
@@ -368,6 +383,49 @@ ok('the grain is a background layer, not a stacking contest',
     !!m && values.length >= 12 && literals.length === 0,
     !m ? 'authColors object not found in page.tsx'
        : `raw literals in the auth palette: ${literals.join(' ')} — it will drift`)
+}
+// ── 4b-ix. no colour smuggled in as a VALUE ─────────────────────────────────
+// The class of bug that hid both of the worst finds on this branch. A colour
+// written as a class is visible to every guard here; a colour written as a hex
+// literal in a JS object or an inline style is invisible to all of them, and to
+// the token system entirely. It cannot follow the theme, so it survives a
+// redesign untouched and nobody notices:
+//
+//   authColors in page.tsx    #CE0928, the retired cockpit red, still painting
+//                             the primary sign-in button on paper
+//   RecoveryProtocol.tsx      #10B981 emerald via inline style, 1.95:1 on
+//                             paper — there is no green in this design at all
+//
+// Both surfaced only by probing computed styles in a browser. Neither would
+// ever have failed a source-based check, because neither was wrong in CSS.
+//
+// The one legitimate exception is the themeColor meta in layout.tsx: browser
+// chrome is painted by the OS before any stylesheet exists, so it can only take
+// a literal. It is allowed by path, and the paper/lamplight values there are
+// asserted separately.
+{
+  const HEX = /['"]#[0-9a-fA-F]{3,8}['"]/g
+  const offenders = []
+  const w = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e)
+      if (statSync(p).isDirectory()) { w(p); continue }
+      if (!/\.tsx$/.test(e)) continue
+      if (/layout\.tsx$/.test(p)) continue          // themeColor, see above
+      readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
+        const t = l.trim()
+        if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return
+        const code = l.split('//')[0]
+        for (const m of code.match(HEX) || []) {
+          offenders.push(`${p.split(/[\\/]/).slice(-2).join('/')}:${i + 1} ${m}`)
+        }
+      })
+    }
+  }
+  w(SRC)
+  ok('no colour smuggled in as a literal value',
+    offenders.length === 0,
+    offenders.slice(0, 5).join('  |  ') + ' — a hex cannot follow the theme')
 }
 
 // ── 4c. focus must never equal the resting border ───────────────────────────
