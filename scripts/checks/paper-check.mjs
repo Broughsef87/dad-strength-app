@@ -243,7 +243,9 @@ ok('the grain is a background layer, not a stacking contest',
 // the disclaimer regression back and watching this go red.
 {
   const SOLID = /(^|[\s"'`])bg-(brand|foreground|primary|destructive)(\s|$|['"`])/
-  const TINT = /(^|[\s"'`])bg-(brand|foreground|primary|destructive)\/\d+/
+  // Tailwind writes an arbitrary opacity in brackets: bg-destructive/[0.02] is
+  // a real one in profile/settings. Matching only /\d+ walked straight past it.
+  const TINT = /(^|[\s"'`])bg-(brand|foreground|primary|destructive)\/(\d+|\[[^\]]*\])/
   const PAPER = /text-\[hsl\(var\(--brand-ink\)\)\]|(^|[\s"'`])text-brand-ink(\s|$|['"`])/
   const bad = []
   const w = (d) => {
@@ -254,7 +256,22 @@ ok('the grain is a background layer, not a stacking contest',
       const lines = readFileSync(p, 'utf8').split('\n')
       for (let i = 0; i < lines.length; i++) {
         const here = lines[i].replace(/\bhover:[^\s]+/g, '')
-        if (!TINT.test(here) || SOLID.test(here)) continue
+        if (!TINT.test(here)) continue
+
+        // A ternary puts the tinted and the solid state on ONE line, and the
+        // old rule skipped the whole line whenever a solid appeared anywhere on
+        // it — so the tinted branch of every conditional went unchecked. Only
+        // the branch that owns the tint matters, so read the branches apart.
+        for (const br of [...here.matchAll(/'([^']*)'/g)].map((m) => m[1])) {
+          if (TINT.test(br) && !SOLID.test(br) && PAPER.test(br)) {
+            bad.push(`${p.split(/[\\/]/).slice(-2).join('/')}:${i + 1}`)
+          }
+        }
+        // Walking into the element only makes sense when the line is
+        // unambiguously a tint; with both present there is no way to tell which
+        // one a descendant belongs to, and guessing is how the last sweep
+        // produced fourteen false alarms.
+        if (SOLID.test(here)) continue
         // the tint's own line, then into the element it opens — stop at the
         // next background, which is where this element's influence ends
         for (let j = i; j < Math.min(i + 6, lines.length); j++) {
@@ -297,7 +314,7 @@ ok('the grain is a background layer, not a stacking contest',
   const m = css.match(/:where\(([^)]*)\)\s*\{\s*color:\s*hsl\(var\(--brand-ink\)\)/)
   const fills = m ? m[1].split(',').map((s) => s.trim()) : []
   ok('solid ink fills carry their own text colour (zero-specificity default)',
-    !!m && ['.bg-brand', '.bg-foreground', '.bg-primary'].every((f) => fills.includes(f)),
+    !!m && ['.bg-brand', '.bg-foreground', '.bg-primary', '.bg-destructive'].every((f) => fills.includes(f)),
     `:where() default missing or incomplete — found [${fills.join(' ')}]`)
 }
 // ── 4b-vii. inside a fill: inks yield colour, stamps stay off entirely ───────
@@ -325,12 +342,17 @@ ok('the grain is a background layer, not a stacking contest',
   ok('inks inside a fill yield colour, keep face',
     (() => {
       const flat = css.replace(/\s+/g, ' ')   // a selector may wrap lines
-      const DESC = /:is\([^)]*\.bg-brand[^)]*\) :is\([^)]*\.ink-printed[^)]*\)/
-      const SAME = /:is\([^)]*\.bg-brand[^)]*\):is\([^)]*\.ink-printed[^)]*\)/
-      // BOTH positions. Descendant-only was the shipped bug: a fill and its
-      // ink are very often the SAME element, and a guard that asserts only
-      // the descendant form reports green straight over it.
-      return DESC.test(flat) && SAME.test(flat)
+      // Every fill against every ink, in BOTH positions. Proving one pairing
+      // and calling the rule verified is the same false confidence twice over:
+      // descendant-only was the shipped bug, and bg-brand-only would let the
+      // other three fills be dropped silently.
+      const FILLS = ['bg-brand', 'bg-foreground', 'bg-primary', 'bg-destructive']
+      const INKS = ['ink-printed', 'ink-written', 'text-brand']
+      return FILLS.every((f) => INKS.every((k) => {
+        const desc = new RegExp(`:is\\([^)]*\\.${f}[^)]*\\) :is\\([^)]*\\.${k}[^)]*\\)`)
+        const same = new RegExp(`:is\\([^)]*\\.${f}[^)]*\\):is\\([^)]*\\.${k}[^)]*\\)`)
+        return desc.test(flat) && same.test(flat)
+      }))
     })(),
     'the fill/ink correction is missing a position — same-element bg-brand + ink-printed is 1.00:1')
 
