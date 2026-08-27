@@ -384,6 +384,9 @@
    the paper instead of sitting on top of it. */
 .ds-stamp {
   font-family: var(--font-stamp);
+  /* resting opacity travels as a variable so the theme can override it:
+     a keyframe held by fill-mode: both beats any plain declaration. */
+  --stamp-o: 0.82;
   letter-spacing: 0.08em;
   opacity: 0.82;
   mix-blend-mode: multiply;
@@ -395,22 +398,22 @@
 /* One animation: the stamp lands slightly oversized and settles. 200ms, once. */
 @keyframes ds-stamp-set {
   from { transform: rotate(-7deg) scale(1.18); opacity: 0; }
-  to   { transform: rotate(-7deg) scale(1);    opacity: 0.82; }
+  to   { transform: rotate(-7deg) scale(1);    opacity: var(--stamp-o); }
 }
 @keyframes ds-stamp-set-sm {
   from { transform: rotate(-3deg) scale(1.18); opacity: 0; }
-  to   { transform: rotate(-3deg) scale(1);    opacity: 0.82; }
+  to   { transform: rotate(-3deg) scale(1);    opacity: var(--stamp-o); }
 }
 .ds-stamp[data-stamp-size='sm'] { animation-name: ds-stamp-set-sm; }
 
 /* multiply darkens toward the ground — on a dark desk it would bury the red.
    At night the stamp sits on the paper rather than sinking into it. */
-.dark .ds-stamp { mix-blend-mode: normal; opacity: 0.95; }
+.dark .ds-stamp { mix-blend-mode: normal; --stamp-o: 0.95; opacity: var(--stamp-o); }
 
 /* Reduced motion gets the FINAL state, not a faster animation. */
 @media (prefers-reduced-motion: reduce) {
-  .ds-stamp { animation: none; opacity: 0.82; }
-  .dark .ds-stamp { opacity: 0.95; }
+  .ds-stamp { animation: none; opacity: var(--stamp-o); }
+  .dark .ds-stamp { --stamp-o: 0.95; }
 }
 
 /* ── paper ──────────────────────────────────────────────────────────────────

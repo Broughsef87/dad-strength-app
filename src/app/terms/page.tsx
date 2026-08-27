@@ -25,8 +25,8 @@ export default function TermsOfService() {
               These Terms of Service (&quot;Terms&quot;) govern your use of the Dad Strength app and website
               (the &quot;Service&quot;), operated by Dad Strength (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). By creating an
               account or using the Service, you agree to these Terms and to our{' '}
-              <a href="/privacy" className="text-brand hover:underline">Privacy Policy</a> and{' '}
-              <a href="/disclaimer" className="text-brand hover:underline">Fitness &amp; Medical Disclaimer</a>,
+              <a href="/privacy" className="text-brand underline underline-offset-2 hover:decoration-2">Privacy Policy</a> and{' '}
+              <a href="/disclaimer" className="text-brand underline underline-offset-2 hover:decoration-2">Fitness &amp; Medical Disclaimer</a>,
               which are part of these Terms. If you don&apos;t agree, don&apos;t use the Service.
             </p>
           </section>
@@ -56,7 +56,7 @@ export default function TermsOfService() {
             </p>
             <p>
               The full{' '}
-              <a href="/disclaimer" className="text-brand hover:underline">Fitness &amp; Medical Disclaimer</a>{' '}
+              <a href="/disclaimer" className="text-brand underline underline-offset-2 hover:decoration-2">Fitness &amp; Medical Disclaimer</a>{' '}
               applies to everything the Service shows you. Read it. Talk to your physician before starting.
             </p>
           </section>
@@ -219,7 +219,7 @@ export default function TermsOfService() {
             <h2 className="text-base font-display font-semibold lowercase text-foreground mb-3">Contact</h2>
             <p>
               Questions about these Terms? Reach out:{' '}
-              <a href={`mailto:${contactEmail}`} className="text-brand hover:underline">{contactEmail}</a>
+              <a href={`mailto:${contactEmail}`} className="text-brand underline underline-offset-2 hover:decoration-2">{contactEmail}</a>
             </p>
           </section>
 

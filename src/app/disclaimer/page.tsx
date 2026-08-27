@@ -113,7 +113,7 @@ export default function FitnessDisclaimer() {
             <h2 className="text-base font-display font-semibold lowercase text-foreground mb-3">Contact</h2>
             <p>
               Questions about this disclaimer? Reach out:{' '}
-              <a href={`mailto:${contactEmail}`} className="text-brand hover:underline">{contactEmail}</a>
+              <a href={`mailto:${contactEmail}`} className="text-brand underline underline-offset-2 hover:decoration-2">{contactEmail}</a>
             </p>
           </section>
 

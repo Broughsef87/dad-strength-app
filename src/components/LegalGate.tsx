@@ -139,11 +139,11 @@ export function LegalGateView({ checked, saving, error, onCheckedChange, onAccep
           </div>
           <p>
             the full{' '}
-            <a href="/disclaimer" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">
+            <a href="/disclaimer" target="_blank" rel="noopener noreferrer" className="text-brand underline underline-offset-2 hover:decoration-2">
               fitness &amp; medical disclaimer
             </a>{' '}
             and{' '}
-            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand underline underline-offset-2 hover:decoration-2">
               terms of service
             </a>{' '}
             apply to everything in here.

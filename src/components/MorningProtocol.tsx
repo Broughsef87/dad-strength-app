@@ -341,7 +341,7 @@ export default function MorningProtocol(
         {error && (
           <div className="flex items-center justify-center gap-2">
             <p className="text-destructive text-xs">{error}</p>
-            <button onClick={() => generate()} className="text-brand hover:underline text-xs">Try Again</button>
+            <button onClick={() => generate()} className="text-brand underline underline-offset-2 hover:decoration-2 text-xs">Try Again</button>
           </div>
         )}
 

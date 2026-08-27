@@ -30,7 +30,7 @@ export default function ActiveSetRow({
   return (
     <div className={`group relative grid grid-cols-12 gap-3 items-center p-3 rounded-2xl transition-all duration-500 ${
       isDone
-        ? 'bg-muted/5 border border-border/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.02)]'
+        ? 'bg-muted/5 border border-border/20'
         : 'bg-muted/20 border border-border/40 hover:border-brand/30 hover:bg-muted/30'
     }`}>
       {/* Set Number Indicator */}

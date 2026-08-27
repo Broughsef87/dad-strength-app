@@ -22,7 +22,7 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
   return (
     <div className={`relative overflow-hidden p-5 rounded-3xl border-2 flex items-center justify-between transition-all duration-500 ${
       isLowTime
-        ? 'bg-destructive/10 border-destructive/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+        ? 'bg-destructive/10 border-destructive/50'
         : 'bg-brand/10 border-brand/30 shadow-[0_0_20px_hsl(16_80%_54%/0.05)]'
     }`}>
       {/* Background Progress Bar */}

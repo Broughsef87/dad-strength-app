@@ -29,7 +29,7 @@ export default function SetRow({
     <div 
       className={`group flex items-center gap-4 p-4 bg-card/80 border transition-all duration-300 ${
         isDone 
-          ? 'border-brand/50 bg-brand/10 shadow-[0_0_15px_rgba(99,102,241,0.1)] scale-[1.01]' 
+          ? 'border-brand/50 bg-brand/10 scale-[1.01]' 
           : 'border-border hover:border-border'
       } rounded-2xl`}
     >
