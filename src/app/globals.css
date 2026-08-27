@@ -231,6 +231,24 @@
        something, so a glance tells you which. The sweep pushed all of them
        into bg-muted, which is why a personal record and an unstarted set
        became the same grey chip. */
+    /* ── the four semantic states, per the ruling on this ticket ──────────
+       Paper never says "good" in green. It marks the thing: a ballpoint tick,
+       a stamp, a box filled rather than hollow. So these tokens deliberately
+       do NOT introduce four new hues — they point at the inks the notation
+       already has, and the SIGNAL is the mark, not the colour.
+
+         good    the athlete ticked it            ballpoint
+         danger  the one thing red is for         stamp ink
+         warn    attention, not danger            bold ink + an asterisk
+         scale   magnitude, like pencil pressure  ink at varying weight
+
+       Components reference these, never a raw palette class. Check 6 fails
+       the build on any `-(red|green|amber|blue|...)-NNN` in src. */
+    --status-good: var(--ink-written);
+    --status-danger: var(--ink-stamped);
+    --status-warn: var(--foreground);
+    --status-scale: var(--foreground);
+
     --state-pr: 45 94% 23%;            /* #72590A  a record, gold */
     --state-hold: 208 42% 30%;         /* #2C4C6D  paused, a cold session */
 
@@ -588,7 +606,84 @@
   .rule-header {
     border-bottom: 2.5px solid hsl(var(--foreground));
   }
-  .rule-leader {
+  /* ── the Today surface, built to the design contract ──────────────────────
+   The panel in the artifact names what was missing: a hero figure, two
+   stamps, ballpoint where the athlete acted, an ink button, ledger
+   objectives. What shipped instead was sage monochrome and soft pills —
+   paper without ink. These are the primitives that close it. */
+
+/* The streak is the one number on this screen worth setting big. Printed
+   face, because the count is derived by the engine; the athlete did not
+   write it, they earned it. */
+.bigfig {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 4px 4px;
+  border-top: 1px solid hsl(var(--border));
+}
+.bigfig-num {
+  font-family: var(--font-mono);
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--foreground));
+}
+.bigfig-label {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  width: 90px;
+}
+
+/* A checkbox on a form is a BOX, not a circle. The tick inside it is the
+   athlete's own mark, so it is ballpoint and it is hand-set — the one place
+   a rotation is honest, because nobody ticks a box perfectly square. */
+.form-box {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid hsl(var(--foreground));
+  border-radius: 2px;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.form-tick {
+  font-family: var(--font-hand);
+  color: hsl(var(--ink-written));
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translateY(-2px) rotate(-4deg);
+}
+
+/* Objectives are ruled blanks you write into — the product thesis in one
+   component. Numbered furniture on the left, dotted rule under each line,
+   what you typed in ballpoint. A pill cannot say any of that. */
+.ledger-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px dotted hsl(var(--border));
+}
+.ledger-no {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: hsl(var(--muted-foreground));
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.ledger-blank {
+  color: hsl(var(--border));
+  letter-spacing: 0.08em;
+}
+
+.rule-leader {
     border-bottom: 1px dotted hsl(var(--border));
   }
 

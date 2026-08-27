@@ -7,7 +7,8 @@ import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
 import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
-import UpgradeModal from './UpgradeModal'
+import UpgradeModal from './UpgradeModal'
+import { Stamp } from './paper/Stamp'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -270,8 +271,8 @@ export default function MorningProtocol(
       <div className="space-y-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Sun size={14} className="text-brand" />
-            <span className="text-[10px] uppercase text-brand font-medium tracking-[0.08em]">Morning Protocol</span>
+            <Sun size={14} className="text-foreground" />
+            <span className="text-[10px] uppercase text-muted-foreground font-medium tracking-[0.08em]">Morning Protocol</span>
           </div>
           <p className="text-xs text-muted-foreground font-light">Build your morning. Own your day.</p>
         </div>
@@ -300,14 +301,14 @@ export default function MorningProtocol(
               <button key={s.id} onClick={() => setSleep(s.id)}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all border ${
  sleep === s.id
- ? 'bg-brand/5 border-brand/30 text-foreground'
+ ? 'bg-transparent border-foreground text-foreground'
  : 'bg-muted border-transparent text-muted-foreground hover:border-border'
  }`}
               >
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
- sleep === s.id ? 'bg-brand/15 border border-brand/40' : 'bg-background/40 border border-border'
+ sleep === s.id ? 'bg-transparent border border-foreground' : 'bg-transparent border border-border'
  }`}>
-                  <s.Icon size={14} className={sleep === s.id ? 'text-brand' : 'text-muted-foreground'} />
+                  <s.Icon size={14} className={sleep === s.id ? 'text-foreground' : 'text-muted-foreground'} />
                 </span>
                 <span className="text-sm font-semibold">{s.label}</span>
               </button>
@@ -323,14 +324,14 @@ export default function MorningProtocol(
               <button key={e.id} onClick={() => setEnergy(e.id)}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all border ${
  energy === e.id
- ? 'bg-brand/5 border-brand/30 text-foreground'
+ ? 'bg-transparent border-foreground text-foreground'
  : 'bg-muted border-transparent text-muted-foreground hover:border-border'
  }`}
               >
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
- energy === e.id ? 'bg-brand/15 border border-brand/40' : 'bg-background/40 border border-border'
+ energy === e.id ? 'bg-transparent border border-foreground' : 'bg-transparent border border-border'
  }`}>
-                  <e.Icon size={14} className={energy === e.id ? 'text-brand' : 'text-muted-foreground'} />
+                  <e.Icon size={14} className={energy === e.id ? 'text-foreground' : 'text-muted-foreground'} />
                 </span>
                 <span className="text-sm font-semibold">{e.label}</span>
               </button>
@@ -372,8 +373,8 @@ export default function MorningProtocol(
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-1.5 mb-1">
-            <Sun size={13} className="text-brand" />
-            <span className="text-[10px] uppercase text-brand font-medium tracking-[0.08em]">Morning Protocol</span>
+            <Sun size={13} className="text-muted-foreground" />
+            <span className="text-[10px] uppercase text-muted-foreground font-medium tracking-[0.08em]">Morning Protocol</span>
           </div>
           <h3 className="font-light text-lg tracking-tight leading-tight">{protocol?.theme}</h3>
         </div>
@@ -389,7 +390,7 @@ export default function MorningProtocol(
       {allDone && !reviewOpen ? (
         /* ── Collapsed — every check done. Volt marks what's earned. ── */
         <div className="py-5 flex flex-col items-center gap-4">
-          <span className="chip-live text-base px-5 py-2.5">morning done</span>
+          <Stamp size="lg">done</Stamp>
           <div className="text-center space-y-1.5">
             <p className="eyebrow-mono">every check in · the day is yours</p>
             {protocol?.closingWord && (
@@ -412,11 +413,11 @@ export default function MorningProtocol(
       <div className="space-y-1.5">
         <div className="flex justify-between items-center">
           <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-[0.08em]">Progress</span>
-          <span className="text-[10px] text-brand font-medium">{doneCount}/{totalSteps}</span>
+          <span className="eyebrow-spec">{doneCount}/{totalSteps}</span>
         </div>
-        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-muted overflow-hidden">
           <div
-            className="h-full bg-brand rounded-full transition-all duration-500"
+            className="h-full bg-foreground transition-all duration-500"
             style={{ width: totalSteps ? `${(doneCount / totalSteps) * 100}%` : '0%' }}
           />
         </div>
@@ -444,10 +445,9 @@ export default function MorningProtocol(
                   onClick={(e) => { e.stopPropagation(); toggleStep(i) }}
                   className="flex-shrink-0 transition-all"
                 >
-                  {isDone
-                    ? <CheckCircle2 size={18} className="text-brand" />
-                    : <Circle size={18} className="text-border hover:text-muted-foreground" />
-                  }
+                  <span className="form-box">
+                    {isDone && <span className="form-tick">✓</span>}
+                  </span>
                 </button>
                 <div className={`h-8 w-8 rounded-lg flex items-center justify-center border flex-shrink-0 ${colors}`}>
                   <Icon size={14} />
