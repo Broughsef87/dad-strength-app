@@ -624,7 +624,10 @@ ok('the logo tile is cut, not moulded (radius <= 32 on a 1024 box)',
                  + '|indigo|violet|purple|fuchsia|pink|rose'
                  + '|slate|gray|zinc|neutral|stone'
   const PROPS = 'bg|text|border|from|via|to|ring|shadow|fill|stroke|decoration|outline|divide|accent|caret|placeholder'
-  const RAW = new RegExp(`\\b(?:${PROPS})-(?:${FAMILIES})-[0-9]{2,3}\\b`, 'g')
+  // numbered hues (bg-red-500) AND the unnumbered ones (to-white/20), which
+  // the first cut missed while one was live in ActiveSessionHeader
+  const RAW = new RegExp(
+    `\\b(?:${PROPS})-(?:(?:${FAMILIES})-[0-9]{2,3}|white|black)(?:\\/[0-9]{1,3})?\\b`, 'g')
 
   let allow = []
   try {
@@ -706,8 +709,39 @@ ok('the logo tile is cut, not moulded (radius <= 32 on a 1024 box)',
     const src = readFileSync(p, 'utf8')
     const names = [...src.matchAll(EXPORTS)].map((m) => m[1])
     if (!names.length) continue
+    // Used = the name appears somewhere OTHER than an import statement.
+    //
+    // "rendered or called" was the first attempt and it was too narrow: it
+    // immediately produced three false positives, because ui/motion exports
+    // variant OBJECTS consumed as variants={fadeUp} — neither a JSX tag nor a
+    // call. Stripping import lines instead catches the real case (imported and
+    // never used) without assuming every export is an element.
+    // Strip comments and import statements, then ask whether the name still
+    // appears. Both halves are load-bearing:
+    //   - an IMPORT alone is not use (SectionLabel sat imported-and-unrendered)
+    //   - a COMMENT alone is not use (PremiumGate is discussed in entitlements.ts)
+    //
+    // Done line-by-line rather than with a regex. The regex version used
+    // /import[\s\S]*?from/ which crosses newlines, so it swallowed real code
+    // between one import and a later `from` and reported a rendered component
+    // as an orphan. Non-greedy is not the same as line-bounded.
+    const bare = (t) => {
+      const out = []
+      let inImport = false
+      let inBlock = false
+      for (let line of t.split('\n')) {
+        if (inBlock) { if (line.includes('*/')) { inBlock = false; line = line.slice(line.indexOf('*/') + 2) } else continue }
+        if (line.includes('/*')) { inBlock = !line.includes('*/'); line = line.slice(0, line.indexOf('/*')) }
+        const t2 = line.trim()
+        if (inImport) { if (/from\s*['\"]/.test(t2) || t2.endsWith(';')) inImport = false; continue }
+        if (t2.startsWith('import')) { if (!/from\s*['\"]/.test(t2) && !t2.endsWith(';')) inImport = true; continue }
+        if (t2.startsWith('//')) continue
+        out.push(line.split('//')[0])
+      }
+      return out.join('\n')
+    }
     const used = others.some(([q, s]) =>
-      q !== p && names.some((n) => new RegExp(`\\b${n}\\b`).test(s)))
+      q !== p && names.some((n) => new RegExp(`\\b${n}\\b`).test(bare(s))))
     if (!used) orphans.push(`${rel} (${names.slice(0, 3).join(', ')})`)
   }
 

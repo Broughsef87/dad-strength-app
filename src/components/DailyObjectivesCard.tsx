@@ -175,7 +175,7 @@ export default function DailyObjectivesCard(
                   setDraft(next)
                 }}
                 placeholder="—"
-                className="flex-1 min-w-0 bg-transparent border-none outline-none ink-written placeholder:text-[hsl(var(--border))]"
+                className="flex-1 min-w-0 bg-transparent border-none outline-none ink-written placeholder:text-[hsl(var(--border))] focus:bg-[hsl(var(--brand)/0.06)] focus:ring-1 focus:ring-[hsl(var(--foreground))] rounded-[2px]"
               />
             </div>
           ))}
@@ -200,7 +200,7 @@ export default function DailyObjectivesCard(
               <span className="form-box">
                 {completed[i] && <span className="form-tick">✓</span>}
               </span>
-              <span className={`flex-1 ink-written leading-snug transition-all ${completed[i] ? 'line-through opacity-60' : 'text-foreground'}`}>
+              <span className={`flex-1 ink-written leading-snug transition-all ${completed[i] ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                 {obj}
               </span>
             </motion.button>

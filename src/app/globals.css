@@ -255,7 +255,7 @@
     /* the three inks, addressable directly where the rule is applied */
     --ink-printed: 42 17% 11%;         /* #221F18 */
     --ink-written: 222 56% 40%;        /* #2D4E9E ballpoint */
-    --ink-stamped: 28 92% 35%;         /* #AB5806 grease orange */
+    --ink-stamped: 28 96% 27%;         /* #8A4302 grease orange */
     --rule-dotted: 45 22% 62%;         /* #B3A887 the dotted blank */
 
     /* The card lifts off the desk; nothing lifts off the card.
@@ -433,9 +433,9 @@
   font-family: var(--font-stamp);
   /* resting opacity travels as a variable so the theme can override it:
      a keyframe held by fill-mode: both beats any plain declaration. */
-  --stamp-o: 0.82;
+  --stamp-o: 0.94;
   letter-spacing: 0.08em;
-  opacity: 0.82;
+  opacity: var(--stamp-o);   /* one source of truth — a duplicate here is what hid the dark override before */
   mix-blend-mode: multiply;
   transform: rotate(-7deg);
   animation: ds-stamp-set 200ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
