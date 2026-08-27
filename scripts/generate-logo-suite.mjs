@@ -43,18 +43,24 @@ const mark = ({ tile, volt, ink, transparent = false }) => `<svg xmlns="http://w
   <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="${ink}" opacity="0.22" />
 </svg>`;
 
-// App icon: never transparent — home screens need an opaque tile, and the
-// graphite version reads on both iOS light and dark wallpapers.
+// App icon: never transparent — home screens need an opaque tile.
+//
+// PAPER, not the dark tile. The old comment argued graphite "reads on both iOS
+// light and dark wallpapers", which is true and is also why every icon on the
+// device is dark. A cream sheet with an ink monogram is the one thing on that
+// home screen that looks like paper, and this app's entire claim is that it is
+// a printed card. Distinctiveness beats safety for a mark you are asking
+// someone to pick out of a grid of forty.
 const appIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <rect width="1024" height="1024" rx="24" fill="${C.tileDark}" />
-  ${DS(C.voltDark)}
-  <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="${C.inkDark}" opacity="0.22" />
+  <rect width="1024" height="1024" rx="24" fill="${C.tileLight}" />
+  ${DS(C.voltLight)}
+  <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="${C.inkLight}" opacity="0.22" />
 </svg>`;
 
 // Favicon: no ground bar, bigger monogram — detail dies at 32px.
 const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="512" height="512">
-  <rect width="1024" height="1024" rx="24" fill="${C.tileDark}" />
-  <g transform="translate(512,512) scale(1.18) translate(-512,-512)">${DS(C.voltDark)}</g>
+  <rect width="1024" height="1024" rx="24" fill="${C.tileLight}" />
+  <g transform="translate(512,512) scale(1.18) translate(-512,-512)">${DS(C.voltLight)}</g>
 </svg>`;
 
 const horizontal = ({ bg, ink, volt, tile }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
