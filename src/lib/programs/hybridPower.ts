@@ -338,10 +338,11 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
 // Athletic-power rework: NO technique work — no pauses, tempos, or complexes.
 // The FULL lifts are back as the heavy expression — no technique work, just
 // heavy snatches and cleans per the user's own floor: fulls at ≤2 reps live
-// at 80%+. Speed lives in Friday's hang power snatch and the box squats.
+// at 80%+. Speed lives in Friday's box squats, and in M1 in the 65-70%
+// warm-up singles below.
 //   M1 straight heavy doubles · M2 top double + back-offs · M3 top single.
 const D1_SN_TOP: SlotMeso[] = [
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 4, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Straight heavy doubles — full lift, no fluff' },
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 4, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Work up through crisp singles at 65-70% before the working doubles, then straight heavy doubles — full lift, no fluff' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
 ]
@@ -369,7 +370,7 @@ const D1_BENCH_HEAVY: SlotMeso[] = [
 // the freed slot went to Nordic curls — the program's only knee-flexion work.
 // Positional pulling lives in Friday's clean pulls (100-116%).
 const D1_SQUAT: SlotMeso[] = [
-  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 5, reps: 5, pctStart: 70, pctStep: 2 },
+  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 5, pctStart: 70, pctStep: 2 },
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 4, pctStart: 78, pctStep: 2 },
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 3, pctStart: 85, pctStep: 1.5 },
 ]
@@ -422,16 +423,6 @@ const D5_CL_BACK: SlotMeso[] = [
   { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 },
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 2, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — off the floor, stay sharp' },
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off single' },
-]
-// Second snatch exposure of the week: speed-slot TRIPLES in the 65-74% zone
-// (power/hang work may run lighter than 75, so 3s, never 2s). Rotates by meso:
-// hang (M1) → power snatch from the floor (M2 — restores the floor-speed pull
-// pattern after Monday's snatch pull was cut) → back to the hang, heavier (M3,
-// shorter ROM while CNS load peaks).
-const D5_HPS: SlotMeso[] = [
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 3, reps: 3, pctStart: 65, pctStep: 1.5, velocity: true, note: 'From the hang. Bar speed only.' },
-  { names: ['Power Snatch', 'Power Snatch', 'Power Snatch', 'Power Snatch'], sets: 3, reps: 3, pctStart: 68, pctStep: 2, velocity: true, note: 'From the floor — full pull, crisp turnover, bar speed only.' },
-  { names: ['Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch', 'Hang Power Snatch'], sets: 2, reps: 3, pctStart: 71, pctStep: 1, velocity: true, note: 'From the hang. Bar speed only.' },
 ]
 // M2 rotates to SNATCH pulls — the snatch otherwise gets zero heavy pulling
 // (Monday's snatch pull was cut), and 102-110% of the snatch max feeds M3's
@@ -672,14 +663,16 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       let items: Prescription[] = [
         // 1. Unloaded RFD, freshest moment of the week. Dead-stop, no rebound.
         seatedBoxJumps(),
-        // 2. THE speed-strength block: a power variant at 65-74% of the FULL
-        //    snatch is the peak-power zone, and legal at 3 reps under the
-        //    athlete's own floor rule (power/hang triples may go to 65%).
-        liftFromSlot('hang_psn', D5_HPS[m], w, 'snatch', maxes, pos.meso, adjustments),
-        // 3. Dynamic-effort squat off the box — stretch reflex killed, force
+        // (The hang power snatch used to sit here. Removed 2026-08-27: it cost
+        //  more clock than the speed squat despite fewer sets — platform,
+        //  bumpers and long rests against 5x2 @55% off a box with 45-60s
+        //  turnarounds. Friday keeps the speed squat. M1's snatch loses its
+        //  only sub-max exposure as a result, which is bought back by the
+        //  65-70% warm-up singles now written into D1_SN_TOP[0].)
+        // 2. Dynamic-effort squat off the box — stretch reflex killed, force
         //    from zero. Clamped to its band; never chased upward by autoreg.
         liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
-        // 4. Strength-speed, not speed: the heaviest bar of the day, and now
+        // 3. Strength-speed, not speed: the heaviest bar of the day, and now
         //    the last one. Unchanged loads — "the weight is the point up here."
         liftFromSlot('cl_top', D5_CL_TOP[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
       ]
