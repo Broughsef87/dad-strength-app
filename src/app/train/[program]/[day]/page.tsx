@@ -18,6 +18,7 @@ import {
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
 import ForgeLoader from '../../../../components/ForgeLoader'
+import { Stamp } from '../../../../components/paper/Stamp'
 import {
   DayPlan, LiftPrescription, MetconPrescription, OutsideSession,
   PlyoPrescription, getProgram,
@@ -492,7 +493,11 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
             {/* Prescription readout — target weight is the hero */}
             {item.targetWeightLbs != null ? (
               <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
-                <span className="stat-num text-4xl text-brand" style={{ textShadow: '0 0 18px hsl(var(--brand) / 0.35)' }}>
+                {/* PRINTED. The target load is the single most engine-authored
+                    number in the app — buildDay decided it before you arrived.
+                    The volt-era glow goes: ink on paper does not emit light,
+                    and a glowing prescription undercuts the entire premise. */}
+                <span className="stat-num ink-printed text-4xl">
                   {item.targetWeightLbs}
                 </span>
                 <span className="eyebrow-mono">
@@ -578,13 +583,23 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
           {sets.map((s, idx) => (
             <div key={idx} className={` border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
               <div className="grid grid-cols-4 gap-2 items-center p-2">
-                <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+                {/* The set number is printed furniture — the form came with
+                    numbered rows. Everything you type into them is WRITTEN. */}
+                <span className="stat-num ink-printed text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+
+                {/* WRITTEN, and this is the payoff moment of the whole system:
+                    the load and reps you actually hit, in ballpoint, on the
+                    engine's form. These take the handwriting face rather than
+                    the printed-column compromise — they are centred, two or
+                    three digits wide, and 16px, so the alignment problem that
+                    forces columns back to Courier does not bite here. */}
                 <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)} placeholder="lbs"
-                  className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
+                  className="ink-written w-full bg-transparent border-none outline-none text-base placeholder:text-muted-foreground/40 placeholder:font-[family-name:var(--font-display)] text-center" />
                 <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
-                  className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
+                  className="ink-written w-full bg-transparent border-none outline-none text-base placeholder:text-muted-foreground/40 placeholder:font-[family-name:var(--font-display)] text-center" />
+
                 <button onClick={() => update(idx, 'done', !s.done)}
-                  className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                  className={`font-display text-[10px] font-semibold uppercase tracking-[0.1em] px-2 py-1.5 transition-colors ${s.done ? 'bg-[hsl(var(--brand))] text-[hsl(var(--brand-ink))]' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
                   {s.done ? (s.rpe != null ? `RPE ${s.rpe}` : 'Hit') : 'Log'}
                 </button>
               </div>
@@ -1565,17 +1580,21 @@ export default function TrainingDayPage() {
   if (sessionComplete) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 p-6 text-center">
-        {/* The beat: a number you earned, then the quiet confirmation. */}
+        {/* STAMPED. The verdict on the session, and the only place in this
+            flow that earns red — one stamp, at the moment the form is closed
+            out. It replaces the 72px "done." numeral AND the chip: the stamp
+            says both, and two marks saying the same thing is how a stamp stops
+            meaning anything. This screen has exactly one. */}
         <div className="flex flex-col items-center gap-3">
-          <p className="stat-num text-[72px]">done.</p>
-          <span className="chip-live text-sm px-4 py-2">session complete</span>
+          <Stamp size="lg" className="!text-[34px] !px-6 !py-1">done</Stamp>
+          <span className="eyebrow-mono">session complete</span>
         </div>
 
         {sessionSummary && (sessionSummary.sets > 0 || sessionSummary.prs.length > 0) && (
           <div className="relative bg-card border border-border p-5 pt-8 w-full max-w-sm text-left space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="stat-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.35)' }}>
+                <p className="stat-num text-3xl text-brand">
                   {sessionSummary.tonnage.toLocaleString()}
                 </p>
                 <p className="eyebrow-mono">LB TONNAGE</p>
