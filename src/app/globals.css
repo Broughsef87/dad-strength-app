@@ -1,20 +1,30 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHALK / VOLT — the live design system (direction 03, built 2026-08).
-   Radical neutrality plus one electric color. Warm chalk grounds, borderless
-   cards that separate by shadow, lowercase voice, enormous numerals doing
-   the talking. Volt appears only where something is LIVE, EARNED, or DONE.
+   THE PROGRAM CARD — the design system on this branch (FOR-186, 2026-08-26).
+   The app is a paper instrument: a printed training card you fill in by hand.
 
-   The five rules:
-     01 one accent, earned — volt marks live/earned/done, nothing else
-     02 numerals are heroes — the biggest thing on screen is a number you made
-     03 shadows, not borders — no panel-cuts, no hairlines, no chrome
-     04 lowercase voice — terse and human, never military
-     05 springy, brief motion — count-ups, spring pills, one fade per screen
+   Three inks, three voices — and the split is the point, because it encodes
+   the product's actual architecture:
 
-   Rosso is retired to destructive states only. The mech era is over: no
-   telemetry, no stamps, no cockpit vocabulary anywhere in the UI.
+     01 PRINTED   Courier Prime, ink black       the engine's prescription.
+                  Sets, reps, percentages, target loads — everything buildDay
+                  decided before you walked in. It is typeset, not written.
+     02 WRITTEN   Kalam, ballpoint blue          what the ATHLETE put there.
+                  Logged loads, reps, RPE, ticked boxes. Your marks on their form.
+     03 STAMPED   Saira Stencil One, grease red  the verdict. DONE. ADD LOAD.
+                  Max TWO per screen — a stamp that appears everywhere means
+                  nothing. This is a hard rule, not a guideline.
+
+   Structure: hairline rules and cut corners (≤6px), no shadows between paper
+   and itself, a faint grain over the card. Chrome and labels are Oswald.
+
+   Where the ink rule fights legibility, LEGIBILITY WINS: athlete values never
+   go below 15px, and any column of numbers uses the printed face with tabular
+   figures rather than a handwriting face that cannot align.
+
+   Supersedes CHALK / VOLT on this branch only. Volt is not retired — it is
+   still what ships on master until this is merged.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme {
@@ -60,10 +70,12 @@
   /* concrete midtone (replaces "steel") */
   --color-steel: hsl(var(--muted-foreground));
 
-  --radius-lg: 1.25rem;
-  --radius-md: 1rem;
-  --radius-sm: 0.875rem;
-  --radius-3xl: 1.5rem;
+  /* FOR-186: paper is cut, not moulded. Everything caps at 6px so a card reads
+     as a card rather than a pill. The names stay so nothing has to be renamed. */
+  --radius-lg: 6px;
+  --radius-md: 4px;
+  --radius-sm: 3px;
+  --radius-3xl: 6px;
 
   /* ── type: a confident grotesk lowercase and tight, a quiet mono for data ── */
   --font-sans: var(--font-space-grotesk, "Segoe UI Variable Display", system-ui, sans-serif);
@@ -75,94 +87,147 @@
 }
 
 @layer base {
+  /* ══ THE PROGRAM CARD — paper, three inks ══════════════════════════════
+     FOR-186. The app is a paper instrument. Three inks carry three voices:
+
+       printed    Courier Prime, ink black      the engine's prescription
+       written    Kalam, ballpoint blue         what the athlete logged
+       stamped    Saira Stencil One, grease red verdicts, max two per screen
+
+     These map onto the EXISTING token names on purpose, so every component
+     inherits paper before any of them is restyled.
+
+     One mapping deserves explanation: --brand is no longer a hue. It was volt,
+     used as a fill on every CTA. The contract reserves red for verdicts and
+     caps them at two per screen, so brand-as-red would flood every surface and
+     destroy the thing that makes a stamp mean something. On a printed form
+     emphasis comes from WEIGHT and FACE, not colour — so brand is ink, and red
+     belongs to <Stamp> alone.
+
+     Contrast, measured on paper #EBE0C4 (DoD 4):
+       ink       #221F18   12.52:1
+       ballpoint #2D4E9E    5.93:1
+       meta ink  #5E5747    5.46:1
+       stamp red #BE3A1D    4.19:1  — large text only, and it clears 3:1
+  ────────────────────────────────────────────────────────────────────────── */
   :root {
-    /* ── CHALK — the light ground (default). Warm like gym chalk and paper. ── */
-    --background: 45 25% 97%;          /* #FAF9F6 chalk */
-    --foreground: 60 5% 8%;            /* #141412 ink */
+    --background: 42 25% 92%;          /* #F0EDE6 the desk */
+    --foreground: 42 17% 11%;          /* #221F18 ink */
 
-    --card: 0 0% 100%;                 /* #FFFFFF tile */
-    --card-foreground: 60 5% 8%;
+    --card: 43 49% 85%;                /* #EBE0C4 paper — warmer than the desk */
+    --card-foreground: 42 17% 11%;
 
-    --surface-1: 45 25% 97%;           /* ground */
-    --surface-2: 45 20% 94%;           /* recessed row  #F4F2EC */
-    --surface-3: 0 0% 100%;            /* tile */
+    --surface-1: 42 25% 92%;           /* desk */
+    --surface-2: 43 42% 80%;           /* #E2D6B8 recessed row */
+    --surface-3: 43 49% 85%;           /* paper */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 60 5% 8%;
+    --popover: 43 49% 85%;
+    --popover-foreground: 42 17% 11%;
 
-    --primary: 60 5% 8%;
-    --primary-foreground: 45 25% 97%;
+    --primary: 42 17% 11%;
+    --primary-foreground: 43 49% 85%;
 
-    --secondary: 45 20% 94%;
-    --secondary-foreground: 60 5% 8%;
+    --secondary: 44 39% 78%;           /* #DCD0B0 */
+    --secondary-foreground: 42 17% 11%;
 
-    --muted: 45 18% 89%;               /* #E9E7DF line/fill */
-    --muted-foreground: 55 3% 42%;     /* #6F6F68 concrete */
+    --muted: 44 39% 78%;               /* #DCD0B0 fills, closed folder tabs */
+    --muted-foreground: 42 14% 32%;    /* #5E5747 — the contract had #6b6350,
+                                          which is 3.88:1 on a closed tab and
+                                          fails AA at the 11px tab size. Same
+                                          hue, darkened until it passes. */
 
-    --accent: 45 20% 94%;
-    --accent-foreground: 60 5% 8%;
+    --accent: 44 39% 78%;
+    --accent-foreground: 42 17% 11%;
 
-    --destructive: 0 62% 42%;          /* rosso's retirement home: danger only */
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 11 74% 43%;         /* #BE3A1D — the stamp red, danger only */
+    --destructive-foreground: 43 49% 85%;
 
-    --border: 45 18% 89%;              /* #E9E7DF — used sparingly; shadows lead */
-    --input: 45 20% 94%;
-    --ring: 78 100% 52%;
+    --border: 43 29% 70%;              /* #C9BC9C the printed rule */
+    --input: 44 39% 78%;
+    --ring: 222 56% 40%;               /* focus is ballpoint — the athlete's own mark */
 
-    /* volt — light ground gets the slightly deeper cut for contrast */
-    --brand: 78 100% 62%;              /* #C6FF3F */
-    --brand-deep: 78 71% 53%;          /* #A8E32A */
-    --brand-ink: 82 37% 6%;            /* #131608 text on volt */
-    --brand-text: 77 79% 27%;          /* #5C7A0E volt as INK on chalk (5.6:1) */
-    --brand-muted: 78 100% 62% / 0.16;
+    /* brand = ink. See the note above. */
+    --brand: 42 17% 11%;               /* #221F18 */
+    --brand-deep: 38 22% 7%;           /* #16130E pressed */
+    --brand-ink: 43 49% 85%;           /* paper, for text on an ink fill */
+    --brand-text: 42 17% 11%;          /* ink; emphasis is weight, not hue */
+    --brand-muted: 42 17% 11% / 0.10;
 
-    --shadow-tile: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px rgba(20, 20, 18, 0.06);
-    --shadow-tile-lg: 0 2px 4px rgba(20, 20, 18, 0.05), 0 18px 48px rgba(20, 20, 18, 0.10);
+    /* the three inks, addressable directly where the rule is applied */
+    --ink-printed: 42 17% 11%;         /* #221F18 */
+    --ink-written: 222 56% 40%;        /* #2D4E9E ballpoint */
+    --ink-stamped: 11 74% 43%;         /* #BE3A1D grease red */
+    --rule-dotted: 45 22% 62%;         /* #B3A887 the dotted blank */
+
+    /* Paper does not cast shadows onto itself. Hairline rules carry the
+       structure now; the tile shadows that led the chalk/volt system off. */
+    --shadow-tile: none;
+    --shadow-tile-lg: none;
   }
 
+  /* ── LAMPLIGHT — the same card, read at night ────────────────────────────
+     The full 5am auto-dim is phase 2 and explicitly out of scope. This is the
+     minimum that keeps dark mode HONEST rather than broken: the app already
+     ships a .dark theme, so leaving it on graphite would have paper cards on a
+     grey desk, and inverting it would make "paper" a lie.
+
+     So the paper dims instead of inverting — a card under a desk lamp. Every
+     value is the artifact's own dark set where it specifies one, including the
+     ballpoint, which it lightens to #7E96C9 for exactly this reason: a 40%-
+     lightness blue is unreadable on a dark ground.
+
+     Contrast on dimmed paper #23201A:
+       ink       #E7E2D6   12.57:1
+       ballpoint #7E96C9    5.49:1
+       stamp red #E0674A    4.80:1
+  ─────────────────────────────────────────────────────────────────────────── */
   .dark {
-    /* ── GRAPHITE — the dark ground. Soft, never pure black. ── */
-    --background: 210 7% 6%;           /* #0E0F10 graphite */
-    --foreground: 60 5% 92%;           /* #EDEDEA */
+    --background: 45 11% 7%;           /* #141310 the desk, unlit */
+    --foreground: 42 26% 87%;          /* #E7E2D6 ink, now the light thing */
 
-    --card: 220 6% 10%;                /* #17181A tile */
-    --card-foreground: 60 5% 92%;
+    --card: 40 15% 12%;                /* #23201A paper under the lamp */
+    --card-foreground: 42 26% 87%;
 
-    --surface-1: 210 7% 6%;
-    --surface-2: 220 6% 7%;            /* recessed row #101113 */
-    --surface-3: 220 6% 10%;
+    --surface-1: 45 11% 7%;
+    --surface-2: 40 16% 15%;           /* #2C2820 recessed row */
+    --surface-3: 40 15% 12%;
 
-    --popover: 220 6% 10%;
-    --popover-foreground: 60 5% 92%;
+    --popover: 40 15% 12%;
+    --popover-foreground: 42 26% 87%;
 
-    --primary: 60 5% 92%;
-    --primary-foreground: 210 7% 6%;
+    --primary: 42 26% 87%;
+    --primary-foreground: 45 11% 7%;
 
-    --secondary: 220 6% 13%;
-    --secondary-foreground: 60 5% 92%;
+    --secondary: 40 16% 15%;
+    --secondary-foreground: 42 26% 87%;
 
-    --muted: 220 6% 15%;               /* #26282B line/fill */
-    --muted-foreground: 60 3% 53%;     /* #8B8B85 */
+    --muted: 40 16% 15%;               /* #2C2820 fills, closed tabs */
+    --muted-foreground: 44 13% 59%;    /* #A39C88 */
 
-    --accent: 220 6% 13%;
-    --accent-foreground: 60 5% 92%;
+    --accent: 40 16% 15%;
+    --accent-foreground: 42 26% 87%;
 
-    --destructive: 0 62% 46%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 12 71% 58%;         /* #E0674A stamp red, lit */
+    --destructive-foreground: 45 11% 7%;
 
-    --border: 220 6% 15%;
-    --input: 220 6% 10%;
-    --ring: 76 100% 65%;
+    --border: 43 14% 20%;              /* #3A362C the rule, dimmed */
+    --input: 40 16% 15%;
+    --ring: 221 41% 64%;               /* ballpoint, lit */
 
-    /* volt brightens a step on graphite */
-    --brand: 76 100% 65%;              /* #CDFF4D */
-    --brand-deep: 76 85% 57%;          /* #B7EE33 */
-    --brand-ink: 82 37% 6%;
-    --brand-text: 76 100% 65%;      /* on graphite, volt itself reads fine */
-    --brand-muted: 76 100% 65% / 0.12;
+    /* brand stays ink — which at night is the pale one */
+    --brand: 42 26% 87%;
+    --brand-deep: 42 20% 76%;
+    --brand-ink: 45 11% 7%;
+    --brand-text: 42 26% 87%;
+    --brand-muted: 42 26% 87% / 0.10;
 
-    --shadow-tile: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px rgba(0, 0, 0, 0.45);
-    --shadow-tile-lg: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 22px 56px rgba(0, 0, 0, 0.55);
+    --ink-printed: 42 26% 87%;
+    --ink-written: 221 41% 64%;        /* #7E96C9 — the artifact's own dark hand */
+    --ink-stamped: 12 71% 58%;         /* #E0674A */
+    --rule-dotted: 43 12% 30%;
+
+    --shadow-tile: none;
+    --shadow-tile-lg: none;
   }
 
   * {
@@ -213,16 +278,34 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── tiles: borderless, shadow-separated (rule 03) ── */
-.tile {
-  background: hsl(var(--surface-3));
-  border-radius: 1.25rem;
-  box-shadow: var(--shadow-tile);
-}
+/* ── paper ──────────────────────────────────────────────────────────────────
+   .tile is the card class every surface already uses, so paper arrives through
+   it and the whole app turns over without touching a component. Shadow out,
+   hairline rule in, grain on top. The grain is one inline SVG turbulence — no
+   asset, no request, and it is the artifact's own filter verbatim. */
+.tile,
 .tile-lg {
-  background: hsl(var(--surface-3));
-  border-radius: 1.5rem;
-  box-shadow: var(--shadow-tile-lg);
+  position: relative;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  box-shadow: none;
 }
+.tile-lg { border-radius: 6px; }
+
+.tile::before,
+.tile-lg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .40 0 0 0 0 .28 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+/* Grain is texture, not content — it must never sit over interactive children. */
+.tile > *,
+.tile-lg > * { position: relative; z-index: 1; }
 /* recessed row inside a tile (set rows, list items) */
 .row-recessed {
   background: hsl(var(--surface-2));
