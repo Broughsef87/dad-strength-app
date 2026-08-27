@@ -88,16 +88,16 @@ export default function WorkoutSummaryOverlay({
             </div>
 
             {newPRs && newPRs.length > 0 && (
-              <div className="mb-6 p-5 bg-yellow-400/10 border border-yellow-400/30 rounded-3xl">
+              <div className="mb-6 p-5 bg-muted/10 border border-border/30 rounded-3xl">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xl font-display font-semibold">🏆</span>
-                  <p className="text-xs font-display font-semibold lowercase text-yellow-400">New Personal Records</p>
+                  <p className="text-xs font-display font-semibold lowercase text-foreground">New Personal Records</p>
                 </div>
                 <div className="space-y-2">
                   {newPRs.map((pr, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <p className="text-sm font-display font-semibold text-foreground lowercase tracking-tight">{pr.exercise}</p>
-                      <p className="text-sm font-display font-semibold text-yellow-400">{pr.weight} lbs × {pr.reps}</p>
+                      <p className="text-sm font-display font-semibold text-foreground">{pr.weight} lbs × {pr.reps}</p>
                     </div>
                   ))}
                 </div>
@@ -117,7 +117,7 @@ export default function WorkoutSummaryOverlay({
                   className="w-full bg-muted border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-brand disabled:opacity-70"
                 />
                 {noteSaved ? (
-                  <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+                  <div className="flex items-center gap-2 text-sm text-foreground font-medium">
                     <Check size={14} /> Note saved
                   </div>
                 ) : (

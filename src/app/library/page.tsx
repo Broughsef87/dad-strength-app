@@ -25,26 +25,26 @@ const CATEGORY_FILTER: Record<string, { field: 'category' | 'subcategory'; value
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Chest:      'text-rose-400 bg-rose-500/10 border-rose-500/20',
-  Back:       'text-sky-400 bg-sky-500/10 border-sky-500/20',
-  Shoulders:  'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  Biceps:     'text-purple-400 bg-purple-500/10 border-purple-500/20',
-  Triceps:    'text-violet-400 bg-violet-500/10 border-violet-500/20',
-  Quads:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  Hamstrings: 'text-teal-400 bg-teal-500/10 border-teal-500/20',
-  Glutes:     'text-green-400 bg-green-500/10 border-green-500/20',
-  Calves:     'text-lime-400 bg-lime-500/10 border-lime-500/20',
-  Core:       'text-orange-400 bg-orange-500/10 border-orange-500/20',
+  Chest:      'text-destructive bg-destructive/10 border-destructive/20',
+  Back:       'text-muted-foreground bg-muted/10 border-border/20',
+  Shoulders:  'text-foreground bg-muted/10 border-border/20',
+  Biceps:     'text-muted-foreground bg-muted/10 border-border/20',
+  Triceps:    'text-muted-foreground bg-muted/10 border-border/20',
+  Quads:      'text-foreground bg-muted/10 border-border/20',
+  Hamstrings: 'text-foreground bg-muted/10 border-border/20',
+  Glutes:     'text-foreground bg-muted/10 border-border/20',
+  Calves:     'text-foreground bg-muted/10 border-border/20',
+  Core:       'text-foreground bg-muted/10 border-border/20',
   'Full Body':'text-brand bg-brand/10 border-brand/20',
-  Arms:       'text-purple-400 bg-purple-500/10 border-purple-500/20',
-  Legs:       'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  Arms:       'text-muted-foreground bg-muted/10 border-border/20',
+  Legs:       'text-foreground bg-muted/10 border-border/20',
   Cardio:     'text-brand bg-brand/10 border-brand/20',
 }
 
 const MECHANIC_BADGE: Record<string, string> = {
   Compound:  'text-brand bg-brand/10',
   Isolation: 'text-muted-foreground bg-gray-800',
-  Isometric: 'text-teal-400 bg-teal-500/10',
+  Isometric: 'text-foreground bg-muted/10',
 }
 
 type Exercise = typeof EXERCISES[0]

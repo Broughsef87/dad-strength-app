@@ -33,13 +33,18 @@ const PILLAR_ICONS: Record<string, React.ComponentType<{ size?: number; classNam
   'Goals & Journal': Target, // legacy — protocols cached before journaling was removed
 }
 
+// A paper form tells its sections apart by LABEL and mark, not by hue. These
+// were five different colours; collapsing the palette left them five nearly
+// identical strings, which is dead variation pretending to be meaning. One
+// uniform chip, and the icon plus the pillar name do the distinguishing.
+const PILLAR_CHIP = "text-foreground bg-muted border-border"
 const PILLAR_COLORS: Record<string, string> = {
-  'Prayer':          'text-brand bg-brand/10 border-brand/20',
-  'Meditation':      'text-foreground bg-muted border-border',
-  'Reading':         'text-foreground bg-muted border-border',
-  'Gratitude':       'text-green-500 bg-green-500/10 border-green-500/20',
-  'Goals':           'text-blue-400 bg-blue-500/10 border-blue-500/20',
-  'Goals & Journal': 'text-blue-400 bg-blue-500/10 border-blue-500/20', // legacy
+  'Prayer':          PILLAR_CHIP,
+  'Meditation':      PILLAR_CHIP,
+  'Reading':         PILLAR_CHIP,
+  'Gratitude':       PILLAR_CHIP,
+  'Goals':           PILLAR_CHIP,
+  'Goals & Journal': PILLAR_CHIP, // legacy
 }
 
 type Step = {
@@ -335,7 +340,7 @@ export default function MorningProtocol(
 
         {error && (
           <div className="flex items-center justify-center gap-2">
-            <p className="text-red-500 text-xs">{error}</p>
+            <p className="text-destructive text-xs">{error}</p>
             <button onClick={() => generate()} className="text-brand hover:underline text-xs">Try Again</button>
           </div>
         )}
@@ -484,7 +489,7 @@ export default function MorningProtocol(
                               j === 1 ? 'My health...' :
                               'This moment...'
                             }
-                            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-green-500/50 transition-colors"
+                            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-[hsl(var(--ring))] transition-colors"
                           />
                         </div>
                       ))}
@@ -513,7 +518,7 @@ export default function MorningProtocol(
                                 j === 1 ? 'Secondary focus...' :
                                 'One more thing...'
                               }
-                              className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-blue-500/40 transition-colors"
+                              className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-[hsl(var(--ring))] transition-colors"
                             />
                           </div>
                         ))}
@@ -524,12 +529,12 @@ export default function MorningProtocol(
                         <button
                           onClick={saveMindState}
                           disabled={!mindObjectives.some(o => o.trim())}
-                          className="w-full flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-400 font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-2 bg-muted/10 border border-border/30 hover:bg-muted/20 text-muted-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Target size={12} /> Save to Mind Tab
                         </button>
                       ) : (
-                        <div className="flex items-center gap-1.5 text-blue-400 text-xs font-medium">
+                        <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
                           <CheckCircle2 size={13} />
                           Saved
                         </div>
@@ -559,7 +564,7 @@ export default function MorningProtocol(
       {allDone && (
         <button
           onClick={() => setReviewOpen(false)}
-          className="w-full py-2.5 border border-emerald-500/50 text-emerald-500 text-xs font-semibold lowercase hover:bg-emerald-500/10 transition-colors"
+          className="w-full py-2.5 border border-border/50 text-foreground text-xs font-semibold lowercase hover:bg-muted/10 transition-colors"
         >
           Collapse — Systems Green
         </button>

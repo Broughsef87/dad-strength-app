@@ -163,7 +163,7 @@ export function LegalGateView({ checked, saving, error, onCheckedChange, onAccep
           </span>
         </label>
 
-        {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+        {error && <p className="text-xs text-destructive mb-3">{error}</p>}
 
         <button
           onClick={onAccept}

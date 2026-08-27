@@ -155,7 +155,7 @@ export default function Profile() {
                   autoFocus
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
                 />
-                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-green-500 hover:text-green-400 transition-colors disabled:opacity-50">
+                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-foreground hover:text-foreground transition-colors disabled:opacity-50">
                   <Check size={16} />
                 </button>
                 <button onClick={() => setEditingName(false)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
@@ -290,7 +290,7 @@ export default function Profile() {
 
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 p-4 mt-4 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/5 transition-colors text-sm font-medium"
+          className="w-full flex items-center justify-center gap-2 p-4 mt-4 rounded-xl border border-destructive/20 text-destructive hover:bg-destructive/5 transition-colors text-sm font-medium"
         >
           <LogOut size={16} /> Sign Out
         </button>

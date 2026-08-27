@@ -386,7 +386,7 @@ function RestTimer({ trigger }: { trigger: number }) {
             <Clock size={14} className={done ? 'text-brand' : 'text-brand'} />
             <span className="eyebrow-mono text-brand">{done ? 'REST DONE' : 'REST'}</span>
           </div>
-          <span className="stat-num text-2xl tabular-nums text-white">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
+          <span className="stat-num text-2xl tabular-nums text-background">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={() => { endRef.current += 30_000; setRemaining(r => r + 30); beeped.current = false }}
               className="border border-border/70 text-[10px] font-semibold lowercase text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors">+0:30</button>
@@ -613,7 +613,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                         onClick={() => update(idx, 'rpe', s.rpe === r ? null : r)}
                         className={`stat-num flex-1 py-1 text-[11px] border transition-colors ${
  s.rpe === r
- ? 'bg-brand text-white border-brand'
+ ? 'bg-brand text-background border-brand'
  : item.targetRpe === r
  ? 'border-brand/50 text-brand'
  : 'border-border/60 text-muted-foreground hover:text-foreground'
@@ -744,7 +744,7 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
               <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
                 className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <button onClick={() => update(idx, 'done', !s.done)}
-                className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
                 {s.done ? 'Hit' : 'Log'}
               </button>
             </div>
@@ -928,7 +928,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
         <button onClick={() => setRepeat(r => !r)}
           className="mt-3 flex items-center gap-2.5 text-left group">
           <span className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${repeat ? 'bg-brand border-brand' : 'border-border group-hover:border-brand/50'}`}>
-            {repeat && <Check size={11} className="text-white" strokeWidth={3} />}
+            {repeat && <Check size={11} className="text-background" strokeWidth={3} />}
           </span>
           <span className="text-xs text-foreground/90">
             Repeat for the rest of this mesocycle
@@ -1550,7 +1550,7 @@ export default function TrainingDayPage() {
   if (!program) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
-        <AlertTriangle className="w-10 h-10 text-red-400" />
+        <AlertTriangle className="w-10 h-10 text-destructive" />
         <p className="text-foreground font-medium">Unknown program &ldquo;{slug}&rdquo;</p>
         <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Choose Program</button>
       </div>
@@ -1568,7 +1568,7 @@ export default function TrainingDayPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
-        <AlertTriangle className="w-10 h-10 text-red-400" />
+        <AlertTriangle className="w-10 h-10 text-destructive" />
         <p className="text-foreground font-medium">{error}</p>
         <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Try Again</button>
       </div>
@@ -1705,19 +1705,19 @@ export default function TrainingDayPage() {
       </header>
 
       {logWriteError && (
-        <div className="sticky top-[60px] z-10 bg-red-500/10 border-b border-red-500/40 px-4 py-2 flex items-start gap-2">
-          <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-red-300 flex-1">{logWriteError}</p>
-          <button onClick={() => setLogWriteError(null)} className="text-[10px] lowercase text-red-300/80 hover:text-red-200 px-2">Dismiss</button>
+        <div className="sticky top-[60px] z-10 bg-destructive/10 border-b border-destructive/40 px-4 py-2 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-destructive shrink-0 mt-0.5" />
+          <p className="text-xs text-destructive flex-1">{logWriteError}</p>
+          <button onClick={() => setLogWriteError(null)} className="text-[10px] lowercase text-destructive/80 hover:text-destructive px-2">Dismiss</button>
         </div>
       )}
 
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
-        <p className="text-xs text-muted-foreground italic border-l-2 border-blue-500/30 pl-3">{plan.sessionIntent}</p>
+        <p className="text-xs text-muted-foreground italic border-l-2 border-border/30 pl-3">{plan.sessionIntent}</p>
 
         {missingMaxes.length > 0 && plan.dayType === 'gym' && (
-          <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-lg px-4 py-3">
-            <p className="text-xs text-yellow-400">
+          <div className="bg-muted/5 border border-border/30 rounded-lg px-4 py-3">
+            <p className="text-xs text-foreground">
               Missing maxes: {missingMaxes.map(d => d.label).join(', ')} — prescribed weights can&apos;t be computed. Enter them below.
             </p>
           </div>

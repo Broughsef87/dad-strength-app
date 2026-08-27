@@ -89,7 +89,7 @@ export default function RecoveryProtocol() {
     <div className="tile relative rounded-xl p-6 pt-8">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <Snowflake size={16} className={complete ? 'text-emerald-500' : 'text-brand'} />
+          <Snowflake size={16} className={complete ? 'text-foreground' : 'text-brand'} />
           <h3 className="font-display font-semibold text-sm lowercase">Recovery Protocol</h3>
         </div>
         <span className="eyebrow-mono">{total}/{WEEKLY_TARGET} THIS WK</span>
@@ -124,7 +124,7 @@ export default function RecoveryProtocol() {
             <div
               key={s.key}
               className={`flex items-center gap-3 border px-3.5 py-2.5 transition-colors ${
- active ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border/60 bg-background/40'
+ active ? 'border-border/40 bg-muted/5' : 'border-border/60 bg-background/40'
  }`}
             >
               <button
@@ -133,7 +133,7 @@ export default function RecoveryProtocol() {
                 className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 title="Log a session"
               >
-                <s.Icon size={15} className={active ? 'text-emerald-500' : 'text-muted-foreground'} />
+                <s.Icon size={15} className={active ? 'text-foreground' : 'text-muted-foreground'} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-foreground">{s.name}</span>
                   <span className="block text-[11px] text-muted-foreground truncate">{s.detail}</span>
@@ -151,7 +151,7 @@ export default function RecoveryProtocol() {
                 )}
                 <button onClick={() => void setCount(s.key, n + 1)} disabled={!loaded} title="Log a session"
                   className={`p-1.5 border transition-colors ${
- active ? 'border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/10' : 'border-border/60 text-muted-foreground hover:text-brand hover:border-brand/50'
+ active ? 'border-border/50 text-foreground hover:bg-muted/10' : 'border-border/60 text-muted-foreground hover:text-brand hover:border-brand/50'
  }`}>
                   <Plus size={11} />
                 </button>

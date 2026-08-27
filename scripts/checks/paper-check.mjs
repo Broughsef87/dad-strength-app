@@ -12,6 +12,7 @@ import { join } from 'node:path'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const css = read('../../src/app/globals.css')
+const SRC = new URL('../../src', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
 const layout = read('../../src/app/layout.tsx')
 
 let checks = 0
@@ -86,6 +87,54 @@ for (const p of pages) {
       n <= 2, `${n} stamps — a mark that appears everywhere is just a colour`)
   }
 }
+
+// ── 4b. the palette IS the notation ─────────────────────────────────────────
+// Three inks and nothing else. A raw Tailwind hue reintroduces a fourth voice
+// that means nothing in this system — a green chip on a beige form is a
+// sticker. State is carried by weight and by the one ink that means stop.
+{
+  const HUES = 'red|rose|green|emerald|lime|teal|amber|yellow|orange|blue|sky|indigo|violet|purple|fuchsia|pink|cyan'
+  const re = new RegExp(`\\b(?:text|bg|border|from|to|ring)-(?:${HUES})-\\d{2,3}\\b`, 'g')
+  const offenders = []
+  const walkSrc = (dir) => {
+    for (const e of readdirSync(dir)) {
+      const p = join(dir, e)
+      if (statSync(p).isDirectory()) walkSrc(p)
+      else if (/\.tsx?$/.test(e)) {
+        const hits = (readFileSync(p, 'utf8').match(re) || [])
+        if (hits.length) offenders.push(`${p.split(/[\\/]/).slice(-2).join('/')} (${hits.length})`)
+      }
+    }
+  }
+  walkSrc(SRC)
+  ok('no raw palette hues outside the three inks',
+    offenders.length === 0,
+    offenders.slice(0, 6).join(', '))
+
+  // white is not on a paper form either — it reads as a hole in the sheet
+  const whites = []
+  const walkWhite = (dir) => {
+    for (const e of readdirSync(dir)) {
+      const p = join(dir, e)
+      if (statSync(p).isDirectory()) walkWhite(p)
+      else if (/\.tsx?$/.test(e) && /\btext-white\b/.test(readFileSync(p, 'utf8'))) {
+        whites.push(p.split(/[\\/]/).slice(-2).join('/'))
+      }
+    }
+  }
+  walkWhite(SRC)
+  ok('no pure white text', whites.length === 0, whites.slice(0, 4).join(', '))
+}
+
+// ── 4c. focus must never equal the resting border ───────────────────────────
+// Collapsing the palette turned focus:border-{hue} into focus:border-border,
+// which is the SAME as the resting state — an invisible focus ring.
+ok('focus state is distinguishable from rest',
+  !/focus:(border|ring)-border\b/.test(
+    (() => { let all = ''; const w = (d) => { for (const e of readdirSync(d)) {
+      const p = join(d, e); if (statSync(p).isDirectory()) w(p)
+      else if (/\.tsx$/.test(e)) all += readFileSync(p, 'utf8') } }; w(SRC); return all })()),
+  'focus:border-border matches the resting border — the focus ring vanishes')
 
 // ── 5. the sheet casts onto the desk ────────────────────────────────────────
 // Paper #EBE0C4 on desk #F0EDE6 is 1.11:1 and the 1px rule is 1.61:1, so with
