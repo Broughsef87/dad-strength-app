@@ -143,8 +143,8 @@ export default function DailyObjectivesCard(
     <div className="tile p-5 relative overflow-hidden">
       <div className="flex items-center justify-between mb-4 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-brand/10 rounded-lg">
-            <Target size={14} className="text-brand" />
+          <div className="p-1.5">
+            <Target size={14} className="text-foreground" />
           </div>
           <h3 className="font-medium text-sm font-display tracking-[0.06em]">daily objectives</h3>
         </div>
@@ -164,23 +164,25 @@ export default function DailyObjectivesCard(
         <div className="space-y-2 relative z-10">
           <p className="text-xs text-muted-foreground">Three things that would make today a win.</p>
           {draft.map((v, i) => (
-            <input
-              key={i}
-              type="text"
-              value={v}
-              onChange={e => {
-                const next = [...draft]
-                next[i] = e.target.value
-                setDraft(next)
-              }}
-              placeholder={`Objective ${i + 1}`}
-              className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand/50 placeholder:text-muted-foreground/50"
-            />
+            <div key={i} className="ledger-row">
+              <span className="ledger-no">{String(i + 1).padStart(2, '0')}</span>
+              <input
+                type="text"
+                value={v}
+                onChange={e => {
+                  const next = [...draft]
+                  next[i] = e.target.value
+                  setDraft(next)
+                }}
+                placeholder="—"
+                className="flex-1 min-w-0 bg-transparent border-none outline-none ink-written placeholder:text-[hsl(var(--border))] focus:bg-[hsl(var(--brand)/0.06)] focus:ring-1 focus:ring-[hsl(var(--foreground))] rounded-[2px]"
+              />
+            </div>
           ))}
           <button
             onClick={saveDraft}
             disabled={saving || !draft.some(o => o.trim())}
-            className="w-full pill-volt text-xs font-bold py-2.5 disabled:opacity-40 transition-opacity"
+            className="w-full pill bg-foreground text-[hsl(var(--brand-ink))] text-xs font-bold uppercase tracking-[0.1em] py-2.5 disabled:opacity-40 transition-opacity"
           >
             {saving ? 'saving…' : 'lock them in'}
           </button>
@@ -192,20 +194,20 @@ export default function DailyObjectivesCard(
               key={i}
               onClick={() => toggle(i)}
               whileTap={{ scale: 0.98 }}
-              className="w-full flex items-center gap-3 text-left group"
+              className="w-full ledger-row text-left group"
             >
-              {completed[i]
-                ? <CheckCircle2 size={16} className="text-brand shrink-0" />
-                : <Circle size={16} className="text-muted-foreground/40 shrink-0 group-hover:text-muted-foreground transition-colors" />
-              }
-              <span className={`text-sm leading-snug transition-all ${completed[i] ? 'line-through text-muted-foreground/50' : 'text-foreground'}`}>
+              <span className="ledger-no">{String(i + 1).padStart(2, '0')}</span>
+              <span className="form-box">
+                {completed[i] && <span className="form-tick">✓</span>}
+              </span>
+              <span className={`flex-1 ink-written leading-snug transition-all ${completed[i] ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                 {obj}
               </span>
             </motion.button>
           ))}
 
           {doneCount === filledObjectives.length && filledObjectives.length > 0 && (
-            <p className="text-[10px] text-brand uppercase font-black pt-1 text-center tracking-[0.08em]">
+            <p className="eyebrow-mono pt-1 text-center">
               Locked in. ⚡
             </p>
           )}
