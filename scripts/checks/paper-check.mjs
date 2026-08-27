@@ -234,9 +234,9 @@ ok('the grain is a background layer, not a stacking contest',
 // same-span guard is green precisely where it is needed. Verified by putting
 // the disclaimer regression back and watching this go red.
 {
-  const SOLID = /(^|\s|')bg-(brand|foreground|primary|destructive)(\s|$|')/
-  const TINT = /(^|\s|')bg-(brand|foreground|primary|destructive)\/\d+/
-  const PAPER = /text-\[hsl\(var\(--brand-ink\)\)\]|(^|\s|')text-brand-ink(\s|$|')/
+  const SOLID = /(^|[\s"'`])bg-(brand|foreground|primary|destructive)(\s|$|['"`])/
+  const TINT = /(^|[\s"'`])bg-(brand|foreground|primary|destructive)\/\d+/
+  const PAPER = /text-\[hsl\(var\(--brand-ink\)\)\]|(^|[\s"'`])text-brand-ink(\s|$|['"`])/
   const bad = []
   const w = (d) => {
     for (const e of readdirSync(d)) {
@@ -291,6 +291,57 @@ ok('the grain is a background layer, not a stacking contest',
   ok('solid ink fills carry their own text colour (zero-specificity default)',
     !!m && ['.bg-brand', '.bg-foreground', '.bg-primary'].every((f) => fills.includes(f)),
     `:where() default missing or incomplete — found [${fills.join(' ')}]`)
+}
+// ── 4b-vii. inside a fill: inks yield colour, stamps stay off entirely ───────
+// Two halves of the same finding, which only showed up under a computed-style
+// probe in DARK mode — no source read would have caught it, because both sides
+// were "correct" tokens that happen to resolve to the same colour on lamplight.
+//
+//   .ink-printed inside a solid fill   1.00:1   text identical to its ground
+//   .ink-written inside a solid fill   2.29:1   under the 4.5:1 floor
+//   a stamp      inside a solid fill   2.61:1   under even the 3:1 floor
+//
+// The first two are fixed in CSS: the ink keeps its FACE and yields its colour,
+// which is the standing rule that legibility wins wherever it fights the ink
+// contract. Courier against Kalam still carries printed-versus-written without
+// help from hue, so the contract survives the concession.
+//
+// The stamp cannot be fixed that way — red IS the verdict, and a recoloured
+// stamp is a stencil face saying nothing — so it stays a constraint and gets a
+// tripwire instead. Both currently have zero occurrences, which is what makes
+// these worth having: a guard that fires zero times today is signal when it
+// ever fires, unlike the descendant lookahead I rejected at 14 false alarms
+// to 4 real ones.
+{
+  const css = readFileSync(join(SRC, 'app', 'globals.css'), 'utf8')
+  ok('inks inside a fill yield colour, keep face',
+    /\.bg-brand\s+\.ink-printed[^{]*\{\s*[^}]*color:\s*hsl\(var\(--brand-ink\)\)/.test(
+      css.replace(/,\s*\n/g, ', ')),
+    'the .bg-brand .ink-* companion rule is missing — printed ink on a fill is 1.00:1')
+
+  const hits = []
+  const w = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e)
+      if (statSync(p).isDirectory()) { w(p); continue }
+      if (!/\.tsx$/.test(e)) continue
+      const L = readFileSync(p, 'utf8').split('\n')
+      for (let i = 0; i < L.length; i++) {
+        if (!/(^|[\s"'`])bg-(brand|foreground|primary)(\s|$|['"`])/.test(L[i])) continue
+        if (L[i].trimEnd().endsWith('/>')) continue
+        for (let j = i; j < Math.min(i + 8, L.length); j++) {
+          if (/<Stamp\b|\bds-stamp\b/.test(L[j])) {
+            hits.push(`${p.split(/[\\/]/).slice(-2).join('/')}:${j + 1}`)
+            break
+          }
+        }
+      }
+    }
+  }
+  w(SRC)
+  ok('no stamp on a filled surface',
+    hits.length === 0,
+    hits.join('  |  ') + ' — stamp red on a fill is 2.61:1; verdicts go on the paper')
 }
 
 // ── 4c. focus must never equal the resting border ───────────────────────────

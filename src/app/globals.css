@@ -792,6 +792,41 @@
   color: hsl(var(--brand-ink));
 }
 
+/* ...and inside a fill, an ink keeps its FACE but yields its COLOUR.
+   The :where() default above cannot cover this, by design: it is zero
+   specificity so explicit utilities beat it, which is exactly what makes it
+   safe everywhere else. But .ink-printed resolves to --ink-printed, and on
+   lamplight a solid brand fill IS that colour — measured 1.00:1, the text and
+   its background identical. .ink-written measured 2.29:1, under the 4.5:1 floor.
+
+   Nothing in the app does this today (scanned: zero occurrences, same element
+   or descendant). It is a trap laid for whoever next puts a prescribed number
+   on a filled button, so it is closed now rather than documented as folklore.
+
+   The contract survives the concession. Printed vs written is carried by the
+   FACE — Courier against Kalam is legible at a glance, colour or not — and the
+   face is untouched here; only the hue yields. That is the standing rule:
+   legibility beats the ink rule wherever they fight.
+
+   Stamped is deliberately NOT in this list. A stamp is a verdict and red IS the
+   whole of its meaning; recolouring it leaves a stencil face saying nothing.
+   That is a real trade, so the numbers, measured on lamplight where it is
+   worst:
+
+     stamp on the desk    5.45:1     its home
+     stamp on a card      4.77:1     its home
+     stamp on a FILL      2.61:1     fails even the 3:1 large-text floor
+
+   So a stamp does not go on a filled surface. Nothing does that today (zero
+   occurrences), and the rule above cannot rescue it without destroying it, so
+   this one stays a design constraint rather than a CSS fallback: put the
+   verdict on the paper, which is where a verdict belongs. */
+.bg-brand .ink-printed, .bg-brand .ink-written,
+.bg-foreground .ink-printed, .bg-foreground .ink-written,
+.bg-primary .ink-printed, .bg-primary .ink-written {
+  color: hsl(var(--brand-ink));
+}
+
 /* ── the document voice ─────────────────────────────────────────────────────
    Terms, privacy and the disclaimer are DOCUMENTS, not training cards. Oswald
    is condensed display type — it sets a heading beautifully and punishes a
