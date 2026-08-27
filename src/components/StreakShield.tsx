@@ -75,7 +75,7 @@ export default function StreakShield() {
           </div>
           <h3 className="font-medium text-sm">Streak Shield</h3>
         </div>
-        <span className="text-[10px] lowercase text-muted-foreground font-medium">
+        <span className="text-[10px] uppercase text-muted-foreground font-medium tracking-[0.08em]">
           Monthly
         </span>
       </div>

@@ -218,7 +218,7 @@ export default function Settings() {
 
         {/* Appearance */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Appearance</h2>
+          <h2 className="text-xs text-muted-foreground uppercase font-medium px-1 tracking-[0.08em]">Appearance</h2>
           <div className="bg-card rounded-xl border border-border p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -254,7 +254,7 @@ export default function Settings() {
 
         {/* Notifications */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Notifications</h2>
+          <h2 className="text-xs text-muted-foreground uppercase font-medium px-1 tracking-[0.08em]">Notifications</h2>
           <div className="bg-card rounded-xl border border-border overflow-hidden divide-y divide-border">
             <button
               onClick={toggleNotifWorkout}
@@ -305,7 +305,7 @@ export default function Settings() {
 
         {/* Data & Privacy */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Data & Privacy</h2>
+          <h2 className="text-xs text-muted-foreground uppercase font-medium px-1 tracking-[0.08em]">Data & Privacy</h2>
           <div className="bg-card rounded-xl border border-border overflow-hidden divide-y divide-border">
             <button
               onClick={handleExportData}
@@ -375,7 +375,7 @@ export default function Settings() {
         {/* Billing — only rendered once a Stripe customer exists */}
         {(hasBilling || (isPro && !isFounder)) && (
           <section className="space-y-3">
-            <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Billing</h2>
+            <h2 className="text-xs text-muted-foreground uppercase font-medium px-1 tracking-[0.08em]">Billing</h2>
             <div className="bg-card rounded-xl border border-border overflow-hidden">
               <button
                 onClick={handleOpenPortal}
@@ -407,7 +407,7 @@ export default function Settings() {
 
         {/* Support */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Support</h2>
+          <h2 className="text-xs text-muted-foreground uppercase font-medium px-1 tracking-[0.08em]">Support</h2>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <a
               href="mailto:dad.strength@the-forge-agency.com?subject=Dad%20Strength%20support"
@@ -426,7 +426,7 @@ export default function Settings() {
 
         {/* Legal */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Legal</h2>
+          <h2 className="text-xs text-muted-foreground uppercase font-medium px-1 tracking-[0.08em]">Legal</h2>
           <div className="bg-card rounded-xl border border-border overflow-hidden divide-y divide-border">
             {[
               { label: 'Terms of Service', href: '/terms' },
@@ -449,7 +449,7 @@ export default function Settings() {
 
         {/* Danger zone */}
         <section className="space-y-3">
-          <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Danger Zone</h2>
+          <h2 className="text-xs text-muted-foreground uppercase font-medium px-1 tracking-[0.08em]">Danger Zone</h2>
           <div className="bg-card rounded-xl border border-destructive/20 overflow-hidden">
             <button
               onClick={() => setShowDeleteForm(!showDeleteForm)}

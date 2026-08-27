@@ -40,13 +40,13 @@ export default function SetRow({
       </div>
 
       <div className="flex-grow min-w-0">
-        <p className={`font-display font-semibold text-sm lowercase truncate transition-colors ${isDone ? 'text-foreground' : 'text-muted-foreground'}`}>
+        <p className={`font-display font-semibold text-sm uppercase truncate transition-colors ${isDone ? 'text-foreground' : 'text-muted-foreground'} tracking-[0.08em]`}>
           {set.exercise}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className={`text-[10px] font-display font-semibold lowercase transition-colors ${isDone ? 'text-brand' : 'text-brand'}`}>{set.weight} LBS</span>
+          <span className={`text-[10px] font-display font-semibold uppercase transition-colors ${isDone ? 'text-brand' : 'text-brand'} tracking-[0.08em]`}>{set.weight} LBS</span>
           <span className="text-[8px] text-muted-foreground">/</span>
-          <span className={`text-[10px] font-display font-semibold lowercase transition-colors ${isDone ? 'text-brand/50' : 'text-muted-foreground'}`}>{set.reps} REPS</span>
+          <span className={`text-[10px] font-display font-semibold uppercase transition-colors ${isDone ? 'text-brand/50' : 'text-muted-foreground'} tracking-[0.08em]`}>{set.reps} REPS</span>
         </div>
       </div>
 

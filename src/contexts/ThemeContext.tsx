@@ -32,7 +32,12 @@ function applyToDOM(resolved: 'dark' | 'light') {
 function getSavedTheme(): Theme {
   if (typeof window === 'undefined') return 'auto'
   const saved = localStorage.getItem('dad-strength-theme') as Theme | null
-  return saved && ['dark', 'light', 'auto'].includes(saved) ? saved : 'auto'
+  // Paper is the brand, so it is the default — NOT the OS preference. With
+  // 'auto' here the app followed prefers-color-scheme, and anyone on a dark
+  // system had never seen the design at all: they got lamplight, which is the
+  // phase-2 treatment, on first run and every run after. 'auto' is still
+  // selectable in settings; it is just no longer what you get by default.
+  return saved && ['dark', 'light', 'auto'].includes(saved) ? saved : 'light'
 }
 
 function getSystemDark(): boolean {

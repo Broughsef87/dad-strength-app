@@ -49,7 +49,7 @@ export default function CircularProgress({
       {(label || sublabel) && (
         <div className="absolute flex flex-col items-center justify-center text-center">
           {label && <span className="text-sm font-bold leading-none tabular-nums">{label}</span>}
-          {sublabel && <span className="text-[9px] lowercase text-muted-foreground mt-0.5">{sublabel}</span>}
+          {sublabel && <span className="text-[9px] uppercase text-muted-foreground mt-0.5 tracking-[0.08em]">{sublabel}</span>}
         </div>
       )}
     </div>

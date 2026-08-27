@@ -91,7 +91,7 @@ export function WeekPulseView({
     <div className={`tile ${compact ? 'p-4' : 'p-5'}`}>
       <div className="flex items-center justify-between mb-3">
         <p className="eyebrow-mono">week {cur.week} · load</p>
-        {cur.isDeload && <span className="pill-quiet px-2.5 py-0.5 text-[10px] lowercase">deload</span>}
+        {cur.isDeload && <span className="pill-quiet px-2.5 py-0.5 text-[10px] uppercase tracking-[0.08em]">deload</span>}
       </div>
 
       <div className="flex items-start gap-5">
@@ -130,7 +130,7 @@ export function WeekPulseView({
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground mt-2 lowercase">{verdict(cur, prev)}</p>
+      <p className="text-[11px] text-muted-foreground mt-2 uppercase tracking-[0.08em]">{verdict(cur, prev)}</p>
     </div>
   )
 }
