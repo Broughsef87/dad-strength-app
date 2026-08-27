@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion } from 'framer-motion'
 import { Shield, Bot, User } from 'lucide-react'
 
 // Three tabs, matching what the app actually is. The four-pillar shell
@@ -27,10 +26,20 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname()
 
+  // FOLDER TABS (FOR-186). The tabs are the top edge of the card, so they sit
+  // flush against it: square-ish shoulders, no bottom border, and the active
+  // tab is the same paper as the sheet it fronts — that shared fill is what
+  // makes it read as ONE object rather than a button above a panel.
+  //
+  // It stays bottom-fixed. Real folder tabs are at the top, but the thumb is at
+  // the bottom of a phone, and a tab you cannot reach is a worse tab. The
+  // shoulders are rounded on the bottom here for the same reason: this edge
+  // faces down.
   return (
     <nav
-      className="tile pill fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex items-center justify-around gap-1 px-4 py-1.5 w-[calc(100%-2rem)] max-w-sm"
-      style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom))' }}
+      className="fixed bottom-0 left-1/2 z-[100] flex w-full max-w-sm -translate-x-1/2 items-end justify-center gap-1 px-3"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      aria-label="Sections"
     >
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon
@@ -40,31 +49,23 @@ export default function BottomNav() {
           <Link
             key={item.id}
             href={item.path}
-            className="relative flex flex-col items-center gap-0.5 py-2 px-3 min-w-[60px]"
             aria-current={isActive ? 'page' : undefined}
+            className={[
+              'relative flex min-w-[92px] flex-1 flex-col items-center gap-0.5 px-4 pt-2',
+              'rounded-b-[6px] border border-t-0 border-[hsl(var(--border))]',
+              'font-display text-[11px] uppercase tracking-[0.12em] transition-colors duration-200',
+              isActive
+                ? 'z-[2] bg-[hsl(var(--card))] pb-3 font-semibold text-[hsl(var(--foreground))]'
+                : 'bg-[hsl(var(--muted))] pb-2 text-[hsl(var(--muted-foreground))]',
+            ].join(' ')}
           >
             <Icon
-              size={17}
+              size={16}
               strokeWidth={isActive ? 2 : 1.5}
-              className={`transition-colors duration-200 ${
-                isActive ? 'text-foreground' : 'text-muted-foreground'
-              }`}
+              className="transition-colors duration-200"
+              aria-hidden="true"
             />
-            <span
-              className={`text-[11px] lowercase font-medium transition-colors duration-200 ${
-                isActive ? 'text-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              {item.label}
-            </span>
-            {isActive && (
-              <motion.span
-                layoutId="nav-dot"
-                className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-brand"
-                transition={{ type: 'spring', stiffness: 520, damping: 42 }}
-                aria-hidden="true"
-              />
-            )}
+            <span>{item.label}</span>
           </Link>
         )
       })}

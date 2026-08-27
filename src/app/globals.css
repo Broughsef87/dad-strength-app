@@ -328,6 +328,41 @@
   letter-spacing: 0.08em;
 }
 
+/* ── <Stamp> ────────────────────────────────────────────────────────────────
+   The rotation is the tell that a hand did this, not a renderer, so it is part
+   of the mark rather than a hover flourish. multiply is what sinks the ink into
+   the paper instead of sitting on top of it. */
+.ds-stamp {
+  font-family: var(--font-stamp);
+  letter-spacing: 0.08em;
+  opacity: 0.82;
+  mix-blend-mode: multiply;
+  transform: rotate(-7deg);
+  animation: ds-stamp-set 200ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.ds-stamp[data-stamp-size='sm'] { transform: rotate(-3deg); }
+
+/* One animation: the stamp lands slightly oversized and settles. 200ms, once. */
+@keyframes ds-stamp-set {
+  from { transform: rotate(-7deg) scale(1.18); opacity: 0; }
+  to   { transform: rotate(-7deg) scale(1);    opacity: 0.82; }
+}
+@keyframes ds-stamp-set-sm {
+  from { transform: rotate(-3deg) scale(1.18); opacity: 0; }
+  to   { transform: rotate(-3deg) scale(1);    opacity: 0.82; }
+}
+.ds-stamp[data-stamp-size='sm'] { animation-name: ds-stamp-set-sm; }
+
+/* multiply darkens toward the ground — on a dark desk it would bury the red.
+   At night the stamp sits on the paper rather than sinking into it. */
+.dark .ds-stamp { mix-blend-mode: normal; opacity: 0.95; }
+
+/* Reduced motion gets the FINAL state, not a faster animation. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-stamp { animation: none; opacity: 0.82; }
+  .dark .ds-stamp { opacity: 0.95; }
+}
+
 /* ── paper ──────────────────────────────────────────────────────────────────
    .tile is the card class every surface already uses, so paper arrives through
    it and the whole app turns over without touching a component. Shadow out,
