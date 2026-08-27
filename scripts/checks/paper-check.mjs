@@ -136,6 +136,20 @@ ok('focus state is distinguishable from rest',
       else if (/\.tsx$/.test(e)) all += readFileSync(p, 'utf8') } }; w(SRC); return all })()),
   'focus:border-border matches the resting border — the focus ring vanishes')
 
+// ── 4d. the mark and the browser chrome are on paper too ────────────────────
+// A volt favicon on a paper app is the most visible possible inconsistency:
+// it is the one piece of brand the user sees BEFORE the page renders.
+const manifest = JSON.parse(read('../../public/manifest.json'))
+ok('manifest theme_color is paper, not graphite',
+  manifest.theme_color === '#F0EDE6', String(manifest.theme_color))
+ok('manifest background_color is paper',
+  manifest.background_color === '#F0EDE6', String(manifest.background_color))
+const appIcon = read('../../public/logo-suite/ds_app_icon.svg')
+ok('the logo mark carries no volt', !/C6FF3F|CDFF4D/i.test(appIcon))
+ok('the logo tile is cut, not moulded (radius <= 32 on a 1024 box)',
+  (() => { const m = appIcon.match(/rx="(\d+)"/g) || []
+    return m.every(v => parseInt(v.replace(/\D/g, ''), 10) <= 32) })(),
+  'a 216px radius on a 1024 viewBox is an app tile, not a printed mark')
 // ── 5. the sheet casts onto the desk ────────────────────────────────────────
 // Paper #EBE0C4 on desk #F0EDE6 is 1.11:1 and the 1px rule is 1.61:1, so with
 // no shadow the card edge is invisible and the layout flattens to one field.

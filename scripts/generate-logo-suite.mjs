@@ -1,4 +1,4 @@
-// ── Chalk/Volt brand asset generator ───────────────────────────────────────
+// ── The Program Card brand asset generator ─────────────────────────────────
 // Writes the SVG suite from ONE source of truth so the mark can never drift
 // between the app component and the raster assets. Geometry here mirrors
 // src/components/Logo.tsx; the difference is that these bake literal colors
@@ -8,24 +8,26 @@
 //
 // PNG/ICO rasterization is a separate step — see rasterize-logo-suite.html,
 // which renders these SVGs to canvas and downloads the bitmaps.
-
+//
+// FOR-186: the mark is now a LETTERHEAD. Ink monogram on paper, corner cut
+// rather than moulded. The monogram is deliberately NOT stamp red: the logo
+// appears in the header of every screen, and red on every screen is exactly
+// how the stamp stops meaning verdict. A letterhead is single-ink anyway.
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(__dirname, '../public/logo-suite');
-
-// The palette, literal. Matches globals.css.
 const C = {
-  graphite: '#0E0F10',
-  tileDark: '#17181A',
-  chalk: '#FAF9F6',
-  tileLight: '#FFFFFF',
-  inkDark: '#EDEDEA',
-  inkLight: '#141412',
-  voltDark: '#CDFF4D',
-  voltLight: '#C6FF3F',
+  graphite:  '#141310',   // the desk, unlit
+  tileDark:  '#23201A',   // paper under the lamp
+  chalk:     '#F0EDE6',   // the desk
+  tileLight: '#EBE0C4',   // paper
+  inkDark:   '#E7E2D6',
+  inkLight:  '#221F18',
+  voltDark:  '#E7E2D6',   // the monogram is ink now, not an accent
+  voltLight: '#221F18',
 };
 
 // Monogram paths, shared with the component.
@@ -36,7 +38,7 @@ const DS = (fill) => `
         transform="translate(567.5,292.6) scale(3.05)" fill="${fill}" fill-rule="evenodd" />`;
 
 const mark = ({ tile, volt, ink, transparent = false }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  ${transparent ? '' : `<rect x="32" y="32" width="960" height="960" rx="216" fill="${tile}" />`}
+  ${transparent ? '' : `<rect x="32" y="32" width="960" height="960" rx="24" fill="${tile}" />`}
   ${DS(volt)}
   <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="${ink}" opacity="0.22" />
 </svg>`;
@@ -44,21 +46,21 @@ const mark = ({ tile, volt, ink, transparent = false }) => `<svg xmlns="http://w
 // App icon: never transparent — home screens need an opaque tile, and the
 // graphite version reads on both iOS light and dark wallpapers.
 const appIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <rect width="1024" height="1024" rx="230" fill="${C.tileDark}" />
+  <rect width="1024" height="1024" rx="24" fill="${C.tileDark}" />
   ${DS(C.voltDark)}
   <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="${C.inkDark}" opacity="0.22" />
 </svg>`;
 
 // Favicon: no ground bar, bigger monogram — detail dies at 32px.
 const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="512" height="512">
-  <rect width="1024" height="1024" rx="230" fill="${C.tileDark}" />
+  <rect width="1024" height="1024" rx="24" fill="${C.tileDark}" />
   <g transform="translate(512,512) scale(1.18) translate(-512,-512)">${DS(C.voltDark)}</g>
 </svg>`;
 
 const horizontal = ({ bg, ink, volt, tile }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
   <rect width="1200" height="300" fill="${bg}" />
   <g transform="translate(60,42) scale(0.212)">
-    <rect x="32" y="32" width="960" height="960" rx="216" fill="${tile}" />
+    <rect x="32" y="32" width="960" height="960" rx="24" fill="${tile}" />
     ${DS(volt)}
   </g>
   <text x="330" y="178" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
@@ -68,7 +70,7 @@ const horizontal = ({ bg, ink, volt, tile }) => `<svg xmlns="http://www.w3.org/2
 const banner = ({ bg, ink, volt, tile }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
   <rect width="1500" height="500" fill="${bg}" />
   <g transform="translate(180,140) scale(0.229)">
-    <rect x="32" y="32" width="960" height="960" rx="216" fill="${tile}" />
+    <rect x="32" y="32" width="960" height="960" rx="24" fill="${tile}" />
     ${DS(volt)}
   </g>
   <text x="450" y="268" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"

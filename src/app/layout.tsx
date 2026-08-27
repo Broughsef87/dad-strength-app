@@ -66,6 +66,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
+      { url: '/logo-suite/ds_favicon.svg', type: 'image/svg+xml' },
       { url: '/favicon.ico' },
       { url: '/logo-suite/ds_app_icon.png', type: 'image/png', sizes: '1024x1024' },
     ],
@@ -118,6 +119,10 @@ export default function RootLayout({
     // before React hydrates — without this, every load logs a class mismatch.
     <html lang="en" suppressHydrationWarning className={`${oswald.variable} ${courierPrime.variable} ${kalam.variable} ${sairaStencil.variable} ${playfair.variable} overflow-x-hidden`}>
       <head>
+        {/* SVG first: browsers that support it get the regenerated paper mark.
+            The .ico is a legacy fallback and is still the volt-era raster —
+            see the note in the commit; rasterising it is a manual step. */}
+        <link rel="icon" href="/logo-suite/ds_favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
         <link rel="apple-touch-icon" href="/logo-suite/ds_app_icon.png" />
