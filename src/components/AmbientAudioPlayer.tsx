@@ -409,8 +409,8 @@ export default function AmbientAudioPlayer() {
           className="w-10 h-10 rounded-full bg-brand hover:bg-brand/90 flex items-center justify-center transition-colors"
         >
           {isPlaying
-            ? <Pause className="w-4 h-4 text-foreground" />
-            : <Play className="w-4 h-4 text-foreground ml-0.5" />
+            ? <Pause className="w-4 h-4 text-[hsl(var(--brand-ink))]" />
+            : <Play className="w-4 h-4 text-[hsl(var(--brand-ink))] ml-0.5" />
           }
         </button>
 

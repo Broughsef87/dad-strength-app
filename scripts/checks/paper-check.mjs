@@ -214,6 +214,85 @@ ok('the grain is a background layer, not a stacking contest',
     collisions.slice(0, 5).join('  |  ') + ' — invisible text')
 }
 
+// ── 4b-v. ...and a TINTED fill must not carry paper text ────────────────────
+// The mirror of the check above, and it exists because the fix for that one
+// created it. Repointing text on solid ink fills to --brand-ink was right; the
+// script that did it matched \bbg-brand\b, which also matches bg-brand/5,
+// because "/" is a word boundary. Sixteen tinted labels across eleven files
+// were quietly repointed to paper-on-paper.
+//
+// A tint is not a fill. bg-brand/5 is five percent ink over paper, so it reads
+// as paper with a wash — text on it must stay INK. Solid and tinted brand
+// surfaces need opposite text colours, which makes "bg-brand" alone an
+// ambiguous thing to match on, and ambiguity here is invisible in every gate
+// except a human reading the rendered page.
+//
+// This scans ACROSS lines, not within one className. The first draft compared
+// fill and text inside a single span and ran green against the real bug, where
+// the tint sits on a <section> and the paper text on a <p> inside it — the
+// parent/descendant shape is most of what the sweep script touched, so a
+// same-span guard is green precisely where it is needed. Verified by putting
+// the disclaimer regression back and watching this go red.
+{
+  const SOLID = /(^|\s|')bg-(brand|foreground|primary|destructive)(\s|$|')/
+  const TINT = /(^|\s|')bg-(brand|foreground|primary|destructive)\/\d+/
+  const PAPER = /text-\[hsl\(var\(--brand-ink\)\)\]|(^|\s|')text-brand-ink(\s|$|')/
+  const bad = []
+  const w = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e)
+      if (statSync(p).isDirectory()) { w(p); continue }
+      if (!/\.tsx$/.test(e)) continue
+      const lines = readFileSync(p, 'utf8').split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        const here = lines[i].replace(/\bhover:[^\s]+/g, '')
+        if (!TINT.test(here) || SOLID.test(here)) continue
+        // the tint's own line, then into the element it opens — stop at the
+        // next background, which is where this element's influence ends
+        for (let j = i; j < Math.min(i + 6, lines.length); j++) {
+          if (j > i && /\bbg-[a-z[]/.test(lines[j])) break
+          if (PAPER.test(lines[j])) {
+            bad.push(`${p.split(/[\\/]/).slice(-2).join('/')}:${j + 1}`)
+            break
+          }
+        }
+      }
+    }
+  }
+  w(SRC)
+  ok('no tinted fill paired with paper text',
+    bad.length === 0,
+    bad.slice(0, 6).join('  |  ') + ' — paper on paper, invisible')
+}
+// ── 4b-vi. solid fills must declare their own text colour ───────────────────
+// The structural half of the fix, pinned so it cannot be deleted as "an odd
+// rule nobody needs". Three rounds of this bug were fixed by hunting call
+// sites; each round cleared the instances in the report and left the class of
+// bug intact, so the next round found more. The fill declaring its own colour
+// ends the class: a new `bg-brand` written next month inherits paper without
+// anyone remembering this rule exists.
+//
+// It must stay inside :where(). That is not stylistic — :where() contributes
+// ZERO specificity, so the declaration acts as a default that any explicit
+// utility still beats. Promote it to a plain selector and it starts winning
+// over text-brand-text, .ink-written and .ds-stamp, and the three-ink contract
+// quietly collapses onto one colour inside every filled element.
+//
+// Deliberately NOT extended to a lookahead guard over descendants. I wrote one;
+// it could not tell a child from a sibling, and flagged a progress bar, a 6px
+// freshness dot, an absolutely-positioned badge and a ternary's unselected
+// branch — 14 false alarms against 4 real ones. A guard with that ratio gets
+// muted, and a muted guard is worse than none. Descendants that set their own
+// colour explicitly stay a review question; the default handles the rest.
+{
+  const css = readFileSync(join(SRC, 'app', 'globals.css'), 'utf8')
+  const m = css.match(/:where\(([^)]*)\)\s*\{\s*color:\s*hsl\(var\(--brand-ink\)\)/)
+  const fills = m ? m[1].split(',').map((s) => s.trim()) : []
+  ok('solid ink fills carry their own text colour (zero-specificity default)',
+    !!m && ['.bg-brand', '.bg-foreground', '.bg-primary'].every((f) => fills.includes(f)),
+    `:where() default missing or incomplete — found [${fills.join(' ')}]`)
+}
+
 // ── 4c. focus must never equal the resting border ───────────────────────────
 // Collapsing the palette turned focus:border-{hue} into focus:border-border,
 // which is the SAME as the resting state — an invisible focus ring.

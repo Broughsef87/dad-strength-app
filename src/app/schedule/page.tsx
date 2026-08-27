@@ -169,9 +169,9 @@ export default function Schedule() {
                   : 'bg-card/40 border border-border'
               }`}>
                 {day.hasWorkout ? (
-                  <CheckCircle2 size={14} className={day.isToday ? 'text-muted-foreground' : 'text-foreground'} />
+                  <CheckCircle2 size={14} className={day.isToday ? 'text-[hsl(var(--brand-ink))]' : 'text-foreground'} />
                 ) : (
-                  <span className={`text-xs font-display font-semibold ${day.isToday ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <span className={`text-xs font-display font-semibold ${day.isToday ? 'text-[hsl(var(--brand-ink))]' : 'text-muted-foreground'}`}>
                     {day.date.getDate()}
                   </span>
                 )}

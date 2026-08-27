@@ -762,6 +762,36 @@
 /* ...but inside a solid volt fill, ink wins. */
 .bg-brand .text-brand, .pill-volt .text-brand { color: hsl(var(--brand-ink)); }
 
+/* ── an ink fill carries its own text colour ────────────────────────────────
+   --brand is now ink, the same value as --foreground. That is deliberate (see
+   the token block), but it collapsed a distinction the old palette was holding
+   up for free: under volt, a `bg-brand` with no text colour inherited dark text
+   onto a bright fill and read fine by accident. Under ink it inherits ink onto
+   ink and disappears.
+
+   Chasing instances was never going to converge. I fixed eleven, Codex found
+   seven more, then found a third round on parent/descendant boundaries — each
+   pass fixed the examples in the report rather than the class of bug, which is
+   how you get a fourth round.
+
+   So the fill declares its own text colour. :where() gives the rule ZERO
+   specificity, which is the entire trick: it applies wherever nothing else has
+   an opinion, and any explicit utility — text-brand-text, ink-written, a stamp
+   — still wins without needing !important or a more specific selector. A
+   default, not an override.
+
+   Note this deliberately does NOT catch the tinted fills (bg-brand/5,
+   bg-brand/10). Those are a few percent of ink over paper, so they ARE paper,
+   and their text must stay ink. CSS agrees for free: class matching is on whole
+   tokens, so `.bg-brand` never matches an element classed `bg-brand/5`. The
+   sweep script I first wrote did not have that property — \bbg-brand\b matched
+   the tints, because "/" is a word boundary — and it repointed sixteen tinted
+   labels to paper-on-paper. That is the exact bug being fixed here, reintroduced
+   by the fix for it. Caught by reading the diff; worth the paranoia. */
+:where(.bg-brand, .bg-foreground, .bg-primary, .bg-destructive) {
+  color: hsl(var(--brand-ink));
+}
+
 /* ── the document voice ─────────────────────────────────────────────────────
    Terms, privacy and the disclaimer are DOCUMENTS, not training cards. Oswald
    is condensed display type — it sets a heading beautifully and punishes a
