@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Oswald, Courier_Prime, Kalam, Saira_Stencil_One, Playfair_Display } from 'next/font/google'
+import { Oswald, Courier_Prime, Kalam, Saira_Stencil_One } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
 import LegalGate from '../components/LegalGate'
@@ -26,7 +26,7 @@ const oswald = Oswald({
   // it smears the 600 outline. On a condensed face that reads as a rendering
   // fault rather than emphasis. Master shipped 300-700; trimming the array to
   // save bytes quietly faux-bolded 85 elements. Verified via document.fonts:
-  // Oswald had 400/500/600 while Courier Prime, Kalam and Playfair all had 700.
+  // Oswald had 400/500/600 while Courier Prime and Kalam both carried their 700.
   weight: ['400', '500', '600', '700'],
 })
 
@@ -59,13 +59,6 @@ const sairaStencil = Saira_Stencil_One({
 })
 
 // Editorial serif italic — marketing-voice accents only (<HeroAccent>).
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair',
-  weight: ['400', '700'],
-  style: ['italic'],
-})
-
 export const metadata: Metadata = {
   title: 'Dad Strength',
   description: 'The Operating System for Modern Fatherhood.',
@@ -123,7 +116,7 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: the FOUC script below adds .dark to <html>
     // before React hydrates — without this, every load logs a class mismatch.
-    <html lang="en" suppressHydrationWarning className={`${oswald.variable} ${courierPrime.variable} ${kalam.variable} ${sairaStencil.variable} ${playfair.variable} overflow-x-hidden`}>
+    <html lang="en" suppressHydrationWarning className={`${oswald.variable} ${courierPrime.variable} ${kalam.variable} ${sairaStencil.variable} overflow-x-hidden`}>
       <head>
         {/* SVG first: browsers that support it get the regenerated paper mark.
             The .ico is a legacy fallback and is still the volt-era raster —

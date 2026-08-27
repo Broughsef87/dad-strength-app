@@ -475,7 +475,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
     : ''
 
   return (
-    <div className={` relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
+    <div className={` relative tile border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <div className="absolute top-0.5 right-0.5 z-10 flex items-center">
         {onSwap && (
           <button onClick={onSwap} title="Substitute exercise"
@@ -505,8 +505,8 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                 <span className="stat-num ink-printed text-4xl">
                   {item.targetWeightLbs}
                 </span>
-                <span className="eyebrow-mono">
-                  LB{item.percent != null ? ` @ ${item.percent}%` : ''} · {item.sets}×{repsLabel}{effortLabel}
+                <span className="eyebrow-spec">
+                  LB{item.percent != null ? ` @ ${item.percent}%` : ''} · {item.sets}×{repsLabel}{effortLabel && <span className="text-[hsl(var(--ink-stamped))]">{effortLabel}</span>}
                 </span>
                 {item.appliedAdjustmentPct != null && (
                   <span className="eyebrow-mono border border-brand/50 px-1.5 py-0.5 text-brand">
@@ -514,12 +514,12 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                   </span>
                 )}
                 {plateString(item.targetWeightLbs) && (
-                  <span className="eyebrow-mono basis-full">{plateString(item.targetWeightLbs)}</span>
+                  <span className="eyebrow-spec basis-full text-muted-foreground">{plateString(item.targetWeightLbs)}</span>
                 )}
               </div>
             ) : (
-              <p className="eyebrow-mono mt-1.5">
-                {item.sets}×{repsLabel}{item.percent != null ? ` @ ${item.percent}%` : ''}{effortLabel}
+              <p className="eyebrow-spec mt-1.5">
+                {item.sets}×{repsLabel}{item.percent != null ? ` @ ${item.percent}%` : ''}{effortLabel && <span className="text-[hsl(var(--ink-stamped))]">{effortLabel}</span>}
               </p>
             )}
             {/* Prior weeks of this meso — what you actually lifted here before */}
@@ -550,7 +550,9 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
         <p className="px-4 pb-1 eyebrow-mono">SUB // WAS {item.subbedFrom.toUpperCase()}</p>
       )}
       {item.note && (
-        <p className="px-4 pb-2 text-xs text-muted-foreground italic">{item.note}</p>
+        <p className="px-4 pb-2 text-xs engine-note">
+          <span className="engine-note-prefix">Engine note — </span>{item.note}
+        </p>
       )}
 
       {expanded && (
@@ -703,7 +705,7 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
   const allDone = sets.filter(s => s.done).length === item.sets
 
   return (
-    <div className={` relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
+    <div className={` relative tile border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
       <div className="absolute top-0.5 right-0.5 z-10 flex items-center">
         {onSwap && (
           <button onClick={onSwap} title="Substitute exercise"
@@ -722,8 +724,8 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
         <div className="min-w-0 flex items-center gap-3">
           <Zap size={15} className="text-brand shrink-0" />
           <div className="min-w-0">
-            <p className="font-display text-lg leading-tight lowercase text-foreground truncate">{item.name}</p>
-            <p className="eyebrow-mono mt-0.5">{item.sets}×{item.reps} · MAX INTENT</p>
+            <p className="font-display text-lg leading-tight uppercase tracking-[0.08em] text-foreground truncate rule-header pb-1.5">{item.name}</p>
+            <p className="eyebrow-spec mt-0.5">{item.sets}×{item.reps} · MAX INTENT</p>
           </div>
         </div>
         <div className="flex gap-1 shrink-0 pb-0.5">
@@ -736,7 +738,9 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
         <p className="px-4 pb-1 eyebrow-mono">SUB // WAS {item.subbedFrom.toUpperCase()}</p>
       )}
       {item.note && (
-        <p className="px-4 pb-2 text-xs text-muted-foreground italic">{item.note}</p>
+        <p className="px-4 pb-2 text-xs engine-note">
+          <span className="engine-note-prefix">Engine note — </span>{item.note}
+        </p>
       )}
       <div className="px-4 pb-4 space-y-1.5 border-t border-border/60 pt-3">
         <div className="grid grid-cols-3 gap-2 eyebrow-mono px-1">
@@ -749,7 +753,7 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
               <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
                 className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <button onClick={() => update(idx, 'done', !s.done)}
-                className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-[hsl(var(--brand-ink))]' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                className={`text-[10px] font-bold uppercase tracking-[0.1em] px-2.5 py-1.5 transition-colors ${s.done ? 'bg-brand text-[hsl(var(--brand-ink))]' : 'bg-foreground text-[hsl(var(--brand-ink))] hover:bg-foreground/85'}`}>
                 {s.done ? 'Hit' : 'Log'}
               </button>
             </div>
@@ -791,13 +795,13 @@ function MetconCard({ item, initialLog, onLog }: {
   const [notes, setNotes] = useState(initialLog?.notes ?? '')
   const [logged, setLogged] = useState(initialLog?.completed === true)
   return (
-    <div className="relative bg-card border border-brand/40 overflow-hidden">
+    <div className="relative tile border border-brand/40 overflow-hidden">
       <div className="hazard" />
       <div className="p-4 pt-3 border-b border-border flex items-center gap-2">
         <Flame size={15} className="text-brand shrink-0" />
         <div className="flex-1">
           <p className="eyebrow-mono">COMBAT.SIM // {item.format.replace(/_/g, '.').toUpperCase()}</p>
-          <p className="font-display text-lg lowercase text-foreground mt-0.5">{item.name}</p>
+          <p className="font-display text-lg uppercase tracking-[0.08em] text-foreground mt-0.5">{item.name}</p>
         </div>
         <span className="stat-num text-2xl text-brand">{item.timeCapMinutes}&apos;</span>
       </div>
@@ -836,7 +840,7 @@ function OutsideCard({ item, initialLog, onLog }: {
   const [notes, setNotes] = useState(initialLog?.notes ?? '')
   const [logged, setLogged] = useState(initialLog?.completed === true)
   return (
-    <div className={` relative bg-card border p-4 pt-7 space-y-4 ${logged ? 'border-brand/50' : 'border-border'}`}>
+    <div className={` relative tile border p-4 pt-7 space-y-4 ${logged ? 'border-brand/50' : 'border-border'}`}>
       <div className="flex items-center gap-3">
         <Wind size={15} className="text-steel shrink-0" />
         <p className="font-display text-lg lowercase text-foreground">{item.title}</p>
