@@ -47,7 +47,7 @@ export default function AppHeader({ active }: AppHeaderProps) {
           {navItem('profile', '/profile', 'profile')}
           <button
             onClick={handleSignOut}
-            className="text-destructive/60 hover:text-destructive transition-colors lowercase"
+            className="text-destructive hover:text-destructive/80 transition-colors lowercase"
           >
             sign out
           </button>

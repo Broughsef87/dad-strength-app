@@ -292,7 +292,7 @@ export default function Settings() {
             Preferences saved locally. Native push notifications coming soon.
           </p>
           {notifPermission === 'denied' && (
-            <p className="text-xs text-destructive/70 px-1">
+            <p className="text-xs text-destructive px-1">
               Notifications blocked by browser. Enable in browser settings to receive reminders.
             </p>
           )}

@@ -21,7 +21,13 @@ import { SubscriptionProvider } from '../contexts/SubscriptionContext'
 const oswald = Oswald({
   subsets: ['latin'],
   variable: '--font-space-grotesk',
-  weight: ['400', '500', '600'],
+  // 700 is NOT optional: font-bold appears 59 times and font-black 26 more,
+  // and a weight the family does not carry is SYNTHESISED by the browser —
+  // it smears the 600 outline. On a condensed face that reads as a rendering
+  // fault rather than emphasis. Master shipped 300-700; trimming the array to
+  // save bytes quietly faux-bolded 85 elements. Verified via document.fonts:
+  // Oswald had 400/500/600 while Courier Prime, Kalam and Playfair all had 700.
+  weight: ['400', '500', '600', '700'],
 })
 
 // PRINTED — the engine's voice, and the app's body face. This app is mostly

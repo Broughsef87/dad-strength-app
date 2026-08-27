@@ -36,7 +36,7 @@ export default function ActiveSetRow({
       {/* Set Number Indicator */}
       <div className="col-span-1 flex flex-col items-center justify-center">
         <span className={`text-[9px] font-display font-semibold lowercase mb-0.5 transition-colors ${
-          isDone ? 'text-foreground/50' : 'text-muted-foreground group-hover:text-brand/50'
+          isDone ? 'text-muted-foreground' : 'text-muted-foreground group-hover:text-brand/50'
         }`}>
           Set
         </span>

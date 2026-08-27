@@ -505,6 +505,27 @@ ok('the grain is a background layer, not a stacking contest',
     'define --scrim in :root only — overriding it in .dark is what re-inverts the scrim')
 }
 
+// ── 4b-xi. the card class must not outrank the utilities written on it ──────
+// Tailwind v4 emits utilities into a LAYER, and any unlayered rule beats every
+// layered one regardless of specificity. So an unlayered `.tile { border: ... }`
+// silently defeats every border-* utility written on a card — no error, no
+// failing test, the border simply stops responding.
+//
+// Master's .tile carried no border, so those utilities worked. Adding the
+// hairline here broke five live sites: the accent border on the "Update Your
+// Maxes" panel, and three hover:border-brand/30 states on the profile screen,
+// which fail in the most deniable way there is — a hover that does nothing.
+{
+  const css = readFileSync(join(SRC, 'app', 'globals.css'), 'utf8')
+  const flat = css.replace(/\r\n/g, '\n')
+  const layered = /@layer components\s*\{[\s\S]{0,400}?\.tile\b[\s\S]{0,300}?border:/.test(flat)
+  // an unlayered .tile block that sets a border is the bug
+  const unlayered = /\n\.tile[^{]*\{[^}]*border:/.test(flat)
+  ok('.tile is layered so border-* utilities still win',
+    layered && !unlayered,
+    'the .tile border block is unlayered — it defeats every border-* utility on a card')
+}
+
 // ── 4c. focus must never equal the resting border ───────────────────────────
 // Collapsing the palette turned focus:border-{hue} into focus:border-border,
 // which is the SAME as the resting state — an invisible focus ring.

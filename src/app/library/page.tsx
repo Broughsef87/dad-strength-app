@@ -25,7 +25,7 @@ const CATEGORY_FILTER: Record<string, { field: 'category' | 'subcategory'; value
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Chest:      'text-destructive bg-destructive/10 border-destructive/20',
+  Chest:      'text-foreground bg-muted/10 border-border/20',
   Back:       'text-muted-foreground bg-muted/10 border-border/20',
   Shoulders:  'text-foreground bg-muted/10 border-border/20',
   Biceps:     'text-muted-foreground bg-muted/10 border-border/20',

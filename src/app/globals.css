@@ -418,15 +418,28 @@
    it and the whole app turns over without touching a component. Shadow out,
    hairline rule in, grain on top. The grain is one inline SVG turbulence — no
    asset, no request, and it is the artifact's own filter verbatim. */
-.tile,
-.tile-lg {
-  position: relative;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 4px;
-  box-shadow: var(--shadow-tile);
+/* In @layer components on purpose. Tailwind v4 emits utilities into a layer,
+   and ANY unlayered rule beats every layered one regardless of specificity — so
+   an unlayered `.tile { border: ... }` silently defeats every border-* utility
+   written on a card. Master's .tile had no border, so those utilities worked;
+   adding the hairline here broke five live call sites, including the accent
+   border on the "Update Your Maxes" panel and three hover:border-brand/30
+   states on the profile screen. Nothing failed — the borders just stopped
+   changing, which is the kind of thing you only notice by hovering.
+
+   Putting the block in a layer restores the normal order: the card supplies
+   defaults, a utility on the element overrides them. */
+@layer components {
+  .tile,
+  .tile-lg {
+    position: relative;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 4px;
+    box-shadow: var(--shadow-tile);
+  }
+  .tile-lg { border-radius: 6px; }
 }
-.tile-lg { border-radius: 6px; }
 
 /* The grain is a BACKGROUND LAYER on the card itself, not a pseudo-element.
    It was a ::before with `.tile > * { position: relative }` underneath it to

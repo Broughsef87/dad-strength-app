@@ -590,7 +590,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
               <div className="grid grid-cols-4 gap-2 items-center p-2">
                 {/* The set number is printed furniture — the form came with
                     numbered rows. Everything you type into them is WRITTEN. */}
-                <span className="stat-num ink-printed text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
+                <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
 
                 {/* WRITTEN, and this is the payoff moment of the whole system:
                     the load and reps you actually hit, in ballpoint, on the
@@ -1713,7 +1713,7 @@ export default function TrainingDayPage() {
         <div className="sticky top-[60px] z-10 bg-destructive/10 border-b border-destructive/40 px-4 py-2 flex items-start gap-2">
           <AlertTriangle size={14} className="text-destructive shrink-0 mt-0.5" />
           <p className="text-xs text-destructive flex-1">{logWriteError}</p>
-          <button onClick={() => setLogWriteError(null)} className="text-[10px] lowercase text-destructive/80 hover:text-destructive px-2">Dismiss</button>
+          <button onClick={() => setLogWriteError(null)} className="text-[10px] lowercase text-destructive hover:text-destructive px-2">Dismiss</button>
         </div>
       )}
 
