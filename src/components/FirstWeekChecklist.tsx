@@ -222,12 +222,12 @@ export default function FirstWeekChecklist(
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
-        className="tile overflow-hidden"
+        className="rounded-xl border border-brand/30 bg-brand/5 overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-brand/10">
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground font-medium font-display tracking-[0.08em]">Getting Started</p>
+            <p className="text-[10px] uppercase text-brand font-medium font-display tracking-[0.08em]">Getting Started</p>
             <h3 className="font-display text-xl uppercase mt-0.5 tracking-[0.08em]">Your First Week</h3>
           </div>
           <div className="flex items-center gap-3">
@@ -239,9 +239,9 @@ export default function FirstWeekChecklist(
         </div>
 
         {/* Progress bar */}
-        <div className="h-0.5 bg-muted">
+        <div className="h-0.5 bg-brand/10">
           <motion.div
-            className="h-full bg-foreground"
+            className="h-full bg-brand"
             initial={{ width: 0 }}
             animate={{ width: `${(doneCount / 3) * 100}%` }}
             transition={{ duration: 0.5 }}
@@ -255,10 +255,12 @@ export default function FirstWeekChecklist(
             const done = state[item.key as keyof ChecklistState] as boolean
             return (
               <div key={item.key} className={`flex items-center gap-4 px-5 py-3.5 ${done ? 'opacity-50' : ''}`}>
-                <span className="form-box">
-                  {done && <span className="form-tick">✓</span>}
-                </span>
-                {!done && <Icon size={14} className="text-muted-foreground shrink-0" />}
+                <div className={`p-1.5 rounded-lg shrink-0 ${done ? 'bg-brand/10' : 'bg-muted'}`}>
+                  {done
+                    ? <CheckCircle2 size={14} className="text-brand" />
+                    : <Icon size={14} className="text-muted-foreground" />
+                  }
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs font-bold ${done ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{item.label}</p>
                   {!done && <p className="text-[10px] text-muted-foreground mt-0.5">{item.description}</p>}
@@ -266,7 +268,7 @@ export default function FirstWeekChecklist(
                 {!done && (
                   <button
                     onClick={() => handleCTA(item)}
-                    className="text-[10px] font-black uppercase tracking-[0.1em] px-2.5 py-1.5 bg-foreground text-[hsl(var(--brand-ink))] hover:bg-foreground/85 transition-colors shrink-0 tracking-[0.08em]"
+                    className="text-[10px] font-black uppercase text-brand hover:text-brand/70 transition-colors shrink-0 tracking-[0.08em]"
                   >
                     {item.cta} →
                   </button>

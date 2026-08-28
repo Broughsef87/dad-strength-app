@@ -34,7 +34,7 @@ export default function ActiveSessionHeader({
           }`}
           style={{ width: `${progress}%` }}
         >
-            <div className={`absolute top-0 right-0 h-full w-8 bg-gradient-to-r from-transparent to-[hsl(var(--sheen)/0.2)] animate-pulse`} />
+            <div className={`absolute top-0 right-0 h-full w-8 bg-gradient-to-r from-transparent to-white/20 animate-pulse`} />
         </div>
       </div>
 

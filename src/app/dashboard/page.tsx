@@ -20,6 +20,7 @@ import UpgradeModal from '../../components/UpgradeModal'
 import FirstWeekChecklist from '../../components/FirstWeekChecklist'
 import MorningProtocol from '../../components/MorningProtocol'
 import WeekPulse from '../../components/WeekPulse'
+import { SectionLabel, HeroAccent } from '../../components/BarbellMark'
 import ForgeLoader from '../../components/ForgeLoader'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
@@ -390,6 +391,15 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
+                  {/* WRITTEN: a streak is not prescribed, it is accumulated.
+                      Nudged to 15px — the floor for anything in the hand. */}
+                  {streak > 0 && (
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Flame size={12} />
+                      <span className="stat-num is-written text-[15px]">{streak}</span>
+                    </div>
+                  )}
+                  {streak >= 3 && <Stamp size="sm">on streak</Stamp>}
                   {activeProgram && (
                     <div className="text-right">
                       <p className="stat-num text-[44px]">
@@ -400,17 +410,6 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-              {/* The hero figure. A streak is the one number here the athlete
-                  earned rather than typed, and the engine counts it — so it is
-                  printed, not handwritten, and it is big. */}
-              {streak > 0 && (
-                <div className="bigfig">
-                  <span className="bigfig-label">Streak<br />Days</span>
-                  <span className="bigfig-num">{streak}</span>
-                  {streak >= 3 && <Stamp size="sm">on streak</Stamp>}
-                </div>
-              )}
-
 
               {/* Week strip — one pill per day, volt for done */}
               {activeProgram && getProgram(activeProgram.slug ?? '') && (
