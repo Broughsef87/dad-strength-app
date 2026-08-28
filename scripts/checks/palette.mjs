@@ -51,6 +51,19 @@ const walk = (d) => {
       // a colour named inside a comment is prose, not a style
       const code = line.replace(/\/\/.*$/, '')
       for (const m of code.match(RAW) || []) hits.push(rel + ':' + (n + 1) + '  ' + m)
+      // Colour smuggled inside an arbitrary value. shadow-[...rgba(245,158,11,.05)]
+      // is a raw hue reaching the screen with no token in sight, and the
+      // class-name pattern above cannot see it. Neutral rgb (all channels equal,
+      // i.e. a shadow) is allowed; a HUE is not.
+      for (const a of code.match(/\[[^\]]*\]/g) || []) {
+        for (const col of a.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/g) || []) {
+          const [r, g, bl] = col.match(/\d+/g).map(Number)
+          if (!(r === g && g === bl)) hits.push(rel + ':' + (n + 1) + '  ' + col + ')')
+        }
+        for (const hx of a.match(/#[0-9a-fA-F]{3,8}\b/g) || []) {
+          hits.push(rel + ':' + (n + 1) + '  ' + hx)
+        }
+      }
     })
   }
 }

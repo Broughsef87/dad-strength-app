@@ -23,14 +23,14 @@ export default function ActiveSessionHeader({
   return (
     <div className={`group relative bg-surface-3 border-2 overflow-hidden transition-all duration-700 p-6 rounded-xl mb-8 ${
       isPaused
-        ? 'border-status-danger-fill/30 bg-status-danger-fill/[0.03] shadow-[0_0_40px_rgba(245,158,11,0.05)]'
+        ? 'border-status-danger-fill/30 bg-status-danger-fill/[0.03]'
         : 'border-border shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]'
     }`}>
       {/* Dynamic Progress Gradient */}
       <div className="absolute top-0 left-0 w-full h-1.5 bg-background/50">
         <div
           className={`h-full transition-all duration-1000 ease-out relative ${
-            isPaused ? 'bg-status-danger-fill shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-gradient-to-r from-brand via-brand/80 to-brand/60 shadow-[0_0_15px_hsl(16_80%_54%/0.4)]'
+            isPaused ? 'bg-status-danger-fill' : 'bg-gradient-to-r from-brand via-brand/80 to-brand/60'
           }`}
           style={{ width: `${progress}%` }}
         >
@@ -47,7 +47,7 @@ export default function ActiveSessionHeader({
           </div>
           <div className="flex flex-col">
             <h2 className={`text-[10px] font-black lowercase leading-none mb-1 transition-colors ${
-              isPaused ? 'text-status-danger-ink' : 'text-brand/80'
+              isPaused ? 'text-status-danger-ink' : 'text-brand-text'
             }`}>
               {isPaused ? 'Grace Mode Active' : 'Live Protocol'}
             </h2>
@@ -62,7 +62,7 @@ export default function ActiveSessionHeader({
           onClick={onTogglePause}
           className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black lowercase transition-all active:scale-90 ${
             isPaused
-              ? 'bg-status-danger-fill border-status-danger-fill text-destructive-foreground shadow-[0_8px_25px_rgba(245,158,11,0.3)] hover:bg-status-danger-fill'
+              ? 'bg-status-danger-fill border-status-danger-fill text-destructive-foreground hover:bg-status-danger-fill'
               : 'bg-muted border-border text-muted-foreground hover:border-status-danger-fill/50 hover:text-status-danger-ink hover:bg-status-danger-fill/5'
           }`}
         >
@@ -100,11 +100,11 @@ export default function ActiveSessionHeader({
 
         <div className="flex gap-8 items-center">
           <div className="relative group/stat text-right">
-            <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-brand/70 transition-colors">Session Time</p>
+            <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-brand-text transition-colors">Session Time</p>
             <div className="flex items-baseline justify-end gap-1.5">
-                <Timer size={14} className={`mb-0.5 ${isPaused ? 'text-status-danger-ink' : 'text-brand/50'}`} />
+                <Timer size={14} className={`mb-0.5 ${isPaused ? 'text-status-danger-ink' : 'text-brand-text'}`} />
                 <p className={`text-2xl font-mono font-black tabular-nums transition-all ${
-                    isPaused ? 'text-status-danger-ink drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-foreground'
+                    isPaused ? 'text-status-danger-ink drop-' : 'text-foreground'
                 }`}>{duration}</p>
             </div>
           </div>

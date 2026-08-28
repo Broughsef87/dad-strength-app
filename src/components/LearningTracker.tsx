@@ -178,7 +178,7 @@ export default function LearningTracker() {
 
               {/* Milestone — the current target */}
               <div className="mt-2.5 flex items-center gap-2">
-                <Target size={11} className="text-brand/70 shrink-0" />
+                <Target size={11} className="text-brand-text shrink-0" />
                 {editId === s.id ? (
                   <input autoFocus value={editVal} onChange={e => setEditVal(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && saveMilestone(s.id)}

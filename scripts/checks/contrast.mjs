@@ -112,7 +112,11 @@ const INK_UTILS = {
   'text-muted-foreground': 'muted-foreground',
   'text-foreground': 'foreground',
   'text-destructive': 'destructive',
-  'text-brand': 'brand-text',
+  // NOT brand-text: `.text-brand` is a manual override that matches only the
+  // BARE class. Tailwind emits `.text-brand\/70` separately, from --color-brand,
+  // so an opacity variant resolves to raw volt. Modelling it as brand-text is
+  // how this check passed over invisible text.
+  'text-brand': 'brand',
 }
 const tooFaint = []
 const walk = (d) => {
@@ -151,7 +155,7 @@ walk(SRC)
 // The debt snapshot is generated FROM this check, never hand-written:
 //   EMIT_DEBT=1 npx tsx scripts/checks/contrast.mjs
 if (process.env.EMIT_DEBT) {
-  for (const f of tooFaint) console.log('DEBT ' + f.split('  ')[0])
+  for (const f of tooFaint) console.log('DEBT ' + f.split('  ').slice(0, 2).join('  '))
 }
 
 // A RATCHET, not an amnesty. These 53 predate the check and are a real
@@ -163,8 +167,11 @@ let faintAllow = []
 try {
   faintAllow = JSON.parse(readFileSync(join(SRC, '..', 'scripts', 'checks', 'faded-ink-debt.json'), 'utf8'))
 } catch { faintAllow = [] }
-const newFaint = tooFaint.filter((f) => !faintAllow.includes(f.split('  ')[0]))
-const fixed = faintAllow.filter((a) => !tooFaint.some((f) => f.split('  ')[0] === a))
+// keyed on file:line AND the class, so editing a debt line in place revokes
+// its amnesty — the old key let a line change meaning and stay allowed
+const keyOf = (f) => { const p = f.split('  '); return p[0] + '  ' + p[1] }
+const newFaint = tooFaint.filter((f) => !faintAllow.includes(keyOf(f)))
+const fixed = faintAllow.filter((a) => !tooFaint.some((f) => keyOf(f) === a))
 if (fixed.length) {
   console.log('')
   console.log('  ' + fixed.length + ' faded-ink site(s) fixed since the snapshot — trim them from faded-ink-debt.json:')
@@ -174,6 +181,25 @@ ok('no NEW faded ink under the floor (' + faintAllow.length + ' pre-existing, ra
   newFaint.slice(0, 12).join('\n        ')
   + (tooFaint.length > 12 ? '\n        …and ' + (tooFaint.length - 12) + ' more' : '')
   + '\n        fading an ink does not make it quiet, it makes it unreadable')
+
+// ── 3. a category chip is its own ink on its own tint ──────────────────────
+// text-category-push on bg-category-push/10 is the shipped chip pattern, and it
+// was not covered by either half above: half 1 measures ink on a plain ground,
+// half 2 only looks at faded INK. The tint underneath moves the ground.
+const CATEGORIES = ['push', 'pull', 'legs', 'core', 'condition', 'general']
+for (const theme of ['chalk', 'graphite']) {
+  const b = blockOf(theme)
+  const card = raw(b, 'card')
+  for (const c of CATEGORIES) {
+    const t = raw(b, 'category-' + c)
+    if (!t || !card) { ok(theme + ': --category-' + c + ' resolves', false, 'missing'); continue }
+    const ground = over(toRgb(t), toRgb(card), 0.10)   // the /10 tint
+    const r = ratio(toRgb(t), ground)
+    rows.push([theme, 'category-' + c + ' on /10', 'card', r])
+    ok(theme + ': --category-' + c + ' on its own 10% tint clears ' + FLOOR + ':1', r >= FLOOR,
+      'measured ' + r + ':1 — the chip pattern is the ink on its own tint, not on the bare card')
+  }
+}
 
 // ── report ─────────────────────────────────────────────────────────────────
 console.log('')

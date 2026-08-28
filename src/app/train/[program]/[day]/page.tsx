@@ -825,7 +825,7 @@ function OutsideCard({ item, initialLog, onLog }: {
       <ul className="space-y-2">
         {item.parts.map((p, i) => (
           <li key={i} className="flex items-start gap-2.5 text-xs text-foreground/85">
-            <span className="stat-num text-brand/80 mt-px shrink-0">{String(i + 1).padStart(2, '0')}</span>{p}
+            <span className="stat-num text-brand-text mt-px shrink-0">{String(i + 1).padStart(2, '0')}</span>{p}
           </li>
         ))}
       </ul>

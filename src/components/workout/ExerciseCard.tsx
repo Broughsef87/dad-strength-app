@@ -60,7 +60,7 @@ export default function ExerciseCard({
     <>
       <div className={`group relative bg-card border-2 rounded-[40px] transition-all duration-700 overflow-hidden ${
  isCompleted
- ? 'border-status-good-fill/40 bg-status-good-fill/[0.02] shadow-[0_15px_40px_-10px_rgba(16,185,129,0.1)]'
+ ? 'border-status-good-fill/40 bg-status-good-fill/[0.02]'
  : 'border-border/80 hover:border-brand/40 shadow-2xl'
  }`}>
         {/* Dynamic Background Element */}
@@ -109,7 +109,7 @@ export default function ExerciseCard({
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
             {!isCompleted && (
               <div className="flex flex-col items-end">
-                <div className="flex items-center gap-1.5 text-brand/80 mb-1.5">
+                <div className="flex items-center gap-1.5 text-brand-text mb-1.5">
                   <Zap size={14} className="animate-pulse" />
                   <span className="text-[10px] font-display font-semibold lowercase">Intensity</span>
                 </div>

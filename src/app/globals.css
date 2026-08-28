@@ -171,12 +171,12 @@
        as states, and so they never compete with volt for attention. The 16
        library categories map onto these; the chip still carries its own word,
        so colour here is grouping, not the only signal. */
-    --category-push: 12 32% 46%;       /* chest · shoulders · triceps */
+    --category-push: 12 34% 42%;       /* chest · shoulders · triceps */
     --category-pull: 205 34% 42%;      /* back · biceps */
     --category-legs: 262 24% 48%;      /* quads · hams · glutes · calves */
     --category-core: 168 30% 34%;      /* core · isometric */
-    --category-condition: 32 40% 40%;  /* cardio */
-    --category-general: 55 6% 42%;     /* compound · isolation · arms */
+    --category-condition: 32 44% 35%;  /* cardio */
+    --category-general: 55 7% 37%;     /* compound · isolation · arms */
 
     --shadow-tile: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px rgba(20, 20, 18, 0.06);
     --shadow-tile-lg: 0 2px 4px rgba(20, 20, 18, 0.05), 0 18px 48px rgba(20, 20, 18, 0.10);

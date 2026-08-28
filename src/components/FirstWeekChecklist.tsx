@@ -291,7 +291,7 @@ export default function FirstWeekChecklist(
                 {!done && (
                   <button
                     onClick={() => handleCTA(item)}
-                    className="text-[10px] font-black lowercase text-brand hover:text-brand/70 transition-colors shrink-0"
+                    className="text-[10px] font-black lowercase text-brand hover:text-brand-text transition-colors shrink-0"
                   >
                     {item.cta} →
                   </button>

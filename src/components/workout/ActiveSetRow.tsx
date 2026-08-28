@@ -30,13 +30,13 @@ export default function ActiveSetRow({
   return (
     <div className={`group relative grid grid-cols-12 gap-3 items-center p-3 rounded-2xl transition-all duration-500 ${
       isDone
-        ? 'bg-status-good-fill/5 border border-status-good-fill/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.02)]'
+        ? 'bg-status-good-fill/5 border border-status-good-fill/20'
         : 'bg-gray-800/20 border border-border/40 hover:border-brand/30 hover:bg-gray-800/30'
     }`}>
       {/* Set Number Indicator */}
       <div className="col-span-1 flex flex-col items-center justify-center">
         <span className={`text-[9px] font-display font-semibold lowercase mb-0.5 transition-colors ${
-          isDone ? 'text-status-good-ink' : 'text-gray-600 group-hover:text-brand/50'
+          isDone ? 'text-status-good-ink' : 'text-gray-600 group-hover:text-brand-text'
         }`}>
           Set
         </span>

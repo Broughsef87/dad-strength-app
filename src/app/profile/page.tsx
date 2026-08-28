@@ -181,7 +181,7 @@ export default function Profile() {
                 {!isPro && (
                   <button
                     onClick={() => setShowUpgrade(true)}
-                    className="inline-flex items-center gap-1 eyebrow-mono text-brand hover:text-brand/70 transition-colors"
+                    className="inline-flex items-center gap-1 eyebrow-mono text-brand hover:text-brand-text transition-colors"
                   >
                     <Zap size={9} /> upgrade
                   </button>

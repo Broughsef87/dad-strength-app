@@ -37,7 +37,7 @@ const PILLAR_COLORS: Record<string, string> = {
   'Prayer':          'text-brand bg-brand/10 border-brand/20',
   'Meditation':      'text-foreground bg-muted border-border',
   'Reading':         'text-foreground bg-muted border-border',
-  'Gratitude':       'text-status-good-ink bg-status-good-fill/10 border-status-good-fill/20',
+  'Gratitude':       'text-category-core bg-category-core/10 border-category-core/20',
   'Goals':           'text-muted-foreground bg-muted border-border',
   'Goals & Journal': 'text-muted-foreground bg-muted border-border', // legacy
 }
