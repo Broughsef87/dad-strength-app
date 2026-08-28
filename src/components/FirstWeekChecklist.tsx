@@ -157,9 +157,32 @@ export default function FirstWeekChecklist(
   }, [userId, state.morning_protocol, protocolTick])
 
   const updateItem = async (key: keyof ChecklistState, value: boolean) => {
-    const newState = { ...state, [key]: value }
-    setState(newState)
+    setState(prev => ({ ...prev, [key]: value }))   // optimistic, for the tick
     if (!userId) return
+
+    // Read-modify-write against the ROW, never against `state`. This writes the
+    // WHOLE column, so building it from a stale closure silently discards
+    // whatever else was already true. Two ways that happened:
+    //
+    //   1. The auto-check effects above fire on `userId`, which is set at the
+    //      top of load() -- BEFORE the profile fetch resolves. So `state` in
+    //      scope was still DEFAULT_STATE, and finding a completed workout wrote
+    //      { first_workout: true, set_mission: false } over a mission that had
+    //      just been saved. Every dashboard load.
+    //   2. /profile/mission writes set_mission into this same column on its
+    //      own, so even a freshly-loaded local state can be behind the row.
+    //
+    // Reported as: set your #1 mission, come back, the box is unchecked again.
+    // Not a display bug -- the flag really was reset in the database, which is
+    // why doing it again never stuck.
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('first_week_checklist')
+      .eq('id', userId)
+      .maybeSingle()
+    const persisted = (data?.first_week_checklist as ChecklistState | null) ?? DEFAULT_STATE
+    const newState = { ...persisted, [key]: value }
+    setState(newState)
     await supabase.from('user_profiles').update({ first_week_checklist: newState }).eq('id', userId)
 
     // Hide and persist dismissed if all items complete
