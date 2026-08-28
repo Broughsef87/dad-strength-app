@@ -25,26 +25,26 @@ const CATEGORY_FILTER: Record<string, { field: 'category' | 'subcategory'; value
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Chest:      'text-rose-400 bg-rose-500/10 border-rose-500/20',
-  Back:       'text-sky-400 bg-sky-500/10 border-sky-500/20',
-  Shoulders:  'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  Biceps:     'text-purple-400 bg-purple-500/10 border-purple-500/20',
-  Triceps:    'text-violet-400 bg-violet-500/10 border-violet-500/20',
-  Quads:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  Hamstrings: 'text-teal-400 bg-teal-500/10 border-teal-500/20',
-  Glutes:     'text-green-400 bg-green-500/10 border-green-500/20',
-  Calves:     'text-lime-400 bg-lime-500/10 border-lime-500/20',
-  Core:       'text-orange-400 bg-orange-500/10 border-orange-500/20',
-  'Full Body':'text-brand bg-brand/10 border-brand/20',
-  Arms:       'text-purple-400 bg-purple-500/10 border-purple-500/20',
-  Legs:       'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  Cardio:     'text-brand bg-brand/10 border-brand/20',
+  Chest:      'text-category-push bg-category-push/10 border-category-push/20',
+  Back:       'text-category-pull bg-category-pull/10 border-category-pull/20',
+  Shoulders:  'text-category-push bg-category-push/10 border-category-push/20',
+  Biceps:     'text-category-pull bg-category-pull/10 border-category-pull/20',
+  Triceps:    'text-category-push bg-category-push/10 border-category-push/20',
+  Quads:      'text-category-legs bg-category-legs/10 border-category-legs/20',
+  Hamstrings: 'text-category-legs bg-category-legs/10 border-category-legs/20',
+  Glutes:     'text-category-legs bg-category-legs/10 border-category-legs/20',
+  Calves:     'text-category-legs bg-category-legs/10 border-category-legs/20',
+  Core:       'text-category-core bg-category-core/10 border-category-core/20',
+  'Full Body':'text-category-general bg-category-general/10 border-category-general/20',
+  Arms:       'text-category-general bg-category-general/10 border-category-general/20',
+  Legs:       'text-category-legs bg-category-legs/10 border-category-legs/20',
+  Cardio:     'text-category-condition bg-category-condition/10 border-category-condition/20',
 }
 
 const MECHANIC_BADGE: Record<string, string> = {
-  Compound:  'text-brand bg-brand/10',
-  Isolation: 'text-muted-foreground bg-gray-800',
-  Isometric: 'text-teal-400 bg-teal-500/10',
+  Compound:  'text-category-general bg-category-general/10',
+  Isolation: 'text-category-general bg-category-general/10',
+  Isometric: 'text-category-core bg-category-core/10',
 }
 
 type Exercise = typeof EXERCISES[0]

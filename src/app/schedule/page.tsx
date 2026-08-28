@@ -189,7 +189,7 @@ export default function Schedule() {
           <div className="bg-card rounded-2xl p-4 border border-border text-center">
             <p className="text-[9px] font-display font-semibold text-gray-600 lowercase mb-1">Streak</p>
             <div className="flex items-center justify-center gap-1">
-              <Flame size={14} className="text-orange-500" />
+              <Flame size={14} className="text-brand-text" />
               <p className="font-display font-semibold text-2xl">{streak}</p>
             </div>
           </div>

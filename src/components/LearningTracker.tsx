@@ -178,7 +178,7 @@ export default function LearningTracker() {
 
               {/* Milestone — the current target */}
               <div className="mt-2.5 flex items-center gap-2">
-                <Target size={11} className="text-brand/70 shrink-0" />
+                <Target size={11} className="text-brand-text shrink-0" />
                 {editId === s.id ? (
                   <input autoFocus value={editVal} onChange={e => setEditVal(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && saveMilestone(s.id)}
@@ -293,7 +293,7 @@ export default function LearningTracker() {
 
               <div className="flex gap-2">
                 <button onClick={() => void addSkill()} disabled={!name.trim()}
-                  className="flex-1 py-2 bg-brand text-white text-[10px] font-semibold lowercase hover:bg-brand/90 disabled:opacity-40 transition-colors">
+                  className="flex-1 py-2 bg-brand text-brand-ink text-[10px] font-semibold lowercase hover:bg-brand/90 disabled:opacity-40 transition-colors">
                   Start Tracking
                 </button>
                 <button onClick={() => { setAdding(false); setName(''); setMilestone(''); setCatKey(null) }}

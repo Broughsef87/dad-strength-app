@@ -7,11 +7,11 @@ import { createClient } from '../../../utils/supabase/client'
 
 const ICON_OPTIONS = [
   { id: 'trending', icon: TrendingUp, color: 'text-brand' },
-  { id: 'dollar', icon: DollarSign, color: 'text-green-400' },
-  { id: 'youtube', icon: Youtube, color: 'text-red-500' },
+  { id: 'dollar', icon: DollarSign, color: 'text-category-legs' },
+  { id: 'youtube', icon: Youtube, color: 'text-category-push' },
   { id: 'saas', icon: MonitorSmartphone, color: 'text-brand' },
-  { id: 'target', icon: Target, color: 'text-orange-400' },
-  { id: 'activity', icon: Activity, color: 'text-blue-400' }
+  { id: 'target', icon: Target, color: 'text-category-condition' },
+  { id: 'activity', icon: Activity, color: 'text-category-pull' }
 ]
 
 export default function MissionEditor() {

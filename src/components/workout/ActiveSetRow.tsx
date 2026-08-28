@@ -30,18 +30,18 @@ export default function ActiveSetRow({
   return (
     <div className={`group relative grid grid-cols-12 gap-3 items-center p-3 rounded-2xl transition-all duration-500 ${
       isDone
-        ? 'bg-emerald-500/5 border border-emerald-500/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.02)]'
+        ? 'bg-status-good-fill/5 border border-status-good-fill/20'
         : 'bg-gray-800/20 border border-border/40 hover:border-brand/30 hover:bg-gray-800/30'
     }`}>
       {/* Set Number Indicator */}
       <div className="col-span-1 flex flex-col items-center justify-center">
         <span className={`text-[9px] font-display font-semibold lowercase mb-0.5 transition-colors ${
-          isDone ? 'text-emerald-500/50' : 'text-gray-600 group-hover:text-brand/50'
+          isDone ? 'text-status-good-ink' : 'text-gray-600 group-hover:text-brand-text'
         }`}>
           Set
         </span>
         <span className={`text-base font-display font-semibold italic leading-none ${
-          isDone ? 'text-emerald-500' : 'text-muted-foreground group-hover:text-foreground'
+          isDone ? 'text-status-good-ink' : 'text-muted-foreground group-hover:text-foreground'
         }`}>
           {index + 1}
         </span>
@@ -108,7 +108,7 @@ export default function ActiveSetRow({
         onClick={onToggle}
         className={`col-span-3 h-14 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
           isDone
-            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 rotate-0'
+            ? 'bg-status-good-fill text-brand-ink shadow-lg shadow-status-good-fill/20 rotate-0'
             : 'bg-card border border-border text-gray-700 hover:text-brand hover:border-brand/50 hover:bg-gray-800 shadow-sm'
         }`}
       >
@@ -128,7 +128,7 @@ export default function ActiveSetRow({
           </div>
       )}
       {isDone && isPR && (
-        <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-yellow-400/30 animate-in zoom-in duration-300 z-10">
+        <div className="absolute -top-2 -right-2 bg-status-good-fill text-brand-ink text-[8px] font-display font-semibold px-2 py-0.5 rounded-full lowercase shadow-lg shadow-status-good-fill/30 animate-in zoom-in duration-300 z-10">
           PR
         </div>
       )}

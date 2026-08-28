@@ -89,7 +89,7 @@ export default function LegalGate() {
   if (!needsAck || !userId || EXEMPT_PATHS.includes(pathname)) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/70">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-[hsl(var(--scrim))]/70">
       <LegalGateView
         checked={checked}
         saving={saving}
@@ -163,7 +163,7 @@ export function LegalGateView({ checked, saving, error, onCheckedChange, onAccep
           </span>
         </label>
 
-        {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+        {error && <p className="text-xs text-status-danger-ink mb-3">{error}</p>}
 
         <button
           onClick={onAccept}

@@ -155,7 +155,7 @@ export default function Profile() {
                   autoFocus
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
                 />
-                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-green-500 hover:text-green-400 transition-colors disabled:opacity-50">
+                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-status-good-ink hover:text-status-good-ink transition-colors disabled:opacity-50">
                   <Check size={16} />
                 </button>
                 <button onClick={() => setEditingName(false)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
@@ -181,7 +181,7 @@ export default function Profile() {
                 {!isPro && (
                   <button
                     onClick={() => setShowUpgrade(true)}
-                    className="inline-flex items-center gap-1 eyebrow-mono text-brand hover:text-brand/70 transition-colors"
+                    className="inline-flex items-center gap-1 eyebrow-mono text-brand hover:text-brand-text transition-colors"
                   >
                     <Zap size={9} /> upgrade
                   </button>
@@ -236,12 +236,12 @@ export default function Profile() {
               <p className="font-light text-2xl mt-1 font-display">{stats.totalSessions}</p>
             </div>
             <div className="tile p-4">
-              <Activity className="text-green-600 mb-2" size={16} />
+              <Activity className="text-status-good-ink mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Total Volume</p>
               <p className="font-light text-xl mt-1 font-display">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
             </div>
             <div className="tile p-4">
-              <Trophy className="text-yellow-600 mb-2" size={16} />
+              <Trophy className="text-brand-text mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Top Lift</p>
               <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>
             </div>
@@ -290,7 +290,7 @@ export default function Profile() {
 
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 p-4 mt-4 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/5 transition-colors text-sm font-medium"
+          className="w-full flex items-center justify-center gap-2 p-4 mt-4 rounded-xl border border-status-danger-fill/20 text-status-danger-ink hover:bg-status-danger-fill/5 transition-colors text-sm font-medium"
         >
           <LogOut size={16} /> Sign Out
         </button>

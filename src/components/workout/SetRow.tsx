@@ -29,7 +29,7 @@ export default function SetRow({
     <div 
       className={`group flex items-center gap-4 p-4 bg-card/80 border transition-all duration-300 ${
         isDone 
-          ? 'border-brand/50 bg-brand/10 shadow-[0_0_15px_rgba(99,102,241,0.1)] scale-[1.01]' 
+          ? 'border-brand/50 bg-brand/10 scale-[1.01]' 
           : 'border-border hover:border-gray-700'
       } rounded-2xl`}
     >
@@ -46,7 +46,7 @@ export default function SetRow({
         <div className="flex items-center gap-2 mt-0.5">
           <span className={`text-[10px] font-display font-semibold lowercase transition-colors ${isDone ? 'text-brand' : 'text-brand'}`}>{set.weight} LBS</span>
           <span className="text-[8px] text-gray-700">/</span>
-          <span className={`text-[10px] font-display font-semibold lowercase transition-colors ${isDone ? 'text-brand/50' : 'text-muted-foreground'}`}>{set.reps} REPS</span>
+          <span className={`text-[10px] font-display font-semibold lowercase transition-colors ${isDone ? 'text-brand-text' : 'text-muted-foreground'}`}>{set.reps} REPS</span>
         </div>
       </div>
 
@@ -67,7 +67,7 @@ export default function SetRow({
         {onDelete && (
           <button 
             onClick={() => onDelete(set.id)}
-            className="p-2 text-gray-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+            className="p-2 text-gray-700 hover:text-status-danger-ink transition-colors opacity-0 group-hover:opacity-100"
           >
             <Trash2 className="w-4 h-4" />
           </button>
