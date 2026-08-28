@@ -104,8 +104,8 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                   <Zap size={16} className="text-brand" />
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase text-brand font-semibold font-display tracking-[0.08em]">Dad Strong+</p>
-                  <h2 id="upgrade-modal-title" className="font-display text-2xl uppercase text-foreground leading-tight tracking-[0.08em]">Unlock Everything</h2>
+                  <p className="text-[9px] lowercase text-brand font-semibold font-display">Dad Strong+</p>
+                  <h2 id="upgrade-modal-title" className="font-display text-2xl lowercase text-foreground leading-tight">Unlock Everything</h2>
                 </div>
               </div>
               {trigger && (
@@ -134,7 +134,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                 disabled={!!loading}
                 className="annual-card w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:opacity-50"
               >
-                <div className="absolute -top-2.5 left-4 bg-brand text-[hsl(var(--brand-ink))] text-[8px] font-bold uppercase px-2 py-0.5 rounded-sm tracking-[0.08em]">
+                <div className="absolute -top-2.5 left-4 bg-brand text-[hsl(var(--brand-ink))] text-[8px] font-bold lowercase px-2 py-0.5 rounded-sm">
                   Best Value
                 </div>
                 <div className="text-left">
@@ -170,7 +170,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               {/* Divider */}
               <div className="flex items-center gap-3 py-0.5">
                 <div className="flex-1 h-px bg-border/50" />
-                <p className="text-[9px] text-muted-foreground uppercase tracking-[0.08em]">Or</p>
+                <p className="text-[9px] text-muted-foreground lowercase">Or</p>
                 <div className="flex-1 h-px bg-border/50" />
               </div>
 

@@ -115,7 +115,7 @@ export function LegalGateView({ checked, saving, error, onCheckedChange, onAccep
   return (
     <div className="tile-lg w-full max-w-md p-6 pop-in max-h-[85vh] overflow-y-auto">
         <p className="eyebrow-mono mb-2">before you train</p>
-        <h2 className="font-display text-2xl uppercase leading-tight mb-4 tracking-[0.08em]">
+        <h2 className="font-display text-2xl lowercase leading-tight mb-4">
           read this once. it matters.
         </h2>
 

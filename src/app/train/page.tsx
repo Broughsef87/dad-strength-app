@@ -17,7 +17,7 @@ export default function TrainPage() {
 
         <div className="mb-8">
           <p className="eyebrow-mono mb-1">train · recover · measure</p>
-          <h1 className="font-display text-4xl uppercase tracking-[0.08em]">body</h1>
+          <h1 className="font-display text-4xl lowercase">body</h1>
         </div>
 
         <motion.div

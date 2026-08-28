@@ -39,7 +39,7 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
         </div>
 
         <div>
-          <p className="text-[10px] font-black text-muted-foreground uppercase mb-1 flex items-center gap-2 tracking-[0.08em]">
+          <p className="text-[10px] font-black text-muted-foreground lowercase mb-1 flex items-center gap-2">
             Protocol Rest
             {isLowTime && <span className="inline-block w-1.5 h-1.5 rounded-full bg-destructive" />}
           </p>
@@ -54,7 +54,7 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
         className="group relative z-10 p-2 rounded-xl bg-card/50 border border-border hover:border-border transition-all"
       >
         <div className="flex items-center gap-2 px-1">
-          <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase transition-colors tracking-[0.08em]">Skip</span>
+          <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground lowercase transition-colors">Skip</span>
           <X className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
         </div>
       </button>

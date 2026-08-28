@@ -36,7 +36,7 @@ export default function AppHeader({ active }: AppHeaderProps) {
       <header className="hidden md:flex items-center justify-between bg-background px-8 py-3.5 sticky top-0 z-40 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <Logo className="w-8 h-8" />
-          <span className="font-display font-semibold text-base uppercase text-foreground tracking-[0.08em]">
+          <span className="font-display font-semibold text-base lowercase text-foreground">
             dad strength
           </span>
         </Link>
@@ -58,7 +58,7 @@ export default function AppHeader({ active }: AppHeaderProps) {
       <header className="md:hidden flex items-center justify-between bg-background px-6 pt-6 pb-2">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <Logo className="w-8 h-8" />
-          <span className="font-display font-semibold text-base uppercase leading-none tracking-[0.08em]">
+          <span className="font-display font-semibold text-base lowercase leading-none">
             dad strength
           </span>
         </Link>

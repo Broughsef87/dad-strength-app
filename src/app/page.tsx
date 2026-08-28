@@ -84,7 +84,7 @@ export default function Home() {
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="w-5 h-5 border border-brand border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground text-[9px] uppercase font-display tracking-[0.08em]">Loading</p>
+          <p className="text-muted-foreground text-[9px] lowercase font-display">Loading</p>
         </div>
       </div>
     );
@@ -97,7 +97,7 @@ export default function Home() {
         {/* Brand lockup — stacked suite asset, dark/light aware */}
         <div className="flex flex-col items-center">
           <Logo className="w-24 h-24 drop-shadow-2xl" />
-          <p className="font-display font-semibold text-2xl uppercase text-foreground mt-5 tracking-[0.08em]">
+          <p className="font-display font-semibold text-2xl lowercase text-foreground mt-5">
             Dad Strength
           </p>
         </div>
@@ -125,9 +125,9 @@ export default function Home() {
 
         {/* Legal footer */}
         <div className="flex items-center justify-center gap-4 -mt-4">
-          <a href="/terms" className="text-[10px] uppercase text-muted-foreground hover:text-foreground transition-colors tracking-[0.08em]">terms</a>
-          <a href="/privacy" className="text-[10px] uppercase text-muted-foreground hover:text-foreground transition-colors tracking-[0.08em]">privacy</a>
-          <a href="/disclaimer" className="text-[10px] uppercase text-muted-foreground hover:text-foreground transition-colors tracking-[0.08em]">disclaimer</a>
+          <a href="/terms" className="text-[10px] lowercase text-muted-foreground hover:text-foreground transition-colors">terms</a>
+          <a href="/privacy" className="text-[10px] lowercase text-muted-foreground hover:text-foreground transition-colors">privacy</a>
+          <a href="/disclaimer" className="text-[10px] lowercase text-muted-foreground hover:text-foreground transition-colors">disclaimer</a>
         </div>
       </div>
     </div>

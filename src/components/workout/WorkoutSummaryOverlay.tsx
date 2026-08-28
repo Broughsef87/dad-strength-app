@@ -63,25 +63,25 @@ export default function WorkoutSummaryOverlay({
           <div className="relative z-10">
             <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-brand/10 rounded-full border border-brand/20">
               <Sparkles className="w-4 h-4 text-brand" />
-              <span className="text-xs font-display font-semibold uppercase text-brand tracking-[0.08em]">Mission Accomplished</span>
+              <span className="text-xs font-display font-semibold lowercase text-brand">Mission Accomplished</span>
             </div>
 
             <h2 className="text-4xl font-display font-semibold text-foreground mb-2 italic tracking-wide">ELITE PERFORMANCE</h2>
-            <p className="text-brand text-xs font-display font-semibold uppercase mb-10 tracking-[0.08em]">Session Data Logged</p>
+            <p className="text-brand text-xs font-display font-semibold lowercase mb-10">Session Data Logged</p>
 
             <div className="mb-10 space-y-4">
               <div className="tile rounded-3xl p-6 transform hover:scale-[1.02] transition-transform">
-                <p className="text-xs font-display font-semibold text-muted-foreground uppercase mb-1 tracking-[0.08em]">Total Volume</p>
+                <p className="text-xs font-display font-semibold text-muted-foreground lowercase mb-1">Total Volume</p>
                 <p className="text-4xl font-display font-semibold stat-num text-foreground">{totalVolume.toLocaleString()}<span className="text-sm text-brand ml-1 italic">LBS</span></p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="tile rounded-3xl p-4">
-                  <p className="text-xs font-display font-semibold text-muted-foreground uppercase mb-1 tracking-[0.08em]">Duration</p>
+                  <p className="text-xs font-display font-semibold text-muted-foreground lowercase mb-1">Duration</p>
                   <p className="text-xl font-display font-semibold stat-num text-foreground">{duration}</p>
                 </div>
                 <div className="tile rounded-3xl p-4">
-                  <p className="text-xs font-display font-semibold text-muted-foreground uppercase mb-1 tracking-[0.08em]">Rank</p>
+                  <p className="text-xs font-display font-semibold text-muted-foreground lowercase mb-1">Rank</p>
                   <p className="text-xl font-display font-semibold text-brand italic">OVR-99</p>
                 </div>
               </div>
@@ -91,12 +91,12 @@ export default function WorkoutSummaryOverlay({
               <div className="mb-6 p-5 bg-muted/10 border border-border/30 rounded-3xl">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xl font-display font-semibold">🏆</span>
-                  <p className="text-xs font-display font-semibold uppercase text-foreground tracking-[0.08em]">New Personal Records</p>
+                  <p className="text-xs font-display font-semibold lowercase text-foreground">New Personal Records</p>
                 </div>
                 <div className="space-y-2">
                   {newPRs.map((pr, i) => (
                     <div key={i} className="flex items-center justify-between">
-                      <p className="text-sm font-display font-semibold text-foreground uppercase tracking-tight">{pr.exercise}</p>
+                      <p className="text-sm font-display font-semibold text-foreground lowercase tracking-tight">{pr.exercise}</p>
                       <p className="text-sm font-display font-semibold text-foreground">{pr.weight} lbs × {pr.reps}</p>
                     </div>
                   ))}
@@ -107,7 +107,7 @@ export default function WorkoutSummaryOverlay({
             <div className="space-y-4 pt-6 border-t border-border">
               {/* Session Note */}
               <div className="text-left space-y-2">
-                <label className="text-xs font-display font-semibold uppercase text-muted-foreground tracking-[0.08em]">Session Note</label>
+                <label className="text-xs font-display font-semibold lowercase text-muted-foreground">Session Note</label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
@@ -124,7 +124,7 @@ export default function WorkoutSummaryOverlay({
                   <button
                     onClick={handleSaveNote}
                     disabled={!note.trim() || savingNote}
-                    className="w-full bg-muted border border-border text-foreground font-display font-semibold text-xs uppercase py-2.5 rounded-xl hover:border-foreground/30 transition-colors disabled:opacity-40 tracking-[0.08em]"
+                    className="w-full bg-muted border border-border text-foreground font-display font-semibold text-xs lowercase py-2.5 rounded-xl hover:border-foreground/30 transition-colors disabled:opacity-40"
                   >
                     {savingNote ? 'Saving...' : 'Save Note'}
                   </button>
@@ -139,7 +139,7 @@ export default function WorkoutSummaryOverlay({
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </button>
 
-              <button className="w-full flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors py-2 text-xs font-display font-semibold uppercase tracking-[0.08em]">
+              <button className="w-full flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors py-2 text-xs font-display font-semibold lowercase">
                 <Share2 size={14} />
                 Export Performance Log
               </button>

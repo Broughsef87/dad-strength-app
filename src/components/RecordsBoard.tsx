@@ -81,7 +81,7 @@ export default function RecordsBoard() {
     <div className="tile relative rounded-xl p-6 pt-8">
       <div className="flex items-center gap-2 mb-1.5">
         <Trophy size={16} className="text-brand" />
-        <h3 className="font-display font-semibold text-sm uppercase tracking-[0.08em]">Records</h3>
+        <h3 className="font-display font-semibold text-sm lowercase">Records</h3>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed mb-4">
         Pulled straight from your logged sets — heaviest weight for 1, 3, and 5+ reps.
@@ -120,7 +120,7 @@ export default function RecordsBoard() {
           </div>
           {records.length > SHOW_COLLAPSED && (
             <button onClick={() => setShowAll(s => !s)}
-              className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground hover:text-foreground transition-colors tracking-[0.08em]">
+              className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold lowercase text-muted-foreground hover:text-foreground transition-colors">
               {showAll ? <><ChevronUp size={12} /> Top {SHOW_COLLAPSED} only</> : <><ChevronDown size={12} /> All {records.length} lifts</>}
             </button>
           )}

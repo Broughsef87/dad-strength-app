@@ -46,25 +46,25 @@ export default function ActiveSessionHeader({
             {isPaused ? <Coffee size={18} /> : <Activity size={18} className="animate-pulse" />}
           </div>
           <div className="flex flex-col">
-            <h2 className={`text-[10px] font-black uppercase leading-none mb-1 transition-colors ${
+            <h2 className={`text-[10px] font-black lowercase leading-none mb-1 transition-colors ${
               isPaused ? 'text-foreground/70' : 'text-brand/80'
-            } tracking-[0.08em]`}>
+            }`}>
               {isPaused ? 'Grace Mode Active' : 'Live Protocol'}
             </h2>
             <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted animate-pulse" />
-                <span className="text-[10px] font-bold text-foreground/80 uppercase tracking-[0.08em]">System Operational</span>
+                <span className="text-[10px] font-bold text-foreground/80 lowercase">System Operational</span>
             </div>
           </div>
         </div>
 
         <button
           onClick={onTogglePause}
-          className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black uppercase transition-all active:scale-90 ${
+          className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black lowercase transition-all active:scale-90 ${
             isPaused
               ? 'bg-[hsl(var(--state-hold))]/12 border-[hsl(var(--state-hold))]/55 text-[hsl(var(--state-hold))] hover:bg-[hsl(var(--state-hold))]/18'
               : 'bg-muted border-border text-muted-foreground hover:border-border/50 hover:text-foreground hover:bg-muted/5'
-          } tracking-[0.08em]`}
+          }`}
         >
           {isPaused ? (
             <>
@@ -84,9 +84,9 @@ export default function ActiveSessionHeader({
         <div className="relative">
           <h1 className="text-3xl font-black tracking-tight text-foreground mb-1.5 drop-shadow-sm">{workoutName}</h1>
           <div className="flex items-center gap-2">
-            <p className={`text-[11px] font-bold uppercase transition-colors ${
+            <p className={`text-[11px] font-bold lowercase transition-colors ${
                 isPaused ? 'text-foreground/60' : 'text-muted-foreground'
-            } tracking-[0.08em]`}>
+            }`}>
                 {isPaused ? 'Monitoring Parent Duty' : 'Executing Functional Cycle'}
             </p>
             {!isPaused && (
@@ -100,7 +100,7 @@ export default function ActiveSessionHeader({
 
         <div className="flex gap-8 items-center">
           <div className="relative group/stat text-right">
-            <p className="text-[9px] font-black text-muted-foreground uppercase mb-1.5 group-hover/stat:text-brand/70 transition-colors tracking-[0.08em]">Session Time</p>
+            <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-brand/70 transition-colors">Session Time</p>
             <div className="flex items-baseline justify-end gap-1.5">
                 <Timer size={14} className={`mb-0.5 ${isPaused ? 'text-foreground' : 'text-brand/50'}`} />
                 <p className={`text-2xl font-mono font-black tabular-nums transition-all ${
@@ -112,7 +112,7 @@ export default function ActiveSessionHeader({
           <div className="w-px h-10 bg-border" />
 
           <div className="relative group/stat text-right">
-            <p className="text-[9px] font-black text-muted-foreground uppercase mb-1.5 group-hover/stat:text-foreground/70 transition-colors tracking-[0.08em]">Load Moved</p>
+            <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-foreground/70 transition-colors">Load Moved</p>
             <div className="flex items-baseline justify-end gap-1">
                 <p className="text-3xl font-black text-foreground leading-none tracking-tight">
                     {volume.toLocaleString()}

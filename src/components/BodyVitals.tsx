@@ -133,7 +133,7 @@ export default function BodyVitals() {
           />
           <div className="flex items-center gap-1 text-muted-foreground">
             <Flame size={10} strokeWidth={1.5} />
-            <span className="text-[9px] uppercase font-medium font-display tracking-[0.08em]">Streak</span>
+            <span className="text-[9px] lowercase font-medium font-display">Streak</span>
           </div>
         </div>
 
@@ -151,7 +151,7 @@ export default function BodyVitals() {
           />
           <div className="flex items-center gap-1 text-muted-foreground">
             <Dumbbell size={10} strokeWidth={1.5} />
-            <span className="text-[9px] uppercase font-medium font-display tracking-[0.08em]">This Week</span>
+            <span className="text-[9px] lowercase font-medium font-display">This Week</span>
           </div>
         </div>
       </div>
@@ -159,28 +159,28 @@ export default function BodyVitals() {
       {crushing ? (
         <div className="p-3 bg-brand/10 border border-brand/30 rounded-lg flex items-center gap-2.5">
           <CheckCircle size={12} className="text-brand shrink-0" />
-          <p className="text-xs text-brand uppercase font-medium tracking-[0.08em]">
+          <p className="text-xs text-brand lowercase font-medium">
             Weekly target hit.
           </p>
         </div>
       ) : onTrack ? (
         <div className="p-3 bg-muted/8 border border-border/20 rounded-lg flex items-center gap-2.5">
           <Flame size={12} className="text-foreground shrink-0" />
-          <p className="text-xs text-foreground uppercase font-medium tracking-[0.08em]">
+          <p className="text-xs text-foreground lowercase font-medium">
             {weeklyTarget - sessionsThisWeek} session{weeklyTarget - sessionsThisWeek !== 1 ? 's' : ''} to go.
           </p>
         </div>
       ) : sessionsThisWeek === 0 ? (
         <div className="p-3 bg-brand/8 border border-brand/20 rounded-lg flex items-center gap-2.5">
           <Dumbbell size={12} className="text-brand shrink-0" />
-          <p className="text-xs text-brand uppercase font-medium tracking-[0.08em]">
+          <p className="text-xs text-brand lowercase font-medium">
             The iron waits. First session starts the streak.
           </p>
         </div>
       ) : (
         <div className="p-3 bg-destructive/8 border border-destructive/20 rounded-lg flex items-center gap-2.5">
           <AlertTriangle size={12} className="text-destructive shrink-0" />
-          <p className="text-xs text-destructive uppercase font-medium tracking-[0.08em]">
+          <p className="text-xs text-destructive lowercase font-medium">
             Behind on the week.
           </p>
         </div>

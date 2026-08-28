@@ -23,8 +23,7 @@ import WeekPulse from '../../components/WeekPulse'
 import { SectionLabel, HeroAccent } from '../../components/BarbellMark'
 import ForgeLoader from '../../components/ForgeLoader'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
-import { getProgram } from '../../lib/programs'
-import { Stamp } from '../../components/paper/Stamp'
+import { getProgram } from '../../lib/programs'
 
 interface ActiveProgramData {
   slug: string
@@ -278,7 +277,7 @@ export default function Dashboard() {
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -40, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-brand text-[hsl(var(--brand-ink))] text-center text-[10px] font-display uppercase py-3 px-4 tracking-[0.08em]"
+          className="fixed top-0 left-0 right-0 z-50 bg-brand text-[hsl(var(--brand-ink))] text-center text-[10px] font-display lowercase py-3 px-4"
         >
           Welcome to Dad Strong+ — All Features Unlocked
         </motion.div>
@@ -288,11 +287,11 @@ export default function Dashboard() {
       <header className="hidden md:flex items-center justify-between border-b border-border bg-surface-2 px-8 py-4 sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <Logo className="w-8 h-8" />
-          <span className="font-display text-lg uppercase text-foreground tracking-[0.08em]">
+          <span className="font-display text-lg lowercase text-foreground">
             Dad Strength
           </span>
         </div>
-        <nav className="flex gap-8 text-[10px] text-muted-foreground uppercase tracking-[0.08em]">
+        <nav className="flex gap-8 text-[10px] text-muted-foreground lowercase">
           <button className="text-brand font-semibold">HQ</button>
           <button onClick={() => router.push('/train')} className="hover:text-foreground transition-colors">Train</button>
           <button onClick={() => router.push('/history')} className="hover:text-foreground transition-colors">History</button>
@@ -307,7 +306,7 @@ export default function Dashboard() {
           <p className="eyebrow-mono">
             {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toLowerCase()}
           </p>
-          <h1 className="font-display text-[2rem] uppercase text-foreground mt-1 leading-none tracking-[0.08em]">
+          <h1 className="font-display text-[2rem] lowercase text-foreground mt-1 leading-none">
             {greeting()}{firstName && `, ${firstName}`}
           </h1>
         </div>
@@ -315,7 +314,7 @@ export default function Dashboard() {
           {!isPro && !subLoading && (
             <button
               onClick={() => setShowUpgrade(true)}
-              className="pill-volt flex items-center gap-1.5 text-[10px] uppercase px-3 py-1.5 tracking-[0.08em]"
+              className="pill-volt flex items-center gap-1.5 text-[10px] lowercase px-3 py-1.5"
             >
               <Zap size={10} /> upgrade
             </button>
@@ -381,11 +380,11 @@ export default function Dashboard() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <span className="eyebrow-mono">active program</span>
-                  <h2 className="font-display text-2xl text-foreground leading-tight mt-1 uppercase tracking-[0.08em]">
+                  <h2 className="font-display text-2xl text-foreground leading-tight mt-1 lowercase">
                     {activeProgram?.name?.toLowerCase() || 'choose a program'}
                   </h2>
                   {activeProgram && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-[0.08em]">
+                    <p className="text-[11px] text-muted-foreground mt-0.5 lowercase">
                       {getProgram(activeProgram.slug ?? '')?.tagline?.toLowerCase() ?? 'strength'}
                     </p>
                   )}
@@ -399,7 +398,6 @@ export default function Dashboard() {
                       <span className="stat-num is-written text-[15px]">{streak}</span>
                     </div>
                   )}
-                  {streak >= 3 && <Stamp size="sm">on streak</Stamp>}
                   {activeProgram && (
                     <div className="text-right">
                       <p className="stat-num text-[44px]">

@@ -135,7 +135,7 @@ export default function LearningTracker() {
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <Sprout size={16} className="text-brand" />
-          <h3 className="font-display font-semibold text-sm uppercase tracking-[0.08em]">Currently Learning</h3>
+          <h3 className="font-display font-semibold text-sm lowercase">Currently Learning</h3>
         </div>
         {totalMastered > 0 && (
           <span className="eyebrow-mono flex items-center gap-1">
@@ -163,10 +163,10 @@ export default function LearningTracker() {
             <div key={s.id} className="border border-border/70 bg-background/40 p-3.5 group">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-display text-sm uppercase text-foreground truncate tracking-[0.08em]">{s.skill}</p>
-                  <span className={`inline-block mt-1 text-[8px] font-mono uppercase px-1.5 py-0.5 border rounded-sm ${
+                  <p className="font-display text-sm lowercase text-foreground truncate">{s.skill}</p>
+                  <span className={`inline-block mt-1 text-[8px] font-mono lowercase px-1.5 py-0.5 border rounded-sm ${
  s.category === 'professional' ? 'border-brand/40 text-brand' : 'border-steel/40 text-steel'
- } tracking-[0.08em]`}>
+ }`}>
                     {s.category}
                   </span>
                 </div>
@@ -201,12 +201,12 @@ export default function LearningTracker() {
               {/* Actions */}
               <div className="flex gap-2 mt-2.5">
                 <button onClick={() => logPractice(s)}
-                  className="flex-1 py-2 bg-brand/10 border border-brand/40 text-brand text-[10px] font-semibold uppercase hover:bg-brand/20 transition-colors tracking-[0.08em]">
+                  className="flex-1 py-2 bg-brand/10 border border-brand/40 text-brand text-[10px] font-semibold lowercase hover:bg-brand/20 transition-colors">
                   + Log Practice
                 </button>
                 {s.milestone && (
                   <button onClick={() => reachMilestone(s)} title="Milestone reached — set the next one"
-                    className="py-2 px-3 border border-border/70 text-muted-foreground text-[10px] font-semibold uppercase hover:text-brand hover:border-brand/50 transition-colors flex items-center gap-1 tracking-[0.08em]">
+                    className="py-2 px-3 border border-border/70 text-muted-foreground text-[10px] font-semibold lowercase hover:text-brand hover:border-brand/50 transition-colors flex items-center gap-1">
                     <Check size={11} /> Reached
                   </button>
                 )}
@@ -224,9 +224,9 @@ export default function LearningTracker() {
                   {SKILL_CATS.map(c => (
                     <button key={c.key}
                       onClick={() => { setCatKey(c.key === catKey ? null : c.key); setCategory(c.kind); setName(''); setMilestone('') }}
-                      className={`text-[9px] font-mono uppercase px-2 py-1.5 border rounded-sm transition-colors ${
+                      className={`text-[9px] font-mono lowercase px-2 py-1.5 border rounded-sm transition-colors ${
  catKey === c.key ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
- } tracking-[0.08em]`}>
+ }`}>
                       {c.label}
                     </button>
                   ))}
@@ -283,9 +283,9 @@ export default function LearningTracker() {
               <div className="flex gap-2">
                 {(['hobby', 'professional'] as Category[]).map(c => (
                   <button key={c} onClick={() => setCategory(c)}
-                    className={`flex-1 text-[9px] font-mono uppercase py-1.5 border rounded-sm transition-colors ${
+                    className={`flex-1 text-[9px] font-mono lowercase py-1.5 border rounded-sm transition-colors ${
  category === c ? 'border-brand text-brand bg-brand/10' : 'border-border text-muted-foreground hover:text-foreground'
- } tracking-[0.08em]`}>
+ }`}>
                     {c}
                   </button>
                 ))}
@@ -293,11 +293,11 @@ export default function LearningTracker() {
 
               <div className="flex gap-2">
                 <button onClick={() => void addSkill()} disabled={!name.trim()}
-                  className="flex-1 py-2 bg-brand text-[hsl(var(--brand-ink))] text-[10px] font-semibold uppercase hover:bg-brand/90 disabled:opacity-40 transition-colors tracking-[0.08em]">
+                  className="flex-1 py-2 bg-brand text-[hsl(var(--brand-ink))] text-[10px] font-semibold lowercase hover:bg-brand/90 disabled:opacity-40 transition-colors">
                   Start Tracking
                 </button>
                 <button onClick={() => { setAdding(false); setName(''); setMilestone(''); setCatKey(null) }}
-                  className="py-2 px-3 border border-border/70 text-muted-foreground text-[10px] font-semibold uppercase hover:text-foreground transition-colors tracking-[0.08em]">
+                  className="py-2 px-3 border border-border/70 text-muted-foreground text-[10px] font-semibold lowercase hover:text-foreground transition-colors">
                   Cancel
                 </button>
               </div>

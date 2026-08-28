@@ -4,8 +4,7 @@ import { createClient } from '../../utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Dumbbell, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
-import BottomNav from '../../components/BottomNav'
-import { Stamp } from '../../components/paper/Stamp'
+import BottomNav from '../../components/BottomNav'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -201,14 +200,6 @@ export default function History() {
     (a, b) => b - a
   )
 
-  // the single most recent session — the one the stamp is a verdict on
-  const latestWorkoutId = sessions.reduce<SessionSummary | undefined>(
-    (best, cur) =>
-      !best || new Date(cur.logs[0]?.created_at ?? 0) > new Date(best.logs[0]?.created_at ?? 0)
-        ? cur : best,
-    undefined,
-  )?.workout.id
-
   const sessionsByWeek: Record<number, SessionSummary[]> = {}
   for (const s of sessions) {
     const w = s.workout.week_number
@@ -239,7 +230,7 @@ export default function History() {
       <div className="flex h-screen items-center justify-center bg-background text-foreground font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground font-mono text-xs uppercase tracking-[0.08em]">Loading history...</p>
+          <p className="text-muted-foreground font-mono text-xs lowercase">Loading history...</p>
         </div>
       </div>
     )
@@ -261,8 +252,8 @@ export default function History() {
           <ChevronLeft />
         </button>
         <div>
-          <h1 className="font-display text-3xl uppercase leading-none tracking-[0.08em]">Battle Log</h1>
-          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.18em] font-display mt-0.5">
+          <h1 className="font-display text-3xl lowercase leading-none">Battle Log</h1>
+          <p className="text-[10px] text-muted-foreground lowercase font-semibold tracking-[0.18em] font-display mt-0.5">
             {sessions.length} Sessions
           </p>
         </div>
@@ -278,7 +269,7 @@ export default function History() {
                 <Dumbbell size={36} className="text-brand" strokeWidth={1.5} />
               </div>
             </div>
-            <p className="text-[10px] font-medium uppercase text-brand mb-3 tracking-[0.08em]">Battle Log Empty</p>
+            <p className="text-[10px] font-medium lowercase text-brand mb-3">Battle Log Empty</p>
             <h2 className="font-display text-4xl tracking-[0.08em] text-foreground mb-3 leading-none">
               The Log Is Empty.
             </h2>
@@ -287,7 +278,7 @@ export default function History() {
             </p>
             <button
               onClick={() => router.push('/train')}
-              className="flex items-center gap-2 bg-brand text-[hsl(var(--brand-ink))] font-semibold text-xs uppercase px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97] tracking-[0.08em]"
+              className="flex items-center gap-2 bg-brand text-[hsl(var(--brand-ink))] font-semibold text-xs lowercase px-8 py-3.5 rounded-md hover:bg-brand/90 transition-colors active:scale-[0.97]"
             >
               <Dumbbell size={14} />
               Start First Session
@@ -379,9 +370,6 @@ export default function History() {
                             key={workout.id}
                             className="tile overflow-hidden"
                           >
-                            {workout.id === latestWorkoutId && (
-                              <Stamp size="sm" corner>done</Stamp>
-                            )}
                             {/* Session header */}
                             <button
                               onClick={() => toggleSession(workout.id)}
@@ -397,14 +385,14 @@ export default function History() {
                                     {workout.day_name ? ` — ${workout.day_name}` : ''}
                                   </p>
                                   <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 tracking-[0.08em]">
+                                    <span className="text-[10px] font-bold text-muted-foreground lowercase flex items-center gap-1">
                                       <Calendar size={9} /> {dateLabel}
                                     </span>
-                                    <span className="text-[10px] font-bold text-brand uppercase tracking-[0.08em]">
+                                    <span className="text-[10px] font-bold text-brand lowercase">
                                       {completedSets} sets
                                     </span>
                                     {totalVolume > 0 && (
-                                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.08em]">
+                                      <span className="text-[10px] font-bold text-muted-foreground lowercase">
                                         {totalVolume >= 1000
                                           ? `${(totalVolume / 1000).toFixed(1)}k`
                                           : Math.round(totalVolume)}{' '}
@@ -425,7 +413,7 @@ export default function History() {
                                 {Object.entries(byBlock).map(([blockName, sets]) => (
                                   <div key={blockName}>
                                     <div className="flex items-center justify-between mb-2">
-                                      <p className="font-black text-xs uppercase tracking-tight">{blockName}</p>
+                                      <p className="font-black text-xs lowercase tracking-tight">{blockName}</p>
                                       {sets.filter(isSetLike).length > 0 && (
                                         <span className="text-[10px] font-bold text-muted-foreground">
                                           {sets.filter(isSetLike).length} sets
@@ -438,12 +426,12 @@ export default function History() {
                                           key={s.id}
                                           className="flex items-center justify-between bg-muted rounded-xl px-3 py-2"
                                         >
-                                          <span className="text-[10px] font-black text-muted-foreground uppercase w-6 tracking-[0.08em]">
+                                          <span className="text-[10px] font-black text-muted-foreground lowercase w-6">
                                             {s.set_number != null ? `S${s.set_number}` : `S${i + 1}`}
                                           </span>
                                           <span className="text-sm font-bold">{setLine(s)}</span>
                                           {s.log_type === 'strength_set' && (
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.08em]">
+                                            <span className="text-[10px] font-bold text-muted-foreground lowercase">
                                               {s.rpe != null
                                                 ? `RPE ${s.rpe}`
                                                 : s.rir_actual != null

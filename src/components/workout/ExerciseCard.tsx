@@ -89,7 +89,7 @@ export default function ExerciseCard({
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="flex items-center gap-1.5 px-3 py-1 bg-brand/10 border border-brand/20 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                <span className="text-[10px] font-display font-semibold text-brand uppercase tracking-[0.08em]">
+                <span className="text-[10px] font-display font-semibold text-brand lowercase">
                   TARGET: {target}
                 </span>
               </div>
@@ -97,7 +97,7 @@ export default function ExerciseCard({
               {!isCompleted && (
                 <div className="flex items-center gap-1 px-2.5 py-1 bg-surface-3 rounded-full border border-border">
                   <History size={10} className="text-muted-foreground" />
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.08em]">
+                  <span className="text-[9px] font-bold text-muted-foreground lowercase">
                     {lastPerformed}
                   </span>
                 </div>
@@ -111,7 +111,7 @@ export default function ExerciseCard({
               <div className="flex flex-col items-end">
                 <div className="flex items-center gap-1.5 text-brand/80 mb-1.5">
                   <Zap size={14} className="animate-pulse" />
-                  <span className="text-[10px] font-display font-semibold uppercase tracking-[0.08em]">Intensity</span>
+                  <span className="text-[10px] font-display font-semibold lowercase">Intensity</span>
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl font-display font-semibold text-foreground">{intensityScore}</span>
@@ -143,7 +143,7 @@ export default function ExerciseCard({
             <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent" />
             <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity duration-500">
               <Activity size={10} className="text-brand" />
-              <span className="text-[8px] font-display font-semibold text-muted-foreground uppercase tracking-[0.08em]">Load Matrix</span>
+              <span className="text-[8px] font-display font-semibold text-muted-foreground lowercase">Load Matrix</span>
             </div>
           </div>
         )}
@@ -159,7 +159,7 @@ export default function ExerciseCard({
             <div className="absolute inset-0 bg-[hsl(var(--sheen))]/10 -translate-x-full group-hover/complete:translate-x-full transition-transform duration-1000 ease-in-out" />
             <div className="flex items-center justify-center gap-3 relative z-10">
               <Sparkles size={12} className="text-[hsl(var(--foreground))]/80" />
-              <p className="text-[10px] font-display font-semibold text-[hsl(var(--foreground))] uppercase tracking-[0.08em]">Protocol Executed Successfully</p>
+              <p className="text-[10px] font-display font-semibold text-[hsl(var(--foreground))] lowercase">Protocol Executed Successfully</p>
               <Sparkles size={12} className="text-[hsl(var(--foreground))]/80 rotate-12" />
             </div>
           </div>
@@ -202,8 +202,8 @@ export default function ExerciseCard({
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                 <div>
-                  <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-[0.08em]">Exercise</p>
-                  <p className="font-display uppercase text-sm text-foreground tracking-[0.08em]">{name}</p>
+                  <p className="text-[10px] lowercase text-muted-foreground font-semibold">Exercise</p>
+                  <p className="font-display lowercase text-sm text-foreground">{name}</p>
                 </div>
                 <button
                   onClick={() => setMenuOpen(false)}

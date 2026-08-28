@@ -61,7 +61,7 @@ export default function RecommendedReading() {
 
   return (
     <div className="mt-4 space-y-3">
-      <p className="text-xs uppercase text-muted-foreground font-black flex items-center gap-1.5 tracking-[0.08em]">
+      <p className="text-xs lowercase text-muted-foreground font-black flex items-center gap-1.5">
         <BookOpen className="w-3.5 h-3.5" /> Recommended Reading
       </p>
 

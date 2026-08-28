@@ -227,22 +227,22 @@ export default function Profile() {
           <div className="grid grid-cols-2 gap-4">
             <div className="tile p-4">
               <Flame className="text-brand mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase font-medium font-display tracking-[0.08em]">Streak</p>
+              <p className="text-xs text-muted-foreground lowercase font-medium font-display">Streak</p>
               <p className="text-2xl mt-1"><span className="ink-written-col font-bold">{stats.streak}</span> <span className="eyebrow-mono">days</span></p>
             </div>
             <div className="tile p-4">
               <Dumbbell className="text-muted-foreground mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase font-medium font-display tracking-[0.08em]">Sessions</p>
+              <p className="text-xs text-muted-foreground lowercase font-medium font-display">Sessions</p>
               <p className="text-2xl mt-1"><span className="ink-written-col font-bold">{stats.totalSessions}</span></p>
             </div>
             <div className="tile p-4">
               <Activity className="text-muted-foreground mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase font-medium font-display tracking-[0.08em]">Total Volume</p>
+              <p className="text-xs text-muted-foreground lowercase font-medium font-display">Total Volume</p>
               <p className="text-xl mt-1"><span className="ink-written-col font-bold">{stats.totalVolume.toLocaleString()}</span> <span className="eyebrow-mono">lbs</span></p>
             </div>
             <div className="tile p-4">
               <Trophy className="text-muted-foreground mb-2" size={16} />
-              <p className="text-xs text-muted-foreground uppercase font-medium font-display tracking-[0.08em]">Top Lift</p>
+              <p className="text-xs text-muted-foreground lowercase font-medium font-display">Top Lift</p>
               <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>
             </div>
           </div>
@@ -252,10 +252,10 @@ export default function Profile() {
         {programName && (
           <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-brand uppercase font-medium font-display tracking-[0.08em]">Active Protocol</p>
+              <p className="text-xs text-brand lowercase font-medium font-display">Active Protocol</p>
               <p className="font-medium text-sm mt-0.5">{programName}</p>
             </div>
-            <button onClick={() => router.push('/build')} className="text-xs font-medium text-brand uppercase hover:opacity-70 transition-opacity tracking-[0.08em]">
+            <button onClick={() => router.push('/build')} className="text-xs font-medium text-brand lowercase hover:opacity-70 transition-opacity">
               Change →
             </button>
           </div>
@@ -263,7 +263,7 @@ export default function Profile() {
 
         {/* Settings */}
         <div className="space-y-2">
-          <h3 className="text-xs text-muted-foreground uppercase font-medium px-1 font-display tracking-[0.08em]">Settings</h3>
+          <h3 className="text-xs text-muted-foreground lowercase font-medium px-1 font-display">Settings</h3>
 
           <button
             onClick={() => router.push('/profile/settings')}
@@ -295,7 +295,7 @@ export default function Profile() {
           <LogOut size={16} /> Sign Out
         </button>
 
-        <p className="text-center text-[10px] tracking-[0.15em] text-muted-foreground/50 uppercase mt-6">
+        <p className="text-center text-[10px] tracking-[0.15em] text-muted-foreground/50 lowercase mt-6">
           Dad Strength · Powered by Forge OS
         </p>
 

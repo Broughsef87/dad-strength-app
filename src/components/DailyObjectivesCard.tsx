@@ -205,7 +205,7 @@ export default function DailyObjectivesCard(
           ))}
 
           {doneCount === filledObjectives.length && filledObjectives.length > 0 && (
-            <p className="text-[10px] text-brand uppercase font-black pt-1 text-center tracking-[0.08em]">
+            <p className="text-[10px] text-brand lowercase font-black pt-1 text-center">
               Locked in. ⚡
             </p>
           )}
