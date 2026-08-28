@@ -29,6 +29,7 @@ const SUITES = [
   ['training analytics', 'analytics-check.mjs'],
   ['onboarding reachability', 'onboarding-check.mjs'],
   ['the 4-set ceiling', 'set-ceiling.mjs'],
+  ['orphaned components', 'orphans.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

@@ -1,0 +1,5 @@
+[
+  "components/PremiumGate.tsx",
+  "components/LearningTracker.tsx",
+  "components/ui/BottomSheet.tsx"
+]
