@@ -71,7 +71,9 @@
   --font-display: var(--font-space-grotesk, "Segoe UI Variable Display", system-ui, sans-serif);
   /* legacy alias some components still reference */
   --font-telemetry: var(--font-geist-mono, var(--font-space-mono, ui-monospace, monospace));
-  --font-serif-accent: var(--font-playfair, Georgia, serif);
+  /* Playfair is no longer loaded (its only consumer, HeroAccent, is never
+     rendered), so this resolves to the system serif rather than a dangling var. */
+  --font-serif-accent: Georgia, "Iowan Old Style", "Times New Roman", serif;
 }
 
 @layer base {

@@ -11,7 +11,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'auto',
+  theme: 'light',
   setTheme: () => {},
   resolvedTheme: 'dark',
 })
@@ -30,9 +30,13 @@ function applyToDOM(resolved: 'dark' | 'light') {
 }
 
 function getSavedTheme(): Theme {
-  if (typeof window === 'undefined') return 'auto'
+  if (typeof window === 'undefined') return 'light'
   const saved = localStorage.getItem('dad-strength-theme') as Theme | null
-  return saved && ['dark', 'light', 'auto'].includes(saved) ? saved : 'auto'
+  // Chalk is the ground this system is named for (:root is #FAF9F6; .dark is
+  // the graphite variant). Defaulting to 'auto' handed the decision to the
+  // OS, so a dark-preferring machine never showed the intended design at all.
+  // 'auto' remains a user choice in settings — it is no longer the fallback.
+  return saved && ['dark', 'light', 'auto'].includes(saved) ? saved : 'light'
 }
 
 function getSystemDark(): boolean {

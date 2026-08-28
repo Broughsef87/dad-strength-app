@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Space_Grotesk, Geist_Mono, Space_Mono, Playfair_Display } from 'next/font/google'
+import { Space_Grotesk, Geist_Mono, Space_Mono } from 'next/font/google'
 import './globals.css'
 import PageTransition from '../components/PageTransition'
 import LegalGate from '../components/LegalGate'
@@ -30,13 +30,6 @@ const spaceMono = Space_Mono({
   weight: ['400', '700'],
 })
 
-// Editorial serif italic — marketing-voice accents only (<HeroAccent>).
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair',
-  weight: ['400', '700'],
-  style: ['italic'],
-})
 
 export const metadata: Metadata = {
   title: 'Dad Strength',
@@ -94,7 +87,7 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: the FOUC script below adds .dark to <html>
     // before React hydrates — without this, every load logs a class mismatch.
-    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${geistMono.variable} ${spaceMono.variable} ${playfair.variable} overflow-x-hidden`}>
+    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${geistMono.variable} ${spaceMono.variable} overflow-x-hidden`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo-suite/ds_app_icon.png" type="image/png" sizes="1024x1024" />
@@ -104,7 +97,7 @@ export default function RootLayout({
           (function(){
             try{
               var t=localStorage.getItem('dad-strength-theme');
-              var dark=t==='dark'||((!t||t==='auto')&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+              var dark=t==='dark'||(t==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);
               if(dark)document.documentElement.classList.add('dark');
             }catch(e){}
           })();
