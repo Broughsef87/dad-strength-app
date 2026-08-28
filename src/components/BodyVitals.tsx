@@ -157,9 +157,9 @@ export default function BodyVitals() {
       </div>
 
       {crushing ? (
-        <div className="p-3 bg-brand/10 border border-brand/30 rounded-lg flex items-center gap-2.5">
-          <CheckCircle size={12} className="text-brand shrink-0" />
-          <p className="text-xs text-brand lowercase font-medium">
+        <div className="p-3 bg-muted/10 border border-border/30 rounded-lg flex items-center gap-2.5">
+          <CheckCircle size={12} className="text-foreground shrink-0" />
+          <p className="text-xs text-foreground lowercase font-medium">
             Weekly target hit.
           </p>
         </div>

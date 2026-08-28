@@ -62,7 +62,7 @@ export default function ActiveSessionHeader({
           onClick={onTogglePause}
           className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black lowercase transition-all active:scale-90 ${
             isPaused
-              ? 'bg-[hsl(var(--state-hold))]/12 border-[hsl(var(--state-hold))]/55 text-[hsl(var(--state-hold))] hover:bg-[hsl(var(--state-hold))]/18'
+              ? 'bg-muted border-border text-[hsl(var(--foreground))] hover:bg-muted'
               : 'bg-muted border-border text-muted-foreground hover:border-border/50 hover:text-foreground hover:bg-muted/5'
           }`}
         >

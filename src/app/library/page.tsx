@@ -24,36 +24,21 @@ const CATEGORY_FILTER: Record<string, { field: 'category' | 'subcategory'; value
   'Full Body':{ field: 'subcategory', value: 'Full Body' },
 }
 
-// Grouped by movement region rather than one hue per muscle. Master had nine
-// arbitrary colours (rose, sky, amber, purple, violet, emerald, teal, green,
-// lime); the reskin flattened all of them to two, which is why every chip
-// looked identical. Four families is both more legible AND more meaningful —
-// you scan for "push" or "legs", not for "violet".
-//
-// Ballpoint blue appears here even though it is the athlete-written ink. That
-// rule protects LOGGING surfaces, where a written value must not be mistaken
-// for a printed one; the library renders no logged data at all, so there is
-// nothing here for it to be confused with.
-const PUSH  = 'text-brand bg-brand/10 border-brand/25'
-const PULL  = 'text-[hsl(var(--ink-written))] bg-[hsl(var(--ink-written))]/10 border-[hsl(var(--ink-written))]/25'
-const LEGS  = 'text-[hsl(var(--state-pr))] bg-[hsl(var(--state-pr))]/8 border-[hsl(var(--state-pr))]/30'
-const OTHER = 'text-foreground bg-muted/20 border-border/40'
-
 const CATEGORY_COLORS: Record<string, string> = {
-  Chest:      PUSH,
-  Shoulders:  PUSH,
-  Triceps:    PUSH,
-  Back:       PULL,
-  Biceps:     PULL,
-  Arms:       PULL,
-  Quads:      LEGS,
-  Hamstrings: LEGS,
-  Glutes:     LEGS,
-  Calves:     LEGS,
-  Legs:       LEGS,
-  Core:       OTHER,
-  'Full Body':OTHER,
-  Cardio:     OTHER,
+  Chest:      'text-foreground bg-muted/10 border-border/20',
+  Back:       'text-muted-foreground bg-muted/10 border-border/20',
+  Shoulders:  'text-foreground bg-muted/10 border-border/20',
+  Biceps:     'text-muted-foreground bg-muted/10 border-border/20',
+  Triceps:    'text-muted-foreground bg-muted/10 border-border/20',
+  Quads:      'text-foreground bg-muted/10 border-border/20',
+  Hamstrings: 'text-foreground bg-muted/10 border-border/20',
+  Glutes:     'text-foreground bg-muted/10 border-border/20',
+  Calves:     'text-foreground bg-muted/10 border-border/20',
+  Core:       'text-foreground bg-muted/10 border-border/20',
+  'Full Body':'text-brand bg-brand/10 border-brand/20',
+  Arms:       'text-muted-foreground bg-muted/10 border-border/20',
+  Legs:       'text-foreground bg-muted/10 border-border/20',
+  Cardio:     'text-brand bg-brand/10 border-brand/20',
 }
 
 const MECHANIC_BADGE: Record<string, string> = {

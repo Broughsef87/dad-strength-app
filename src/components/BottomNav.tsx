@@ -37,7 +37,7 @@ export default function BottomNav() {
   // faces down.
   return (
     <nav
-      className="fixed bottom-0 left-1/2 z-[100] flex w-full max-w-sm -translate-x-1/2 items-end justify-center gap-1 px-3 bg-background"
+      className="fixed bottom-0 left-1/2 z-[100] flex w-full max-w-sm -translate-x-1/2 items-end justify-center gap-1 px-3"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Sections"
     >
