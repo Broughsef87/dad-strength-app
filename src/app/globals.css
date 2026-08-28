@@ -104,11 +104,7 @@
   --font-mono: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
   --font-display: var(--font-space-grotesk, "Oswald", "Haettenschweiler", system-ui, sans-serif);
   --font-telemetry: var(--font-geist-mono, "Courier New", ui-monospace, monospace);
-  /* The one decorative serif, used by HeroAccent alone. It pointed at Playfair,
-     a whole webfont download for a single flourish on one screen. The document
-     voice (.prose-paper) already sets Georgia, so the accent borrows that and
-     the sixth face leaves the bundle. */
-  --font-serif-accent: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-serif-accent: var(--font-playfair, Georgia, serif);
 
   /* the two inks that are not the default */
   --font-hand: var(--font-hand-face, "Bradley Hand", "Segoe Script", cursive);
@@ -557,57 +553,6 @@
   text-transform: uppercase;
   font-weight: 500;
   color: hsl(var(--muted-foreground));
-}
-/* The eyebrow's counterpart, and the fix for a real miswiring: .eyebrow-mono
-   is the LABEL face (Oswald) and that is correct for the word "SETS" — but the
-   session runner was also using it for 4x6, @ 70%, TGT RPE 7 and the plate
-   math, which are not labels. They are the engine's prescription, so they
-   belong on the printed face by the system's own rule.
-
-   Same size and tracking as the eyebrow so a mixed line still sits on one
-   baseline; what changes is the FACE and the ink. A line can now carry both:
-   "LB" stays chrome, "70%" becomes print. */
-/* Layered, because the first cut of .eyebrow-spec was not and it immediately
-   proved the point: it sets `color`, so text-[hsl(var(--ink-stamped))] written
-   on the same element lost to it and TGT RPE rendered cream instead of red.
-   Same defect .tile had, created fresh, caught by measuring the computed style
-   rather than trusting the class name. */
-@layer components {
-  .eyebrow-spec {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.06em;          /* mono is already wide; 0.14em over-opens it */
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: hsl(var(--foreground));
-  }
-
-  /* The machinist-card skeleton: a heavy rule under the exercise name, then
-     dotted leaders between set rows. Printed forms separate a header from its
-     body with weight, not with space. */
-  .rule-header {
-    border-bottom: 2.5px solid hsl(var(--foreground));
-  }
-  .rule-leader {
-    border-bottom: 1px dotted hsl(var(--border));
-  }
-
-  /* The engine speaking in words rather than numbers. Courier italic, so it
-     reads as the same voice as the prescription; the prefix is the one red
-     mark the card is allowed. */
-  .engine-note {
-    font-family: var(--font-mono);
-    font-style: italic;
-    color: hsl(var(--muted-foreground));
-  }
-  .engine-note-prefix {
-    font-family: var(--font-display);
-    font-style: normal;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: hsl(var(--ink-stamped));
-  }
 }
 
 /* hero numerals — tabular, tight, huge (rule 02) */
