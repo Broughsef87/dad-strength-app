@@ -57,6 +57,21 @@
   --color-brand-text: hsl(var(--brand-text));
   --color-brand-muted: hsl(var(--brand-muted));
 
+  /* status, as fill/ink pairs — a call site names the role it is in */
+  --color-status-good-fill: hsl(var(--status-good-fill));
+  --color-status-good-ink: hsl(var(--status-good-ink));
+  --color-status-danger-fill: hsl(var(--status-danger-fill));
+  --color-status-danger-ink: hsl(var(--status-danger-ink));
+  --color-status-scale: hsl(var(--status-scale));
+
+  /* category — identity, never status */
+  --color-category-push: hsl(var(--category-push));
+  --color-category-pull: hsl(var(--category-pull));
+  --color-category-legs: hsl(var(--category-legs));
+  --color-category-core: hsl(var(--category-core));
+  --color-category-condition: hsl(var(--category-condition));
+  --color-category-general: hsl(var(--category-general));
+
   /* concrete midtone (replaces "steel") */
   --color-steel: hsl(var(--muted-foreground));
 
@@ -117,6 +132,45 @@
     --brand-ink: 82 37% 6%;            /* #131608 text on volt */
     --brand-text: 77 79% 27%;          /* #5C7A0E volt as INK on chalk (5.6:1) */
     --brand-muted: 78 100% 62% / 0.16;
+    /* ── status: semantic, and split by ROLE ────────────────────────────────
+       Every one of these is a fill/ink PAIR, because the system already learned
+       this the hard way with --brand: a fill colour used as text is the bug
+       class that cost four review rounds on the reskin. A call site has to say
+       which role it is in.
+
+         good    the accent IS affirmative on volt, so it maps to brand.
+                 (On paper it could not, which is why the paper-era ruling said
+                 'good is marked, never coloured' — that reasoning does not
+                 transfer to a palette that owns a green.)
+         danger  --destructive, which measures 6.28:1 on chalk as ink and needs
+                 no separate value here. It DOES on graphite — see .dark.
+         scale   one hue at opacity steps. Magnitude is not a hue change.
+
+       There is deliberately NO warning token. The 40 amber utilities resolved
+       to three genuine states (paused, missing-maxes, behind-on-week) plus one
+       affordance, and all four render as low-emphasis danger — so a token would
+       name a distinction the UI does not make. */
+    --status-good-fill: var(--brand);
+    --status-good-ink: var(--brand-text);
+    --status-danger-fill: var(--destructive);
+    --status-danger-ink: 0 62% 42%;    /* = --destructive; 6.28:1 on chalk */
+    --status-scale: var(--brand);      /* fill role only, use opacity steps */
+
+    /* ── category: IDENTITY, not status ─────────────────────────────────────
+       A muscle group is never 'good'. Status says how a thing is doing;
+       category says which thing it is. Collapsing the two is what produced a
+       16-entry rainbow living in raw Tailwind classes.
+
+       Six, closed, desaturated on purpose so they read as labels rather than
+       as states, and so they never compete with volt for attention. The 16
+       library categories map onto these; the chip still carries its own word,
+       so colour here is grouping, not the only signal. */
+    --category-push: 12 32% 46%;       /* chest · shoulders · triceps */
+    --category-pull: 205 34% 42%;      /* back · biceps */
+    --category-legs: 262 24% 48%;      /* quads · hams · glutes · calves */
+    --category-core: 168 30% 34%;      /* core · isometric */
+    --category-condition: 32 40% 40%;  /* cardio */
+    --category-general: 55 6% 42%;     /* compound · isolation · arms */
 
     --shadow-tile: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px rgba(20, 20, 18, 0.06);
     --shadow-tile-lg: 0 2px 4px rgba(20, 20, 18, 0.05), 0 18px 48px rgba(20, 20, 18, 0.10);
@@ -162,6 +216,24 @@
     --brand-ink: 82 37% 6%;
     --brand-text: 76 100% 65%;      /* on graphite, volt itself reads fine */
     --brand-muted: 76 100% 65% / 0.12;
+
+    /* status, graphite. Only danger-ink needs its own value: --destructive at
+       46% lightness measures 3.02:1 on the card here, so it fails as text on a
+       dark ground even though it passes on chalk. Lifted to the first lightness
+       that clears 4.5 on the WORSE of the two grounds (card, 4.96:1). */
+    --status-good-fill: var(--brand);
+    --status-good-ink: var(--brand-text);
+    --status-danger-fill: var(--destructive);
+    --status-danger-ink: 0 62% 62%;    /* #DA6262 — 4.96:1 on the card */
+    --status-scale: var(--brand);
+
+    /* category, lifted for the dark ground; same six, same meanings */
+    --category-push: 12 46% 64%;
+    --category-pull: 205 46% 62%;
+    --category-legs: 262 38% 68%;
+    --category-core: 168 40% 54%;
+    --category-condition: 32 52% 58%;
+    --category-general: 55 8% 62%;
 
     --shadow-tile: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px rgba(0, 0, 0, 0.45);
     --shadow-tile-lg: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 22px 56px rgba(0, 0, 0, 0.55);
