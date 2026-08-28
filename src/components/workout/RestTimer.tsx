@@ -22,28 +22,28 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
   return (
     <div className={`relative overflow-hidden p-5 rounded-3xl border-2 flex items-center justify-between transition-all duration-500 ${
       isLowTime
-        ? 'bg-destructive/10 border-destructive/50'
+        ? 'bg-red-500/10 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
         : 'bg-brand/10 border-brand/30 shadow-[0_0_20px_hsl(16_80%_54%/0.05)]'
     }`}>
       {/* Background Progress Bar */}
       <div
         className={`absolute bottom-0 left-0 h-1 transition-all duration-1000 ease-linear ${
-          isLowTime ? 'bg-destructive' : 'bg-brand'
+          isLowTime ? 'bg-red-500' : 'bg-brand'
         }`}
         style={{ width: `${progress}%` }}
       />
 
       <div className="flex items-center gap-4 relative z-10">
-        <div className={`p-3 rounded-2xl ${isLowTime ? 'bg-destructive/20 animate-pulse' : 'bg-brand/10'}`}>
-          <Timer className={`w-6 h-6 ${isLowTime ? 'text-destructive' : 'text-brand'}`} />
+        <div className={`p-3 rounded-2xl ${isLowTime ? 'bg-red-500/20 animate-pulse' : 'bg-brand/10'}`}>
+          <Timer className={`w-6 h-6 ${isLowTime ? 'text-red-500' : 'text-brand'}`} />
         </div>
 
         <div>
           <p className="text-[10px] font-black text-muted-foreground lowercase mb-1 flex items-center gap-2">
             Protocol Rest
-            {isLowTime && <span className="inline-block w-1.5 h-1.5 rounded-full bg-destructive" />}
+            {isLowTime && <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />}
           </p>
-          <p className={`text-3xl font-mono font-black tabular-nums leading-none ${isLowTime ? 'text-destructive' : 'text-foreground'}`}>
+          <p className={`text-3xl font-mono font-black tabular-nums leading-none ${isLowTime ? 'text-red-500' : 'text-foreground'}`}>
             {formatTime(timeLeft)}
           </p>
         </div>
@@ -51,11 +51,11 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
 
       <button
         onClick={onSkip}
-        className="group relative z-10 p-2 rounded-xl bg-card/50 border border-border hover:border-border transition-all"
+        className="group relative z-10 p-2 rounded-xl bg-card/50 border border-border hover:border-gray-700 transition-all"
       >
         <div className="flex items-center gap-2 px-1">
           <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground lowercase transition-colors">Skip</span>
-          <X className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
+          <X className="w-4 h-4 text-gray-600 group-hover:text-red-500 transition-colors" />
         </div>
       </button>
     </div>

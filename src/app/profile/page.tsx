@@ -141,7 +141,7 @@ export default function Profile() {
 
         {/* User Card */}
         <div className="tile p-5 flex items-center gap-5">
-          <div className="h-14 w-14 rounded-full bg-foreground flex items-center justify-center font-medium text-lg text-[hsl(var(--brand-ink))] shrink-0">
+          <div className="h-14 w-14 rounded-full bg-foreground flex items-center justify-center font-medium text-lg text-background shrink-0">
             {user?.email?.charAt(0).toUpperCase() || 'D'}
           </div>
           <div className="flex-1 min-w-0">
@@ -155,7 +155,7 @@ export default function Profile() {
                   autoFocus
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
                 />
-                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-foreground hover:text-foreground transition-colors disabled:opacity-50">
+                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-green-500 hover:text-green-400 transition-colors disabled:opacity-50">
                   <Check size={16} />
                 </button>
                 <button onClick={() => setEditingName(false)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
@@ -228,20 +228,20 @@ export default function Profile() {
             <div className="tile p-4">
               <Flame className="text-brand mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Streak</p>
-              <p className="text-2xl mt-1"><span className="ink-written-col font-bold">{stats.streak}</span> <span className="eyebrow-mono">days</span></p>
+              <p className="font-light text-2xl mt-1 font-display">{stats.streak} <span className="text-xs text-muted-foreground">days</span></p>
             </div>
             <div className="tile p-4">
               <Dumbbell className="text-muted-foreground mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Sessions</p>
-              <p className="text-2xl mt-1"><span className="ink-written-col font-bold">{stats.totalSessions}</span></p>
+              <p className="font-light text-2xl mt-1 font-display">{stats.totalSessions}</p>
             </div>
             <div className="tile p-4">
-              <Activity className="text-muted-foreground mb-2" size={16} />
+              <Activity className="text-green-600 mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Total Volume</p>
-              <p className="text-xl mt-1"><span className="ink-written-col font-bold">{stats.totalVolume.toLocaleString()}</span> <span className="eyebrow-mono">lbs</span></p>
+              <p className="font-light text-xl mt-1 font-display">{stats.totalVolume.toLocaleString()} <span className="text-xs text-muted-foreground">lbs</span></p>
             </div>
             <div className="tile p-4">
-              <Trophy className="text-muted-foreground mb-2" size={16} />
+              <Trophy className="text-yellow-600 mb-2" size={16} />
               <p className="text-xs text-muted-foreground lowercase font-medium font-display">Top Lift</p>
               <p className="font-medium text-xs mt-1 leading-snug">{stats.topLift}</p>
             </div>
@@ -290,7 +290,7 @@ export default function Profile() {
 
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 p-4 mt-4 rounded-xl border border-destructive/20 text-destructive hover:bg-destructive/5 transition-colors text-sm font-medium"
+          className="w-full flex items-center justify-center gap-2 p-4 mt-4 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/5 transition-colors text-sm font-medium"
         >
           <LogOut size={16} /> Sign Out
         </button>

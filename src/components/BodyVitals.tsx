@@ -157,16 +157,16 @@ export default function BodyVitals() {
       </div>
 
       {crushing ? (
-        <div className="p-3 bg-muted/10 border border-border/30 rounded-lg flex items-center gap-2.5">
-          <CheckCircle size={12} className="text-foreground shrink-0" />
-          <p className="text-xs text-foreground lowercase font-medium">
+        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-2.5">
+          <CheckCircle size={12} className="text-green-600 shrink-0" />
+          <p className="text-xs text-green-600 lowercase font-medium">
             Weekly target hit.
           </p>
         </div>
       ) : onTrack ? (
-        <div className="p-3 bg-muted/8 border border-border/20 rounded-lg flex items-center gap-2.5">
-          <Flame size={12} className="text-foreground shrink-0" />
-          <p className="text-xs text-foreground lowercase font-medium">
+        <div className="p-3 bg-yellow-500/8 border border-yellow-500/20 rounded-lg flex items-center gap-2.5">
+          <Flame size={12} className="text-yellow-600 shrink-0" />
+          <p className="text-xs text-yellow-600 lowercase font-medium">
             {weeklyTarget - sessionsThisWeek} session{weeklyTarget - sessionsThisWeek !== 1 ? 's' : ''} to go.
           </p>
         </div>
@@ -178,9 +178,9 @@ export default function BodyVitals() {
           </p>
         </div>
       ) : (
-        <div className="p-3 bg-destructive/8 border border-destructive/20 rounded-lg flex items-center gap-2.5">
-          <AlertTriangle size={12} className="text-destructive shrink-0" />
-          <p className="text-xs text-destructive lowercase font-medium">
+        <div className="p-3 bg-red-500/8 border border-red-500/20 rounded-lg flex items-center gap-2.5">
+          <AlertTriangle size={12} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-500 lowercase font-medium">
             Behind on the week.
           </p>
         </div>

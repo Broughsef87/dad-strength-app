@@ -86,10 +86,10 @@ export default function StreakShield() {
 
       {/* State: active today */}
       {activeToday && (
-        <div className="flex items-center gap-3 bg-muted/10 border border-border/20 rounded-xl px-4 py-3">
-          <ShieldCheck size={22} className="text-foreground shrink-0" />
+        <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3">
+          <ShieldCheck size={22} className="text-green-500 shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-foreground">Streak Protected</p>
+            <p className="text-sm font-semibold text-green-500">Streak Protected</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{formatDate(today)}</p>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function StreakShield() {
           </div>
           <button
             onClick={activateShield}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-[hsl(var(--brand-ink))] text-sm font-semibold tracking-wide hover:opacity-90 active:scale-[0.97] transition-all"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold tracking-wide hover:opacity-90 active:scale-[0.97] transition-all"
           >
             <Shield size={15} />
             Activate Shield

@@ -7,11 +7,11 @@ import { createClient } from '../../../utils/supabase/client'
 
 const ICON_OPTIONS = [
   { id: 'trending', icon: TrendingUp, color: 'text-brand' },
-  { id: 'dollar', icon: DollarSign, color: 'text-foreground' },
-  { id: 'youtube', icon: Youtube, color: 'text-destructive' },
+  { id: 'dollar', icon: DollarSign, color: 'text-green-400' },
+  { id: 'youtube', icon: Youtube, color: 'text-red-500' },
   { id: 'saas', icon: MonitorSmartphone, color: 'text-brand' },
-  { id: 'target', icon: Target, color: 'text-foreground' },
-  { id: 'activity', icon: Activity, color: 'text-muted-foreground' }
+  { id: 'target', icon: Target, color: 'text-orange-400' },
+  { id: 'activity', icon: Activity, color: 'text-blue-400' }
 ]
 
 export default function MissionEditor() {
@@ -98,7 +98,7 @@ export default function MissionEditor() {
         </div>
         <button 
           onClick={handleSave}
-          className="bg-brand hover:bg-brand/90 text-[hsl(var(--brand-ink))] px-4 py-1.5 rounded-lg font-display font-semibold text-xs lowercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
+          className="bg-brand hover:bg-brand/90 text-foreground px-4 py-1.5 rounded-lg font-display font-semibold text-xs lowercase transition-all shadow-lg shadow-brand/20 flex items-center gap-2"
         >
           <Save size={14} /> Save
         </button>
@@ -111,7 +111,7 @@ export default function MissionEditor() {
           <label className="text-xs lowercase font-display font-semibold tracking-[0.2em] text-muted-foreground pl-1">Project Identity</label>
           <div className="space-y-4 bg-card/40 p-6 rounded-3xl border border-border">
              <div>
-                <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-muted-foreground block mb-2">Pillar Name</label>
+                <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Pillar Name</label>
                 <input 
                   type="text" 
                   value={mission.title}
@@ -121,7 +121,7 @@ export default function MissionEditor() {
                 />
              </div>
              <div>
-                <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-muted-foreground block mb-2">North Star Name</label>
+                <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-gray-700 block mb-2">North Star Name</label>
                 <input 
                   type="text" 
                   value={mission.primaryMetric}
@@ -139,7 +139,7 @@ export default function MissionEditor() {
           <div className="bg-card/40 p-6 rounded-3xl border border-border space-y-6">
              <div className="grid grid-cols-2 gap-4">
                 <div>
-                   <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-muted-foreground block mb-2">Current Value</label>
+                   <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Current Value</label>
                    <input 
                      type="number" 
                      value={mission.current}
@@ -148,7 +148,7 @@ export default function MissionEditor() {
                    />
                 </div>
                 <div>
-                   <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-muted-foreground block mb-2">Target Value</label>
+                   <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Target Value</label>
                    <input 
                      type="number" 
                      value={mission.target}
@@ -158,7 +158,7 @@ export default function MissionEditor() {
                 </div>
              </div>
              <div>
-                <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-muted-foreground block mb-2">Unit Type</label>
+                <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Unit Type</label>
                 <div className="flex gap-2">
                    {['$', 'LBS', '%', 'HRS', 'QTY'].map(u => (
                      <button
@@ -166,8 +166,8 @@ export default function MissionEditor() {
                        onClick={() => setMission({...mission, unit: u})}
                        className={`flex-1 py-2 rounded-lg text-[10px] font-display font-semibold lowercase border transition-all ${
                          mission.unit === u 
-                           ? 'bg-brand border-brand text-[hsl(var(--brand-ink))]' 
-                           : 'bg-background border-border text-muted-foreground hover:text-muted-foreground'
+                           ? 'bg-brand border-brand text-foreground' 
+                           : 'bg-background border-border text-gray-600 hover:text-muted-foreground'
                        }`}
                      >
                         {u}
@@ -188,7 +188,7 @@ export default function MissionEditor() {
               <div key={num} className="bg-card/40 p-6 rounded-3xl border border-border space-y-4">
                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                       <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-muted-foreground block mb-2">Stat Label</label>
+                       <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Stat Label</label>
                        <input 
                          type="text" 
                          value={mission[prefix + 'Label' as keyof typeof mission]}
@@ -198,7 +198,7 @@ export default function MissionEditor() {
                        />
                     </div>
                     <div>
-                       <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-muted-foreground block mb-2">Current Stat</label>
+                       <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-gray-700 block mb-2">Current Stat</label>
                        <input 
                          type="text" 
                          value={mission[prefix + 'Value' as keyof typeof mission]}
@@ -209,7 +209,7 @@ export default function MissionEditor() {
                     </div>
                  </div>
                  <div>
-                    <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-muted-foreground block mb-2 text-center">Icon Select</label>
+                    <label className="text-[10px] lowercase font-display font-semibold tracking-widest text-gray-700 block mb-2 text-center">Icon Select</label>
                     <div className="flex justify-between bg-background p-2 rounded-xl border border-border">
                        {ICON_OPTIONS.map((opt) => {
                          const Icon = opt.icon;
@@ -218,7 +218,7 @@ export default function MissionEditor() {
                            <button
                              key={opt.id}
                              onClick={() => setMission({...mission, [prefix + 'Icon']: opt.id})}
-                             className={`p-2 rounded-lg transition-all ${isSelected ? 'bg-brand/20 text-brand' : 'text-muted-foreground hover:text-muted-foreground'}`}
+                             className={`p-2 rounded-lg transition-all ${isSelected ? 'bg-brand/20 text-brand' : 'text-gray-700 hover:text-muted-foreground'}`}
                            >
                              <Icon size={18} />
                            </button>

@@ -292,12 +292,12 @@ export default function Settings() {
             Preferences saved locally. Native push notifications coming soon.
           </p>
           {notifPermission === 'denied' && (
-            <p className="text-xs text-destructive px-1">
+            <p className="text-xs text-red-500/70 px-1">
               Notifications blocked by browser. Enable in browser settings to receive reminders.
             </p>
           )}
           {notifPermission === 'granted' && (
-            <p className="text-xs text-foreground/70 px-1">
+            <p className="text-xs text-green-600/70 px-1">
               ✓ Browser notifications enabled.
             </p>
           )}
@@ -342,7 +342,7 @@ export default function Settings() {
               <div className="p-4 space-y-3 bg-muted/30">
                 {resetSent ? (
                   <div className="flex items-center gap-2 text-sm text-foreground">
-                    <Check size={16} className="text-foreground" />
+                    <Check size={16} className="text-green-500" />
                     Reset link sent to {resetEmail}
                   </div>
                 ) : (
@@ -352,12 +352,12 @@ export default function Settings() {
                     </p>
                     <p className="text-sm font-medium">{resetEmail}</p>
                     {resetError && (
-                      <p className="text-xs text-destructive">{resetError}</p>
+                      <p className="text-xs text-red-500">{resetError}</p>
                     )}
                     <button
                       onClick={handleSendReset}
                       disabled={resetLoading}
-                      className="w-full flex items-center justify-center gap-2 bg-foreground text-[hsl(var(--brand-ink))] font-medium text-sm py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-foreground text-background font-medium text-sm py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                     >
                       {resetLoading ? (
                         <><Loader2 size={14} className="animate-spin" /> Sending...</>
@@ -397,7 +397,7 @@ export default function Settings() {
                 </div>
               </button>
             </div>
-            {portalError && <p className="text-xs text-destructive px-1">{portalError}</p>}
+            {portalError && <p className="text-xs text-red-500 px-1">{portalError}</p>}
             <p className="text-xs text-muted-foreground px-1">
               Opens Stripe&apos;s secure billing portal. Cancelling keeps access until the end of the
               current period.
@@ -450,16 +450,16 @@ export default function Settings() {
         {/* Danger zone */}
         <section className="space-y-3">
           <h2 className="text-xs text-muted-foreground lowercase font-medium px-1">Danger Zone</h2>
-          <div className="bg-card rounded-xl border border-destructive/20 overflow-hidden">
+          <div className="bg-card rounded-xl border border-red-500/20 overflow-hidden">
             <button
               onClick={() => setShowDeleteForm(!showDeleteForm)}
-              className="w-full flex items-center gap-4 p-4 hover:bg-destructive/5 transition-colors"
+              className="w-full flex items-center gap-4 p-4 hover:bg-red-500/5 transition-colors"
             >
-              <div className="p-2 bg-destructive/10 rounded-lg">
-                <Trash2 size={16} className="text-destructive" />
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <Trash2 size={16} className="text-red-500" />
               </div>
               <div className="text-left flex-1">
-                <p className="font-medium text-sm text-destructive">Delete Account</p>
+                <p className="font-medium text-sm text-red-500">Delete Account</p>
                 <p className="text-xs text-muted-foreground">
                   Permanently erase your account and all data
                 </p>
@@ -467,7 +467,7 @@ export default function Settings() {
             </button>
 
             {showDeleteForm && (
-              <div className="p-4 space-y-3 border-t border-destructive/20 bg-destructive/[0.02]">
+              <div className="p-4 space-y-3 border-t border-red-500/20 bg-red-500/[0.02]">
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   This permanently deletes your account, every workout you&apos;ve logged, your
                   check-ins, your progress — everything. Any active subscription is cancelled
@@ -481,14 +481,14 @@ export default function Settings() {
                   value={deleteInput}
                   onChange={(e) => setDeleteInput(e.target.value)}
                   placeholder="delete"
-                  className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-destructive/50"
+                  className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-red-500/50"
                   autoComplete="off"
                 />
-                {deleteError && <p className="text-xs text-destructive">{deleteError}</p>}
+                {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteInput.trim().toLowerCase() !== 'delete' || deleteLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-destructive text-[hsl(var(--brand-ink))] font-medium text-sm py-2.5 rounded-lg hover:bg-destructive transition-colors disabled:opacity-40"
+                  className="w-full flex items-center justify-center gap-2 bg-red-500 text-white font-medium text-sm py-2.5 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-40"
                 >
                   {deleteLoading ? (
                     <><Loader2 size={14} className="animate-spin" /> Deleting…</>

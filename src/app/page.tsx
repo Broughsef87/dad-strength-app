@@ -5,6 +5,7 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTheme } from '../contexts/ThemeContext';
 import Logo from '../components/Logo';
 
 export default function Home() {
@@ -12,52 +13,34 @@ export default function Home() {
   // the auth listener on every render and thrash the session check.
   const [supabase] = useState(() => createClient());
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
 
-  // The sign-in screen is the one surface the reskin could not reach with a
-  // class. <Auth> is a third-party widget that takes its palette as VALUES, so
-  // it kept whatever it was last handed — which was the retired cockpit
-  // palette. Measured on the running page before this change:
-  //
-  //   primary "Sign in" button   #CE0928   Ferrari red, from an era the
-  //                                        design memory records as RETIRED
-  //   "Sign in with Google"      #FFFFFF   pure white, which the paper
-  //                                        contract bans outright, grey label
-  //                                        on it at 3.95:1
-  //   field labels               4.11:1    under the 4.5:1 floor
-  //
-  // This is the app's front door: the first screen anyone sees, and the only
-  // one an unauthenticated visitor CAN see. It was a whole design system behind.
-  //
-  // Handing it hsl(var(--token)) instead of hex is the actual fix. These are
-  // used as CSS values, so the cascade resolves them per theme exactly like
-  // every other surface — the widget follows paper and lamplight for free. It
-  // also deletes the hand-maintained light/dark duplicate, which is precisely
-  // what let this drift unnoticed through two redesigns: two lists of literals
-  // that nobody re-derives when the tokens move.
-  const authColors = {
-    brand: 'hsl(var(--brand))',
-    brandAccent: 'hsl(var(--brand-deep))',
-    brandButtonText: 'hsl(var(--brand-ink))',
-    defaultButtonBackground: 'hsl(var(--card))',
-    defaultButtonBackgroundHover: 'hsl(var(--surface-2))',
-    defaultButtonBorder: 'hsl(var(--border))',
-    defaultButtonText: 'hsl(var(--foreground))',
-    inputBackground: 'hsl(var(--surface-2))',
-    inputBorder: 'hsl(var(--border))',
-    inputBorderHover: 'hsl(var(--muted-foreground))',
-    // focus must not resolve to the resting border, or the ring is invisible
-    inputBorderFocus: 'hsl(var(--foreground))',
-    inputText: 'hsl(var(--foreground))',
-    inputPlaceholder: 'hsl(var(--muted-foreground))',
-    inputLabelText: 'hsl(var(--muted-foreground))',
-    messageText: 'hsl(var(--muted-foreground))',
-    messageTextDanger: 'hsl(var(--destructive))',
-    anchorTextColor: 'hsl(var(--foreground))',
-    anchorTextHoverColor: 'hsl(var(--brand-text))',
-    dividerBackground: 'hsl(var(--border))',
-  };
-
+  const authColors = resolvedTheme === 'light'
+    ? {
+        brand: '#CE0928',
+        brandAccent: '#9C0720',
+        inputBackground: 'hsl(214 18% 93%)',
+        inputBorder: 'hsl(214 22% 80%)',
+        inputText: 'hsl(222 32% 11%)',
+        inputPlaceholder: 'hsl(215 18% 58%)',
+        inputLabelText: 'hsl(215 18% 40%)',
+        messageText: 'hsl(215 18% 40%)',
+        anchorTextColor: 'hsl(38 90% 36%)',
+        dividerBackground: 'hsl(214 22% 80%)',
+      }
+    : {
+        brand: '#CE0928',
+        brandAccent: '#9C0720',
+        inputBackground: 'hsl(222 21% 7%)',
+        inputBorder: 'hsl(214 35% 18%)',
+        inputText: 'hsl(210 24% 80%)',
+        inputPlaceholder: 'hsl(213 22% 32%)',
+        inputLabelText: 'hsl(213 22% 52%)',
+        messageText: 'hsl(213 22% 52%)',
+        anchorTextColor: 'hsl(38 90% 41%)',
+        dividerBackground: 'hsl(214 35% 18%)',
+      };
 
   useEffect(() => {
     // Initial check — already-authenticated visitors skip the login screen.
@@ -125,9 +108,9 @@ export default function Home() {
 
         {/* Legal footer */}
         <div className="flex items-center justify-center gap-4 -mt-4">
-          <a href="/terms" className="text-[10px] lowercase text-muted-foreground hover:text-foreground transition-colors">terms</a>
-          <a href="/privacy" className="text-[10px] lowercase text-muted-foreground hover:text-foreground transition-colors">privacy</a>
-          <a href="/disclaimer" className="text-[10px] lowercase text-muted-foreground hover:text-foreground transition-colors">disclaimer</a>
+          <a href="/terms" className="text-[10px] lowercase text-muted-foreground/60 hover:text-muted-foreground transition-colors">terms</a>
+          <a href="/privacy" className="text-[10px] lowercase text-muted-foreground/60 hover:text-muted-foreground transition-colors">privacy</a>
+          <a href="/disclaimer" className="text-[10px] lowercase text-muted-foreground/60 hover:text-muted-foreground transition-colors">disclaimer</a>
         </div>
       </div>
     </div>

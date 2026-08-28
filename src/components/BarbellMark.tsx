@@ -111,12 +111,16 @@ export function SectionLabel({
     <div className={`flex items-center gap-2 px-1 ${className}`}>
       <span
         className="text-[11px] font-display tracking-[0.3em] text-brand"
+        style={{ textShadow: '0 0 6px rgba(234,11,47,0.4)' }}
       >
         {numeral}
       </span>
       <span
-        /* a printed tick before the title, then the rule continues past it */
-        className="h-px w-3 bg-foreground"
+        className="h-px w-3"
+        style={{
+          background:
+            'linear-gradient(90deg, rgba(234,11,47,0.55) 0%, rgba(234,11,47,0.1) 100%)',
+        }}
       />
       <span className="text-[9px] lowercase text-muted-foreground font-display font-semibold">
         {title}
@@ -177,7 +181,7 @@ export function HeroAccent({
   tone?: 'amber' | 'foreground'
   className?: string
 }) {
-  const color = tone === 'amber' ? 'text-foreground' : 'text-muted-foreground'
+  const color = tone === 'amber' ? 'text-brand' : 'text-foreground'
   return (
     <span
       className={`font-serif italic normal-case tracking-normal ${color} ${className}`}

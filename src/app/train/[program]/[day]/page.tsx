@@ -18,7 +18,6 @@ import {
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
 import ForgeLoader from '../../../../components/ForgeLoader'
-import { Stamp } from '../../../../components/paper/Stamp'
 import {
   DayPlan, LiftPrescription, MetconPrescription, OutsideSession,
   PlyoPrescription, getProgram,
@@ -380,18 +379,13 @@ function RestTimer({ trigger }: { trigger: number }) {
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] w-[calc(100%-2rem)] max-w-sm panel-mount">
-      {/* The rest timer floats over the session, and it had no fill at all —
-          only a border and a shadow, so it inherited whatever was behind it.
-          That is why the digits went invisible in one mode or the other no
-          matter which token they used. It is a card now: paper fill, so the
-          shadow reads and the ink has something to sit on. */}
-      <div className={` border px-4 py-3 shadow-2xl bg-[hsl(var(--card))] ${done ? 'border-brand ' : 'border-brand/50 '}`}>
+      <div className={` border px-4 py-3 shadow-2xl ${done ? 'border-brand ' : 'border-brand/50 '}`}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 shrink-0">
             <Clock size={14} className={done ? 'text-brand' : 'text-brand'} />
             <span className="eyebrow-mono text-brand">{done ? 'REST DONE' : 'REST'}</span>
           </div>
-          <span className="stat-num text-2xl tabular-nums text-[hsl(var(--foreground))]">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
+          <span className="stat-num text-2xl tabular-nums text-white">{String(mm).padStart(2, '0')}:{String(ss).padStart(2, '0')}</span>
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={() => { endRef.current += 30_000; setRemaining(r => r + 30); beeped.current = false }}
               className="border border-border/70 text-[10px] font-semibold lowercase text-muted-foreground hover:text-foreground px-2 py-1.5 transition-colors">+0:30</button>
@@ -498,11 +492,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
             {/* Prescription readout — target weight is the hero */}
             {item.targetWeightLbs != null ? (
               <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
-                {/* PRINTED. The target load is the single most engine-authored
-                    number in the app — buildDay decided it before you arrived.
-                    The volt-era glow goes: ink on paper does not emit light,
-                    and a glowing prescription undercuts the entire premise. */}
-                <span className="stat-num ink-printed text-4xl">
+                <span className="stat-num text-4xl text-brand" style={{ textShadow: '0 0 18px hsl(var(--brand) / 0.35)' }}>
                   {item.targetWeightLbs}
                 </span>
                 <span className="eyebrow-mono">
@@ -588,23 +578,13 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
           {sets.map((s, idx) => (
             <div key={idx} className={` border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
               <div className="grid grid-cols-4 gap-2 items-center p-2">
-                {/* The set number is printed furniture — the form came with
-                    numbered rows. Everything you type into them is WRITTEN. */}
                 <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
-
-                {/* WRITTEN, and this is the payoff moment of the whole system:
-                    the load and reps you actually hit, in ballpoint, on the
-                    engine's form. These take the handwriting face rather than
-                    the printed-column compromise — they are centred, two or
-                    three digits wide, and 16px, so the alignment problem that
-                    forces columns back to Courier does not bite here. */}
                 <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)} placeholder="lbs"
-                  className="ink-written w-full bg-transparent border-none outline-none text-base placeholder:text-muted-foreground/40 placeholder:font-[family-name:var(--font-display)] text-center" />
+                  className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
                 <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
-                  className="ink-written w-full bg-transparent border-none outline-none text-base placeholder:text-muted-foreground/40 placeholder:font-[family-name:var(--font-display)] text-center" />
-
+                  className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
                 <button onClick={() => update(idx, 'done', !s.done)}
-                  className={`font-display text-[10px] font-semibold uppercase tracking-[0.1em] px-2 py-1.5 transition-colors ${s.done ? 'bg-[hsl(var(--brand))] text-[hsl(var(--brand-ink))]' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                  className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
                   {s.done ? (s.rpe != null ? `RPE ${s.rpe}` : 'Hit') : 'Log'}
                 </button>
               </div>
@@ -618,7 +598,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                         onClick={() => update(idx, 'rpe', s.rpe === r ? null : r)}
                         className={`stat-num flex-1 py-1 text-[11px] border transition-colors ${
  s.rpe === r
- ? 'bg-brand text-[hsl(var(--brand-ink))] border-brand'
+ ? 'bg-brand text-white border-brand'
  : item.targetRpe === r
  ? 'border-brand/50 text-brand'
  : 'border-border/60 text-muted-foreground hover:text-foreground'
@@ -749,7 +729,7 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
               <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
                 className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
               <button onClick={() => update(idx, 'done', !s.done)}
-                className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-[hsl(var(--brand-ink))]' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
                 {s.done ? 'Hit' : 'Log'}
               </button>
             </div>
@@ -818,7 +798,7 @@ function MetconCard({ item, initialLog, onLog }: {
         <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes..."
           className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50" />
         <button onClick={() => { onLog({ timeMin, timeSec, rounds, notes }); setLogged(true) }}
-          className={`w-full py-3 rounded-lg text-sm font-medium lowercase transition-all ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-[hsl(var(--brand-ink))] hover:bg-brand/90'}`}>
+          className={`w-full py-3 rounded-lg text-sm font-medium lowercase transition-all ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-foreground hover:bg-brand/90'}`}>
           {logged ? '✓ MetCon Logged' : 'Log MetCon Result'}
         </button>
       </div>
@@ -853,7 +833,7 @@ function OutsideCard({ item, initialLog, onLog }: {
       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Debrief (times, distances, feel)..."
         className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50 resize-none" />
       <button onClick={() => { onLog(notes); setLogged(true) }}
-        className="w-full py-2.5 bg-foreground text-[hsl(var(--brand-ink))] text-xs font-semibold lowercase hover:bg-foreground/90 transition-colors">
+        className="w-full py-2.5 bg-foreground text-background text-xs font-semibold lowercase hover:bg-foreground/90 transition-colors">
         {logged ? 'logged ✓' : 'log set'}
       </button>
     </div>
@@ -882,7 +862,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
@@ -933,7 +913,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
         <button onClick={() => setRepeat(r => !r)}
           className="mt-3 flex items-center gap-2.5 text-left group">
           <span className={`w-4 h-4 shrink-0 border flex items-center justify-center transition-colors ${repeat ? 'bg-brand border-brand' : 'border-border group-hover:border-brand/50'}`}>
-            {repeat && <Check size={11} className="text-[hsl(var(--brand-ink))]" strokeWidth={3} />}
+            {repeat && <Check size={11} className="text-white" strokeWidth={3} />}
           </span>
           <span className="text-xs text-foreground/90">
             Repeat for the rest of this mesocycle
@@ -975,7 +955,7 @@ function AddExerciseModal({ onPick, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
@@ -1065,7 +1045,7 @@ function MaxesCard({ maxDefs, current, onSave }: {
           await onSave(out)
           setSaved(true)
         }}
-        className="w-full py-2.5 bg-brand text-[hsl(var(--brand-ink))] rounded-lg text-xs font-medium lowercase hover:bg-brand/90 transition-colors">
+        className="w-full py-2.5 bg-brand text-foreground rounded-lg text-xs font-medium lowercase hover:bg-brand/90 transition-colors">
         {saved ? 'Saved ✓' : 'Save Maxes'}
       </button>
     </div>
@@ -1555,9 +1535,9 @@ export default function TrainingDayPage() {
   if (!program) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
-        <AlertTriangle className="w-10 h-10 text-destructive" />
+        <AlertTriangle className="w-10 h-10 text-red-400" />
         <p className="text-foreground font-medium">Unknown program &ldquo;{slug}&rdquo;</p>
-        <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-[hsl(var(--brand-ink))] rounded-lg text-sm font-medium">Choose Program</button>
+        <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Choose Program</button>
       </div>
     )
   }
@@ -1573,9 +1553,9 @@ export default function TrainingDayPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
-        <AlertTriangle className="w-10 h-10 text-destructive" />
+        <AlertTriangle className="w-10 h-10 text-red-400" />
         <p className="text-foreground font-medium">{error}</p>
-        <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="px-6 py-2.5 bg-brand text-[hsl(var(--brand-ink))] rounded-lg text-sm font-medium">Try Again</button>
+        <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Try Again</button>
       </div>
     )
   }
@@ -1585,21 +1565,17 @@ export default function TrainingDayPage() {
   if (sessionComplete) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 p-6 text-center">
-        {/* STAMPED. The verdict on the session, and the only place in this
-            flow that earns red — one stamp, at the moment the form is closed
-            out. It replaces the 72px "done." numeral AND the chip: the stamp
-            says both, and two marks saying the same thing is how a stamp stops
-            meaning anything. This screen has exactly one. */}
+        {/* The beat: a number you earned, then the quiet confirmation. */}
         <div className="flex flex-col items-center gap-3">
-          <Stamp size="lg" className="!text-[34px] !px-6 !py-1">done</Stamp>
-          <span className="eyebrow-mono">session complete</span>
+          <p className="stat-num text-[72px]">done.</p>
+          <span className="chip-live text-sm px-4 py-2">session complete</span>
         </div>
 
         {sessionSummary && (sessionSummary.sets > 0 || sessionSummary.prs.length > 0) && (
           <div className="relative bg-card border border-border p-5 pt-8 w-full max-w-sm text-left space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="stat-num text-3xl text-brand">
+                <p className="stat-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.35)' }}>
                   {sessionSummary.tonnage.toLocaleString()}
                 </p>
                 <p className="eyebrow-mono">LB TONNAGE</p>
@@ -1710,19 +1686,19 @@ export default function TrainingDayPage() {
       </header>
 
       {logWriteError && (
-        <div className="sticky top-[60px] z-10 bg-destructive/10 border-b border-destructive/40 px-4 py-2 flex items-start gap-2">
-          <AlertTriangle size={14} className="text-destructive shrink-0 mt-0.5" />
-          <p className="text-xs text-destructive flex-1">{logWriteError}</p>
-          <button onClick={() => setLogWriteError(null)} className="text-[10px] lowercase text-destructive hover:text-destructive px-2">Dismiss</button>
+        <div className="sticky top-[60px] z-10 bg-red-500/10 border-b border-red-500/40 px-4 py-2 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-300 flex-1">{logWriteError}</p>
+          <button onClick={() => setLogWriteError(null)} className="text-[10px] lowercase text-red-300/80 hover:text-red-200 px-2">Dismiss</button>
         </div>
       )}
 
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
-        <p className="text-xs text-muted-foreground italic border-l-2 border-border/30 pl-3">{plan.sessionIntent}</p>
+        <p className="text-xs text-muted-foreground italic border-l-2 border-blue-500/30 pl-3">{plan.sessionIntent}</p>
 
         {missingMaxes.length > 0 && plan.dayType === 'gym' && (
-          <div className="bg-muted/5 border border-border/30 rounded-lg px-4 py-3">
-            <p className="text-xs text-foreground">
+          <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-lg px-4 py-3">
+            <p className="text-xs text-yellow-400">
               Missing maxes: {missingMaxes.map(d => d.label).join(', ')} — prescribed weights can&apos;t be computed. Enter them below.
             </p>
           </div>

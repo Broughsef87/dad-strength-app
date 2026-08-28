@@ -23,14 +23,14 @@ export default function ActiveSessionHeader({
   return (
     <div className={`group relative bg-surface-3 border-2 overflow-hidden transition-all duration-700 p-6 rounded-xl mb-8 ${
       isPaused
-        ? 'border-border/30 bg-muted/[0.03]'
+        ? 'border-amber-500/30 bg-amber-500/[0.03] shadow-[0_0_40px_rgba(245,158,11,0.05)]'
         : 'border-border shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]'
     }`}>
       {/* Dynamic Progress Gradient */}
       <div className="absolute top-0 left-0 w-full h-1.5 bg-background/50">
         <div
           className={`h-full transition-all duration-1000 ease-out relative ${
-            isPaused ? 'bg-muted-foreground' : 'bg-gradient-to-r from-brand via-brand/80 to-brand/60 shadow-[0_0_15px_hsl(16_80%_54%/0.4)]'
+            isPaused ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-gradient-to-r from-brand via-brand/80 to-brand/60 shadow-[0_0_15px_hsl(16_80%_54%/0.4)]'
           }`}
           style={{ width: `${progress}%` }}
         >
@@ -41,19 +41,19 @@ export default function ActiveSessionHeader({
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <div className={`p-2.5 rounded-2xl transition-all duration-500 transform group-hover:rotate-12 ${
-            isPaused ? 'bg-muted/20 text-foreground' : 'bg-brand/10 text-brand'
+            isPaused ? 'bg-amber-500/20 text-amber-500' : 'bg-brand/10 text-brand'
           }`}>
             {isPaused ? <Coffee size={18} /> : <Activity size={18} className="animate-pulse" />}
           </div>
           <div className="flex flex-col">
             <h2 className={`text-[10px] font-black lowercase leading-none mb-1 transition-colors ${
-              isPaused ? 'text-foreground/70' : 'text-brand/80'
+              isPaused ? 'text-amber-500/70' : 'text-brand/80'
             }`}>
               {isPaused ? 'Grace Mode Active' : 'Live Protocol'}
             </h2>
             <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-pulse" />
-                <span className="text-[10px] font-bold text-foreground/80 lowercase">System Operational</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-emerald-500/80 lowercase">System Operational</span>
             </div>
           </div>
         </div>
@@ -62,8 +62,8 @@ export default function ActiveSessionHeader({
           onClick={onTogglePause}
           className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black lowercase transition-all active:scale-90 ${
             isPaused
-              ? 'bg-muted border-border text-[hsl(var(--foreground))] hover:bg-muted'
-              : 'bg-muted border-border text-muted-foreground hover:border-border/50 hover:text-foreground hover:bg-muted/5'
+              ? 'bg-amber-500 border-amber-400 text-black shadow-[0_8px_25px_rgba(245,158,11,0.3)] hover:bg-amber-400'
+              : 'bg-muted border-border text-muted-foreground hover:border-amber-500/50 hover:text-amber-400 hover:bg-amber-500/5'
           }`}
         >
           {isPaused ? (
@@ -85,7 +85,7 @@ export default function ActiveSessionHeader({
           <h1 className="text-3xl font-black tracking-tight text-foreground mb-1.5 drop-shadow-sm">{workoutName}</h1>
           <div className="flex items-center gap-2">
             <p className={`text-[11px] font-bold lowercase transition-colors ${
-                isPaused ? 'text-foreground/60' : 'text-muted-foreground'
+                isPaused ? 'text-amber-500/60' : 'text-muted-foreground'
             }`}>
                 {isPaused ? 'Monitoring Parent Duty' : 'Executing Functional Cycle'}
             </p>
@@ -102,9 +102,9 @@ export default function ActiveSessionHeader({
           <div className="relative group/stat text-right">
             <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-brand/70 transition-colors">Session Time</p>
             <div className="flex items-baseline justify-end gap-1.5">
-                <Timer size={14} className={`mb-0.5 ${isPaused ? 'text-foreground' : 'text-brand/50'}`} />
+                <Timer size={14} className={`mb-0.5 ${isPaused ? 'text-amber-400' : 'text-brand/50'}`} />
                 <p className={`text-2xl font-mono font-black tabular-nums transition-all ${
-                    isPaused ? 'text-foreground' : 'text-foreground'
+                    isPaused ? 'text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-foreground'
                 }`}>{duration}</p>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function ActiveSessionHeader({
           <div className="w-px h-10 bg-border" />
 
           <div className="relative group/stat text-right">
-            <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-foreground/70 transition-colors">Load Moved</p>
+            <p className="text-[9px] font-black text-muted-foreground lowercase mb-1.5 group-hover/stat:text-emerald-400/70 transition-colors">Load Moved</p>
             <div className="flex items-baseline justify-end gap-1">
                 <p className="text-3xl font-black text-foreground leading-none tracking-tight">
                     {volume.toLocaleString()}
@@ -125,7 +125,7 @@ export default function ActiveSessionHeader({
 
       {/* Subtle Background Glows */}
       <div className={`absolute -bottom-12 -right-12 w-32 h-32 blur-[80px] rounded-full transition-colors duration-1000 ${
-          isPaused ? 'bg-muted/10' : 'bg-brand/10'
+          isPaused ? 'bg-amber-500/10' : 'bg-brand/10'
       }`} />
     </div>
   );

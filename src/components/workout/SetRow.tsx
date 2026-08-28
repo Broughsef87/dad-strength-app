@@ -29,23 +29,23 @@ export default function SetRow({
     <div 
       className={`group flex items-center gap-4 p-4 bg-card/80 border transition-all duration-300 ${
         isDone 
-          ? 'border-brand/50 bg-brand/10 scale-[1.01]' 
-          : 'border-border hover:border-border'
+          ? 'border-brand/50 bg-brand/10 shadow-[0_0_15px_rgba(99,102,241,0.1)] scale-[1.01]' 
+          : 'border-border hover:border-gray-700'
       } rounded-2xl`}
     >
       <div className={`flex-none w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-display font-semibold italic transition-colors ${
-        isDone ? 'bg-brand text-[hsl(var(--brand-ink))]' : 'bg-muted text-muted-foreground'
+        isDone ? 'bg-brand text-foreground' : 'bg-gray-800 text-muted-foreground'
       }`}>
         {index + 1}
       </div>
 
       <div className="flex-grow min-w-0">
-        <p className={`font-display font-semibold text-sm lowercase truncate transition-colors ${isDone ? 'text-foreground' : 'text-muted-foreground'}`}>
+        <p className={`font-display font-semibold text-sm lowercase truncate transition-colors ${isDone ? 'text-brand' : 'text-foreground'}`}>
           {set.exercise}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
           <span className={`text-[10px] font-display font-semibold lowercase transition-colors ${isDone ? 'text-brand' : 'text-brand'}`}>{set.weight} LBS</span>
-          <span className="text-[8px] text-muted-foreground">/</span>
+          <span className="text-[8px] text-gray-700">/</span>
           <span className={`text-[10px] font-display font-semibold lowercase transition-colors ${isDone ? 'text-brand/50' : 'text-muted-foreground'}`}>{set.reps} REPS</span>
         </div>
       </div>
@@ -56,8 +56,8 @@ export default function SetRow({
             onClick={() => onToggle(set.id)}
             className={`p-2 rounded-xl transition-all ${
               isDone 
-                ? 'bg-brand text-[hsl(var(--brand-ink))] shadow-lg shadow-brand/30' 
-                : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted'
+                ? 'bg-brand text-foreground shadow-lg shadow-brand/30' 
+                : 'bg-gray-800 text-muted-foreground hover:text-foreground hover:bg-gray-700'
             }`}
           >
             {isDone ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
@@ -67,7 +67,7 @@ export default function SetRow({
         {onDelete && (
           <button 
             onClick={() => onDelete(set.id)}
-            className="p-2 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+            className="p-2 text-gray-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
           >
             <Trash2 className="w-4 h-4" />
           </button>
