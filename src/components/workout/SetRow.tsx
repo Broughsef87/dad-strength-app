@@ -67,7 +67,7 @@ export default function SetRow({
         {onDelete && (
           <button 
             onClick={() => onDelete(set.id)}
-            className="p-2 text-gray-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+            className="p-2 text-gray-700 hover:text-status-danger-ink transition-colors opacity-0 group-hover:opacity-100"
           >
             <Trash2 className="w-4 h-4" />
           </button>

@@ -234,7 +234,7 @@ export default function BuildPage() {
                 ))}
 
                 {error && (
-                  <p className="text-xs text-red-400 border border-red-500/30 bg-red-500/5 rounded-lg px-3 py-2">{error}</p>
+                  <p className="text-xs text-status-danger-ink border border-status-danger-fill/30 bg-status-danger-fill/5 rounded-lg px-3 py-2">{error}</p>
                 )}
 
                 <button

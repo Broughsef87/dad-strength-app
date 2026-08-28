@@ -31,6 +31,7 @@ const SUITES = [
   ['the 4-set ceiling', 'set-ceiling.mjs'],
   ['orphaned components', 'orphans.mjs'],
   ['ink contrast', 'contrast.mjs'],
+  ['raw palette', 'palette.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

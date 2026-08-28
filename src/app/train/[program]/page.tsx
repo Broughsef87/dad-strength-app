@@ -97,7 +97,7 @@ export default function SchedulePage() {
   if (!program) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
-        <AlertTriangle className="w-10 h-10 text-red-400" />
+        <AlertTriangle className="w-10 h-10 text-status-danger-ink" />
         <p className="text-foreground font-medium">unknown program &ldquo;{slug}&rdquo;</p>
         <button onClick={() => router.push('/build')} className="pill-volt px-6 py-2.5 text-sm">choose program</button>
       </div>

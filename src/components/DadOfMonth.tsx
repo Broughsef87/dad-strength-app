@@ -12,10 +12,10 @@ function daysInMonth(year: number, month: number): number {
 
 function getGrade(pct: number): { label: string; color: string } {
   if (pct >= 90) return { label: 'Dad Elite', color: 'text-brand' }
-  if (pct >= 75) return { label: 'Strong', color: 'text-green-500' }
-  if (pct >= 60) return { label: 'Solid', color: 'text-yellow-500' }
+  if (pct >= 75) return { label: 'Strong', color: 'text-status-good-ink' }
+  if (pct >= 60) return { label: 'Solid', color: 'text-brand-text' }
   if (pct >= 40) return { label: 'Grinding', color: 'text-brand' }
-  return { label: 'Rise Up', color: 'text-red-500' }
+  return { label: 'Rise Up', color: 'text-status-danger-ink' }
 }
 
 function monthLabel(year: number, month: number): string {
@@ -133,7 +133,7 @@ export default function DadOfMonth() {
       {/* Month-over-month delta */}
       <div className="flex items-center gap-1.5">
         <span
-          className={`text-xs font-semibold ${delta >= 0 ? 'text-green-500' : 'text-red-500'}`}
+          className={`text-xs font-semibold ${delta >= 0 ? 'text-status-good-ink' : 'text-status-danger-ink'}`}
         >
           {delta >= 0 ? '+' : ''}{delta}% vs last month
         </span>

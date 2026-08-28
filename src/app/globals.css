@@ -132,6 +132,12 @@
     --brand-ink: 82 37% 6%;            /* #131608 text on volt */
     --brand-text: 77 79% 27%;          /* #5C7A0E volt as INK on chalk (5.6:1) */
     --brand-muted: 78 100% 62% / 0.16;
+
+    /* Neither of these follows the theme, on purpose. A scrim recedes the page
+       behind a modal, so it is dark on chalk AND graphite. A sheen is a specular
+       highlight, so it is light on both. Defined here and NOT in .dark. */
+    --scrim: 210 10% 4%;               /* #0A0B0C */
+    --sheen: 45 30% 97%;               /* #FAF8F3 */
     /* ── status: semantic, and split by ROLE ────────────────────────────────
        Every one of these is a fill/ink PAIR, because the system already learned
        this the hard way with --brand: a fill colour used as text is the bug
