@@ -155,7 +155,13 @@ walk(SRC)
 // The debt snapshot is generated FROM this check, never hand-written:
 //   EMIT_DEBT=1 npx tsx scripts/checks/contrast.mjs
 if (process.env.EMIT_DEBT) {
-  for (const f of tooFaint) console.log('DEBT ' + f.split('  ').slice(0, 2).join('  '))
+  const tally = {}
+  for (const f of tooFaint) {
+    const p = f.split('  ')
+    const k = p[0].replace(/:\d+$/, '') + '  ' + p[1]
+    tally[k] = (tally[k] || 0) + 1
+  }
+  for (const k of Object.keys(tally).sort()) console.log('DEBT ' + k + '  x' + tally[k])
 }
 
 // A RATCHET, not an amnesty. These 53 predate the check and are a real
@@ -167,11 +173,32 @@ let faintAllow = []
 try {
   faintAllow = JSON.parse(readFileSync(join(SRC, '..', 'scripts', 'checks', 'faded-ink-debt.json'), 'utf8'))
 } catch { faintAllow = [] }
-// keyed on file:line AND the class, so editing a debt line in place revokes
-// its amnesty — the old key let a line change meaning and stay allowed
-const keyOf = (f) => { const p = f.split('  '); return p[0] + '  ' + p[1] }
-const newFaint = tooFaint.filter((f) => !faintAllow.includes(keyOf(f)))
-const fixed = faintAllow.filter((a) => !tooFaint.some((f) => keyOf(f) === a))
+// Keyed on FILE + CLASS + COUNT, not file:line.
+//
+// Line numbers were the obvious key and the wrong one: any edit ABOVE a debt
+// line shifts it and the snapshot goes stale wholesale — extracting one
+// component from the session runner invalidated eight entries that had not
+// changed at all, and the only cheap repair is re-snapshotting, which quietly
+// re-blesses whatever is there now. A ratchet you have to reset is not one.
+//
+// File+class+count survives moves and still fails on anything new: another
+// instance of the same class in the same file raises the count past its
+// budget, and a class with no entry has nothing to hide behind.
+const keyOf = (f) => { const p = f.split('  '); return p[0].replace(/:\d+$/, '') + '  ' + p[1] }
+const budget = {}
+for (const a of faintAllow) {
+  const m = a.match(/^(.*)  x(\d+)$/)
+  if (m) budget[m[1]] = (budget[m[1]] || 0) + Number(m[2])
+}
+const seen = {}
+const newFaint = tooFaint.filter((f) => {
+  const k = keyOf(f)
+  seen[k] = (seen[k] || 0) + 1
+  return seen[k] > (budget[k] || 0)
+})
+const fixed = Object.keys(budget)
+  .filter((k) => (seen[k] || 0) < budget[k])
+  .map((k) => k + '  (' + (budget[k] - (seen[k] || 0)) + ' fewer)')
 if (fixed.length) {
   console.log('')
   console.log('  ' + fixed.length + ' faded-ink site(s) fixed since the snapshot — trim them from faded-ink-debt.json:')

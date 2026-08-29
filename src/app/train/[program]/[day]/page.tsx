@@ -18,6 +18,7 @@ import {
 import { createClient } from '../../../../utils/supabase/client'
 import { useUser } from '../../../../contexts/UserContext'
 import ForgeLoader from '../../../../components/ForgeLoader'
+import MaxesCard from '../../../../components/MaxesCard'
 import {
   DayPlan, LiftPrescription, MetconPrescription, OutsideSession,
   PlyoPrescription, getProgram,
@@ -1012,45 +1013,6 @@ function AddExerciseModal({ onPick, onClose }: {
   )
 }
 
-// ── Maxes update card (test week) ──────────────────────────────────────────────
-
-function MaxesCard({ maxDefs, current, onSave }: {
-  maxDefs: Array<{ key: string; label: string; unit?: string }>
-  current: Record<string, number>
-  onSave: (vals: Record<string, number>) => Promise<void>
-}) {
-  const [vals, setVals] = useState<Record<string, string>>(() =>
-    Object.fromEntries(maxDefs.map(d => [d.key, current[d.key] ? String(current[d.key]) : ''])),
-  )
-  const [saved, setSaved] = useState(false)
-  return (
-    <div className="tile p-4 space-y-3 border border-brand/30">
-      <p className="text-[10px] font-bold lowercase text-brand">Update Your Maxes</p>
-      <p className="text-xs text-muted-foreground">New numbers drive next macro&apos;s percentages.</p>
-      {maxDefs.map(d => (
-        <div key={d.key} className="flex items-center gap-3">
-          <span className="text-xs text-foreground w-32">{d.label}</span>
-          <input type="number" value={vals[d.key]} onChange={e => { setVals(v => ({ ...v, [d.key]: e.target.value })); setSaved(false) }}
-            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-brand/50" />
-          <span className="text-xs text-muted-foreground">{d.unit ?? 'lbs'}</span>
-        </div>
-      ))}
-      <button
-        onClick={async () => {
-          const out: Record<string, number> = {}
-          for (const [k, v] of Object.entries(vals)) {
-            const n = parseFloat(v)
-            if (Number.isFinite(n) && n > 0) out[k] = n
-          }
-          await onSave(out)
-          setSaved(true)
-        }}
-        className="w-full py-2.5 bg-brand text-foreground rounded-lg text-xs font-medium lowercase hover:bg-brand/90 transition-colors">
-        {saved ? 'Saved ✓' : 'Save Maxes'}
-      </button>
-    </div>
-  )
-}
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
