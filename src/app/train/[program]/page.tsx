@@ -16,6 +16,7 @@ import ForgeLoader from '../../../components/ForgeLoader'
 import { getProgram } from '../../../lib/programs'
 import WeekPulse from '../../../components/WeekPulse'
 import type { DayPlan } from '../../../lib/programs/types'
+import MaxesCard from '../../../components/MaxesCard'
 
 const DAY_LABELS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
@@ -40,6 +41,20 @@ export default function SchedulePage() {
   const [selectedWeek, setSelectedWeek] = useState(1)
   const [doneMap, setDoneMap] = useState<DoneMap>({})
   const [maxes, setMaxes] = useState<Record<string, number>>({})
+
+  // The maxes editor had no permanent home: the session runner shows it only
+  // during test week or when one is MISSING, so on a four-max program you fill
+  // them in once and can never change them again. Power Dad hid this by asking
+  // for seven, one of which is usually blank.
+  const saveMaxes = async (vals: Record<string, number>) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const rows = Object.entries(vals).map(([lift_key, value_lbs]) => ({
+      user_id: user.id, lift_key, value_lbs, updated_at: new Date().toISOString(),
+    }))
+    const { error } = await supabase.from('user_maxes').upsert(rows, { onConflict: 'user_id,lift_key' })
+    if (!error) setMaxes(m => ({ ...m, ...vals }))
+  }
   const [deloadWeeks, setDeloadWeeks] = useState<number[]>([])
   const [dismissedChecks, setDismissedChecks] = useState<number[]>([])
   const prefsRef = useRef<Record<string, unknown>>({})
@@ -300,8 +315,22 @@ export default function SchedulePage() {
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
             every week&apos;s loads are computed from your current maxes — tap any week to preview or train it.
-            next macro&apos;s numbers appear after you log new maxes in the week-{program.macroWeeks} tests.
+            update them above any time; next macro&apos;s numbers follow. re-test in week-{program.macroWeeks} tests.
           </p>
+        </section>
+
+        {/* The permanent home for training maxes. The session runner shows this
+            card only during test week or when one is missing, which means a
+            four-max program locks you out the moment you finish filling them in.
+            Here it is always available, in the program whose maxes it edits. */}
+        <section className="space-y-2.5">
+          <MaxesCard
+            maxDefs={program.requiredMaxes}
+            current={maxes}
+            onSave={saveMaxes}
+            title="Your Maxes"
+            subtitle="Every load below is computed from these. Change them any time."
+          />
         </section>
       </main>
     </div>
