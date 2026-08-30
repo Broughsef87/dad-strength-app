@@ -61,7 +61,7 @@ export function scheduledDayNumbers(program: ProgramConfig, weekNumber: number):
 }
 
 /**
- * Filter completed day numbers to the days the program actually schedules.
+ * Filter completed day numbers to the days that still MEAN something.
  *
  * A program's shape can change under a user who is mid-macro. FOR-195 cut Power
  * Dad's Sunday: daysPerWeek went 7 to 6 and day 7 became a rest day. Every
@@ -83,6 +83,37 @@ export function scheduledDayNumbers(program: ProgramConfig, weekNumber: number):
  * still feeding history and analytics. They just stop counting as this week's
  * progress. Deleting them would erase a session the athlete actually did.
  *
+ * ── the rule, and why it is an OR ──────────────────────────────────────────
+ *
+ * A day counts if the program SCHEDULES it, or if the app still RENDERS it.
+ * A ghost is a day that is neither.
+ *
+ * The second half is not decoration, and two earlier versions of this function
+ * were wrong without it:
+ *
+ *   `d <= daysPerWeek` alone      daysPerWeek is a COUNT, not a range. Dad
+ *                                 Strong is 5 days on Mon/Tue/Thu/Sat/Sun, so
+ *                                 this dropped its Saturday and Sunday and that
+ *                                 program's week could never advance.
+ *
+ *   scheduled days alone          Dad Strong's hub renders days 1-5, so days 6
+ *                                 and 7 are unreachable from the UI while days
+ *                                 3 and 5 render as rest days that the finish
+ *                                 button will still complete. Its week advances
+ *                                 TODAY on those two fake completions. Dropping
+ *                                 them strands the program just as badly, from
+ *                                 the other direction.
+ *
+ * So the OR deliberately preserves a wart: Dad Strong's rendered-but-rest days
+ * keep counting, exactly as they do now. That program's real problem is that
+ * its scheduled days and its rendered days disagree at all, which is a
+ * pre-existing bug in Dad Strong and wants its own ticket — not a silent
+ * behaviour change smuggled in on a Power Dad revision.
+ *
+ * Measured across all four programs, this changes exactly one thing in the
+ * codebase: Power Dad's day-7 sentinels stop counting. Everything else is
+ * byte-for-byte the behaviour it had before.
+ *
  * Use this anywhere a done-day list is COUNTED against daysPerWeek. Places that
  * only test membership — `doneDays.includes(i + 1)` while rendering daysPerWeek
  * pills — are already safe, because they never look past the last rendered day.
@@ -91,5 +122,5 @@ export function scheduledDoneDays(
   days: number[], program: ProgramConfig, weekNumber: number,
 ): number[] {
   const scheduled = new Set(scheduledDayNumbers(program, weekNumber))
-  return days.filter(d => scheduled.has(d))
+  return days.filter(d => scheduled.has(d) || (d >= 1 && d <= program.daysPerWeek))
 }

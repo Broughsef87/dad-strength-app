@@ -2,6 +2,7 @@
 // Run: npx tsx sweep.mjs (from repo root or with absolute path)
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
 import { dadStrong } from '../../src/lib/programs/dadStrong.ts'
+import { PROGRAMS } from '../../src/lib/programs/index.ts'
 // The station rule and the week's shape are SHARED with the app now. The
 // schedule screen kept its own copy of blockCount that only knew about
 // *_back, so it would have printed '7 blocks' on a Saturday this suite calls
@@ -528,6 +529,27 @@ assert(new Set([1, 5, 9].map(wk => hybridPower.buildDay(wk, 4, MAXES).items[0].p
     `Dad Strong runs Mon/Tue/Thu/Sat/Sun, got ${scheduledDayNumbers(dadStrong, 1).join()}`)
   assert(scheduledDoneDays([1, 2, 4, 6, 7], dadStrong, 1).length === dadStrong.daysPerWeek,
     'Dad Strong must still be able to finish a week — days 6 and 7 are real sessions')
+
+  // Codex [P1], round 3, and the reason the rule is scheduled-OR-RENDERED.
+  // Filtering to the scheduled days ALONE strands Dad Strong from the other
+  // direction: its hub renders days 1-5, so 6 and 7 are unreachable, while 3
+  // and 5 render as rest days the finish button still completes. Its week
+  // advances today on exactly those two fake completions. Both halves of the
+  // OR are load-bearing, so both are pinned.
+  const rendered = Array.from({ length: dadStrong.daysPerWeek }, (_, i) => i + 1)
+  assert(scheduledDoneDays(rendered, dadStrong, 1).length === dadStrong.daysPerWeek,
+    'a Dad Strong week completed through the UI as it stands must still advance')
+
+  // ...and the whole point: this changes ONE thing in the codebase. Every
+  // program's own rendered week still counts in full; only Power Dad's
+  // now-unscheduled, now-unrendered day 7 is dropped.
+  for (const p of Object.values(PROGRAMS)) {
+    const own = Array.from({ length: p.daysPerWeek }, (_, i) => i + 1)
+    assert(scheduledDoneDays(own, p, 1).length === p.daysPerWeek,
+      `${p.slug}: its own rendered week must count in full`)
+  }
+  assert(scheduledDoneDays([7], hybridPower, 1).length === 0,
+    'Power Dad day 7 is neither scheduled nor rendered — it is the ghost')
 
   // ...and the call sites still USE it. This is the class of wiring that
   // disappears in a refactor while every behavioural assertion above keeps
