@@ -32,6 +32,7 @@ const SUITES = [
   ['orphaned components', 'orphans.mjs'],
   ['ink contrast', 'contrast.mjs'],
   ['raw palette', 'palette.mjs'],
+  ['run scope', 'run-scope.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

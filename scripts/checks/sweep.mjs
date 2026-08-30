@@ -1,6 +1,9 @@
 // Deterministic sweep of the athletic-power hybridPower config.
 // Run: npx tsx sweep.mjs (from repo root or with absolute path)
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
+// RUN_EPOCH: these suites build their own fixtures and are not exercising
+// run scoping, so they ask for every row.
+import { RUN_EPOCH } from '../../src/lib/programs/run.ts'
 
 const MAXES = {
   snatch: 205, clean_jerk: 260,
@@ -323,11 +326,11 @@ const W4_LOGS = [
   { slot: 'speed_squat', rpe: 6, weight_lbs: 250 },  // Speed Box Squat (unchanged)
 ]
 const chain = data => {
-  const o = { select: () => o, eq: () => o, order: () => o, limit: () => Promise.resolve({ data }), not: () => Promise.resolve({ data }) }
+  const o = { select: () => o, eq: () => o, gte: () => o, order: () => o, limit: () => Promise.resolve({ data }), not: () => Promise.resolve({ data }) }
   return o
 }
 const fakeDb = { from: t => chain(t === 'generated_workouts' ? [{ id: 'w4' }] : W4_LOGS) }
-const adj = await computeAdjustments(fakeDb, 'u1', hybridPower, 5, 5, MAXES)
+const adj = await computeAdjustments(fakeDb, 'u1', hybridPower, 5, 5, RUN_EPOCH, MAXES)
 assert(adj.clean_pull === undefined, `rotated clean_pull carried an adjustment (${adj.clean_pull})`)
 assert(adj.cl_top != null && adj.cl_top > 0, `unchanged cl_top lost its adjustment (${adj.cl_top})`)
 // speed_squat is unchanged across the boundary too, but it's a VELOCITY slot:

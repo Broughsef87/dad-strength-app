@@ -47,6 +47,11 @@ export async function computeAdjustments(
   program: ProgramConfig,
   weekNumber: number,
   dayNumber: number,
+  // When the CURRENT run of this program began. Passed in rather than looked
+  // up here: this is an engine function, and giving it its own database
+  // round-trip made it untestable against a fake db — which is exactly how
+  // three suites started failing the moment it did.
+  runStart: string,
   maxes: Record<string, number> = {},
 ): Promise<Record<string, number>> {
   const weekInMacro = ((weekNumber - 1) % program.macroWeeks) + 1
@@ -64,7 +69,11 @@ export async function computeAdjustments(
     .select('id, workout_data')
     .eq('user_id', userId).eq('program_slug', program.slug)
     .eq('week_number', prevWeek).eq('day_number', dayNumber)
-    .order('id', { ascending: true }).limit(1)
+    // Same RUN, not merely the same program. Without this the engine reads a
+    // previous attempt's week and tunes today against loads lifted months ago,
+    // off different maxes.
+    .gte('created_at', runStart)
+    .order('created_at', { ascending: true }).limit(1)
   const workoutId: string | undefined = workouts?.[0]?.id
   if (!workoutId) return {}
   const prevAdj = ((workouts?.[0]?.workout_data as { adjustments?: unknown } | null)?.adjustments

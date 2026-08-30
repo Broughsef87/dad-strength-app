@@ -2,6 +2,9 @@
 // Simulate an athlete who follows the app EXACTLY, week after week.
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
 import { computeAdjustments } from '../../src/lib/programs/autoreg.ts'
+// RUN_EPOCH: these fixtures are built by hand and are not exercising run
+// scoping, so they ask for every row.
+import { RUN_EPOCH } from '../../src/lib/programs/run.ts'
 
 const MAXES = { snatch: 205, clean_jerk: 260, back_squat: 365, front_squat: 315, bench: 250, deadlift: 465, ohp: 155 }
 
@@ -9,7 +12,7 @@ const MAXES = { snatch: 205, clean_jerk: 260, back_squat: 365, front_squat: 315,
 const db = (logs, storedAdj) => ({
   from: t => {
     const o = {
-      select: () => o, eq: () => o, order: () => o,
+      select: () => o, eq: () => o, gte: () => o, order: () => o,
       limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: storedAdj } }] }),
       not: () => Promise.resolve({ data: logs }),
     }
@@ -39,7 +42,7 @@ for (let wk = 1; wk <= 8; wk++) {
     { slot: SLOT, rpe: 4, weight_lbs: lifted },
     { slot: SLOT, rpe: 4, weight_lbs: lifted },
   ]
-  const next = await computeAdjustments(db(logs, adj), 'u', hybridPower, wk + 1, DAY, MAXES)
+  const next = await computeAdjustments(db(logs, adj), 'u', hybridPower, wk + 1, DAY, RUN_EPOCH, MAXES)
 
   console.log(
     String(wk).padStart(2) + ' | ' +

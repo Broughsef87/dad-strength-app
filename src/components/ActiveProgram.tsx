@@ -12,6 +12,7 @@ import { PlayCircle, ChevronRight } from 'lucide-react'
 import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
 import { getProgram } from '../lib/programs'
+import { RUN_EPOCH } from '../lib/programs/run'
 
 interface ProgramRow {
   slug: string
@@ -31,7 +32,7 @@ export default function ActiveProgram() {
     try {
       const { data: prog } = await supabase
         .from('user_programs')
-        .select('program_slug, current_week')
+        .select('program_slug, current_week, started_at')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .maybeSingle()
@@ -47,6 +48,8 @@ export default function ActiveProgram() {
           .eq('user_id', user.id)
           .eq('program_slug', slug)
           .eq('week_number', currentWeek)
+          // this run only — see src/lib/programs/run.ts
+          .gte('created_at', (prog.started_at as string | undefined) ?? RUN_EPOCH)
         const ids = (workouts ?? []).map((w: { id: string }) => w.id)
         if (ids.length) {
           const { data: sentinels } = await supabase
