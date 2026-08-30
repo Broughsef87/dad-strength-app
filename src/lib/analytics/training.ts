@@ -616,7 +616,10 @@ export interface AdherenceResult {
 }
 
 export interface AdherenceOpts {
-  /** Sessions the program expects per week. Default 7 (hybridPower.daysPerWeek). */
+  /** Sessions the program expects per week. Pass the active program's
+   *  daysPerWeek — there is no single right number any more (Power Dad is 6
+   *  since FOR-195 cut Sunday, Dad Built 6, Dad Strong 5). The default of 7
+   *  is a full calendar week, not any program's shape. */
   daysPerWeek?: number
   /** Weekday buckets to report. Default 1-7. */
   weekdays?: number[]
