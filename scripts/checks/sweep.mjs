@@ -582,6 +582,28 @@ assert(new Set([1, 5, 9].map(wk => hybridPower.buildDay(wk, 4, MAXES).items[0].p
   assert(!/const blockCount\s*=/.test(hub), 'the schedule screen still defines a local blockCount')
 }
 
+// ── 8g. A deload deloads the JUMPS too ──────────────────────────────
+// Raised by Codex against FOR-195 item 2 and NOT a live bug — the Monday
+// deload branch already filters broad_jump, and both the built-in W12 and a
+// forced deload were checked and drop it. But the reasoning was sound: broad
+// jumps used to be meso-2-only and the built-in deload is in meso 3, so before
+// this ticket that filter never had to fire. Now it does, every deload.
+//
+// A max-intent plyo is the last thing a deload week should carry, and one line
+// stands between the config and shipping one. Pinned so it stays.
+for (const [label, wk, opts] of [['W12', 12, undefined], ['forced', 3, { forceDeload: true }]]) {
+  for (const d of [1, 3, 5]) {
+    const plan = hybridPower.buildDay(wk, d, MAXES, {}, opts)
+    const plyos = plan.items.filter(i => i.kind === 'plyo')
+    assert(plyos.length === 0,
+      `${label} deload D${d} still prescribes ${plyos.map(p => p.name).join(', ')}`)
+  }
+  // Saturday keeps ONE, deliberately: easy-height box jumps to stay springy.
+  const sat = hybridPower.buildDay(wk, 6, MAXES, {}, opts).items.filter(i => i.kind === 'plyo')
+  assert(sat.length === 1 && /easy height/i.test(sat[0].note ?? ''),
+    `${label} deload Saturday plyo should be the easy one, got ${sat.map(p => p.name).join(', ')}`)
+}
+
 // 9. Autoreg clamp extremes can't break floors (adjustments ±8 — the new
 // MAX_ADJ, wide enough for the weight-follow — on every slot).
 for (const sign of [-8, 8]) {
