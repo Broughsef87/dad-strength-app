@@ -26,6 +26,7 @@ import {
 import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
+import { runStartedAt } from '../../../../lib/programs/run'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -191,6 +192,8 @@ async function fetchDoneDays(
     .from('generated_workouts')
     .select('id')
     .eq('user_id', userId).eq('program_slug', slug).eq('week_number', weekNumber)
+    // this run only — see src/lib/programs/run.ts
+    .gte('created_at', await runStartedAt(supabase, userId, slug))
   const ids: string[] = (workouts ?? []).map((w: { id: string }) => w.id)
   if (!ids.length) return []
 
@@ -264,6 +267,9 @@ async function fetchLiftHistory(
     .select('id, week_number')
     .eq('user_id', userId).eq('program_slug', slug)
     .gte('week_number', mesoStart).lt('week_number', weekNumber)
+    // and the same RUN — otherwise 'what you did in week 2' can be from an
+    // attempt you abandoned months ago
+    .gte('created_at', await runStartedAt(supabase, userId, slug))
   const weekById: Record<string, number> = {}
   for (const w of workouts ?? []) weekById[w.id] = w.week_number
   const ids = Object.keys(weekById)
@@ -1099,6 +1105,10 @@ export default function TrainingDayPage() {
         subs[`${r.slot}::${r.original_name}`] = r.sub_name
       }
       subsRef.current = subs
+      // When this run of the program began. Everything below that asks 'how far
+      // along am I' is scoped to it — a find-or-create that ignores it adopts the
+      // previous attempt's row, and its completion sentinel with it.
+      const runStart = await runStartedAt(supabase, user.id, slug)
       const doneDays = await fetchDoneDays(supabase, user.id, slug, weekNumber)
       if (doneDays.includes(dayNumber)) setSessionComplete(true)
 
@@ -1107,7 +1117,7 @@ export default function TrainingDayPage() {
       // RPEs would read as "way under target" and wrongly drag this week down.
       const adjustments = progState.deloadWeeks.includes(weekNumber - 1)
         ? {}
-        : await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber, userMaxes)
+        : await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber, runStart, userMaxes)
 
       // ── Double progression for range-based accessory slots ─────────────
       // The percent engine handles the main lifts; accessories have no 1RM to
@@ -1175,7 +1185,8 @@ export default function TrainingDayPage() {
         .select('id, workout_data')
         .eq('user_id', user.id).eq('program_slug', slug)
         .eq('week_number', weekNumber).eq('day_number', dayNumber)
-        .order('id', { ascending: true }).limit(1)
+        .gte('created_at', runStart)
+        .order('created_at', { ascending: true }).limit(1)
 
       let workoutId: string | null = rows?.[0]?.id ?? null
       if (workoutId) {
@@ -1207,6 +1218,12 @@ export default function TrainingDayPage() {
           .select('id').single()
         if (saved) workoutId = saved.id
         else if ((insertError as { code?: string } | null)?.code === '23505') {
+          // Deliberately NOT run-scoped. A 23505 here means a unique index
+          // rejected the insert, and those indexes are partial: only legacy,
+          // zeus and ares have one. On those a second row for the same
+          // week+day cannot exist, so reusing the existing row is the only
+          // option — scoping would return nothing and break log linkage.
+          // The macrocycle programs have no such index and never reach here.
           const { data: again } = await supabase
             .from('generated_workouts').select('id')
             .eq('user_id', user.id).eq('program_slug', slug)

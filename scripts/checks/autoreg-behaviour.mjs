@@ -4,12 +4,15 @@
 // speed-slot guard is asymmetric (backs off, never chases).
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
 import { computeAdjustments } from '../../src/lib/programs/autoreg.ts'
+// RUN_EPOCH: these fixtures are built by hand and are not exercising run
+// scoping, so they ask for every row.
+import { RUN_EPOCH } from '../../src/lib/programs/run.ts'
 
 const MAXES = { snatch: 205, clean_jerk: 260, back_squat: 365, front_squat: 315, bench: 250, deadlift: 465, ohp: 155 }
 const db = (logs, storedAdj = {}) => ({
   from: () => {
     const o = {
-      select: () => o, eq: () => o, order: () => o,
+      select: () => o, eq: () => o, gte: () => o, order: () => o,
       limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: storedAdj } }] }),
       not: () => Promise.resolve({ data: logs }),
     }
@@ -34,7 +37,7 @@ const shown = (wk, day, slot) =>
   const heavier = Math.round(s.targetWeightLbs * 1.05 / 5) * 5
   const adj = await computeAdjustments(
     db([{ slot: 'cl_top', rpe: 8, weight_lbs: heavier }, { slot: 'cl_top', rpe: 8, weight_lbs: heavier }]),
-    'u', hybridPower, 3, 5, MAXES)
+    'u', hybridPower, 3, 5, RUN_EPOCH, MAXES)
   check('normal slot, lifted ~5% heavy → follows UP', adj.cl_top, v => v > 1)
 }
 
@@ -44,7 +47,7 @@ const shown = (wk, day, slot) =>
   const lighter = Math.round(s.targetWeightLbs * 0.93 / 5) * 5
   const adj = await computeAdjustments(
     db([{ slot: 'cl_top', rpe: 9, weight_lbs: lighter }, { slot: 'cl_top', rpe: 9, weight_lbs: lighter }]),
-    'u', hybridPower, 3, 5, MAXES)
+    'u', hybridPower, 3, 5, RUN_EPOCH, MAXES)
   check('normal slot, backed off ~7%      → follows DOWN', adj.cl_top, v => v < -1)
 }
 
@@ -54,7 +57,7 @@ const shown = (wk, day, slot) =>
   const heavier = Math.round(s.targetWeightLbs * 1.12 / 5) * 5
   const adj = await computeAdjustments(
     db([{ slot: 'speed_squat', rpe: 7, weight_lbs: heavier }, { slot: 'speed_squat', rpe: 7, weight_lbs: heavier }]),
-    'u', hybridPower, 3, 5, MAXES)
+    'u', hybridPower, 3, 5, RUN_EPOCH, MAXES)
   check('speed slot, loaded 12% ABOVE    → refuses to chase', adj.speed_squat, v => (v ?? 0) <= 0)
 }
 
@@ -64,7 +67,7 @@ const shown = (wk, day, slot) =>
   const lighter = Math.round(s.targetWeightLbs * 0.90 / 5) * 5
   const adj = await computeAdjustments(
     db([{ slot: 'speed_squat', rpe: 7, weight_lbs: lighter }, { slot: 'speed_squat', rpe: 7, weight_lbs: lighter }]),
-    'u', hybridPower, 3, 5, MAXES)
+    'u', hybridPower, 3, 5, RUN_EPOCH, MAXES)
   check('speed slot, backed off 10%      → follows DOWN', adj.speed_squat, v => v < -1)
 }
 
@@ -81,7 +84,7 @@ const shown = (wk, day, slot) =>
   const adj = await computeAdjustments(
     db([{ slot: 'speed_squat', rpe: 3, weight_lbs: s.targetWeightLbs },
         { slot: 'speed_squat', rpe: 3, weight_lbs: s.targetWeightLbs }]),
-    'u', hybridPower, 3, 5, MAXES)
+    'u', hybridPower, 3, 5, RUN_EPOCH, MAXES)
   check('speed slot, on-weight + RPE 3   → no RPE-driven bump', adj.speed_squat, v => (v ?? 0) === 0)
 }
 

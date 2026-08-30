@@ -17,6 +17,7 @@ import { getProgram } from '../../../lib/programs'
 import WeekPulse from '../../../components/WeekPulse'
 import type { DayPlan } from '../../../lib/programs/types'
 import MaxesCard from '../../../components/MaxesCard'
+import { RUN_EPOCH } from '../../../lib/programs/run'
 
 const DAY_LABELS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
@@ -63,10 +64,14 @@ export default function SchedulePage() {
     if (!user || !program) return
     try {
       const [{ data: prog }, { data: maxRows }] = await Promise.all([
-        supabase.from('user_programs').select('current_week, preferences')
+        supabase.from('user_programs').select('current_week, preferences, started_at')
           .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active').maybeSingle(),
         supabase.from('user_maxes').select('lift_key, value_lbs').eq('user_id', user.id),
       ])
+      // Only THIS run counts toward progress. Rows from an earlier attempt at
+      // the same program stay in the table as history, but a fresh start has to
+      // look fresh — see src/lib/programs/run.ts.
+      const runStart = (prog?.started_at as string | undefined) ?? RUN_EPOCH
       const wk = prog?.current_week ?? 1
       setCurrentWeek(wk)
       setSelectedWeek(wk)
@@ -84,6 +89,7 @@ export default function SchedulePage() {
         .from('generated_workouts')
         .select('id, week_number, day_number')
         .eq('user_id', user.id).eq('program_slug', slug)
+        .gte('created_at', runStart)
       const byId: Record<string, { week: number; day: number }> = {}
       for (const w of workouts ?? []) byId[w.id] = { week: w.week_number, day: w.day_number }
       const ids = Object.keys(byId)

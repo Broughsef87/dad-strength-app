@@ -23,6 +23,7 @@ import WeekPulse from '../../components/WeekPulse'
 import ForgeLoader from '../../components/ForgeLoader'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
+import { runStartedAt } from '../../lib/programs/run'
 
 interface ActiveProgramData {
   slug: string
@@ -200,6 +201,8 @@ export default function Dashboard() {
             .eq('user_id', user.id)
             .eq('program_slug', dbSlug)
             .eq('week_number', currentWeek)
+            // this run only — an earlier attempt's sentinels are history, not progress
+            .gte('created_at', await runStartedAt(supabase, user.id, dbSlug))
           const ids: string[] = (weekWorkouts ?? []).map((w: { id: string }) => w.id)
           if (ids.length > 0) {
             const { data: completionRows } = await supabase
