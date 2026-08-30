@@ -28,6 +28,7 @@ import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
 import { scheduledDoneDays } from '../../../../lib/programs/schedule'
+import type { ProgramConfig } from '../../../../lib/programs/types'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -210,17 +211,22 @@ async function fetchDoneDays(
 // logged — completing a previewed future/past week never moves the pointer.
 async function advanceWeekIfDone(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any, userId: string, slug: string, daysPerWeek: number,
+  supabase: any, userId: string, slug: string, program: ProgramConfig,
 ): Promise<void> {
   const { week: weekNumber } = await fetchProgramState(supabase, userId, slug)
   // Only days the program still SCHEDULES count toward finishing the week.
   // A legacy day-7 sentinel from before Power Dad dropped Sunday would
   // otherwise stand in for a session never trained, and the week would
   // advance a day early — permanently, since current_week drives the macro
-  // position the whole percent engine reads. See src/lib/programs/schedule.ts.
+  // position the whole percent engine reads.
+  //
+  // It takes the PROGRAM, not daysPerWeek, because that number is a count
+  // and not a range: Dad Strong is 5 days on 1, 2, 4, 6 and 7, so filtering
+  // by `<= daysPerWeek` would drop its Saturday and Sunday and the week
+  // would never advance at all. See src/lib/programs/schedule.ts.
   const doneDays = scheduledDoneDays(
-    await fetchDoneDays(supabase, userId, slug, weekNumber), daysPerWeek)
-  if (doneDays.length < daysPerWeek) return
+    await fetchDoneDays(supabase, userId, slug, weekNumber), program, weekNumber)
+  if (doneDays.length < program.daysPerWeek) return
   await supabase
     .from('user_programs')
     .update({ current_week: weekNumber + 1 })
@@ -1373,7 +1379,7 @@ export default function TrainingDayPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
-    await advanceWeekIfDone(supabase, user.id, slug, program.daysPerWeek)
+    await advanceWeekIfDone(supabase, user.id, slug, program)
     // Streak shim so dashboard streak sees this session.
     await supabase.from('workout_logs').upsert({
       user_id: user.id,
@@ -1405,7 +1411,7 @@ export default function TrainingDayPage() {
       // Scheduled days only — the CLEARED screen must not count a session the
       // program no longer asks for. See src/lib/programs/schedule.ts.
       const doneNow = scheduledDoneDays(
-        await fetchDoneDays(supabase, user.id, slug, weekRef.current), program.daysPerWeek)
+        await fetchDoneDays(supabase, user.id, slug, weekRef.current), program, weekRef.current)
       setSessionSummary({
         tonnage, sets: setCount,
         top: Object.values(topBy).sort((a, b) => b.weight - a.weight).slice(0, 3),

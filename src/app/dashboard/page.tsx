@@ -420,7 +420,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex justify-between mt-1.5 data-mono">
                     <span>sessions</span>
-                    <span className="v">{scheduledDoneDays(zeusDoneDays, getProgram(activeProgram.slug ?? '')!.daysPerWeek).length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</span>
+                    <span className="v">{scheduledDoneDays(zeusDoneDays, getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek).length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</span>
                   </div>
                 </div>
               )}

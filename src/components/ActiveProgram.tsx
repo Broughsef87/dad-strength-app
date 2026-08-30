@@ -123,7 +123,7 @@ export default function ActiveProgram() {
           </div>
           <div className="flex justify-between mt-1.5">
             <p className="eyebrow-mono">this week</p>
-            <p className="eyebrow-mono">{scheduledDoneDays(doneDays, program.daysPerWeek).length} of {program.daysPerWeek} logged</p>
+            <p className="eyebrow-mono">{scheduledDoneDays(doneDays, program, row.currentWeek).length} of {program.daysPerWeek} logged</p>
           </div>
         </div>
       )}

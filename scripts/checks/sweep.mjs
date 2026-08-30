@@ -1,6 +1,13 @@
 // Deterministic sweep of the athletic-power hybridPower config.
 // Run: npx tsx sweep.mjs (from repo root or with absolute path)
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
+import { dadStrong } from '../../src/lib/programs/dadStrong.ts'
+// The station rule and the week's shape are SHARED with the app now. The
+// schedule screen kept its own copy of blockCount that only knew about
+// *_back, so it would have printed '7 blocks' on a Saturday this suite calls
+// 6. Importing it means the check and the screen cannot disagree again.
+import { blockCount, isStationFree, scheduledDayNumbers, scheduledDoneDays }
+  from '../../src/lib/programs/schedule.ts'
 // RUN_EPOCH: these suites build their own fixtures and are not exercising
 // run scoping, so they ask for every row.
 import { RUN_EPOCH } from '../../src/lib/programs/run.ts'
@@ -21,8 +28,9 @@ const isClassicSlot = (slot, maxKey) =>
 
 let checks = 0
 const fails = []
-// Cards that cost no extra station — see rule 8b.
-const stationFree = (i) => i.slot.endsWith('_back') || i.slot === 'plyo_2'
+// Cards that cost no extra station — isStationFree, imported above, is the
+// one definition; see rule 8b for why plyo_2 is in it.
+const stationFree = isStationFree
 const overBudget = new Set() // days knowingly running >6 cards
 const assert = (cond, msg) => { checks++; if (!cond) fails.push(msg) }
 
@@ -115,7 +123,7 @@ for (let week = 1; week <= 13; week++) {
     // Andrew — the alternative is dropping plyo_2 or the Saturday core, and
     // FOR-195 explicitly says to leave saturdayPlyo alone.
     if (((week - 1) % 13) + 1 !== 13) {
-      const blocks = plan.items.filter(i => !stationFree(i)).length
+      const blocks = blockCount(plan)
       assert(blocks <= 6, `W${week} D${day}: ${blocks} blocks > 6 budget (${plan.items.length} cards)`)
       if (blocks > 6) overBudget.add(`W${week} D${day} (${blocks})`)
     }
@@ -500,15 +508,26 @@ assert(new Set([1, 5, 9].map(wk => hybridPower.buildDay(wk, 4, MAXES).items[0].p
 //
 // The rows are real training and stay where they are. They just stop counting.
 {
-  const { scheduledDoneDays } = await import('../../src/lib/programs/schedule.ts')
   const n = hybridPower.daysPerWeek
   // The exact live shape: five real sessions plus the ghost Sunday.
-  assert(scheduledDoneDays([1, 2, 3, 5, 6, 7], n).length < n,
+  assert(scheduledDoneDays([1, 2, 3, 5, 6, 7], hybridPower, 1).length < n,
     'a legacy day-7 sentinel must not complete a six-day week')
-  assert(scheduledDoneDays([1, 2, 3, 4, 5, 6], n).length === n,
+  assert(scheduledDoneDays([1, 2, 3, 4, 5, 6], hybridPower, 1).length === n,
     'a genuinely finished week must still complete')
-  assert(scheduledDoneDays([0, -1, 7, 8, NaN], n).length === 0, 'out-of-range days are dropped')
-  assert(scheduledDoneDays([1, 2, 3], n).join() === '1,2,3', 'scheduled days pass through untouched')
+  assert(scheduledDoneDays([0, -1, 7, 8, NaN], hybridPower, 1).length === 0, 'out-of-range days are dropped')
+  assert(scheduledDoneDays([1, 2, 3], hybridPower, 1).join() === '1,2,3', 'scheduled days pass through untouched')
+  assert(scheduledDayNumbers(hybridPower, 1).join() === '1,2,3,4,5,6',
+    `Power Dad should run days 1-6, got ${scheduledDayNumbers(hybridPower, 1).join()}`)
+
+  // Codex [P2], round 2, and the reason this filters by SCHEDULED DAYS rather
+  // than `<= daysPerWeek`. daysPerWeek is a COUNT, not a range: Dad Strong is
+  // 5 days on Mon/Tue/Thu/Sat/Sun. The first version of this filter dropped
+  // days 6 and 7 as out of range, which capped that program at 3 done days
+  // against a threshold of 5 — its week could never have advanced again.
+  assert(scheduledDayNumbers(dadStrong, 1).join() === '1,2,4,6,7',
+    `Dad Strong runs Mon/Tue/Thu/Sat/Sun, got ${scheduledDayNumbers(dadStrong, 1).join()}`)
+  assert(scheduledDoneDays([1, 2, 4, 6, 7], dadStrong, 1).length === dadStrong.daysPerWeek,
+    'Dad Strong must still be able to finish a week — days 6 and 7 are real sessions')
 
   // ...and the call sites still USE it. This is the class of wiring that
   // disappears in a refactor while every behavioural assertion above keeps
@@ -530,9 +549,15 @@ assert(new Set([1, 5, 9].map(wk => hybridPower.buildDay(wk, 4, MAXES).items[0].p
     ['dashboard', '../../src/app/dashboard/page.tsx'],
     ['ActiveProgram', '../../src/components/ActiveProgram.tsx'],
   ]) {
-    const src = readLF(url)
-    assert(src.includes('scheduledDoneDays('), `${file} still counts done days unfiltered`)
+    assert(readLF(url).includes('scheduledDoneDays('), `${file} still counts done days unfiltered`)
   }
+  // The schedule screen must not keep its own block rule. It did, and only
+  // this suite learned that plyo_2 shares a station — so the app would have
+  // shown Saturday breaking a budget the program says it meets.
+  const hub = readLF('../../src/app/train/[program]/page.tsx')
+  assert(/import {[^}]*blockCount[^}]*} from '.*programs\/schedule'/.test(hub),
+    'the schedule screen must import blockCount, not define its own')
+  assert(!/const blockCount\s*=/.test(hub), 'the schedule screen still defines a local blockCount')
 }
 
 // 9. Autoreg clamp extremes can't break floors (adjustments ±8 — the new
@@ -648,8 +673,9 @@ for (let wk = 1; wk <= 13; wk++) {
 console.log('\n── Blocks per gym day (budget 6; cards in parens) ──')
 for (const wk of [1, 5, 9]) {
   const row = [1, 3, 5, 6].map(d => {
-    const it = hybridPower.buildDay(wk, d, MAXES).items
-    const blocks = it.filter(i => !stationFree(i)).length
+    const plan = hybridPower.buildDay(wk, d, MAXES)
+    const it = plan.items
+    const blocks = blockCount(plan)
     return `D${d}:${blocks}${blocks === it.length ? '' : `(${it.length})`}`
   })
   console.log(`  M${Math.ceil(wk / 4)}: ` + row.join('  '))
