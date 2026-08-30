@@ -24,6 +24,7 @@ import ForgeLoader from '../../components/ForgeLoader'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
+import { scheduledDoneDays } from '../../lib/programs/schedule'
 
 interface ActiveProgramData {
   slug: string
@@ -419,7 +420,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex justify-between mt-1.5 data-mono">
                     <span>sessions</span>
-                    <span className="v">{zeusDoneDays.length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</span>
+                    <span className="v">{scheduledDoneDays(zeusDoneDays, getProgram(activeProgram.slug ?? '')!.daysPerWeek).length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</span>
                   </div>
                 </div>
               )}

@@ -13,6 +13,7 @@ import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
 import { getProgram } from '../lib/programs'
 import { RUN_EPOCH } from '../lib/programs/run'
+import { scheduledDoneDays } from '../lib/programs/schedule'
 
 interface ProgramRow {
   slug: string
@@ -122,7 +123,7 @@ export default function ActiveProgram() {
           </div>
           <div className="flex justify-between mt-1.5">
             <p className="eyebrow-mono">this week</p>
-            <p className="eyebrow-mono">{doneDays.length} of {program.daysPerWeek} logged</p>
+            <p className="eyebrow-mono">{scheduledDoneDays(doneDays, program.daysPerWeek).length} of {program.daysPerWeek} logged</p>
           </div>
         </div>
       )}

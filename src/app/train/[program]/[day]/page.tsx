@@ -27,6 +27,7 @@ import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
+import { scheduledDoneDays } from '../../../../lib/programs/schedule'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -212,7 +213,13 @@ async function advanceWeekIfDone(
   supabase: any, userId: string, slug: string, daysPerWeek: number,
 ): Promise<void> {
   const { week: weekNumber } = await fetchProgramState(supabase, userId, slug)
-  const doneDays = await fetchDoneDays(supabase, userId, slug, weekNumber)
+  // Only days the program still SCHEDULES count toward finishing the week.
+  // A legacy day-7 sentinel from before Power Dad dropped Sunday would
+  // otherwise stand in for a session never trained, and the week would
+  // advance a day early — permanently, since current_week drives the macro
+  // position the whole percent engine reads. See src/lib/programs/schedule.ts.
+  const doneDays = scheduledDoneDays(
+    await fetchDoneDays(supabase, userId, slug, weekNumber), daysPerWeek)
   if (doneDays.length < daysPerWeek) return
   await supabase
     .from('user_programs')
@@ -1395,7 +1402,10 @@ export default function TrainingDayPage() {
           }
         }
       }
-      const doneNow = await fetchDoneDays(supabase, user.id, slug, weekRef.current)
+      // Scheduled days only — the CLEARED screen must not count a session the
+      // program no longer asks for. See src/lib/programs/schedule.ts.
+      const doneNow = scheduledDoneDays(
+        await fetchDoneDays(supabase, user.id, slug, weekRef.current), program.daysPerWeek)
       setSessionSummary({
         tonnage, sets: setCount,
         top: Object.values(topBy).sort((a, b) => b.weight - a.weight).slice(0, 3),

@@ -490,6 +490,51 @@ for (const wk of [12, 13]) {
 assert(new Set([1, 5, 9].map(wk => hybridPower.buildDay(wk, 4, MAXES).items[0].parts[1])).size === 3,
   'the interval week must still grade by meso')
 
+// ── 8f. A completion for a day the program no longer runs is HISTORY ─────
+// Codex [P2] on this branch. Cutting Sunday moved every surface that derives
+// from daysPerWeek, but the session_complete sentinels already in the table did
+// not move: advanceWeekIfDone counts doneDays.length against daysPerWeek, so a
+// legacy day-7 row stands in for a session never trained and the week advances
+// a day early — permanently, because current_week is the macro position the
+// whole percent engine reads.
+//
+// The rows are real training and stay where they are. They just stop counting.
+{
+  const { scheduledDoneDays } = await import('../../src/lib/programs/schedule.ts')
+  const n = hybridPower.daysPerWeek
+  // The exact live shape: five real sessions plus the ghost Sunday.
+  assert(scheduledDoneDays([1, 2, 3, 5, 6, 7], n).length < n,
+    'a legacy day-7 sentinel must not complete a six-day week')
+  assert(scheduledDoneDays([1, 2, 3, 4, 5, 6], n).length === n,
+    'a genuinely finished week must still complete')
+  assert(scheduledDoneDays([0, -1, 7, 8, NaN], n).length === 0, 'out-of-range days are dropped')
+  assert(scheduledDoneDays([1, 2, 3], n).join() === '1,2,3', 'scheduled days pass through untouched')
+
+  // ...and the call sites still USE it. This is the class of wiring that
+  // disappears in a refactor while every behavioural assertion above keeps
+  // passing, because they all drive the helper directly.
+  const { readFileSync } = await import('node:fs')
+  const readLF = (u) => readFileSync(new URL(u, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  const day = readLF('../../src/app/train/[program]/[day]/page.tsx')
+  // Scoped to the FUNCTION, not the file. Written first as a plain regex over
+  // the whole page, which passed with the filter deleted from
+  // advanceWeekIfDone — because the debrief counter lower down calls
+  // scheduledDoneDays too and satisfied the pattern. Presence-in-file is not
+  // the claim; presence in the function that advances the week is.
+  const advance = day.slice(day.indexOf('async function advanceWeekIfDone('))
+  const body = advance.slice(0, advance.indexOf('\n}\n'))
+  assert(body.length > 0 && body.length < 2000, 'could not isolate advanceWeekIfDone')
+  assert(/scheduledDoneDays\(/.test(body),
+    'advanceWeekIfDone must filter done days to the ones the program schedules')
+  for (const [file, url] of [
+    ['dashboard', '../../src/app/dashboard/page.tsx'],
+    ['ActiveProgram', '../../src/components/ActiveProgram.tsx'],
+  ]) {
+    const src = readLF(url)
+    assert(src.includes('scheduledDoneDays('), `${file} still counts done days unfiltered`)
+  }
+}
+
 // 9. Autoreg clamp extremes can't break floors (adjustments ±8 — the new
 // MAX_ADJ, wide enough for the weight-follow — on every slot).
 for (const sign of [-8, 8]) {
