@@ -140,6 +140,70 @@ const row = (slot, w, reps, week = 5, day = 2) =>
     /week_number\)\s*===\s*weekNumber\s*&&\s*Number\(r\.day_number\)\s*===\s*dayNumber/.test(page), null)
 }
 
+// ══ 15. POWER DAD's DB bench — the FOR-175 regression test for a NEW slot ═══
+// FOR-195 item 4 turned Wednesday's barbell bench into dumbbells, and with it
+// the first range-based slot outside Dad Built. The machinery was already
+// built and already tested — against dadBuilt. hybridPower.buildDay did not
+// read opts.loadTargets at all, so the slot would have printed with no weight
+// forever while every check in this file stayed green: check 14 proves the
+// chain for ONE program, and 'the chain works' is not the same claim as 'this
+// program is plugged into it'.
+{
+  const { hybridPower } = await import('../../src/lib/programs/hybridPower.ts')
+  const MAXES = {
+    snatch: 205, clean_jerk: 260,
+    back_squat: 365, front_squat: 315, bench: 250, deadlift: 465, ohp: 155,
+  }
+  const wed = wk => hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'db_bench')
+
+  const w1 = wed(1)
+  ok('power dad: Wednesday press is a range slot',
+    w1?.name === 'DB Bench Press' && Array.isArray(w1?.repRange) && w1?.percent == null,
+    { name: w1?.name, repRange: w1?.repRange, percent: w1?.percent })
+  ok('power dad: no history → no invented weight', w1?.targetWeightLbs === undefined, w1?.targetWeightLbs)
+
+  // Every set at the TOP of the window → the next build must show +5 lb.
+  const [lo, hi] = w1.repRange
+  const logs = Array.from({ length: w1.sets }, () => ({
+    slot: 'db_bench', block_name: 'DB Bench Press', weight_lbs: 60, reps: hi,
+    completed: true, week_number: 1, day_number: 3, log_type: 'strength_set',
+  }))
+  const lt = loadTargets(doubleProgression(logs, {
+    ranges: { db_bench: w1.repRange }, steps: { db_bench: w1.loadStepLbs }, defaultStep: 5,
+  }))
+  ok('power dad: a topped-out session suggests +5 lb/hand', lt.db_bench === 65, lt)
+
+  const next = hybridPower.buildDay(2, 3, MAXES, {}, { loadTargets: lt })
+    .items.find(i => i.slot === 'db_bench')
+  ok('power dad: buildDay reads opts.loadTargets and prints 65 lb',
+    next?.targetWeightLbs === 65, next?.targetWeightLbs)
+
+  // ...and it HOLDS when a set falls short, rather than climbing on partial work.
+  const short = [
+    { slot: 'db_bench', block_name: 'DB Bench Press', weight_lbs: 60, reps: hi,
+      completed: true, week_number: 1, day_number: 3, log_type: 'strength_set' },
+    { slot: 'db_bench', block_name: 'DB Bench Press', weight_lbs: 60, reps: lo,
+      completed: true, week_number: 1, day_number: 3, log_type: 'strength_set' },
+  ]
+  const held = loadTargets(doubleProgression(short, {
+    ranges: { db_bench: w1.repRange }, steps: { db_bench: w1.loadStepLbs }, defaultStep: 5,
+  }))
+  ok('power dad: one set short of the top holds the load', held.db_bench === 60, held)
+
+  // The windows tighten across the macro the way the percentages used to.
+  ok('power dad: the window narrows and climbs meso to meso',
+    JSON.stringify([wed(1).repRange, wed(5).repRange, wed(9).repRange])
+      === JSON.stringify([[8, 10], [6, 8], [5, 6]]),
+    [wed(1)?.repRange, wed(5)?.repRange, wed(9)?.repRange])
+
+  // The day page discovers ranges by PROBING buildDay with no loadTargets, so a
+  // slot that only reveals its repRange once it already has a load would never
+  // be discovered at all. Probe-shaped call, deliberately.
+  const probe = hybridPower.buildDay(1, 3, MAXES, {}, { forceDeload: false })
+  ok('power dad: the probe build still advertises the range',
+    probe.items.some(i => i.slot === 'db_bench' && i.repRange), null)
+}
+
 // ── Regressions found against Andrew's real session 1, 2026-08-25 ───────────
 // Both of these passed every synthetic test in this file and still produced a
 // wrong prescription on live data. They stay pinned to the actual logged rows.
