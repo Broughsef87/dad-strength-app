@@ -61,66 +61,84 @@ export function scheduledDayNumbers(program: ProgramConfig, weekNumber: number):
 }
 
 /**
- * Filter completed day numbers to the days that still MEAN something.
+ * How many sessions this week actually asks for.
+ *
+ * NOT daysPerWeek. That is a headline number on the program card; this is the
+ * count the week is finished at, and the two diverge in test week — Hybrid
+ * Endurance schedules 5 sessions in W13 against a daysPerWeek of 6, so it could
+ * never advance out of week 13 at all. Dad Built schedules 7 there.
+ */
+export function sessionsThisWeek(program: ProgramConfig, weekNumber: number): number {
+  return scheduledDayNumbers(program, weekNumber).length
+}
+
+/**
+ * Filter completed day numbers to the days the program actually schedules.
  *
  * A program's shape can change under a user who is mid-macro. FOR-195 cut Power
  * Dad's Sunday: daysPerWeek went 7 to 6 and day 7 became a rest day. Every
- * surface derives from daysPerWeek and so followed along — but the completion
+ * surface derives from the schedule and so followed along — but the completion
  * SENTINELS did not. A `session_complete` row for day 7 sits in
- * ares_session_logs forever, and the code that counts progress counted it.
+ * ares_session_logs forever, and the code that counts progress counted it:
+ * Mon/Tue/Wed/Fri/Sat is five real sessions plus one ghost = 6, and the week
+ * advanced with Thursday never trained. current_week IS the macro position the
+ * whole percent engine reads, so that never self-corrects.
  *
- * The concrete failure, found by Codex on the FOR-195 branch:
+ * The rows are real training and stay exactly where they are, still feeding
+ * history and analytics. They just stop counting as this week's progress —
+ * deleting them would erase a session the athlete actually did.
  *
- *     advanceWeekIfDone compares doneDays.length against daysPerWeek. With a
- *     legacy Sunday sentinel already in the current week, Mon/Tue/Wed/Fri/Sat
- *     is five real sessions plus one ghost = 6, and the week advances with
- *     Thursday never trained. That does not self-correct: current_week IS the
- *     macro position the whole percent engine reads.
+ * ── this used to be an OR, and FOR-196 retired the second half ─────────────
  *
- * Same shape as the run-scoping bug in ./run.ts, one axis over — there the
- * stale evidence came from a previous RUN, here from a previous SCHEDULE. Same
- * resolution too: the rows are real training and stay exactly where they are,
- * still feeding history and analytics. They just stop counting as this week's
- * progress. Deleting them would erase a session the athlete actually did.
+ * It read `scheduled.has(d) || d <= daysPerWeek`, because Dad Strong's rendered
+ * days and scheduled days disagreed: the hub showed Mon-Fri while the program
+ * trained Mon/Tue/Thu/Sat/Sun, so its Saturday and Sunday were unreachable and
+ * its Wednesday and Friday rendered as rest days the finish button completed
+ * anyway. Its week advanced on those two fake completions, and dropping them
+ * would have stranded the program.
  *
- * ── the rule, and why it is an OR ──────────────────────────────────────────
- *
- * A day counts if the program SCHEDULES it, or if the app still RENDERS it.
- * A ghost is a day that is neither.
- *
- * The second half is not decoration, and two earlier versions of this function
- * were wrong without it:
- *
- *   `d <= daysPerWeek` alone      daysPerWeek is a COUNT, not a range. Dad
- *                                 Strong is 5 days on Mon/Tue/Thu/Sat/Sun, so
- *                                 this dropped its Saturday and Sunday and that
- *                                 program's week could never advance.
- *
- *   scheduled days alone          Dad Strong's hub renders days 1-5, so days 6
- *                                 and 7 are unreachable from the UI while days
- *                                 3 and 5 render as rest days that the finish
- *                                 button will still complete. Its week advances
- *                                 TODAY on those two fake completions. Dropping
- *                                 them strands the program just as badly, from
- *                                 the other direction.
- *
- * So the OR deliberately preserves a wart: Dad Strong's rendered-but-rest days
- * keep counting, exactly as they do now. That program's real problem is that
- * its scheduled days and its rendered days disagree at all, which is a
- * pre-existing bug in Dad Strong and wants its own ticket — not a silent
- * behaviour change smuggled in on a Power Dad revision.
- *
- * Measured across all four programs, this changes exactly one thing in the
- * codebase: Power Dad's day-7 sentinels stop counting. Everything else is
- * byte-for-byte the behaviour it had before.
- *
- * Use this anywhere a done-day list is COUNTED against daysPerWeek. Places that
- * only test membership — `doneDays.includes(i + 1)` while rendering daysPerWeek
- * pills — are already safe, because they never look past the last rendered day.
+ * FOR-196 fixed the disagreement at the source — every surface now iterates
+ * scheduledDayNumbers, so rendered == scheduled for every program in every
+ * week, and the rendered half of the OR became dead weight. A day that is not
+ * scheduled is not reachable and cannot be completed.
  */
 export function scheduledDoneDays(
   days: number[], program: ProgramConfig, weekNumber: number,
 ): number[] {
   const scheduled = new Set(scheduledDayNumbers(program, weekNumber))
-  return days.filter(d => scheduled.has(d) || (d >= 1 && d <= program.daysPerWeek))
+  return days.filter(d => scheduled.has(d))
+}
+
+// ── What a day is called, and whether it can be finished ─────────────────────
+
+const WEEKDAY = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+
+/**
+ * The label a day carries in a week list.
+ *
+ * Keyed off the day NUMBER, not the array position. The hub used to index its
+ * label array by position, which was accidentally correct only while every
+ * rendered week was contiguous — the moment Dad Strong's week became
+ * Mon/Wed/Fri/Sat it would have printed mon/tue/wed/thu against days 1/3/5/6.
+ *
+ * A flexible day has no weekday to print. See DayPlan.flexible.
+ */
+export function dayLabel(plan: DayPlan): string {
+  if (plan.flexible) return 'anytime'
+  return WEEKDAY[plan.dayNumber - 1] ?? ''
+}
+
+/**
+ * Can this day be finished?
+ *
+ * A rest day cannot. It prescribes nothing, so "completing" it writes a
+ * session_complete sentinel for a session that does not exist — which is
+ * precisely how Dad Strong's week used to advance.
+ *
+ * This has to live in the COMPLETION path, not the button. Once rendered ==
+ * scheduled no rest day is listed anywhere, but /train/dad-strong/2 is still a
+ * URL anyone can type, and until FOR-196 it would have completed.
+ */
+export function isCompletable(plan: DayPlan): boolean {
+  return plan.dayType !== 'rest'
 }

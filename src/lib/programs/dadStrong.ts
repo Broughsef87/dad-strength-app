@@ -213,7 +213,7 @@ function testDay(dayNumber: number): DayPlan {
         accessory('test_acc', 'Easy bike flush', 1, 10, '10 min easy spin after'),
       ],
     },
-    2: {
+    3: {
       dayNumber, dayName: 'TEST — Bench 1RM', dayType: 'test',
       sessionIntent: 'Work to a new 1RM bench press.',
       items: [
@@ -221,7 +221,7 @@ function testDay(dayNumber: number): DayPlan {
         accessory('test_acc', 'Light rows + face pulls', 3, 12, 'Keep the shoulders happy'),
       ],
     },
-    4: {
+    5: {
       dayNumber, dayName: 'TEST — Deadlift 1RM', dayType: 'test',
       sessionIntent: 'Pull a new 1RM deadlift.',
       items: [
@@ -239,7 +239,9 @@ function testDay(dayNumber: number): DayPlan {
   }
   if (plans[dayNumber]) return plans[dayNumber]
   if (dayNumber === 7) {
-    return { dayNumber, dayName: 'Dad Miles', dayType: 'outside', sessionIntent: 'Easy movement between test days.', items: [sundayZ2({ weekInMacro: 13, meso: 3, weekInMeso: 4, isDeload: false, isTest: true })] }
+    // flexible in test week too — otherwise W13 pins to Sunday the one session
+    // every other week calls "anytime".
+    return { dayNumber, dayName: 'Dad Miles', dayType: 'outside', flexible: true, sessionIntent: 'Easy movement between test days.', items: [sundayZ2({ weekInMacro: 13, meso: 3, weekInMeso: 4, isDeload: false, isTest: true })] }
   }
   return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Recover between test days.', items: [] }
 }
@@ -253,6 +255,9 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
   const m = pos.meso - 1
   const w = pos.weekInMeso
 
+  // Mon / Wed / Fri / Sat for the lifts (Andrew, 2026-08-31), with the easy
+  // aerobic day floating. The day numbers here MUST agree with testDay's plans
+  // map and with gymDayNumbers — see the sweep's three-way agreement check.
   switch (dayNumber) {
     case 1: {
       let items: Prescription[] = [
@@ -269,7 +274,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         items,
       }
     }
-    case 2: {
+    case 3: {
       let items: Prescription[] = [
         liftFromSlot('main_bench', D2_BENCH[m], w, 'bench', maxes, pos.meso, adjustments),
         liftFromSlot('close_grip', D2_CLOSE_GRIP[m], w, 'bench', maxes, pos.meso, adjustments),
@@ -285,7 +290,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         items,
       }
     }
-    case 4: {
+    case 5: {
       let items: Prescription[] = [
         liftFromSlot('main_dl', D4_DL[m], w, 'deadlift', maxes, pos.meso, adjustments),
         liftFromSlot('dl_secondary', D4_SECONDARY[m], w, 'deadlift', maxes, pos.meso, adjustments),
@@ -321,7 +326,8 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
     }
     case 7:
-      return { dayNumber, dayName: 'Dad Miles', dayType: 'outside', sessionIntent: 'Easy aerobic movement — the health floor.', items: [sundayZ2(pos)] }
+      // The one session that does NOT anchor to a weekday. See DayPlan.flexible.
+      return { dayNumber, dayName: 'Dad Miles', dayType: 'outside', flexible: true, sessionIntent: 'Easy aerobic movement — fit it in whenever the week allows.', items: [sundayZ2(pos)] }
     default:
       return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Rest. Eat. Sleep. Grow.', items: [] }
   }
@@ -332,9 +338,9 @@ export const dadStrong: ProgramConfig = {
   name: 'Dad Strong',
   tagline: 'Strength · powerlifting · strongman',
   description:
-    '4 lifting days built on the powerlifts — squat, bench, deadlift, press — each capped with strongman-flavored finishers you can actually do at a commercial gym, plus one easy Z2 day. 13-week macro: hypertrophy → strength → peak, deload week 12, test week 13.',
+    '4 lifting days built on the powerlifts — squat, bench, deadlift, press — Monday, Wednesday, Friday and Saturday, each capped with strongman-flavored finishers you can actually do at a commercial gym. Plus one easy Z2 day with no weekday attached: fit it in whenever the week allows. 13-week macro: hypertrophy → strength → peak, deload week 12, test week 13.',
   daysPerWeek: 5,
-  gymDayNumbers: [1, 2, 4, 6],
+  gymDayNumbers: [1, 3, 5, 6],
   macroWeeks: 13,
   requiredMaxes: [
     { key: 'back_squat', label: 'Back Squat', hint: 'Best recent single (lbs)' },
