@@ -85,6 +85,24 @@ export interface DayPlan {
   dayType: 'gym' | 'outside' | 'test' | 'rest'
   sessionIntent: string
   items: Prescription[]
+  // UNPINNED — "do this anytime this week" rather than on a named weekday.
+  //
+  // Andrew, on Dad Strong: "the lifting days are typically mon/wed/fri/sat and
+  // then I fit the other days when I can." The lifts anchor; the easy aerobic
+  // day floats.
+  //
+  // This is presentation, not capability. Nothing in the training flow has
+  // ever read the real calendar weekday — day_number is a slot identity that
+  // keys generated_workouts and ares_session_logs, and /train/<slug>/6 opens
+  // and completes on a Tuesday exactly as it does on a Saturday. So a session
+  // was ALREADY doable any day; the only thing pinning it was the week list
+  // printing a weekday next to it. This flag stops that label lying.
+  //
+  // Deliberately a flag rather than a fifth dayType, and deliberately not
+  // inferred from dayType === 'outside': Power Dad's Tuesday sprint and
+  // Thursday conditioning are 'outside' and genuinely pinned. Only a program
+  // that means it sets this.
+  flexible?: boolean
 }
 
 export interface ProgramConfig {

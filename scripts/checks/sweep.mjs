@@ -1,8 +1,6 @@
 // Deterministic sweep of the athletic-power hybridPower config.
 // Run: npx tsx sweep.mjs (from repo root or with absolute path)
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
-import { dadStrong } from '../../src/lib/programs/dadStrong.ts'
-import { PROGRAMS } from '../../src/lib/programs/index.ts'
 // The station rule and the week's shape are SHARED with the app now. The
 // schedule screen kept its own copy of blockCount that only knew about
 // *_back, so it would have printed '7 blocks' on a Saturday this suite calls
@@ -520,36 +518,21 @@ assert(new Set([1, 5, 9].map(wk => hybridPower.buildDay(wk, 4, MAXES).items[0].p
   assert(scheduledDayNumbers(hybridPower, 1).join() === '1,2,3,4,5,6',
     `Power Dad should run days 1-6, got ${scheduledDayNumbers(hybridPower, 1).join()}`)
 
-  // Codex [P2], round 2, and the reason this filters by SCHEDULED DAYS rather
-  // than `<= daysPerWeek`. daysPerWeek is a COUNT, not a range: Dad Strong is
-  // 5 days on Mon/Tue/Thu/Sat/Sun. The first version of this filter dropped
-  // days 6 and 7 as out of range, which capped that program at 3 done days
-  // against a threshold of 5 — its week could never have advanced again.
-  assert(scheduledDayNumbers(dadStrong, 1).join() === '1,2,4,6,7',
-    `Dad Strong runs Mon/Tue/Thu/Sat/Sun, got ${scheduledDayNumbers(dadStrong, 1).join()}`)
-  assert(scheduledDoneDays([1, 2, 4, 6, 7], dadStrong, 1).length === dadStrong.daysPerWeek,
-    'Dad Strong must still be able to finish a week — days 6 and 7 are real sessions')
-
-  // Codex [P1], round 3, and the reason the rule is scheduled-OR-RENDERED.
-  // Filtering to the scheduled days ALONE strands Dad Strong from the other
-  // direction: its hub renders days 1-5, so 6 and 7 are unreachable, while 3
-  // and 5 render as rest days the finish button still completes. Its week
-  // advances today on exactly those two fake completions. Both halves of the
-  // OR are load-bearing, so both are pinned.
-  const rendered = Array.from({ length: dadStrong.daysPerWeek }, (_, i) => i + 1)
-  assert(scheduledDoneDays(rendered, dadStrong, 1).length === dadStrong.daysPerWeek,
-    'a Dad Strong week completed through the UI as it stands must still advance')
-
-  // ...and the whole point: this changes ONE thing in the codebase. Every
-  // program's own rendered week still counts in full; only Power Dad's
-  // now-unscheduled, now-unrendered day 7 is dropped.
-  for (const p of Object.values(PROGRAMS)) {
-    const own = Array.from({ length: p.daysPerWeek }, (_, i) => i + 1)
-    assert(scheduledDoneDays(own, p, 1).length === p.daysPerWeek,
-      `${p.slug}: its own rendered week must count in full`)
-  }
   assert(scheduledDoneDays([7], hybridPower, 1).length === 0,
     'Power Dad day 7 is neither scheduled nor rendered — it is the ghost')
+
+  // The Dad Strong assertions that used to sit here are GONE, and their absence
+  // is the point. They pinned the OR-rule — `scheduled OR still rendered` —
+  // which existed only because that program's rendered days and scheduled days
+  // disagreed: it trained Mon/Tue/Thu/Sat/Sun while the hub showed Mon-Fri, so
+  // its week advanced on two fake rest-day completions and either half of the
+  // OR, removed alone, stranded it.
+  //
+  // FOR-196 fixed the disagreement at the source, so the OR is retired and
+  // those assertions now describe a state that cannot occur. The cross-program
+  // invariant they were reaching for — rendered == scheduled == completable,
+  // every program, every week — lives in scripts/checks/week-shape.mjs, which
+  // is where it belongs: this file is Power Dad's.
 
   // ...and the call sites still USE it. This is the class of wiring that
   // disappears in a refactor while every behavioural assertion above keeps

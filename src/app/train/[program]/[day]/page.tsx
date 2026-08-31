@@ -27,8 +27,9 @@ import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
-import { scheduledDoneDays } from '../../../../lib/programs/schedule'
 import type { ProgramConfig } from '../../../../lib/programs/types'
+import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
+  from '../../../../lib/programs/schedule'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -221,12 +222,15 @@ async function advanceWeekIfDone(
   // position the whole percent engine reads.
   //
   // It takes the PROGRAM, not daysPerWeek, because that number is a count
-  // and not a range: Dad Strong is 5 days on 1, 2, 4, 6 and 7, so filtering
-  // by `<= daysPerWeek` would drop its Saturday and Sunday and the week
-  // would never advance at all. See src/lib/programs/schedule.ts.
+  // and not a range: the days a week runs on are whatever buildDay does not
+  // call a rest day. See src/lib/programs/schedule.ts.
   const doneDays = scheduledDoneDays(
     await fetchDoneDays(supabase, userId, slug, weekNumber), program, weekNumber)
-  if (doneDays.length < program.daysPerWeek) return
+  // ...and the THRESHOLD is what this week asks for, not the headline
+  // daysPerWeek. They diverge in test week: Hybrid Endurance schedules 5
+  // sessions in W13 against a daysPerWeek of 6, so measured against the
+  // headline it could never advance out of week 13. Dad Built schedules 7.
+  if (doneDays.length < sessionsThisWeek(program, weekNumber)) return
   await supabase
     .from('user_programs')
     .update({ current_week: weekNumber + 1 })
@@ -1371,6 +1375,13 @@ export default function TrainingDayPage() {
 
   const completeSession = async () => {
     if (!user || !workoutIdRef.current || !program) return
+    // A rest day cannot be finished. It prescribes nothing, so a sentinel
+    // written here is a session that never happened — which is exactly how
+    // Dad Strong's week used to advance, on its rendered-but-empty Wednesday
+    // and Friday. The gate lives HERE rather than on the button because no
+    // rest day is listed anywhere any more, but /train/dad-strong/2 is still
+    // a URL anyone can type.
+    if (plan && !isCompletable(plan)) return
     await supabase.from('ares_session_logs').upsert({
       ...baseRow(),
       log_type: 'session_complete',
@@ -1557,6 +1568,13 @@ export default function TrainingDayPage() {
 
   if (!plan) return null
 
+  // The next SCHEDULED day, not dayNumber + 1. On Dad Strong that walked
+  // Monday's athlete into Tuesday, which is a rest day — and before the
+  // completion gate, one he could have finished. null on the last session of
+  // the week, which is what hides the button.
+  const nextScheduledDay =
+    scheduledDayNumbers(program, weekRef.current).find(d => d > dayNumber) ?? null
+
   if (sessionComplete) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8 p-6 text-center">
@@ -1602,11 +1620,11 @@ export default function TrainingDayPage() {
             )}
             <div className="border-t border-border/60 pt-3">
               <div className="led-bar">
-                {Array.from({ length: program.daysPerWeek }).map((_, i) => (
+                {Array.from({ length: sessionsThisWeek(program, weekRef.current) }).map((_, i) => (
                   <span key={i} className={`led-cell ${i < sessionSummary.weekDone ? 'lit' : ''}`} />
                 ))}
               </div>
-              <p className="eyebrow-mono mt-1.5">WEEK {sessionSummary.weekDone}/{program.daysPerWeek} SESSIONS</p>
+              <p className="eyebrow-mono mt-1.5">WEEK {sessionSummary.weekDone}/{sessionsThisWeek(program, weekRef.current)} SESSIONS</p>
             </div>
           </div>
         )}
@@ -1618,15 +1636,20 @@ export default function TrainingDayPage() {
         {/* Week LED bar */}
         <div className="w-full max-w-xs">
           <div className="led-bar">
-            {Array.from({ length: program.daysPerWeek }).map((_, i) => (
-              <span key={i} className={`led-cell ${i < dayNumber ? 'lit' : ''}`} />
+            {/* `<=`, not `<`. This walked a 0-based index before it walked day
+                numbers, and `i < dayNumber` lit dayNumber cells — the current
+                day included. Carrying the comparison over unchanged onto
+                1-based days silently dropped one, so finishing day 1 showed no
+                progress at all. */}
+            {scheduledDayNumbers(program, weekRef.current).map(d => (
+              <span key={d} className={`led-cell ${d <= dayNumber ? 'lit' : ''}`} />
             ))}
           </div>
           <p className="eyebrow-mono mt-2">week progress</p>
         </div>
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          {dayNumber < program.daysPerWeek && (
-            <button onClick={() => { setSessionComplete(false); setLoading(true); router.push(`/train/${slug}/${dayNumber + 1}`) }}
+          {nextScheduledDay != null && (
+            <button onClick={() => { setSessionComplete(false); setLoading(true); router.push(`/train/${slug}/${nextScheduledDay}`) }}
               className="pill-volt w-full py-3.5 text-sm lowercase hover:opacity-90 transition-opacity">
               next session →
             </button>

@@ -24,7 +24,7 @@ import ForgeLoader from '../../components/ForgeLoader'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
-import { scheduledDoneDays } from '../../lib/programs/schedule'
+import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../../lib/programs/schedule'
 
 interface ActiveProgramData {
   slug: string
@@ -414,13 +414,13 @@ export default function Dashboard() {
               {activeProgram && getProgram(activeProgram.slug ?? '') && (
                 <div className="mb-4">
                   <div className="day-pills">
-                    {Array.from({ length: getProgram(activeProgram.slug ?? '')!.daysPerWeek }).map((_, i) => (
-                      <span key={i} className={`day-pill ${zeusDoneDays.includes(i + 1) ? 'on' : ''}`} />
+                    {scheduledDayNumbers(getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek).map(d => (
+                      <span key={d} className={`day-pill ${zeusDoneDays.includes(d) ? 'on' : ''}`} />
                     ))}
                   </div>
                   <div className="flex justify-between mt-1.5 data-mono">
                     <span>sessions</span>
-                    <span className="v">{scheduledDoneDays(zeusDoneDays, getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek).length}/{getProgram(activeProgram.slug ?? '')!.daysPerWeek}</span>
+                    <span className="v">{scheduledDoneDays(zeusDoneDays, getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek).length}/{sessionsThisWeek(getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek)}</span>
                   </div>
                 </div>
               )}
@@ -436,11 +436,10 @@ export default function Dashboard() {
                   onClick={() => {
                     const registryProgram = activeProgram ? getProgram(activeProgram.slug ?? '') : null
                     if (activeProgram && registryProgram) {
-                      // Server-derived done days → first unfinished day this week.
-                      let nextDay = 1
-                      for (let i = 1; i <= registryProgram.daysPerWeek; i++) {
-                        if (!zeusDoneDays.includes(i)) { nextDay = i; break }
-                      }
+                      // Server-derived done days → first unfinished SCHEDULED day.
+                      // Walking 1..daysPerWeek sent Dad Strong users to a rest day.
+                      const sched = scheduledDayNumbers(registryProgram, activeProgram.currentWeek)
+                      const nextDay = sched.find(d => !zeusDoneDays.includes(d)) ?? sched[0] ?? 1
                       router.push(`/train/${activeProgram.slug}/${nextDay}`)
                     } else {
                       // No active program (or a retired legacy slug) → path select.

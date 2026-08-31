@@ -33,6 +33,7 @@ const SUITES = [
   ['ink contrast', 'contrast.mjs'],
   ['raw palette', 'palette.mjs'],
   ['run scope', 'run-scope.mjs'],
+  ['week shape', 'week-shape.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

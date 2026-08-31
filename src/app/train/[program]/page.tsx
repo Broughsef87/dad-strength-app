@@ -18,9 +18,7 @@ import WeekPulse from '../../../components/WeekPulse'
 import type { DayPlan } from '../../../lib/programs/types'
 import MaxesCard from '../../../components/MaxesCard'
 import { RUN_EPOCH } from '../../../lib/programs/run'
-import { blockCount } from '../../../lib/programs/schedule'
-
-const DAY_LABELS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+import { blockCount, dayLabel, scheduledDayNumbers } from '../../../lib/programs/schedule'
 
 interface DoneMap { [week: number]: Set<number> }
 
@@ -144,9 +142,15 @@ export default function SchedulePage() {
     weekInMacro % 4 === 0 && !isTest && !isNaturalDeload &&
     !isForcedDeload && !dismissedChecks.includes(selectedWeek)
 
-  const weekPlans = Array.from({ length: program.daysPerWeek }, (_, i) =>
-    program.buildDay(selectedWeek, i + 1, maxes, undefined, { forceDeload: isForcedDeload }),
-  )
+  // The week IS the schedule. This used to be `1..daysPerWeek`, which is a
+  // COUNT and not a range — Dad Strong trains Mon/Wed/Fri/Sat plus a floating
+  // easy day, so counting to 5 rendered Mon-Fri: two rest days listed as
+  // sessions, and Saturday and the aerobic day unreachable from the app at
+  // all. Iterating the scheduled days is what makes rendered == scheduled.
+  const weekPlans = scheduledDayNumbers(program, selectedWeek).map(d => ({
+    day: d,
+    plan: program.buildDay(selectedWeek, d, maxes, undefined, { forceDeload: isForcedDeload }),
+  }))
   const doneDays = doneMap[selectedWeek] ?? new Set<number>()
 
   const weekTag = (wim: number, wk?: number) =>
@@ -248,8 +252,7 @@ export default function SchedulePage() {
             </div>
           )}
 
-          {weekPlans.map((plan, i) => {
-            const d = i + 1
+          {weekPlans.map(({ day: d, plan }) => {
             const done = doneDays.has(d)
             const isGym = program.gymDayNumbers.includes(d)
             const Icon = plan.dayType === 'test' ? FlaskConical : isGym ? Dumbbell : Wind
@@ -259,7 +262,7 @@ export default function SchedulePage() {
                 onClick={() => router.push(`/train/${slug}/${d}${selectedWeek !== currentWeek ? `?week=${selectedWeek}` : ''}`)}
                 className="tile w-full text-left p-3.5 flex items-center gap-3 group"
               >
-                <span className="data-mono w-9 shrink-0">{DAY_LABELS[i]}</span>
+                <span className="data-mono w-9 shrink-0">{dayLabel(plan)}</span>
                 <Icon size={14} className={done ? 'text-brand' : 'text-muted-foreground'} />
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-bold lowercase truncate ${done ? 'text-muted-foreground line-through decoration-brand' : 'text-foreground'}`}>
@@ -304,8 +307,10 @@ export default function SchedulePage() {
                         w{wk}
                       </span>
                       <div className="flex flex-1 items-center gap-1.5">
-                        {Array.from({ length: program.daysPerWeek }).map((_, i) => (
-                          <span key={i} className={`h-2.5 w-2.5 rounded-[5px] ${done.has(i + 1) ? 'bg-brand' : 'bg-muted'}`} />
+                        {/* one dot per day this week actually runs — counting to
+                            daysPerWeek lit rest days and hid real ones */}
+                        {scheduledDayNumbers(program, wk).map(d => (
+                          <span key={d} className={`h-2.5 w-2.5 rounded-[5px] ${done.has(d) ? 'bg-brand' : 'bg-muted'}`} />
                         ))}
                       </div>
                       <span className="data-mono w-14 text-right shrink-0">{weekTag(wim, wk)}</span>

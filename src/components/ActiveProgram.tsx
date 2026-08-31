@@ -13,7 +13,7 @@ import { createClient } from '../utils/supabase/client'
 import { useUser } from '../contexts/UserContext'
 import { getProgram } from '../lib/programs'
 import { RUN_EPOCH } from '../lib/programs/run'
-import { scheduledDoneDays } from '../lib/programs/schedule'
+import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../lib/programs/schedule'
 
 interface ProgramRow {
   slug: string
@@ -84,10 +84,9 @@ export default function ActiveProgram() {
 
   const launch = () => {
     if (row && program) {
-      let nextDay = 1
-      for (let i = 1; i <= program.daysPerWeek; i++) {
-        if (!doneDays.includes(i)) { nextDay = i; break }
-      }
+      // First unfinished SCHEDULED day — see src/lib/programs/schedule.ts.
+      const sched = scheduledDayNumbers(program, row.currentWeek)
+      const nextDay = sched.find(d => !doneDays.includes(d)) ?? sched[0] ?? 1
       router.push(`/train/${row.slug}/${nextDay}`)
     } else {
       router.push('/build')
@@ -117,13 +116,13 @@ export default function ActiveProgram() {
       {row && program && (
         <div className="relative z-10 mb-4">
           <div className="led-bar">
-            {Array.from({ length: program.daysPerWeek }).map((_, i) => (
-              <span key={i} className={`led-cell ${doneDays.includes(i + 1) ? 'lit' : ''}`} />
+            {scheduledDayNumbers(program, row.currentWeek).map(d => (
+              <span key={d} className={`led-cell ${doneDays.includes(d) ? 'lit' : ''}`} />
             ))}
           </div>
           <div className="flex justify-between mt-1.5">
             <p className="eyebrow-mono">this week</p>
-            <p className="eyebrow-mono">{scheduledDoneDays(doneDays, program, row.currentWeek).length} of {program.daysPerWeek} logged</p>
+            <p className="eyebrow-mono">{scheduledDoneDays(doneDays, program, row.currentWeek).length} of {sessionsThisWeek(program, row.currentWeek)} logged</p>
           </div>
         </div>
       )}
