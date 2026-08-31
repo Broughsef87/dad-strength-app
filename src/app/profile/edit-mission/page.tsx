@@ -5,13 +5,23 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, TrendingUp, DollarSign, Youtube, MonitorSmartphone, Target, Activity } from 'lucide-react'
 import { createClient } from '../../../utils/supabase/client'
 
+// The `color` field was dead — declared on all six, read nowhere. The picker
+// renders `bg-brand/20 text-brand` when selected and a muted grey otherwise, so
+// these strings never reached the screen.
+//
+// It mattered because the FOR-192 sweep pointed that dead field at --category-*,
+// which put a personalization control inside the movement taxonomy: a mission
+// icon is a user's own choice, not a muscle group, and the two should be free to
+// diverge. Deleting the field is the whole fix — no palette invented, and how
+// much colour a user gets to pick stays an open product question rather than one
+// answered by accident in data nothing reads.
 const ICON_OPTIONS = [
-  { id: 'trending', icon: TrendingUp, color: 'text-brand' },
-  { id: 'dollar', icon: DollarSign, color: 'text-category-legs' },
-  { id: 'youtube', icon: Youtube, color: 'text-category-push' },
-  { id: 'saas', icon: MonitorSmartphone, color: 'text-brand' },
-  { id: 'target', icon: Target, color: 'text-category-condition' },
-  { id: 'activity', icon: Activity, color: 'text-category-pull' }
+  { id: 'trending', icon: TrendingUp },
+  { id: 'dollar', icon: DollarSign },
+  { id: 'youtube', icon: Youtube },
+  { id: 'saas', icon: MonitorSmartphone },
+  { id: 'target', icon: Target },
+  { id: 'activity', icon: Activity },
 ]
 
 export default function MissionEditor() {
