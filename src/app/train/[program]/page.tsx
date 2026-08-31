@@ -18,13 +18,9 @@ import WeekPulse from '../../../components/WeekPulse'
 import type { DayPlan } from '../../../lib/programs/types'
 import MaxesCard from '../../../components/MaxesCard'
 import { RUN_EPOCH } from '../../../lib/programs/run'
+import { blockCount } from '../../../lib/programs/schedule'
 
 const DAY_LABELS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-
-// A back-off slot isn't its own block — it's the same bar, same station, right
-// after the top set. Counting it separately made a 6-block day read as 7 and
-// contradicted the program's own session budget.
-const blockCount = (plan: DayPlan) => plan.items.filter(i => !i.slot.endsWith('_back')).length
 
 interface DoneMap { [week: number]: Set<number> }
 

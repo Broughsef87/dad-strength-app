@@ -26,6 +26,7 @@ import {
   DEFAULT_VELOCITY_SLOTS, DEFAULT_VELOCITY_LIFT_NAMES,
   type SetRow, type LiftTrend, type Projection, type AdherenceResult,
 } from '../lib/analytics/training'
+import { getProgram } from '../lib/programs'
 import { Sparkline, ColumnChart } from './charts/primitives'
 
 const DAY_LABEL = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -48,7 +49,7 @@ export default function TrainingData() {
         .order('week_number', { ascending: true })
         .limit(5000),
       supabase.from('user_maxes').select('lift_key, value_lbs').eq('user_id', user.id),
-      supabase.from('user_programs').select('current_week, preferences')
+      supabase.from('user_programs').select('program_slug, current_week, preferences')
         .eq('user_id', user.id).eq('status', 'active').maybeSingle(),
     ])
 
@@ -71,7 +72,13 @@ export default function TrainingData() {
     const list = Object.values(t).sort((a, b) => b.current - a.current)
     setTrends(list)
     setProjs(Object.values(projections(t, maxes, { latestWeek: prog?.current_week ?? undefined })))
-    setAdh(adherence(setRows, { daysPerWeek: 4 }))
+    // Adherence is a RATE, so the denominator has to be the program the
+    // athlete is actually on. It was hardcoded to 4, which was wrong for every
+    // program in the registry (5, 6, 6, and Power Dad's 7 — 6 as of FOR-195)
+    // and quietly inflated the rate for all of them. The row is already loaded
+    // here; it just was not being asked for the slug.
+    const active = getProgram((prog?.program_slug as string | null) ?? '')
+    setAdh(adherence(setRows, { daysPerWeek: active?.daysPerWeek ?? 4 }))
     setLoaded(true)
   }, [user, supabase])
 

@@ -18,11 +18,13 @@ import {
 // heavy doubles and singles at 80%+ of the FULL-lift maxes. The clean side is
 // powers by the athlete's call, but the percentages stayed where the full
 // clean had them: %-of-power-max under-loads him, so the reference max stays
-// the full clean. Speed lives in the Friday hang/power snatch slot (triples,
-// 65-74%) and the speed box squats. Overhead is
+// the full clean. Speed lives in Monday's sub-max snatch back-offs and the
+// Friday speed box squats. Overhead is
 // push press (Wed, power) + strict OHP wave (Sat, strength) — jerk retired.
-// Percent rules: pure lifts ≤2 reps ≥80%; any ≤2-rep set ≥75%; power/hang
-// triples ≥65%. Clean pulls (Fri) key off the clean max, heavy (100-116%);
+// Percent rules: pure lifts ≤2 reps ≥80% on the TOP sets (a *_back slot takes
+// the 75 doubles floor instead — see classicFloor); any ≤2-rep set ≥75%;
+// power/hang triples ≥65%. Clean pulls (Fri) key off the clean max in every
+// meso, heavy (100-119%);
 // Monday is squat-priority (squat leads) with Nordics as the hamstring slot.
 //
 // 13-week macro: 3 × 4-week mesos + test week.
@@ -43,7 +45,10 @@ import {
 // (complexes, balances, blocks, pause snatches) stands.
 //
 // Week: Mon Power A (snatch) · Tue sprint · Wed athletic strength ·
-//       Thu conditioning · Fri Power B (clean) · Sat power + engine · Sun Z2.
+//       Thu conditioning · Fri Power B (clean) · Sat power + engine · Sun REST.
+// Sunday's steady Z2 was cut in FOR-195 (2026-08-30): seven sessions with no
+// valley in them was the structural reason fatigue accumulated, and it was the
+// session the card itself told him to skip. daysPerWeek is 6.
 // Session budget: every gym day caps at 6 BLOCKS. A back-off slot (*_back) is
 // not its own block — it's the same bar, same station, immediately after the
 // top set, so it costs cards but not gym time. The budget is about the clock
@@ -100,13 +105,22 @@ const MAX_ADJ = 8
 // autoregulation from ever dropping a classic set below its floor.
 // Applies to the competition lifts + receiving work — NOT pulls (88-114%) or
 // squats/presses (keyed to their own maxes).
-function classicFloor(name: string, reps: number): number {
+function classicFloor(name: string, reps: number, slot?: string): number {
   const n = name.trim().toLowerCase()
   // Block work is a full-lift expression from a raised start — it follows the
   // SAME rules as the pure lift (a light block double trains nothing). Hangs
   // may run a touch lighter (they fall through to the lower floors).
   const isFullLift = n === 'snatch' || n === 'clean' || n === 'clean & jerk' || /block/.test(n)
-  if (isFullLift && reps <= 2) return 80
+  // ...but the 80 floor governs the lift's own WORKING sets, not the volume
+  // that follows them. A *_back slot is the back-off: same bar, immediately
+  // after the top set, deliberately lighter. M2's snatch back-offs have run
+  // at 75 since this macro was written and only cleared the floor because
+  // they were named 'Hang Snatch' — a naming artefact, not a training rule.
+  // FOR-195 gives M1 the same structure with the PURE lift at the same 75,
+  // so the exemption belongs to the slot rather than the word. The 75 floor
+  // below still applies: a back-off is lighter, never light.
+  const isBackOff = slot != null && slot.endsWith('_back')
+  if (isFullLift && reps <= 2 && !isBackOff) return 80
   // Doubles and singles are never light — a 2-rep set below 75% of the full
   // lift is no stimulus, whatever the variation.
   if (reps <= 2) return 75
@@ -139,7 +153,7 @@ function liftFromSlot(
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, rawAdj))
   let percent = Math.round((basePct + adj) * 2) / 2
   if (percent > 0 && isClassicLiftSlot(slot, maxKey)) {
-    const floor = classicFloor(def.names[weekInMeso - 1], def.reps)
+    const floor = classicFloor(def.names[weekInMeso - 1], def.reps, slot)
     if (percent < floor) percent = floor
   }
   return {
@@ -164,6 +178,41 @@ function liftFromSlot(
 
 function accessory(slot: string, name: string, sets: number, reps: number, note?: string): LiftPrescription {
   return { kind: 'lift', slot, name, sets, reps, rpe: 7, note }
+}
+
+/**
+ * A range-based slot — double progression instead of a percentage.
+ *
+ * Ported from dadBuilt (FOR-175 built the machinery; this is the first slot
+ * in THIS program to use it). Dumbbells have no barbell 1RM to take a
+ * percentage of: 4 × 8-10 with 60s in each hand is a real prescription,
+ * `72% of your bench` is not. So the load comes from what was actually
+ * logged — hold it until every set clears the top of the window, then add a
+ * step.
+ *
+ * `reps` carries the BOTTOM of the window so any consumer reading a plain
+ * number still shows something true.
+ *
+ * The load only arrives if buildDay is handed opts.loadTargets. Without that
+ * one line the slot prints with no weight forever and every check still
+ * passes — the exact FOR-175 failure mode.
+ */
+function rangeSlot(
+  slot: string, name: string, sets: number, window: [number, number],
+  loadTargets: Record<string, number>,
+  opts?: { rir?: number; step?: number; note?: string; superset?: string },
+): LiftPrescription {
+  const suggested = loadTargets[slot]
+  return {
+    kind: 'lift', slot, name, sets,
+    reps: window[0],
+    repRange: window,
+    targetRir: opts?.rir ?? 2,
+    loadStepLbs: opts?.step ?? 5,
+    targetWeightLbs: suggested != null && suggested > 0 ? suggested : undefined,
+    note: opts?.note,
+    superset: opts?.superset,
+  }
 }
 
 // ── Metcon pool (Saturday) — curated, rotates by absolute week ────────────────
@@ -283,7 +332,21 @@ function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
   }
 }
 
-// ── Conditioning (Thu intervals / Sun steady) ─────────────────────────────────
+// ── Conditioning (Thu) ────────────────────────────────────────────────────────
+// Thursday ran the same interval session every working week for twelve weeks —
+// one shape, one energy system, graded only by meso. The engine wants more
+// than the top end, so the week-in-meso now selects the session and each meso
+// runs one full cycle:
+//
+//   W1  intervals        top-end, meso-graded (the session that was here)
+//   W2  threshold        the sustainable-hard piece nothing else trained
+//   W3  distance         one genuinely long aerobic effort
+//   W4  mixed-erg tempo  alternating blocks, moderate — the lightest of the four
+//
+// W4 landing lightest is deliberate: it is the top week of every meso, so the
+// heaviest barbell work of the block already sits around it. And deload (W12)
+// and test (W13) are both weekInMeso 4, so they short-circuit above this and
+// keep their recovery spin regardless.
 function thursdayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
   if (pos.isDeload || pos.isTest) {
     return {
@@ -291,41 +354,60 @@ function thursdayConditioning(weekNumber: number, pos: MacroPos): OutsideSession
       parts: ['25-30 min very easy bike or jog — conversational pace'],
     }
   }
-  // Time-based intervals work on any modality — the athlete picks the tool.
-  const byMeso: Record<number, string> = {
-    1: '5 × 4 min hard, 2 min easy between',
-    2: '6 × 3 min hard, 2 min easy between',
-    3: '8 × 90s hard, 90s easy between',
-  }
-  return {
-    kind: 'outside', slot: 'cond_intervals',
-    title: 'Intervals — Bike / Row / Run',
-    parts: ['10 min progressive warm-up (any modality)', byMeso[pos.meso], '5-10 min easy cooldown'],
-    note: 'Pick bike, rower, or run — whichever suits you today. Hard but repeatable: the last rep should match the first.',
-  }
-}
 
-function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
-  if (pos.isDeload || pos.isTest) {
+  if (pos.weekInMeso === 1) {
+    // Time-based intervals work on any modality — the athlete picks the tool.
+    const byMeso: Record<number, string> = {
+      1: '5 × 4 min hard, 2 min easy between',
+      2: '6 × 3 min hard, 2 min easy between',
+      3: '8 × 90s hard, 90s easy between',
+    }
     return {
-      kind: 'outside', slot: 'cond_steady', title: 'Easy Z2 (recovery)',
-      parts: ['30 min easy Z2 — opposite modality from Thursday', 'Nasal breathing pace'],
+      kind: 'outside', slot: 'cond_intervals',
+      title: 'Intervals — Bike / Row / Run',
+      parts: ['10 min progressive warm-up (any modality)', byMeso[pos.meso], '5-10 min easy cooldown'],
+      note: 'Pick bike, rower, or run — whichever suits you today. Hard but repeatable: the last rep should match the first.',
     }
   }
-  // The week has seven sessions and no valley in it — four hard gym days, a
-  // speed day, intervals, and this. That's the structural reason fatigue
-  // accumulates, so Sunday is the day the program gives back: shorter than it
-  // was, and explicitly skippable. Volume here was never the point.
-  const mins = pos.meso === 3 ? '30-40' : '35-45'
+
+  if (pos.weekInMeso === 2) {
+    // Threshold is the one the intervals never covered: comfortably HARD, held.
+    // Rowing because it loads the posterior chain and the lats — the opposite
+    // half of the body from a week of pressing and squatting.
+    const byMeso: Record<number, string> = {
+      1: '2 × 8 min @ threshold, 3 min easy between',
+      2: '2 × 10 min @ threshold, 3 min easy between',
+      3: '3 × 8 min @ threshold, 3 min easy between',
+    }
+    return {
+      kind: 'outside', slot: 'cond_threshold',
+      title: 'Lactate Threshold — Row',
+      parts: ['10 min easy warm-up', byMeso[pos.meso], '5 min easy cooldown'],
+      note: 'Comfortably hard — a pace you could hold for 30 min if you had to, not one you are surviving. If the split falls off inside the first two minutes you went out too hot.',
+    }
+  }
+
+  if (pos.weekInMeso === 3) {
+    return {
+      kind: 'outside', slot: 'cond_distance',
+      title: 'Distance — Steady',
+      parts: [
+        '40-50 min continuous, Z2 into low Z3',
+        'Any modality — bike, row, run, ruck. Pick the one your legs will forgive on Friday',
+      ],
+      note: 'One effort, no intervals. This is the aerobic base the other three weeks spend.',
+    }
+  }
+
   return {
-    kind: 'outside', slot: 'cond_steady', title: 'Steady Z2 — Or Rest',
+    kind: 'outside', slot: 'cond_tempo',
+    title: 'Mixed-Erg Tempo',
     parts: [
-      `${mins} min steady Z2 — bike, row, run, or ruck`,
-      'Beat up? Cut it short or skip it entirely. This is the one session that owes you nothing',
-      'Conversational the whole way — this builds the base, not the ego',
-      'Neck: 2 × 15 plate curls + extensions (bench, towel, 5-10 lb plate) — or isometrics at home',
+      '8 min easy warm-up, alternating machines',
+      '4 rounds: 3 min bike @ tempo + 3 min row @ tempo — no rest at the changeover',
+      '5 min easy cooldown',
     ],
-    note: 'Rotating modalities across weeks spreads the wear. Different tool than Thursday is a good default.',
+    note: 'Tempo, not threshold — you should finish each round able to talk in short sentences. The changeover is the session: 15 seconds to move, then straight back to pace.',
   }
 }
 
@@ -342,7 +424,12 @@ function sundayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
 // warm-up singles below.
 //   M1 straight heavy doubles · M2 top double + back-offs · M3 top single.
 const D1_SN_TOP: SlotMeso[] = [
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 4, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Work up through crisp singles at 65-70% before the working doubles, then straight heavy doubles — full lift, no fluff' },
+  // FOR-195: 4×2 → 2×2. The volume did not vanish, it moved down a slot: the
+  // new back-offs below are 3×2 at 75-78, which is more total snatch than the
+  // two sets that came off — and sub-maximal, which is what M1 was missing.
+  // The 65-70% warm-up singles note goes with them: it was a patch for a meso
+  // with no sub-max snatch in it, and the back-offs are the real fix.
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Build in singles, then two heavy working doubles — full lift, no fluff' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
 ]
@@ -350,7 +437,11 @@ const D1_SN_TOP: SlotMeso[] = [
 // preserved), new position, legal under the ≥75 doubles rule. M3 snaps back
 // to the pure lift for realization.
 const D1_SN_BACK: SlotMeso[] = [
-  { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 }, // M1: straight sets, no back-offs
+  // M1 gains the top+back structure M2/M3 already had. The PURE lift, not the
+  // hang — M1 is the pure-lift meso, and the hang belongs to M2's variation
+  // brief. 75 is the doubles floor, so these are the lightest legal full-snatch
+  // doubles in the program: real sub-maximal exposure, which is the point.
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'Back-off doubles — full lift, sharp and fast. These are the speed work, not a grind' },
   { names: ['Hang Snatch', 'Hang Snatch', 'Hang Snatch', 'Hang Snatch'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — full catch, sit in' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
 ]
@@ -383,20 +474,29 @@ const D3_PUSH_PRESS: SlotMeso[] = [
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 3, pctStart: 72, pctStep: 2 },
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 2, pctStart: 78, pctStep: 2 },
 ]
-// M2/M3 rotate to close-grip — still keyed to the comp-bench max, waved ~5%
-// under the straight-bar numbers (CGB capacity ≈ low-90s% of comp bench).
-// Feeds OHP lockout, the athlete's stated overhead weakness.
-const D3_BENCH: SlotMeso[] = [
-  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 6, pctStart: 70, pctStep: 2, note: 'Superset with weighted pull-ups' },
-  { names: ['Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press'], sets: 4, reps: 4, pctStart: 73, pctStep: 2, note: 'Index fingers just inside the rings — elbows tucked. Superset with weighted pull-ups' },
-  { names: ['Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press'], sets: 3, reps: 3, pctStart: 79, pctStep: 2, note: 'Index fingers just inside the rings — elbows tucked. Superset with weighted pull-ups' },
+// Wednesday's press is DUMBBELLS in every meso (FOR-195 item 4). Monday keeps
+// the barbell as the heavy anchor; this slot was the volume day, and volume is
+// what dumbbells are for — more range at the bottom, each side honest, and
+// nothing to strip when the rack is busy.
+//
+// It is also the first slot in this program to leave the percent engine. A DB
+// load has no barbell 1RM behind it, so it progresses by DOUBLE PROGRESSION:
+// hold the pair until every set clears the top of the window, then +5 lb per
+// hand. The windows tighten across the macro the way the percentages used to.
+const D3_DB_BENCH: Array<{ sets: number; window: [number, number] }> = [
+  { sets: 4, window: [8, 10] },
+  { sets: 4, window: [6, 8] },
+  { sets: 3, window: [5, 6] },
 ]
 // M2 rotates to the pause front squat — contrast from a dead stop is the
 // best version of the jump pairing (strength lifts may pause; the oly
 // technique ban is about the classic lifts, not squats).
 const D3_FSQUAT: SlotMeso[] = [
-  { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 4, reps: 5, pctStart: 72, pctStep: 2, note: 'Contrast: trap bar jumps ~30s after each set' },
-  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 4, reps: 3, pctStart: 70, pctStep: 2, note: '2-count dead stop in the hole, then UP — trap bar jumps ~30s after each set' },
+  // FOR-195: M1/M2 down to 3 sets, matching M3. Wednesday is the day the
+  // clock beats him, and the front squat is contrast-paired with jumps — each
+  // set costs two movements and a walk to the trap bar.
+  { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 5, pctStart: 72, pctStep: 2, note: 'Contrast: trap bar jumps ~30s after each set' },
+  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 70, pctStep: 2, note: '2-count dead stop in the hole, then UP — trap bar jumps ~30s after each set' },
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 85, pctStep: 2.5, note: 'Contrast: trap bar jumps ~30s after each set' },
 ]
 
@@ -419,27 +519,38 @@ const D5_CL_TOP: SlotMeso[] = [
 // here (the snatch side still hangs in M2). The M2 variation for this slot is
 // structural instead: a top double plus back-offs, where M1 ran straight sets.
 // Top set climbs 83→86 while the back-offs hold at 80 — that's the point.
+// FOR-195 item 8: more heavy clean volume, all of it in the BACK-OFFS. Andrew
+// asked for the extra sets on the primary where there are no back-offs, which
+// would have put M1 at 6×2 and failed the 4-set ceiling he ratified himself
+// two days earlier. Same volume, one slot down: +2 sets in M1 and M2, +3 in
+// M3, and no slot goes past 4.
 const D5_CL_BACK: SlotMeso[] = [
-  { names: ['', '', '', ''], sets: 0, reps: 0, pctStart: 0, pctStep: 0 },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 2, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — off the floor, stay sharp' },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off single' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 2, reps: 2, pctStart: 76, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — off the floor, stay sharp' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — off the floor, stay sharp' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles — off the floor, stay sharp' },
 ]
-// M2 rotates to SNATCH pulls — the snatch otherwise gets zero heavy pulling
-// (Monday's snatch pull was cut), and 102-110% of the snatch max feeds M3's
-// 87-90% snatch singles directly. The call site swaps maxKey to 'snatch' for
-// meso 2; M1/M3 stay clean pulls off the clean max. Slot id stays
-// 'clean_pull' — autoreg continuity beats cosmetics (±8 clamp + the
-// weight-follow re-anchor absorb the cross-lift handoff).
+// Clean pulls in EVERY meso (FOR-195 item 6). M2 used to rotate to snatch
+// pulls, which was the snatch's only heavy pulling — but the snatch has left
+// Friday entirely now and lives on Monday, so a snatch pull on the clean day
+// was the last thing keeping two lifts on one session. The percentages carry
+// the M1→M3 ramp continuously instead of resetting across a lift change:
+//   M1  100 → 106  (4s)      M2  102 → 109.5 (3s)      M3  110 → 119 (2s)
+// M2 keeps its own step (2.5) because it now has to bridge M1's 106 to M3's
+// 110 rather than starting over on a different max.
 const D5_PULL: SlotMeso[] = [
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
-  { names: ['Snatch Pull', 'Snatch Pull', 'Snatch Pull', 'Snatch Pull'], sets: 3, reps: 3, pctStart: 102, pctStep: 2.5, targetRpe: 8, note: 'Of your SNATCH max. Heavy and fast — wide grip honest, bar tight' },
+  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 3, pctStart: 102, pctStep: 2.5, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 110, pctStep: 3, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
 ]
 // Speed-strength slot: box squat at dynamic-effort loads. Dead stop on the box
 // kills the stretch reflex — force from zero, max RFD. Autoreg anchors low:
 // this should never feel heavy; if bar speed dies the session is over.
 const D5_SPEED_SQUAT: SlotMeso[] = [
-  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 2, pctStart: 55, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
+  // M1 runs triples (FOR-195 item 10) — the lightest wave of the three, so the
+  // extra rep costs seconds and buys bar-speed reps. Velocity slot, so the
+  // 4-set ceiling does not apply: 5×3 @ 55% is the sub-maximal work the rule
+  // explicitly exempts.
+  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 3, pctStart: 55, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
   { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 2, pctStart: 60, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
   { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 4, reps: 2, pctStart: 64, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
 ]
@@ -447,9 +558,15 @@ const D5_SPEED_SQUAT: SlotMeso[] = [
 // ── Day 6 — Sat: heavy conventional DL + overhead + plyos + metcon ────────────
 // Conventional deadlift off its own 1RM — the strength driver. Positional
 // pulling stays honest via Mon snatch pulls + Fri clean pulls.
+// M2 pulls from a DEFICIT (FOR-195 item 11) — the variation meso finally
+// reaches the deadlift, which the config had already blessed ("deficit
+// deadlifts are legal for future mesos"). Stand on a plate, 1.5-2 inches. The load
+// drops from 78 to 72 because a deficit at the same percentage is not the same
+// lift: the extra range is the stimulus, and matching the conventional number
+// would just be a harder deadlift done worse.
 const D6_DL: SlotMeso[] = [
   { names: ['Deadlift', 'Deadlift', 'Deadlift', 'Deadlift'], sets: 4, reps: 4, pctStart: 70, pctStep: 2.5 },
-  { names: ['Deadlift', 'Deadlift', 'Deadlift', 'Deadlift'], sets: 4, reps: 3, pctStart: 78, pctStep: 2.5 },
+  { names: ['Deficit Deadlift', 'Deficit Deadlift', 'Deficit Deadlift', 'Deficit Deadlift'], sets: 4, reps: 3, pctStart: 72, pctStep: 2.5, note: 'Stand on a plate — 1.5-2\" deficit. Same bar path, longer pull. Percentages are of your conventional max and deliberately lighter for it.' },
   { names: ['Deadlift', 'Deadlift', 'Deadlift', 'Deadlift'], sets: 3, reps: 2, pctStart: 85, pctStep: 2 },
 ]
 
@@ -474,9 +591,12 @@ function saturdayPlyo(pos: MacroPos): PlyoPrescription[] {
   ]
 }
 
-// Monday's ballistic slot (MESO 2 ONLY): broad jumps — horizontal power to
-// balance the vertical jumps on Friday and Saturday, and the quality that
-// feeds acceleration. Moved off the sprint day at the athlete's request.
+// Monday's ballistic slot (EVERY meso since FOR-195): broad jumps — horizontal
+// power to balance the vertical jumps on Friday and Saturday, and the quality
+// that feeds acceleration. Moved off the sprint day at the athlete's request.
+// M2 therefore has broad jumps on Monday AND in saturdayPlyo. That is known
+// and accepted: Saturday's are fatigued end-of-week jumps in a pair, Monday's
+// are the fresh single-quality set.
 //
 // These OPEN the day rather than contrasting off the squat: there's no room to
 // broad jump by the racks, and pairing them would mean walking away from a
@@ -496,11 +616,12 @@ function seatedBoxJumps(): PlyoPrescription {
 
 // Wednesday's ballistic slot: trap bar jumps, contrast-paired with front squat.
 // Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
-function trapBarJumps(pos: MacroPos, maxes: Record<string, number>): PlyoPrescription {
+function trapBarJumps(maxes: Record<string, number>): PlyoPrescription {
   const bs = maxes['back_squat']
   const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
-  const sets = pos.meso === 3 ? 3 : 4
-  return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets, reps: 3, superset: 'fs_contrast', note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Pair ~30s after each front squat set.` }
+  // 3×3 in every meso (FOR-195 item 5): the front squat is 3 sets everywhere
+  // now, and the jumps are its contrast pair — one jump set per squat set.
+  return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, superset: 'fs_contrast', note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Pair ~30s after each front squat set.` }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -573,7 +694,8 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
   const pos = { weekInMacro: 13, meso: 3, weekInMeso: 4, isDeload: false, isTest: true }
   if (dayNumber === 2) return { dayNumber, dayName: 'Strides', dayType: 'outside', sessionIntent: 'Easy speed, stay springy for testing.', items: [sprintSession(13, pos)] }
   if (dayNumber === 4) return { dayNumber, dayName: 'Recovery Spin', dayType: 'outside', sessionIntent: 'Flush the legs between test days.', items: [thursdayConditioning(13, pos)] }
-  return { dayNumber, dayName: 'Easy Z2', dayType: 'outside', sessionIntent: 'Easy aerobic work.', items: [sundayConditioning(13, pos)] }
+  // Day 7 included: test week ends on Saturday's deadlift like every other week.
+  return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Rest. The macro is done.', items: [] }
 }
 
 function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}, opts?: BuildDayOpts): DayPlan {
@@ -584,11 +706,17 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
 
   const m = pos.meso - 1
   const w = pos.weekInMeso
+  // Double-progression loads for range-based slots, computed by the caller
+  // from what was actually logged. Without this line Wednesday's DB bench
+  // renders with no weight forever — the FOR-175 failure mode.
+  const lt = opts?.loadTargets ?? {}
 
   switch (dayNumber) {
     case 1: {
-      // M2 only: broad jumps open the day (a primer, not a competing lift).
-      let items: Prescription[] = pos.meso === 2 ? [broadJumps()] : []
+      // Broad jumps open the day in EVERY meso (FOR-195 item 2) — a primer,
+      // not a competing lift. They were M2-only, which meant two thirds of the
+      // macro had no horizontal power in it at all.
+      let items: Prescription[] = [broadJumps()]
       items.push(
         // Squat-priority day: the back squat leads the barbell work — fresh
         // legs go to strength. Snatch follows (80%+ doubles tolerate
@@ -597,9 +725,9 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments),
       )
-      if (D1_SN_BACK[m].sets > 0) {
-        items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
-      }
+      // Every meso has snatch back-offs now (FOR-195 item 1) — the guard that
+      // used to skip M1's empty slot went with them.
+      items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
       items.push(
         liftFromSlot('bench_heavy', D1_BENCH_HEAVY[m], w, 'bench', maxes, pos.meso, adjustments),
         // Knee-flexion hamstring work — the one pattern pulls/DL don't cover.
@@ -607,14 +735,10 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         // snatch here, the Fri speed-oly slot, clean pulls Fri at 100-116%).
         accessory('acc_nordic', 'Nordic Curl', 3, 5, 'Heels under a lat-pulldown pad or loaded bar. Slow lower, push-up assist back up. Swap for Romanian Deadlift if needed.'),
       )
-      items.push(
-        // M1/M3 train the anterior core (flexion); M2 covers ANTI-ROTATION,
-        // which nothing else in the program touches now that the carries are
-        // gone. Ab wheel came out because it duplicates the leg raises.
-        pos.meso === 1 ? accessory('acc_core', 'Hanging Leg Raises', 3, 12, '60s rest')
-          : pos.meso === 2 ? accessory('acc_core', 'Pallof Press', 3, 12, 'Per side, cable or band at chest height. Resist the twist — hips square, ribs down.')
-          : accessory('acc_core', 'Weighted Hanging Leg Raise', 3, 8, 'DB between the feet — strict, no swing'),
-      )
+      // Core RELOCATED to Saturday (FOR-195 items 3 + 11b). Monday is the
+      // longest gym day and the one the broad jumps just joined, so the block
+      // it sheds is the one that needs a fresh athlete least. Core did not
+      // leave the program — Saturday runs it as dealer's choice.
       if (pos.isDeload) {
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
           .filter(i => !(i.kind === 'lift' && i.slot === 'sn_back'))
@@ -622,7 +746,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
       return {
         dayNumber, dayName: 'Power A — Snatch', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — light, fast, out of the gym feeling fresh.' : 'Squats first — build the base. Then heavy snatch doubles, bench, hamstrings.',
+        sessionIntent: pos.isDeload ? 'Deload — light, fast, out of the gym feeling fresh.' : 'Jump, then squat. Heavy snatch doubles into sub-max back-offs, bench, hamstrings.',
         items,
       }
     }
@@ -633,8 +757,12 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       let items: Prescription[] = [
         liftFromSlot('push_press', D3_PUSH_PRESS[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
         liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
-        trapBarJumps(pos, maxes),
-        liftFromSlot('bench', D3_BENCH[m], w, 'bench', maxes, pos.meso, adjustments, { superset: 'press_pull' }),
+        trapBarJumps(maxes),
+        rangeSlot('db_bench', 'DB Bench Press', D3_DB_BENCH[m].sets, D3_DB_BENCH[m].window, lt, {
+          step: 5,
+          superset: 'press_pull',
+          note: 'Weight is PER HAND. Superset with weighted pull-ups. Hold the pair until every set clears the top of the range, then take the next pair up.',
+        }),
         { ...accessory('acc_wpu', 'Weighted Pull-Up', 4, pos.meso === 1 ? 6 : pos.meso === 2 ? 5 : 3, 'Superset with bench — add load as reps drop'), superset: 'press_pull' },
         pos.meso === 1 ? accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 8, 'Per leg, DBs in hand, 90s rest')
           : pos.meso === 2 ? accessory('acc_single_leg', 'DB Reverse Lunge', 3, 8, 'Per leg, DBs in hand — control the descent, drive up tall, 90s rest')
@@ -645,6 +773,10 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       if (pos.isDeload) {
         items = items.filter(i => !(i.kind === 'plyo' && i.slot === 'tb_jump'))
           .map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
+          // Range work has no percent to cut, so the deload has to reach it by
+          // sets instead — otherwise the barbell drops to 60% while the DB
+          // bench still asks for four sets at the top of the window.
+          .map(i => (i.kind === 'lift' && i.repRange ? { ...i, sets: 2, note: DELOAD_NOTE } : i))
       }
       return {
         dayNumber, dayName: 'Athletic Strength', dayType: 'gym',
@@ -666,27 +798,35 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         // (The hang power snatch used to sit here. Removed 2026-08-27: it cost
         //  more clock than the speed squat despite fewer sets — platform,
         //  bumpers and long rests against 5x2 @55% off a box with 45-60s
-        //  turnarounds. Friday keeps the speed squat. M1's snatch loses its
-        //  only sub-max exposure as a result, which is bought back by the
-        //  65-70% warm-up singles now written into D1_SN_TOP[0].)
-        // 2. Dynamic-effort squat off the box — stretch reflex killed, force
-        //    from zero. Clamped to its band; never chased upward by autoreg.
-        liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
-        // 3. Strength-speed, not speed: the heaviest bar of the day, and now
-        //    the last one. Unchanged loads — "the weight is the point up here."
+        //  turnarounds. FOR-195 finished the job: the snatch is Monday-only
+        //  now, carried by that day's new sub-max back-offs.)
+        // 2. THE CLEAN, and it goes second (FOR-195 item 7). This deliberately
+        //    un-does part of the fast-to-heavy ordering that put the speed
+        //    squat ahead of it — Andrew's call, and largely moot with the
+        //    snatch gone: the day is clean-primary now, so the primary gets
+        //    the fresh slot the way the squat does on Monday.
         liftFromSlot('cl_top', D5_CL_TOP[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
+        // 3. Back-offs, same bar, straight after the top set.
+        liftFromSlot('cl_back', D5_CL_BACK[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
       ]
-      if (D5_CL_BACK[m].sets > 0) {
-        items.push(liftFromSlot('cl_back', D5_CL_BACK[m], w, 'clean_jerk', maxes, pos.meso, adjustments))
-      }
       items.push(
-        // 5. Heavy pull, unchanged at 100-116%.
-        liftFromSlot('clean_pull', D5_PULL[m], w, pos.meso === 2 ? 'snatch' : 'clean_jerk', maxes, pos.meso, adjustments),
+        // 4. Dynamic-effort squat off the box — stretch reflex killed, force
+        //    from zero. Clamped to its band; never chased upward by autoreg.
+        //    Still velocity: true, so autoreg never chases it while fatigued —
+        //    which matters more now that it follows the heavy clean.
+        liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
+        // 5. Heavy pull, unchanged at 100-119%.
+        liftFromSlot('clean_pull', D5_PULL[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
         // 6. The program's ONLY horizontal pulling, against five pressing
         //    exposures a week — so M2 and M3 both row. Deliberately last: this
         //    is the designated overflow block, the one to cut when the clock
         //    beats you. Nothing above it is optional.
-        pos.meso === 1 ? accessory('acc_pullup', 'Pull-Up', 3, 8, 'Add weight if 8 is easy. Cut this block first if the clock beats you.')
+        // FOR-195 item 9: M1's vertical pull-up becomes a ROW, so all three
+        // mesos are horizontal here. Wednesday already owns the vertical pull
+        // (weighted pull-ups, every meso) — this slot exists to answer the
+        // week's five pressing exposures, and it could not do that while one
+        // meso in three duplicated Wednesday.
+        pos.meso === 1 ? accessory('acc_pullup', 'Seated Cable Row', 3, 10, 'Chest tall, drive the elbows back, no torso swing. Cut this block first if the clock beats you.')
           : pos.meso === 2 ? accessory('acc_pullup', 'Pendlay Row', 3, 8, 'Barbell dead-stops on the floor every rep. Flat back, explosive pull to the sternum. Cut this block first if the clock beats you.')
           : accessory('acc_pullup', 'Chest-Supported Row', 3, 10, 'Chest on an incline bench — strict, no bounce. Cut this block first if the clock beats you.'),
       )
@@ -699,7 +839,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         dayNumber, dayName: 'Speed + Clean', dayType: 'gym',
         sessionIntent: pos.isDeload
           ? 'Deload — a few crisp doubles, nothing else.'
-          : 'Fast first: jumps, then speed squats. Then the heavy clean and the pull.',
+          : 'Jumps to open, then the clean and its back-offs. Speed squats and the pull to finish.',
         items,
       }
     }
@@ -711,7 +851,14 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       // behind a heavy deadlift at the end of the week — the worst slot in the
       // program for the thing being prioritised. Same logic as squat-first
       // Monday: the priority lift gets the fresh slot.
-      let items: Prescription[] = [liftFromSlot('ohp_press', D6_OHP[m], w, 'ohp', maxes, pos.meso, adjustments), dl, dips, ...saturdayPlyo(pos)]
+      // Core lives here now (FOR-195 item 11b), and it is deliberately
+      // UNTRACKED: no rep range, no double progression, no max. Andrew rotates
+      // core work by feel and always has — prescribing one movement just means
+      // he substitutes it, so the rotation IS the prescription. Three sets is
+      // the only part the program insists on.
+      const core = accessory('acc_core', "Core — Dealer's Choice", 3, 10,
+        'Any core movement you want today — leg raises, Pallof, ab wheel, weighted carry, plank. 10-15 reps (or 30-45s if it is a hold). Pick it when you get there; just do the three sets.')
+      let items: Prescription[] = [liftFromSlot('ohp_press', D6_OHP[m], w, 'ohp', maxes, pos.meso, adjustments), dl, dips, core, ...saturdayPlyo(pos)]
       if (pos.isDeload) {
         items = [
           withResolvedDeload(dl, maxes),
@@ -724,18 +871,26 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       }
       return {
         dayNumber, dayName: 'Power + Engine', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — move, don\'t grind.' : 'Strict press first, then heavy deadlift, jumps, and the week\'s metcon.',
+        sessionIntent: pos.isDeload ? 'Deload — move, don\'t grind.' : 'Strict press first, then heavy deadlift, dips, core, jumps, and the week\'s metcon.',
         items,
       }
     }
     case 2:
       return { dayNumber, dayName: 'Speed Day', dayType: 'outside', sessionIntent: 'Speed work — quality over quantity, full recoveries.', items: [sprintSession(weekNumber, pos)] }
-    case 4:
-      return { dayNumber, dayName: 'Conditioning — Intervals', dayType: 'outside', sessionIntent: 'Interval engine work.', items: [thursdayConditioning(weekNumber, pos)] }
+    case 4: {
+      // The session rotates now, so the day is named after whatever it is.
+      const cond = thursdayConditioning(weekNumber, pos)
+      return { dayNumber, dayName: cond.title, dayType: 'outside', sessionIntent: 'Engine work.', items: [cond] }
+    }
+    // Day 7 is a REST day (FOR-195 item 12). Sunday's steady Z2 was the
+    // seventh session in a week with no valley in it, and the one the athlete
+    // was most often skipping anyway — the card told him so in writing. Cutting
+    // it outright is the honest version of that, and it is most of the ~40-55
+    // min/week this revision gives back. daysPerWeek drops to 6 with it, so no
+    // surface renders a seventh slot at all.
     case 7:
-      return { dayNumber, dayName: 'Conditioning — Steady', dayType: 'outside', sessionIntent: 'Aerobic base.', items: [sundayConditioning(weekNumber, pos)] }
     default:
-      return { dayNumber, dayName: `Day ${dayNumber}`, dayType: 'rest', sessionIntent: 'Rest.', items: [] }
+      return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Rest. Nothing to log — the week ended on Saturday.', items: [] }
   }
 }
 
@@ -748,8 +903,8 @@ export const hybridPower: ProgramConfig = {
   name: 'Power Dad',
   tagline: 'Olympic power · sprinting · engine',
   description:
-    'Two Olympic days — heavy full snatch and power clean, zero technique drills — plus an athletic strength day and a power/engine day in the gym, then a rotating speed day and two conditioning sessions outside. Every gym day caps at 6 blocks. 13-week macro: three mesos that vary the middle and realise on the pure lifts, deload week 12, test week 13. Flag a deload any week you need one.',
-  daysPerWeek: 7,
+    'Two Olympic days — heavy full snatch and power clean, zero technique drills — plus an athletic strength day and a power/engine day in the gym, then a rotating speed day and one conditioning session outside. Six days: Sunday is off. Every gym day caps at 6 blocks. 13-week macro: three mesos that vary the middle and realise on the pure lifts, deload week 12, test week 13. Flag a deload any week you need one.',
+  daysPerWeek: 6,
   gymDayNumbers: [1, 3, 5, 6],
   macroWeeks: 13,
   requiredMaxes: [
