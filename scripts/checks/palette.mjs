@@ -37,6 +37,15 @@ const HUES = '(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|i
 // numbered hue, or the unnumbered colour words — rule 1 above
 const RAW = new RegExp('\\b' + PREFIX + '-(?:' + HUES + '-\\d{2,3}|white|black)(?:/\\[?[\\d.]+\\]?)?\\b', 'g')
 
+// The neutrals, counted and NOT flagged. Rule 2 above is the kind of scope
+// decision that decays into folklore the moment it stops being visible — six
+// months on, 'why does this check ignore bg-slate-800' is answered by reading
+// git history, if at all. So the exclusion reports itself on every run, and
+// the number moving is information rather than a silent drift.
+const NEUTRALS = new RegExp('\\b' + PREFIX + '-(?:gray|slate|zinc|neutral|stone)-\\d{2,3}(?:/\\[?[\\d.]+\\]?)?\\b', 'g')
+let neutralHits = 0
+const neutralFiles = new Set()
+
 const hits = []
 let scanned = 0
 const walk = (d) => {
@@ -51,6 +60,8 @@ const walk = (d) => {
       // a colour named inside a comment is prose, not a style
       const code = line.replace(/\/\/.*$/, '')
       for (const m of code.match(RAW) || []) hits.push(rel + ':' + (n + 1) + '  ' + m)
+      const neut = code.match(NEUTRALS) || []
+      if (neut.length) { neutralHits += neut.length; neutralFiles.add(rel) }
       // Colour smuggled inside an arbitrary value. shadow-[...rgba(245,158,11,.05)]
       // is a raw hue reaching the screen with no token in sight, and the
       // class-name pattern above cannot see it. Neutral rgb (all channels equal,
@@ -74,6 +85,7 @@ console.log('  ── raw palette ' + '─'.repeat(46))
 console.log('    files scanned             ' + scanned)
 console.log('    allowlisted               ' + allow.length)
 console.log('    raw utilities             ' + hits.length)
+console.log('    neutrals (out of scope)   ' + neutralHits + ' across ' + neutralFiles.size + ' files')
 console.log('')
 
 if (hits.length) {
@@ -87,3 +99,5 @@ if (hits.length) {
   process.exit(1)
 }
 console.log('  ✓ no raw palette utilities — colour reaches the screen through tokens')
+console.log('    (' + neutralHits + ' gray/slate/zinc/neutral/stone utilities left alone on purpose —')
+console.log('     an achromatic ramp encodes no meaning, so it is not a palette violation)')

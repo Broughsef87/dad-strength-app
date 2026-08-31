@@ -74,7 +74,78 @@ const ratio = (a, b) => {
 }
 const over = (fg, bg, a) => fg.map((c, k) => Math.round(c * a + bg[k] * (1 - a)))
 
-// ── 1. every ink token, both grounds, both themes ──────────────────────────
+// The one pattern shared by the fixture and the ban below it. Declared up
+// here because a `const` is not hoisted, and the fixture runs first on purpose.
+const INK_FADE = /\b[a-z-]+-ink\/(?:\[[\d.]+\]|\d+)/
+
+// ── 0. THE FIXTURE — prove the machinery can FAIL before trusting a pass ───
+// Everything below asserts the real tokens are fine. That is only worth
+// reading if the check is capable of saying otherwise, and BOTH halves of
+// this file have already shipped a version that was not:
+//
+//   half 1  modelled `text-brand/NN` as --brand-text, so eleven live sites
+//           measuring ~1.15:1 on chalk were scored at 4.6 and passed
+//   half 2  matched only NUMBERED hues, so `to-white/20` walked past it
+//
+// Both passed their whole suite while the bug shipped. So the check now runs
+// itself against values that are deliberately wrong and are not in the
+// codebase: a token under the floor, and an ink with an opacity modifier on
+// it. Negative cases too, or an assertion that always says 'violation' would
+// look identical from here.
+{
+  const CHALK_BG = [40, 0.29, 0.97]   // --background on chalk
+  // hsl(0 0% 55%) on that ground measures ~3.1:1 — quiet-looking, unreadable.
+  const failing = ratio(toRgb([0, 0, 0.55]), toRgb(CHALK_BG))
+  ok('FIXTURE: a token under the floor is seen to fail', failing < FLOOR,
+    'the deliberately-bad ink measured ' + failing + ':1 — at or above ' + FLOOR
+    + ', which would mean the floor comparison itself is wrong')
+  const passing = ratio(toRgb([0, 0, 0.10]), toRgb(CHALK_BG))
+  ok('FIXTURE: a readable token is NOT flagged', passing >= FLOOR,
+    'near-black measured ' + passing + ':1 — a check that fails everything is not a check')
+
+  const fade = (t) => new RegExp(INK_FADE.source).test(t)
+  ok('FIXTURE: a faded ink is caught', fade('className="text-status-danger-ink/70"'), null)
+  ok('FIXTURE: a faded FILL is not', !fade('className="bg-status-danger-fill/8"'),
+    'opacity on a FILL is a tint and always legal — only inks are banned')
+  ok('FIXTURE: a bare ink is not', !fade('className="text-status-danger-ink"'), null)
+}
+
+// ── 1. an ink token is NEVER faded ─────────────────────────────────────────
+// A hard ban, not a measurement — the one rule in this file with no numbers
+// in it. Half 2 below composites faded ink-ROLE utilities and lets anything
+// above the floor through, which is right for --foreground and
+// --muted-foreground: they are a legible ramp and /70 of one is still
+// legible.
+//
+// A token NAMED *-ink is different. It is the paired text colour for one
+// specific fill, chosen so it lands on that fill and nowhere else, and there
+// is no quieter member of the pair to fall back to. Fading it does not make
+// it recede, it makes it wrong: --brand-ink is near-black FOR VOLT, so
+// text-brand-ink/80 is a value that only ever looks acceptable on the one
+// ground it was cut for, and only by accident.
+//
+// Text that wants to be quieter takes --muted-foreground. That is what it is.
+{
+  const faded = []
+  const scan = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e)
+      if (statSync(p).isDirectory()) { scan(p); continue }
+      if (!/\.tsx$/.test(e)) continue
+      readFileSync(p, 'utf8').split('\n').forEach((line, n) => {
+        const m = line.match(new RegExp(INK_FADE.source, 'g'))
+        if (m) faded.push(p.split(/[\\/]/).slice(-2).join('/') + ':' + (n + 1) + '  ' + m.join(' '))
+      })
+    }
+  }
+  scan(SRC)
+  ok('no opacity modifier on any *-ink token', faded.length === 0,
+    faded.join('\n        ')
+    + '\n        an ink is the paired text colour for one fill. Use the token at full\n'
+    + '        strength, or --muted-foreground if it genuinely needs to recede.')
+}
+
+// ── 2. every ink token, both grounds, both themes ──────────────────────────
 const INKS = ['brand-text', 'status-good-ink', 'status-danger-ink', 'muted-foreground', 'foreground']
 const rows = []
 for (const theme of ['chalk', 'graphite']) {
@@ -95,16 +166,20 @@ for (const theme of ['chalk', 'graphite']) {
   }
 }
 
-// ── 2. a faded ink must STILL clear the floor ──────────────────────────────
-// Written first as a flat ban on opacity modifiers. The data said otherwise: 59
-// sites use one and most are fine — text-foreground/70 on chalk is still ~12:1,
-// and text-muted-foreground/40 has nothing quieter to fall back TO. A ban would
-// have meant 59 edits to fix maybe a dozen real problems, and a rule that blunt
-// gets suppressed rather than obeyed.
+// ── 3. a faded ink-ROLE utility must STILL clear the floor ─────────────────
+// This half covers the utilities that carry an ink ROLE without being named
+// *-ink: --foreground, --muted-foreground, --destructive, --brand-text. A flat
+// ban is wrong for these — 49 sites fade one and most are fine, since
+// text-foreground/70 on chalk is still ~12:1 and text-muted-foreground/40 has
+// nothing quieter to fall back TO. A rule that blunt gets suppressed rather
+// than obeyed.
 //
-// So it composites and measures. Only a result under the floor fails. That still
-// catches all five above, because those were genuinely unreadable rather than
-// merely quiet — which is the distinction the rule should encode.
+// So it composites and measures, and only a result under the floor fails. That
+// still catches all five above, because those were genuinely unreadable rather
+// than merely quiet — which is the distinction the rule should encode.
+//
+// Section 1 is the other answer, for the other case: a *-ink token has a
+// paired fill and no quieter sibling, so there the ban IS right.
 const INK_UTILS = {
   'text-brand-text': 'brand-text',
   'text-status-good-ink': 'status-good-ink',
@@ -209,11 +284,31 @@ ok('no NEW faded ink under the floor (' + faintAllow.length + ' pre-existing, ra
   + (tooFaint.length > 12 ? '\n        …and ' + (tooFaint.length - 12) + ' more' : '')
   + '\n        fading an ink does not make it quiet, it makes it unreadable')
 
-// ── 3. a category chip is its own ink on its own tint ──────────────────────
+// ── 4. a category chip is its own ink on its own tint ──────────────────────
 // text-category-push on bg-category-push/10 is the shipped chip pattern, and it
 // was not covered by either half above: half 1 measures ink on a plain ground,
 // half 2 only looks at faded INK. The tint underneath moves the ground.
 const CATEGORIES = ['push', 'pull', 'legs', 'core', 'condition', 'general']
+
+// SIX AXES, and the ruling is that there are never sixteen. CATEGORY_COLORS
+// held 16 entries across two overlapping axes — twelve muscle groups plus four
+// movement types — and sixteen hues that are simultaneously desaturated,
+// mutually distinguishable and distinct from the status set do not exist
+// perceptually. That is a rainbow with the saturation turned down.
+//
+// So the namespace is the axes the movements actually fall on, and this asserts
+// the file has not quietly grown back toward one-token-per-label. The failure
+// mode is not a bad colour; it is a seventh, then a tenth, each individually
+// reasonable.
+for (const theme of ['chalk', 'graphite']) {
+  const declared = [...blockOf(theme).matchAll(/--category-([a-z0-9-]+):/g)].map((m) => m[1])
+  ok(theme + ': exactly the six category axes are defined',
+    declared.length === CATEGORIES.length && declared.every((d) => CATEGORIES.includes(d)),
+    'found ' + declared.length + ': ' + declared.join(', ')
+    + '\n        a category token is an AXIS (push/pull/legs/core/condition/general),'
+    + '\n        not a label. The chip already says "Chest" — the colour is grouping.')
+}
+
 for (const theme of ['chalk', 'graphite']) {
   const b = blockOf(theme)
   const card = raw(b, 'card')

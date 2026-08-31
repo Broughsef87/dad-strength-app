@@ -158,9 +158,9 @@ export default function ExerciseCard({
           <div className="bg-status-good-fill relative overflow-hidden py-2.5 group/complete">
             <div className="absolute inset-0 bg-[hsl(var(--sheen))]/10 -translate-x-full group-hover/complete:translate-x-full transition-transform duration-1000 ease-in-out" />
             <div className="flex items-center justify-center gap-3 relative z-10">
-              <Sparkles size={12} className="text-brand-ink/80" />
+              <Sparkles size={12} className="text-brand-ink" />
               <p className="text-[10px] font-display font-semibold text-brand-ink lowercase">Protocol Executed Successfully</p>
-              <Sparkles size={12} className="text-brand-ink/80 rotate-12" />
+              <Sparkles size={12} className="text-brand-ink rotate-12" />
             </div>
           </div>
         ) : (
