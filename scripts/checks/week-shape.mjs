@@ -133,6 +133,23 @@ for (const [label, url] of SURFACES) {
   assert(!/DAY_LABELS\[/.test(hub), 'the hub still indexes a weekday array directly')
 }
 
+// Codex [P2]: converting a loop from a 0-based INDEX to a 1-based DAY NUMBER
+// changes what a comparison means, and the progress bar carried its `<` over
+// unchanged. `i < dayNumber` lit dayNumber cells — the current day included;
+// `d < dayNumber` drops one, so finishing day 1 showed no progress and a
+// finished Dad Strong week showed 4 of 5.
+//
+// Every other converted site tests set MEMBERSHIP (done.has(d), includes(d)),
+// which is index-independent and was unaffected. This was the only ordinal
+// comparison among them, which is exactly why it slipped through by hand.
+{
+  const day = readLF('../../src/app/train/[program]/[day]/page.tsx')
+  assert(!/led-cell \$\{d < dayNumber/.test(day),
+    'the progress bar must light the day just completed — `d <= dayNumber`, not `<`')
+  assert(/led-cell \$\{d <= dayNumber/.test(day),
+    'the progress bar should light days up to and including the current one')
+}
+
 // ── 3. THE FLEXIBLE DAY ────────────────────────────────────────────────────
 // Andrew: "the lifting days are typically mon/wed/fri/sat and then I fit the
 // other days when I can." The lifts anchor; the easy aerobic day floats.

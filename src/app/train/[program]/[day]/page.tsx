@@ -1636,8 +1636,13 @@ export default function TrainingDayPage() {
         {/* Week LED bar */}
         <div className="w-full max-w-xs">
           <div className="led-bar">
+            {/* `<=`, not `<`. This walked a 0-based index before it walked day
+                numbers, and `i < dayNumber` lit dayNumber cells — the current
+                day included. Carrying the comparison over unchanged onto
+                1-based days silently dropped one, so finishing day 1 showed no
+                progress at all. */}
             {scheduledDayNumbers(program, weekRef.current).map(d => (
-              <span key={d} className={`led-cell ${d < dayNumber ? 'lit' : ''}`} />
+              <span key={d} className={`led-cell ${d <= dayNumber ? 'lit' : ''}`} />
             ))}
           </div>
           <p className="eyebrow-mono mt-2">week progress</p>
