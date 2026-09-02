@@ -78,6 +78,65 @@ const over = (fg, bg, a) => fg.map((c, k) => Math.round(c * a + bg[k] * (1 - a))
 // here because a `const` is not hoisted, and the fixture runs first on purpose.
 const INK_FADE = /\b[a-z-]+-ink\/(?:\[[\d.]+\]|\d+)/
 
+// Section 5's vocabulary, hoisted for the same reason. A fill utility, with an
+// optional variant prefix (hover:, disabled:, group-hover:) and an optional
+// tint (/NN); an ink utility, bare. Longest names first so `bg-brand` cannot
+// swallow the front of `bg-brand-deep`.
+const FILL_UTILS = {
+  'bg-status-danger-fill': 'status-danger-fill',
+  'bg-status-good-fill': 'status-good-fill',
+  'bg-brand-deep': 'brand-deep',
+  'bg-brand': 'brand',
+}
+const INK_ON_FILL = {
+  'text-status-danger-ink': 'status-danger-ink',
+  'text-status-good-ink': 'status-good-ink',
+  'text-brand-ink': 'brand-ink',
+}
+const FILL_RE = new RegExp(
+  '(?:[a-z-]+:)?\\b(' + Object.keys(FILL_UTILS).join('|') + ')(?:/(\\d+))?(?![a-z0-9/-])', 'g')
+const INK_RE = new RegExp('\\b(' + Object.keys(INK_ON_FILL).join('|') + ')(?![a-z0-9/-])')
+// A quoted class string. Pairing happens INSIDE one of these, never across a
+// line: a ternary puts two of them on one line, and each branch's ink belongs
+// to that branch's fill only.
+const SEGMENT_RE = /(['"`])(?:\\.|(?!\1).)*\1/g
+
+// Every (ink, fill-state) pairing in a piece of source, measured in both
+// themes. ONE function, used by the fixture and by section 5's scan, so they
+// cannot diverge: the fixture proves this path can fail, and the scan is
+// trusted only because it runs the same path. A fixture that computed the
+// tint on its own would pass over a scan that had quietly stopped reading /NN
+// — which is the exact shape of false green FOR-192 was written to end.
+//
+// Pairs within a QUOTED SEGMENT, not the whole line. The first version paired
+// ActiveSessionHeader's danger ink with the volt tint from the OTHER branch
+// of its ternary —
+//   isPaused ? 'bg-status-danger-fill/20 text-status-danger-ink'
+//            : 'bg-brand/10 text-brand'
+// — and reported a 3.83:1 that no element ever renders. Section 3 gets away
+// with line scope because it reads one utility at a time; a PAIRING has to
+// know which fill is actually behind which ink.
+const pairsIn = (text) => {
+  const out = []
+  for (const seg of text.match(SEGMENT_RE) ?? [text]) {
+    const ink = seg.match(INK_RE)
+    if (!ink) continue
+    for (const f of seg.matchAll(FILL_RE)) {
+      const alpha = f[2] != null ? +f[2] / 100 : 1
+      for (const theme of ['chalk', 'graphite']) {
+        const b = blockOf(theme)
+        const fill = raw(b, FILL_UTILS[f[1]])
+        const inkC = raw(b, INK_ON_FILL[ink[1]])
+        const card = raw(b, 'card')
+        if (!fill || !inkC || !card) continue
+        out.push({ ink: ink[1], fill: f[0], theme,
+          r: ratio(toRgb(inkC), over(toRgb(fill), toRgb(card), alpha)) })
+      }
+    }
+  }
+  return out
+}
+
 // ── 0. THE FIXTURE — prove the machinery can FAIL before trusting a pass ───
 // Everything below asserts the real tokens are fine. That is only worth
 // reading if the check is capable of saying otherwise, and BOTH halves of
@@ -108,6 +167,39 @@ const INK_FADE = /\b[a-z-]+-ink\/(?:\[[\d.]+\]|\d+)/
   ok('FIXTURE: a faded FILL is not', !fade('className="bg-status-danger-fill/8"'),
     'opacity on a FILL is a tint and always legal — only inks are banned')
   ok('FIXTURE: a bare ink is not', !fade('className="text-status-danger-ink"'), null)
+
+  // FOR-198: the ink-on-composited-fill machinery, proved able to fail before
+  // any pass is trusted — through pairsIn, the SAME path section 5 scans with.
+  // --brand-ink is cut for volt at FULL strength; the same ink on the same fill
+  // tinted to /40 over the graphite card is a different ground entirely, and
+  // it has to come out under the floor here or section 5 cannot fail.
+  const on = (src) => Object.fromEntries(pairsIn(src).map((q) => [q.theme + ' ' + q.fill, q.r]))
+  const tint40 = on('className="bg-brand/40 text-brand-ink"')
+  ok('FIXTURE: brand-ink on a /40 volt tint is seen to FAIL on graphite',
+    tint40['graphite bg-brand/40'] < FLOOR,
+    'measured ' + tint40['graphite bg-brand/40'] + ':1 — at or above ' + FLOOR
+    + ', which would mean section 5 cannot fail and its passes mean nothing')
+  ok('FIXTURE: the same tint is fine on chalk, so this is a real measurement, not a ban',
+    tint40['chalk bg-brand/40'] >= FLOOR, 'measured ' + tint40['chalk bg-brand/40'] + ':1')
+  const solid = on('className="bg-brand text-brand-ink"')
+  ok('FIXTURE: brand-ink on SOLID volt is not flagged, either theme',
+    solid['chalk bg-brand'] >= FLOOR && solid['graphite bg-brand'] >= FLOOR,
+    'measured ' + solid['chalk bg-brand'] + ' / ' + solid['graphite bg-brand'] + ' — the pairing every volt button relies on')
+  // ...the parser sees a tinted fill behind a variant prefix, because
+  // `hover:bg-brand/90` is exactly the shape a real site carries...
+  const hov = Object.keys(on('className="bg-brand text-brand-ink hover:bg-brand/90"'))
+    .filter((k) => k.startsWith('chalk ')).map((k) => k.slice(6))
+  ok('FIXTURE: bare and hover-tinted fills are both paired off one line',
+    hov.join(' ') === 'bg-brand hover:bg-brand/90', 'paired: ' + hov.join(' '))
+  ok('FIXTURE: bg-brand does not swallow bg-brand-deep',
+    Object.keys(on('className="bg-brand-deep text-brand-ink"')).join(' ') === 'chalk bg-brand-deep graphite bg-brand-deep',
+    null)
+  // ...and a ternary on one line pairs each ink with ITS fill, not the other
+  // branch's. The first run of section 5 got exactly this wrong.
+  const tern = on("isPaused ? 'bg-status-danger-fill/20 text-status-danger-ink' : 'bg-brand/10 text-brand'")
+  ok('FIXTURE: a ternary pairs an ink only with the fill in its own branch',
+    Object.keys(tern).join(' ') === 'chalk bg-status-danger-fill/20 graphite bg-status-danger-fill/20',
+    'paired: ' + Object.keys(tern).join(' '))
 }
 
 // ── 1. an ink token is NEVER faded ─────────────────────────────────────────
@@ -320,6 +412,94 @@ for (const theme of ['chalk', 'graphite']) {
     rows.push([theme, 'category-' + c + ' on /10', 'card', r])
     ok(theme + ': --category-' + c + ' on its own 10% tint clears ' + FLOOR + ':1', r >= FLOOR,
       'measured ' + r + ':1 — the chip pattern is the ink on its own tint, not on the bare card')
+  }
+}
+
+// ── 5. an ink on a FILL is measured against the fill it actually sits on ───
+// FOR-198. Section 2 measures every ink on the two plain grounds, and section 1
+// bans fading an ink. Neither can see the case this ticket creates: the
+// prescribed load is --brand-ink on a solid volt slab, and --brand-ink is a
+// near-black cut for ONE ground — volt at full strength, where it is 15.6:1.
+// Composite that same fill at /40 over the graphite card and the same ink
+// measures 3.6:1; at /16 it is 1.6:1. The ink never changed. The fill did.
+//
+// FOR-192's fixture says "opacity on a FILL is a tint and always legal", which
+// is true for a tint under ordinary text and false the moment a *-ink token
+// sits on it. Same failure shape as the reskin: the token passes at full
+// strength, and nobody renders it at full strength.
+//
+// COMPUTE, do not ban. A tinted fill is legitimate — thirty-odd sites use one —
+// and only the PAIRING is hazardous. LearningTracker's `bg-brand text-brand-ink
+// hover:bg-brand/90` is fine and must stay fine; a ban would force a pointless
+// rewrite. So wherever a *-ink utility shares a line with a fill utility, every
+// fill state on that line (bare, /NN, hover:/NN …) is composited over the card
+// in both themes and the ink is measured on it. Line-scoped, like section 3.
+{
+  const bad = []
+  const measured = new Map()   // one row per distinct pairing, not per site
+  const scan = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e)
+      if (statSync(p).isDirectory()) { scan(p); continue }
+      if (!/\.tsx$/.test(e)) continue
+      readFileSync(p, 'utf8').split('\n').forEach((line, n) => {
+        for (const q of pairsIn(line)) {
+          const key = q.theme + ' ' + q.ink + ' on ' + q.fill
+          if (!measured.has(key)) {
+            measured.set(key, q.r)
+            rows.push([q.theme, INK_ON_FILL[q.ink] + ' on ' + q.fill, 'card', q.r])
+          }
+          if (q.r < FLOOR) {
+            bad.push(p.split(/[\\/]/).slice(-2).join('/') + ':' + (n + 1)
+              + '  ' + q.ink + ' on ' + q.fill + '  ' + q.theme + '  ' + q.r + ':1')
+          }
+        }
+      })
+    }
+  }
+  scan(SRC)
+  ok('every *-ink on a fill clears ' + FLOOR + ':1 on the COMPOSITED fill, both themes', bad.length === 0,
+    bad.join('\n        ')
+    + '\n        an ink is cut for its fill at full strength. Tint the fill and the\n'
+    + '        ink is on a ground it was never measured against.')
+
+  // The slab itself, directly. Its fill is on a wrapper and its ink arrives via
+  // the globals.css:621 remap of the child's text-brand, so the pairing is not
+  // on one line and the scan above cannot see it. This is the number DoD 3
+  // pastes, and the reason the slab is legal in the first place.
+  for (const theme of ['chalk', 'graphite']) {
+    const b = blockOf(theme)
+    const r = ratio(toRgb(raw(b, 'brand-ink')), toRgb(raw(b, 'brand')))
+    rows.push([theme, 'brand-ink (the load slab)', 'brand', r])
+    ok(theme + ': the prescribed-load slab — brand-ink on solid volt — clears ' + FLOOR + ':1', r >= FLOOR,
+      'measured ' + r + ':1')
+  }
+
+  // And the slab is exactly where the ticket put it and nowhere else. The fill
+  // means "this is the number you lift"; spread it and it stops meaning that.
+  const day = readFileSync(join(SRC, 'app', 'train', '[program]', '[day]', 'page.tsx'), 'utf8')
+    .replace(/\r\n/g, '\n')
+  const SLAB = 'bg-brand rounded-[6px] px-2 py-0.5'
+  const at = day.indexOf(SLAB)
+  ok('the load slab exists exactly once', at >= 0 && day.indexOf(SLAB, at + 1) < 0, null)
+  const branch = day.indexOf('item.targetWeightLbs != null ? (')
+  const elseAt = day.indexOf(') : (', branch)
+  ok('the slab is inside the targetWeightLbs != null branch — the null branch never renders an empty one',
+    branch >= 0 && at > branch && at < elseAt, null)
+  const slabBlock = day.slice(at, day.indexOf('</span>\n                </span>', at))
+  ok('the slab numeral carries no textShadow', slabBlock.length > 0 && !/textShadow/.test(slabBlock),
+    'a glow around a filled slab is noise, and on chalk it was 1.18:1 paint')
+  // The sites deliberately NOT filled. A bg-brand on any of these lines is the
+  // fill spreading, whatever the intent.
+  for (const [what, needle] of [
+    ['session-summary tonnage', 'stat-num text-3xl text-brand'],
+    ['metcon time cap', 'stat-num text-2xl text-brand'],
+    ['warm-up ramp numerals', "rampDone[i] ? 'text-brand'"],
+    ['PR toast', 'stat-num text-brand">{p.weight}'],
+  ]) {
+    const line = day.split('\n').find((l) => l.includes(needle)) ?? ''
+    ok(what + ' is not filled', line.length > 0 && !/\bbg-brand\b/.test(line),
+      line ? 'found bg-brand on: ' + line.trim().slice(0, 90) : 'anchor not found: ' + needle)
   }
 }
 

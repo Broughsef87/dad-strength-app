@@ -516,8 +516,23 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
             {/* Prescription readout — target weight is the hero */}
             {item.targetWeightLbs != null ? (
               <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
-                <span className="stat-num text-4xl text-brand" style={{ textShadow: '0 0 18px hsl(var(--brand) / 0.35)' }}>
-                  {item.targetWeightLbs}
+                {/* THE number you lift, as a volt SLAB.
+                    Volt is a fill, never an ink (globals.css:612). As text on
+                    chalk it measures 1.18:1, so `text-brand` resolves to the
+                    darkened --brand-text and reads olive — and that is the most
+                    volt any ink can be on a light ground. A solid fill is the
+                    only way full-chroma volt reaches a light screen at all.
+                    The wrapper's bg-brand flips the child's text-brand to
+                    --brand-ink through the :621 remap. No new token; one rule
+                    governs the pairing, here and in every volt button.
+                    A highlighter, not a button. Every control on this screen is
+                    a 999px pill, so a low-radius rectangle is the one shape that
+                    cannot be read as one. No glow: a halo on a slab is noise,
+                    and on chalk it was painting a 1.18:1 colour onto white. */}
+                <span className="inline-block bg-brand rounded-[6px] px-2 py-0.5">
+                  <span className="stat-num text-4xl text-brand">
+                    {item.targetWeightLbs}
+                  </span>
                 </span>
                 <span className="eyebrow-mono">
                   LB{item.percent != null ? ` @ ${item.percent}%` : ''} · {item.sets}×{repsLabel}{effortLabel}
