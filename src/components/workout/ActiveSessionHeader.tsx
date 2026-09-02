@@ -40,8 +40,14 @@ export default function ActiveSessionHeader({
 
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
+          {/* /10, not /20. The paused badge's danger ink is cut for graphite's
+              dark card; a 20% red tint lightened that ground enough to drop it
+              to 4.31:1. Found by contrast.mjs section 5 (FOR-198) on its first
+              run — the first ink-on-tinted-fill it ever measured. /10 reads
+              5.69 chalk, 4.65 graphite, and is the tint step the other branch
+              already uses. */}
           <div className={`p-2.5 rounded-2xl transition-all duration-500 transform group-hover:rotate-12 ${
-            isPaused ? 'bg-status-danger-fill/20 text-status-danger-ink' : 'bg-brand/10 text-brand'
+            isPaused ? 'bg-status-danger-fill/10 text-status-danger-ink' : 'bg-brand/10 text-brand'
           }`}>
             {isPaused ? <Coffee size={18} /> : <Activity size={18} className="animate-pulse" />}
           </div>
