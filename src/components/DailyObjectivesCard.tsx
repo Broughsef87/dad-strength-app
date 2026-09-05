@@ -136,7 +136,7 @@ export default function DailyObjectivesCard(
   const hasObjectives = locked && filledObjectives.length > 0
 
   if (loading) {
-    return <div className="tile h-32 animate-pulse" />
+    return <div className="tile h-32" />
   }
 
   return (

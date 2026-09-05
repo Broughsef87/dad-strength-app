@@ -95,7 +95,7 @@ export default function BodyVitals() {
 
   if (loading) {
     return (
-      <div className="bg-card rounded-xl p-5 border border-border animate-pulse">
+      <div className="bg-card rounded-xl p-5 border border-border">
         <div className="h-3 bg-muted rounded w-1/2 mb-3" />
         <div className="h-7 bg-muted rounded w-1/3" />
       </div>

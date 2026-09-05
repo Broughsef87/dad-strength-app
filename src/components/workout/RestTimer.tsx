@@ -23,7 +23,7 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
     <div className={`relative overflow-hidden p-5 rounded-3xl border-2 flex items-center justify-between transition-all duration-500 ${
       isLowTime
         ? 'bg-status-danger-fill/10 border-status-danger-fill/50'
-        : 'bg-brand/10 border-brand/30 shadow-[0_0_20px_hsl(16_80%_54%/0.05)]'
+        : 'bg-brand/10 border-brand/30'
     }`}>
       {/* Background Progress Bar */}
       <div
@@ -34,7 +34,7 @@ export default function RestTimer({ timeLeft, onSkip }: RestTimerProps) {
       />
 
       <div className="flex items-center gap-4 relative z-10">
-        <div className={`p-3 rounded-2xl ${isLowTime ? 'bg-status-danger-fill/20 animate-pulse' : 'bg-brand/10'}`}>
+        <div className={`p-3 rounded-2xl ${isLowTime ? 'bg-status-danger-fill/20' : 'bg-brand/10'}`}>
           <Timer className={`w-6 h-6 ${isLowTime ? 'text-status-danger-ink' : 'text-brand'}`} />
         </div>
 

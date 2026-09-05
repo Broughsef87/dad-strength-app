@@ -133,7 +133,7 @@ export default function WorkoutSummaryOverlay({
 
               <button
                 onClick={onReturn}
-                className="group w-full bg-brand text-foreground font-display font-semibold py-5 rounded-3xl hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg"
+                className="group w-full bg-brand text-brand-ink font-display font-semibold py-5 rounded-3xl hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg"
               >
                 RETURN TO HQ
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />

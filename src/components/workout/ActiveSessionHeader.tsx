@@ -30,11 +30,10 @@ export default function ActiveSessionHeader({
       <div className="absolute top-0 left-0 w-full h-1.5 bg-background/50">
         <div
           className={`h-full transition-all duration-1000 ease-out relative ${
-            isPaused ? 'bg-status-danger-fill' : 'bg-gradient-to-r from-brand via-brand/80 to-brand/60'
+            isPaused ? 'bg-status-danger-fill' : 'bg-brand'
           }`}
           style={{ width: `${progress}%` }}
         >
-            <div className={`absolute top-0 right-0 h-full w-8 bg-gradient-to-r from-transparent to-[hsl(var(--sheen))]/20 animate-pulse`} />
         </div>
       </div>
 
@@ -49,7 +48,7 @@ export default function ActiveSessionHeader({
           <div className={`p-2.5 rounded-2xl transition-all duration-500 transform group-hover:rotate-12 ${
             isPaused ? 'bg-status-danger-fill/10 text-status-danger-ink' : 'bg-brand/10 text-brand'
           }`}>
-            {isPaused ? <Coffee size={18} /> : <Activity size={18} className="animate-pulse" />}
+            {isPaused ? <Coffee size={18} /> : <Activity size={18} />}
           </div>
           <div className="flex flex-col">
             <h2 className={`text-[10px] font-black lowercase leading-none mb-1 transition-colors ${
@@ -58,7 +57,7 @@ export default function ActiveSessionHeader({
               {isPaused ? 'Grace Mode Active' : 'Live Protocol'}
             </h2>
             <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-status-good-fill animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-status-good-fill" />
                 <span className="text-[10px] font-bold text-status-good-ink lowercase">System Operational</span>
             </div>
           </div>
@@ -88,7 +87,7 @@ export default function ActiveSessionHeader({
 
       <div className="flex justify-between items-end">
         <div className="relative">
-          <h1 className="text-3xl font-black tracking-tight text-foreground mb-1.5 drop-shadow-sm">{workoutName}</h1>
+          <h1 className="text-3xl font-black tracking-tight text-foreground mb-1.5">{workoutName}</h1>
           <div className="flex items-center gap-2">
             <p className={`text-[11px] font-bold lowercase transition-colors ${
                 isPaused ? 'text-status-danger-ink' : 'text-muted-foreground'
@@ -129,10 +128,6 @@ export default function ActiveSessionHeader({
         </div>
       </div>
 
-      {/* Subtle Background Glows */}
-      <div className={`absolute -bottom-12 -right-12 w-32 h-32 blur-[80px] rounded-full transition-colors duration-1000 ${
-          isPaused ? 'bg-status-danger-fill/10' : 'bg-brand/10'
-      }`} />
     </div>
   );
 }

@@ -393,7 +393,7 @@ export default function AmbientAudioPlayer() {
             onClick={() => handleTrackSelect(t.id)}
             className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
               activeTrack === t.id
-                ? 'bg-brand text-foreground'
+                ? 'bg-brand text-brand-ink'
                 : 'bg-muted text-muted-foreground hover:border-brand/30 hover:text-foreground'
             }`}
           >

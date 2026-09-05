@@ -34,7 +34,7 @@ export default function SetRow({
       } rounded-2xl`}
     >
       <div className={`flex-none w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-display font-semibold italic transition-colors ${
-        isDone ? 'bg-brand text-foreground' : 'bg-gray-800 text-muted-foreground'
+        isDone ? 'bg-brand text-brand-ink' : 'bg-gray-800 text-muted-foreground'
       }`}>
         {index + 1}
       </div>
@@ -56,7 +56,7 @@ export default function SetRow({
             onClick={() => onToggle(set.id)}
             className={`p-2 rounded-xl transition-all ${
               isDone 
-                ? 'bg-brand text-foreground shadow-lg shadow-brand/30' 
+                ? 'bg-brand text-brand-ink shadow-lg shadow-brand/30' 
                 : 'bg-gray-800 text-muted-foreground hover:text-foreground hover:bg-gray-700'
             }`}
           >

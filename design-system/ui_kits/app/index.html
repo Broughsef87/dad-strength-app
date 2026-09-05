@@ -1,0 +1,94 @@
+<!-- @dsCard group="Dad Strength App" viewport="700x560" name="app" subtitle="sign in → today → the week → the log, chalk and graphite" -->
+<!-- @startingPoint section="Dad Strength App" subtitle="Click-through training app, both themes" viewport="900x760" -->
+<!doctype html>
+<html>
+<head>
+
+  <meta charset="utf-8">
+  <title>dad strength — app</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    html, body { margin: 0; }
+    body {
+      background: #E4E1DA;
+      font-family: var(--ds-font-sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script>
+    window.__DS = window[Object.keys(window).find(k => /^DadStrength/.test(k))] || {};
+  </script>
+  <script type="text/babel" src="AppShell.jsx"></script>
+  <script type="text/babel" src="SignInScreen.jsx"></script>
+  <script type="text/babel" src="TodayScreen.jsx"></script>
+  <script type="text/babel" src="WeekScreen.jsx"></script>
+  <script type="text/babel" src="HistoryScreen.jsx"></script>
+  <div id="root"></div>
+  <script type="text/babel">
+    const session = {
+      name: "back squat",
+      load: "185",
+      meta: "lb @ 65% · 4×5 · tgt rpe 7",
+      sets: [
+        { label: "set 1", value: "5 reps · rpe 6" },
+        { label: "set 2", value: "5 reps · rpe 7" },
+        { label: "set 3" },
+        { label: "set 4" },
+      ],
+    };
+    const days = [
+      { label: "mon", done: true },
+      { label: "wed", done: true },
+      { label: "fri" },
+      { label: "sat" },
+    ];
+    const sessions = [
+      { name: "lower · heavy", when: "mon · morning done", axis: "legs" },
+      { name: "upper · push", when: "wed · done", axis: "push" },
+      { name: "lower · volume", when: "fri", axis: "legs" },
+      { name: "carry + core", when: "anytime", axis: "core" },
+    ];
+    const entries = [
+      { name: "back squat", meta: "wk 3 · day 2", load: "185", axis: "legs" },
+      { name: "bench press", meta: "wk 3 · day 1", load: "155", axis: "push" },
+      { name: "farmer carry", meta: "wk 2 · anytime", load: "2×70", axis: "core" },
+      { name: "row", meta: "wk 2 · day 3", load: "135", axis: "pull" },
+      { name: "bike · 12 min", meta: "wk 2 · anytime", load: "—", axis: "condition" },
+    ];
+
+    function App() {
+      const [theme, setTheme] = React.useState("chalk");
+      const [signedIn, setSignedIn] = React.useState(false);
+      const [tab, setTab] = React.useState("today");
+      const [finished, setFinished] = React.useState(false);
+      const toggle = () => setTheme(t => (t === "chalk" ? "graphite" : "chalk"));
+
+      if (!signedIn) {
+        return (
+          <AppShell theme={theme} onTheme={toggle} tab={tab} onTab={setTab} chromeless>
+            <SignInScreen onSignIn={() => setSignedIn(true)} />
+          </AppShell>
+        );
+      }
+      return (
+        <AppShell theme={theme} onTheme={toggle} tab={tab} onTab={setTab}>
+          {tab === "today" && <TodayScreen session={session} finished={finished} onFinish={() => setFinished(true)} />}
+          {tab === "week" && <WeekScreen days={days} sessions={sessions} />}
+          {tab === "log" && <HistoryScreen entries={entries} />}
+        </AppShell>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

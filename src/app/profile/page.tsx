@@ -221,7 +221,7 @@ export default function Profile() {
         {/* Stats */}
         {loading ? (
           <div className="grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map(i => <div key={i} className="bg-card rounded-xl p-4 border border-border h-20 animate-pulse" />)}
+            {[1, 2, 3, 4].map(i => <div key={i} className="bg-card rounded-xl p-4 border border-border h-20" />)}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">

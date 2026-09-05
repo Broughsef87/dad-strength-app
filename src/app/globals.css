@@ -1,20 +1,32 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CHALK / VOLT — the live design system (direction 03, built 2026-08).
+   CHALK / VOLT — the live design system.
+
+   The system is SPECIFIED in /design-system — a vendored copy of the Claude
+   Design project "dad strength — chalk / volt" — and this file is its
+   implementation for the app. The values here are the DS's values, and
+   scripts/checks/design-system.mjs measures the two against each other, so
+   a token changes in the DS first and lands here second, never the other way.
+
    Radical neutrality plus one electric color. Warm chalk grounds, borderless
    cards that separate by shadow, lowercase voice, enormous numerals doing
-   the talking. Volt appears only where something is LIVE, EARNED, or DONE.
+   the talking. Volt appears only where something is LIVE, EARNED, or DONE —
+   and where it marks THE NUMBER YOU LIFT.
 
-   The five rules:
-     01 one accent, earned — volt marks live/earned/done, nothing else
-     02 numerals are heroes — the biggest thing on screen is a number you made
-     03 shadows, not borders — no panel-cuts, no hairlines, no chrome
-     04 lowercase voice — terse and human, never military
-     05 springy, brief motion — count-ups, spring pills, one fade per screen
+   The eight rules (design-system/readme.md, "The rules sheet"):
+     01 volt is a fill — never an ink on a light ground
+     02 one accent, earned — live, earned, the number you lift. Nothing else
+     03 numerals are heroes — the load, the week, the streak lead every card
+     04 shadows, not borders — tiles float; rows recede by fill
+     05 lowercase voice — direct, second person, no exclamation marks
+     06 inks never fade — text that recedes uses concrete, not opacity
+     07 no warning color — prose or low-emphasis danger. Never amber
+     08 six category axes — desaturated, never one hue per label
 
    Rosso is retired to destructive states only. The mech era is over: no
-   telemetry, no stamps, no cockpit vocabulary anywhere in the UI.
+   telemetry, no stamps, no cockpit vocabulary anywhere in the UI. Nothing
+   glows, nothing blurs, nothing loops, and there is no gradient anywhere.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme {
@@ -79,6 +91,16 @@
   --radius-md: 1rem;
   --radius-sm: 0.875rem;
   --radius-3xl: 1.5rem;
+  /* the two low radii the DS reserves: the highlighter slab, and led/ammo cells.
+     Every control is a 999px pill, so these are the shapes that cannot be
+     mistaken for one. */
+  --radius-slab: 6px;
+  --radius-cell: 2px;
+
+  /* ── motion: springy and brief (design-system/tokens/motion.css) ──
+     --ease-out replaces Tailwind's default so `ease-out` means the system curve. */
+  --ease-spring: cubic-bezier(0.2, 0.9, 0.25, 1.06);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ── type: a confident grotesk lowercase and tight, a quiet mono for data ── */
   --font-sans: var(--font-space-grotesk, "Segoe UI Variable Display", system-ui, sans-serif);
@@ -86,9 +108,7 @@
   --font-display: var(--font-space-grotesk, "Segoe UI Variable Display", system-ui, sans-serif);
   /* legacy alias some components still reference */
   --font-telemetry: var(--font-geist-mono, var(--font-space-mono, ui-monospace, monospace));
-  /* Playfair is no longer loaded (its only consumer, HeroAccent, is never
-     rendered), so this resolves to the system serif rather than a dangling var. */
-  --font-serif-accent: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  /* There is no serif in this system. Space Grotesk and Geist Mono, nothing else. */
 }
 
 @layer base {
@@ -128,7 +148,7 @@
 
     /* volt — light ground gets the slightly deeper cut for contrast */
     --brand: 78 100% 62%;              /* #C6FF3F */
-    --brand-deep: 78 71% 53%;          /* #A8E32A */
+    --brand-deep: 79 77% 53%;          /* #A8E32A */
     --brand-ink: 82 37% 6%;            /* #131608 text on volt */
     --brand-text: 77 79% 27%;          /* #5C7A0E volt as INK on chalk (5.6:1) */
     --brand-muted: 78 100% 62% / 0.16;
@@ -171,15 +191,22 @@
        as states, and so they never compete with volt for attention. The 16
        library categories map onto these; the chip still carries its own word,
        so colour here is grouping, not the only signal. */
-    --category-push: 12 34% 42%;       /* chest · shoulders · triceps */
-    --category-pull: 205 34% 42%;      /* back · biceps */
-    --category-legs: 262 24% 48%;      /* quads · hams · glutes · calves */
-    --category-core: 168 30% 34%;      /* core · isometric */
-    --category-condition: 32 44% 35%;  /* cardio */
-    --category-general: 55 7% 37%;     /* compound · isolation · arms */
+    --category-push: 18 31% 36%;       /* #7A5140 chest · shoulders · triceps */
+    --category-pull: 196 26% 33%;      /* #3F5F6B back · biceps */
+    --category-legs: 269 18% 35%;      /* #5A4A6B quads · hams · glutes · calves */
+    --category-core: 43 40% 30%;       /* #6B5A2E core · isometric */
+    --category-condition: 148 22% 32%; /* #3F6350 cardio */
+    --category-general: 60 3% 36%;     /* #5E5E58 compound · isolation · arms */
 
-    --shadow-tile: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px rgba(20, 20, 18, 0.06);
-    --shadow-tile-lg: 0 2px 4px rgba(20, 20, 18, 0.05), 0 18px 48px rgba(20, 20, 18, 0.10);
+    /* ── elevation: a 1px contact shadow plus a long, negative-spread lift.
+       No coloured shadow, no glow — nothing glows. ── */
+    --shadow-tile: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px -12px rgba(20, 20, 18, 0.12);
+    --shadow-tile-lg: 0 2px 4px rgba(20, 20, 18, 0.05), 0 16px 36px -14px rgba(20, 20, 18, 0.16);
+
+    /* ── motion durations: press, mount, stamp. The curves live in @theme. ── */
+    --dur-press: 90ms;
+    --dur-mount: 240ms;
+    --dur-stamp: 420ms;
   }
 
   .dark {
@@ -203,7 +230,7 @@
     --secondary: 220 6% 13%;
     --secondary-foreground: 60 5% 92%;
 
-    --muted: 220 6% 15%;               /* #26282B line/fill */
+    --muted: 216 6% 16%;               /* #26282B line/fill */
     --muted-foreground: 60 3% 53%;     /* #8B8B85 */
 
     --accent: 220 6% 13%;
@@ -212,13 +239,13 @@
     --destructive: 0 62% 46%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 6% 15%;
+    --border: 216 6% 16%;              /* = --muted */
     --input: 220 6% 10%;
     --ring: 76 100% 65%;
 
     /* volt brightens a step on graphite */
     --brand: 76 100% 65%;              /* #CDFF4D */
-    --brand-deep: 76 85% 57%;          /* #B7EE33 */
+    --brand-deep: 78 85% 57%;          /* #B7EE33 */
     --brand-ink: 82 37% 6%;
     --brand-text: 76 100% 65%;      /* on graphite, volt itself reads fine */
     --brand-muted: 76 100% 65% / 0.12;
@@ -234,15 +261,16 @@
     --status-scale: var(--brand);
 
     /* category, lifted for the dark ground; same six, same meanings */
-    --category-push: 12 46% 64%;
-    --category-pull: 205 46% 62%;
-    --category-legs: 262 38% 68%;
-    --category-core: 168 40% 54%;
-    --category-condition: 32 52% 58%;
-    --category-general: 55 8% 62%;
+    --category-push: 19 34% 63%;       /* #C09480 */
+    --category-pull: 196 28% 66%;      /* #8FB3C0 */
+    --category-legs: 264 23% 67%;      /* #A899BF */
+    --category-core: 43 35% 61%;       /* #BFAC7A */
+    --category-condition: 145 27% 65%; /* #8FBFA3 */
+    --category-general: 60 5% 65%;     /* #ABABA3 */
 
-    --shadow-tile: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px rgba(0, 0, 0, 0.45);
-    --shadow-tile-lg: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 22px 56px rgba(0, 0, 0, 0.55);
+    /* graphite swaps the shadow to black at higher alpha; still no inset sheen */
+    --shadow-tile: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    --shadow-tile-lg: 0 2px 4px rgba(0, 0, 0, 0.55), 0 16px 36px -14px rgba(0, 0, 0, 0.7);
   }
 
   * {
@@ -253,7 +281,9 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-sans);
-    font-weight: 400;
+    /* body copy is light on purpose: it keeps prose subordinate to numerals */
+    font-weight: 300;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -267,19 +297,22 @@
     letter-spacing: -0.03em;
     font-weight: 700;
   }
+  /* the DS display scale: h1 -0.045em/700, h2 -0.03em/600, h3 -0.02em/600 */
+  h1 { letter-spacing: -0.045em; }
+  h2, h3 { font-weight: 600; }
+  h3 { letter-spacing: -0.02em; }
   h4 {
     letter-spacing: -0.015em;
     font-weight: 600;
     font-family: var(--font-sans);
   }
 
+  /* Press is the real state — this is a phone-first system used one-handed
+     at 5am. The fill changes over 90ms; nothing lifts, scales or glows. */
   button, a, [role="button"] {
-    transition-property: color, background-color, border-color, opacity, transform, box-shadow;
-    transition-duration: 160ms;
-    transition-timing-function: cubic-bezier(0.3, 1.2, 0.4, 1); /* springy, brief */
-  }
-  button:active, [role="button"]:active {
-    transform: scale(0.97);
+    transition-property: color, background-color, border-color, opacity, box-shadow;
+    transition-duration: var(--dur-press);
+    transition-timing-function: var(--ease-out);
   }
 
   :focus-visible {
@@ -309,7 +342,8 @@
   border-radius: 0.875rem;
 }
 
-/* ── pills ── */
+/* ── pills: the control. volt (fill + brand-ink) or quiet (recessed fill + ink).
+   Pressed, the fill deepens — volt-deep, or the line colour. No lift. ── */
 .pill {
   border-radius: 999px;
 }
@@ -317,24 +351,29 @@
   border-radius: 999px;
   background: hsl(var(--brand));
   color: hsl(var(--brand-ink));
-  font-weight: 700;
+  font-weight: 600;
 }
+.pill-volt:active { background: hsl(var(--brand-deep)); }
 .pill-quiet {
   border-radius: 999px;
-  background: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  font-weight: 700;
+  background: hsl(var(--surface-2));
+  color: hsl(var(--foreground));
+  font-weight: 500;
 }
+.pill-quiet:active { background: hsl(var(--muted)); }
 
-/* ── the volt chip: live / earned / done (rule 01) ── */
+/* ── the live chip: live / earned / done (rule 02). brand-muted tint,
+   brand-text, a leading dot. The dot is a fill, so it is volt itself. ── */
 .chip-live {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 10.5px;
-  font-weight: 700;
+  padding: 9px 15px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
   text-transform: lowercase;
   background: hsl(var(--brand-muted));
   color: hsl(var(--brand-text));
@@ -344,32 +383,41 @@
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: currentColor;
+  background: hsl(var(--brand));
+  flex: none;
 }
+.chip-live-sm { padding: 5px 11px; font-size: 10px; }
+.chip-live-sm::before { width: 5px; height: 5px; }
 
-/* ── eyebrows: quiet lowercase mono micro-labels ── */
+/* ── eyebrows: quiet lowercase mono micro-labels carrying metadata ── */
 .eyebrow-mono {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
   text-transform: lowercase;
   color: hsl(var(--muted-foreground));
 }
+.eyebrow-mono-sm { font-size: 10px; letter-spacing: 0.14em; }
 
-/* hero numerals — tabular, tight, huge (rule 02) */
+/* hero numerals — the mono, tabular, tight, huge (rule 03). Sizes come from
+   the call site: the DS scale is 72 / 44 / 30px. */
 .stat-num {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-feature-settings: "tnum" 1;
+  font-weight: 600;
   letter-spacing: -0.045em;
   line-height: 0.92;
 }
-/* data lines — the quiet mono voice for %, rpe, wk */
+/* data lines — the quiet mono voice for %, rpe, wk, plate math. 12px is the
+   DS's smallest data size; concrete, with the value itself in ink. */
 .data-mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.6875rem;
-  letter-spacing: 0.07em;
+  font-feature-settings: "tnum" 1;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: hsl(var(--muted-foreground));
 }
 .data-mono b, .data-mono .v {
@@ -377,44 +425,120 @@
   font-weight: 600;
 }
 
-/* ── day-progress pills (the week strip) ── */
-.day-pills { display: flex; gap: 6px; }
-.day-pill {
-  flex: 1;
-  height: 7px;
+/* ── the highlighter (VoltSlab): the one place full-chroma volt marks a
+   number, and it marks exactly one — the prescribed load. 6px corners on
+   purpose: every control is a pill, so a squared slab cannot read as one. ── */
+.slab-volt {
+  display: inline-block;
+  background: hsl(var(--brand));
+  color: hsl(var(--brand-ink));
+  border-radius: var(--radius-slab);
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── status message: a dot and a line, good or danger, always as a fill/ink
+   pair. Good is the volt pair on the brand-muted tint; danger is the red pair
+   on a recessed row. ── */
+.status-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 0.875rem;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.status-msg::before {
+  content: "";
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
+  margin-top: 6px;
+  flex: none;
+}
+.status-msg.good { background: hsl(var(--brand-muted)); color: hsl(var(--status-good-ink)); }
+.status-msg.good::before { background: hsl(var(--status-good-fill)); }
+.status-msg.danger { background: hsl(var(--surface-2)); color: hsl(var(--status-danger-ink)); }
+.status-msg.danger::before { background: hsl(var(--status-danger-fill)); }
+
+/* ── category chip: a word on its own 10% tint. The colour is grouping, not
+   status — pair with text-category-<axis> and bg-category-<axis>/10. ── */
+.chip-cat {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── led cells (LedBar): 20×7 at 2px corners, volt when lit. The week strip
+   and every other progress strip are this one thing. ── */
+.day-pills, .led-bar { display: flex; align-items: center; gap: 6px; }
+.day-pill, .led-cell {
+  width: 20px;
+  height: 7px;
+  flex: none;
+  border-radius: var(--radius-cell);
   background: hsl(var(--muted));
 }
-.day-pill.on { background: hsl(var(--brand)); }
+.day-pill.on, .led-cell.lit { background: hsl(var(--brand)); }
+
+/* ── day dots (DayPills): the week as labelled 36px circles, volt when done ── */
+.day-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--surface-2));
+  color: hsl(var(--muted-foreground));
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+.day-dot.on { background: hsl(var(--brand)); color: hsl(var(--brand-ink)); }
+
+/* ── ammo cells (AmmoCells): 10×18 at 2px corners; a spent cell is a completed set ── */
+.ammo-cell {
+  width: 10px;
+  height: 18px;
+  border-radius: var(--radius-cell);
+  background: hsl(var(--muted));
+  transition: background var(--dur-press) var(--ease-out);
+}
+.ammo-cell.spent { background: hsl(var(--brand)); }
 
 /* ── progress ring stroke colors (SVG consumers read these) ── */
 .ring-track { stroke: hsl(var(--muted)); }
 .ring-live { stroke: hsl(var(--brand)); }
 
-/* ── skeleton ── */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
+/* ── skeleton: a static recessed block. No shimmer — nothing loops. ── */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--muted)) 25%,
-    hsl(var(--muted) / 0.5) 50%,
-    hsl(var(--muted)) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.8s ease-in-out infinite;
+  background: hsl(var(--muted));
   border-radius: 0.875rem;
 }
 
-/* ── motion: confirms, never performs (rule 05) ── */
+/* ── motion: confirms, never performs (rule 05). Three moves — a card
+   MOUNTS with a short rise, a STAMP lands with a slight rotation and settles,
+   a PRESS changes a fill — and nothing loops. ── */
 @keyframes rise {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
 .animate-float-up, .rise {
-  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: rise var(--dur-mount) var(--ease-spring) both;
+}
+@keyframes stamp {
+  0% { opacity: 0; transform: rotate(4deg) scale(1.06); }
+  60% { opacity: 1; transform: rotate(-1deg) scale(0.99); }
+  100% { opacity: 1; transform: none; }
 }
 @keyframes pop-in {
   0% { opacity: 0; transform: scale(0.9); }
@@ -424,8 +548,7 @@
 .pop-in { animation: pop-in 0.32s cubic-bezier(0.3, 1.4, 0.4, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise, .animate-float-up, .pop-in { animation: none; }
-  .skeleton { animation: none; }
+  .rise, .animate-float-up, .pop-in, .stamp { animation: none; }
 }
 
 /* ── data row (kept — quiet stat pairs) ── */
@@ -486,57 +609,37 @@
 .carbon { background: hsl(var(--surface-2)); background-image: none; }
 .noise-overlay::after { content: none; }
 
-/* telemetry labels → quiet lowercase mono */
+/* telemetry labels → eyebrows */
 .telemetry {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  letter-spacing: 0.16em;
   text-transform: lowercase;
   color: hsl(var(--muted-foreground));
 }
 .telemetry-dim {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  letter-spacing: 0.16em;
   text-transform: lowercase;
   color: hsl(var(--muted-foreground) / 0.75);
 }
 
 /* readout numerals → hero numerals */
 .readout-num {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 0.92;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
 }
 
-/* LED bars → day pills; ammo cells → round set dots */
-.led-bar { display: flex; gap: 6px; height: 7px; }
-.led-cell {
-  flex: 1;
-  background: hsl(var(--muted));
-  clip-path: none;
-  border-radius: 999px;
-}
-.led-cell.lit { background: hsl(var(--brand)); box-shadow: none; }
-.ammo-cell {
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid hsl(var(--muted-foreground) / 0.4);
-  clip-path: none;
-  border-radius: 999px;
-  transition: all 150ms ease;
-}
-.ammo-cell.spent {
-  background: hsl(var(--brand));
-  border-color: hsl(var(--brand));
-  box-shadow: none;
-}
+/* .led-bar / .led-cell / .ammo-cell are kit classes now — see the CHALK / VOLT
+   KIT section above. The shims that used to live here are gone. */
 
-/* stamps → volt outline chip, no rotation, no glow */
+/* stamps → volt outline chip that lands with a slight rotation and settles */
 .stamp {
-  animation: pop-in 0.32s cubic-bezier(0.3, 1.4, 0.4, 1) both;
+  animation: stamp var(--dur-stamp) var(--ease-spring) both;
   border: 2px solid hsl(var(--brand));
   color: hsl(var(--brand-text));
   border-radius: 999px;

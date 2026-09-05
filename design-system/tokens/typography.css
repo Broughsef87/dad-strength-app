@@ -1,0 +1,88 @@
+/* ============================================================
+   type — two families, four roles.
+   space grotesk for display + body. geist mono for anything the
+   engine prints. tabular numerals always. prose is never mono.
+   ============================================================ */
+
+:root {
+  --ds-font-sans: "Space Grotesk", system-ui, sans-serif;
+  --ds-font-mono: "Geist Mono", "Space Mono", ui-monospace, monospace;
+
+  --ds-weight-light: 300;
+  --ds-weight-regular: 400;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold: 700;
+
+  /* role: stat-num — the hero numeral */
+  --ds-stat-num-family: var(--ds-font-mono);
+  --ds-stat-num-weight: 600;
+  --ds-stat-num-size: 72px;
+  --ds-stat-num-size-md: 44px;
+  --ds-stat-num-size-sm: 30px;
+  --ds-stat-num-tracking: -0.045em;
+  --ds-stat-num-leading: 0.92;
+
+  /* role: display */
+  --ds-display-size: 76px;
+  --ds-display-tracking: -0.045em;
+  --ds-display-leading: 0.92;
+  --ds-h2-size: 40px;
+  --ds-h2-tracking: -0.03em;
+  --ds-h2-leading: 1.05;
+  --ds-h3-size: 26px;
+  --ds-h3-tracking: -0.02em;
+  --ds-h3-leading: 1.15;
+
+  /* role: body — light weight, generous leading */
+  --ds-body-lg-size: 17px;
+  --ds-body-size: 15px;
+  --ds-body-sm-size: 13px;
+  --ds-body-weight: 300;
+  --ds-body-leading: 1.65;
+
+  /* role: eyebrow-mono — quiet lowercase micro-label */
+  --ds-eyebrow-size: 11px;
+  --ds-eyebrow-size-sm: 10px;
+  --ds-eyebrow-tracking: 0.16em;
+  --ds-eyebrow-tracking-tight: 0.14em;
+
+  /* role: data-mono — %, rpe, wk, plate math */
+  --ds-data-size: 15px;
+  --ds-data-size-sm: 13px;
+  --ds-data-size-xs: 12px;
+  --ds-data-weight: 500;
+}
+
+.ds-stat-num {
+  font-family: var(--ds-stat-num-family);
+  font-weight: var(--ds-stat-num-weight);
+  font-size: var(--ds-stat-num-size);
+  letter-spacing: var(--ds-stat-num-tracking);
+  line-height: var(--ds-stat-num-leading);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.ds-eyebrow-mono {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-eyebrow-size);
+  letter-spacing: var(--ds-eyebrow-tracking);
+  color: var(--ds-concrete);
+  text-transform: lowercase;
+}
+
+.ds-data-mono {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-data-size);
+  font-weight: var(--ds-data-weight);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.ds-body {
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-body-size);
+  font-weight: var(--ds-body-weight);
+  line-height: var(--ds-body-leading);
+}

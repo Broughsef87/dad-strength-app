@@ -111,7 +111,7 @@ export default function BuildPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => (selected ? setSelected(null) : router.push('/dashboard'))}
           className="p-2 border border-border rounded-md text-muted-foreground hover:text-foreground transition-colors"

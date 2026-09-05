@@ -75,7 +75,7 @@ export default function ActiveProgram() {
 
   if (!loaded) {
     return (
-      <div className="tile p-6 animate-pulse">
+      <div className="tile p-6">
         <div className="h-3 bg-muted rounded w-2/3 mb-3" />
         <div className="h-7 bg-muted rounded w-1/2" />
       </div>

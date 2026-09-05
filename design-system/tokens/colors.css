@@ -1,0 +1,129 @@
+/* ============================================================
+   dad strength — chalk / volt
+   base palette, then semantic aliases per ground.
+   chalk is :root. graphite is [data-theme="graphite"].
+   volt is a FILL, never an ink on a light ground.
+   ============================================================ */
+
+:root {
+  /* --- base: chalk ground --- */
+  --ds-white: #FFFFFF;
+  --ds-chalk-bg: #FAF9F6;
+  --ds-chalk-recessed: #F4F2EC;
+  --ds-chalk-line: #E9E7DF;
+  --ds-chalk-ink: #141412;
+  --ds-chalk-concrete: #6F6F68;
+
+  /* --- base: graphite ground --- */
+  --ds-graphite-bg: #0E0F10;
+  --ds-graphite-tile: #17181A;
+  --ds-graphite-recessed: #101113;
+  --ds-graphite-line: #26282B;
+  --ds-graphite-ink: #EDEDEA;
+  --ds-graphite-concrete: #8B8B85;
+
+  /* --- base: volt --- */
+  --ds-volt-chalk: #C6FF3F;
+  --ds-volt-graphite: #CDFF4D;
+  --ds-volt-deep-chalk: #A8E32A;
+  --ds-volt-deep-graphite: #B7EE33;
+  --ds-brand-ink: #131608;
+  --ds-olive: #5C7A0E;
+
+  /* --- base: danger. no warning color exists. --- */
+  --ds-danger-chalk: #AE2929;
+  --ds-danger-graphite-fill: #BE2D2D;
+  --ds-danger-graphite-ink: #DA6262;
+
+  /* --- base: six category axes, desaturated --- */
+  --ds-cat-push-chalk: #7A5140;
+  --ds-cat-pull-chalk: #3F5F6B;
+  --ds-cat-legs-chalk: #5A4A6B;
+  --ds-cat-core-chalk: #6B5A2E;
+  --ds-cat-condition-chalk: #3F6350;
+  --ds-cat-general-chalk: #5E5E58;
+  --ds-cat-push-graphite: #C09480;
+  --ds-cat-pull-graphite: #8FB3C0;
+  --ds-cat-legs-graphite: #A899BF;
+  --ds-cat-core-graphite: #BFAC7A;
+  --ds-cat-condition-graphite: #8FBFA3;
+  --ds-cat-general-graphite: #ABABA3;
+
+  /* ==========================================================
+     semantic — chalk (default)
+     ========================================================== */
+  --ds-background: var(--ds-chalk-bg);
+  --ds-tile: var(--ds-white);
+  --ds-recessed: var(--ds-chalk-recessed);
+  --ds-line: var(--ds-chalk-line);
+  --ds-ink: var(--ds-chalk-ink);
+  --ds-concrete: var(--ds-chalk-concrete);
+
+  /* volt: fill + the only ink allowed on it */
+  --ds-volt-fill: var(--ds-volt-chalk);
+  --ds-volt-fill-pressed: var(--ds-volt-deep-chalk);
+  --ds-on-volt: var(--ds-brand-ink);
+  /* volt used AS text — darkened olive, measured 4.7:1 on background */
+  --ds-brand-text: var(--ds-olive);
+  /* the "live" chip tint — volt at 16% on chalk */
+  --ds-brand-muted: rgba(198, 255, 63, 0.16);
+
+  /* status: fill / ink pairs, never single tokens */
+  --ds-good-fill: var(--ds-volt-chalk);
+  --ds-good-ink: var(--ds-olive);
+  --ds-danger-fill: var(--ds-danger-chalk);
+  --ds-danger-ink: var(--ds-danger-chalk);
+  --ds-on-danger-fill: var(--ds-white);
+
+  /* category: ink + its own 10% tint */
+  --ds-cat-push-ink: var(--ds-cat-push-chalk);
+  --ds-cat-push-tint: #EDE8E4;
+  --ds-cat-pull-ink: var(--ds-cat-pull-chalk);
+  --ds-cat-pull-tint: #E7EAE8;
+  --ds-cat-legs-ink: var(--ds-cat-legs-chalk);
+  --ds-cat-legs-tint: #EAE8E8;
+  --ds-cat-core-ink: var(--ds-cat-core-chalk);
+  --ds-cat-core-tint: #ECE9E2;
+  --ds-cat-condition-ink: var(--ds-cat-condition-chalk);
+  --ds-cat-condition-tint: #E7EAE5;
+  --ds-cat-general-ink: var(--ds-cat-general-chalk);
+  --ds-cat-general-tint: #EAEAE6;
+}
+
+/* ==========================================================
+   semantic — graphite
+   ========================================================== */
+[data-theme="graphite"] {
+  --ds-background: var(--ds-graphite-bg);
+  --ds-tile: var(--ds-graphite-tile);
+  --ds-recessed: var(--ds-graphite-recessed);
+  --ds-line: var(--ds-graphite-line);
+  --ds-ink: var(--ds-graphite-ink);
+  --ds-concrete: var(--ds-graphite-concrete);
+
+  --ds-volt-fill: var(--ds-volt-graphite);
+  --ds-volt-fill-pressed: var(--ds-volt-deep-graphite);
+  --ds-on-volt: var(--ds-brand-ink);
+  /* on graphite, volt itself reads — 16.5:1 */
+  --ds-brand-text: var(--ds-volt-graphite);
+  --ds-brand-muted: rgba(205, 255, 77, 0.12);
+
+  --ds-good-fill: var(--ds-volt-graphite);
+  --ds-good-ink: var(--ds-volt-graphite);
+  --ds-danger-fill: var(--ds-danger-graphite-fill);
+  --ds-danger-ink: var(--ds-danger-graphite-ink);
+  --ds-on-danger-fill: var(--ds-white);
+
+  --ds-cat-push-ink: var(--ds-cat-push-graphite);
+  --ds-cat-push-tint: #201C1B;
+  --ds-cat-pull-ink: var(--ds-cat-pull-graphite);
+  --ds-cat-pull-tint: #1B1F22;
+  --ds-cat-legs-ink: var(--ds-cat-legs-graphite);
+  --ds-cat-legs-tint: #1D1D22;
+  --ds-cat-core-ink: var(--ds-cat-core-graphite);
+  --ds-cat-core-tint: #201F1B;
+  --ds-cat-condition-ink: var(--ds-cat-condition-graphite);
+  --ds-cat-condition-tint: #1B211F;
+  --ds-cat-general-ink: var(--ds-cat-general-graphite);
+  --ds-cat-general-tint: #1E1F1F;
+}

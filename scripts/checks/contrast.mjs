@@ -116,9 +116,30 @@ const SEGMENT_RE = /(['"`])(?:\\.|(?!\1).)*\1/g
 // — and reported a 3.83:1 that no element ever renders. Section 3 gets away
 // with line scope because it reads one utility at a time; a PAIRING has to
 // know which fill is actually behind which ink.
-const pairsIn = (text) => {
+//
+// And within a TEMPLATE LITERAL, not the whole literal. The MetCon button puts
+// its ternary inside one backtick string on one line —
+//   `w-full ... ${logged ? 'bg-brand/20 text-brand' : 'bg-brand text-brand-ink hover:bg-brand/90'}`
+// — and SEGMENT_RE, meeting the backtick first, swallowed both branches as one
+// segment and paired the second branch's brand-ink with the first branch's /20
+// tint: 1.87:1 that no element renders. A backtick segment with quoted strings
+// inside it is split again: the inner strings are the branches, and the
+// template's own static text (quotes blanked) is one more segment.
+const segmentsOf = (text) => {
   const out = []
   for (const seg of text.match(SEGMENT_RE) ?? [text]) {
+    const inner = seg.slice(1, -1)
+    if (seg[0] === '`' && /['"]/.test(inner)) {
+      out.push(inner.replace(SEGMENT_RE, ' '))
+      out.push(...segmentsOf(inner))
+    } else out.push(seg)
+  }
+  return out
+}
+
+const pairsIn = (text) => {
+  const out = []
+  for (const seg of segmentsOf(text)) {
     const ink = seg.match(INK_RE)
     if (!ink) continue
     for (const f of seg.matchAll(FILL_RE)) {
@@ -200,6 +221,20 @@ const pairsIn = (text) => {
   ok('FIXTURE: a ternary pairs an ink only with the fill in its own branch',
     Object.keys(tern).join(' ') === 'chalk bg-status-danger-fill/20 graphite bg-status-danger-fill/20',
     'paired: ' + Object.keys(tern).join(' '))
+}
+
+{
+  // a ternary INSIDE a template literal, on one line. Each branch's ink pairs
+  // with that branch's fill only; the /20 tint belongs to the other branch.
+  const line = "className={`w-full py-3 ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-brand-ink hover:bg-brand/90'}`}"
+  const p = pairsIn(line)
+  ok('fixture: a ternary inside a template literal pairs each ink with its OWN branch',
+    p.length > 0 && p.every((q) => q.fill !== 'bg-brand/20'),
+    'paired brand-ink with the other branch of the ternary: '
+    + p.filter((q) => q.fill === 'bg-brand/20').map((q) => q.theme + ' ' + q.r + ':1').join(', '))
+  ok('fixture: ...and still measures the ink on the fills in its own branch (bare, and hover:/90)',
+    p.some((q) => q.fill === 'bg-brand') && p.some((q) => q.fill.endsWith('bg-brand/90')),
+    'fills seen: ' + [...new Set(p.map((q) => q.fill))].join(', '))
 }
 
 // ── 1. an ink token is NEVER faded ─────────────────────────────────────────

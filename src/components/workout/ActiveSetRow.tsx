@@ -63,7 +63,7 @@ export default function ActiveSetRow({
           onChange={(e) => onWeightChange(e.target.value)}
         />
         {weight && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-foreground lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-brand-ink lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
             LBS
           </span>
         )}
@@ -91,7 +91,7 @@ export default function ActiveSetRow({
           onChange={(e) => onRepsChange(e.target.value)}
         />
         {reps && !isDone && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-foreground lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-brand text-[8px] font-display font-semibold px-2 py-0.5 rounded-full text-brand-ink lowercase shadow-lg shadow-brand/20 animate-in fade-in zoom-in-75 duration-200">
             REPS
           </span>
         )}

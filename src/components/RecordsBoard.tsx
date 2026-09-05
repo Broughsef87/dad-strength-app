@@ -89,7 +89,7 @@ export default function RecordsBoard() {
 
       {!loaded ? (
         <div className="space-y-2">
-          {[1, 2, 3].map(i => <div key={i} className="h-9 bg-muted/60 rounded-lg animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-9 bg-muted/60 rounded-lg" />)}
         </div>
       ) : records.length === 0 ? (
         <p className="text-xs text-muted-foreground italic border-l-2 border-brand/30 pl-3">

@@ -79,7 +79,7 @@ export default function Home() {
       <div className="relative z-10 w-full max-w-sm space-y-10">
         {/* Brand lockup — stacked suite asset, dark/light aware */}
         <div className="flex flex-col items-center">
-          <Logo className="w-24 h-24 drop-shadow-2xl" />
+          <Logo className="w-24 h-24" />
           <p className="font-display font-semibold text-2xl lowercase text-foreground mt-5">
             Dad Strength
           </p>

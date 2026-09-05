@@ -1,0 +1,56 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="graphite ground" subtitle="the dark ground — never pure black" -->
+<!doctype html>
+<html>
+<head>
+
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    html, body { margin: 0; }
+    body { background: var(--ds-background); color: var(--ds-ink); font-family: var(--ds-font-sans); padding: 20px; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: 8px; }
+    .sw { width: 76px; height: 56px; border-radius: 12px; flex: none; }
+    .lab { font-family: var(--ds-font-mono); font-size: 9px; letter-spacing: 0.12em; color: var(--ds-concrete); }
+    .val { font-family: var(--ds-font-mono); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .dark { background: var(--ds-graphite-bg); border-radius: 16px; padding: 16px; }
+    .dark .lab, .dark .val { color: var(--ds-graphite-concrete); }
+  </style>
+</head>
+<body>
+  <div class="dark">
+    <div class="row">
+      <div class="col">
+        <div class="sw" style="background: #0E0F10; border: 1px solid var(--ds-chalk-line);"></div>
+        <div class="lab">background</div>
+        <div class="val">#0E0F10</div>
+      </div>
+      <div class="col">
+        <div class="sw" style="background: #17181A;"></div>
+        <div class="lab">tile</div>
+        <div class="val">#17181A</div>
+      </div>
+      <div class="col">
+        <div class="sw" style="background: #101113;"></div>
+        <div class="lab">recessed</div>
+        <div class="val">#101113</div>
+      </div>
+      <div class="col">
+        <div class="sw" style="background: #26282B;"></div>
+        <div class="lab">line / fill</div>
+        <div class="val">#26282B</div>
+      </div>
+      <div class="col">
+        <div class="sw" style="background: #EDEDEA;"></div>
+        <div class="lab">ink</div>
+        <div class="val">#EDEDEA · 16.4:1</div>
+      </div>
+      <div class="col">
+        <div class="sw" style="background: #8B8B85;"></div>
+        <div class="lab">concrete</div>
+        <div class="val">#8B8B85 · 5.6:1</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

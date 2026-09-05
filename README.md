@@ -34,3 +34,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Design system
+
+The app implements **chalk / volt**, specified in [`design-system/readme.md`](design-system/readme.md)
+(a vendored copy of the Claude Design project) and mapped onto this codebase in
+[`design-system/IMPLEMENTATION.md`](design-system/IMPLEMENTATION.md). `src/app/globals.css` holds the
+tokens and kit classes; `npm run checks` runs `scripts/checks/design-system.mjs`, which measures
+the two against each other and fails on anything the system prohibits.
