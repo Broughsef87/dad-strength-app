@@ -3,16 +3,17 @@ import React from "react";
 /**
  * Pill — the control. volt (fill + brand-ink) or quiet (recessed fill).
  */
-export function Pill({ variant = "volt", full = false, disabled = false, style, children, ...rest }) {
+export function Pill({ variant = "volt", full = false, disabled = false, style, children, onPointerDown, onPointerUp, onPointerLeave, ...rest }) {
   const volt = variant === "volt";
   const [down, setDown] = React.useState(false);
   return (
     <button
       type="button"
+      {...rest}
       disabled={disabled}
-      onPointerDown={() => setDown(true)}
-      onPointerUp={() => setDown(false)}
-      onPointerLeave={() => setDown(false)}
+      onPointerDown={(e) => { setDown(true); onPointerDown?.(e); }}
+      onPointerUp={(e) => { setDown(false); onPointerUp?.(e); }}
+      onPointerLeave={(e) => { setDown(false); onPointerLeave?.(e); }}
       style={{
         appearance: "none",
         border: "none",
@@ -35,7 +36,6 @@ export function Pill({ variant = "volt", full = false, disabled = false, style, 
         transition: "background var(--ds-dur-press) var(--ds-ease-out)",
         ...style,
       }}
-      {...rest}
     >
       {children}
     </button>

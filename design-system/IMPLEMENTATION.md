@@ -160,8 +160,11 @@ press, a `disabled:|hover:opacity-*` fade, or any light ink-role utility
 Disabled controls desaturate a coloured fill (`disabled:saturate-[.15]`) or
 recede — the ink to concrete (`disabled:text-muted-foreground`), or, when the
 ink is already concrete, the fill to the recessed row (`disabled:bg-surface-2
-disabled:border-transparent`) — and never drop opacity. A `disabled:` utility
-that repeats one the element already carries is flagged as a no-op. It
+disabled:border-transparent`) — and never drop opacity. A composite control
+whose descendants set their own colours (the checkout cards) recedes all of
+them: `disabled:saturate-[.15] disabled:**:text-muted-foreground`. A
+`disabled:` utility that repeats one the element already carries is flagged
+as a no-op. It
 also reads the forms a utility ban cannot see: an inline
 `textShadow`, a `boxShadow` starting at `0 0`, a `blur()` / `drop-shadow()`
 filter in a style object, and in `globals.css` any `text-shadow`, a `0 0`
@@ -201,10 +204,12 @@ with esbuild — an IIFE assigning `DadStrengthDS`, `react` shimmed to the
 its banner. **Re-vendor, then rebuild.** The check fails a bundle whose stamp
 no longer matches `components/**/*.jsx`.
 
-Four more deliberate edits to the vendored copy: the `.d.ts` files say
+Five more deliberate edits to the vendored copy: the `.d.ts` files say
 `React.JSX.Element` (React 19 removed the global `JSX` namespace the originals
 used); `SignInCardProps` / `WeekListProps` omit the inherited HTML `title`
 attribute, which they widen to a `ReactNode`; `TileProps` is generic over `as`
-so `<Tile as="a" href>` type-checks; and `Tile` takes `--ds-shadow-tile-raised`
+so `<Tile as="a" href>` type-checks; `Tile` takes `--ds-shadow-tile-raised`
 at `size="lg"`, as `.tile-lg` does — the original declared the raised shadow
-and never used it. All four are pinned by the check.
+and never used it; and `Pill` spreads consumer props first and composes
+`onPointerDown/Up/Leave` with its own, so a caller's handler no longer leaves
+the pill stuck in its pressed colour. All five are pinned by the check.

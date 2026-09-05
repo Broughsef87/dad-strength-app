@@ -417,6 +417,13 @@ for (const [re, what, why] of BANS) {
   }
   ok('every disabled: utility changes something — none repeats a utility the element already carries', noop.length === 0,
     'enabled and disabled would look identical\n        ' + noop.slice(0, 8).join('\n        '))
+  // ...and a control whose DESCENDANTS set their own colours needs the state on
+  // them: the three checkout cards (Codex, round 6). `**:` reaches every one.
+  const upgrade = readFileSync(join(SRC, 'components', 'UpgradeModal.tsx'), 'utf8')
+  const planCards = (upgrade.match(/disabled=\{!!loading\}/g) || []).length
+  const receding = (upgrade.match(/disabled:\*\*:text-muted-foreground/g) || []).length
+  ok('every checkout card in UpgradeModal recedes its descendants when disabled (disabled:**:text-muted-foreground)',
+    planCards >= 3 && receding === planCards, planCards + ' cards, ' + receding + ' recede their descendants')
 }
 {
   // an ink-ROLE utility on a solid volt fill. bg-brand pairs with text-brand-ink
@@ -502,6 +509,16 @@ ok('design-system/styles.css imports exactly the seven token files',
   ok('Tile.d.ts is generic over `as` — attributes follow the rendered element (ComponentPropsWithoutRef<T>)',
     /TileProps<T extends keyof React\.JSX\.IntrinsicElements = "div">/.test(ds('components/core/Tile.d.ts'))
     && /ComponentPropsWithoutRef<T>/.test(ds('components/core/Tile.d.ts')) && /as\?: T;/.test(ds('components/core/Tile.d.ts')), null)
+  {
+    // a caller's onPointerUp used to replace Pill's own and leave `down` true —
+    // the pill stuck in its pressed colour (Codex, round 6). Consumer props are
+    // spread FIRST and the three handlers are composed.
+    const pill = ds('components/core/Pill.jsx')
+    ok('Pill spreads consumer props first and composes onPointerDown/Up/Leave with its own',
+      /\{\.\.\.rest\}\s*\n\s*disabled=\{disabled\}/.test(pill)
+      && /onPointerDown\?\.\(e\)/.test(pill) && /onPointerUp\?\.\(e\)/.test(pill) && /onPointerLeave\?\.\(e\)/.test(pill)
+      && !/\}\}\s*\n\s*\{\.\.\.rest\}\s*\n\s*>/.test(pill), null)
+  }
   ok('Tile takes --ds-shadow-tile-raised at size="lg", as .tile-lg does',
     /boxShadow: size === "lg" \? "var\(--ds-shadow-tile-raised\)" : "var\(--ds-shadow-tile\)"/.test(ds('components/core/Tile.jsx')), null)
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
