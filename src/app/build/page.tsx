@@ -240,7 +240,7 @@ export default function BuildPage() {
                 <button
                   onClick={() => void startProgram()}
                   disabled={activating}
-                  className="w-full py-3.5 text-brand border border-brand/60 text-sm font-semibold lowercase hover:border-brand disabled:opacity-50 transition-all"
+                  className="w-full py-3.5 text-brand border border-brand/60 text-sm font-semibold lowercase hover:border-brand disabled:saturate-[.15] transition-all"
                 >
                   {activating ? 'IGNITION…' : 'Deploy Unit'}
                 </button>

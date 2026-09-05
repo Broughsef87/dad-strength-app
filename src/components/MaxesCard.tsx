@@ -82,7 +82,7 @@ export default function MaxesCard({
         // `saved` resets the moment a field changes, because this is now a place
         // you come back to. A permanent editor stuck on "Saved ✓" reads broken.
         disabled={busy || (!dirty && saved)}
-        className="w-full py-2.5 bg-brand text-brand-ink rounded-lg text-xs font-medium lowercase hover:bg-brand-deep transition-colors disabled:opacity-60"
+        className="w-full py-2.5 bg-brand text-brand-ink rounded-lg text-xs font-medium lowercase hover:bg-brand-deep transition-colors disabled:saturate-[.15]"
       >
         {busy ? 'Saving…' : saved && !dirty ? 'Saved ✓' : 'Save Maxes'}
       </button>

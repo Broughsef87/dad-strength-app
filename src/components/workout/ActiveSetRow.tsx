@@ -55,7 +55,7 @@ export default function ActiveSetRow({
           placeholder={previousWeight || "0"}
           disabled={isDone}
           value={weight}
-          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-display font-semibold text-xl stat-num text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
+          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-display font-semibold text-xl stat-num text-foreground outline-none transition-all placeholder:text-gray-800 disabled:text-muted-foreground ${
             isDone
               ? 'border-transparent'
               : 'border-border/50 focus:border-brand focus:bg-background focus:ring-4 focus:ring-brand/10'
@@ -83,7 +83,7 @@ export default function ActiveSetRow({
           placeholder={previousReps || "0"}
           disabled={isDone}
           value={reps}
-          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-display font-semibold text-xl stat-num text-foreground outline-none transition-all placeholder:text-gray-800 disabled:opacity-40 ${
+          className={`w-full bg-background/50 border-2 rounded-xl p-3 text-center font-display font-semibold text-xl stat-num text-foreground outline-none transition-all placeholder:text-gray-800 disabled:text-muted-foreground ${
             isDone
               ? 'border-transparent'
               : 'border-border/50 focus:border-brand focus:bg-background focus:ring-4 focus:ring-brand/10'
@@ -106,7 +106,7 @@ export default function ActiveSetRow({
       {/* Action Button */}
       <button
         onClick={onToggle}
-        className={`col-span-3 h-14 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
+        className={`col-span-3 h-14 rounded-xl flex items-center justify-center transition-all ${
           isDone
             ? 'bg-status-good-fill text-brand-ink shadow-lg shadow-status-good-fill/20 rotate-0'
             : 'bg-card border border-border text-gray-700 hover:text-brand hover:border-brand/50 hover:bg-gray-800 shadow-sm'

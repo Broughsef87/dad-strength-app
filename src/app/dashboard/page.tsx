@@ -446,7 +446,7 @@ export default function Dashboard() {
                       router.push('/build')
                     }
                   }}
-                  className="pill-volt w-full flex items-center justify-center gap-2.5 py-3.5 text-sm lowercase transition-all active:scale-[0.98] hover:opacity-90"
+                  className="pill-volt w-full flex items-center justify-center gap-2.5 py-3.5 text-sm lowercase transition-all"
                 >
                   <PlayCircle size={16} strokeWidth={2} />
                   {activeProgram ? 'start session' : 'pick a path'}

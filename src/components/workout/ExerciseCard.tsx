@@ -137,7 +137,7 @@ export default function ExerciseCard({
         {!isCompleted && (
           <div className="px-8 flex items-center gap-4 mb-2">
             <div className="flex-1 h-px bg-border" />
-            <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="flex items-center gap-2">
               <Activity size={10} className="text-brand" />
               <span className="text-[8px] font-display font-semibold text-muted-foreground lowercase">Load Matrix</span>
             </div>
@@ -159,13 +159,7 @@ export default function ExerciseCard({
               <Sparkles size={12} className="text-brand-ink rotate-12" />
             </div>
           </div>
-        ) : (
-          <div className="px-8 pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-            <div className="w-full h-1 bg-surface-3 rounded-full overflow-hidden">
-              <div className="h-full bg-brand/30 w-1/3 rounded-full" />
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* ── Exercise Menu Bottom Sheet ───────────────────────────────────────── */}

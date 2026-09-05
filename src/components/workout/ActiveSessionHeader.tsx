@@ -65,7 +65,7 @@ export default function ActiveSessionHeader({
 
         <button
           onClick={onTogglePause}
-          className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black lowercase transition-all active:scale-90 ${
+          className={`group/btn flex items-center gap-3 px-5 py-2.5 rounded-2xl border-2 text-[10px] font-black lowercase transition-all ${
             isPaused
               ? 'bg-status-danger-fill border-status-danger-fill text-destructive-foreground hover:bg-status-danger-fill'
               : 'bg-muted border-border text-muted-foreground hover:border-status-danger-fill/50 hover:text-status-danger-ink hover:bg-status-danger-fill/5'
@@ -73,7 +73,7 @@ export default function ActiveSessionHeader({
         >
           {isPaused ? (
             <>
-              <Play size={14} fill="currentColor" className="transition-transform group-hover/btn:scale-110" />
+              <Play size={14} fill="currentColor" className="transition-transform" />
               Resume Protocol
             </>
           ) : (

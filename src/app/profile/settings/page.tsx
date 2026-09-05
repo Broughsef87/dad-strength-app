@@ -310,7 +310,7 @@ export default function Settings() {
             <button
               onClick={handleExportData}
               disabled={exportLoading}
-              className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors disabled:opacity-60"
+              className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors disabled:text-muted-foreground"
             >
               <div className="p-2 bg-muted rounded-lg">
                 {exportLoading ? (
@@ -357,7 +357,7 @@ export default function Settings() {
                     <button
                       onClick={handleSendReset}
                       disabled={resetLoading}
-                      className="w-full flex items-center justify-center gap-2 bg-foreground text-background font-medium text-sm py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-foreground text-background font-medium text-sm py-2.5 rounded-lg transition-opacity disabled:bg-surface-2 disabled:text-muted-foreground"
                     >
                       {resetLoading ? (
                         <><Loader2 size={14} className="animate-spin" /> Sending...</>
@@ -380,7 +380,7 @@ export default function Settings() {
               <button
                 onClick={handleOpenPortal}
                 disabled={portalLoading}
-                className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors disabled:opacity-60"
+                className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors disabled:text-muted-foreground"
               >
                 <div className="p-2 bg-muted rounded-lg">
                   {portalLoading ? (
@@ -488,7 +488,7 @@ export default function Settings() {
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteInput.trim().toLowerCase() !== 'delete' || deleteLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-status-danger-fill text-destructive-foreground font-medium text-sm py-2.5 rounded-lg hover:bg-status-danger-fill transition-colors disabled:opacity-40"
+                  className="w-full flex items-center justify-center gap-2 bg-status-danger-fill text-destructive-foreground font-medium text-sm py-2.5 rounded-lg hover:bg-status-danger-fill transition-colors disabled:saturate-[.15]"
                 >
                   {deleteLoading ? (
                     <><Loader2 size={14} className="animate-spin" /> Deleting…</>

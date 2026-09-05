@@ -312,7 +312,7 @@ export default function ActiveWorkout() {
           <WorkoutTimer seconds={timer} formatTime={formatTime} />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowFinishConfirm(true)} className="bg-brand text-brand-ink text-xs font-bold px-5 py-2.5 rounded-full transition-all active:scale-95">
+          <button onClick={() => setShowFinishConfirm(true)} className="bg-brand text-brand-ink text-xs font-bold px-5 py-2.5 rounded-full transition-all">
             finish
           </button>
         </div>
@@ -387,7 +387,7 @@ export default function ActiveWorkout() {
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => { setShowFinishConfirm(false); finishWorkout() }}
-                className="w-full bg-brand text-brand-ink font-bold py-3.5 rounded-full text-sm transition-all active:scale-95"
+                className="w-full bg-brand text-brand-ink font-bold py-3.5 rounded-full text-sm transition-all"
               >
                 yes, i&apos;m done
               </button>

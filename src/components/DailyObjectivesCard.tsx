@@ -180,7 +180,7 @@ export default function DailyObjectivesCard(
           <button
             onClick={saveDraft}
             disabled={saving || !draft.some(o => o.trim())}
-            className="w-full pill-volt text-xs font-bold py-2.5 disabled:opacity-40 transition-opacity"
+            className="w-full pill-volt text-xs font-bold py-2.5 disabled:saturate-[.15] transition-opacity"
           >
             {saving ? 'saving…' : 'lock them in'}
           </button>

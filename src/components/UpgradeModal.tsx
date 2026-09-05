@@ -132,7 +132,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               <button
                 onClick={() => handleCheckout('yearly')}
                 disabled={!!loading}
-                className="annual-card w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:opacity-50"
+                className="annual-card w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:text-muted-foreground"
               >
                 <div className="absolute -top-2.5 left-4 bg-brand text-brand-ink text-[8px] font-bold lowercase px-2 py-0.5 rounded-sm">
                   Best Value
@@ -153,7 +153,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               <button
                 onClick={() => handleCheckout('monthly')}
                 disabled={!!loading}
-                className="w-full flex items-center justify-between p-4 rounded-lg border border-border/60 hover:border-border bg-muted/20 hover:bg-muted/30 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-between p-4 rounded-lg border border-border/60 hover:border-border bg-muted/20 hover:bg-muted/30 transition-all disabled:text-muted-foreground"
               >
                 <div className="text-left">
                   <p className="font-semibold text-sm">Monthly</p>
@@ -178,7 +178,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
               <button
                 onClick={() => handleCheckout('founder')}
                 disabled={!!loading}
-                className="w-full flex items-center justify-between p-4 rounded-lg border border-border/40 hover:border-border/70 bg-muted/10 hover:bg-muted/20 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-between p-4 rounded-lg border border-border/40 hover:border-border/70 bg-muted/10 hover:bg-muted/20 transition-all disabled:text-muted-foreground"
               >
                 <div className="flex items-center gap-2.5 text-left">
                   <Shield size={13} className="text-steel shrink-0" />

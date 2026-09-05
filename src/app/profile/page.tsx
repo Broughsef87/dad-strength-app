@@ -155,7 +155,7 @@ export default function Profile() {
                   autoFocus
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
                 />
-                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-status-good-ink hover:text-status-good-ink transition-colors disabled:opacity-50">
+                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-status-good-ink hover:text-status-good-ink transition-colors disabled:text-muted-foreground">
                   <Check size={16} />
                 </button>
                 <button onClick={() => setEditingName(false)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
@@ -197,7 +197,7 @@ export default function Profile() {
             onClick={() => router.push('/profile/mission')}
             className="tile p-5 hover:border-brand/30 transition-colors flex flex-col items-center text-center group"
           >
-            <div className="h-10 w-10 rounded-full bg-brand/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+            <div className="h-10 w-10 rounded-full bg-brand/10 flex items-center justify-center mb-3 transition-transform">
               <Target className="text-brand" size={20} />
             </div>
             <p className="font-medium text-sm">My Mission</p>
@@ -255,7 +255,7 @@ export default function Profile() {
               <p className="text-xs text-brand lowercase font-medium font-display">Active Protocol</p>
               <p className="font-medium text-sm mt-0.5">{programName}</p>
             </div>
-            <button onClick={() => router.push('/build')} className="text-xs font-medium text-brand lowercase hover:opacity-70 transition-opacity">
+            <button onClick={() => router.push('/build')} className="text-xs font-medium text-brand lowercase transition-opacity">
               Change →
             </button>
           </div>

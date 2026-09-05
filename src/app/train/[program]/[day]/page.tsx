@@ -1665,7 +1665,7 @@ export default function TrainingDayPage() {
         <div className="flex flex-col gap-3 w-full max-w-xs">
           {nextScheduledDay != null && (
             <button onClick={() => { setSessionComplete(false); setLoading(true); router.push(`/train/${slug}/${nextScheduledDay}`) }}
-              className="pill-volt w-full py-3.5 text-sm lowercase hover:opacity-90 transition-opacity">
+              className="pill-volt w-full py-3.5 text-sm lowercase transition-opacity">
               next session →
             </button>
           )}
@@ -1827,7 +1827,7 @@ export default function TrainingDayPage() {
         )}
 
         <button onClick={() => void completeSession()}
-          className="pill-volt w-full py-4 text-sm lowercase hover:opacity-90 transition-opacity flex items-center justify-center gap-2.5">
+          className="pill-volt w-full py-4 text-sm lowercase transition-opacity flex items-center justify-center gap-2.5">
           <Trophy size={16} />
           finish session
         </button>

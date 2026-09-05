@@ -19,9 +19,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { componentSources, sourcesDigest } from './design-system-sources.mjs'
 
-const ROOT = new URL('../..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
+// fileURLToPath, not URL.pathname: a checkout under a path with a space or a
+// non-ASCII character keeps its percent-escapes in pathname and every read fails.
+const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DS = join(ROOT, 'design-system')
 const SRC = join(ROOT, 'src')
 const css = readFileSync(join(SRC, 'app', 'globals.css'), 'utf8').replace(/\r\n/g, '\n')
@@ -342,6 +345,8 @@ const BANS = [
   [/\bshadow-\[0_0_/, 'a glow-shaped shadow', 'nothing glows'],
   [/\banimate-(?:pulse|ping|bounce)\b/, 'a looping utility', 'nothing loops: no pulsing dots, no skeleton shimmer'],
   [/\bfont-serif\b/, 'a serif', 'Space Grotesk and Geist Mono, nothing else'],
+  [/(?:^|[\s"'`])(?:[a-z-]+(?:\/[a-z]+)?:)+scale-/, 'a scale on hover or press', 'no lift, no scale — a press changes a fill (readme: hover and press states)'],
+  [/\b(?:disabled|hover|group-hover|focus|active):opacity-/, 'a state that fades a control', 'inks never fade — a disabled control desaturates its fill or recedes to concrete, never drops opacity'],
   [/\buppercase\b/, 'an uppercase utility', 'lowercase voice — never uppercase an eyebrow'],
 ]
 for (const [re, what, why] of BANS) {
@@ -374,6 +379,23 @@ for (const [re, what, why] of BANS) {
     .filter((d) => /^text-shadow/.test(d) || /^box-shadow\s*:\s*(?:0(?:px)? 0(?:px)? |inset\b)/.test(d))
   ok('globals.css has no glow — no text-shadow, no 0 0 box-shadow, no inset sheen', cssGlows.length === 0,
     cssGlows.join('\n        '))
+}
+{
+  // a sweep that strips `hover:opacity-100` out of `group-hover:opacity-100` leaves
+  // `group-` behind — the first pass of the round-4 sweep did exactly that at four
+  // sites. Class lists live on className lines, so only those are read: `active:`
+  // in an object literal (`{ active: false }`) is not a variant.
+  const dangling = []
+  for (const f of files) {
+    readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+      if (!/className/.test(line)) return
+      for (const seg of line.matchAll(/(["'`])([^"'`]*)\1/g)) {
+        if (/(?:^|\s)(?:group-|peer-|hover:|focus:|active:|disabled:)(?=\s|$)/.test(seg[2])) dangling.push(f.slice(SRC.length + 1) + ':' + (i + 1))
+      }
+    })
+  }
+  ok('no class list carries a dangling variant prefix (a bare group-, hover:, active:…)', dangling.length === 0,
+    'a sweep cut a utility in half\n        ' + dangling.slice(0, 8).join('\n        '))
 }
 {
   // an ink-ROLE utility on a solid volt fill. bg-brand pairs with text-brand-ink
@@ -456,6 +478,9 @@ ok('design-system/styles.css imports exactly the seven token files',
   })
   ok('a declaration that takes a ReactNode title omits the inherited HTML title attribute (TS2430)', widened.length === 0,
     widened.map((p) => p.slice(DS.length + 1)).join(', '))
+  ok('Tile.d.ts is generic over `as` — attributes follow the rendered element (ComponentPropsWithoutRef<T>)',
+    /TileProps<T extends keyof React\.JSX\.IntrinsicElements = "div">/.test(ds('components/core/Tile.d.ts'))
+    && /ComponentPropsWithoutRef<T>/.test(ds('components/core/Tile.d.ts')) && /as\?: T;/.test(ds('components/core/Tile.d.ts')), null)
   ok('Tile takes --ds-shadow-tile-raised at size="lg", as .tile-lg does',
     /boxShadow: size === "lg" \? "var\(--ds-shadow-tile-raised\)" : "var\(--ds-shadow-tile\)"/.test(ds('components/core/Tile.jsx')), null)
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')

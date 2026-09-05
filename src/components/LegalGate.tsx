@@ -168,7 +168,7 @@ export function LegalGateView({ checked, saving, error, onCheckedChange, onAccep
         <button
           onClick={onAccept}
           disabled={!checked || saving}
-          className="w-full pill-volt py-3.5 text-sm lowercase disabled:opacity-40 transition-opacity"
+          className="w-full pill-volt py-3.5 text-sm lowercase disabled:saturate-[.15] transition-opacity"
         >
           {saving ? 'saving…' : 'accept & train'}
         </button>

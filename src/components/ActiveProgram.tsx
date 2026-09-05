@@ -150,7 +150,7 @@ export default function ActiveProgram() {
       <div className="flex flex-col gap-2.5 relative z-10">
         <button
           onClick={launch}
-          className="w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-brand border border-brand/60 lowercase transition-all active:scale-[0.98] hover:border-brand"
+          className="w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-brand border border-brand/60 lowercase transition-all hover:border-brand"
         >
           <PlayCircle size={16} strokeWidth={2} />
           {row ? 'Launch Session' : 'Select Path'}
