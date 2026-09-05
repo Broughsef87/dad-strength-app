@@ -1,3 +1,9 @@
+> **RETIRED.** The cockpit / mech direction described below shipped in July 2026
+> and was replaced wholesale by **chalk / volt** on 2026-08-10. The live design
+> system is specified in [`design-system/readme.md`](../design-system/readme.md)
+> and mapped onto the code in [`design-system/IMPLEMENTATION.md`](../design-system/IMPLEMENTATION.md).
+> Nothing in this document is current; it is kept as history.
+
 # COCKPIT REDESIGN — full aesthetic overhaul
 
 Direction locked 2026-07-07: **Ferrari rosso × Gundam cockpit × Eleiko restraint.**

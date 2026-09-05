@@ -129,7 +129,7 @@ export default function StreakShield() {
           </div>
           <button
             onClick={activateShield}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-brand-ink text-sm font-semibold tracking-wide hover:opacity-90 active:scale-[0.97] transition-all"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-brand-ink text-sm font-semibold tracking-wide transition-all"
           >
             <Shield size={15} />
             Activate Shield

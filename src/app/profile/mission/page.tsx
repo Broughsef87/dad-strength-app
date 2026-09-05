@@ -164,7 +164,7 @@ export default function MissionPage() {
         <button
           onClick={handleSave}
           disabled={saving || !title}
-          className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 disabled:opacity-50 text-foreground font-display font-semibold py-4 rounded-xl lowercase text-sm transition-all active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 disabled:saturate-[.15] text-brand-ink font-display font-semibold py-4 rounded-xl lowercase text-sm transition-all"
         >
           {saving ? <Loader2 size={16} className="animate-spin" /> : 'Save Mission'}
         </button>

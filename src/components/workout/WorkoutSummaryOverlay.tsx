@@ -70,7 +70,7 @@ export default function WorkoutSummaryOverlay({
             <p className="text-brand text-xs font-display font-semibold lowercase mb-10">Session Data Logged</p>
 
             <div className="mb-10 space-y-4">
-              <div className="tile rounded-3xl p-6 transform hover:scale-[1.02] transition-transform">
+              <div className="tile rounded-3xl p-6 transform transition-transform">
                 <p className="text-xs font-display font-semibold text-muted-foreground lowercase mb-1">Total Volume</p>
                 <p className="text-4xl font-display font-semibold stat-num text-foreground">{totalVolume.toLocaleString()}<span className="text-sm text-brand ml-1 italic">LBS</span></p>
               </div>
@@ -114,7 +114,7 @@ export default function WorkoutSummaryOverlay({
                   placeholder="How was the session? What will you remember?"
                   rows={3}
                   disabled={noteSaved}
-                  className="w-full bg-muted border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-brand disabled:opacity-70"
+                  className="w-full bg-muted border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:border-brand disabled:text-muted-foreground"
                 />
                 {noteSaved ? (
                   <div className="flex items-center gap-2 text-sm text-status-good-ink font-medium">
@@ -124,7 +124,7 @@ export default function WorkoutSummaryOverlay({
                   <button
                     onClick={handleSaveNote}
                     disabled={!note.trim() || savingNote}
-                    className="w-full bg-muted border border-border text-foreground font-display font-semibold text-xs lowercase py-2.5 rounded-xl hover:border-foreground/30 transition-colors disabled:opacity-40"
+                    className="w-full bg-muted border border-border text-foreground font-display font-semibold text-xs lowercase py-2.5 rounded-xl hover:border-foreground/30 transition-colors disabled:text-muted-foreground"
                   >
                     {savingNote ? 'Saving...' : 'Save Note'}
                   </button>
@@ -133,7 +133,7 @@ export default function WorkoutSummaryOverlay({
 
               <button
                 onClick={onReturn}
-                className="group w-full bg-brand text-foreground font-display font-semibold py-5 rounded-3xl hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg"
+                className="group w-full bg-brand text-brand-ink font-display font-semibold py-5 rounded-3xl transition-all flex items-center justify-center gap-3 shadow-lg"
               >
                 RETURN TO HQ
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />

@@ -116,9 +116,55 @@ const SEGMENT_RE = /(['"`])(?:\\.|(?!\1).)*\1/g
 // — and reported a 3.83:1 that no element ever renders. Section 3 gets away
 // with line scope because it reads one utility at a time; a PAIRING has to
 // know which fill is actually behind which ink.
-const pairsIn = (text) => {
+//
+// And within a TEMPLATE LITERAL, not the whole literal. The MetCon button puts
+// its ternary inside one backtick string on one line —
+//   `w-full ... ${logged ? 'bg-brand/20 text-brand' : 'bg-brand text-brand-ink hover:bg-brand/90'}`
+// — and SEGMENT_RE, meeting the backtick first, swallowed both branches as one
+// segment and paired the second branch's brand-ink with the first branch's /20
+// tint: 1.87:1 that no element renders. A backtick segment with quoted strings
+// inside it is split again: the inner strings are the branches, and the
+// template's own static text (quotes blanked) is one more segment.
+//
+// And the template's STATIC classes belong to every branch. Codex, round 2:
+//   `bg-brand/20 ${active ? 'text-brand-ink' : 'text-brand'}`
+// keeps the fill in the static part and chooses the ink in the interpolation.
+// Pushing the static text and each branch as separate segments meant no pair
+// ever formed there, and the gate passed a real 1.87:1. So a backtick segment
+// becomes one segment per COMBINATION of branches — the static classes plus
+// one quoted string from each ${...} — which is exactly the set of class
+// lists the element can render.
+const unquote = (s) => s.replace(/^['"`]|['"`]$/g, '')
+const segmentsOf = (text) => {
   const out = []
   for (const seg of text.match(SEGMENT_RE) ?? [text]) {
+    const inner = seg.slice(1, -1)
+    if (seg[0] !== '`' || !/['"]/.test(inner)) { out.push(seg); continue }
+    const groups = []   // per ${...}: the class lists it can produce
+    let stat = ''
+    for (let i = 0; i < inner.length;) {
+      if (inner[i] === '$' && inner[i + 1] === '{') {
+        let depth = 0, j = i + 1
+        for (; j < inner.length; j++) {
+          if (inner[j] === '{') depth++
+          else if (inner[j] === '}' && --depth === 0) break
+        }
+        const strs = inner.slice(i + 2, j).match(SEGMENT_RE) ?? []
+        groups.push(strs.length ? strs.flatMap(segmentsOf).map(unquote) : [''])
+        stat += ' '
+        i = j + 1
+      } else stat += inner[i++]
+    }
+    let combos = [stat]
+    for (const g of groups) combos = combos.flatMap((c) => g.map((s) => c + ' ' + s))
+    out.push(...combos)
+  }
+  return out
+}
+
+const pairsIn = (text) => {
+  const out = []
+  for (const seg of segmentsOf(text)) {
     const ink = seg.match(INK_RE)
     if (!ink) continue
     for (const f of seg.matchAll(FILL_RE)) {
@@ -200,6 +246,30 @@ const pairsIn = (text) => {
   ok('FIXTURE: a ternary pairs an ink only with the fill in its own branch',
     Object.keys(tern).join(' ') === 'chalk bg-status-danger-fill/20 graphite bg-status-danger-fill/20',
     'paired: ' + Object.keys(tern).join(' '))
+}
+
+{
+  // a ternary INSIDE a template literal, on one line. Each branch's ink pairs
+  // with that branch's fill only; the /20 tint belongs to the other branch.
+  const line = "className={`w-full py-3 ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-brand-ink hover:bg-brand/90'}`}"
+  const p = pairsIn(line)
+  ok('fixture: a ternary inside a template literal pairs each ink with its OWN branch',
+    p.length > 0 && p.every((q) => q.fill !== 'bg-brand/20'),
+    'paired brand-ink with the other branch of the ternary: '
+    + p.filter((q) => q.fill === 'bg-brand/20').map((q) => q.theme + ' ' + q.r + ':1').join(', '))
+  ok('fixture: ...and still measures the ink on the fills in its own branch (bare, and hover:/90)',
+    p.some((q) => q.fill === 'bg-brand') && p.some((q) => q.fill.endsWith('bg-brand/90')),
+    'fills seen: ' + [...new Set(p.map((q) => q.fill))].join(', '))
+}
+
+{
+  // the fill in the template's static part, the ink chosen in the interpolation.
+  // Both branches render ON that fill, so both must be measured against it.
+  const line = "className={`rounded px-2 bg-brand/20 ${active ? 'text-brand-ink' : 'text-brand'}`}"
+  const p = pairsIn(line)
+  ok('fixture: a template\'s static fill is paired with an ink chosen in its interpolation',
+    p.some((q) => q.ink === 'text-brand-ink' && q.fill === 'bg-brand/20'),
+    'no pair formed — the static classes were not carried into the branches; fills seen: ' + [...new Set(p.map((q) => q.fill))].join(', '))
 }
 
 // ── 1. an ink token is NEVER faded ─────────────────────────────────────────

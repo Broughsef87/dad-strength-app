@@ -1,0 +1,21 @@
+/* ============================================================
+   spacing — 10 is the addition to the original scale: the gap
+   between a volt slab and its eyebrow.
+   ============================================================ */
+
+:root {
+  --ds-space-1: 4px;
+  --ds-space-2: 6px;
+  --ds-space-3: 8px;
+  --ds-space-4: 10px;
+  --ds-space-5: 14px;
+  --ds-space-6: 20px;
+  --ds-space-7: 28px;
+  --ds-space-8: 40px;
+  --ds-space-9: 64px;
+
+  --ds-tile-padding: 22px;
+  --ds-tile-lg-padding: 28px;
+  --ds-row-padding-y: 12px;
+  --ds-row-padding-x: 14px;
+}

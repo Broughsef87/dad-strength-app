@@ -837,7 +837,7 @@ function MetconCard({ item, initialLog, onLog }: {
         <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes..."
           className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-brand/50" />
         <button onClick={() => { onLog({ timeMin, timeSec, rounds, notes }); setLogged(true) }}
-          className={`w-full py-3 rounded-lg text-sm font-medium lowercase transition-all ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-foreground hover:bg-brand/90'}`}>
+          className={`w-full py-3 rounded-lg text-sm font-medium lowercase transition-all ${logged ? 'bg-brand/20 text-brand border border-brand/30' : 'bg-brand text-brand-ink hover:bg-brand/90'}`}>
           {logged ? '✓ MetCon Logged' : 'Log MetCon Result'}
         </button>
       </div>
@@ -901,7 +901,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60" />
       <div onClick={e => e.stopPropagation()}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
@@ -994,7 +994,7 @@ function AddExerciseModal({ onPick, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60" />
       <div onClick={e => e.stopPropagation()}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
@@ -1558,7 +1558,7 @@ export default function TrainingDayPage() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
         <AlertTriangle className="w-10 h-10 text-status-danger-ink" />
         <p className="text-foreground font-medium">Unknown program &ldquo;{slug}&rdquo;</p>
-        <button onClick={() => router.push('/build')} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Choose Program</button>
+        <button onClick={() => router.push('/build')} className="pill-volt px-6 py-2.5 text-sm">Choose Program</button>
       </div>
     )
   }
@@ -1576,7 +1576,7 @@ export default function TrainingDayPage() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
         <AlertTriangle className="w-10 h-10 text-status-danger-ink" />
         <p className="text-foreground font-medium">{error}</p>
-        <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="px-6 py-2.5 bg-brand text-foreground rounded-lg text-sm font-medium">Try Again</button>
+        <button onClick={() => { setError(null); setLoading(true); loadDay() }} className="pill-volt px-6 py-2.5 text-sm">Try Again</button>
       </div>
     )
   }
@@ -1603,7 +1603,7 @@ export default function TrainingDayPage() {
           <div className="relative bg-card border border-border p-5 pt-8 w-full max-w-sm text-left space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="stat-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.35)' }}>
+                <p className="stat-num text-3xl text-brand">
                   {sessionSummary.tonnage.toLocaleString()}
                 </p>
                 <p className="eyebrow-mono">LB TONNAGE</p>
@@ -1665,7 +1665,7 @@ export default function TrainingDayPage() {
         <div className="flex flex-col gap-3 w-full max-w-xs">
           {nextScheduledDay != null && (
             <button onClick={() => { setSessionComplete(false); setLoading(true); router.push(`/train/${slug}/${nextScheduledDay}`) }}
-              className="pill-volt w-full py-3.5 text-sm lowercase hover:opacity-90 transition-opacity">
+              className="pill-volt w-full py-3.5 text-sm lowercase transition-opacity">
               next session →
             </button>
           )}
@@ -1708,7 +1708,7 @@ export default function TrainingDayPage() {
               <span className="status-dot" />
               <span className="eyebrow-mono">{program.name.split(' ')[0].toUpperCase()}</span>
             </div>
-            <div className="led-bar w-20">
+            <div className="led-bar led-bar-fit">
               {Array.from({ length: Math.max(plan.items.length, 1) }).map((_, i) => (
                 <span key={i} className={`led-cell ${i < loggedBlocks ? 'lit' : ''}`} />
               ))}
@@ -1827,7 +1827,7 @@ export default function TrainingDayPage() {
         )}
 
         <button onClick={() => void completeSession()}
-          className="pill-volt w-full py-4 text-sm lowercase hover:opacity-90 transition-opacity flex items-center justify-center gap-2.5">
+          className="pill-volt w-full py-4 text-sm lowercase transition-opacity flex items-center justify-center gap-2.5">
           <Trophy size={16} />
           finish session
         </button>

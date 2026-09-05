@@ -20,7 +20,7 @@ const spaceGrotesk = Space_Grotesk({
 const geistMono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-geist-mono',
-  weight: ['400', '600', '700'],
+  weight: ['400', '500', '600', '700'],
 })
 
 // Fallback mono kept while legacy components migrate off --font-space-mono.

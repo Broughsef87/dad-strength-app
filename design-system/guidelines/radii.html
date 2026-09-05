@@ -1,0 +1,28 @@
+<!-- @dsCard group="Spacing" viewport="700x160" name="radii" subtitle="tile 20 · tile-lg 24 · row 14 · control 999 · slab 6" -->
+<!doctype html>
+<html>
+<head>
+
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    html, body { margin: 0; }
+    body { background: var(--ds-background); color: var(--ds-ink); font-family: var(--ds-font-sans); padding: 20px; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: 8px; }
+    .sw { width: 76px; height: 56px; border-radius: 12px; flex: none; }
+    .lab { font-family: var(--ds-font-mono); font-size: 9px; letter-spacing: 0.12em; color: var(--ds-concrete); }
+    .val { font-family: var(--ds-font-mono); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .dark { background: var(--ds-graphite-bg); border-radius: 16px; padding: 16px; }
+  </style>
+</head>
+<body>
+  <div class="row" style="gap: 14px;">
+    <div class="col"><div style="width: 84px; height: 62px; border-radius: 20px; background: var(--ds-chalk-line);"></div><div class="lab">tile 20</div></div>
+    <div class="col"><div style="width: 84px; height: 62px; border-radius: 24px; background: var(--ds-chalk-line);"></div><div class="lab">tile-lg 24</div></div>
+    <div class="col"><div style="width: 84px; height: 62px; border-radius: 14px; background: var(--ds-chalk-line);"></div><div class="lab">row 14</div></div>
+    <div class="col"><div style="width: 84px; height: 44px; border-radius: 999px; background: var(--ds-volt-chalk);"></div><div class="lab">control 999</div></div>
+    <div class="col"><div style="width: 60px; height: 40px; border-radius: 6px; background: var(--ds-volt-chalk);"></div><div class="lab">slab 6</div></div>
+  </div>
+</body>
+</html>

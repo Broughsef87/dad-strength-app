@@ -280,7 +280,7 @@ export default function Dashboard() {
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -40, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display lowercase py-3 px-4"
+          className="fixed top-0 left-0 right-0 z-50 bg-brand text-brand-ink text-center text-[10px] font-display lowercase py-3 px-4"
         >
           Welcome to Dad Strong+ — All Features Unlocked
         </motion.div>
@@ -446,7 +446,7 @@ export default function Dashboard() {
                       router.push('/build')
                     }
                   }}
-                  className="pill-volt w-full flex items-center justify-center gap-2.5 py-3.5 text-sm lowercase transition-all active:scale-[0.98] hover:opacity-90"
+                  className="pill-volt w-full flex items-center justify-center gap-2.5 py-3.5 text-sm lowercase transition-all"
                 >
                   <PlayCircle size={16} strokeWidth={2} />
                   {activeProgram ? 'start session' : 'pick a path'}

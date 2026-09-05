@@ -185,7 +185,7 @@ export default function SchedulePage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/90 backdrop-blur px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-10 bg-background px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => router.push('/dashboard')}
           aria-label="back home"

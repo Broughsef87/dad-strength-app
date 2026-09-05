@@ -1,0 +1,55 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Core" subtitle="Tile, recessed row, pills, live chip, volt slab, stat numeral, eyebrow" -->
+<!doctype html>
+<html>
+<head>
+
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    html, body { margin: 0; }
+    body { background: var(--ds-background); color: var(--ds-ink); font-family: var(--ds-font-sans); padding: 20px; }
+    .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: 10px; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    .pane { border-radius: 20px; padding: 18px; }
+    .pane[data-theme="graphite"] { background: var(--ds-graphite-bg); }
+    .cap { font-family: var(--ds-font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--ds-concrete); }
+  </style>
+</head>
+<body>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <div id="root"></div>
+  <script type="text/babel">
+    const NS = window[Object.keys(window).find(k => /^DadStrength/.test(k))] || {};
+    const { Tile, RecessedRow, Pill, ChipLive, VoltSlab, StatNum, Eyebrow } = NS;
+    function Set({ theme }) {
+      return (
+        <div className="pane" data-theme={theme} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="cap">{theme || "chalk"}</div>
+          <Tile>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <Eyebrow>wk 3 · day 2</Eyebrow>
+              <ChipLive size="sm">live</ChipLive>
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
+              <StatNum size="sm" label="lb · working max">185</StatNum>
+              <VoltSlab size="sm">185</VoltSlab>
+            </div>
+            <RecessedRow label="set 1" value="5 × 135" />
+            <RecessedRow label="set 3" value="—" muted />
+            <div className="row">
+              <Pill>start</Pill>
+              <Pill variant="quiet">skip</Pill>
+            </div>
+          </Tile>
+        </div>
+      );
+    }
+    function Demo() { return <div className="pair"><Set /><Set theme="graphite" /></div>; }
+    ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+  </script>
+</body>
+</html>

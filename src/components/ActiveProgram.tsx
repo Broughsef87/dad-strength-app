@@ -75,7 +75,7 @@ export default function ActiveProgram() {
 
   if (!loaded) {
     return (
-      <div className="tile p-6 animate-pulse">
+      <div className="tile p-6">
         <div className="h-3 bg-muted rounded w-2/3 mb-3" />
         <div className="h-7 bg-muted rounded w-1/2" />
       </div>
@@ -150,7 +150,7 @@ export default function ActiveProgram() {
       <div className="flex flex-col gap-2.5 relative z-10">
         <button
           onClick={launch}
-          className="w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-brand border border-brand/60 lowercase transition-all active:scale-[0.98] hover:border-brand"
+          className="w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-semibold text-brand border border-brand/60 lowercase transition-all hover:border-brand"
         >
           <PlayCircle size={16} strokeWidth={2} />
           {row ? 'Launch Session' : 'Select Path'}

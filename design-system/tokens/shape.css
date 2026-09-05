@@ -1,0 +1,18 @@
+/* ============================================================
+   shape — every control is a pill, so the squared 6px slab is
+   the one shape that cannot read as a button.
+   ============================================================ */
+
+:root {
+  --ds-radius-tile: 20px;
+  --ds-radius-tile-lg: 24px;
+  --ds-radius-row: 14px;
+  --ds-radius-control: 999px;
+  --ds-radius-slab: 6px;
+  --ds-radius-cell: 2px;
+
+  --ds-cell-height: 7px;
+  --ds-cell-width: 20px;
+  --ds-day-pill-size: 36px;
+  --ds-dot-size: 6px;
+}

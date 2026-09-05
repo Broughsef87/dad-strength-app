@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF9F6; color: #141412; font-family: 'Space Grotesk', sans-serif; }
+  a { color: #5C7A0E; text-decoration: none; border-bottom: 1px solid rgba(92,122,14,0.3); }
+  a:hover { color: #141412; border-bottom-color: #141412; }
+</style>
+</helmet>
+
+<div style="max-width: 1440px; margin: 0 auto; padding: 64px 48px 120px; display: flex; flex-direction: column; gap: 88px;">
+
+  <header style="display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #6F6F68;">chalk / volt · v1.0 · design system</div>
+      <div style="display: flex; align-items: center; gap: 8px; background: rgba(198,255,63,0.16); color: #5C7A0E; border-radius: 999px; padding: 6px 14px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.06em;">
+        <div style="width: 6px; height: 6px; border-radius: 50%; background: #C6FF3F;"></div>formalized, not replaced
+      </div>
+    </div>
+    <h1 style="margin: 0; font-size: 76px; font-weight: 700; letter-spacing: -0.045em; line-height: 0.92; max-width: 900px;">dad strength — chalk / volt</h1>
+    <p style="margin: 0; max-width: 720px; font-size: 17px; font-weight: 300; line-height: 1.65; color: #141412;">gym chalk and paper by day, graphite by night, one loud volt accent that is earned. a calm training log, not a gamified dashboard. tiles float on shadow. numerals are heroes. volt is a fill.</p>
+    <div style="display: flex; gap: 40px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid #E9E7DF;">
+      <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 20px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 34px; font-weight: 600; letter-spacing: -0.045em; line-height: 0.92; font-variant-numeric: tabular-nums;">2</div>
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">grounds</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 20px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 34px; font-weight: 600; letter-spacing: -0.045em; line-height: 0.92; font-variant-numeric: tabular-nums;">1</div>
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">accent</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 20px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 34px; font-weight: 600; letter-spacing: -0.045em; line-height: 0.92; font-variant-numeric: tabular-nums;">6</div>
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">category axes</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 20px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 34px; font-weight: 600; letter-spacing: -0.045em; line-height: 0.92; font-variant-numeric: tabular-nums;">0</div>
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">warning colors</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 20px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 34px; font-weight: 600; letter-spacing: -0.045em; line-height: 0.92; font-variant-numeric: tabular-nums;">3</div>
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">meanings of volt</div>
+      </div>
+    </div>
+  </header>
+
+  <section style="display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">01 · tokens</div>
+      <h2 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05;">token sheet</h2>
+      <p style="margin: 0; max-width: 680px; font-size: 15px; font-weight: 300; line-height: 1.65; color: #6F6F68;">contrast measured with wcag 2.1 relative luminance. every ink is measured against the ground it sits on and against the fill it sits on. nothing here falls under 4.5 except the values marked as prohibited.</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">grounds</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <div style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em;">chalk</div>
+            <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68;">light · default</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #FAF9F6; border: 1px solid #E9E7DF; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">background</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#FAF9F6</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E9E7DF; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">tile</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#FFFFFF</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #F4F2EC; border: 1px solid #E9E7DF; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">recessed</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#F4F2EC</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #E9E7DF; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">line / fill</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#E9E7DF</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #141412; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">ink</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#141412</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #141412;">17.5:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #6F6F68; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">concrete</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#6F6F68</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #141412;">4.8:1</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #17181A; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <div style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: #EDEDEA;">graphite</div>
+            <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85;">dark · never pure black</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #0E0F10; border: 1px solid #26282B; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">background</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#0E0F10</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #17181A; border: 1px solid #26282B; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">tile</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#17181A</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #101113; border: 1px solid #26282B; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">recessed</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#101113</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #26282B; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">line / fill</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#26282B</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #EDEDEA; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">ink</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#EDEDEA</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">16.4:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #8B8B85; flex: none;"></div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">concrete</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#8B8B85</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">5.6:1</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">volt — the one accent</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68;">on chalk</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: #C6FF3F; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600; color: #131608;">fill</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">volt · brand-ink on it</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#C6FF3F + #131608</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">15.5:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: #A8E32A; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600; color: #131608;">fill</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">volt-deep · hover / pressed</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#A8E32A</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">11.9:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: #FAF9F6; border: 1px solid #E9E7DF; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 600; color: #5C7A0E;">text</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">brand-text · volt as text</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#5C7A0E</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">4.7:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: rgba(198,255,63,0.16); flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 600; color: #5C7A0E;">chip</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">brand-muted · volt @ 16%</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">composites to #F2FAD9</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">4.6:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: #F4F2EC; border-radius: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E9E7DF; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 600; color: #C6FF3F;">text</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #AE2929;">raw volt as ink — prohibited</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">#C6FF3F on #FFFFFF</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #AE2929;">1.18:1</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #17181A; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85;">on graphite</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: #CDFF4D; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600; color: #131608;">fill</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">volt · brand-ink on it</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#CDFF4D + #131608</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">15.7:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: #B7EE33; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600; color: #131608;">fill</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">volt-deep · hover / pressed</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#B7EE33</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">13.3:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: #0E0F10; border: 1px solid #26282B; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 600; color: #CDFF4D;">text</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">brand-text · volt itself reads</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#CDFF4D</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">16.5:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: rgba(205,255,77,0.12); flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 600; color: #CDFF4D;">chip</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">brand-muted · volt @ 12%</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">composites to #252C17</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">12.4:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: #101113; border-radius: 14px;">
+              <div style="width: 60px; height: 44px; border-radius: 12px; background: #CDFF4D; flex: none; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600; color: #131608;">slab</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">both themes: brand-ink on fill</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">#131608 — the only ink on volt</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">status — fill / ink pairs</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68;">chalk</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 12px; background: #C6FF3F; flex: none;"></div>
+              <div style="width: 40px; height: 40px; border-radius: 12px; background: #FAF9F6; border: 1px solid #E9E7DF; flex: none; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #5C7A0E;">A</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">good</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">fill #C6FF3F · ink #5C7A0E</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">4.7:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 12px; background: #AE2929; flex: none;"></div>
+              <div style="width: 40px; height: 40px; border-radius: 12px; background: #FAF9F6; border: 1px solid #E9E7DF; flex: none; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #AE2929;">A</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500;">danger</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68;">fill #AE2929 · ink #AE2929</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">6.3:1</div>
+            </div>
+            <div style="padding: 14px 16px; background: #F4F2EC; border-radius: 14px; font-size: 13px; font-weight: 300; line-height: 1.6; color: #141412;">no warning color exists. anything that is not fine or broken is prose, or low-emphasis danger. white on the danger fill measures 6.7:1.</div>
+          </div>
+        </div>
+        <div style="background: #17181A; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85;">graphite</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 12px; background: #CDFF4D; flex: none;"></div>
+              <div style="width: 40px; height: 40px; border-radius: 12px; background: #0E0F10; border: 1px solid #26282B; flex: none; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #CDFF4D;">A</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">good</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">fill #CDFF4D · ink #CDFF4D</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">16.5:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 12px; background: #BE2D2D; flex: none;"></div>
+              <div style="width: 40px; height: 40px; border-radius: 12px; background: #0E0F10; border: 1px solid #26282B; flex: none; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #DA6262;">A</div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">danger</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85;">fill #BE2D2D · ink #DA6262</div>
+              </div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">5.4:1</div>
+            </div>
+            <div style="padding: 14px 16px; background: #101113; border-radius: 14px; font-size: 13px; font-weight: 300; line-height: 1.6; color: #EDEDEA;">the danger fill and the danger ink are different values in graphite on purpose: the fill must hold white, the ink must hold the ground.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">category — six axes, each its own ink on its own 10% tint</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68;">chalk</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #EDE8E4; color: #7A5140; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">push</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68; flex: 1;">#7A5140</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">5.6:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #E7EAE8; color: #3F5F6B; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">pull</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68; flex: 1;">#3F5F6B</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">5.6:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #EAE8E8; color: #5A4A6B; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">legs</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68; flex: 1;">#5A4A6B</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">6.5:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #ECE9E2; color: #6B5A2E; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">core</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68; flex: 1;">#6B5A2E</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">5.5:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #E7EAE5; color: #3F6350; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">condition</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68; flex: 1;">#3F6350</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">5.5:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #EAEAE6; color: #5E5E58; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">general</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #6F6F68; flex: 1;">#5E5E58</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">5.4:1</div>
+            </div>
+          </div>
+        </div>
+        <div style="background: #17181A; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85;">graphite</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #201C1B; color: #C09480; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">push</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85; flex: 1;">#C09480</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">6.2:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #1B1F22; color: #8FB3C0; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">pull</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85; flex: 1;">#8FB3C0</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">7.4:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #1D1D22; color: #A899BF; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">legs</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85; flex: 1;">#A899BF</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">6.3:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #201F1B; color: #BFAC7A; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">core</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85; flex: 1;">#BFAC7A</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">7.3:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #1B211F; color: #8FBFA3; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">condition</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85; flex: 1;">#8FBFA3</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">7.9:1</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="padding: 5px 12px; border-radius: 999px; background: #1E1F1F; color: #ABABA3; font-size: 13px; font-weight: 500; min-width: 92px; text-align: center;">general</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; color: #8B8B85; flex: 1;">#ABABA3</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #EDEDEA;">7.1:1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size: 13px; font-weight: 300; line-height: 1.65; color: #6F6F68; max-width: 720px;">a chip already says "chest". color is only grouping, so it stays quiet — six desaturated axes, never one hue per label. every category ink clears 5.4:1 on its own tint in both themes.</div>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">02 · type</div>
+      <h2 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05;">type scale</h2>
+      <p style="margin: 0; max-width: 680px; font-size: 15px; font-weight: 300; line-height: 1.65; color: #6F6F68;">space grotesk for display and body, geist mono for anything the engine prints. tabular numerals always. headings and most ui copy are lowercase; prose is never mono.</p>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 24px; padding: 40px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 32px;">
+
+      <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: baseline; padding-bottom: 28px; border-bottom: 1px solid #E9E7DF;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600;">stat-num</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; line-height: 1.7; color: #6F6F68;">geist mono 600<br>72px · -0.045em · 0.92<br>tabular</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 72px; font-weight: 600; letter-spacing: -0.045em; line-height: 0.92; font-variant-numeric: tabular-nums;">185</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #6F6F68;">the load, the week, the streak</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: baseline; padding-bottom: 28px; border-bottom: 1px solid #E9E7DF;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600;">display</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; line-height: 1.7; color: #6F6F68;">space grotesk 700 / 600<br>76 / 40 / 26px<br>-0.045em → -0.02em</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 44px; font-weight: 700; letter-spacing: -0.04em; line-height: 1;">pick a path</div>
+          <div style="font-size: 26px; font-weight: 600; letter-spacing: -0.02em;">back squat</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: baseline; padding-bottom: 28px; border-bottom: 1px solid #E9E7DF;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600;">body</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; line-height: 1.7; color: #6F6F68;">space grotesk 300<br>17 / 15 / 13px<br>1.65</div>
+        </div>
+        <div style="max-width: 560px; font-size: 17px; font-weight: 300; line-height: 1.65;">four working sets, then you're done. if the last set feels lighter than rpe 7, add five pounds next week and keep the same sets.</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: baseline; padding-bottom: 28px; border-bottom: 1px solid #E9E7DF;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600;">eyebrow-mono</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; line-height: 1.7; color: #6F6F68;">geist mono 400<br>10–11px · 0.16em<br>lowercase, muted</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #6F6F68;">wk 3 · day 2</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #6F6F68;">lb @ 65% · 4×5 · tgt rpe 7</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: baseline;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; font-weight: 600;">data-mono</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; line-height: 1.7; color: #6F6F68;">geist mono 500<br>13–15px · tabular<br>%, rpe, wk, plate math</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums;">45·10·10·2.5 /side</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums;">rpe 7 · 65% · wk 3</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">03 · components</div>
+      <h2 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05;">component sheet</h2>
+      <p style="margin: 0; max-width: 680px; font-size: 15px; font-weight: 300; line-height: 1.65; color: #6F6F68;">both themes, same components, same order. tile radius 20, tile-lg 24, recessed row 14. controls are 999px pills. the volt slab is 6px — the one squared shape, so it can never read as a button.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+
+      <sc-if value="{{ showChalk }}" hint-placeholder-val="{{ true }}">
+      <div style="background: #FAF9F6; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 20px; border: 1px solid #E9E7DF;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">chalk</div>
+
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">tile · shadow, no border</div>
+            <div style="display: flex; align-items: center; gap: 7px; background: rgba(198,255,63,0.16); color: #5C7A0E; border-radius: 999px; padding: 5px 11px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.06em;">
+              <div style="width: 5px; height: 5px; border-radius: 50%; background: #C6FF3F;"></div>live
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F4F2EC; border-radius: 14px; padding: 12px 14px;">
+              <div style="font-size: 14px; font-weight: 500;">set 1</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: #6F6F68;">5 × 135</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F4F2EC; border-radius: 14px; padding: 12px 14px;">
+              <div style="font-size: 14px; font-weight: 500;">set 2</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: #6F6F68;">5 × 155</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+          <div style="background: #C6FF3F; color: #131608; border-radius: 999px; padding: 11px 22px; font-size: 14px; font-weight: 600;" style-hover="background: #A8E32A;">start session</div>
+          <div style="background: #F4F2EC; color: #141412; border-radius: 999px; padding: 11px 22px; font-size: 14px; font-weight: 500;" style-hover="background: #E9E7DF;">skip</div>
+          <div style="display: flex; align-items: center; gap: 7px; background: rgba(198,255,63,0.16); color: #5C7A0E; border-radius: 999px; padding: 9px 15px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #C6FF3F;"></div>in progress
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.02em;">back squat</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #6F6F68;">lb @ 65% · 4×5 · tgt rpe 7</div>
+            </div>
+            <div style="background: #C6FF3F; color: #131608; border-radius: 6px; padding: 2px 8px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 30px; font-weight: 600; letter-spacing: -0.045em; line-height: 1.05; font-variant-numeric: tabular-nums; flex: none;">185</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F4F2EC; border-radius: 14px; padding: 11px 14px;">
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; color: #6F6F68;">set 1</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums;">5 reps · rpe 6</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F4F2EC; border-radius: 14px; padding: 11px 14px;">
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; color: #6F6F68;">set 2</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums;">5 reps · rpe 7</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F4F2EC; border-radius: 14px; padding: 11px 14px;">
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; color: #6F6F68;">set 3</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: #6F6F68;">—</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 20px; height: 7px; border-radius: 2px; background: #C6FF3F;"></div>
+            <div style="width: 20px; height: 7px; border-radius: 2px; background: #C6FF3F;"></div>
+            <div style="width: 20px; height: 7px; border-radius: 2px; background: #E9E7DF;"></div>
+            <div style="width: 20px; height: 7px; border-radius: 2px; background: #E9E7DF;"></div>
+            <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68; margin-left: 6px;">2 of 4 spent</div>
+          </div>
+          <div style="background: #C6FF3F; color: #131608; border-radius: 999px; padding: 12px 22px; font-size: 14px; font-weight: 600; text-align: center;" style-hover="background: #A8E32A;">finish session</div>
+        </div>
+
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">the week</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: #C6FF3F; color: #131608; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600;">mon</div>
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: #C6FF3F; color: #131608; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600;">wed</div>
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: #F4F2EC; color: #6F6F68; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600;">fri</div>
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: #F4F2EC; color: #6F6F68; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600;">sat</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F4F2EC; border-radius: 14px; padding: 12px 14px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-size: 14px; font-weight: 500;">lower · heavy</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68;">mon · morning done</div>
+              </div>
+              <div style="padding: 4px 10px; border-radius: 999px; background: #EAE8E8; color: #5A4A6B; font-size: 12px; font-weight: 500;">legs</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F4F2EC; border-radius: 14px; padding: 12px 14px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-size: 14px; font-weight: 500;">upper · push</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68;">wed · done</div>
+              </div>
+              <div style="padding: 4px 10px; border-radius: 999px; background: #EDE8E4; color: #7A5140; font-size: 12px; font-weight: 500;">push</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F4F2EC; border-radius: 14px; padding: 12px 14px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-size: 14px; font-weight: 500;">carry + core</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68;">anytime</div>
+              </div>
+              <div style="padding: 4px 10px; border-radius: 999px; background: #ECE9E2; color: #6B5A2E; font-size: 12px; font-weight: 500;">core</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: flex-start; gap: 10px; background: rgba(198,255,63,0.16); border-radius: 14px; padding: 12px 14px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #C6FF3F; margin-top: 6px; flex: none;"></div>
+            <div style="font-size: 13px; font-weight: 400; line-height: 1.6; color: #5C7A0E;">week logged. next week adds five pounds to the squat.</div>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 10px; background: #F4F2EC; border-radius: 14px; padding: 12px 14px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #AE2929; margin-top: 6px; flex: none;"></div>
+            <div style="font-size: 13px; font-weight: 400; line-height: 1.6; color: #AE2929;">no connection. the session is saved on this device.</div>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border-radius: 24px; padding: 28px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">pilot authentication</div>
+            <div style="font-size: 26px; font-weight: 600; letter-spacing: -0.02em;">sign in</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="background: #F4F2EC; border-radius: 14px; padding: 13px 15px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; color: #6F6F68;">email</div>
+            <div style="background: #F4F2EC; border-radius: 14px; padding: 13px 15px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; color: #6F6F68;">passcode</div>
+          </div>
+          <div style="background: #C6FF3F; color: #131608; border-radius: 999px; padding: 12px 22px; font-size: 14px; font-weight: 600; text-align: center;" style-hover="background: #A8E32A;">continue</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #6F6F68; text-align: center;">DS-01 // built for the long haul</div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ showGraphite }}" hint-placeholder-val="{{ true }}">
+      <div style="background: #0E0F10; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 20px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #8B8B85;">graphite</div>
+
+        <div style="background: #17181A; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #8B8B85;">tile · shadow, no border</div>
+            <div style="display: flex; align-items: center; gap: 7px; background: rgba(205,255,77,0.12); color: #CDFF4D; border-radius: 999px; padding: 5px 11px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.06em;">
+              <div style="width: 5px; height: 5px; border-radius: 50%; background: #CDFF4D;"></div>live
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101113; border-radius: 14px; padding: 12px 14px;">
+              <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">set 1</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: #8B8B85;">5 × 135</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101113; border-radius: 14px; padding: 12px 14px;">
+              <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">set 2</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: #8B8B85;">5 × 155</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #17181A; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+          <div style="background: #CDFF4D; color: #131608; border-radius: 999px; padding: 11px 22px; font-size: 14px; font-weight: 600;" style-hover="background: #B7EE33;">start session</div>
+          <div style="background: #101113; color: #EDEDEA; border-radius: 999px; padding: 11px 22px; font-size: 14px; font-weight: 500;" style-hover="background: #26282B;">skip</div>
+          <div style="display: flex; align-items: center; gap: 7px; background: rgba(205,255,77,0.12); color: #CDFF4D; border-radius: 999px; padding: 9px 15px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #CDFF4D;"></div>in progress
+          </div>
+        </div>
+
+        <div style="background: #17181A; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.02em; color: #EDEDEA;">back squat</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #8B8B85;">lb @ 65% · 4×5 · tgt rpe 7</div>
+            </div>
+            <div style="background: #CDFF4D; color: #131608; border-radius: 6px; padding: 2px 8px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 30px; font-weight: 600; letter-spacing: -0.045em; line-height: 1.05; font-variant-numeric: tabular-nums; flex: none;">185</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101113; border-radius: 14px; padding: 11px 14px;">
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; color: #8B8B85;">set 1</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: #EDEDEA;">5 reps · rpe 6</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101113; border-radius: 14px; padding: 11px 14px;">
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; color: #8B8B85;">set 2</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: #EDEDEA;">5 reps · rpe 7</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101113; border-radius: 14px; padding: 11px 14px;">
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; color: #8B8B85;">set 3</div>
+              <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: #8B8B85;">—</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 20px; height: 7px; border-radius: 2px; background: #CDFF4D;"></div>
+            <div style="width: 20px; height: 7px; border-radius: 2px; background: #CDFF4D;"></div>
+            <div style="width: 20px; height: 7px; border-radius: 2px; background: #26282B;"></div>
+            <div style="width: 20px; height: 7px; border-radius: 2px; background: #26282B;"></div>
+            <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85; margin-left: 6px;">2 of 4 spent</div>
+          </div>
+          <div style="background: #CDFF4D; color: #131608; border-radius: 999px; padding: 12px 22px; font-size: 14px; font-weight: 600; text-align: center;" style-hover="background: #B7EE33;">finish session</div>
+        </div>
+
+        <div style="background: #17181A; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #8B8B85;">the week</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: #CDFF4D; color: #131608; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600;">mon</div>
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: #CDFF4D; color: #131608; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600;">wed</div>
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: #101113; color: #8B8B85; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600;">fri</div>
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: #101113; color: #8B8B85; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; font-weight: 600;">sat</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101113; border-radius: 14px; padding: 12px 14px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">lower · heavy</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85;">mon · morning done</div>
+              </div>
+              <div style="padding: 4px 10px; border-radius: 999px; background: #1D1D22; color: #A899BF; font-size: 12px; font-weight: 500;">legs</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101113; border-radius: 14px; padding: 12px 14px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">upper · push</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85;">wed · done</div>
+              </div>
+              <div style="padding: 4px 10px; border-radius: 999px; background: #201C1B; color: #C09480; font-size: 12px; font-weight: 500;">push</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101113; border-radius: 14px; padding: 12px 14px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-size: 14px; font-weight: 500; color: #EDEDEA;">carry + core</div>
+                <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85;">anytime</div>
+              </div>
+              <div style="padding: 4px 10px; border-radius: 999px; background: #201F1B; color: #BFAC7A; font-size: 12px; font-weight: 500;">core</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #17181A; border-radius: 20px; padding: 22px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: flex-start; gap: 10px; background: rgba(205,255,77,0.12); border-radius: 14px; padding: 12px 14px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #CDFF4D; margin-top: 6px; flex: none;"></div>
+            <div style="font-size: 13px; font-weight: 400; line-height: 1.6; color: #CDFF4D;">week logged. next week adds five pounds to the squat.</div>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 10px; background: #101113; border-radius: 14px; padding: 12px 14px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #BE2D2D; margin-top: 6px; flex: none;"></div>
+            <div style="font-size: 13px; font-weight: 400; line-height: 1.6; color: #DA6262;">no connection. the session is saved on this device.</div>
+          </div>
+        </div>
+
+        <div style="background: #17181A; border-radius: 24px; padding: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 8px 24px -12px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #8B8B85;">pilot authentication</div>
+            <div style="font-size: 26px; font-weight: 600; letter-spacing: -0.02em; color: #EDEDEA;">sign in</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="background: #101113; border-radius: 14px; padding: 13px 15px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; color: #8B8B85;">email</div>
+            <div style="background: #101113; border-radius: 14px; padding: 13px 15px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 13px; color: #8B8B85;">passcode</div>
+          </div>
+          <div style="background: #CDFF4D; color: #131608; border-radius: 999px; padding: 12px 22px; font-size: 14px; font-weight: 600; text-align: center;" style-hover="background: #B7EE33;">continue</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #8B8B85; text-align: center;">DS-01 // built for the long haul</div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">04 · rules</div>
+      <h2 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05;">the rules sheet</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #5C7A0E;">01</div>
+        <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">volt is a fill</div>
+        <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #6F6F68;">never an ink on a light ground. on chalk, volt as text becomes brand-text. full-chroma volt appears on light only as a solid fill with brand-ink on top.</div>
+      </div>
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #5C7A0E;">02</div>
+        <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">one accent, earned</div>
+        <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #6F6F68;">volt means exactly three things: live, earned, and the number you lift. nothing else gets it. if everything is volt, nothing is.</div>
+      </div>
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #5C7A0E;">03</div>
+        <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">numerals are heroes</div>
+        <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #6F6F68;">the load, the week, the streak lead every card. tabular always, -0.045em tracking, 0.92 line-height.</div>
+      </div>
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #5C7A0E;">04</div>
+        <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">shadows, not borders</div>
+        <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #6F6F68;">tiles float. borders are sparing — a recessed row uses fill to separate, not a line.</div>
+      </div>
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #5C7A0E;">05</div>
+        <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">lowercase voice</div>
+        <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #6F6F68;">direct, second person, no exclamation marks. mono eyebrows carry metadata; prose carries intent. prose is never mono.</div>
+      </div>
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #5C7A0E;">06</div>
+        <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">inks never fade</div>
+        <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #6F6F68;">an ink token is never shown at reduced opacity. text that recedes uses concrete instead.</div>
+      </div>
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #5C7A0E;">07</div>
+        <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">no warning color</div>
+        <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #6F6F68;">anything not fine or broken is prose, or low-emphasis danger. do not introduce amber.</div>
+      </div>
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #5C7A0E;">08</div>
+        <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">six category axes</div>
+        <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #6F6F68;">push, pull, legs, core, condition, general. desaturated, each its own ink on its own 10% tint. never one hue per label.</div>
+      </div>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-wrap: wrap; gap: 40px;">
+      <div style="display: flex; flex-direction: column; gap: 8px; min-width: 220px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">shape</div>
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; line-height: 1.9; color: #141412;">tile 20px<br>tile-lg 24px<br>recessed row 14px<br>controls 999px<br>volt slab 6px</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; min-width: 260px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">motion — springy and brief</div>
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; line-height: 1.9; color: #141412;">card mount · 240ms cubic-bezier(0.2, 0.9, 0.25, 1.06)<br>stamp land · 420ms, 4deg → 0, settles<br>pill press · 90ms ease-out<br>nothing loops · nothing glows</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; min-width: 220px;">
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">spacing step (added)</div>
+        <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 12px; line-height: 1.9; color: #141412;">4 · 6 · 8 · 10 · 14 · 20 · 28 · 40 · 64<br>10 is new — the gap between<br>a slab and its eyebrow</div>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ showDonts }}" hint-placeholder-val="{{ true }}">
+  <section style="display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #AE2929;">05 · prohibited</div>
+      <h2 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05;">three things the system must not do</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 22px; height: 22px; border-radius: 999px; background: #AE2929; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex: none;">×</div>
+          <div style="font-size: 17px; font-weight: 600; letter-spacing: -0.02em;">volt as text on chalk</div>
+        </div>
+        <div style="background: #FAF9F6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 34px; font-weight: 600; letter-spacing: -0.045em; line-height: 0.92; font-variant-numeric: tabular-nums; color: #C6FF3F;">185</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #AE2929;">1.18:1 — invisible</div>
+        </div>
+        <div style="background: #FAF9F6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex;"><div style="background: #C6FF3F; color: #131608; border-radius: 6px; padding: 2px 8px; font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 34px; font-weight: 600; letter-spacing: -0.045em; line-height: 1.05; font-variant-numeric: tabular-nums;">185</div></div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #5C7A0E;">15.5:1 — the slab, correct</div>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 22px; height: 22px; border-radius: 999px; background: #AE2929; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex: none;">×</div>
+          <div style="font-size: 17px; font-weight: 600; letter-spacing: -0.02em;">an ink at 60% opacity</div>
+        </div>
+        <div style="background: #FAF9F6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 15px; font-weight: 400; color: rgba(20,20,18,0.6);">four working sets, then you're done.</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #AE2929;">ink @ 60% — muddy, unmeasurable</div>
+        </div>
+        <div style="background: #FAF9F6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 15px; font-weight: 400; color: #6F6F68;">four working sets, then you're done.</div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #5C7A0E;">concrete 4.8:1 — correct</div>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 24px; box-shadow: 0 1px 2px rgba(20,20,18,0.04), 0 8px 24px -12px rgba(20,20,18,0.12); display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 22px; height: 22px; border-radius: 999px; background: #AE2929; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex: none;">×</div>
+          <div style="font-size: 17px; font-weight: 600; letter-spacing: -0.02em;">a rainbow of categories</div>
+        </div>
+        <div style="background: #FAF9F6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <div style="padding: 4px 10px; border-radius: 999px; background: #FFE3E3; color: #D62828; font-size: 12px; font-weight: 500;">chest</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #E3F0FF; color: #1E6FFF; font-size: 12px; font-weight: 500;">back</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #FFF3D6; color: #C98A00; font-size: 12px; font-weight: 500;">quads</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #E6FBEA; color: #17A34A; font-size: 12px; font-weight: 500;">glutes</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #F1E3FF; color: #7C3AED; font-size: 12px; font-weight: 500;">abs</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #FFE7F3; color: #DB2777; font-size: 12px; font-weight: 500;">calves</div>
+          </div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #AE2929;">one hue per label — noise, plus amber</div>
+        </div>
+        <div style="background: #FAF9F6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <div style="padding: 4px 10px; border-radius: 999px; background: #EDE8E4; color: #7A5140; font-size: 12px; font-weight: 500;">push</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #E7EAE8; color: #3F5F6B; font-size: 12px; font-weight: 500;">pull</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #EAE8E8; color: #5A4A6B; font-size: 12px; font-weight: 500;">legs</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #ECE9E2; color: #6B5A2E; font-size: 12px; font-weight: 500;">core</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #E7EAE5; color: #3F6350; font-size: 12px; font-weight: 500;">condition</div>
+            <div style="padding: 4px 10px; border-radius: 999px; background: #EAEAE6; color: #5E5E58; font-size: 12px; font-weight: 500;">general</div>
+          </div>
+          <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #5C7A0E;">six axes, desaturated — correct</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  </sc-if>
+
+  <footer style="padding-top: 32px; border-top: 1px solid #E9E7DF; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
+    <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">DS-01 // built for the long haul</div>
+    <div style="font-family: 'Geist Mono', 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.16em; color: #6F6F68;">chalk / volt · formalized, not replaced</div>
+  </footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;sheetTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;both&quot;,&quot;chalk&quot;,&quot;graphite&quot;],&quot;default&quot;:&quot;both&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Component sheet&quot;},&quot;showProhibited&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const t = this.props.sheetTheme ?? "both";
+    return {
+      showChalk: t === "both" || t === "chalk",
+      showGraphite: t === "both" || t === "graphite",
+      showDonts: this.props.showProhibited ?? true
+    };
+  }
+}
+</script>
+</body>
+</html>

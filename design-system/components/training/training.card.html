@@ -1,0 +1,58 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Training" subtitle="session card, week list, sign-in card, category chips, status" -->
+<!doctype html>
+<html>
+<head>
+
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    html, body { margin: 0; }
+    body { background: var(--ds-background); color: var(--ds-ink); font-family: var(--ds-font-sans); padding: 20px; }
+    .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: 10px; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    .pane { border-radius: 20px; padding: 18px; }
+    .pane[data-theme="graphite"] { background: var(--ds-graphite-bg); }
+    .cap { font-family: var(--ds-font-mono); font-size: 9px; letter-spacing: 0.16em; color: var(--ds-concrete); }
+  </style>
+</head>
+<body>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <div id="root"></div>
+  <script type="text/babel">
+    const NS = window[Object.keys(window).find(k => /^DadStrength/.test(k))] || {};
+    const { SessionCard, WeekList, SignInCard, CategoryChip, StatusMessage } = NS;
+    const sets = [
+      { label: "set 1", value: "5 reps · rpe 6" },
+      { label: "set 2", value: "5 reps · rpe 7" },
+      { label: "set 3" },
+    ];
+    const days = [{label:"mon",done:true},{label:"wed",done:true},{label:"fri"},{label:"sat"}];
+    const sessions = [
+      { name: "lower · heavy", when: "mon · morning done", axis: "legs" },
+      { name: "upper · push", when: "wed · done", axis: "push" },
+      { name: "carry + core", when: "anytime", axis: "core" },
+    ];
+    function Set({ theme }) {
+      return (
+        <div className="pane" data-theme={theme} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="cap">{theme || "chalk"}</div>
+          <SessionCard name="back squat" load="185" meta="lb @ 65% · 4×5 · tgt rpe 7" sets={sets} lit={2} />
+          <WeekList days={days} sessions={sessions} />
+          <div className="row">
+            {["push","pull","legs","core","condition","general"].map(a => <CategoryChip key={a} axis={a} />)}
+          </div>
+          <StatusMessage>week logged. next week adds five pounds.</StatusMessage>
+          <StatusMessage tone="danger">no connection. saved on this device.</StatusMessage>
+          <SignInCard />
+        </div>
+      );
+    }
+    function Demo() { return <div className="pair"><Set /><Set theme="graphite" /></div>; }
+    ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+  </script>
+</body>
+</html>

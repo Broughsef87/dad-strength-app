@@ -95,7 +95,7 @@ export default function BodyVitals() {
 
   if (loading) {
     return (
-      <div className="bg-card rounded-xl p-5 border border-border animate-pulse">
+      <div className="bg-card rounded-xl p-5 border border-border">
         <div className="h-3 bg-muted rounded w-1/2 mb-3" />
         <div className="h-7 bg-muted rounded w-1/3" />
       </div>
@@ -107,7 +107,7 @@ export default function BodyVitals() {
       variants={fadeUp}
       initial="hidden"
       animate="visible"
-      className="tile rounded-xl p-5 cursor-pointer group active:scale-[0.98] transition-all duration-300 hover:border-brand/25"
+      className="tile rounded-xl p-5 cursor-pointer group transition-all duration-300 hover:border-brand/25"
       onClick={() => router.push(workoutId ? `/workout/${workoutId}` : '/train')}
     >
       <div className="flex items-center justify-between mb-5">

@@ -63,10 +63,6 @@ export default function ExerciseCard({
  ? 'border-status-good-fill/40 bg-status-good-fill/[0.02]'
  : 'border-border/80 hover:border-brand/40 shadow-2xl'
  }`}>
-        {/* Dynamic Background Element */}
-        {!isCompleted && (
-          <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 blur-[50px] rounded-full -mr-16 -mt-16 group-hover:bg-brand/10 transition-colors duration-700" />
-        )}
 
         {/* Exercise Header Section */}
         <div className={`p-8 pb-5 flex justify-between items-start relative z-10 ${
@@ -88,7 +84,7 @@ export default function ExerciseCard({
 
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="flex items-center gap-1.5 px-3 py-1 bg-brand/10 border border-brand/20 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-brand" />
                 <span className="text-[10px] font-display font-semibold text-brand lowercase">
                   TARGET: {target}
                 </span>
@@ -110,7 +106,7 @@ export default function ExerciseCard({
             {!isCompleted && (
               <div className="flex flex-col items-end">
                 <div className="flex items-center gap-1.5 text-brand-text mb-1.5">
-                  <Zap size={14} className="animate-pulse" />
+                  <Zap size={14} />
                   <span className="text-[10px] font-display font-semibold lowercase">Intensity</span>
                 </div>
                 <div className="flex items-baseline gap-1">
@@ -140,8 +136,8 @@ export default function ExerciseCard({
         {/* Sub-Header Stats Divider */}
         {!isCompleted && (
           <div className="px-8 flex items-center gap-4 mb-2">
-            <div className="flex-1 h-px bg-gradient-to-r from-border via-border/60 to-transparent" />
-            <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="flex-1 h-px bg-border" />
+            <div className="flex items-center gap-2">
               <Activity size={10} className="text-brand" />
               <span className="text-[8px] font-display font-semibold text-muted-foreground lowercase">Load Matrix</span>
             </div>
@@ -149,7 +145,7 @@ export default function ExerciseCard({
         )}
 
         {/* Sets Area */}
-        <div className={`p-8 pt-4 space-y-4 relative z-10 ${isCompleted ? 'opacity-60 blur-[0.5px] pointer-events-none' : ''}`}>
+        <div className={`p-8 pt-4 space-y-4 relative z-10 ${isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
           {children}
         </div>
 
@@ -163,13 +159,7 @@ export default function ExerciseCard({
               <Sparkles size={12} className="text-brand-ink rotate-12" />
             </div>
           </div>
-        ) : (
-          <div className="px-8 pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-            <div className="w-full h-1 bg-surface-3 rounded-full overflow-hidden">
-              <div className="h-full bg-brand/30 w-1/3 rounded-full" />
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* ── Exercise Menu Bottom Sheet ───────────────────────────────────────── */}

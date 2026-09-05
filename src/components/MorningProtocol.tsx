@@ -343,7 +343,7 @@ export default function MorningProtocol(
         <button
           onClick={() => generate()}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-foreground hover:opacity-90 disabled:opacity-50 text-background font-medium py-4 rounded-lg text-sm lowercase transition-all active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 bg-foreground disabled:bg-surface-2 disabled:text-muted-foreground text-background font-medium py-4 rounded-lg text-sm lowercase transition-all"
         >
           {loading
             ? <><Loader2 size={16} className="animate-spin" /> Building...</>
@@ -524,7 +524,7 @@ export default function MorningProtocol(
                         <button
                           onClick={saveMindState}
                           disabled={!mindObjectives.some(o => o.trim())}
-                          className="w-full flex items-center justify-center gap-2 bg-muted border border-border hover:bg-muted text-muted-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-2 bg-muted border border-border hover:bg-muted text-muted-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:bg-surface-2 disabled:border-transparent disabled:cursor-not-allowed disabled:cursor-not-allowed"
                         >
                           <Target size={12} /> Save to Mind Tab
                         </button>

@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     ".next-redesign/**",
     ".claude/**",
+    // the vendored design system: a spec plus a generated canvas runtime, not app code
+    "design-system/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

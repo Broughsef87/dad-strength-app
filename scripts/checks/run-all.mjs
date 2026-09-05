@@ -34,6 +34,7 @@ const SUITES = [
   ['raw palette', 'palette.mjs'],
   ['run scope', 'run-scope.mjs'],
   ['week shape', 'week-shape.mjs'],
+  ['design system', 'design-system.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

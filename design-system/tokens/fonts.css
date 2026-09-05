@@ -1,0 +1,4 @@
+/* Space Grotesk (display + body) and Geist Mono (data) are served from the
+   Google Fonts CDN. No binaries were supplied with the brief — see readme.md
+   "Font substitution note". Space Mono is the declared fallback for Geist Mono. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap");

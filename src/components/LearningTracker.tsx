@@ -171,7 +171,7 @@ export default function LearningTracker() {
                   </span>
                 </div>
                 <button onClick={() => archive(s.id)} title="Archive (mastered / paused)"
-                  className="text-muted-foreground/50 hover:text-foreground opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                  className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
                   <X size={13} />
                 </button>
               </div>
@@ -293,7 +293,7 @@ export default function LearningTracker() {
 
               <div className="flex gap-2">
                 <button onClick={() => void addSkill()} disabled={!name.trim()}
-                  className="flex-1 py-2 bg-brand text-brand-ink text-[10px] font-semibold lowercase hover:bg-brand/90 disabled:opacity-40 transition-colors">
+                  className="flex-1 py-2 bg-brand text-brand-ink text-[10px] font-semibold lowercase hover:bg-brand/90 disabled:saturate-[.15] transition-colors">
                   Start Tracking
                 </button>
                 <button onClick={() => { setAdding(false); setName(''); setMilestone(''); setCatKey(null) }}
