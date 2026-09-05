@@ -534,6 +534,12 @@ ok('design-system/styles.css imports exactly the seven token files',
     /boxShadow: size === "lg" \? "var\(--ds-shadow-tile-raised\)" : "var\(--ds-shadow-tile\)"/.test(ds('components/core/Tile.jsx')), null)
   // the proof harness must render unobstructed: a signed-in preview user who
   // has not accepted the disclaimer would otherwise meet the legal gate on it.
+  // ...and it hands the ground back when it unmounts: ThemeProvider will not
+  // rerun for a class the harness pinned (Codex, round 9).
+  const proof = readFileSync(join(SRC, 'app', 'design-proof', 'page.tsx'), 'utf8')
+  ok('the proof harness restores the saved theme on unmount (resolvedTheme back onto <html>)',
+    /useTheme\(\)/.test(proof)
+    && /useEffect\(\(\) => \(\) => \{\s*document\.documentElement\.classList\.toggle\('dark', resolvedRef\.current === 'dark'\)/.test(proof), null)
   const gate = readFileSync(join(SRC, 'components', 'LegalGate.tsx'), 'utf8')
   ok('LegalGate exempts /design-proof — the harness renders unobstructed for a signed-in preview user',
     /EXEMPT_PATHS\s*=\s*\[[^\]]*'\/design-proof'/.test(gate), null)

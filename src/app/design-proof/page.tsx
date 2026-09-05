@@ -11,8 +11,10 @@
 // ground; ?section=today|session|week|records|states|analytics renders one
 // surface alone, so a phone-width screenshot is exactly that surface.
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useTheme } from '../../contexts/ThemeContext'
 import { TrainingDataView } from '../../components/TrainingData'
 import { WeekPulseView } from '../../components/WeekPulse'
 import { weeklyLoad } from '../../lib/analytics/training'
@@ -111,6 +113,19 @@ function Proof() {
     return () => clearTimeout(id)
   }, [dark])
 
+  // ...and on the way OUT, the ground goes back to the saved preference.
+  // ThemeProvider re-applies only when resolvedTheme changes, and pinning a
+  // class here does not change it — so after a client-side navigation the
+  // rest of the app kept the harness's ground while context and localStorage
+  // said otherwise (Codex, round 9). A ref carries the current resolved theme
+  // into the unmount cleanup.
+  const { resolvedTheme } = useTheme()
+  const resolvedRef = useRef(resolvedTheme)
+  useEffect(() => { resolvedRef.current = resolvedTheme }, [resolvedTheme])
+  useEffect(() => () => {
+    document.documentElement.classList.toggle('dark', resolvedRef.current === 'dark')
+  }, [])
+
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       <div className={`${only ? 'max-w-[390px]' : 'max-w-md'} mx-auto px-5 pt-8 space-y-10`}>
@@ -121,12 +136,15 @@ function Proof() {
             <p className="eyebrow-mono">chalk / volt · proof harness</p>
             <h1 className="text-2xl lowercase mt-1">every device, both grounds</h1>
           </div>
-          <button
-            onClick={() => setDark(d => !d)}
-            className="pill-quiet px-4 py-2 text-xs lowercase"
-          >
-            {dark ? 'graphite' : 'chalk'} — flip
-          </button>
+          <div className="flex items-center gap-2">
+            <Link href="/" className="pill-quiet px-4 py-2 text-xs lowercase">home</Link>
+            <button
+              onClick={() => setDark(d => !d)}
+              className="pill-quiet px-4 py-2 text-xs lowercase"
+            >
+              {dark ? 'graphite' : 'chalk'} — flip
+            </button>
+          </div>
         </div>)}
 
         {/* ── 01 · home bento ── */}
