@@ -154,8 +154,9 @@ added.
 
 `design-system.mjs` fails a `src/` file that renders: `bg-gradient-*`,
 `backdrop-blur`, `blur-*`, `drop-shadow`, a `shadow-[0_0_…]` glow,
-`animate-pulse|ping|bounce`, `font-serif`, `uppercase`, or `text-foreground` on
-a solid `bg-brand`. It also reads the forms a utility ban cannot see: an inline
+`animate-pulse|ping|bounce`, `font-serif`, `uppercase`, or any light ink-role
+utility (`text-foreground`, `text-background`, `text-card`…) on a solid
+`bg-brand`. It also reads the forms a utility ban cannot see: an inline
 `textShadow`, a `boxShadow` starting at `0 0`, a `blur()` / `drop-shadow()`
 filter in a style object, and in `globals.css` any `text-shadow`, a `0 0`
 `box-shadow` or an `inset` sheen. `palette.mjs` fails a raw hue; `contrast.mjs`
@@ -194,8 +195,9 @@ with esbuild — an IIFE assigning `DadStrengthDS`, `react` shimmed to the
 its banner. **Re-vendor, then rebuild.** The check fails a bundle whose stamp
 no longer matches `components/**/*.jsx`.
 
-Two more deliberate edits to the vendored copy: the `.d.ts` files say
+Three more deliberate edits to the vendored copy: the `.d.ts` files say
 `React.JSX.Element` (React 19 removed the global `JSX` namespace the originals
-used), and `SignInCardProps` / `WeekListProps` omit the inherited HTML `title`
-attribute, which they widen to a `ReactNode`. Both are what the originals would
-need to type-check against this repo's React; both are pinned by the check.
+used); `SignInCardProps` / `WeekListProps` omit the inherited HTML `title`
+attribute, which they widen to a `ReactNode`; and `Tile` takes
+`--ds-shadow-tile-raised` at `size="lg"`, as `.tile-lg` does — the original
+declared the raised shadow and never used it. All three are pinned by the check.

@@ -282,6 +282,17 @@ ok('.stat-num tracks ' + dsDecl('typography.css', '--ds-stat-num-tracking') + ' 
   decl(stat, 'letter-spacing') === dsDecl('typography.css', '--ds-stat-num-tracking')
   && decl(stat, 'line-height') === dsDecl('typography.css', '--ds-stat-num-leading')
   && decl(stat, 'font-variant-numeric') === 'tabular-nums', null)
+{
+  // .font-display is declared later than .stat-num at the same specificity, so a
+  // numeral carrying both classes fell back to the sans (Codex, round 3). The
+  // compound rule has to exist, be the mono, and come AFTER .font-display.
+  const compound = css.indexOf('.stat-num.font-display {')
+  const display = css.indexOf('\n.font-display {')
+  ok('.stat-num.font-display restores the mono and -0.045em after .font-display — the stat role outranks the display face',
+    compound > display && display > 0
+    && decl(rule('.stat-num.font-display'), 'font-family') === 'var(--font-mono)'
+    && decl(rule('.stat-num.font-display'), 'letter-spacing') === '-0.045em', null)
+}
 const eyebrow = rule('.eyebrow-mono')
 ok('.eyebrow-mono is ' + dsDecl('typography.css', '--ds-eyebrow-size') + ' at ' + dsDecl('typography.css', '--ds-eyebrow-tracking') + ', mono, lowercase',
   decl(eyebrow, 'font-size') === dsDecl('typography.css', '--ds-eyebrow-size')
@@ -373,11 +384,14 @@ for (const [re, what, why] of BANS) {
     const text = readFileSync(f, 'utf8')
     text.split('\n').forEach((line, i) => {
       for (const seg of line.matchAll(/(["'`])([^"'`]*)\1/g)) {
-        if (/\bbg-brand(?![-/\w])/.test(seg[2]) && /\btext-(?:muted-)?foreground\b/.test(seg[2])) hits.push(f.slice(SRC.length + 1) + ':' + (i + 1))
+        // every ink-role or surface token that is light on at least one ground.
+        // text-background is chalk's near-white; three sites had it on volt (Codex, round 3).
+        if (/\bbg-brand(?![-/\w])/.test(seg[2])
+          && /\btext-(?:(?:muted-)?foreground|background|card|popover|primary-foreground|secondary|muted|accent|surface-[123])\b/.test(seg[2])) hits.push(f.slice(SRC.length + 1) + ':' + (i + 1))
       }
     })
   }
-  ok('no ink-role utility sits on a solid volt fill (bg-brand wants text-brand-ink)', hits.length === 0,
+  ok('no ink-role or surface utility sits on a solid volt fill (bg-brand wants text-brand-ink)', hits.length === 0,
     'text-foreground on bg-brand measured 1.02:1 on graphite\n        ' + hits.slice(0, 8).join('\n        '))
 }
 
@@ -442,6 +456,8 @@ ok('design-system/styles.css imports exactly the seven token files',
   })
   ok('a declaration that takes a ReactNode title omits the inherited HTML title attribute (TS2430)', widened.length === 0,
     widened.map((p) => p.slice(DS.length + 1)).join(', '))
+  ok('Tile takes --ds-shadow-tile-raised at size="lg", as .tile-lg does',
+    /boxShadow: size === "lg" \? "var\(--ds-shadow-tile-raised\)" : "var\(--ds-shadow-tile\)"/.test(ds('components/core/Tile.jsx')), null)
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
     existsSync(skill) && /design-system\/readme\.md/.test(readFileSync(skill, 'utf8')), null)

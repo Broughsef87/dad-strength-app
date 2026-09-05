@@ -280,7 +280,7 @@ export default function Dashboard() {
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -40, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-brand text-background text-center text-[10px] font-display lowercase py-3 px-4"
+          className="fixed top-0 left-0 right-0 z-50 bg-brand text-brand-ink text-center text-[10px] font-display lowercase py-3 px-4"
         >
           Welcome to Dad Strong+ — All Features Unlocked
         </motion.div>

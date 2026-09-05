@@ -12,7 +12,7 @@ export function Tile({ size = "md", as: Tag = "div", style, children, ...rest })
         background: "var(--ds-tile)",
         borderRadius: radius,
         padding: pad,
-        boxShadow: "var(--ds-shadow-tile)",
+        boxShadow: size === "lg" ? "var(--ds-shadow-tile-raised)" : "var(--ds-shadow-tile)",
         color: "var(--ds-ink)",
         fontFamily: "var(--ds-font-sans)",
         display: "flex",

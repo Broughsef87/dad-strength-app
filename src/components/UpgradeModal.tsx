@@ -134,7 +134,7 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                 disabled={!!loading}
                 className="annual-card w-full flex items-center justify-between p-4 rounded-lg relative transition-all disabled:opacity-50"
               >
-                <div className="absolute -top-2.5 left-4 bg-brand text-background text-[8px] font-bold lowercase px-2 py-0.5 rounded-sm">
+                <div className="absolute -top-2.5 left-4 bg-brand text-brand-ink text-[8px] font-bold lowercase px-2 py-0.5 rounded-sm">
                   Best Value
                 </div>
                 <div className="text-left">

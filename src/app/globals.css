@@ -709,6 +709,14 @@
   font-family: var(--font-display);
   letter-spacing: -0.03em;
 }
+/* ...but a hero numeral is the mono even when a call site also says
+   font-display. Same specificity would let this later rule win, and four
+   numerals (the active-set inputs, the summary totals) carried both classes
+   and stayed in the sans. The stat role outranks the display face. */
+.stat-num.font-display {
+  font-family: var(--font-mono);
+  letter-spacing: -0.045em;
+}
 
 /* legacy orb keyframes referenced by layout — inert, kept for safety */
 @keyframes orb-drift {
