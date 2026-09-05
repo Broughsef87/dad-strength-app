@@ -1,13 +1,17 @@
 // ── Chalk/Volt brand asset generator ───────────────────────────────────────
 // Writes the SVG suite from ONE source of truth so the mark can never drift
-// between the app component and the raster assets. Geometry here mirrors
-// src/components/Logo.tsx; the difference is that these bake literal colors
-// (CSS vars don't resolve inside a favicon or an OG image).
+// between the app component and the raster assets. The mark is the design
+// system's plate stack — design-system/assets/ds-mark-volt.svg — and the
+// geometry below is that file's, verbatim: a 64-unit tile with a 20 radius and
+// three bars of decreasing width. src/components/Logo.tsx renders the same
+// rects from CSS tokens; scripts/checks/design-system.mjs asserts all three
+// (the DS file, this script, the component) agree.
 //
-//   node scripts/generate-logo-suite.mjs
+// Colours here are literal — CSS vars do not resolve inside a favicon or an
+// OG image — and they are the DS's: tokens/colors.css.
 //
-// PNG/ICO rasterization is a separate step — see rasterize-logo-suite.html,
-// which renders these SVGs to canvas and downloads the bitmaps.
+//   node scripts/generate-logo-suite.mjs        → SVGs in public/logo-suite
+//   node scripts/rasterize-logo-suite.mjs       → PNGs, favicon.ico, PWA icons
 
 import fs from 'fs';
 import path from 'path';
@@ -16,83 +20,105 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(__dirname, '../public/logo-suite');
 
-// The palette, literal. Matches globals.css.
-const C = {
+// The palette, literal. design-system/tokens/colors.css.
+export const C = {
   graphite: '#0E0F10',
-  tileDark: '#17181A',
   chalk: '#FAF9F6',
-  tileLight: '#FFFFFF',
-  inkDark: '#EDEDEA',
-  inkLight: '#141412',
-  voltDark: '#CDFF4D',
-  voltLight: '#C6FF3F',
+  inkDark: '#EDEDEA',   // ink on graphite
+  inkLight: '#141412',  // ink on chalk
+  voltDark: '#CDFF4D',  // --ds-volt-graphite
+  voltLight: '#C6FF3F', // --ds-volt-chalk
+  onVolt: '#131608',    // --ds-on-volt — the only ink on a volt fill
+  concreteDark: '#8B8B85',
+  concreteLight: '#6F6F68',
 };
 
-// Monogram paths, shared with the component.
-const DS = (fill) => `
-  <path d="M0,0 H70 L100,30 V110 L70,140 H0 Z M26,26 H60 L74,40 V100 L60,114 H26 Z"
-        transform="translate(206.5,292.6) scale(3.05)" fill="${fill}" fill-rule="evenodd" />
-  <path d="M24,0 H100 V26 H26 V57 H100 V116 L76,140 H0 V114 H74 V83 H0 V24 Z"
-        transform="translate(567.5,292.6) scale(3.05)" fill="${fill}" fill-rule="evenodd" />`;
+// The plate stack, in the DS's 64-unit space. Shared with the component.
+export const BARS = [
+  { x: 14, y: 18, width: 36, height: 7, rx: 2 },
+  { x: 14, y: 29, width: 25, height: 7, rx: 2 },
+  { x: 14, y: 40, width: 16, height: 7, rx: 2 },
+];
+const stack = (fill) => BARS.map((b) =>
+  `<rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" rx="${b.rx}" fill="${fill}" />`).join('\n  ');
 
-const mark = ({ tile, volt, ink, transparent = false }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  ${transparent ? '' : `<rect x="32" y="32" width="960" height="960" rx="216" fill="${tile}" />`}
-  ${DS(volt)}
-  <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="${ink}" opacity="0.22" />
+// The mark: the field and the stack, 64 units. `field` null → the bare stack.
+const markGroup = ({ field, bars }) => `${field ? `<rect width="64" height="64" rx="20" fill="${field}" />\n  ` : ''}${stack(bars)}`;
+
+const mark = ({ field, bars }, size = 1024) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="${size}" height="${size}">
+  ${markGroup({ field, bars })}
 </svg>`;
 
-// App icon: never transparent — home screens need an opaque tile, and the
-// graphite version reads on both iOS light and dark wallpapers.
-const appIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <rect width="1024" height="1024" rx="230" fill="${C.tileDark}" />
-  ${DS(C.voltDark)}
-  <rect x="206.5" y="765.6" width="611" height="16" rx="8" fill="${C.inkDark}" opacity="0.22" />
-</svg>`;
+// The horizontal lockup contract, as the guideline page states it
+// (design-system/guidelines/brand-marks.html): mark 34 beside "dad strength"
+// in Space Grotesk 600 at -0.03em, gap 12. The raster lockups are that
+// contract at an integer scale — nothing else about them is free to drift.
+export const LOCKUP = { mark: 34, word: 20, gap: 12, tracking: -0.03 };
+// "dad strength" at 600 / -0.03em advances 5.99em in Space Grotesk, measured in
+// Chrome with the real face (599.1px at 100px). The lockup is centred on that.
+const WORDMARK_EM = 5.99;
+const lockup = (k, W, cy) => {
+  const mark = LOCKUP.mark * k, word = LOCKUP.word * k, gap = LOCKUP.gap * k;
+  const left = Math.round((W - (mark + gap + word * WORDMARK_EM)) / 2);
+  return { mark, word, gap, scale: mark / 64, mx: left, my: Math.round(cy - mark / 2), tx: left + mark + gap, ls: +(LOCKUP.tracking * word).toFixed(2) };
+};
+const wordmark = (L, y, ink) => `<text x="${L.tx}" y="${y}" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
+        font-size="${L.word}" font-weight="600" letter-spacing="${L.ls}" fill="${ink}">dad strength</text>`;
 
-// Favicon: no ground bar, bigger monogram — detail dies at 32px.
-const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="512" height="512">
-  <rect width="1024" height="1024" rx="230" fill="${C.tileDark}" />
-  <g transform="translate(512,512) scale(1.18) translate(-512,-512)">${DS(C.voltDark)}</g>
-</svg>`;
-
-const horizontal = ({ bg, ink, volt, tile }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
+// 1200×300, ×5: mark 170, wordmark 100, gap 60. The baseline sits 0.35em under
+// the mark's centre line, which centres the lowercase visually.
+const horizontal = ({ bg, ink, volt }) => {
+  const L = lockup(5, 1200, 150);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
   <rect width="1200" height="300" fill="${bg}" />
-  <g transform="translate(60,42) scale(0.212)">
-    <rect x="32" y="32" width="960" height="960" rx="216" fill="${tile}" />
-    ${DS(volt)}
+  <g transform="translate(${L.mx},${L.my}) scale(${L.scale})">
+  ${markGroup({ field: volt, bars: C.onVolt })}
   </g>
-  <text x="330" y="178" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
-        font-size="96" font-weight="700" letter-spacing="-4" fill="${ink}">dad strength</text>
+  ${wordmark(L, 150 + Math.round(L.word * 0.35), ink)}
 </svg>`;
-
-const banner = ({ bg, ink, volt, tile }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
-  <rect width="1500" height="500" fill="${bg}" />
-  <g transform="translate(180,140) scale(0.229)">
-    <rect x="32" y="32" width="960" height="960" rx="216" fill="${tile}" />
-    ${DS(volt)}
-  </g>
-  <text x="450" y="268" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
-        font-size="104" font-weight="700" letter-spacing="-4" fill="${ink}">dad strength</text>
-  <text x="452" y="330" font-family="Geist Mono, ui-monospace, monospace"
-        font-size="30" letter-spacing="2" fill="${ink}" opacity="0.55">built for the long haul</text>
-</svg>`;
-
-const files = {
-  'ds_app_icon.svg': appIcon,
-  'ds_favicon.svg': favicon,
-  'ds_mark_dark.svg': mark({ tile: C.tileDark, volt: C.voltDark, ink: C.inkDark }),
-  'ds_mark_light.svg': mark({ tile: C.tileLight, volt: C.voltLight, ink: C.inkLight }),
-  'ds_mark_transparent.svg': mark({ volt: C.voltDark, ink: C.inkDark, transparent: true }),
-  'ds_horizontal_dark.svg': horizontal({ bg: C.graphite, ink: C.inkDark, volt: C.voltDark, tile: C.tileDark }),
-  'ds_horizontal_light.svg': horizontal({ bg: C.chalk, ink: C.inkLight, volt: C.voltLight, tile: C.tileLight }),
-  'ds_banner_dark.svg': banner({ bg: C.graphite, ink: C.inkDark, volt: C.voltDark, tile: C.tileDark }),
-  'ds_banner_light.svg': banner({ bg: C.chalk, ink: C.inkLight, volt: C.voltLight, tile: C.tileLight }),
 };
 
-fs.mkdirSync(OUT, { recursive: true });
-for (const [name, svg] of Object.entries(files)) {
-  fs.writeFileSync(path.join(OUT, name), svg.trim() + '\n');
-  console.log('wrote', name);
+// 1500×500, ×6: mark 204, wordmark 120, gap 72. The wordmark sits high and the
+// mono tagline under it balances the two-line block on the mark.
+const banner = ({ bg, ink, volt, concrete }) => {
+  const L = lockup(6, 1500, 250);
+  const base = 250 + Math.round(L.word * 0.15);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
+  <rect width="1500" height="500" fill="${bg}" />
+  <g transform="translate(${L.mx},${L.my}) scale(${L.scale})">
+  ${markGroup({ field: volt, bars: C.onVolt })}
+  </g>
+  ${wordmark(L, base, ink)}
+  <text x="${L.tx + 2}" y="${base + 64}" font-family="Geist Mono, Space Mono, ui-monospace, monospace"
+        font-size="24" letter-spacing="3.84" fill="${concrete}">DS-01 // built for the long haul</text>
+</svg>`;
+};
+
+export const files = {
+  // the app icon is the primary mark: chalk volt, and the DS says it reads on
+  // both grounds. Opaque, as a home-screen icon must be.
+  'ds_app_icon.svg': mark({ field: C.voltLight, bars: C.onVolt }),
+  // the favicon is the same mark — the stack survives at 20px, and at 16 the
+  // volt tile carries it
+  'ds_favicon.svg': mark({ field: C.voltLight, bars: C.onVolt }, 512),
+  'ds_mark_light.svg': mark({ field: C.voltLight, bars: C.onVolt }),
+  'ds_mark_dark.svg': mark({ field: C.voltDark, bars: C.onVolt }),
+  // one-colour, ink field — print and monochrome (ds-mark-ink.svg)
+  'ds_mark_ink.svg': mark({ field: C.inkLight, bars: C.chalk }),
+  // the glyph alone, for use inside an existing volt fill (ds-mark-bare.svg)
+  'ds_mark_transparent.svg': mark({ field: null, bars: C.inkLight }),
+  'ds_horizontal_dark.svg': horizontal({ bg: C.graphite, ink: C.inkDark, volt: C.voltDark }),
+  'ds_horizontal_light.svg': horizontal({ bg: C.chalk, ink: C.inkLight, volt: C.voltLight }),
+  'ds_banner_dark.svg': banner({ bg: C.graphite, ink: C.inkDark, volt: C.voltDark, concrete: C.concreteDark }),
+  'ds_banner_light.svg': banner({ bg: C.chalk, ink: C.inkLight, volt: C.voltLight, concrete: C.concreteLight }),
+};
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  fs.mkdirSync(OUT, { recursive: true });
+  for (const [name, svg] of Object.entries(files)) {
+    fs.writeFileSync(path.join(OUT, name), svg.trim() + '\n');
+    console.log('wrote', name);
+  }
+  console.log(`\n${Object.keys(files).length} SVGs → public/logo-suite`);
+  console.log('Rasterize next: node scripts/rasterize-logo-suite.mjs');
 }
-console.log(`\n${Object.keys(files).length} SVGs → public/logo-suite`);
-console.log('Rasterize next: open scripts/rasterize-logo-suite.html');

@@ -609,6 +609,95 @@ ok('design-system/styles.css imports exactly the seven token files',
   const gate = readFileSync(join(SRC, 'components', 'LegalGate.tsx'), 'utf8')
   ok('LegalGate exempts /design-proof — the harness renders unobstructed for a signed-in preview user',
     /EXEMPT_PATHS\s*=\s*\[[^\]]*'\/design-proof'/.test(gate), null)
+  // the mark is the DS mark. The DS file is the source: its rects are read
+  // (the C2PA metadata block skipped) and the component and the suite
+  // generator must carry every one of them.
+  {
+    const dsMark = ds('assets/ds-mark-volt.svg').replace(/<metadata>[\s\S]*?<\/metadata>/, '')
+    const rects = [...dsMark.matchAll(/<rect([^>]*)>/g)].map((m) => {
+      const a = {}
+      for (const p of m[1].matchAll(/([a-z-]+)="([^"]*)"/g)) a[p[1]] = p[2]
+      return a
+    })
+    const field = rects.find((r) => r.width === '64' && r.height === '64')
+    const bars = rects.filter((r) => r !== field)
+    ok('the DS mark parses: a 64-unit field and three bars', !!field && bars.length === 3, 'rects: ' + rects.length)
+    const logo = readFileSync(join(SRC, 'components', 'Logo.tsx'), 'utf8')
+    const gen = readFileSync(join(ROOT, 'scripts', 'generate-logo-suite.mjs'), 'utf8')
+    const inLogo = (r) => new RegExp('<rect x="' + r.x + '" y="' + r.y + '" width="' + r.width + '" height="' + r.height + '" rx="' + r.rx + '"').test(logo)
+    const inGen = (r) => gen.includes('{ x: ' + r.x + ', y: ' + r.y + ', width: ' + r.width + ', height: ' + r.height + ', rx: ' + r.rx + ' }')
+    ok('Logo.tsx renders the DS mark — the field at rx ' + (field && field.rx) + ' on --brand, every bar on --brand-ink',
+      !!field && new RegExp('<rect width="64" height="64" rx="' + field.rx + '" fill="hsl\\(var\\(--brand\\)\\)"').test(logo)
+      && bars.every(inLogo) && (logo.match(/fill="hsl\(var\(--brand-ink\)\)"/g) || []).length === bars.length,
+      'bars missing from Logo.tsx: ' + bars.filter((r) => !inLogo(r)).map((r) => r.width + 'x' + r.height + '@' + r.x + ',' + r.y).join(' '))
+    ok('generate-logo-suite.mjs bakes the DS mark — the same bars, the same field radius',
+      !!field && gen.includes('rx="' + field.rx + '"') && bars.every(inGen),
+      'bars missing from the generator: ' + bars.filter((r) => !inGen(r)).map((r) => r.width + 'x' + r.height + '@' + r.x + ',' + r.y).join(' '))
+    // ...and the lockups keep the contract the guideline page states: mark 34,
+    // wordmark 20 at 600 / -0.03em, gap 12 (Codex, round 4: the first cut had
+    // 18.4 / 8.5 at that mark). Read from the DS's own page, measured against
+    // the generator's constant AND the four committed SVGs — a stale artefact
+    // fails as surely as a wrong source.
+    const marksPage = readFileSync(join(ROOT, 'design-system', 'guidelines', 'brand-marks.html'), 'utf8')
+    const contract = marksPage.match(/gap: (\d+)px;">\s*<img src="\.\.\/assets\/ds-mark-volt\.svg" width="(\d+)"[^>]*>\s*<span style="font-size: (\d+)px; font-weight: 600; letter-spacing: (-?[\d.]+)em;">dad strength/)
+    const spec = contract ? { gap: +contract[1], mark: +contract[2], word: +contract[3], tracking: +contract[4] } : null
+    ok('the guideline page states the horizontal lockup contract (mark, wordmark, gap, tracking)', !!spec && spec.mark === 34 && spec.word === 20 && spec.gap === 12 && spec.tracking === -0.03, null)
+    const genLock = gen.match(/export const LOCKUP = \{ mark: (\d+), word: (\d+), gap: (\d+), tracking: (-?[\d.]+) \}/)
+    ok('generate-logo-suite.mjs carries the lockup contract as one constant, equal to the guideline page',
+      !!spec && !!genLock && +genLock[1] === spec.mark && +genLock[2] === spec.word && +genLock[3] === spec.gap && +genLock[4] === spec.tracking, null)
+    const lockupSvgs = ['ds_horizontal_dark.svg', 'ds_horizontal_light.svg', 'ds_banner_dark.svg', 'ds_banner_light.svg']
+    const near = (a, b) => Math.abs(a - b) < 0.005
+    const offSpec = spec ? lockupSvgs.filter((f) => {
+      const s = readFileSync(join(ROOT, 'public', 'logo-suite', f), 'utf8')
+      const g = s.match(/translate\((\d+),(\d+)\) scale\(([\d.]+)\)/)
+      const w = s.match(/<text x="(\d+)" y="\d+" font-family="Space Grotesk[^"]*"\s+font-size="([\d.]+)" font-weight="600" letter-spacing="(-?[\d.]+)"/)
+      if (!g || !w) return true
+      const markPx = 64 * +g[3], markRight = +g[1] + markPx, x = +w[1], font = +w[2], ls = +w[3]
+      return !(near(font / markPx, spec.word / spec.mark) && near((x - markRight) / markPx, spec.gap / spec.mark) && Math.abs(ls / font - spec.tracking) < 0.0005)
+    }) : lockupSvgs
+    ok('the four committed lockup SVGs measure to the contract — wordmark 20/34 of the mark, gap 12/34, tracking -0.03em', offSpec.length === 0, offSpec.join(' '))
+  }
+  // the lockup PNGs are the OG image; the rasterizer must refuse to capture a
+  // wordmark in a fallback face. It force-loads Space Grotesk and Geist Mono
+  // and throws before Page.captureScreenshot when either is missing (Codex).
+  {
+    const raster = readFileSync(join(ROOT, 'scripts', 'rasterize-logo-suite.mjs'), 'utf8')
+    const gate = raster.indexOf('required faces not loaded')
+    const capture = raster.indexOf('Page.captureScreenshot')
+    ok('rasterize-logo-suite.mjs force-loads both lockup faces, requires a LOADED FontFace for each, and throws before the capture otherwise',
+      /document\.fonts\.load\('600 20px "Space Grotesk"'\)/.test(raster) && /document\.fonts\.load\('400 20px "Geist Mono"'\)/.test(raster)
+      // check() is not evidence: with no stylesheet there is no face to be pending
+      && (raster.match(/f\.status === 'loaded'/g) || []).length >= 2 && !/document\.fonts\.check\(/.test(raster)
+      && /throw new Error\([^)]*required faces not loaded/.test(raster) && gate > 0 && capture > gate, null)
+    // ...and the harness cannot capture the wrong thing (Codex, round 3): Node
+    // without a global WebSocket fails first; Chrome's port is read back from
+    // ITS OWN DevToolsActivePort, never a fixed number; a navigation must report
+    // no error, fire load, and land on the expected document.
+    ok('the rasterizer guards its harness: WebSocket present, ephemeral port from DevToolsActivePort, navigation verified',
+      /typeof WebSocket !== 'function'/.test(raster)
+      && /--remote-debugging-port=0/.test(raster) && /DevToolsActivePort/.test(raster) && !/remote-debugging-port=\d{2,}/.test(raster)
+      && /nav\.result\.errorText/.test(raster) && /load event never fired/.test(raster) && /wrong document loaded/.test(raster)
+      && /pathToFileURL\(html\)\.href/.test(raster) && !/'file:\/\/\/' \+/.test(raster), null)
+    // ...and a failed run leaves the suite exactly as it was (Codex, round 5):
+    // the icons and favicon came out of sharp first and were on disk before a
+    // font failure could be reported. Every output is staged and written in one
+    // pass after the Chrome phase; the only write before the finally is the
+    // temp HTML the lockups are rendered from.
+    const fin = raster.indexOf('} finally {')
+    const before = fin > 0 ? raster.slice(0, fin) : ''
+    ok('the rasterizer stages every output and writes the suite only after the last lockup rendered',
+      /const staged = new Map\(\)/.test(raster) && fin > 0
+      && (before.match(/fs\.writeFileSync\(/g) || []).length === 1 && /fs\.writeFileSync\(html, /.test(before)
+      && /for \(const \[out, buf\] of staged\) fs\.writeFileSync\(out, buf\)/.test(raster.slice(fin)), null)
+    // ...and no DevTools command can hang the run (Codex, round 6): a resolver
+    // that only waited for a reply left the top-level await unsettled when
+    // Chrome died — Node exited without the finally and Chrome stayed up.
+    ok('the rasterizer settles every DevTools command — rejected on socket close, socket error and Chrome exit, and after a deadline',
+      /ws\.onclose = \(\) => failAll\(/.test(raster) && /ws\.onerror = \(\) => failAll\(/.test(raster)
+      && /chrome\.once\('exit', \(code\) => failAll\(/.test(raster) && /no reply from Chrome in \d+s/.test(raster)
+      && /chrome\.exitCode !== null\) throw/.test(raster)
+      && /chrome\.exitCode !== null\) return reject\(/.test(raster) && /ws\.readyState !== WebSocket\.OPEN\) return reject\(/.test(raster), null)
+  }
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
     existsSync(skill) && /design-system\/readme\.md/.test(readFileSync(skill, 'utf8')), null)
