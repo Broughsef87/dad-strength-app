@@ -646,6 +646,14 @@ ok('design-system/styles.css imports exactly the seven token files',
       // check() is not evidence: with no stylesheet there is no face to be pending
       && (raster.match(/f\.status === 'loaded'/g) || []).length >= 2 && !/document\.fonts\.check\(/.test(raster)
       && /throw new Error\([^)]*required faces not loaded/.test(raster) && gate > 0 && capture > gate, null)
+    // ...and the harness cannot capture the wrong thing (Codex, round 3): Node
+    // without a global WebSocket fails first; Chrome's port is read back from
+    // ITS OWN DevToolsActivePort, never a fixed number; a navigation must report
+    // no error, fire load, and land on the expected document.
+    ok('the rasterizer guards its harness: WebSocket present, ephemeral port from DevToolsActivePort, navigation verified',
+      /typeof WebSocket !== 'function'/.test(raster)
+      && /--remote-debugging-port=0/.test(raster) && /DevToolsActivePort/.test(raster) && !/remote-debugging-port=\d{2,}/.test(raster)
+      && /nav\.result\.errorText/.test(raster) && /load event never fired/.test(raster) && /wrong document loaded/.test(raster), null)
   }
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
