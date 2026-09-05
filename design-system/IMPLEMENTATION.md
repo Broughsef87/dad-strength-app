@@ -212,4 +212,8 @@ so `<Tile as="a" href>` type-checks; `Tile` takes `--ds-shadow-tile-raised`
 at `size="lg"`, as `.tile-lg` does — the original declared the raised shadow
 and never used it; and `Pill` spreads consumer props first and composes
 `onPointerDown/Up/Leave` with its own, so a caller's handler no longer leaves
-the pill stuck in its pressed colour. All five are pinned by the check.
+the pill stuck in its pressed colour. All five are pinned by the check. The
+click-through kit (`ui_kits/app`) was edited too: its theme switch stays on
+the sign-in screen — a signed-out screen loses the tab bar and the small
+lockup, not the control — and both marks follow the ground
+(`ds-mark-volt-graphite.svg` on graphite). Pinned as well.

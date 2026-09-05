@@ -519,6 +519,17 @@ ok('design-system/styles.css imports exactly the seven token files',
       && /onPointerDown\?\.\(e\)/.test(pill) && /onPointerUp\?\.\(e\)/.test(pill) && /onPointerLeave\?\.\(e\)/.test(pill)
       && !/\}\}\s*\n\s*\{\.\.\.rest\}\s*\n\s*>/.test(pill), null)
   }
+  {
+    // the click-through kit has to show every screen in both grounds (Codex,
+    // round 8): the theme switch sits OUTSIDE the chromeless block, so the
+    // sign-in screen can be flipped, and the mark follows the theme.
+    const shell = ds('ui_kits/app/AppShell.jsx')
+    ok('the kit keeps its theme switch on the sign-in screen — the toggle sits outside the chromeless lockup block',
+      /\{!chromeless && \(\s*<div[^)]*\)\}\s*<button[\s\S]*?onClick=\{onTheme\}/.test(shell), null)
+    const MARK = /theme === "graphite" \? "\.\.\/\.\.\/assets\/ds-mark-volt-graphite\.svg"/
+    ok('the kit picks the mark for the ground — ds-mark-volt-graphite.svg on graphite, in the shell and on sign-in',
+      MARK.test(shell) && MARK.test(ds('ui_kits/app/SignInScreen.jsx')), null)
+  }
   ok('Tile takes --ds-shadow-tile-raised at size="lg", as .tile-lg does',
     /boxShadow: size === "lg" \? "var\(--ds-shadow-tile-raised\)" : "var\(--ds-shadow-tile\)"/.test(ds('components/core/Tile.jsx')), null)
   // the proof harness must render unobstructed: a signed-in preview user who

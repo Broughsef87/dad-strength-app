@@ -76,7 +76,7 @@
       if (!signedIn) {
         return (
           <AppShell theme={theme} onTheme={toggle} tab={tab} onTab={setTab} chromeless>
-            <SignInScreen onSignIn={() => setSignedIn(true)} />
+            <SignInScreen onSignIn={() => setSignedIn(true)} theme={theme} />
           </AppShell>
         );
       }
