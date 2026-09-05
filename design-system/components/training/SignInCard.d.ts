@@ -5,7 +5,7 @@ import * as React from "react";
  *
  * @startingPoint section="Training" subtitle="pilot authentication — the entry surface" viewport="700x400"
  */
-export interface SignInCardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface SignInCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   eyebrow?: React.ReactNode;
   title?: React.ReactNode;
   /** Field placeholder names, lowercase. */
@@ -16,4 +16,4 @@ export interface SignInCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onAction?: () => void;
 }
 
-export function SignInCard(props: SignInCardProps): JSX.Element;
+export function SignInCard(props: SignInCardProps): React.JSX.Element;

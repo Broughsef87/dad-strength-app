@@ -10,4 +10,4 @@ export interface ChipLiveProps extends React.HTMLAttributes<HTMLSpanElement> {
   size?: "sm" | "md";
 }
 
-export function ChipLive(props: ChipLiveProps): JSX.Element;
+export function ChipLive(props: ChipLiveProps): React.JSX.Element;

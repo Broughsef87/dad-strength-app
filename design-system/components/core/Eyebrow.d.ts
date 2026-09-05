@@ -7,4 +7,4 @@ export interface EyebrowProps extends React.HTMLAttributes<HTMLSpanElement> {
   size?: "sm" | "md";
 }
 
-export function Eyebrow(props: EyebrowProps): JSX.Element;
+export function Eyebrow(props: EyebrowProps): React.JSX.Element;

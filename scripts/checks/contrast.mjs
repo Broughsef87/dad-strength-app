@@ -125,14 +125,39 @@ const SEGMENT_RE = /(['"`])(?:\\.|(?!\1).)*\1/g
 // tint: 1.87:1 that no element renders. A backtick segment with quoted strings
 // inside it is split again: the inner strings are the branches, and the
 // template's own static text (quotes blanked) is one more segment.
+//
+// And the template's STATIC classes belong to every branch. Codex, round 2:
+//   `bg-brand/20 ${active ? 'text-brand-ink' : 'text-brand'}`
+// keeps the fill in the static part and chooses the ink in the interpolation.
+// Pushing the static text and each branch as separate segments meant no pair
+// ever formed there, and the gate passed a real 1.87:1. So a backtick segment
+// becomes one segment per COMBINATION of branches — the static classes plus
+// one quoted string from each ${...} — which is exactly the set of class
+// lists the element can render.
+const unquote = (s) => s.replace(/^['"`]|['"`]$/g, '')
 const segmentsOf = (text) => {
   const out = []
   for (const seg of text.match(SEGMENT_RE) ?? [text]) {
     const inner = seg.slice(1, -1)
-    if (seg[0] === '`' && /['"]/.test(inner)) {
-      out.push(inner.replace(SEGMENT_RE, ' '))
-      out.push(...segmentsOf(inner))
-    } else out.push(seg)
+    if (seg[0] !== '`' || !/['"]/.test(inner)) { out.push(seg); continue }
+    const groups = []   // per ${...}: the class lists it can produce
+    let stat = ''
+    for (let i = 0; i < inner.length;) {
+      if (inner[i] === '$' && inner[i + 1] === '{') {
+        let depth = 0, j = i + 1
+        for (; j < inner.length; j++) {
+          if (inner[j] === '{') depth++
+          else if (inner[j] === '}' && --depth === 0) break
+        }
+        const strs = inner.slice(i + 2, j).match(SEGMENT_RE) ?? []
+        groups.push(strs.length ? strs.flatMap(segmentsOf).map(unquote) : [''])
+        stat += ' '
+        i = j + 1
+      } else stat += inner[i++]
+    }
+    let combos = [stat]
+    for (const g of groups) combos = combos.flatMap((c) => g.map((s) => c + ' ' + s))
+    out.push(...combos)
   }
   return out
 }
@@ -235,6 +260,16 @@ const pairsIn = (text) => {
   ok('fixture: ...and still measures the ink on the fills in its own branch (bare, and hover:/90)',
     p.some((q) => q.fill === 'bg-brand') && p.some((q) => q.fill.endsWith('bg-brand/90')),
     'fills seen: ' + [...new Set(p.map((q) => q.fill))].join(', '))
+}
+
+{
+  // the fill in the template's static part, the ink chosen in the interpolation.
+  // Both branches render ON that fill, so both must be measured against it.
+  const line = "className={`rounded px-2 bg-brand/20 ${active ? 'text-brand-ink' : 'text-brand'}`}"
+  const p = pairsIn(line)
+  ok('fixture: a template\'s static fill is paired with an ink chosen in its interpolation',
+    p.some((q) => q.ink === 'text-brand-ink' && q.fill === 'bg-brand/20'),
+    'no pair formed — the static classes were not carried into the branches; fills seen: ' + [...new Set(p.map((q) => q.fill))].join(', '))
 }
 
 // ── 1. an ink token is NEVER faded ─────────────────────────────────────────

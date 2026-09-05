@@ -19,6 +19,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { componentSources, sourcesDigest } from './design-system-sources.mjs'
 
 const ROOT = new URL('../..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
 const DS = join(ROOT, 'design-system')
@@ -407,6 +408,40 @@ ok('design-system/styles.css imports exactly the seven token files',
     'the Claude Design viewer injects a 20KB script into every served HTML file; the vendored copy is the design, not the viewer\n        '
     + dirty.map((p) => p.slice(DS.length + 1)).slice(0, 6).join('\n        '))
   ok('the readme is the chalk / volt readme', /chalk \/ volt/.test(ds('readme.md')) && /volt is a FILL/.test(ds('readme.md')), null)
+
+  // The demo pages load _ds_bundle.js, which Claude Design generates at view
+  // time and does not store. scripts/design-system-bundle.mjs builds it here and
+  // stamps the component sources' hash into its banner: the bundle must exist,
+  // expose every component, and have been built from THESE sources. Codex, round 2.
+  const sources = componentSources(DS)
+  const compNames = sources.map((f) => f.split('/').pop().replace(/\.jsx$/, ''))
+  const bundlePath = join(DS, '_ds_bundle.js')
+  ok('design-system/_ds_bundle.js is built — the demo pages load it (npm run design-system:bundle)', existsSync(bundlePath), null)
+  if (existsSync(bundlePath)) {
+    const bundle = readFileSync(bundlePath, 'utf8')
+    ok('the bundle assigns a DadStrength* global and exposes all ' + compNames.length + ' components',
+      /var DadStrengthDS\s*=/.test(bundle) && compNames.every((c) => new RegExp('\\b' + c + '\\b').test(bundle)),
+      'missing: ' + compNames.filter((c) => !new RegExp('\\b' + c + '\\b').test(bundle)).join(', '))
+    // the pages load React 18 from a CDN; a bundled jsx-runtime would be node_modules' React 19
+    ok('the bundle renders through window.React.createElement — no bundled jsx-runtime',
+      !/jsx[-_]runtime/.test(bundle) && /\.createElement\(/.test(bundle), null)
+    const stamped = (bundle.match(/^\/\/ sources: ([0-9a-f]{16})/m) || [])[1]
+    const digest = sourcesDigest(DS, sources)
+    ok('the bundle was built from the current component sources — stale means npm run design-system:bundle',
+      stamped === digest, 'stamped ' + stamped + ' vs sources ' + digest)
+  }
+
+  // React 19 removed the global JSX namespace; the originals returned JSX.Element.
+  const dts = walkAll(join(DS, 'components')).filter((p) => p.endsWith('.d.ts'))
+  const bareJsx = dts.filter((p) => /(?<![.\w])JSX\./.test(readFileSync(p, 'utf8')))
+  ok('the vendored .d.ts files use React.JSX, not the global JSX namespace React 19 removed', bareJsx.length === 0,
+    bareJsx.map((p) => p.slice(DS.length + 1)).join(', '))
+  const widened = dts.filter((p) => {
+    const t = readFileSync(p, 'utf8')
+    return /title\?:\s*React\.ReactNode/.test(t) && !/Omit<React\.HTMLAttributes<HTMLDivElement>, 'title'>/.test(t)
+  })
+  ok('a declaration that takes a ReactNode title omits the inherited HTML title attribute (TS2430)', widened.length === 0,
+    widened.map((p) => p.slice(DS.length + 1)).join(', '))
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
     existsSync(skill) && /design-system\/readme\.md/.test(readFileSync(skill, 'utf8')), null)

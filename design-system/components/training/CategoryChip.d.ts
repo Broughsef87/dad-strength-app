@@ -8,5 +8,5 @@ export interface CategoryChipProps extends React.HTMLAttributes<HTMLSpanElement>
   children?: React.ReactNode;
 }
 
-export function CategoryChip(props: CategoryChipProps): JSX.Element;
+export function CategoryChip(props: CategoryChipProps): React.JSX.Element;
 export const CATEGORY_AXES: readonly string[];

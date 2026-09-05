@@ -5,7 +5,7 @@ import * as React from "react";
  *
  * @startingPoint section="Training" subtitle="Day pills over the week's sessions" viewport="700x340"
  */
-export interface WeekListProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface WeekListProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   /** Eyebrow title. Default "the week". */
   title?: React.ReactNode;
   /** Days that carry a pill. */
@@ -14,4 +14,4 @@ export interface WeekListProps extends React.HTMLAttributes<HTMLDivElement> {
   sessions?: Array<{ name: string; when: string; axis?: string }>;
 }
 
-export function WeekList(props: WeekListProps): JSX.Element;
+export function WeekList(props: WeekListProps): React.JSX.Element;

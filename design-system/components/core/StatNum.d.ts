@@ -9,4 +9,4 @@ export interface StatNumProps extends React.HTMLAttributes<HTMLSpanElement> {
   label?: React.ReactNode;
 }
 
-export function StatNum(props: StatNumProps): JSX.Element;
+export function StatNum(props: StatNumProps): React.JSX.Element;

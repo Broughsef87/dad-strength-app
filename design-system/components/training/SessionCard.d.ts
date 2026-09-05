@@ -21,4 +21,4 @@ export interface SessionCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onAction?: () => void;
 }
 
-export function SessionCard(props: SessionCardProps): JSX.Element;
+export function SessionCard(props: SessionCardProps): React.JSX.Element;

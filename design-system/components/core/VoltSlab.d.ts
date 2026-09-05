@@ -8,4 +8,4 @@ export interface VoltSlabProps extends React.HTMLAttributes<HTMLSpanElement> {
   size?: "sm" | "md" | "lg";
 }
 
-export function VoltSlab(props: VoltSlabProps): JSX.Element;
+export function VoltSlab(props: VoltSlabProps): React.JSX.Element;

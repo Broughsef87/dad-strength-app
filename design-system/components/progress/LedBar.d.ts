@@ -10,4 +10,4 @@ export interface LedBarProps extends React.HTMLAttributes<HTMLDivElement> {
   label?: React.ReactNode;
 }
 
-export function LedBar(props: LedBarProps): JSX.Element;
+export function LedBar(props: LedBarProps): React.JSX.Element;

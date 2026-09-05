@@ -22,7 +22,7 @@ fails, the DS is right.
 | `tokens/spacing.css` | Tailwind's default scale | every DS step is on the 4px grid (see Spacing) |
 | `components/**/*.jsx` | kit classes in `globals.css` | the app is not React-inline-styled; each component has a class |
 | `assets/*.svg` | `src/components/Logo.tsx`, `scripts/generate-logo-suite.mjs` | see Brand marks |
-| `ui_kits/app/index.html` | the app itself | the DS's click-through recreation. Renders **inside Claude Design** (see Re-vendoring); the screens' source is `ui_kits/app/*.jsx` |
+| `ui_kits/app/index.html` | the app itself | the DS's click-through recreation; serve `design-system/` over HTTP. Loads `_ds_bundle.js`, built here by `npm run design-system:bundle` (see Re-vendoring) |
 | `guidelines/*.html` | — | 19 specimen cards; render standalone (serve the directory over HTTP) |
 | `Dad Strength Design System.dc.html` + `support.js` | — | the spec sheet as a canvas; renders standalone |
 
@@ -185,11 +185,17 @@ viewer injects a `data-omelette-injected` style/script pair into every served
 HTML file (the viewer's runtime, ~20KB, not the design), and that pair is
 stripped. The check fails a vendored HTML file that still carries it.
 
-Two kinds of file are **not** in the project and so not here: `_ds_bundle.js`
-and `_ds_manifest.json`, which Claude Design generates at view time from
-`components/**/*.jsx`. `ui_kits/app/index.html` and the three `*.card.html`
-files load that bundle, so they render inside Claude Design (the project link
-above) and come up empty when opened from disk. The canvas, the token CSS and
-the 19 guideline cards have no such dependency and render anywhere. Building
-the bundle locally (esbuild over `components/`, React shimmed to `window.React`)
-would make the kit render offline; it has not been done.
+One file is **generated, not vendored**: `_ds_bundle.js`. Claude Design builds
+it at view time from `components/**/*.jsx` and does not store it, and
+`ui_kits/app/index.html` and the three `*.card.html` files load it. Here
+`scripts/design-system-bundle.mjs` (`npm run design-system:bundle`) builds it
+with esbuild — an IIFE assigning `DadStrengthDS`, `react` shimmed to the
+`window.React` the pages load from the CDN — and stamps the sources' hash in
+its banner. **Re-vendor, then rebuild.** The check fails a bundle whose stamp
+no longer matches `components/**/*.jsx`.
+
+Two more deliberate edits to the vendored copy: the `.d.ts` files say
+`React.JSX.Element` (React 19 removed the global `JSX` namespace the originals
+used), and `SignInCardProps` / `WeekListProps` omit the inherited HTML `title`
+attribute, which they widen to a `ReactNode`. Both are what the originals would
+need to type-check against this repo's React; both are pinned by the check.

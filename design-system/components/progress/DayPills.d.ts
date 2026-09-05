@@ -6,4 +6,4 @@ export interface DayPillsProps extends React.HTMLAttributes<HTMLDivElement> {
   days?: Array<{ label: string; done?: boolean }>;
 }
 
-export function DayPills(props: DayPillsProps): JSX.Element;
+export function DayPills(props: DayPillsProps): React.JSX.Element;

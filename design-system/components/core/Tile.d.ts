@@ -9,8 +9,8 @@ export interface TileProps extends React.HTMLAttributes<HTMLElement> {
   /** md = 20px radius / 22px padding. lg = 24px / 28px. Default "md". */
   size?: "md" | "lg";
   /** Element to render. Default "div". */
-  as?: keyof JSX.IntrinsicElements;
+  as?: keyof React.JSX.IntrinsicElements;
   children?: React.ReactNode;
 }
 
-export function Tile(props: TileProps): JSX.Element;
+export function Tile(props: TileProps): React.JSX.Element;

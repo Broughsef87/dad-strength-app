@@ -7,4 +7,4 @@ export interface StatusMessageProps extends React.HTMLAttributes<HTMLDivElement>
   children?: React.ReactNode;
 }
 
-export function StatusMessage(props: StatusMessageProps): JSX.Element;
+export function StatusMessage(props: StatusMessageProps): React.JSX.Element;

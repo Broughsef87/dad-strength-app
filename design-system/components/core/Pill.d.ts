@@ -13,4 +13,4 @@ export interface PillProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
   children?: React.ReactNode;
 }
 
-export function Pill(props: PillProps): JSX.Element;
+export function Pill(props: PillProps): React.JSX.Element;

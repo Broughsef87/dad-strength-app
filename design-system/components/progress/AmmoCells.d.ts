@@ -8,4 +8,4 @@ export interface AmmoCellsProps extends React.HTMLAttributes<HTMLDivElement> {
   spent?: number;
 }
 
-export function AmmoCells(props: AmmoCellsProps): JSX.Element;
+export function AmmoCells(props: AmmoCellsProps): React.JSX.Element;

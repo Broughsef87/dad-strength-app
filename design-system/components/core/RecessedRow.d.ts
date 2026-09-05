@@ -12,4 +12,4 @@ export interface RecessedRowProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
 }
 
-export function RecessedRow(props: RecessedRowProps): JSX.Element;
+export function RecessedRow(props: RecessedRowProps): React.JSX.Element;

@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "checks": "node scripts/checks/run-all.mjs"
+    "checks": "node scripts/checks/run-all.mjs",
+    "design-system:bundle": "node scripts/design-system-bundle.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.43",
