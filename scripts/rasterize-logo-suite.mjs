@@ -65,7 +65,9 @@ const LOCKUPS = [
   ['ds_horizontal_dark.svg', 1200, 300], ['ds_horizontal_light.svg', 1200, 300],
 ];
 const TMP = fs.mkdtempSync(path.join(process.env.TEMP || '/tmp', 'ds-lockups-'));
-const FONTS = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=Geist+Mono:wght@400&display=swap';
+// LOCKUP_FONTS_URL overrides the stylesheet — a test hook: point it somewhere
+// unreachable and the run must fail before writing a single lockup.
+const FONTS = process.env.LOCKUP_FONTS_URL || 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=Geist+Mono:wght@400&display=swap';
 const wrap = (name, w, h) => `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="${FONTS}">
 <style>html,body{margin:0;background:transparent}svg{display:block;width:${w}px;height:${h}px}</style></head>
@@ -101,14 +103,17 @@ for (const [name, w, h] of LOCKUPS) {
   // image without anyone noticing (Codex). fonts.ready settles even when Google
   // Fonts is unreachable, so it proves nothing; load() forces each face and
   // check() confirms it. Refuse to capture otherwise: no PNG is overwritten.
+  // A loaded FontFace per family, not check(): when the stylesheet itself is
+  // unreachable no @font-face is registered, load() resolves with [] and
+  // check() answers true because nothing is pending (Codex, round 2).
   const faces = await send('Runtime.evaluate', {
     expression: `Promise.all([
       document.fonts.load('600 20px "Space Grotesk"'),
       document.fonts.load('400 20px "Geist Mono"'),
-    ]).catch(() => null).then(() => JSON.stringify({
-      grotesk: document.fonts.check('600 20px "Space Grotesk"'),
-      mono: document.fonts.check('400 20px "Geist Mono"'),
-    }))`,
+    ]).then(([g, m]) => JSON.stringify({
+      grotesk: g.some((f) => f.family.replace(/["']/g, '') === 'Space Grotesk' && f.status === 'loaded'),
+      mono: m.some((f) => f.family.replace(/["']/g, '') === 'Geist Mono' && f.status === 'loaded'),
+    })).catch(() => JSON.stringify({ grotesk: false, mono: false }))`,
     awaitPromise: true, returnByValue: true,
   });
   const have = JSON.parse(faces.result.result.value);

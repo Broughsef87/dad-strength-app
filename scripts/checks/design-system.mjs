@@ -641,8 +641,10 @@ ok('design-system/styles.css imports exactly the seven token files',
     const raster = readFileSync(join(ROOT, 'scripts', 'rasterize-logo-suite.mjs'), 'utf8')
     const gate = raster.indexOf('required faces not loaded')
     const capture = raster.indexOf('Page.captureScreenshot')
-    ok('rasterize-logo-suite.mjs force-loads both lockup faces and throws before the capture when one is missing',
+    ok('rasterize-logo-suite.mjs force-loads both lockup faces, requires a LOADED FontFace for each, and throws before the capture otherwise',
       /document\.fonts\.load\('600 20px "Space Grotesk"'\)/.test(raster) && /document\.fonts\.load\('400 20px "Geist Mono"'\)/.test(raster)
+      // check() is not evidence: with no stylesheet there is no face to be pending
+      && (raster.match(/f\.status === 'loaded'/g) || []).length >= 2 && !/document\.fonts\.check\(/.test(raster)
       && /throw new Error\([^)]*required faces not loaded/.test(raster) && gate > 0 && capture > gate, null)
   }
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
