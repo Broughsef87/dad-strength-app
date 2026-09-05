@@ -107,9 +107,11 @@ const chrome = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run
   '--user-data-dir=' + PROFILE, '--remote-debugging-port=0', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
 
 const teardown = async () => {
-  const exited = new Promise((r) => { chrome.once('exit', r); setTimeout(r, 3000); });
-  chrome.kill();
-  await exited;
+  if (chrome.exitCode === null) {
+    const exited = new Promise((r) => { chrome.once('exit', r); setTimeout(r, 3000); });
+    chrome.kill();
+    await exited;
+  }
   for (let i = 0; i < 3; i++) {
     try { fs.rmSync(TMP, { recursive: true, force: true }); break; } catch { await sleep(500); }
   }
@@ -121,6 +123,7 @@ try {
   const active = path.join(PROFILE, 'DevToolsActivePort');
   for (let i = 0; i < 80 && !port; i++) {
     await sleep(250);
+    if (chrome.exitCode !== null) throw new Error(`chrome exited (${chrome.exitCode}) before publishing DevToolsActivePort`);
     try { port = parseInt(fs.readFileSync(active, 'utf8').split('\n')[0], 10) || null; } catch { /* not written yet */ }
   }
   if (!port) throw new Error('chrome did not publish DevToolsActivePort');
@@ -130,8 +133,25 @@ try {
   ws = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
   let id = 0; const pending = new Map(); let loaded = 0;
-  ws.onmessage = (m) => { const msg = JSON.parse(m.data); if (msg.id && pending.has(msg.id)) { pending.get(msg.id)(msg); pending.delete(msg.id); } else if (msg.method === 'Page.loadEventFired') loaded++; };
-  const send = (method, params = {}) => new Promise((r) => { const n = ++id; pending.set(n, r); ws.send(JSON.stringify({ id: n, method, params })); });
+  // Every command settles. If Chrome crashes or the socket drops, a resolver
+  // that only waits for a reply would leave the top-level await unsettled:
+  // Node exits without reaching the finally and Chrome is left running. So
+  // pending commands are rejected on socket close, socket error and Chrome
+  // exit, and each has a 30s deadline regardless.
+  const settle = (n) => { const p = pending.get(n); if (p) { pending.delete(n); clearTimeout(p.timer); } return p; };
+  const failAll = (why) => { for (const n of [...pending.keys()]) settle(n).reject(new Error(why)); };
+  ws.onclose = () => failAll('DevTools socket closed');
+  ws.onerror = () => failAll('DevTools socket error');
+  chrome.once('exit', (code) => failAll(`chrome exited (${code})`));
+  ws.onmessage = (m) => { const msg = JSON.parse(m.data); if (msg.id && pending.has(msg.id)) settle(msg.id).resolve(msg); else if (msg.method === 'Page.loadEventFired') loaded++; };
+  const send = (method, params = {}) => new Promise((resolve, reject) => {
+    if (chrome.exitCode !== null) return reject(new Error(`${method}: chrome exited (${chrome.exitCode})`));
+    if (ws.readyState !== WebSocket.OPEN) return reject(new Error(`${method}: DevTools socket is not open`));
+    const n = ++id;
+    const timer = setTimeout(() => { if (settle(n)) reject(new Error(`${method}: no reply from Chrome in 30s`)); }, 30000);
+    pending.set(n, { resolve, reject, timer });
+    ws.send(JSON.stringify({ id: n, method, params }));
+  });
   await send('Page.enable');
 
   for (const [name, w, h] of LOCKUPS) {

@@ -689,6 +689,14 @@ ok('design-system/styles.css imports exactly the seven token files',
       /const staged = new Map\(\)/.test(raster) && fin > 0
       && (before.match(/fs\.writeFileSync\(/g) || []).length === 1 && /fs\.writeFileSync\(html, /.test(before)
       && /for \(const \[out, buf\] of staged\) fs\.writeFileSync\(out, buf\)/.test(raster.slice(fin)), null)
+    // ...and no DevTools command can hang the run (Codex, round 6): a resolver
+    // that only waited for a reply left the top-level await unsettled when
+    // Chrome died — Node exited without the finally and Chrome stayed up.
+    ok('the rasterizer settles every DevTools command — rejected on socket close, socket error and Chrome exit, and after a deadline',
+      /ws\.onclose = \(\) => failAll\(/.test(raster) && /ws\.onerror = \(\) => failAll\(/.test(raster)
+      && /chrome\.once\('exit', \(code\) => failAll\(/.test(raster) && /no reply from Chrome in \d+s/.test(raster)
+      && /chrome\.exitCode !== null\) throw/.test(raster)
+      && /chrome\.exitCode !== null\) return reject\(/.test(raster) && /ws\.readyState !== WebSocket\.OPEN\) return reject\(/.test(raster), null)
   }
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
