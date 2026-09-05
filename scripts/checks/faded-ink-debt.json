@@ -5,7 +5,7 @@
   "build/page.tsx  text-muted-foreground/40  x1",
   "components/DailyObjectivesCard.tsx  text-muted-foreground/40  x1",
   "components/DailyObjectivesCard.tsx  text-muted-foreground/50  x2",
-  "components/LearningTracker.tsx  text-muted-foreground/50  x4",
+  "components/LearningTracker.tsx  text-muted-foreground/50  x3",
   "components/LearningTracker.tsx  text-muted-foreground/60  x1",
   "components/MorningProtocol.tsx  text-muted-foreground/40  x2",
   "components/RecordsBoard.tsx  text-muted-foreground/40  x1",

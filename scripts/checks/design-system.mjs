@@ -521,6 +521,11 @@ ok('design-system/styles.css imports exactly the seven token files',
   }
   ok('Tile takes --ds-shadow-tile-raised at size="lg", as .tile-lg does',
     /boxShadow: size === "lg" \? "var\(--ds-shadow-tile-raised\)" : "var\(--ds-shadow-tile\)"/.test(ds('components/core/Tile.jsx')), null)
+  // the proof harness must render unobstructed: a signed-in preview user who
+  // has not accepted the disclaimer would otherwise meet the legal gate on it.
+  const gate = readFileSync(join(SRC, 'components', 'LegalGate.tsx'), 'utf8')
+  ok('LegalGate exempts /design-proof — the harness renders unobstructed for a signed-in preview user',
+    /EXEMPT_PATHS\s*=\s*\[[^\]]*'\/design-proof'/.test(gate), null)
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
     existsSync(skill) && /design-system\/readme\.md/.test(readFileSync(skill, 'utf8')), null)
