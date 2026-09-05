@@ -609,6 +609,31 @@ ok('design-system/styles.css imports exactly the seven token files',
   const gate = readFileSync(join(SRC, 'components', 'LegalGate.tsx'), 'utf8')
   ok('LegalGate exempts /design-proof — the harness renders unobstructed for a signed-in preview user',
     /EXEMPT_PATHS\s*=\s*\[[^\]]*'\/design-proof'/.test(gate), null)
+  // the mark is the DS mark. The DS file is the source: its rects are read
+  // (the C2PA metadata block skipped) and the component and the suite
+  // generator must carry every one of them.
+  {
+    const dsMark = ds('assets/ds-mark-volt.svg').replace(/<metadata>[\s\S]*?<\/metadata>/, '')
+    const rects = [...dsMark.matchAll(/<rect([^>]*)>/g)].map((m) => {
+      const a = {}
+      for (const p of m[1].matchAll(/([a-z-]+)="([^"]*)"/g)) a[p[1]] = p[2]
+      return a
+    })
+    const field = rects.find((r) => r.width === '64' && r.height === '64')
+    const bars = rects.filter((r) => r !== field)
+    ok('the DS mark parses: a 64-unit field and three bars', !!field && bars.length === 3, 'rects: ' + rects.length)
+    const logo = readFileSync(join(SRC, 'components', 'Logo.tsx'), 'utf8')
+    const gen = readFileSync(join(ROOT, 'scripts', 'generate-logo-suite.mjs'), 'utf8')
+    const inLogo = (r) => new RegExp('<rect x="' + r.x + '" y="' + r.y + '" width="' + r.width + '" height="' + r.height + '" rx="' + r.rx + '"').test(logo)
+    const inGen = (r) => gen.includes('{ x: ' + r.x + ', y: ' + r.y + ', width: ' + r.width + ', height: ' + r.height + ', rx: ' + r.rx + ' }')
+    ok('Logo.tsx renders the DS mark — the field at rx ' + (field && field.rx) + ' on --brand, every bar on --brand-ink',
+      !!field && new RegExp('<rect width="64" height="64" rx="' + field.rx + '" fill="hsl\\(var\\(--brand\\)\\)"').test(logo)
+      && bars.every(inLogo) && (logo.match(/fill="hsl\(var\(--brand-ink\)\)"/g) || []).length === bars.length,
+      'bars missing from Logo.tsx: ' + bars.filter((r) => !inLogo(r)).map((r) => r.width + 'x' + r.height + '@' + r.x + ',' + r.y).join(' '))
+    ok('generate-logo-suite.mjs bakes the DS mark — the same bars, the same field radius',
+      !!field && gen.includes('rx="' + field.rx + '"') && bars.every(inGen),
+      'bars missing from the generator: ' + bars.filter((r) => !inGen(r)).map((r) => r.width + 'x' + r.height + '@' + r.x + ',' + r.y).join(' '))
+  }
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
     existsSync(skill) && /design-system\/readme\.md/.test(readFileSync(skill, 'utf8')), null)
