@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
   <rect width="1500" height="500" fill="#FAF9F6" />
-  <g transform="translate(180,138) scale(3.5)">
+  <g transform="translate(253,148) scale(3.1875)">
   <rect width="64" height="64" rx="20" fill="#C6FF3F" />
   <rect x="14" y="18" width="36" height="7" rx="2" fill="#131608" />
   <rect x="14" y="29" width="25" height="7" rx="2" fill="#131608" />
   <rect x="14" y="40" width="16" height="7" rx="2" fill="#131608" />
   </g>
-  <text x="450" y="268" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
-        font-size="112" font-weight="600" letter-spacing="-3.4" fill="#141412">dad strength</text>
-  <text x="452" y="332" font-family="Geist Mono, Space Mono, ui-monospace, monospace"
-        font-size="26" letter-spacing="4.2" fill="#6F6F68">DS-01 // built for the long haul</text>
+  <text x="529" y="268" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
+        font-size="120" font-weight="600" letter-spacing="-3.6" fill="#141412">dad strength</text>
+  <text x="531" y="332" font-family="Geist Mono, Space Mono, ui-monospace, monospace"
+        font-size="24" letter-spacing="3.84" fill="#6F6F68">DS-01 // built for the long haul</text>
 </svg>

@@ -185,7 +185,7 @@ reads the DS file's rects and asserts all three agree:
 | where | what |
 |---|---|
 | `src/components/Logo.tsx` | the mark from tokens: `--brand` for the field (chalk volt on the light ground, graphite volt on the dark — the DS's `ds-mark-volt.svg` / `ds-mark-volt-graphite.svg` pair), `--brand-ink` for the bars |
-| `scripts/generate-logo-suite.mjs` | the SVG suite in `public/logo-suite/` with literal colours from `tokens/colors.css`: app icon and favicon (chalk volt), light / dark / ink / bare marks, horizontal and banner lockups (mark at 34 beside `dad strength` in Space Grotesk 600 at −0.03em) |
+| `scripts/generate-logo-suite.mjs` | the SVG suite in `public/logo-suite/` with literal colours from `tokens/colors.css`: app icon and favicon (chalk volt), light / dark / ink / bare marks, horizontal and banner lockups — the guideline page's contract (mark 34, wordmark 20 in Space Grotesk 600 at −0.03em, gap 12) at ×5 and ×6, centred on the wordmark's measured advance; the check measures the committed SVGs against that contract |
 | `scripts/rasterize-logo-suite.mjs` | `ds_app_icon.png`, `icon-512.png`, `icon-192.png` and `favicon.ico` (16 / 32 / 48, PNG-in-ICO) through sharp; the lockup PNGs — the OG and Twitter images among them — through headless Chrome so the wordmark renders in Space Grotesk rather than a system fallback |
 
 The mark is the one volt fill that is not a control; it is never outlined,

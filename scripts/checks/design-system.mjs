@@ -633,6 +633,29 @@ ok('design-system/styles.css imports exactly the seven token files',
     ok('generate-logo-suite.mjs bakes the DS mark — the same bars, the same field radius',
       !!field && gen.includes('rx="' + field.rx + '"') && bars.every(inGen),
       'bars missing from the generator: ' + bars.filter((r) => !inGen(r)).map((r) => r.width + 'x' + r.height + '@' + r.x + ',' + r.y).join(' '))
+    // ...and the lockups keep the contract the guideline page states: mark 34,
+    // wordmark 20 at 600 / -0.03em, gap 12 (Codex, round 4: the first cut had
+    // 18.4 / 8.5 at that mark). Read from the DS's own page, measured against
+    // the generator's constant AND the four committed SVGs — a stale artefact
+    // fails as surely as a wrong source.
+    const marksPage = readFileSync(join(ROOT, 'design-system', 'guidelines', 'brand-marks.html'), 'utf8')
+    const contract = marksPage.match(/gap: (\d+)px;">\s*<img src="\.\.\/assets\/ds-mark-volt\.svg" width="(\d+)"[^>]*>\s*<span style="font-size: (\d+)px; font-weight: 600; letter-spacing: (-?[\d.]+)em;">dad strength/)
+    const spec = contract ? { gap: +contract[1], mark: +contract[2], word: +contract[3], tracking: +contract[4] } : null
+    ok('the guideline page states the horizontal lockup contract (mark, wordmark, gap, tracking)', !!spec && spec.mark === 34 && spec.word === 20 && spec.gap === 12 && spec.tracking === -0.03, null)
+    const genLock = gen.match(/export const LOCKUP = \{ mark: (\d+), word: (\d+), gap: (\d+), tracking: (-?[\d.]+) \}/)
+    ok('generate-logo-suite.mjs carries the lockup contract as one constant, equal to the guideline page',
+      !!spec && !!genLock && +genLock[1] === spec.mark && +genLock[2] === spec.word && +genLock[3] === spec.gap && +genLock[4] === spec.tracking, null)
+    const lockupSvgs = ['ds_horizontal_dark.svg', 'ds_horizontal_light.svg', 'ds_banner_dark.svg', 'ds_banner_light.svg']
+    const near = (a, b) => Math.abs(a - b) < 0.005
+    const offSpec = spec ? lockupSvgs.filter((f) => {
+      const s = readFileSync(join(ROOT, 'public', 'logo-suite', f), 'utf8')
+      const g = s.match(/translate\((\d+),(\d+)\) scale\(([\d.]+)\)/)
+      const w = s.match(/<text x="(\d+)" y="\d+" font-family="Space Grotesk[^"]*"\s+font-size="([\d.]+)" font-weight="600" letter-spacing="(-?[\d.]+)"/)
+      if (!g || !w) return true
+      const markPx = 64 * +g[3], markRight = +g[1] + markPx, x = +w[1], font = +w[2], ls = +w[3]
+      return !(near(font / markPx, spec.word / spec.mark) && near((x - markRight) / markPx, spec.gap / spec.mark) && Math.abs(ls / font - spec.tracking) < 0.0005)
+    }) : lockupSvgs
+    ok('the four committed lockup SVGs measure to the contract — wordmark 20/34 of the mark, gap 12/34, tracking -0.03em', offSpec.length === 0, offSpec.join(' '))
   }
   // the lockup PNGs are the OG image; the rasterizer must refuse to capture a
   // wordmark in a fallback face. It force-loads Space Grotesk and Geist Mono
@@ -653,7 +676,8 @@ ok('design-system/styles.css imports exactly the seven token files',
     ok('the rasterizer guards its harness: WebSocket present, ephemeral port from DevToolsActivePort, navigation verified',
       /typeof WebSocket !== 'function'/.test(raster)
       && /--remote-debugging-port=0/.test(raster) && /DevToolsActivePort/.test(raster) && !/remote-debugging-port=\d{2,}/.test(raster)
-      && /nav\.result\.errorText/.test(raster) && /load event never fired/.test(raster) && /wrong document loaded/.test(raster), null)
+      && /nav\.result\.errorText/.test(raster) && /load event never fired/.test(raster) && /wrong document loaded/.test(raster)
+      && /pathToFileURL\(html\)\.href/.test(raster) && !/'file:\/\/\/' \+/.test(raster), null)
   }
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',

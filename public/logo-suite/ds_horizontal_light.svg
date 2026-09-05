@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
   <rect width="1200" height="300" fill="#FAF9F6" />
-  <g transform="translate(90,54) scale(3)">
+  <g transform="translate(186,65) scale(2.65625)">
   <rect width="64" height="64" rx="20" fill="#C6FF3F" />
   <rect x="14" y="18" width="36" height="7" rx="2" fill="#131608" />
   <rect x="14" y="29" width="25" height="7" rx="2" fill="#131608" />
   <rect x="14" y="40" width="16" height="7" rx="2" fill="#131608" />
   </g>
-  <text x="330" y="186" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
-        font-size="104" font-weight="600" letter-spacing="-3.1" fill="#141412">dad strength</text>
+  <text x="416" y="185" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
+        font-size="100" font-weight="600" letter-spacing="-3" fill="#141412">dad strength</text>
 </svg>

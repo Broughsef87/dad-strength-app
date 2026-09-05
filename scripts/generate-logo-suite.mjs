@@ -49,27 +49,50 @@ const mark = ({ field, bars }, size = 1024) => `<svg xmlns="http://www.w3.org/20
   ${markGroup({ field, bars })}
 </svg>`;
 
-// Lockups: mark at 34 beside "dad strength" in Space Grotesk 600 at -0.03em,
-// gap 12 (readme, "Brand marks"). Scaled up for the raster sizes.
-const horizontal = ({ bg, ink, volt }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
-  <rect width="1200" height="300" fill="${bg}" />
-  <g transform="translate(90,54) scale(3)">
-  ${markGroup({ field: volt, bars: C.onVolt })}
-  </g>
-  <text x="330" y="186" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
-        font-size="104" font-weight="600" letter-spacing="-3.1" fill="${ink}">dad strength</text>
-</svg>`;
+// The horizontal lockup contract, as the guideline page states it
+// (design-system/guidelines/brand-marks.html): mark 34 beside "dad strength"
+// in Space Grotesk 600 at -0.03em, gap 12. The raster lockups are that
+// contract at an integer scale — nothing else about them is free to drift.
+export const LOCKUP = { mark: 34, word: 20, gap: 12, tracking: -0.03 };
+// "dad strength" at 600 / -0.03em advances 5.99em in Space Grotesk, measured in
+// Chrome with the real face (599.1px at 100px). The lockup is centred on that.
+const WORDMARK_EM = 5.99;
+const lockup = (k, W, cy) => {
+  const mark = LOCKUP.mark * k, word = LOCKUP.word * k, gap = LOCKUP.gap * k;
+  const left = Math.round((W - (mark + gap + word * WORDMARK_EM)) / 2);
+  return { mark, word, gap, scale: mark / 64, mx: left, my: Math.round(cy - mark / 2), tx: left + mark + gap, ls: +(LOCKUP.tracking * word).toFixed(2) };
+};
+const wordmark = (L, y, ink) => `<text x="${L.tx}" y="${y}" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
+        font-size="${L.word}" font-weight="600" letter-spacing="${L.ls}" fill="${ink}">dad strength</text>`;
 
-const banner = ({ bg, ink, volt, concrete }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
-  <rect width="1500" height="500" fill="${bg}" />
-  <g transform="translate(180,138) scale(3.5)">
+// 1200×300, ×5: mark 170, wordmark 100, gap 60. The baseline sits 0.35em under
+// the mark's centre line, which centres the lowercase visually.
+const horizontal = ({ bg, ink, volt }) => {
+  const L = lockup(5, 1200, 150);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
+  <rect width="1200" height="300" fill="${bg}" />
+  <g transform="translate(${L.mx},${L.my}) scale(${L.scale})">
   ${markGroup({ field: volt, bars: C.onVolt })}
   </g>
-  <text x="450" y="268" font-family="Space Grotesk, Segoe UI, system-ui, sans-serif"
-        font-size="112" font-weight="600" letter-spacing="-3.4" fill="${ink}">dad strength</text>
-  <text x="452" y="332" font-family="Geist Mono, Space Mono, ui-monospace, monospace"
-        font-size="26" letter-spacing="4.2" fill="${concrete}">DS-01 // built for the long haul</text>
+  ${wordmark(L, 150 + Math.round(L.word * 0.35), ink)}
 </svg>`;
+};
+
+// 1500×500, ×6: mark 204, wordmark 120, gap 72. The wordmark sits high and the
+// mono tagline under it balances the two-line block on the mark.
+const banner = ({ bg, ink, volt, concrete }) => {
+  const L = lockup(6, 1500, 250);
+  const base = 250 + Math.round(L.word * 0.15);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
+  <rect width="1500" height="500" fill="${bg}" />
+  <g transform="translate(${L.mx},${L.my}) scale(${L.scale})">
+  ${markGroup({ field: volt, bars: C.onVolt })}
+  </g>
+  ${wordmark(L, base, ink)}
+  <text x="${L.tx + 2}" y="${base + 64}" font-family="Geist Mono, Space Mono, ui-monospace, monospace"
+        font-size="24" letter-spacing="3.84" fill="${concrete}">DS-01 // built for the long haul</text>
+</svg>`;
+};
 
 export const files = {
   // the app icon is the primary mark: chalk volt, and the DS says it reads on

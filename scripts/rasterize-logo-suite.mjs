@@ -25,7 +25,7 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SUITE = path.resolve(__dirname, '../public/logo-suite');
@@ -128,7 +128,9 @@ try {
   for (const [name, w, h] of LOCKUPS) {
     const html = path.join(TMP, name.replace('.svg', '.html'));
     fs.writeFileSync(html, wrap(name, w, h));
-    const url = 'file:///' + html.replace(/\\/g, '/');
+    // pathToFileURL, not a hand-built string: Chrome reports location.href
+    // canonically encoded (a space is %20), and a '#' in the path would end it.
+    const url = pathToFileURL(html).href;
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
 
     // The navigation has to COMPLETE and land on THIS document. A failed or
