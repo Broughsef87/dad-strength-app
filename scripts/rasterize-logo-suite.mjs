@@ -96,14 +96,31 @@ for (const [name, w, h] of LOCKUPS) {
   const before = loaded;
   await send('Page.navigate', { url: 'file:///' + html.replace(/\\/g, '/') });
   for (let i = 0; i < 100 && loaded === before; i++) await sleep(100);
-  // the faces must be in before the capture, or the wordmark is the fallback
-  await send('Runtime.evaluate', { expression: 'document.fonts.ready.then(() => 1)', awaitPromise: true });
-  const faces = await send('Runtime.evaluate', { expression: 'document.fonts.check("600 20px \\"Space Grotesk\\"")', returnByValue: true });
+  // Both faces must be IN before the capture, or the wordmark is a system
+  // fallback — and a fallback PNG that exits 0 would be committed as the OG
+  // image without anyone noticing (Codex). fonts.ready settles even when Google
+  // Fonts is unreachable, so it proves nothing; load() forces each face and
+  // check() confirms it. Refuse to capture otherwise: no PNG is overwritten.
+  const faces = await send('Runtime.evaluate', {
+    expression: `Promise.all([
+      document.fonts.load('600 20px "Space Grotesk"'),
+      document.fonts.load('400 20px "Geist Mono"'),
+    ]).catch(() => null).then(() => JSON.stringify({
+      grotesk: document.fonts.check('600 20px "Space Grotesk"'),
+      mono: document.fonts.check('400 20px "Geist Mono"'),
+    }))`,
+    awaitPromise: true, returnByValue: true,
+  });
+  const have = JSON.parse(faces.result.result.value);
+  if (!have.grotesk || !have.mono) {
+    ws.close(); chrome.kill();
+    throw new Error(`${name}: required faces not loaded (Space Grotesk ${have.grotesk}, Geist Mono ${have.mono}) — Google Fonts unreachable? Nothing written.`);
+  }
   await sleep(300);
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   const out = path.join(SUITE, name.replace('.svg', '.png'));
   fs.writeFileSync(out, Buffer.from(shot.result.data, 'base64'));
-  console.log('wrote', path.relative(PUBLIC, out), `${w}x${h}`, 'Space Grotesk loaded:', faces.result.result.value);
+  console.log('wrote', path.relative(PUBLIC, out), `${w}x${h}`, 'faces: Space Grotesk + Geist Mono');
 }
 ws.close();
 // Chrome releases its profile directory a beat after the kill; removing it

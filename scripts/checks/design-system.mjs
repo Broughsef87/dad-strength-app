@@ -634,6 +634,17 @@ ok('design-system/styles.css imports exactly the seven token files',
       !!field && gen.includes('rx="' + field.rx + '"') && bars.every(inGen),
       'bars missing from the generator: ' + bars.filter((r) => !inGen(r)).map((r) => r.width + 'x' + r.height + '@' + r.x + ',' + r.y).join(' '))
   }
+  // the lockup PNGs are the OG image; the rasterizer must refuse to capture a
+  // wordmark in a fallback face. It force-loads Space Grotesk and Geist Mono
+  // and throws before Page.captureScreenshot when either is missing (Codex).
+  {
+    const raster = readFileSync(join(ROOT, 'scripts', 'rasterize-logo-suite.mjs'), 'utf8')
+    const gate = raster.indexOf('required faces not loaded')
+    const capture = raster.indexOf('Page.captureScreenshot')
+    ok('rasterize-logo-suite.mjs force-loads both lockup faces and throws before the capture when one is missing',
+      /document\.fonts\.load\('600 20px "Space Grotesk"'\)/.test(raster) && /document\.fonts\.load\('400 20px "Geist Mono"'\)/.test(raster)
+      && /throw new Error\([^)]*required faces not loaded/.test(raster) && gate > 0 && capture > gate, null)
+  }
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
     existsSync(skill) && /design-system\/readme\.md/.test(readFileSync(skill, 'utf8')), null)
