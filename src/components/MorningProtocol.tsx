@@ -524,7 +524,7 @@ export default function MorningProtocol(
                         <button
                           onClick={saveMindState}
                           disabled={!mindObjectives.some(o => o.trim())}
-                          className="w-full flex items-center justify-center gap-2 bg-muted border border-border hover:bg-muted text-muted-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:text-muted-foreground disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-2 bg-muted border border-border hover:bg-muted text-muted-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:bg-surface-2 disabled:border-transparent disabled:cursor-not-allowed disabled:cursor-not-allowed"
                         >
                           <Target size={12} /> Save to Mind Tab
                         </button>

@@ -398,6 +398,27 @@ for (const [re, what, why] of BANS) {
     'a sweep cut a utility in half\n        ' + dangling.slice(0, 8).join('\n        '))
 }
 {
+  // a disabled treatment has to change something. The round-4 sweep gave neutral
+  // controls `disabled:text-muted-foreground`, and one of them was already
+  // concrete on muted — enabled and disabled looked identical (Codex, round 5).
+  // A `disabled:<u>` whose plain `<u>` is already on the element is a no-op.
+  const noop = []
+  for (const f of files) {
+    readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+      if (!/className/.test(line)) return
+      for (const seg of line.matchAll(/(["'`])([^"'`]*)\1/g)) {
+        const classes = seg[2].split(/\s+/)
+        for (const c of classes) {
+          const m = c.match(/^disabled:(.+)$/)
+          if (m && classes.includes(m[1])) noop.push(f.slice(SRC.length + 1) + ':' + (i + 1) + '  ' + c + ' on an element already ' + m[1])
+        }
+      }
+    })
+  }
+  ok('every disabled: utility changes something — none repeats a utility the element already carries', noop.length === 0,
+    'enabled and disabled would look identical\n        ' + noop.slice(0, 8).join('\n        '))
+}
+{
   // an ink-ROLE utility on a solid volt fill. bg-brand pairs with text-brand-ink
   // (or text-brand, which the remap flips to brand-ink inside a fill) — never
   // with text-foreground, which is near-white on volt in graphite (1.02:1).

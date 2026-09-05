@@ -158,7 +158,10 @@ added.
 press, a `disabled:|hover:opacity-*` fade, or any light ink-role utility
 (`text-foreground`, `text-background`, `text-card`…) on a solid `bg-brand`.
 Disabled controls desaturate a coloured fill (`disabled:saturate-[.15]`) or
-recede to concrete (`disabled:text-muted-foreground`), never drop opacity. It
+recede — the ink to concrete (`disabled:text-muted-foreground`), or, when the
+ink is already concrete, the fill to the recessed row (`disabled:bg-surface-2
+disabled:border-transparent`) — and never drop opacity. A `disabled:` utility
+that repeats one the element already carries is flagged as a no-op. It
 also reads the forms a utility ban cannot see: an inline
 `textShadow`, a `boxShadow` starting at `0 0`, a `blur()` / `drop-shadow()`
 filter in a style object, and in `globals.css` any `text-shadow`, a `0 0`
