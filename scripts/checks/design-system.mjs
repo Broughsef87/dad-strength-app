@@ -343,6 +343,7 @@ const BANS = [
   [/(?:^|[\s"'`])blur-(?:\[|sm\b|md\b|lg\b|xl\b|2xl\b|3xl\b)/, 'a blur', 'no blur anywhere'],
   [/\bdrop-shadow\b/, 'a drop shadow', 'nothing glows — depth is tile shadow, and only tiles have it'],
   [/\bshadow-\[0_0_/, 'a glow-shaped shadow', 'nothing glows'],
+  [/\bshadow-(?:brand|status-[a-z-]+|destructive|category-[a-z]+)\b/, 'a coloured shadow', 'no coloured shadow, no volt glow — depth is the tile shadow, and only a tile has one (Codex round 10 walked past ten)'],
   [/\banimate-(?:pulse|ping|bounce)\b/, 'a looping utility', 'nothing loops: no pulsing dots, no skeleton shimmer'],
   [/\bfont-serif\b/, 'a serif', 'Space Grotesk and Geist Mono, nothing else'],
   [/(?:^|[\s"'`])(?:[a-z-]+(?:\/[a-z]+)?:)+scale-/, 'a scale on hover or press', 'no lift, no scale — a press changes a fill (readme: hover and press states)'],
@@ -396,6 +397,64 @@ for (const [re, what, why] of BANS) {
   }
   ok('no class list carries a dangling variant prefix (a bare group-, hover:, active:…)', dangling.length === 0,
     'a sweep cut a utility in half\n        ' + dangling.slice(0, 8).join('\n        '))
+}
+{
+  // ...and the ink a descendant INHERITS under a volt fill. The segment scan
+  // above pairs utilities inside one class string; an icon carrying
+  // text-foreground inside a bg-brand button carries both in two strings, and
+  // rendered 1.02:1 on graphite (Codex, round 10). A small JSX tag walk: tags in
+  // source order, {…} and quotes skipped inside a tag, a depth stack; inside a
+  // solid bg-brand element every descendant tag with a light ink-role or
+  // surface token is a hit — unless it sets a background of its own, which
+  // starts a new context. The walk cannot correlate a parent's ternary branch
+  // with a child's, and does not try: a descendant of a volt-capable parent
+  // carries no ink of its own. The ink is set where the fill is set, and the
+  // children inherit it (the schedule day cell is the worked example).
+  const SOLID_VOLT = /\bbg-brand(?![-/\w])/
+  const LIGHT_INK = /\btext-(?:(?:muted-)?foreground|background|card|popover|primary-foreground|secondary|muted|accent|surface-[123])\b/
+  const ANY_BG = /\bbg-[a-z]/
+  const tagsOf = (text) => {
+    const out = []
+    const n = text.length
+    let line = 1
+    for (let i = 0; i < n;) {
+      const c = text[i]
+      if (c === '\n') { line++; i++; continue }
+      if (c !== '<' || !(text[i + 1] === '/' || /[A-Za-z]/.test(text[i + 1]))) { i++; continue }
+      let j = i + 1, depth = 0, quote = null
+      for (; j < n; j++) {
+        const ch = text[j]
+        if (quote) { if (ch === quote) quote = null; continue }
+        if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue }
+        if (ch === '{') depth++
+        else if (ch === '}') depth--
+        else if (ch === '>' && depth === 0) break
+      }
+      if (j >= n) break
+      const raw = text.slice(i + 1, j)
+      const m = raw.replace(/^\//, '').replace(/\/$/, '').match(/^([A-Za-z][\w.:-]*)([\s\S]*)$/)
+      if (m) out.push({ kind: raw.startsWith('/') ? 'close' : raw.endsWith('/') ? 'self' : 'open', name: m[1], attrs: m[2], line })
+      for (let k = i; k <= j; k++) if (text[k] === '\n') line++
+      i = j + 1
+    }
+    return out
+  }
+  const classText = (attrs) => [...attrs.matchAll(/(["'`])([^"'`]*)\1/g)].map((s) => s[2]).join(' ')
+  const inherited = []
+  for (const f of files) {
+    if (!/\.tsx$/.test(f)) continue
+    const stack = []
+    for (const t of tagsOf(readFileSync(f, 'utf8'))) {
+      if (t.kind === 'close') { stack.pop(); continue }
+      const cls = classText(t.attrs)
+      const under = stack.length ? stack[stack.length - 1] : false
+      const self = SOLID_VOLT.test(cls)
+      if (under && !self && LIGHT_INK.test(cls)) inherited.push(f.slice(SRC.length + 1) + ':' + t.line + '  <' + t.name + '> ' + cls.match(LIGHT_INK)[0] + ' under a solid bg-brand')
+      if (t.kind === 'open') stack.push(self ? true : ANY_BG.test(cls) ? false : under)
+    }
+  }
+  ok('no light ink-role utility is inherited under a solid volt fill (a descendant of bg-brand wants text-brand-ink or currentColor)',
+    inherited.length === 0, 'near-white on volt, two class strings apart\n        ' + inherited.slice(0, 8).join('\n        '))
 }
 {
   // a disabled treatment has to change something. The round-4 sweep gave neutral
@@ -532,6 +591,13 @@ ok('design-system/styles.css imports exactly the seven token files',
   }
   ok('Tile takes --ds-shadow-tile-raised at size="lg", as .tile-lg does',
     /boxShadow: size === "lg" \? "var\(--ds-shadow-tile-raised\)" : "var\(--ds-shadow-tile\)"/.test(ds('components/core/Tile.jsx')), null)
+  // the proof harness renders in two places and nowhere else: an allowlist of
+  // local development or a Vercel preview, never a denylist on one host's
+  // variable (Codex, round 10: a non-Vercel production host has no VERCEL_ENV).
+  const proofGate = readFileSync(join(SRC, 'app', 'design-proof', 'layout.tsx'), 'utf8')
+  ok('the proof layout allows only local development or a Vercel preview, and 404s everywhere else',
+    /process\.env\.NODE_ENV !== 'production' \|\| process\.env\.VERCEL_ENV === 'preview'/.test(proofGate)
+    && /if \(!allowed\) notFound\(\)/.test(proofGate), null)
   // the proof harness must render unobstructed: a signed-in preview user who
   // has not accepted the disclaimer would otherwise meet the legal gate on it.
   // ...and it hands the ground back when it unmounts: ThemeProvider will not

@@ -154,7 +154,7 @@ export default function Library() {
               onClick={() => setActiveCategory(cat)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold lowercase transition-all ${
                 activeCategory === cat
-                  ? 'bg-brand text-brand-ink shadow-lg shadow-brand/20'
+                  ? 'bg-brand text-brand-ink'
                   : 'bg-card text-muted-foreground hover:text-gray-300 border border-border'
               }`}
             >
@@ -204,7 +204,7 @@ export default function Library() {
                 <button
                   onClick={() => handleQuickStart(ex)}
                   disabled={!!loadingId}
-                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:saturate-[.15] text-brand-ink text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all lowercase ml-3 flex-shrink-0 shadow-lg shadow-brand/10"
+                  className="flex items-center gap-1.5 bg-brand hover:bg-brand/90 disabled:saturate-[.15] text-brand-ink text-[10px] font-display font-semibold px-3 py-2.5 rounded-xl transition-all lowercase ml-3 flex-shrink-0"
                 >
                   {isLoading
                     ? <Loader2 size={14} className="animate-spin" />

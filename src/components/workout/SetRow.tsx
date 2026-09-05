@@ -56,7 +56,7 @@ export default function SetRow({
             onClick={() => onToggle(set.id)}
             className={`p-2 rounded-xl transition-all ${
               isDone 
-                ? 'bg-brand text-brand-ink shadow-lg shadow-brand/30' 
+                ? 'bg-brand text-brand-ink' 
                 : 'bg-gray-800 text-muted-foreground hover:text-foreground hover:bg-gray-700'
             }`}
           >

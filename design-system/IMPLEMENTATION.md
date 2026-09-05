@@ -153,10 +153,13 @@ added.
 ## Prohibited, and enforced
 
 `design-system.mjs` fails a `src/` file that renders: `bg-gradient-*`,
-`backdrop-blur`, `blur-*`, `drop-shadow`, a `shadow-[0_0_…]` glow,
+`backdrop-blur`, `blur-*`, `drop-shadow`, a `shadow-[0_0_…]` glow, a coloured
+shadow (`shadow-brand/*`, `shadow-status-*`),
 `animate-pulse|ping|bounce`, `font-serif`, `uppercase`, a `*:scale-*` on hover or
 press, a `disabled:|hover:opacity-*` fade, or any light ink-role utility
-(`text-foreground`, `text-background`, `text-card`…) on a solid `bg-brand`.
+(`text-foreground`, `text-background`, `text-card`…) on a solid `bg-brand` —
+in the same class string, or inherited by a descendant (a JSX tag walk with a
+depth stack; a descendant that sets its own background starts a new context).
 Disabled controls desaturate a coloured fill (`disabled:saturate-[.15]`) or
 recede — the ink to concrete (`disabled:text-muted-foreground`), or, when the
 ink is already concrete, the fill to the recessed row (`disabled:bg-surface-2
