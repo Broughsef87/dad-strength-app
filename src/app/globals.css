@@ -488,6 +488,12 @@
   background: hsl(var(--muted));
 }
 .day-pill.on, .led-cell.lit { background: hsl(var(--brand)); }
+/* a bounded strip for tight chrome: the day header can hold eight blocks
+   (Dad Built Upper A/B), and 8 × 20px + gaps is 202px beside the day name on
+   a 390px phone. Here the cells flex inside a fixed width instead. Everywhere
+   else the strip is seven cells or fewer and the fixed cell is right. */
+.led-bar-fit { width: 5rem; gap: 4px; }
+.led-bar-fit .led-cell, .led-bar-fit .day-pill { flex: 1 1 0; width: auto; min-width: 4px; }
 
 /* ── day dots (DayPills): the week as labelled 36px circles, volt when done ── */
 .day-dot {

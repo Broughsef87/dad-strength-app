@@ -116,7 +116,7 @@ Every control is a pill. The 6px slab is reserved for the prescribed load, and
 | `VoltSlab` | `.slab-volt` | volt, brand-ink, 6px, `2px 8px`, mono 600. The load page pins its own markup (see `contrast.mjs` §5) |
 | `StatNum` | `.stat-num` | above |
 | `Eyebrow` | `.eyebrow-mono` | above |
-| `LedBar` | `.led-bar` > `.led-cell.lit` | 20×7 cells, 6px gap, volt when lit. `.day-pills` / `.day-pill.on` are the same thing |
+| `LedBar` | `.led-bar` > `.led-cell.lit` | 20×7 cells, 6px gap, volt when lit. `.day-pills` / `.day-pill.on` are the same thing. `.led-bar-fit` bounds a strip to 5rem with flexing cells, for chrome that must hold eight blocks (the day header) |
 | `AmmoCells` | `.ammo-cell.spent` | 10×18, volt when spent |
 | `DayPills` | `.day-dot.on` | 36px labelled circles, volt when done |
 | `CategoryChip` | `.chip-cat` + `text-category-<axis> bg-category-<axis>/10` | a word on its own tint |
@@ -155,8 +155,12 @@ added.
 `design-system.mjs` fails a `src/` file that renders: `bg-gradient-*`,
 `backdrop-blur`, `blur-*`, `drop-shadow`, a `shadow-[0_0_…]` glow,
 `animate-pulse|ping|bounce`, `font-serif`, `uppercase`, or `text-foreground` on
-a solid `bg-brand`. `palette.mjs` fails a raw hue; `contrast.mjs` fails an ink
-under 4.5:1 on any ground or fill it sits on, both themes, and a faded ink.
+a solid `bg-brand`. It also reads the forms a utility ban cannot see: an inline
+`textShadow`, a `boxShadow` starting at `0 0`, a `blur()` / `drop-shadow()`
+filter in a style object, and in `globals.css` any `text-shadow`, a `0 0`
+`box-shadow` or an `inset` sheen. `palette.mjs` fails a raw hue; `contrast.mjs`
+fails an ink under 4.5:1 on any ground or fill it sits on, both themes, and a
+faded ink.
 
 ## Brand marks
 

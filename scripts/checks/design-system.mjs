@@ -216,6 +216,21 @@ ok('.led-cell is the DS cell: ' + dsDecl('shape.css', '--ds-cell-width') + ' × 
   && decl(cellRule, 'border-radius') === 'var(--radius-cell)',
   'got ' + decl(cellRule, 'width') + ' × ' + decl(cellRule, 'height') + ' radius ' + decl(cellRule, 'border-radius'))
 ok('a lit led cell is volt', /\.led-cell\.lit\s*\{\s*background:\s*hsl\(var\(--brand\)\)/.test(css), null)
+{
+  // the day header's block strip is the one strip that can hold eight cells
+  // (Dad Built Upper A/B) inside phone chrome: 8 × 20px + gaps is 202px beside
+  // the day name at the 390px design width, and the name truncates. That strip
+  // is bounded — its cells flex inside a fixed width — and only that one:
+  // every other strip is seven cells or fewer. Codex, round 1.
+  const day = readFileSync(join(SRC, 'app', 'train', '[program]', '[day]', 'page.tsx'), 'utf8')
+  ok('the day header block strip is bounded (led-bar led-bar-fit) — it can hold eight cells inside phone chrome',
+    /className="led-bar led-bar-fit">\s*\{Array\.from\(\{ length: Math\.max\(plan\.items\.length, 1\) \}\)/.test(day), null)
+  const fit = rule('.led-bar-fit')
+  const fitPx = px(decl(fit, 'width'))
+  ok('.led-bar-fit is a fixed width no wider than 6rem, and its cells flex to fit it',
+    fitPx != null && fitPx <= 96 && /\.led-bar-fit \.led-cell[^{]*\{[^}]*flex:\s*1 1 0[^}]*width:\s*auto/.test(css),
+    'width ' + decl(fit, 'width'))
+}
 ok('.ammo-cell is 10 × 18 at var(--radius-cell), no border',
   px(decl(rule('.ammo-cell'), 'width')) === 10 && px(decl(rule('.ammo-cell'), 'height')) === 18
   && decl(rule('.ammo-cell'), 'border-radius') === 'var(--radius-cell)' && decl(rule('.ammo-cell'), 'border') == null, null)
@@ -324,6 +339,29 @@ for (const [re, what, why] of BANS) {
     text.split('\n').forEach((line, i) => { if (re.test(line)) hits.push(f.slice(SRC.length + 1) + ':' + (i + 1)) })
   }
   ok('no src file renders ' + what, hits.length === 0, why + '\n        ' + hits.slice(0, 8).join('\n        '))
+}
+{
+  // glows in the forms a utility ban cannot see: style objects in tsx, and
+  // rules in globals.css itself. A text-shadow is a halo; a box-shadow that
+  // starts at 0 0 is a glow; an inset highlight is a sheen. FOR-198 took one
+  // halo off the slab, and the session summary still carried a 14px volt halo
+  // on the tonnage numeral — found by Codex, not by the first version of this.
+  const inlineHits = []
+  for (const f of files) {
+    readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+      if (/\btextShadow\s*:/.test(line)
+        || /\bboxShadow\s*:\s*['"`]\s*0(?:px)? 0(?:px)? /.test(line)
+        || /\bfilter\s*:\s*['"`][^'"`]*(?:blur|drop-shadow)\(/.test(line)) inlineHits.push(f.slice(SRC.length + 1) + ':' + (i + 1))
+    })
+  }
+  ok('no src file carries an inline glow (textShadow, a 0 0 boxShadow, a blur/drop-shadow filter)', inlineHits.length === 0,
+    'nothing glows\n        ' + inlineHits.slice(0, 8).join('\n        '))
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  const cssGlows = [...code.matchAll(/(?:text-shadow|box-shadow)\s*:\s*[^;]+;/g)].map((m) => m[0].trim())
+    .filter((d) => !/:\s*none;$/.test(d) && !/:\s*var\(/.test(d))
+    .filter((d) => /^text-shadow/.test(d) || /^box-shadow\s*:\s*(?:0(?:px)? 0(?:px)? |inset\b)/.test(d))
+  ok('globals.css has no glow — no text-shadow, no 0 0 box-shadow, no inset sheen', cssGlows.length === 0,
+    cssGlows.join('\n        '))
 }
 {
   // an ink-ROLE utility on a solid volt fill. bg-brand pairs with text-brand-ink

@@ -1603,7 +1603,7 @@ export default function TrainingDayPage() {
           <div className="relative bg-card border border-border p-5 pt-8 w-full max-w-sm text-left space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="stat-num text-3xl text-brand" style={{ textShadow: '0 0 14px hsl(var(--brand) / 0.35)' }}>
+                <p className="stat-num text-3xl text-brand">
                   {sessionSummary.tonnage.toLocaleString()}
                 </p>
                 <p className="eyebrow-mono">LB TONNAGE</p>
@@ -1708,7 +1708,7 @@ export default function TrainingDayPage() {
               <span className="status-dot" />
               <span className="eyebrow-mono">{program.name.split(' ')[0].toUpperCase()}</span>
             </div>
-            <div className="led-bar">
+            <div className="led-bar led-bar-fit">
               {Array.from({ length: Math.max(plan.items.length, 1) }).map((_, i) => (
                 <span key={i} className={`led-cell ${i < loggedBlocks ? 'lit' : ''}`} />
               ))}

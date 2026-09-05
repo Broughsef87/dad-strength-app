@@ -19,7 +19,7 @@ The system is vendored at `design-system/` (a copy of the Claude Design project
 Working in production code: use the app's own tokens and kit classes
 (`bg-brand`, `text-brand-ink`, `.tile`, `.stat-num`, `.eyebrow-mono`,
 `.slab-volt`, `.chip-live`, `.led-bar`…) — never the `--ds-*` names, which exist
-only inside `design-system/`. `npm run check` runs `scripts/checks/design-system.mjs`,
+only inside `design-system/`. `npm run checks` runs `scripts/checks/design-system.mjs`,
 which measures `globals.css` against the DS and bans what the DS prohibits.
 
 Making a visual artifact (a mock, a slide, a throwaway prototype): link
