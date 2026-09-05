@@ -22,9 +22,9 @@ fails, the DS is right.
 | `tokens/spacing.css` | Tailwind's default scale | every DS step is on the 4px grid (see Spacing) |
 | `components/**/*.jsx` | kit classes in `globals.css` | the app is not React-inline-styled; each component has a class |
 | `assets/*.svg` | `src/components/Logo.tsx`, `scripts/generate-logo-suite.mjs` | see Brand marks |
-| `ui_kits/app/index.html` | the app itself | the DS's click-through recreation; open it in a browser as the visual reference |
-| `guidelines/*.html` | — | specimen cards; reference only |
-| `Dad Strength Design System.dc.html` + `support.js` | — | the spec sheet as a canvas; open the html in a browser |
+| `ui_kits/app/index.html` | the app itself | the DS's click-through recreation. Renders **inside Claude Design** (see Re-vendoring); the screens' source is `ui_kits/app/*.jsx` |
+| `guidelines/*.html` | — | 19 specimen cards; render standalone (serve the directory over HTTP) |
+| `Dad Strength Design System.dc.html` + `support.js` | — | the spec sheet as a canvas; renders standalone |
 
 ## Themes
 
@@ -180,3 +180,12 @@ The vendored copy is the project's files with one change: the Claude Design
 viewer injects a `data-omelette-injected` style/script pair into every served
 HTML file (the viewer's runtime, ~20KB, not the design), and that pair is
 stripped. The check fails a vendored HTML file that still carries it.
+
+Two kinds of file are **not** in the project and so not here: `_ds_bundle.js`
+and `_ds_manifest.json`, which Claude Design generates at view time from
+`components/**/*.jsx`. `ui_kits/app/index.html` and the three `*.card.html`
+files load that bundle, so they render inside Claude Design (the project link
+above) and come up empty when opened from disk. The canvas, the token CSS and
+the 19 guideline cards have no such dependency and render anywhere. Building
+the bundle locally (esbuild over `components/`, React shimmed to `window.React`)
+would make the kit render offline; it has not been done.
