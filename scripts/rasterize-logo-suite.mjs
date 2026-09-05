@@ -19,8 +19,11 @@
 // The Chrome half refuses to produce a wrong asset rather than a fallback one:
 // it fails when Node has no WebSocket, when the spawned Chrome cannot be
 // reached on ITS OWN port, when a lockup document does not finish loading, and
-// when either face is not a loaded FontFace. On every failure nothing is
-// written and Chrome is torn down.
+// when either face is not a loaded FontFace. Every output — sharp's and
+// Chrome's — is staged in memory and written in one pass only after the last
+// lockup has rendered, so a failure anywhere leaves the suite exactly as it
+// was: never a fresh favicon beside a stale OG image. Chrome is torn down on
+// every path.
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
@@ -35,11 +38,18 @@ const CHROME = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application
 const svg = (name) => fs.readFileSync(path.join(SUITE, name));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Nothing touches public/ until the end. Outputs collect here and are written
+// together once every render has succeeded.
+const staged = new Map();
+const stage = (out, buf, note) => {
+  staged.set(out, buf);
+  console.log('rendered', path.relative(PUBLIC, out), note, buf.length + 'b');
+};
+
 // ── 1. geometry through sharp ───────────────────────────────────────────────
 const png = async (name, size, out) => {
   const buf = await sharp(svg(name), { density: 144 }).resize(size, size).png().toBuffer();
-  fs.writeFileSync(out, buf);
-  console.log('wrote', path.relative(PUBLIC, out), size + 'px', buf.length + 'b');
+  stage(out, buf, size + 'px');
   return buf;
 };
 
@@ -63,8 +73,7 @@ sizes.forEach((s, i) => {
   offset += payloads[i].length;
 });
 const ico = Buffer.concat([header, entries, ...payloads]);
-fs.writeFileSync(path.join(PUBLIC, 'favicon.ico'), ico);
-console.log('wrote favicon.ico', sizes.join('/'), ico.length + 'b');
+stage(path.join(PUBLIC, 'favicon.ico'), ico, sizes.join('/'));
 
 // ── 2. the lockups through Chrome ───────────────────────────────────────────
 const LOCKUPS = [
@@ -165,12 +174,13 @@ try {
     }
     await sleep(300);
     const shot = await send('Page.captureScreenshot', { format: 'png' });
-    const out = path.join(SUITE, name.replace('.svg', '.png'));
-    fs.writeFileSync(out, Buffer.from(shot.result.data, 'base64'));
-    console.log('wrote', path.relative(PUBLIC, out), `${w}x${h}`, 'faces: Space Grotesk + Geist Mono');
+    stage(path.join(SUITE, name.replace('.svg', '.png')), Buffer.from(shot.result.data, 'base64'), `${w}x${h} faces: Space Grotesk + Geist Mono`);
   }
 } finally {
   if (ws) ws.close();
   await teardown();
 }
-console.log('\nraster suite complete');
+
+// ── 3. every render succeeded: write the suite in one pass ──────────────────
+for (const [out, buf] of staged) fs.writeFileSync(out, buf);
+console.log(`\nraster suite complete — ${staged.size} files written`);

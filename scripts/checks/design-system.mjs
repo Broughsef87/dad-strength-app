@@ -678,6 +678,17 @@ ok('design-system/styles.css imports exactly the seven token files',
       && /--remote-debugging-port=0/.test(raster) && /DevToolsActivePort/.test(raster) && !/remote-debugging-port=\d{2,}/.test(raster)
       && /nav\.result\.errorText/.test(raster) && /load event never fired/.test(raster) && /wrong document loaded/.test(raster)
       && /pathToFileURL\(html\)\.href/.test(raster) && !/'file:\/\/\/' \+/.test(raster), null)
+    // ...and a failed run leaves the suite exactly as it was (Codex, round 5):
+    // the icons and favicon came out of sharp first and were on disk before a
+    // font failure could be reported. Every output is staged and written in one
+    // pass after the Chrome phase; the only write before the finally is the
+    // temp HTML the lockups are rendered from.
+    const fin = raster.indexOf('} finally {')
+    const before = fin > 0 ? raster.slice(0, fin) : ''
+    ok('the rasterizer stages every output and writes the suite only after the last lockup rendered',
+      /const staged = new Map\(\)/.test(raster) && fin > 0
+      && (before.match(/fs\.writeFileSync\(/g) || []).length === 1 && /fs\.writeFileSync\(html, /.test(before)
+      && /for \(const \[out, buf\] of staged\) fs\.writeFileSync\(out, buf\)/.test(raster.slice(fin)), null)
   }
   const skill = join(ROOT, '.claude', 'skills', 'dad-strength-design', 'SKILL.md')
   ok('.claude/skills/dad-strength-design/SKILL.md points at design-system/readme.md',
