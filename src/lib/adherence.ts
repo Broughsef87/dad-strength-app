@@ -90,13 +90,28 @@ export function reconcileLocal(
   local: MorningEntry | null | undefined,
 ): (MorningState | null | undefined)[] {
   const all = [...states]
-  if (!local?.date) return all
-  const same = (m: MorningEntry | null | undefined) =>
-    !!m && m.date === local.date
+  if (!local?.date || !localMatchesMirror(all, local)) return all
+  return [...all.filter((s) => !sameProtocol(s?.morning, local)), { morning: local }]
+}
+
+/**
+ * Does the mirror already hold the protocol the local cache holds — same day,
+ * same theme, same step count? False until the save that wrote the cache has
+ * landed, which is how the dashboard knows whether to read again.
+ */
+export function localMatchesMirror(
+  states: Iterable<MorningState | null | undefined>,
+  local: MorningEntry | null | undefined,
+): boolean {
+  if (!local?.date) return false
+  for (const s of states) if (sameProtocol(s?.morning, local)) return true
+  return false
+}
+
+function sameProtocol(m: MorningEntry | null | undefined, local: MorningEntry): boolean {
+  return !!m && m.date === local.date
     && m.protocol?.theme === local.protocol?.theme
     && (m.protocol?.steps?.length ?? -1) === (local.protocol?.steps?.length ?? -1)
-  if (!all.some((s) => same(s?.morning))) return all
-  return [...all.filter((s) => !same(s?.morning)), { morning: local }]
 }
 
 /**

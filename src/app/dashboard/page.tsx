@@ -26,7 +26,7 @@ import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
 import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../../lib/programs/schedule'
 import {
-  rollingDays, protocolCompleteDays, reconcileLocal, trainingAdherence,
+  rollingDays, protocolCompleteDays, reconcileLocal, localMatchesMirror, trainingAdherence,
   type RollingDays, type MorningState, type MorningEntry,
 } from '../../lib/adherence'
 import { localDay, localDayWithCutoff } from '../../utils/day'
@@ -71,20 +71,27 @@ interface WorkoutData {
 const PROTOCOL_CACHE_KEY = 'dad-strength-morning-protocol'
 async function fetchProtocolDays(
   supabase: ReturnType<typeof createClient>, userId: string, { pendingLocalSave }: { pendingLocalSave: boolean },
-): Promise<RollingDays> {
+): Promise<{ days: RollingDays; settled: boolean }> {
   const { data: checkins } = await supabase
     .from('daily_checkins')
     .select('spirit_state')
     .eq('user_id', userId)
     .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
   let states: (MorningState | null | undefined)[] = (checkins ?? []).map((r: { spirit_state: MorningState | null }) => r.spirit_state)
+  // settled: the mirror already holds what the cache holds, so nothing is
+  // still in flight and no further read is needed.
+  let settled = true
   if (pendingLocalSave) {
     try {
       const cached = localStorage.getItem(PROTOCOL_CACHE_KEY)
-      if (cached) states = reconcileLocal(states, JSON.parse(cached) as MorningEntry)
+      if (cached) {
+        const local = JSON.parse(cached) as MorningEntry
+        settled = localMatchesMirror(states, local)
+        states = reconcileLocal(states, local)
+      }
     } catch { /* no cache, or malformed — the mirror still counts */ }
   }
-  return rollingDays(protocolCompleteDays(states), localDayWithCutoff(4), 20)
+  return { days: rollingDays(protocolCompleteDays(states), localDayWithCutoff(4), 20), settled }
 }
 
 export default function Dashboard() {
@@ -284,7 +291,7 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      setProtocolDays(await fetchProtocolDays(supabase, user.id, { pendingLocalSave: false }))
+      setProtocolDays((await fetchProtocolDays(supabase, user.id, { pendingLocalSave: false })).days)
       setLoading(false)
     }
     loadDashboard()
@@ -292,22 +299,28 @@ export default function Dashboard() {
 
   // The daily number recomputes whenever the protocol saves — the same tick
   // the checklist and the objectives card listen to. Tick 0 is the mount, and
-  // the load above already covered it. It runs twice per save: at once, for
-  // the cache, and again after the mirror has had time to land — a rebuild
-  // replaces the protocol, and until the mirror carries the new one the cache
-  // cannot be matched against it.
+  // the load above already covered it. It reads at once, for the cache, and
+  // then again until the mirror holds what the cache holds: a rebuild replaces
+  // the protocol, the cache cannot be matched until the mirror carries the new
+  // one, and that upsert takes as long as it takes. Bounded, so a write that
+  // never lands cannot keep this polling.
   useEffect(() => {
     if (protocolTick === 0) return
     let cancelled = false
-    const run = async () => {
+    const run = async (): Promise<boolean> => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user || cancelled) return
-      const next = await fetchProtocolDays(supabase, user.id, { pendingLocalSave: true })
-      if (!cancelled) setProtocolDays(next)
+      if (!user || cancelled) return true
+      const { days, settled } = await fetchProtocolDays(supabase, user.id, { pendingLocalSave: true })
+      if (!cancelled) setProtocolDays(days)
+      return settled
     }
-    void run()
-    const settle = setTimeout(() => { void run() }, 1500)
-    return () => { cancelled = true; clearTimeout(settle) }
+    void (async () => {
+      for (let attempt = 0; attempt < 6 && !cancelled; attempt++) {
+        if (await run()) break
+        await new Promise((r) => setTimeout(r, 1500))
+      }
+    })()
+    return () => { cancelled = true }
   }, [protocolTick, supabase])
 
   const handleSignOut = async () => {

@@ -25,7 +25,7 @@
 import { readFileSync } from 'node:fs'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import { scheduledDayNumbers, sessionsThisWeek, scheduledDoneDays } from '../../src/lib/programs/schedule.ts'
-import { rollingDays, protocolCompleteDays, reconcileLocal, trainingAdherence, daysBetween } from '../../src/lib/adherence.ts'
+import { rollingDays, protocolCompleteDays, reconcileLocal, localMatchesMirror, trainingAdherence, daysBetween } from '../../src/lib/adherence.ts'
 
 let checks = 0
 const fails = []
@@ -158,6 +158,13 @@ assert(strangers.join(',') === '2026-09-12', `a cache with no matching mirror en
 const rebuilt = protocolCompleteDays(reconcileLocal([history, mirrorDone], { ...localDone, protocol: { theme: 'other', steps: [{}, {}, {}] } }))
 assert(rebuilt.join(',') === '2026-09-12,2026-09-13', `a cache holding a different protocol is not matched to the mirror's: [${rebuilt.join(',')}]`)
 assert(reconcileLocal([history], null).length === 1 && reconcileLocal([history], {}).length === 1, 'no cache, no change')
+// Whether the mirror has caught up with the cache is what tells the dashboard
+// to stop reading again (Codex, round 4: a fixed delay assumed the upsert).
+assert(localMatchesMirror([history, mirrorOpen], localDone) === true, 'the mirror holding the cache\'s protocol is settled')
+assert(localMatchesMirror([history], localDone) === false, 'a cache the mirror does not hold yet is not settled')
+assert(localMatchesMirror([history, mirrorDone], { ...localDone, protocol: { theme: 'other', steps: [{}, {}, {}] } }) === false,
+  'a rebuilt protocol is not settled until the mirror carries it')
+assert(localMatchesMirror([history], null) === false && localMatchesMirror([history], {}) === false, 'no cache is never a match')
 
 // ── 3. the dashboard is wired, and the old loop is gone ─────────────────────
 const dash = readLF('../../src/app/dashboard/page.tsx')
@@ -175,19 +182,24 @@ assert(/localDayWithCutoff\(4\)/.test(dash), 'the rolling window uses the protoc
 assert((dash.match(/fetchProtocolDays\(/g) || []).length >= 3, 'one fetch function serves the load and the refresh')
 assert(/if \(protocolTick === 0\) return[\s\S]{0,500}fetchProtocolDays\([\s\S]{0,500}\}, \[protocolTick, supabase\]\)/.test(dash),
   'the daily number recomputes on the protocol save tick')
-assert(dash.includes("'dad-strength-morning-protocol'") && /localStorage\.getItem\(PROTOCOL_CACHE_KEY\)[\s\S]{0,140}reconcileLocal\(states, JSON\.parse\(cached\)/.test(dash),
+assert(dash.includes("'dad-strength-morning-protocol'") && /localStorage\.getItem\(PROTOCOL_CACHE_KEY\)[\s\S]{0,300}states = reconcileLocal\(states, local\)/.test(dash),
   'today\'s completion is read from the protocol\'s local cache, reconciled against the mirror — never unioned, never unowned')
 assert(!/states\.push\(\{ morning/.test(dash), 'the cache is not appended raw')
 // Codex, round 3: on a plain load the cache can be STALE — opened here,
 // finished on another device — so it is consulted only after a local save.
 assert(/if \(pendingLocalSave\) \{[\s\S]{0,200}localStorage\.getItem\(PROTOCOL_CACHE_KEY\)/.test(dash),
   'the cache is read only on the heels of a local save')
-assert(/setProtocolDays\(await fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: false \}\)\)/.test(dash),
+assert(/setProtocolDays\(\(await fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: false \}\)\)\.days\)/.test(dash),
   'the load path trusts the mirror alone')
 assert(/if \(protocolTick === 0\) return[\s\S]{0,600}fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: true \}\)/.test(dash),
   'the save-tick path is the one that consults the cache')
-assert(/if \(protocolTick === 0\) return[\s\S]{0,700}const settle = setTimeout\(\(\) => \{ void run\(\) \}, \d+\)/.test(dash),
-  'each save refetches again once the mirror has had time to land')
+// ...and reads again until the mirror has caught up, bounded — not once after
+// a fixed delay the upsert may outlast (Codex, round 4).
+const retry = dash.match(/for \(let attempt = 0; attempt < (\d+) && !cancelled; attempt\+\+\) \{\s*if \(await run\(\)\) break/)
+assert(!!retry && +retry[1] >= 3, 'each save reads again until the mirror holds what the cache holds, a bounded number of times')
+assert(/settled = localMatchesMirror\(states, local\)/.test(dash) && /return settled/.test(dash),
+  'the read reports whether the mirror has caught up with the cache')
+assert(!/const settle = setTimeout/.test(dash), 'no single fixed settle delay remains')
 assert(dash.includes('trainingAdherence('), 'the dashboard computes the weekly training number')
 assert(/training\.done\}\/\{training\.prescribed\}/.test(dash), 'the weekly number renders done/prescribed')
 assert(/protocolDays\.done\}\/\{protocolDays\.window\}/.test(dash), 'the daily number renders done/window')
