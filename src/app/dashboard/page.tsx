@@ -127,6 +127,10 @@ export default function Dashboard() {
   // component in the same tab can observe — the storage event is cross-tab
   // only. Without this the item stays unchecked for the whole session.
   const [protocolTick, setProtocolTick] = useState(0)
+  // Protocol-cache saves only (Codex, round 6). onSaved also fires for an
+  // objectives-only save, which writes nothing to the protocol cache; the
+  // adherence count must not take that as "the cache is fresh".
+  const [protocolSaveTick, setProtocolSaveTick] = useState(0)
 
   // ?protocol=1 no longer gates whether the protocol renders — it always does.
   // What it still has to do is FOCUS it. Arrivals from the /mind and /spirit
@@ -303,15 +307,17 @@ export default function Dashboard() {
     loadDashboard()
   }, [router])
 
-  // The daily number recomputes whenever the protocol saves — the same tick
-  // the checklist and the objectives card listen to. Tick 0 is the mount, and
-  // the load above already covered it. It reads at once, for the cache, and
-  // then again until the mirror holds what the cache holds: a rebuild replaces
-  // the protocol, the cache cannot be matched until the mirror carries the new
-  // one, and that upsert takes as long as it takes. Bounded, so a write that
-  // never lands cannot keep this polling.
+  // The daily number recomputes whenever the PROTOCOL cache saves — not the
+  // general tick the checklist and the objectives card listen to, which also
+  // fires for an objectives-only save that leaves the cache untouched and
+  // possibly stale. Tick 0 is the mount, and the load above already covered
+  // it. It reads at once, for the cache, and then again until the mirror
+  // holds what the cache holds: a rebuild replaces the protocol, the cache
+  // cannot be matched until the mirror carries the new one, and that upsert
+  // takes as long as it takes. Bounded, so a write that never lands cannot
+  // keep this polling.
   useEffect(() => {
-    if (protocolTick === 0) return
+    if (protocolSaveTick === 0) return
     let cancelled = false
     const run = async (): Promise<boolean> => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -327,7 +333,7 @@ export default function Dashboard() {
       }
     })()
     return () => { cancelled = true }
-  }, [protocolTick, supabase])
+  }, [protocolSaveTick, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -444,7 +450,10 @@ export default function Dashboard() {
                 protocolTick={protocolTick}
               />
               <div ref={protocolRef}>
-                <MorningProtocol onSaved={() => setProtocolTick(t => t + 1)} />
+                <MorningProtocol
+                  onSaved={() => setProtocolTick(t => t + 1)}
+                  onProtocolSaved={() => setProtocolSaveTick(t => t + 1)}
+                />
               </div>
               {/* Objectives are SET in the protocol's Goals step, which writes
                   mind_state; this card is the only thing that reads them back

@@ -199,8 +199,21 @@ assert(/localDayWithCutoff\(4\)/.test(dash), 'the rolling window uses the protoc
 // recomputes on the protocol's save tick, and today comes from the local
 // cache MorningProtocol writes BEFORE its mirror lands.
 assert((dash.match(/fetchProtocolDays\(/g) || []).length >= 3, 'one fetch function serves the load and the refresh')
-assert(/if \(protocolTick === 0\) return[\s\S]{0,500}fetchProtocolDays\([\s\S]{0,500}\}, \[protocolTick, supabase\]\)/.test(dash),
+assert(/if \(protocolSaveTick === 0\) return[\s\S]{0,500}fetchProtocolDays\([\s\S]{0,500}\}, \[protocolSaveTick, supabase\]\)/.test(dash),
   'the daily number recomputes on the protocol save tick')
+// Codex, round 6: onSaved also fires for an objectives-only save, which
+// leaves the protocol cache untouched — and possibly stale against a
+// completion made on another device. The count listens to a signal the
+// component fires ONLY when the protocol cache is written.
+const mp = readLF('../../src/components/MorningProtocol.tsx')
+const protoSignal = (mp.match(/onProtocolSaved\?\.\(\)/g) || []).length
+assert(protoSignal === 1 && mp.indexOf('onProtocolSaved?.()') > mp.indexOf('const saveCache = ')
+  && !(mp.slice(mp.indexOf('const saveMindState = '), mp.indexOf('const saveCache = ')).includes('onProtocolSaved')),
+  'MorningProtocol fires onProtocolSaved exactly once, from saveCache, and never from the objectives path')
+assert(/onProtocolSaved=\{\(\) => setProtocolSaveTick\(t => t \+ 1\)\}/.test(dash) && /onSaved=\{\(\) => setProtocolTick\(t => t \+ 1\)\}/.test(dash),
+  'the dashboard wires the protocol-only signal to its own tick and keeps the general tick for the siblings')
+assert(/<DailyObjectivesCard refreshKey=\{protocolTick\}/.test(dash) && /protocolTick=\{protocolTick\}/.test(dash),
+  'the objectives card and the checklist still follow the general tick')
 assert(dash.includes("'dad-strength-morning-protocol'") && /localStorage\.getItem\(PROTOCOL_CACHE_KEY\)[\s\S]{0,300}states = reconcileLocal\(states, local\)/.test(dash),
   'today\'s completion is read from the protocol\'s local cache, reconciled against the mirror — never unioned, never unowned')
 assert(!/states\.push\(\{ morning/.test(dash), 'the cache is not appended raw')
@@ -210,7 +223,7 @@ assert(/if \(pendingLocalSave\) \{[\s\S]{0,200}localStorage\.getItem\(PROTOCOL_C
   'the cache is read only on the heels of a local save')
 assert(/setProtocolDays\(\(await fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: false \}\)\)\.days\)/.test(dash),
   'the load path trusts the mirror alone')
-assert(/if \(protocolTick === 0\) return[\s\S]{0,600}fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: true \}\)/.test(dash),
+assert(/if \(protocolSaveTick === 0\) return[\s\S]{0,600}fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: true \}\)/.test(dash),
   'the save-tick path is the one that consults the cache')
 // ...and reads again until the mirror has caught up, bounded — not once after
 // a fixed delay the upsert may outlast (Codex, round 4).
