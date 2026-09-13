@@ -69,6 +69,18 @@ export interface MorningEntry {
 /** The shape MorningProtocol mirrors into daily_checkins.spirit_state. */
 export interface MorningState {
   morning?: MorningEntry | null
+  /**
+   * When this snapshot was written — the mirror row's updated_at. Absent
+   * means newest: a local save that has not landed yet.
+   */
+  at?: string | null
+}
+
+/** Ordering of a snapshot: newest first. Unstamped is newest; unparsable is oldest. */
+function rank(s: MorningState): number {
+  if (s.at == null) return Infinity
+  const t = Date.parse(s.at)
+  return Number.isNaN(t) ? -Infinity : t
 }
 
 /**
@@ -121,13 +133,24 @@ function sameProtocol(m: MorningEntry | null | undefined, local: MorningEntry): 
  * it was done. Keyed on the protocol's own 4am-cutoff date, not the row date.
  */
 export function protocolCompleteDays(states: Iterable<MorningState | null | undefined>): string[] {
-  const out: string[] = []
+  // One protocol day can be mirrored in two calendar rows — finished before
+  // midnight in one, a step unticked at 1am in the next — so each protocol
+  // day is resolved to its LATEST snapshot first, and only that one is
+  // judged. A completion that was later undone is not a completion.
+  const latest = new Map<string, MorningState>()
   for (const s of states) {
-    const m = s?.morning
-    if (!m?.date || !Array.isArray(m.completed) || m.completed.length === 0) continue
+    const date = s?.morning?.date
+    if (!s || !date) continue
+    const prev = latest.get(date)
+    if (!prev || rank(s) >= rank(prev)) latest.set(date, s)
+  }
+  const out: string[] = []
+  for (const [date, s] of latest) {
+    const m = s.morning
+    if (!m || !Array.isArray(m.completed) || m.completed.length === 0) continue
     const steps = m.protocol?.steps
     if (Array.isArray(steps) && steps.length !== m.completed.length) continue
-    if (m.completed.every(Boolean)) out.push(m.date)
+    if (m.completed.every(Boolean)) out.push(date)
   }
   return out
 }

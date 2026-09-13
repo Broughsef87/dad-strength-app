@@ -72,12 +72,18 @@ const PROTOCOL_CACHE_KEY = 'dad-strength-morning-protocol'
 async function fetchProtocolDays(
   supabase: ReturnType<typeof createClient>, userId: string, { pendingLocalSave }: { pendingLocalSave: boolean },
 ): Promise<{ days: RollingDays; settled: boolean }> {
+  // updated_at orders the snapshots: one protocol day can be mirrored in two
+  // calendar rows (done before midnight, a step unticked at 1am), and only the
+  // latest snapshot of a day is judged. Nothing writes to a calendar row
+  // after its midnight, so the later row is the later snapshot.
   const { data: checkins } = await supabase
     .from('daily_checkins')
-    .select('spirit_state')
+    .select('spirit_state, updated_at')
     .eq('user_id', userId)
     .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
-  let states: (MorningState | null | undefined)[] = (checkins ?? []).map((r: { spirit_state: MorningState | null }) => r.spirit_state)
+  let states: (MorningState | null | undefined)[] = (checkins ?? []).map(
+    (r: { spirit_state: MorningState | null; updated_at: string | null }) => ({ morning: r.spirit_state?.morning, at: r.updated_at }),
+  )
   // settled: the mirror already holds what the cache holds, so nothing is
   // still in flight and no further read is needed.
   let settled = true

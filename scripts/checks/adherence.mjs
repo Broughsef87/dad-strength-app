@@ -139,6 +139,18 @@ const states = [
 const doneKeys = protocolCompleteDays(states)
 assert(doneKeys.join(',') === '2026-09-13,2026-09-10',
   `only fully completed protocols count, keyed on their own date — got [${doneKeys.join(',')}]`)
+// One protocol day, two calendar rows (Codex, round 5): finished before
+// midnight, a step unticked at 1am. The LATEST snapshot is the one judged,
+// whichever order the rows arrive in; an unstamped snapshot — a local save —
+// is newest of all.
+const doneLate = { morning: { date: '2026-09-12', protocol: three, completed: [true, true, true] }, at: '2026-09-12T23:50:00.000Z' }
+const undoneEarly = { morning: { date: '2026-09-12', protocol: three, completed: [true, true, false] }, at: '2026-09-13T01:10:00.000Z' }
+assert(protocolCompleteDays([doneLate, undoneEarly]).length === 0, 'a completion undone at 1am is not a completion')
+assert(protocolCompleteDays([undoneEarly, doneLate]).length === 0, 'the latest snapshot wins regardless of row order')
+assert(protocolCompleteDays([undoneEarly, { ...doneLate, at: '2026-09-13T02:00:00.000Z' }]).join(',') === '2026-09-12',
+  'a completion re-ticked later counts again')
+assert(protocolCompleteDays([doneLate, { ...undoneEarly, at: undefined }]).length === 0, 'an unstamped (local) snapshot is the newest')
+assert(protocolCompleteDays([{ ...undoneEarly, at: 'garbage' }, doneLate]).join(',') === '2026-09-12', 'an unparsable stamp is the oldest')
 
 // The local cache against the mirror (Codex, round 2). The cache is newer but
 // has no owner: it counts only against a mirror entry this user's rows hold
@@ -153,6 +165,9 @@ const unticked = protocolCompleteDays(reconcileLocal([history, mirrorDone], loca
 assert(unticked.join(',') === '2026-09-12', `a step unticked locally is unticked — the mirror's done snapshot does not survive: [${unticked.join(',')}]`)
 const ticked = protocolCompleteDays(reconcileLocal([history, mirrorOpen], localDone))
 assert(ticked.join(',') === '2026-09-12,2026-09-13', `a protocol finished locally counts before the mirror lands: [${ticked.join(',')}]`)
+const replaced = reconcileLocal([history, mirrorOpen], localDone)
+assert(replaced.length === 2 && replaced[1].morning === localDone && replaced[1].at == null,
+  'the cache replaces its mirror entry, it does not join it — and it carries no stamp, so it is the newest snapshot')
 const strangers = protocolCompleteDays(reconcileLocal([history], localDone))
 assert(strangers.join(',') === '2026-09-12', `a cache with no matching mirror entry — another account's, or not landed — is ignored: [${strangers.join(',')}]`)
 const rebuilt = protocolCompleteDays(reconcileLocal([history, mirrorDone], { ...localDone, protocol: { theme: 'other', steps: [{}, {}, {}] } }))
@@ -173,6 +188,8 @@ assert(!dash.includes("from('workout_logs')"), 'the dashboard no longer reads wo
 assert(!/setStreak\(|const \[streak\b|\{streak\}/.test(dash), 'no streak state survives on the dashboard')
 assert(dash.includes("from('daily_checkins')") && dash.includes('protocolCompleteDays('),
   'the daily number reads morning-protocol completion out of daily_checkins')
+assert(/\.select\('spirit_state, updated_at'\)/.test(dash) && /\{ morning: r\.spirit_state\?\.morning, at: r\.updated_at \}/.test(dash),
+  'each mirror row carries its updated_at so a protocol day resolves to its latest snapshot')
 assert(dash.includes('rollingDays('), 'the dashboard computes the rolling number')
 assert(/localDayWithCutoff\(4\)/.test(dash), 'the rolling window uses the protocol\'s 4am-cutoff day key')
 // Codex, round 1: the number was computed once, in the load effect, and a
