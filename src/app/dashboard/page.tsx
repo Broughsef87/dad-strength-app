@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   PlayCircle,
-  Flame,
+  Sun,
   Settings,
   ChevronRight,
   Dumbbell,
@@ -25,6 +25,8 @@ import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
 import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../../lib/programs/schedule'
+import { rollingDays, protocolCompleteDays, trainingAdherence, type RollingDays, type MorningState } from '../../lib/adherence'
+import { localDay, localDayWithCutoff } from '../../utils/day'
 
 interface ActiveProgramData {
   slug: string
@@ -57,7 +59,11 @@ export default function Dashboard() {
   // Source of truth — replaces the old per-device dad-strength-week-progress-*
   // localStorage for Zeus.
   const [zeusDoneDays, setZeusDoneDays] = useState<number[]>([])
-  const [streak, setStreak] = useState(0)
+  // The DAILY number: morning protocols completed in the last 20 days. A
+  // rolling window, not a streak — it cannot reset (FOR-228). The WEEKLY
+  // training number is derived below from the same done days the week strip
+  // lights; the two are never blended.
+  const [protocolDays, setProtocolDays] = useState<RollingDays>({ done: 0, window: 20 })
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
   const [checklistDone, setChecklistDone] = useState(false)
   const [firstName, setFirstName] = useState('')
@@ -238,22 +244,20 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      const { data: logDates } = await supabase
-        .from('workout_logs')
-        .select('created_at')
+      // Morning protocols completed in the last 20 days. MorningProtocol
+      // mirrors each save into daily_checkins.spirit_state under the calendar
+      // day, stamped with its own 4am-cutoff date; a couple of extra rows on
+      // the query side keep a pre-dawn finish inside the window.
+      const { data: checkins } = await supabase
+        .from('daily_checkins')
+        .select('spirit_state')
         .eq('user_id', user.id)
-        .eq('completed', true)
-        .order('created_at', { ascending: false })
-
-      const uniqueDays: string[] = Array.from(new Set((logDates || []).map((l: { created_at: string }) => new Date(l.created_at).toDateString())))
-      let s = 0
-      const today = new Date(); today.setHours(0, 0, 0, 0)
-      for (let i = 0; i < uniqueDays.length; i++) {
-        const d = new Date(uniqueDays[i]); d.setHours(0, 0, 0, 0)
-        const diff = Math.round((today.getTime() - d.getTime()) / 86400000)
-        if (diff === i || (i === 0 && diff <= 1)) s++; else break
-      }
-      setStreak(s)
+        .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
+      setProtocolDays(rollingDays(
+        protocolCompleteDays((checkins ?? []).map((r: { spirit_state: MorningState | null }) => r.spirit_state)),
+        localDayWithCutoff(4),
+        20,
+      ))
       setLoading(false)
     }
     loadDashboard()
@@ -271,6 +275,16 @@ export default function Dashboard() {
       </div>
     )
   }
+
+  // The WEEKLY number: scheduled sessions done vs prescribed, this week. The
+  // same done days the strip lights, so the two agree by construction.
+  const registryProgram = activeProgram ? getProgram(activeProgram.slug ?? '') : null
+  const training = registryProgram && activeProgram
+    ? trainingAdherence([{
+        done: scheduledDoneDays(zeusDoneDays, registryProgram, activeProgram.currentWeek).length,
+        prescribed: sessionsThisWeek(registryProgram, activeProgram.currentWeek),
+      }])
+    : null
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28 md:pb-8 relative">
@@ -393,10 +407,14 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  {streak > 0 && (
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Flame size={12} />
-                      <span className="stat-num text-[13px]">{streak}</span>
+                  {protocolDays.done > 0 && (
+                    <div
+                      className="flex items-center gap-1 text-muted-foreground"
+                      title={`morning protocol · ${protocolDays.done} of the last ${protocolDays.window} days`}
+                    >
+                      <Sun size={12} aria-hidden="true" />
+                      <span className="stat-num text-[13px]">{protocolDays.done}/{protocolDays.window}</span>
+                      <span className="sr-only">morning protocol, {protocolDays.done} of the last {protocolDays.window} days</span>
                     </div>
                   )}
                   {activeProgram && (
@@ -411,16 +429,16 @@ export default function Dashboard() {
               </div>
 
               {/* Week strip — one pill per day, volt for done */}
-              {activeProgram && getProgram(activeProgram.slug ?? '') && (
+              {activeProgram && registryProgram && training && (
                 <div className="mb-4">
                   <div className="day-pills">
-                    {scheduledDayNumbers(getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek).map(d => (
+                    {scheduledDayNumbers(registryProgram, activeProgram.currentWeek).map(d => (
                       <span key={d} className={`day-pill ${zeusDoneDays.includes(d) ? 'on' : ''}`} />
                     ))}
                   </div>
                   <div className="flex justify-between mt-1.5 data-mono">
-                    <span>sessions</span>
-                    <span className="v">{scheduledDoneDays(zeusDoneDays, getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek).length}/{sessionsThisWeek(getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek)}</span>
+                    <span>sessions this week</span>
+                    <span className="v">{training.done}/{training.prescribed}</span>
                   </div>
                 </div>
               )}
