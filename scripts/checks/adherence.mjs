@@ -22,7 +22,9 @@
 // Its own file on purpose: a revert of the feature must not be able to delete
 // the check that would have caught the revert (FOR-192 §7, week-shape.mjs).
 // ═══════════════════════════════════════════════════════════════════════════
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { join, relative } from 'node:path'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import { scheduledDayNumbers, sessionsThisWeek, scheduledDoneDays } from '../../src/lib/programs/schedule.ts'
 import { rollingDays, protocolCompleteDays, reconcileLocal, localMatchesMirror, trainingAdherence, daysBetween } from '../../src/lib/adherence.ts'
@@ -223,6 +225,32 @@ assert(/protocolDays\.done\}\/\{protocolDays\.window\}/.test(dash), 'the daily n
 // Never blended: no expression combines the two numbers.
 assert(!/protocolDays\.done\s*[+\-*/]\s*training|training\.done\s*[+\-*/]\s*protocolDays/.test(dash),
   'the two numbers are never combined')
+
+// ── 4. StreakShield is gone, and stays gone (FOR-228 §5.3, ruling 1) ────────
+// A shield for a streak that no longer exists. The search root is the
+// repository — node_modules, .next and .git excluded, this file excluded —
+// and the claim is zero files mentioning the component or its storage key.
+// The ticket's original "mounted nowhere" was a grep over a staged subset;
+// this one states its root.
+const REPO = fileURLToPath(new URL('../../', import.meta.url))
+const SKIP = new Set(['node_modules', '.next', '.git', '.claude'])
+const SELF = fileURLToPath(import.meta.url)
+const walk = (dir, out = []) => {
+  for (const name of readdirSync(dir)) {
+    if (SKIP.has(name)) continue
+    const p = join(dir, name)
+    const st = statSync(p)
+    if (st.isDirectory()) walk(p, out)
+    else if (st.size < 2_000_000 && p !== SELF) out.push(p)
+  }
+  return out
+}
+const shieldRefs = walk(REPO).filter((p) => {
+  let text
+  try { text = readFileSync(p, 'utf8') } catch { return false }
+  return /StreakShield|dad-strength-streak-shields/.test(text)
+}).map((p) => relative(REPO, p))
+assert(shieldRefs.length === 0, `no file in the repository mentions StreakShield or its storage key (root ${REPO}): ${shieldRefs.join(', ') || 'none'}`)
 
 // ── verdict ─────────────────────────────────────────────────────────────────
 if (fails.length) {
