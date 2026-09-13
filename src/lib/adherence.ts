@@ -74,6 +74,11 @@ export interface MorningState {
    * means newest: a local save that has not landed yet.
    */
   at?: string | null
+  /**
+   * The calendar row this snapshot came from — daily_checkins.date. Absent
+   * on a local save.
+   */
+  row?: string | null
 }
 
 /** Ordering of a snapshot: newest first. Unstamped is newest; unparsable is oldest. */
@@ -81,6 +86,25 @@ function rank(s: MorningState): number {
   if (s.at == null) return Infinity
   const t = Date.parse(s.at)
   return Number.isNaN(t) ? -Infinity : t
+}
+
+/**
+ * Which copy of a protocol day to believe BEFORE any timestamp. A local save
+ * (no row) is newest of all. A canonical row — keyed on the entry's own day,
+ * where every protocol write lands since the row-key fix — outranks a legacy
+ * row keyed on the calendar day, whatever their timestamps say: the row's
+ * updated_at also moves when objectives are saved into it, so a legacy
+ * pre-dawn completion could otherwise be resurrected by an unrelated save
+ * (Codex, round 6).
+ */
+function tier(s: MorningState): number {
+  if (s.row == null) return s.at == null ? 3 : 2
+  return s.row === s.morning?.date ? 2 : 1
+}
+
+/** Is `a` the snapshot to believe over `b` — higher tier, or later within one? */
+function newer(a: MorningState, b: MorningState): boolean {
+  return tier(a) !== tier(b) ? tier(a) > tier(b) : rank(a) >= rank(b)
 }
 
 /**
@@ -142,7 +166,7 @@ export function protocolCompleteDays(states: Iterable<MorningState | null | unde
     const date = s?.morning?.date
     if (!s || !date) continue
     const prev = latest.get(date)
-    if (!prev || rank(s) >= rank(prev)) latest.set(date, s)
+    if (!prev || newer(s, prev)) latest.set(date, s)
   }
   const out: string[] = []
   for (const [date, s] of latest) {

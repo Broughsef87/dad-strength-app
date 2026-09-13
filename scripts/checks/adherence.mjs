@@ -153,6 +153,20 @@ assert(protocolCompleteDays([undoneEarly, { ...doneLate, at: '2026-09-13T02:00:0
   'a completion re-ticked later counts again')
 assert(protocolCompleteDays([doneLate, { ...undoneEarly, at: undefined }]).length === 0, 'an unstamped (local) snapshot is the newest')
 assert(protocolCompleteDays([{ ...undoneEarly, at: 'garbage' }, doneLate]).join(',') === '2026-09-12', 'an unparsable stamp is the oldest')
+// Legacy row vs canonical row (Codex, round 6). Before the row-key fix a
+// pre-dawn completion for 09-12 sat in the 09-13 calendar row; after it, an
+// untick of that protocol lands in the 09-12 row. Saving objectives into the
+// 09-13 row then moves ITS updated_at — and the canonical row must still win.
+const legacyDone = { morning: { date: '2026-09-12', protocol: three, completed: [true, true, true] }, at: '2026-09-13T09:00:00.000Z', row: '2026-09-13' }
+const canonicalUndone = { morning: { date: '2026-09-12', protocol: three, completed: [true, true, false] }, at: '2026-09-13T01:10:00.000Z', row: '2026-09-12' }
+assert(protocolCompleteDays([legacyDone, canonicalUndone]).length === 0, 'a canonical row outranks a legacy row whatever their timestamps say')
+assert(protocolCompleteDays([canonicalUndone, legacyDone]).length === 0, 'a canonical row outranks a legacy row in either order')
+const canonicalDone = { ...canonicalUndone, morning: { ...canonicalUndone.morning, completed: [true, true, true] } }
+const legacyUndone = { ...legacyDone, morning: { ...legacyDone.morning, completed: [true, false, false] } }
+assert(protocolCompleteDays([legacyUndone, canonicalDone]).join(',') === '2026-09-12', 'a canonical completion is not undone by a legacy row')
+assert(protocolCompleteDays([legacyDone]).join(',') === '2026-09-12', 'a legacy row alone still counts — history from before the fix is not thrown away')
+assert(protocolCompleteDays([canonicalUndone, { ...canonicalDone, at: '2026-09-13T02:00:00.000Z' }]).join(',') === '2026-09-12', 'within one kind of row the later stamp still wins')
+assert(protocolCompleteDays([canonicalDone, { morning: canonicalUndone.morning }]).length === 0, 'a local save outranks even the canonical row')
 
 // The local cache against the mirror (Codex, round 2). The cache is newer but
 // has no owner: it counts only against a mirror entry this user's rows hold
@@ -190,8 +204,8 @@ assert(!dash.includes("from('workout_logs')"), 'the dashboard no longer reads wo
 assert(!/setStreak\(|const \[streak\b|\{streak\}/.test(dash), 'no streak state survives on the dashboard')
 assert(dash.includes("from('daily_checkins')") && dash.includes('protocolCompleteDays('),
   'the daily number reads morning-protocol completion out of daily_checkins')
-assert(/\.select\('spirit_state, updated_at'\)/.test(dash) && /\{ morning: r\.spirit_state\?\.morning, at: r\.updated_at \}/.test(dash),
-  'each mirror row carries its updated_at so a protocol day resolves to its latest snapshot')
+assert(/\.select\('spirit_state, updated_at, date'\)/.test(dash) && /\{ morning: r\.spirit_state\?\.morning, at: r\.updated_at, row: r\.date \}/.test(dash),
+  'each mirror row carries its updated_at and its date, so a protocol day resolves to its latest snapshot with the canonical row first')
 assert(dash.includes('rollingDays('), 'the dashboard computes the rolling number')
 assert(/localDayWithCutoff\(4\)/.test(dash), 'the rolling window uses the protocol\'s 4am-cutoff day key')
 // Codex, round 1: the number was computed once, in the load effect, and a
