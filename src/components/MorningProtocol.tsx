@@ -185,10 +185,16 @@ export default function MorningProtocol(
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
+        // The row is keyed on the protocol's OWN day — the same 4am-cutoff
+        // key the entry carries — not the calendar day. Keyed on the calendar
+        // day, a protocol finished at 1am landed in the next day's row, and
+        // generating that day's protocol after 4am overwrote it: a completed
+        // protocol gone (FOR-228, ruling 2). The loader below reads today and
+        // yesterday, so a pre-dawn row is still found.
         await supabase.from('daily_checkins').upsert(
           {
             user_id: user.id,
-            date: localDay(),
+            date: todayKey(),
             spirit_state: { morning: { date: todayKey(), protocol: p, completed: c, gratitude: g } },
             updated_at: new Date().toISOString(),
           },

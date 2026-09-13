@@ -36,6 +36,7 @@ const SUITES = [
   ['week shape', 'week-shape.mjs'],
   ['design system', 'design-system.mjs'],
   ['adherence (FOR-228)', 'adherence.mjs'],
+  ['protocol row key (FOR-228)', 'protocol-row-key.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {
