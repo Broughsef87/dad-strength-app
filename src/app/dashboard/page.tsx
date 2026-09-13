@@ -25,7 +25,10 @@ import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
 import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../../lib/programs/schedule'
-import { rollingDays, protocolCompleteDays, trainingAdherence, type RollingDays, type MorningState } from '../../lib/adherence'
+import {
+  rollingDays, protocolCompleteDays, reconcileLocal, trainingAdherence,
+  type RollingDays, type MorningState, type MorningEntry,
+} from '../../lib/adherence'
 import { localDay, localDayWithCutoff } from '../../utils/day'
 
 interface ActiveProgramData {
@@ -50,11 +53,14 @@ interface WorkoutData {
 // ── The daily number ─────────────────────────────────────────────────────────
 // Morning protocols completed in the last 20 days (FOR-228). History comes
 // from daily_checkins.spirit_state, the mirror MorningProtocol writes on every
-// save; TODAY comes from the local cache it writes first, because onSaved
-// fires before the mirror lands and a protocol finished seconds ago has to
-// count now, not after a remount. Every entry carries the protocol's own
-// 4am-cutoff date, so a pre-dawn finish counts for the morning it belonged
-// to; a couple of extra rows on the query keep it inside the window.
+// save; TODAY's latest state comes from the local cache it writes first,
+// because onSaved fires before the mirror lands and a protocol finished
+// seconds ago has to count now, not after a remount. The cache has no owner,
+// so reconcileLocal trusts it only against a mirror entry this user's own
+// rows already hold, and then lets it replace that entry. Every entry carries
+// the protocol's own 4am-cutoff date, so a pre-dawn finish counts for the
+// morning it belonged to; a couple of extra rows on the query keep it inside
+// the window.
 const PROTOCOL_CACHE_KEY = 'dad-strength-morning-protocol'
 async function fetchProtocolDays(supabase: ReturnType<typeof createClient>, userId: string): Promise<RollingDays> {
   const { data: checkins } = await supabase
@@ -62,10 +68,10 @@ async function fetchProtocolDays(supabase: ReturnType<typeof createClient>, user
     .select('spirit_state')
     .eq('user_id', userId)
     .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
-  const states: (MorningState | null)[] = (checkins ?? []).map((r: { spirit_state: MorningState | null }) => r.spirit_state)
+  let states: (MorningState | null | undefined)[] = (checkins ?? []).map((r: { spirit_state: MorningState | null }) => r.spirit_state)
   try {
     const cached = localStorage.getItem(PROTOCOL_CACHE_KEY)
-    if (cached) states.push({ morning: JSON.parse(cached) })
+    if (cached) states = reconcileLocal(states, JSON.parse(cached) as MorningEntry)
   } catch { /* no cache, or malformed — the mirror still counts */ }
   return rollingDays(protocolCompleteDays(states), localDayWithCutoff(4), 20)
 }
@@ -275,17 +281,22 @@ export default function Dashboard() {
 
   // The daily number recomputes whenever the protocol saves — the same tick
   // the checklist and the objectives card listen to. Tick 0 is the mount, and
-  // the load above already covered it.
+  // the load above already covered it. It runs twice per save: at once, for
+  // the cache, and again after the mirror has had time to land — a rebuild
+  // replaces the protocol, and until the mirror carries the new one the cache
+  // cannot be matched against it.
   useEffect(() => {
     if (protocolTick === 0) return
     let cancelled = false
-    void (async () => {
+    const run = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || cancelled) return
       const next = await fetchProtocolDays(supabase, user.id)
       if (!cancelled) setProtocolDays(next)
-    })()
-    return () => { cancelled = true }
+    }
+    void run()
+    const settle = setTimeout(() => { void run() }, 1500)
+    return () => { cancelled = true; clearTimeout(settle) }
   }, [protocolTick, supabase])
 
   const handleSignOut = async () => {

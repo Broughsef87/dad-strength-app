@@ -25,7 +25,7 @@
 import { readFileSync } from 'node:fs'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import { scheduledDayNumbers, sessionsThisWeek, scheduledDoneDays } from '../../src/lib/programs/schedule.ts'
-import { rollingDays, protocolCompleteDays, trainingAdherence, daysBetween } from '../../src/lib/adherence.ts'
+import { rollingDays, protocolCompleteDays, reconcileLocal, trainingAdherence, daysBetween } from '../../src/lib/adherence.ts'
 
 let checks = 0
 const fails = []
@@ -140,6 +140,25 @@ const doneKeys = protocolCompleteDays(states)
 assert(doneKeys.join(',') === '2026-09-13,2026-09-10',
   `only fully completed protocols count, keyed on their own date — got [${doneKeys.join(',')}]`)
 
+// The local cache against the mirror (Codex, round 2). The cache is newer but
+// has no owner: it counts only against a mirror entry this user's rows hold
+// for the same protocol and day, and then it REPLACES that entry.
+const themed = { theme: 'quiet strength', steps: [{}, {}, {}] }
+const mirrorDone = { morning: { date: '2026-09-13', protocol: themed, completed: [true, true, true] } }
+const mirrorOpen = { morning: { date: '2026-09-13', protocol: themed, completed: [true, false, false] } }
+const history = { morning: { date: '2026-09-12', protocol: themed, completed: [true, true, true] } }
+const localOpen = { date: '2026-09-13', protocol: themed, completed: [true, true, false] }
+const localDone = { date: '2026-09-13', protocol: themed, completed: [true, true, true] }
+const unticked = protocolCompleteDays(reconcileLocal([history, mirrorDone], localOpen))
+assert(unticked.join(',') === '2026-09-12', `a step unticked locally is unticked — the mirror's done snapshot does not survive: [${unticked.join(',')}]`)
+const ticked = protocolCompleteDays(reconcileLocal([history, mirrorOpen], localDone))
+assert(ticked.join(',') === '2026-09-12,2026-09-13', `a protocol finished locally counts before the mirror lands: [${ticked.join(',')}]`)
+const strangers = protocolCompleteDays(reconcileLocal([history], localDone))
+assert(strangers.join(',') === '2026-09-12', `a cache with no matching mirror entry — another account's, or not landed — is ignored: [${strangers.join(',')}]`)
+const rebuilt = protocolCompleteDays(reconcileLocal([history, mirrorDone], { ...localDone, protocol: { theme: 'other', steps: [{}, {}, {}] } }))
+assert(rebuilt.join(',') === '2026-09-12,2026-09-13', `a cache holding a different protocol is not matched to the mirror's: [${rebuilt.join(',')}]`)
+assert(reconcileLocal([history], null).length === 1 && reconcileLocal([history], {}).length === 1, 'no cache, no change')
+
 // ── 3. the dashboard is wired, and the old loop is gone ─────────────────────
 const dash = readLF('../../src/app/dashboard/page.tsx')
 assert(!dash.includes('(i === 0 && diff <= 1)'), 'the consecutive-day loop is gone from the dashboard')
@@ -154,10 +173,13 @@ assert(/localDayWithCutoff\(4\)/.test(dash), 'the rolling window uses the protoc
 // recomputes on the protocol's save tick, and today comes from the local
 // cache MorningProtocol writes BEFORE its mirror lands.
 assert((dash.match(/fetchProtocolDays\(/g) || []).length >= 3, 'one fetch function serves the load and the refresh')
-assert(/if \(protocolTick === 0\) return[\s\S]{0,400}fetchProtocolDays\([\s\S]{0,200}\}, \[protocolTick, supabase\]\)/.test(dash),
+assert(/if \(protocolTick === 0\) return[\s\S]{0,500}fetchProtocolDays\([\s\S]{0,500}\}, \[protocolTick, supabase\]\)/.test(dash),
   'the daily number recomputes on the protocol save tick')
-assert(dash.includes("'dad-strength-morning-protocol'") && /localStorage\.getItem\(PROTOCOL_CACHE_KEY\)[\s\S]{0,120}states\.push\(\{ morning: JSON\.parse\(cached\) \}\)/.test(dash),
-  'today\'s completion is read from the protocol\'s local cache, not only the mirror')
+assert(dash.includes("'dad-strength-morning-protocol'") && /localStorage\.getItem\(PROTOCOL_CACHE_KEY\)[\s\S]{0,140}reconcileLocal\(states, JSON\.parse\(cached\)/.test(dash),
+  'today\'s completion is read from the protocol\'s local cache, reconciled against the mirror — never unioned, never unowned')
+assert(!/states\.push\(\{ morning/.test(dash), 'the cache is not appended raw')
+assert(/if \(protocolTick === 0\) return[\s\S]{0,700}const settle = setTimeout\(\(\) => \{ void run\(\) \}, \d+\)/.test(dash),
+  'each save refetches again once the mirror has had time to land')
 assert(dash.includes('trainingAdherence('), 'the dashboard computes the weekly training number')
 assert(/training\.done\}\/\{training\.prescribed\}/.test(dash), 'the weekly number renders done/prescribed')
 assert(/protocolDays\.done\}\/\{protocolDays\.window\}/.test(dash), 'the daily number renders done/window')

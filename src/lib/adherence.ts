@@ -59,13 +59,44 @@ export function rollingDays(doneDays: Iterable<string>, today: string, window = 
   return { done: inWindow.size, window }
 }
 
+/** One saved protocol — the shape MorningProtocol caches locally and mirrors. */
+export interface MorningEntry {
+  date?: string
+  protocol?: { theme?: string; steps?: unknown[] }
+  completed?: boolean[]
+}
+
 /** The shape MorningProtocol mirrors into daily_checkins.spirit_state. */
 export interface MorningState {
-  morning?: {
-    date?: string
-    protocol?: { steps?: unknown[] }
-    completed?: boolean[]
-  } | null
+  morning?: MorningEntry | null
+}
+
+/**
+ * Reconcile the local cache MorningProtocol writes FIRST against the mirror
+ * it writes after.
+ *
+ * The cache is the newer state — onSaved fires before the mirror lands — but
+ * it carries no owner: it is one browser-wide key, and a previous account's
+ * completion would otherwise count for whoever signs in next. So it is
+ * trusted only when the mirror, which is row-level-secured to the signed-in
+ * user, already holds the same protocol for the same day; then the cache is
+ * that entry's latest state and REPLACES it — a step unticked seconds ago is
+ * unticked, not unioned with the snapshot that still says done. A cache with
+ * no matching mirror entry is ignored: someone else's, or a protocol so new
+ * that nothing on it can be complete yet.
+ */
+export function reconcileLocal(
+  states: Iterable<MorningState | null | undefined>,
+  local: MorningEntry | null | undefined,
+): (MorningState | null | undefined)[] {
+  const all = [...states]
+  if (!local?.date) return all
+  const same = (m: MorningEntry | null | undefined) =>
+    !!m && m.date === local.date
+    && m.protocol?.theme === local.protocol?.theme
+    && (m.protocol?.steps?.length ?? -1) === (local.protocol?.steps?.length ?? -1)
+  if (!all.some((s) => same(s?.morning))) return all
+  return [...all.filter((s) => !same(s?.morning)), { morning: local }]
 }
 
 /**
