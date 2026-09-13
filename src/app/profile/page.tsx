@@ -10,7 +10,6 @@ import {
 } from 'lucide-react'
 import BottomNav from '../../components/BottomNav'
 import DadOfMonth from '../../components/DadOfMonth'
-import StreakShield from '../../components/StreakShield'
 import { useSubscription } from '../../contexts/SubscriptionContext'
 import UpgradeModal from '../../components/UpgradeModal'
 import BodyVitals from '../../components/BodyVitals';
@@ -215,8 +214,6 @@ export default function Profile() {
         <RecoveryProtocol />
 
         <DadOfMonth />
-
-        <StreakShield />
 
         {/* Stats */}
         {loading ? (

@@ -63,8 +63,19 @@ const STORAGE_KEY = 'dad-strength-morning-protocol'
 const todayKey = () => localDayWithCutoff(4)
 
 export default function MorningProtocol(
-  { objectives = [], onSaved }:
-  { objectives?: string[]; onSaved?: () => void } = {},
+  { objectives = [], onSaved, onProtocolSaved }:
+  {
+    objectives?: string[]
+    /** Something was written — protocol OR objectives. Siblings that read either listen here. */
+    onSaved?: () => void
+    /**
+     * The PROTOCOL cache was just written (saveCache only, never the
+     * objectives path). The adherence count trusts the local cache only on
+     * the heels of this signal; an objectives-only save must not trip it,
+     * because then a stale cache would override a completion made elsewhere.
+     */
+    onProtocolSaved?: () => void
+  } = {},
 ) {
   const [minutes, setMinutes] = useState(20)
   const [sleep, setSleep] = useState('ok')
@@ -178,6 +189,9 @@ export default function MorningProtocol(
     // right beside the Saved confirmation. Consumers decide what a save means
     // to them; this signal only says that something was written.
     onSaved?.()
+    // ...and this one says the protocol cache specifically was written. Only
+    // here — saveMindState writes objectives, not the cache.
+    onProtocolSaved?.()
     // Mirror to daily_checkins.spirit_state so state follows the user across
     // devices. Upsert touches only the provided columns — mind_state is safe.
     void (async () => {
@@ -185,10 +199,16 @@ export default function MorningProtocol(
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
+        // The row is keyed on the protocol's OWN day — the same 4am-cutoff
+        // key the entry carries — not the calendar day. Keyed on the calendar
+        // day, a protocol finished at 1am landed in the next day's row, and
+        // generating that day's protocol after 4am overwrote it: a completed
+        // protocol gone (FOR-228, ruling 2). The loader below reads today and
+        // yesterday, so a pre-dawn row is still found.
         await supabase.from('daily_checkins').upsert(
           {
             user_id: user.id,
-            date: localDay(),
+            date: todayKey(),
             spirit_state: { morning: { date: todayKey(), protocol: p, completed: c, gratitude: g } },
             updated_at: new Date().toISOString(),
           },

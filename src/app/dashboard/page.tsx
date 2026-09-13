@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   PlayCircle,
-  Flame,
+  Sun,
   Settings,
   ChevronRight,
   Dumbbell,
@@ -25,6 +25,11 @@ import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
 import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../../lib/programs/schedule'
+import {
+  rollingDays, protocolCompleteDays, reconcileLocal, localMatchesMirror, trainingAdherence,
+  type RollingDays, type MorningState, type MorningEntry,
+} from '../../lib/adherence'
+import { localDay, localDayWithCutoff } from '../../utils/day'
 
 interface ActiveProgramData {
   slug: string
@@ -45,6 +50,59 @@ interface WorkoutData {
   description?: string
 }
 
+// ── The daily number ─────────────────────────────────────────────────────────
+// Morning protocols completed in the last 20 days (FOR-228). History comes
+// from daily_checkins.spirit_state, the mirror MorningProtocol writes on every
+// save; TODAY's latest state comes from the local cache it writes first,
+// because onSaved fires before the mirror lands and a protocol finished
+// seconds ago has to count now, not after a remount. The cache has no owner,
+// so reconcileLocal trusts it only against a mirror entry this user's own
+// rows already hold, and then lets it replace that entry. Every entry carries
+// the protocol's own 4am-cutoff date, so a pre-dawn finish counts for the
+// morning it belonged to; a couple of extra rows on the query keep it inside
+// the window.
+//
+// The cache is consulted ONLY on the heels of a local save (Codex, round 3).
+// On a plain load it is not the newest state: a protocol opened here and
+// finished on the phone leaves this device's cache stale, and it would have
+// replaced the mirror's completed entry with its own unfinished one. On load
+// the mirror is the truth — MorningProtocol re-syncs the cache from it and
+// fires no tick for that, which is fine, because the mirror already counts.
+const PROTOCOL_CACHE_KEY = 'dad-strength-morning-protocol'
+async function fetchProtocolDays(
+  supabase: ReturnType<typeof createClient>, userId: string, { pendingLocalSave }: { pendingLocalSave: boolean },
+): Promise<{ days: RollingDays; settled: boolean }> {
+  // One protocol day can be mirrored in two rows during the row-key
+  // transition — a legacy row keyed on the calendar day and the canonical row
+  // keyed on the protocol's own day — and only one snapshot of a day is
+  // judged. The row's date says which kind it is; the canonical row wins
+  // outright. updated_at breaks ties only within a kind, because it also
+  // moves when objectives are saved into the row.
+  const { data: checkins } = await supabase
+    .from('daily_checkins')
+    .select('spirit_state, updated_at, date')
+    .eq('user_id', userId)
+    .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
+  let states: (MorningState | null | undefined)[] = (checkins ?? []).map(
+    (r: { spirit_state: MorningState | null; updated_at: string | null; date: string }) =>
+      ({ morning: r.spirit_state?.morning, at: r.updated_at, row: r.date }),
+  )
+  // settled: the mirror already holds what the cache holds, so nothing is
+  // still in flight and no further read is needed.
+  let settled = true
+  if (pendingLocalSave) {
+    try {
+      const cached = localStorage.getItem(PROTOCOL_CACHE_KEY)
+      if (cached) {
+        const local = JSON.parse(cached) as MorningEntry
+        settled = localMatchesMirror(states, local)
+        states = reconcileLocal(states, local)
+      }
+    } catch { /* no cache, or malformed — the mirror still counts */ }
+  }
+  return { days: rollingDays(protocolCompleteDays(states), localDayWithCutoff(4), 20), settled }
+}
+
 export default function Dashboard() {
   const [supabase] = useState(() => createClient())
   const router = useRouter()
@@ -57,7 +115,11 @@ export default function Dashboard() {
   // Source of truth — replaces the old per-device dad-strength-week-progress-*
   // localStorage for Zeus.
   const [zeusDoneDays, setZeusDoneDays] = useState<number[]>([])
-  const [streak, setStreak] = useState(0)
+  // The DAILY number: morning protocols completed in the last 20 days. A
+  // rolling window, not a streak — it cannot reset (FOR-228). The WEEKLY
+  // training number is derived below from the same done days the week strip
+  // lights; the two are never blended.
+  const [protocolDays, setProtocolDays] = useState<RollingDays>({ done: 0, window: 20 })
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
   const [checklistDone, setChecklistDone] = useState(false)
   const [firstName, setFirstName] = useState('')
@@ -68,6 +130,10 @@ export default function Dashboard() {
   // component in the same tab can observe — the storage event is cross-tab
   // only. Without this the item stays unchecked for the whole session.
   const [protocolTick, setProtocolTick] = useState(0)
+  // Protocol-cache saves only (Codex, round 6). onSaved also fires for an
+  // objectives-only save, which writes nothing to the protocol cache; the
+  // adherence count must not take that as "the cache is fresh".
+  const [protocolSaveTick, setProtocolSaveTick] = useState(0)
 
   // ?protocol=1 no longer gates whether the protocol renders — it always does.
   // What it still has to do is FOCUS it. Arrivals from the /mind and /spirit
@@ -238,26 +304,39 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      const { data: logDates } = await supabase
-        .from('workout_logs')
-        .select('created_at')
-        .eq('user_id', user.id)
-        .eq('completed', true)
-        .order('created_at', { ascending: false })
-
-      const uniqueDays: string[] = Array.from(new Set((logDates || []).map((l: { created_at: string }) => new Date(l.created_at).toDateString())))
-      let s = 0
-      const today = new Date(); today.setHours(0, 0, 0, 0)
-      for (let i = 0; i < uniqueDays.length; i++) {
-        const d = new Date(uniqueDays[i]); d.setHours(0, 0, 0, 0)
-        const diff = Math.round((today.getTime() - d.getTime()) / 86400000)
-        if (diff === i || (i === 0 && diff <= 1)) s++; else break
-      }
-      setStreak(s)
+      setProtocolDays((await fetchProtocolDays(supabase, user.id, { pendingLocalSave: false })).days)
       setLoading(false)
     }
     loadDashboard()
   }, [router])
+
+  // The daily number recomputes whenever the PROTOCOL cache saves — not the
+  // general tick the checklist and the objectives card listen to, which also
+  // fires for an objectives-only save that leaves the cache untouched and
+  // possibly stale. Tick 0 is the mount, and the load above already covered
+  // it. It reads at once, for the cache, and then again until the mirror
+  // holds what the cache holds: a rebuild replaces the protocol, the cache
+  // cannot be matched until the mirror carries the new one, and that upsert
+  // takes as long as it takes. Bounded, so a write that never lands cannot
+  // keep this polling.
+  useEffect(() => {
+    if (protocolSaveTick === 0) return
+    let cancelled = false
+    const run = async (): Promise<boolean> => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return true
+      const { days, settled } = await fetchProtocolDays(supabase, user.id, { pendingLocalSave: true })
+      if (!cancelled) setProtocolDays(days)
+      return settled
+    }
+    void (async () => {
+      for (let attempt = 0; attempt < 6 && !cancelled; attempt++) {
+        if (await run()) break
+        await new Promise((r) => setTimeout(r, 1500))
+      }
+    })()
+    return () => { cancelled = true }
+  }, [protocolSaveTick, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -271,6 +350,16 @@ export default function Dashboard() {
       </div>
     )
   }
+
+  // The WEEKLY number: scheduled sessions done vs prescribed, this week. The
+  // same done days the strip lights, so the two agree by construction.
+  const registryProgram = activeProgram ? getProgram(activeProgram.slug ?? '') : null
+  const training = registryProgram && activeProgram
+    ? trainingAdherence([{
+        done: scheduledDoneDays(zeusDoneDays, registryProgram, activeProgram.currentWeek).length,
+        prescribed: sessionsThisWeek(registryProgram, activeProgram.currentWeek),
+      }])
+    : null
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28 md:pb-8 relative">
@@ -364,7 +453,10 @@ export default function Dashboard() {
                 protocolTick={protocolTick}
               />
               <div ref={protocolRef}>
-                <MorningProtocol onSaved={() => setProtocolTick(t => t + 1)} />
+                <MorningProtocol
+                  onSaved={() => setProtocolTick(t => t + 1)}
+                  onProtocolSaved={() => setProtocolSaveTick(t => t + 1)}
+                />
               </div>
               {/* Objectives are SET in the protocol's Goals step, which writes
                   mind_state; this card is the only thing that reads them back
@@ -393,10 +485,14 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  {streak > 0 && (
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Flame size={12} />
-                      <span className="stat-num text-[13px]">{streak}</span>
+                  {protocolDays.done > 0 && (
+                    <div
+                      className="flex items-center gap-1 text-muted-foreground"
+                      title={`morning protocol · ${protocolDays.done} of the last ${protocolDays.window} days`}
+                    >
+                      <Sun size={12} aria-hidden="true" />
+                      <span className="stat-num text-[13px]">{protocolDays.done}/{protocolDays.window}</span>
+                      <span className="sr-only">morning protocol, {protocolDays.done} of the last {protocolDays.window} days</span>
                     </div>
                   )}
                   {activeProgram && (
@@ -411,16 +507,16 @@ export default function Dashboard() {
               </div>
 
               {/* Week strip — one pill per day, volt for done */}
-              {activeProgram && getProgram(activeProgram.slug ?? '') && (
+              {activeProgram && registryProgram && training && (
                 <div className="mb-4">
                   <div className="day-pills">
-                    {scheduledDayNumbers(getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek).map(d => (
+                    {scheduledDayNumbers(registryProgram, activeProgram.currentWeek).map(d => (
                       <span key={d} className={`day-pill ${zeusDoneDays.includes(d) ? 'on' : ''}`} />
                     ))}
                   </div>
                   <div className="flex justify-between mt-1.5 data-mono">
-                    <span>sessions</span>
-                    <span className="v">{scheduledDoneDays(zeusDoneDays, getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek).length}/{sessionsThisWeek(getProgram(activeProgram.slug ?? '')!, activeProgram.currentWeek)}</span>
+                    <span>sessions this week</span>
+                    <span className="v">{training.done}/{training.prescribed}</span>
                   </div>
                 </div>
               )}
