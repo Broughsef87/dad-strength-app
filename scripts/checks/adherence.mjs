@@ -178,6 +178,14 @@ assert(/if \(protocolTick === 0\) return[\s\S]{0,500}fetchProtocolDays\([\s\S]{0
 assert(dash.includes("'dad-strength-morning-protocol'") && /localStorage\.getItem\(PROTOCOL_CACHE_KEY\)[\s\S]{0,140}reconcileLocal\(states, JSON\.parse\(cached\)/.test(dash),
   'today\'s completion is read from the protocol\'s local cache, reconciled against the mirror — never unioned, never unowned')
 assert(!/states\.push\(\{ morning/.test(dash), 'the cache is not appended raw')
+// Codex, round 3: on a plain load the cache can be STALE — opened here,
+// finished on another device — so it is consulted only after a local save.
+assert(/if \(pendingLocalSave\) \{[\s\S]{0,200}localStorage\.getItem\(PROTOCOL_CACHE_KEY\)/.test(dash),
+  'the cache is read only on the heels of a local save')
+assert(/setProtocolDays\(await fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: false \}\)\)/.test(dash),
+  'the load path trusts the mirror alone')
+assert(/if \(protocolTick === 0\) return[\s\S]{0,600}fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: true \}\)/.test(dash),
+  'the save-tick path is the one that consults the cache')
 assert(/if \(protocolTick === 0\) return[\s\S]{0,700}const settle = setTimeout\(\(\) => \{ void run\(\) \}, \d+\)/.test(dash),
   'each save refetches again once the mirror has had time to land')
 assert(dash.includes('trainingAdherence('), 'the dashboard computes the weekly training number')

@@ -61,18 +61,29 @@ interface WorkoutData {
 // the protocol's own 4am-cutoff date, so a pre-dawn finish counts for the
 // morning it belonged to; a couple of extra rows on the query keep it inside
 // the window.
+//
+// The cache is consulted ONLY on the heels of a local save (Codex, round 3).
+// On a plain load it is not the newest state: a protocol opened here and
+// finished on the phone leaves this device's cache stale, and it would have
+// replaced the mirror's completed entry with its own unfinished one. On load
+// the mirror is the truth — MorningProtocol re-syncs the cache from it and
+// fires no tick for that, which is fine, because the mirror already counts.
 const PROTOCOL_CACHE_KEY = 'dad-strength-morning-protocol'
-async function fetchProtocolDays(supabase: ReturnType<typeof createClient>, userId: string): Promise<RollingDays> {
+async function fetchProtocolDays(
+  supabase: ReturnType<typeof createClient>, userId: string, { pendingLocalSave }: { pendingLocalSave: boolean },
+): Promise<RollingDays> {
   const { data: checkins } = await supabase
     .from('daily_checkins')
     .select('spirit_state')
     .eq('user_id', userId)
     .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
   let states: (MorningState | null | undefined)[] = (checkins ?? []).map((r: { spirit_state: MorningState | null }) => r.spirit_state)
-  try {
-    const cached = localStorage.getItem(PROTOCOL_CACHE_KEY)
-    if (cached) states = reconcileLocal(states, JSON.parse(cached) as MorningEntry)
-  } catch { /* no cache, or malformed — the mirror still counts */ }
+  if (pendingLocalSave) {
+    try {
+      const cached = localStorage.getItem(PROTOCOL_CACHE_KEY)
+      if (cached) states = reconcileLocal(states, JSON.parse(cached) as MorningEntry)
+    } catch { /* no cache, or malformed — the mirror still counts */ }
+  }
   return rollingDays(protocolCompleteDays(states), localDayWithCutoff(4), 20)
 }
 
@@ -273,7 +284,7 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      setProtocolDays(await fetchProtocolDays(supabase, user.id))
+      setProtocolDays(await fetchProtocolDays(supabase, user.id, { pendingLocalSave: false }))
       setLoading(false)
     }
     loadDashboard()
@@ -291,7 +302,7 @@ export default function Dashboard() {
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || cancelled) return
-      const next = await fetchProtocolDays(supabase, user.id)
+      const next = await fetchProtocolDays(supabase, user.id, { pendingLocalSave: true })
       if (!cancelled) setProtocolDays(next)
     }
     void run()
