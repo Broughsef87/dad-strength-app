@@ -149,6 +149,15 @@ assert(dash.includes("from('daily_checkins')") && dash.includes('protocolComplet
   'the daily number reads morning-protocol completion out of daily_checkins')
 assert(dash.includes('rollingDays('), 'the dashboard computes the rolling number')
 assert(/localDayWithCutoff\(4\)/.test(dash), 'the rolling window uses the protocol\'s 4am-cutoff day key')
+// Codex, round 1: the number was computed once, in the load effect, and a
+// protocol finished on the same page stayed uncounted until a remount. It
+// recomputes on the protocol's save tick, and today comes from the local
+// cache MorningProtocol writes BEFORE its mirror lands.
+assert((dash.match(/fetchProtocolDays\(/g) || []).length >= 3, 'one fetch function serves the load and the refresh')
+assert(/if \(protocolTick === 0\) return[\s\S]{0,400}fetchProtocolDays\([\s\S]{0,200}\}, \[protocolTick, supabase\]\)/.test(dash),
+  'the daily number recomputes on the protocol save tick')
+assert(dash.includes("'dad-strength-morning-protocol'") && /localStorage\.getItem\(PROTOCOL_CACHE_KEY\)[\s\S]{0,120}states\.push\(\{ morning: JSON\.parse\(cached\) \}\)/.test(dash),
+  'today\'s completion is read from the protocol\'s local cache, not only the mirror')
 assert(dash.includes('trainingAdherence('), 'the dashboard computes the weekly training number')
 assert(/training\.done\}\/\{training\.prescribed\}/.test(dash), 'the weekly number renders done/prescribed')
 assert(/protocolDays\.done\}\/\{protocolDays\.window\}/.test(dash), 'the daily number renders done/window')

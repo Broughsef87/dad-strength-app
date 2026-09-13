@@ -47,6 +47,29 @@ interface WorkoutData {
   description?: string
 }
 
+// ── The daily number ─────────────────────────────────────────────────────────
+// Morning protocols completed in the last 20 days (FOR-228). History comes
+// from daily_checkins.spirit_state, the mirror MorningProtocol writes on every
+// save; TODAY comes from the local cache it writes first, because onSaved
+// fires before the mirror lands and a protocol finished seconds ago has to
+// count now, not after a remount. Every entry carries the protocol's own
+// 4am-cutoff date, so a pre-dawn finish counts for the morning it belonged
+// to; a couple of extra rows on the query keep it inside the window.
+const PROTOCOL_CACHE_KEY = 'dad-strength-morning-protocol'
+async function fetchProtocolDays(supabase: ReturnType<typeof createClient>, userId: string): Promise<RollingDays> {
+  const { data: checkins } = await supabase
+    .from('daily_checkins')
+    .select('spirit_state')
+    .eq('user_id', userId)
+    .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
+  const states: (MorningState | null)[] = (checkins ?? []).map((r: { spirit_state: MorningState | null }) => r.spirit_state)
+  try {
+    const cached = localStorage.getItem(PROTOCOL_CACHE_KEY)
+    if (cached) states.push({ morning: JSON.parse(cached) })
+  } catch { /* no cache, or malformed — the mirror still counts */ }
+  return rollingDays(protocolCompleteDays(states), localDayWithCutoff(4), 20)
+}
+
 export default function Dashboard() {
   const [supabase] = useState(() => createClient())
   const router = useRouter()
@@ -244,24 +267,26 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      // Morning protocols completed in the last 20 days. MorningProtocol
-      // mirrors each save into daily_checkins.spirit_state under the calendar
-      // day, stamped with its own 4am-cutoff date; a couple of extra rows on
-      // the query side keep a pre-dawn finish inside the window.
-      const { data: checkins } = await supabase
-        .from('daily_checkins')
-        .select('spirit_state')
-        .eq('user_id', user.id)
-        .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
-      setProtocolDays(rollingDays(
-        protocolCompleteDays((checkins ?? []).map((r: { spirit_state: MorningState | null }) => r.spirit_state)),
-        localDayWithCutoff(4),
-        20,
-      ))
+      setProtocolDays(await fetchProtocolDays(supabase, user.id))
       setLoading(false)
     }
     loadDashboard()
   }, [router])
+
+  // The daily number recomputes whenever the protocol saves — the same tick
+  // the checklist and the objectives card listen to. Tick 0 is the mount, and
+  // the load above already covered it.
+  useEffect(() => {
+    if (protocolTick === 0) return
+    let cancelled = false
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+      const next = await fetchProtocolDays(supabase, user.id)
+      if (!cancelled) setProtocolDays(next)
+    })()
+    return () => { cancelled = true }
+  }, [protocolTick, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
