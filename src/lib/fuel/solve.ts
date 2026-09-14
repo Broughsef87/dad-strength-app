@@ -188,10 +188,19 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
   // L1: subtract what is on hand from the dinner need. Inventory is matched
   // by item name; units convert where the table knows how, otherwise they
   // must match exactly. Meat on hand counts at (1 − diversion).
+  //
+  // What is on hand goes to the MAIN shop first, then the second trip, in
+  // store order — never in the order the nights were tapped (Codex, round
+  // 4): the same plan must produce the same trips whichever meal was picked
+  // first, and produce already in the fridge is used this week, not next.
   const inventory = household.inventory.map((i) => ({ ...i, left: i.qty }))
   const stocked: ListItem[] = []
   const lines: ListItem[] = []
-  for (const [key, b] of buckets) {
+  const order = new Map(household.store_section_order.map((s, i) => [s, i]))
+  const rank = (s: string) => order.get(s) ?? household.store_section_order.length
+  const allocation = [...buckets.entries()].sort(([, a], [, b]) =>
+    Number(a.second_trip) - Number(b.second_trip) || rank(a.section) - rank(b.section) || a.section.localeCompare(b.section) || a.item.localeCompare(b.item))
+  for (const [key, b] of allocation) {
     let need = b.need
     let reason: string | undefined
     for (const inv of inventory) {
@@ -222,8 +231,6 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
   }
 
   // Store order: the household's walk, unknown sections after it, alphabetical.
-  const order = new Map(household.store_section_order.map((s, i) => [s, i]))
-  const rank = (s: string) => order.get(s) ?? household.store_section_order.length
   const byPlace = (a: ListItem, b: ListItem) => rank(a.section) - rank(b.section) || a.section.localeCompare(b.section) || a.item.localeCompare(b.item)
   const main = lines.filter((l) => !l.second_trip).sort(byPlace)
   const second_trip = lines.filter((l) => l.second_trip).sort(byPlace)

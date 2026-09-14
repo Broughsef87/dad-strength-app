@@ -10,7 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Household, ListItem, MealRow, Plan } from './types'
 import { buildShoppingList } from './solve'
 import { snapshot, type RulesSnapshot } from './version'
-import { activeCycle, type CycleRow } from './cycle'
+import { activeCycle, upcomingCycle, type CycleRow } from './cycle'
 
 // The client util returns a stub when env is missing (build time); this is
 // the loosest shape both satisfy.
@@ -104,17 +104,26 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
  * fourteen days from its start (cycle.ts), so the second week — and the
  * second trip — is still on the page.
  */
-export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
+export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; upcoming: PlanRow | null; error: { code?: string; message?: string } | null }> {
   // The last few starts are enough: anything older than a cycle is not live.
   const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot')
     .eq('user_id', userId).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(20)
-  if (error || !rows?.length) return { plan: null, list: null, error }
+  if (error || !rows?.length) return { plan: null, list: null, upcoming: null, error }
   const candidates = (rows as PlanRow[]).map((r) => ({ ...r, shop_cadence_days: Number(r.rules_snapshot?.shop_cadence_days ?? 7) }))
-  const plan = activeCycle<PlanRow & CycleRow>(candidates, today)
-  if (!plan) return { plan: null, list: null, error: null }
+  // A cycle planned ahead is loadable before it is live (Codex, round 4).
+  const upcoming = upcomingCycle<PlanRow & CycleRow>(candidates, today)
+  const plan = activeCycle<PlanRow & CycleRow>(candidates, today) ?? upcoming
+  if (!plan) return { plan: null, list: null, upcoming: null, error: null }
   const { data: list, error: lerr } = await db.from('fuel_lists').select('id, plan_id, version, items, updated_at')
     .eq('plan_id', plan.id).order('version', { ascending: false }).limit(1).maybeSingle()
-  return { plan, list: (list as ListRow | null) ?? null, error: lerr }
+  return { plan, list: (list as ListRow | null) ?? null, upcoming: upcoming && upcoming.id !== plan.id ? upcoming : null, error: lerr }
+}
+
+/** The newest list for a plan — used to resume a cycle the athlete chose. */
+export async function loadListFor(db: Db, planId: string): Promise<ListRow | null> {
+  const { data } = await db.from('fuel_lists').select('id, plan_id, version, items, updated_at')
+    .eq('plan_id', planId).order('version', { ascending: false }).limit(1).maybeSingle()
+  return (data as ListRow | null) ?? null
 }
 
 /** Every version of a cycle, oldest first — proof that regeneration keeps history. */

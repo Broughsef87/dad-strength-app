@@ -10,7 +10,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import type { ListItem } from '../../lib/fuel/types'
 import { SECOND_TRIP_SECTION, STOCKED_SECTION } from '../../lib/fuel/solve'
-import { acknowledge, enqueue, outboxKey, progress, reconcile, render, type TickIntent } from '../../lib/fuel/ticks'
+import { acknowledge, enqueue, outboxKey, pendingFor, progress, reconcile, render, type TickIntent } from '../../lib/fuel/ticks'
+
+// Keys with a write in flight, PER LIST and shared across mounts: a checklist
+// unmounted mid-write (the athlete switched steps) still has that write
+// outstanding when the next instance mounts, and that instance's first
+// reconciliation read must not prune the intent the write is about to
+// overturn (Codex, round 4).
+const inFlightByList = new Map<string, Set<string>>()
+const inFlightFor = (listId: string) => { let s = inFlightByList.get(listId); if (!s) { s = new Set(); inFlightByList.set(listId, s) } return s }
 
 function readOutbox(listId: string): TickIntent[] {
   try { const raw = localStorage.getItem(outboxKey(listId)); return raw ? (JSON.parse(raw) as TickIntent[]) : [] } catch { return [] }
@@ -53,7 +61,13 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   const writes = useRef(0)
   // Keys with a write in flight. A reconciliation read that lands while one
   // is outstanding must not prune that key's newer intent (Codex, round 3).
-  const inFlight = useRef<Set<string>>(new Set())
+  const inFlight = useRef<Set<string>>(inFlightFor(listId))
+  // This instance's lifetime. An acknowledgement that arrives after unmount
+  // belongs to nobody: the write committed, the next instance's reconcile
+  // read will see it, and publishing it here would put an older snapshot
+  // over what the new instance has since done (Codex, round 4).
+  const mounted = useRef(true)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
   useEffect(() => { writeOutbox(listId, outbox) }, [listId, outbox])
   useEffect(() => {
@@ -69,11 +83,12 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
     if (flushing.current) return
     flushing.current = true
     try {
-      while (outboxRef.current.length > 0 && navigator.onLine) {
+      while (outboxRef.current.length > 0 && navigator.onLine && mounted.current) {
         const intent = outboxRef.current[0]
         inFlight.current.add(intent.key)
         let items: ListItem[] | null = null
         try { items = await send(intent.key, intent.checked) } finally { inFlight.current.delete(intent.key) }
+        if (!mounted.current) break
         if (!items) { setFailed((f) => new Set(f).add(intent.key)); break }
         const next = acknowledge(items, outboxRef.current, intent)
         outboxRef.current = next.outbox
@@ -105,7 +120,11 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   }, [online, listId, refetch, onRowItems, flush])
 
   const tap = (item: ListItem, shown: boolean) => {
-    const intent: TickIntent = { key: item.key, checked: !shown, at: Date.now() }
+    // A row that says "not saved · tap again" is retried AS ASKED: the tap
+    // re-sends the failed intent's value rather than flipping the shown one
+    // (Codex, round 4). Any other tap toggles what is shown.
+    const failedIntent = failed.has(item.key) ? pendingFor(outboxRef.current, item.key) : undefined
+    const intent: TickIntent = { key: item.key, checked: failedIntent ? failedIntent.checked : !shown, at: Date.now() }
     const next = enqueue(outboxRef.current, intent)
     outboxRef.current = next; setOutbox(next)
     setFailed((f) => { const n = new Set(f); n.delete(item.key); return n })

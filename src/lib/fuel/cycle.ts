@@ -67,6 +67,34 @@ export function cycleKeyFor(active: CycleRow | null, today: Date): string {
   return active ? active.week_start : cycleStartFor(today)
 }
 
+/**
+ * The key a REBUILD of the live cycle gets. Normally the live start. But a
+ * household that shortens its cadence mid-cycle — a fortnight rebuilt as
+ * weekly on day nine — would snapshot a cycle that is already over, and the
+ * new version would be invisible on reload (Codex, round 4). When today is
+ * past the new cadence, the rebuild is a fresh cycle keyed on this week.
+ */
+export function rebuildKey(active: CycleRow, newCadenceDays: number, today: Date): string {
+  const into = daysInto(active.week_start, today)
+  return into >= Math.max(7, newCadenceDays) ? cycleStartFor(today) : active.week_start
+}
+
+/**
+ * A cycle planned AHEAD — its start is after tomorrow — is not live yet but
+ * must not be lost (Codex, round 4): the nearest upcoming start, highest
+ * version, or null.
+ */
+export function upcomingCycle<T extends CycleRow>(rows: T[], today: Date): T | null {
+  const latest = new Map<string, T>()
+  for (const r of rows) {
+    const cur = latest.get(r.week_start)
+    if (!cur || r.version > cur.version) latest.set(r.week_start, r)
+  }
+  const ahead = [...latest.values()].filter((r) => daysInto(r.week_start, today) < -1)
+  if (!ahead.length) return null
+  return ahead.sort((a, b) => a.week_start.localeCompare(b.week_start))[0]
+}
+
 /** The Monday the cycle after `active` starts on — its start plus its cadence. */
 export function nextCycleStart(active: CycleRow): string {
   const start = parse(active.week_start)

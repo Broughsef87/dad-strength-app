@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, defaultServings, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
-import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, mondayOf, nextCycleStart, planningMode } from '../../src/lib/fuel/cycle.ts'
+import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, mondayOf, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, enqueue, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
@@ -113,6 +113,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // mismatched units are not subtracted
   const l5 = buildShoppingList({ ...andrew, inventory: [{ item: 'lemon', qty: 3, unit: 'lb' }] }, meals, fortnight)
   assert(find(l5, 'lemon')?.qty === 2.5, 'inventory in a unit the item is not measured in is not subtracted')
+  // inventory goes to the MAIN trip first, whichever night was tapped first (Codex r4)
+  const hh = { ...andrew, inventory: [{ item: 'broccoli', qty: 12, unit: 'oz' }] }
+  const codFirst = buildShoppingList(hh, meals, { entries: [entry('blackened-cod', 2), entry('cast-iron-ribeye', 1)] })
+  const ribeyeFirst = buildShoppingList(hh, meals, { entries: [entry('cast-iron-ribeye', 1), entry('blackened-cod', 2)] })
+  assert(JSON.stringify(codFirst.items) === JSON.stringify(ribeyeFirst.items), 'the same nights make the same trips whichever was picked first')
+  assert(codFirst.stocked.some((i) => i.item === 'broccoli' && !i.second_trip) && find(codFirst, 'broccoli', true)?.qty === 12,
+    '12 oz of broccoli on hand covers the main-trip broccoli; the second trip still buys its own')
 }
 
 // ── 3. sections ─────────────────────────────────────────────────────────────
@@ -191,6 +198,14 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(planningMode(fortnight14, new Date(2026, 8, 27)) === 'next' && planningMode(fortnight14, new Date(2026, 8, 26)) === 'regenerate' && planningMode(fortnight14, new Date(2026, 8, 15)) === 'regenerate' && planningMode(null, new Date(2026, 8, 27)) === 'next',
     'on a cycle\'s final day the default is the next cycle; before that, a rebuild')
   assert(activeCycle([fortnight14, { week_start: '2026-09-28', version: 1, shop_cadence_days: 14 }], new Date(2026, 8, 28))?.week_start === '2026-09-28', 'the next cycle is live on its Monday')
+  // cadence shortened mid-cycle (Codex r4): a fortnight rebuilt as weekly on day 9 is a fresh cycle keyed on this week, not a version already expired
+  assert(rebuildKey(fortnight14, 7, new Date(2026, 8, 23)) === '2026-09-21' && rebuildKey(fortnight14, 14, new Date(2026, 8, 23)) === mon && rebuildKey(fortnight14, 7, new Date(2026, 8, 16)) === mon,
+    'a rebuild that shortens the cadence past today starts a fresh cycle; otherwise it stays in the live one')
+  // planned ahead (Codex r4): a next-cycle plan built on Saturday is loadable before Sunday
+  const ahead = [{ week_start: mon, version: 1, shop_cadence_days: 7 }, { week_start: '2026-09-21', version: 1, shop_cadence_days: 7 }, { week_start: '2026-09-21', version: 2, shop_cadence_days: 7 }]
+  assert(upcomingCycle(ahead, new Date(2026, 8, 19))?.version === 2 && upcomingCycle(ahead, new Date(2026, 8, 19))?.week_start === '2026-09-21', 'the cycle planned ahead is found on Saturday, highest version')
+  assert(upcomingCycle(ahead, new Date(2026, 8, 20)) === null && activeCycle(ahead, new Date(2026, 8, 20))?.week_start === '2026-09-21', 'on Sunday it is no longer upcoming — it is live')
+  assert(upcomingCycle([ahead[0]], new Date(2026, 8, 19)) === null, 'nothing planned ahead, nothing upcoming')
   const st = readLF('src/lib/fuel/store.ts')
   const la = (st.match(/export async function loadActive[\s\S]*?\n\}/) || [])[0] || ''
   assert(/activeCycle</.test(la) && !/eq\('week_start'/.test(la) && /order\('week_start', \{ ascending: false \}\)/.test(la), 'the store loads the live cycle, not only the current calendar week')
@@ -266,8 +281,17 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, entry\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
   assert(/servings: Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
     'a new night defaults to what the household needs; a saved night is raised only if it no longer feeds everyone, otherwise kept as chosen (Codex r2, r3)')
-  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /startingNext && liveCycle \? nextCycleStart\(liveCycle\) : cycleKeyFor\(liveCycle, new Date\(\)\)/.test(pg) && /if \(!startingNext && plan && list && !changed\(/.test(pg) && /planningMode\(/.test(pg),
-    'the page can plan the NEXT cycle — keyed to where the live one ends, defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
+  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /\(upcoming\?\.week_start \?\? nextCycleStart\(liveCycle\)\)/.test(pg) && /if \(!startingNext && plan && list && !changed\(/.test(pg) && /planningMode\(/.test(pg),
+    'the page can plan the NEXT cycle — keyed to where the live one ends (or the cycle already planned ahead), defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
+  assert(/rebuildKey\(liveCycle, household\.shop_cadence_days, new Date\(\)\)/.test(pg), 'a rebuild keys through rebuildKey, so a shortened cadence cannot snapshot an expired cycle')
+  assert(/setUpcoming\(active\.upcoming\)/.test(pg) && /const openUpcoming = async/.test(pg) && /loadListFor\(supabase, upcoming\.id\)/.test(pg) && /open it/.test(pg), 'a cycle planned ahead is loaded and can be opened')
+  const st4 = readLF('src/lib/fuel/store.ts')
+  assert(/const upcoming = upcomingCycle</.test(st4) && /activeCycle<PlanRow & CycleRow>\(candidates, today\) \?\? upcoming/.test(st4), 'the store surfaces the upcoming cycle, and falls back to it when nothing is live')
+  const cl4 = readLF('src/components/fuel/Checklist.tsx')
+  assert(/const inFlightByList = new Map<string, Set<string>>\(\)/.test(cl4) && /useRef<Set<string>>\(inFlightFor\(listId\)\)/.test(cl4), 'in-flight keys are shared across remounts of the same list')
+  assert(/const mounted = useRef\(true\)/.test(cl4) && /if \(!mounted\.current\) break/.test(cl4) && /navigator\.onLine && mounted\.current\)/.test(cl4), 'an unmounted checklist publishes nothing')
+  assert(/const failedIntent = failed\.has\(item\.key\) \? pendingFor\(outboxRef\.current, item\.key\) : undefined/.test(cl4) && /checked: failedIntent \? failedIntent\.checked : !shown/.test(cl4),
+    'tapping a failed row retries the intent as asked, never flips it')
   // round 2: stale reads, cross-list answers, stale lists, version allocation
   const cl7 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const seen = writes\.current/.test(cl7) && /if \(fresh && writes\.current === seen\)/.test(cl7) && /writes\.current \+= 1/.test(cl7),
