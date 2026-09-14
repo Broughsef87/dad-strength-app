@@ -50,14 +50,16 @@ function legacyStreak(logDates, today) {
 }
 
 // ── 1. the reported bug, and the fix ────────────────────────────────────────
-// Dad Strong is the four-lift program: Mon/Wed/Fri/Sat anchored (days 1, 3,
-// 5, 6) plus a floated easy aerobic day. The ticket's premise is the lifts.
-const dadStrong = PROGRAMS['dad-strong']
-assert(!!dadStrong, 'the registry has dad-strong')
+// Andrew lifts Mon/Wed/Fri/Sat and fits the rest in when he can; the ticket's
+// premise is the lifts. Measured against Hybrid Dad — the five-day program
+// this section was first written against (Dad Strong) was cut in FOR-225, and
+// every survivor prescribes six days.
+const sixDay = PROGRAMS['hybrid-dad']
+assert(!!sixDay, 'the registry has hybrid-dad')
 const LIFT_DAYS = [1, 3, 5, 6]
-const w1 = dadStrong ? scheduledDayNumbers(dadStrong, 1) : []
+const w1 = sixDay ? scheduledDayNumbers(sixDay, 1) : []
 assert(LIFT_DAYS.every((d) => w1.includes(d)),
-  `dad-strong schedules Mon/Wed/Fri/Sat — got [${w1.join(',')}]`)
+  `hybrid-dad schedules Mon/Wed/Fri/Sat — got [${w1.join(',')}]`)
 
 // Four weeks of lifting, most recent first, as workout_logs rows. Week 1 is
 // Mon 2026-08-17; the last lift is Sat 2026-09-12.
@@ -80,31 +82,31 @@ assert(oldSun === 1, `old streak on the Sunday after four compliant weeks reads 
 assert(oldMon === 0, `old streak on the Monday after four compliant weeks reads 0 — got ${oldMon}`)
 
 // The new number: every lift counted, against what the program asked for.
-// The registry says a Dad Strong week asks for the four lifts AND the floated
-// aerobic day, so lifts-only reads 16 of 20 — sensible, and honest about the
-// day that was skipped. With the aerobic day too it reads 20 of 20.
+// The registry says a Hybrid Dad week asks for six sessions, so lifts-only
+// reads 16 of 24 — two-thirds, a real number, honest about the days that were
+// skipped, and nothing like the old streak's 0. Every scheduled day: 24 of 24.
 const liftsOnly = trainingAdherence([1, 2, 3, 4].map((w) => ({
-  done: scheduledDoneDays(LIFT_DAYS, dadStrong, w).length,
-  prescribed: sessionsThisWeek(dadStrong, w),
+  done: scheduledDoneDays(LIFT_DAYS, sixDay, w).length,
+  prescribed: sessionsThisWeek(sixDay, w),
 })))
 assert(liftsOnly.done === 16, `four weeks of Mon/Wed/Fri/Sat count 16 sessions done — got ${liftsOnly.done}`)
-assert(liftsOnly.prescribed === 4 * sessionsThisWeek(dadStrong, 1),
+assert(liftsOnly.prescribed === 4 * sessionsThisWeek(sixDay, 1),
   `four weeks prescribe 4 × the registry's weekly count — got ${liftsOnly.prescribed}`)
-assert(liftsOnly.done / liftsOnly.prescribed >= 0.8,
+assert(liftsOnly.done / liftsOnly.prescribed >= 0.6,
   `a lifts-only month reads as adherence, not failure — ${liftsOnly.done}/${liftsOnly.prescribed}`)
 const everything = trainingAdherence([1, 2, 3, 4].map((w) => ({
-  done: scheduledDoneDays(scheduledDayNumbers(dadStrong, w), dadStrong, w).length,
-  prescribed: sessionsThisWeek(dadStrong, w),
+  done: scheduledDoneDays(scheduledDayNumbers(sixDay, w), sixDay, w).length,
+  prescribed: sessionsThisWeek(sixDay, w),
 })))
-assert(everything.done === everything.prescribed && everything.done === 20,
-  `every scheduled session done reads 20 of 20 — got ${everything.done}/${everything.prescribed}`)
-// A ghost day — a completion for a day the program does not schedule — does
-// not count, the same rule the week strip already applies.
-const ghost = trainingAdherence([{ done: scheduledDoneDays([2, 4], dadStrong, 1).length, prescribed: sessionsThisWeek(dadStrong, 1) }])
+assert(everything.done === everything.prescribed && everything.done === 24,
+  `every scheduled session done reads 24 of 24 — got ${everything.done}/${everything.prescribed}`)
+// A ghost day — a completion for a day the program does not schedule (day 7,
+// Hybrid Dad's rest day) — does not count, the same rule the week strip applies.
+const ghost = trainingAdherence([{ done: scheduledDoneDays([7], sixDay, 1).length, prescribed: sessionsThisWeek(sixDay, 1) }])
 assert(ghost.done === 0, `unscheduled days do not count as sessions — got ${ghost.done}`)
 // The weekly read the dashboard shows: one record, the current week.
-const thisWeek = trainingAdherence([{ done: scheduledDoneDays([1, 3], dadStrong, 2).length, prescribed: sessionsThisWeek(dadStrong, 2) }])
-assert(thisWeek.done === 2 && thisWeek.prescribed === 5, `mid-week reads 2 of 5 — got ${thisWeek.done}/${thisWeek.prescribed}`)
+const thisWeek = trainingAdherence([{ done: scheduledDoneDays([1, 3], sixDay, 2).length, prescribed: sessionsThisWeek(sixDay, 2) }])
+assert(thisWeek.done === 2 && thisWeek.prescribed === 6, `mid-week reads 2 of 6 — got ${thisWeek.done}/${thisWeek.prescribed}`)
 
 // ── 2. the rolling number cannot reset ──────────────────────────────────────
 const key = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

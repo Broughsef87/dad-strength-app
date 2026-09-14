@@ -136,7 +136,7 @@ export function dayLabel(plan: DayPlan): string {
  * precisely how Dad Strong's week used to advance.
  *
  * This has to live in the COMPLETION path, not the button. Once rendered ==
- * scheduled no rest day is listed anywhere, but /train/dad-strong/2 is still a
+ * scheduled no rest day is listed anywhere, but /train/<slug>/<a rest day> is still a
  * URL anyone can type, and until FOR-196 it would have completed.
  */
 export function isCompletable(plan: DayPlan): boolean {

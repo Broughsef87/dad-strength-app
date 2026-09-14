@@ -227,7 +227,7 @@ async function advanceWeekIfDone(
   const doneDays = scheduledDoneDays(
     await fetchDoneDays(supabase, userId, slug, weekNumber), program, weekNumber)
   // ...and the THRESHOLD is what this week asks for, not the headline
-  // daysPerWeek. They diverge in test week: Hybrid Endurance schedules 5
+  // daysPerWeek. They diverge in test week: Hybrid Dad schedules 5
   // sessions in W13 against a daysPerWeek of 6, so measured against the
   // headline it could never advance out of week 13. Dad Built schedules 7.
   if (doneDays.length < sessionsThisWeek(program, weekNumber)) return
@@ -1394,7 +1394,7 @@ export default function TrainingDayPage() {
     // written here is a session that never happened — which is exactly how
     // Dad Strong's week used to advance, on its rendered-but-empty Wednesday
     // and Friday. The gate lives HERE rather than on the button because no
-    // rest day is listed anywhere any more, but /train/dad-strong/2 is still
+    // rest day is listed anywhere any more, but /train/<slug>/<a rest day> is still
     // a URL anyone can type.
     if (plan && !isCompletable(plan)) return
     await supabase.from('ares_session_logs').upsert({

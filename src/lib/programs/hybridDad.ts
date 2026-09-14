@@ -352,9 +352,13 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
   }
 }
 
-export const hybridEndurance: ProgramConfig = {
-  slug: 'hybrid-endurance',
-  name: 'Hybrid Endurance',
+// Hybrid Dad — renamed from Hybrid Endurance in FOR-225 (2026-09-13). The slug
+// is an FK identifier in user_programs, generated_workouts and
+// ares_session_logs; it was renamed outright with no backfill because there
+// were no other users yet. Slot ids carry no program name and are unchanged.
+export const hybridDad: ProgramConfig = {
+  slug: 'hybrid-dad',
+  name: 'Hybrid Dad',
   tagline: 'Strength · endurance · conditioning',
   description:
     'A serious aerobic engine with strength genuinely maintained — 2 low-volume lifting days, run intervals, tempo, easy Z2, and a long session that grows across the macro. Paces are computed from your 5K benchmark. 13-week macro: base → build → sharpen, deload week 12, 5K time trial week 13.',
