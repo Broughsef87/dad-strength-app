@@ -189,24 +189,29 @@ export function steakWindowWarnings(plan: Plan, meals: MealRow[], ctx: PlanConte
   const cycles = [...latest.values()].map((r) => ({ r, start: daysBetween(ctx.targetStart, r.week_start), span: Math.max(7, Number(r.rules_snapshot?.shop_cadence_days ?? 7)) }))
   const starts = [0, ...cycles.map((c) => c.start)]
   const cutoff = (start: number, span: number) => Math.min(start + span, ...starts.filter((s) => s > start))
+  // Every WEEK boundary inside a cycle is a window end, not only the
+  // cycle's own: with weekly and fortnightly cycles mixed, a four-week
+  // window ending inside a fortnight is otherwise never judged (Codex,
+  // round 16).
+  const boundaries = (start: number, end: number, label: string) => { const out: Array<{ end: number; label: string }> = []; for (let b = start + 7; b <= end; b += 7) out.push({ end: b, label }); return out }
   const ownEnd = cutoff(0, Math.max(7, ctx.cadenceDays))
   const own = plan.entries.filter((e) => isSteak(e.slug)).map((e) => (e.week - 1) * 7).filter((d) => d < ownEnd)
   const others: number[] = []
-  const ends: Array<{ end: number; label: string }> = [{ end: ownEnd, label: 'this cycle' }]
+  const ends = boundaries(0, ownEnd, 'this cycle')
   for (const c of cycles) {
     const end = cutoff(c.start, c.span)
     for (const e of c.r.meal_ids) if (isSteak(e.slug)) { const d = c.start + (e.week - 1) * 7; if (d < end) others.push(d) }
-    ends.push({ end, label: `the cycle starting ${c.r.week_start}` })
+    ends.push(...boundaries(c.start, end, `the cycle starting ${c.r.week_start}`))
   }
-  const warnings: string[] = []
+  const warnings = new Set<string>()
   for (const { end, label } of ends) {
     const inWindow = (d: number) => d >= end - MONTH_DAYS && d < end
     const mine = own.filter(inWindow).length
     if (!mine) continue
     const total = mine + others.filter(inWindow).length
-    if (total > allowance) warnings.push(`${total} steak nights in the four weeks to the end of ${label}, rule is ${allowance} a month`)
+    if (total > allowance) warnings.add(`${total} steak nights in the four weeks ending in ${label}, rule is ${allowance} a month`)
   }
-  return warnings
+  return [...warnings]
 }
 
 /** Frequency rules the picker should have enforced; reported, never silently fixed. */

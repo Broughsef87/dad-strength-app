@@ -11,12 +11,12 @@ import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, nextCycle = false }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
-  /** `countInventory`: whether what is on hand is counted against this plan — always for a rebuild; for a NEXT cycle only on say-so (Codex, round 15). */
+  /** `countInventory`: whether what is on hand is counted against this plan — asked only when it was not (a NEXT cycle, or a rebuild of a plan built without it), otherwise always (Codex, rounds 15 and 16). */
   onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
-  /** Is this the next cycle, built while the live one is still eating what is on hand? */
-  nextCycle?: boolean
+  /** Ask whether to count what is on hand: a next cycle, or a rebuild of a plan that did not count it — the saved choice stands unless changed here. */
+  askInventory?: boolean
   /** The cycles already planned and where this plan would land — the rules that look across cycles read it (Codex, rounds 10, 13, 14). */
   cycles?: PlanContext
 }) {
@@ -136,10 +136,10 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
         })}
       </ul>
 
-      {nextCycle && household.inventory.length > 0 && (
+      {askInventory && household.inventory.length > 0 && (
         <div className="tile p-3 space-y-2">
           <p className="text-[12px] text-muted-foreground">
-            What is on hand was counted against this cycle, which is still eating it. Count it against the next cycle too only if it will still be there.
+            What is on hand was not counted against this plan — the cycle before it is eating it. Count it only if it will still be there.
           </p>
           <button type="button" onClick={() => setCountInventory((c) => !c)} aria-pressed={countInventory}
             className={`${countInventory ? 'pill-volt' : 'pill-quiet'} px-3 py-1.5 text-[12px] lowercase`}>
@@ -154,7 +154,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
       )}
 
       <button type="button" className="pill-volt w-full py-3 text-sm" disabled={!complete || building || warnings.length > 0}
-        onClick={() => onBuild({ entries }, { countInventory: nextCycle ? countInventory : true })}>
+        onClick={() => onBuild({ entries }, { countInventory: askInventory ? countInventory : true })}>
         {building ? 'building the list…' : complete ? 'build the shopping list' : `pick ${household.nights_per_week} nights${weeks === 2 ? ' each week' : ''}`}
       </button>
     </div>

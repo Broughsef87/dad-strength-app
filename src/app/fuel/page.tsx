@@ -50,6 +50,10 @@ export default function FuelPage() {
   // (Codex, round 3). The athlete can flip it either way.
   const [nextCycle, setNextCycle] = useState(false)
   const liveCycle: CycleRow | null = plan ? asCycle(plan) : null
+  // Whether to count what is on hand is ASKED for a next cycle, and for a
+  // rebuild of a plan that was built without counting it — the saved choice
+  // stands unless the athlete changes it (Codex, rounds 15 and 16).
+  const askInventory = !!(liveCycle && nextCycle) || plan?.rules_snapshot?.inventory_counted === false
   // The identity the checklist keys on. Callbacks depend on THIS, not on the
   // list object, so a row update never recreates them and never re-triggers
   // the checklist's reconciliation (Codex, round 1).
@@ -114,11 +118,10 @@ export default function FuelPage() {
   const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
     if (!userId || !household) return
     const startingNext = !!(liveCycle && nextCycle)
-    // What is on hand counts against a rebuild always — that cycle is the
-    // one eating it — and against a next cycle only on say-so (Codex, round
-    // 15). Recorded in the snapshot, so the plan is compared the way it was
-    // built.
-    const inventoryCounted = !startingNext || opts.countInventory
+    // What is on hand counts only on say-so wherever the ask was shown —
+    // otherwise always (Codex, rounds 15 and 16). Recorded in the snapshot,
+    // so the plan is compared the way it was built.
+    const inventoryCounted = askInventory ? opts.countInventory : true
     const weekStart = buildTarget(new Date())
     // Validated again HERE, against the target the build actually lands on:
     // a builder left open across a cycle boundary was enabled against a
@@ -132,7 +135,7 @@ export default function FuelPage() {
     // reused only while its start is still the one a rebuild would get —
     // and only when a fresh solve comes out identical, because the library
     // itself can have been corrected since (Codex, round 11).
-    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && listUnchanged(buildShoppingList(householdFor(household, plan.rules_snapshot?.inventory_counted ?? true), meals, p).items, list.items)) { setStep('list'); return }
+    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(household, inventoryCounted), meals, p).items, list.items)) { setStep('list'); return }
     setBusy(true); setError(null)
     const res = await createVersion(supabase, weekStart, household, meals, p, inventoryCounted)
     setBusy(false)
@@ -215,7 +218,7 @@ export default function FuelPage() {
                 </div>
               )}
               {step === 'plan' && household && (
-                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} nextCycle={!!(liveCycle && nextCycle)}
+                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory}
                   initial={plan ? { entries: plan.meal_ids } : null}
                   cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}

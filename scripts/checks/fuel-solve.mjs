@@ -86,7 +86,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const ctx = (history, targetStart = '2026-09-21', cadenceDays = 7) => ({ history, targetStart, cadenceDays })
   const steakW = (history, targetStart, cadenceDays) => steakWindowWarnings(twoRibeye(), meals, ctx(history, targetStart, cadenceDays), 2)
   const four = steakW([steakWeek('2026-08-31'), steakWeek('2026-09-07'), steakWeek('2026-09-14')])
-  assert(four.length === 1 && /4 steak nights in the four weeks to the end of this cycle, rule is 2 a month/.test(four[0]), `three weekly steak nights inside the window plus this one are four against two — got ${JSON.stringify(four)}`)
+  assert(four.length === 1 && /4 steak nights in the four weeks ending in this cycle, rule is 2 a month/.test(four[0]), `three weekly steak nights inside the window plus this one are four against two — got ${JSON.stringify(four)}`)
   assert(steakW([steakWeek('2026-08-24'), steakWeek('2026-09-21')]).length === 0, 'a night before the window, and the target start\'s own history, do not count')
   assert(steakW([steakWeek('2026-09-07'), steakWeek('2026-09-14'), { ...steakWeek('2026-09-14', 1, 2), meal_ids: [] }]).length === 0 && steakW([steakWeek('2026-09-07'), steakWeek('2026-09-14')]).length === 1,
     'only the highest version of a start counts — the 14th\'s v2 dropped its steak')
@@ -99,7 +99,12 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'history is cut short where a later planned start takes over — the lost week\'s steak does not count against its replacement, but does against a cycle after it')
   // a rebuilt EARLIER cycle must not push a cycle planned ahead over ITS window (r13): steak in weeks one and three, then week two rebuilt with steak
   const ahead = steakW([steakWeek('2026-09-07'), steakWeek('2026-09-21')], '2026-09-14')
-  assert(ahead.length === 1 && /3 steak nights in the four weeks to the end of the cycle starting 2026-09-21, rule is 2 a month/.test(ahead[0]), `the window of the cycle planned ahead is judged too — got ${JSON.stringify(ahead)}`)
+  assert(ahead.length === 1 && /3 steak nights in the four weeks ending in the cycle starting 2026-09-21, rule is 2 a month/.test(ahead[0]), `the window of the cycle planned ahead is judged too — got ${JSON.stringify(ahead)}`)
+  // every WEEK boundary is a window end (r16): steak on the 31st and the 7th, then a fortnight from the 21st with steak in week one — three in the
+  // four weeks to the 27th, a window that ends INSIDE the fortnight; with the steak in week two instead, two in any four weeks
+  const mixed = ctx([steakWeek('2026-08-31'), steakWeek('2026-09-07')], '2026-09-21', 14)
+  assert(steakWindowWarnings(twoRibeye(), meals, mixed, 2).length === 1 && steakWindowWarnings({ entries: [entry('cast-iron-ribeye', 2)] }, meals, mixed, 2).length === 0,
+    'a four-week window ending inside a fortnight is judged — mixed cadences cannot slip a third steak past the rule')
   assert(validatePlan(twoRibeye(), meals, weekly, { cycles: ctx([steakWeek('2026-09-07'), steakWeek('2026-09-14')]) }).some((w) => /3 steak nights in the four weeks/.test(w))
     && validatePlan(twoRibeye(), meals, weekly, { cycles: ctx([steakWeek('2026-09-14')]) }).every((w) => !/four weeks/.test(w)) && validatePlan(twoRibeye(), meals, weekly).every((w) => !/four weeks/.test(w)),
     'a third steak in four weeks is reported against a two-a-month rule; a second is not; no history, no report')
@@ -438,12 +443,17 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 9: the next-cycle target is checked against today, and a cycle planned ahead that the build passed is let go
   assert(/nextCycleKey\(liveCycle, upcoming\?\.week_start \?\? null, household\.shop_cadence_days, now\)/.test(pg) && /if \(upcoming && \(upcoming\.week_start === weekStart \|\| weekStart > upcoming\.week_start\)\) setUpcoming\(null\)/.test(pg), 'a next-cycle build keys through nextCycleKey — checked against today — and drops an upcoming cycle it has passed')
   // round 11: the shortcut stands only when a fresh solve comes out identical — the library can have been corrected
-  assert(/&& listUnchanged\(buildShoppingList\(householdFor\(household, plan\.rules_snapshot\?\.inventory_counted \?\? true\), meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg), 'the unchanged-plan shortcut re-solves before it stands — the way the stored plan was built — so a library correction is never skipped')
+  assert(/&& listUnchanged\(buildShoppingList\(householdFor\(household, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg), 'the unchanged-plan shortcut re-solves before it stands — the way the stored plan was built — so a library correction is never skipped')
   // round 15: what is on hand counts against a next cycle only on say-so, recorded in the snapshot
-  assert(/const inventoryCounted = !startingNext \|\| opts\.countInventory/.test(pg) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)/.test(pg) && /nextCycle=\{!!\(liveCycle && nextCycle\)\}/.test(pg),
+  assert(/const inventoryCounted = askInventory \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)/.test(pg) && /askInventory=\{askInventory\}/.test(pg),
     'a next cycle counts what is on hand only on say-so; a rebuild always; the say-so goes into the version')
-  assert(/onBuild\(\{ entries \}, \{ countInventory: nextCycle \? countInventory : true \}\)/.test(pb) && /count what\\'s on hand again/.test(pb) && /nextCycle && household\.inventory\.length > 0 &&/.test(pb),
+  assert(/onBuild\(\{ entries \}, \{ countInventory: askInventory \? countInventory : true \}\)/.test(pb) && /count what\\'s on hand again/.test(pb) && /askInventory && household\.inventory\.length > 0 &&/.test(pb),
     'the builder asks, for a next cycle with something on hand, whether to count it again — off by default')
+  // round 16: the saved choice stands on a rebuild unless changed, and a changed choice is never short-cut
+  assert(/const askInventory = !!\(liveCycle && nextCycle\) \|\| plan\?\.rules_snapshot\?\.inventory_counted === false/.test(pg),
+    'a rebuild of a plan built without counting what is on hand asks again — the saved choice stands unless changed')
+  assert(/!changed\(plan\.rules_snapshot, household, p\) && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\) === inventoryCounted && listUnchanged\(/.test(pg) && /listUnchanged\(buildShoppingList\(householdFor\(household, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg),
+    'a changed inventory choice is never short-cut to the stored list')
   const st15 = readLF('src/lib/fuel/store.ts')
   assert(/buildShoppingList\(householdFor\(household, inventoryCounted\), meals, plan\)/.test(st15) && (st15.match(/snapshot\(household, plan, inventoryCounted\)/g) || []).length === 2, 'the version is solved and snapshotted the way it was asked for')
   {
