@@ -37,6 +37,7 @@ const SUITES = [
   ['design system', 'design-system.mjs'],
   ['adherence (FOR-228)', 'adherence.mjs'],
   ['protocol row key (FOR-228)', 'protocol-row-key.mjs'],
+  ['program lineup (FOR-225)', 'program-lineup.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

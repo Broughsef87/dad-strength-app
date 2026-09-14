@@ -11,7 +11,7 @@ interface UpgradeModalProps {
 }
 
 const PRO_FEATURES = [
-  'All 4 training paths — Power Dad, Dad Built, Dad Strong, Hybrid Endurance',
+  'All 3 training paths — Power Dad, Dad Built, Hybrid Dad',
   'AI Morning Protocol — personalized daily',
   'Training Data — e1RM trends, projected maxes, adherence',
   'Automatic progression — the app picks your next weight from what you lifted',

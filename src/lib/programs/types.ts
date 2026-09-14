@@ -132,6 +132,30 @@ export interface BuildDayOpts {
   // actually logged. Percent-based slots ignore this; range-based accessory
   // slots use it instead of a percentage of a max they do not have.
   loadTargets?: Record<string, number>
+  // The time-constrained MODE (FOR-225 §2): the day reduced to its primaries
+  // for whatever program the athlete is on. A mode, not a program — it adds
+  // no row, no slug and no selection UI. Applied by the registry, so no
+  // program file needs to know about it. See timeConstrained.ts.
+  timeConstrained?: boolean
+  // What the athlete has to train with (FOR-225 §6, ruled 2026-09-13: it
+  // rides in opts, not as a positional parameter). SHAPE ONLY for now — no
+  // program reads it yet. It exists so the equipment questionnaire is an
+  // addition later, not a signature change after the slot ids are foreign
+  // keys. Free weights are the floor.
+  equipment?: Equipment
+}
+
+// Equipment the athlete has. The floor is free weights; everything else is a
+// declaration the questionnaire will make. Unused until that ticket lands.
+export type EquipmentItem =
+  | 'barbell' | 'dumbbells' | 'rack' | 'bench' | 'pullup_bar' | 'kettlebell'
+  | 'box' | 'sled' | 'rower' | 'ski_erg' | 'bike' | 'sandbag' | 'wall_ball'
+
+export interface Equipment {
+  /** The floor every program assumes. Always 'free_weights' today. */
+  floor: 'free_weights'
+  /** Items the athlete declared beyond the floor. Absent means unknown, not none. */
+  has?: Partial<Record<EquipmentItem, boolean>>
 }
 
 // Round a computed barbell weight to the nearest 5 lb.

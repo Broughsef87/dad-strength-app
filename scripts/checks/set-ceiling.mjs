@@ -40,9 +40,9 @@ let exemptVelocity = 0
 let exemptTest = 0
 
 for (const [slug, program] of Object.entries(PROGRAMS)) {
-  // NOT daysPerWeek — that is a count, not a range. dad-strong is
-  // daysPerWeek: 5 with gymDayNumbers [1, 2, 4, 6], so trusting the count
-  // skipped Saturday entirely and a 5-set block there would have passed.
+  // NOT daysPerWeek — that is a count, not a range. The five-day program cut
+  // in FOR-225 was daysPerWeek: 5 with gymDayNumbers [1, 2, 4, 6], so trusting
+  // the count skipped Saturday entirely and a 5-set block there would have passed.
   const days = Array.isArray(program.gymDayNumbers) && program.gymDayNumbers.length
     ? program.gymDayNumbers
     : [1, 2, 3, 4, 5, 6, 7]
