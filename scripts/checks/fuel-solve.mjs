@@ -109,7 +109,12 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const l4b = buildShoppingList({ ...andrew, inventory: [{ item: 'ribeye', qty: 32, unit: 'oz' }] }, meals, twoSteaks)
   assert(l4b.stocked.some((i) => i.item === 'ribeye') && find(l4b, 'ribeye')?.qty === 0 && !l4b.sections.some((s) => s.items.some((i) => i.item === 'ribeye')),
     '32 oz of ribeye on hand at 50% covers a 16 oz dinner need — nothing to buy, not another 16 oz')
-  assert(/half counts after meal prep/.test(l4b.stocked.find((i) => i.item === 'ribeye')?.stocked_reason ?? ''), 'the meat verdict says why only half counted')
+  assert(/50% counts after meal prep/.test(l4b.stocked.find((i) => i.item === 'ribeye')?.stocked_reason ?? ''), 'the meat verdict says why only half counted')
+  // the reason states the fraction that actually counted (Codex r8): 75% at a quarter diverted, and no meal-prep talk at zero
+  const quarter = buildShoppingList({ ...andrew, prep_diversion_pct: 25, inventory: [{ item: 'ribeye', qty: 32, unit: 'oz' }] }, meals, twoSteaks)
+  assert(/32 oz on hand, 75% counts after meal prep/.test(quarter.stocked.find((i) => i.item === 'ribeye')?.stocked_reason ?? ''), `at 25% diversion the verdict says 75% counts — got "${quarter.stocked.find((i) => i.item === 'ribeye')?.stocked_reason}"`)
+  const none = buildShoppingList({ ...andrew, prep_diversion_pct: 0, inventory: [{ item: 'ribeye', qty: 32, unit: 'oz' }] }, meals, twoSteaks)
+  assert(none.stocked.find((i) => i.item === 'ribeye')?.stocked_reason === '32 oz on hand', `with no diversion, no meal-prep explanation — got "${none.stocked.find((i) => i.item === 'ribeye')?.stocked_reason}"`)
   // mismatched units are not subtracted
   const l5 = buildShoppingList({ ...andrew, inventory: [{ item: 'lemon', qty: 3, unit: 'lb' }] }, meals, fortnight)
   assert(find(l5, 'lemon')?.qty === 2.5, 'inventory in a unit the item is not measured in is not subtracted')
@@ -311,11 +316,16 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/libraryUnits\(meals\)/.test(inf) && /\{units\.map\(\(u\) => <option/.test(inf) && !/const UNITS = \[/.test(inf), 'the inventory unit picker is built from the library, not a fixed list')
   assert(/<IntakeForm initial=\{household \?\? DEFAULT_HOUSEHOLD\} meals=\{meals\}/.test(pg), 'the page hands the library to the intake')
   assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, entry\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
-  assert(/servings: Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
+  assert(/Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
     'a new night defaults to what the household needs; a saved night is raised only if it no longer feeds everyone, otherwise kept as chosen (Codex r2, r3)')
-  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /\(upcoming\?\.week_start \?\? nextCycleStart\(liveCycle\)\)/.test(pg) && /if \(!startingNext && plan && list && !changed\(/.test(pg) && /planningMode\(/.test(pg),
+  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /\(upcoming\?\.week_start \?\? nextCycleStart\(liveCycle\)\)/.test(pg) && /if \(!startingNext && plan && list && plan\.week_start === weekStart && !changed\(/.test(pg) && /planningMode\(/.test(pg),
     'the page can plan the NEXT cycle — keyed to where the live one ends (or the cycle already planned ahead), defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
   assert(/rebuildKey\(liveCycle, household\.shop_cadence_days, new Date\(\)\)/.test(pg), 'a rebuild keys through rebuildKey, so a shortened cadence cannot snapshot an expired cycle')
+  // round 8: the key is decided before the shortcut, and the list is reused only while the plan's start is still the start a rebuild would get
+  assert(pg.indexOf('const weekStart = startingNext && liveCycle') < pg.indexOf('plan.week_start === weekStart && !changed(') && pg.indexOf('plan.week_start === weekStart') > 0,
+    'the unchanged-plan shortcut cannot hand back an expired cycle\'s list — it runs after the target key is known and only while the plan\'s start is still the start a rebuild would get')
+  assert(/const setServings = \(slug: string, servings: number\) => setEntries\(entries\.map\(\(e\) => \(e\.slug === slug && e\.week === week \? \{ \.\.\.e, servings \} : e\)\)\)/.test(pb) && /setServings\(m\.slug, Math\.max\(1, entry\.servings - 1\)\)/.test(pb) && /nights, each/.test(pb) && /servings: existing \? existing\.servings : Math\.min\(defaultServings\(m, household\), cap\)/.test(pb),
+    'every night of a repeated recipe shares the one servings figure the card shows — the control moves them together and another night copies it')
   assert(/setUpcoming\(active\.upcoming\)/.test(pg) && /const openUpcoming = async/.test(pg) && /loadListFor\(supabase, upcoming\.id\)/.test(pg) && /open it/.test(pg), 'a cycle planned ahead is loaded and can be opened')
   const st4 = readLF('src/lib/fuel/store.ts')
   assert(/const upcoming = upcomingCycle</.test(st4) && /activeCycle<PlanRow & CycleRow>\(candidates, today\) \?\? upcoming/.test(st4), 'the store surfaces the upcoming cycle, and falls back to it when nothing is live')
@@ -331,7 +341,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 6: the reconcile read is serialised with the writes; a recipe can fill more than one night
   assert(/const fresh = await sendQueued\(listId, refetch\)/.test(cl4) && !/const fresh = await refetch\(\)/.test(cl4),
     'the reconciliation read goes through the same per-list queue as the writes — it cannot overlap one from any instance')
-  assert(/const nightsOf = \(slug: string\) => entries\.filter/.test(pb) && /another night/.test(pb) && /− night/.test(pb) && /const removeOne = /.test(pb),
+  assert(/const nightsOf = \(slug: string\) => entries\.filter/.test(pb) && /aria-label=\{`another night of \$\{m\.name\}`\}[^>]*onClick=\{\(\) => add\(m\)\}/.test(pb) && /− night/.test(pb) && /const removeOne = /.test(pb),
     'a recipe can fill more than one night, and a night can be taken back')
   const twice = buildShoppingList({ ...andrew, prep_diversion_pct: 0 }, meals, { entries: [entry('chili-lime-thighs', 1), entry('chili-lime-thighs', 1)] })
   assert(find(twice, 'chicken thigh, boneless skinless')?.qty === 48 && validatePlan({ entries: [entry('chili-lime-thighs', 1), entry('chili-lime-thighs', 1)] }, meals, andrew).length === 0,

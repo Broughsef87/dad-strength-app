@@ -231,8 +231,11 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
       const used = Math.min(need, countable)
       need -= used
       inv.left -= (used / (b.diverted ? usable : 1)) * toInvUnits
-      reason = b.diverted
-        ? `${inv.qty} ${inv.unit} on hand, half counts after meal prep`
+      // The reason states the fraction that actually counted — half at 50%,
+      // three quarters at 25% — and says nothing about meal prep when
+      // nothing was diverted (Codex, round 8).
+      reason = b.diverted && usable < 1
+        ? `${inv.qty} ${inv.unit} on hand, ${Math.round(usable * 100)}% counts after meal prep`
         : `${inv.qty} ${inv.unit} on hand`
       if (need <= 0) break
     }

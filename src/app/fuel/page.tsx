@@ -94,10 +94,6 @@ export default function FuelPage() {
   const onBuild = async (p: Plan) => {
     if (!userId || !household) return
     const startingNext = !!(liveCycle && nextCycle)
-    // The unchanged-plan shortcut is a regeneration shortcut only: the next
-    // cycle is always a new version under a new start.
-    if (!startingNext && plan && list && !changed(plan.rules_snapshot, household, p)) { setStep('list'); return }
-    setBusy(true); setError(null)
     // A regeneration stays in the live cycle — unless the cadence shortened
     // past today, when it is a fresh cycle keyed on this week (Codex, round
     // 4). The next cycle starts where the live one ends, or IS the cycle
@@ -106,6 +102,12 @@ export default function FuelPage() {
     const weekStart = startingNext && liveCycle
       ? (upcoming?.week_start ?? nextCycleStart(liveCycle))
       : liveCycle ? rebuildKey(liveCycle, household.shop_cadence_days, new Date()) : cycleKeyFor(null, new Date())
+    // The unchanged-plan shortcut is a regeneration shortcut only: the next
+    // cycle is always a new version under a new start — and so is a cycle
+    // that expired while the page stayed open (Codex, round 8). The list is
+    // reused only while its start is still the one a rebuild would get.
+    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p)) { setStep('list'); return }
+    setBusy(true); setError(null)
     const res = await createVersion(supabase, weekStart, household, meals, p)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }

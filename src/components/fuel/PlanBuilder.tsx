@@ -38,7 +38,8 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
 
   const add = (m: MealRow) => {
     if (!eligible(m) || !roomThisWeek()) return
-    setEntries([...entries, { slug: m.slug, week, servings: Math.min(defaultServings(m, household), cap) }])
+    const existing = picked(m.slug)
+    setEntries([...entries, { slug: m.slug, week, servings: existing ? existing.servings : Math.min(defaultServings(m, household), cap) }])
   }
   const toggle = (m: MealRow) => {
     const existing = picked(m.slug)
@@ -54,7 +55,11 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     const last = [...entries].reverse().find((e) => e.slug === slug && e.week === week)
     if (last) setEntries(entries.filter((e) => e !== last))
   }
-  const setServings = (entry: PlanEntry, servings: number) => setEntries(entries.map((e) => (e === entry ? { ...e, servings } : e)))
+  // One servings figure per recipe per week: every night of a repeated
+  // recipe cooks the same batch, another night copies it, and the control
+  // moves them together — what the card shows is what the solver sums
+  // (Codex, round 8). The entries stay one per night.
+  const setServings = (slug: string, servings: number) => setEntries(entries.map((e) => (e.slug === slug && e.week === week ? { ...e, servings } : e)))
   const eligible = (m: MealRow) => m.active_cook_minutes <= household.cook_cap_minutes
   const complete = Array.from({ length: weeks }, (_, i) => inWeek(i + 1).length === household.nights_per_week).every(Boolean)
 
@@ -106,16 +111,16 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
                   <span className="text-[11px] text-muted-foreground lowercase">
                     cook servings · {household.people_count} eating{m.servings > 2 ? ' · leftovers come free' : ''}
-                    {nightsOf(m.slug) > 1 ? ` · ${nightsOf(m.slug)} nights` : ''}
+                    {nightsOf(m.slug) > 1 ? ` · ${nightsOf(m.slug)} nights, each` : ''}
                   </span>
                   <div className="flex items-center gap-1 mr-2">
                     {nightsOf(m.slug) > 1 && <button type="button" aria-label={`one night fewer of ${m.name}`} className="pill-quiet px-2 h-7 text-[11px] lowercase" onClick={() => removeOne(m.slug)}>− night</button>}
                     {roomThisWeek() && eligible(m) && <button type="button" aria-label={`another night of ${m.name}`} className="pill-quiet px-2 h-7 text-[11px] lowercase" onClick={() => add(m)}>another night</button>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button type="button" aria-label="fewer servings" className="pill-quiet w-7 h-7 text-sm" onClick={() => setServings(entry, Math.max(1, entry.servings - 1))}>−</button>
+                    <button type="button" aria-label="fewer servings" className="pill-quiet w-7 h-7 text-sm" onClick={() => setServings(m.slug, Math.max(1, entry.servings - 1))}>−</button>
                     <span className="stat-num text-[18px] min-w-[2ch] text-center">{entry.servings}</span>
-                    <button type="button" aria-label="more servings" className="pill-quiet w-7 h-7 text-sm" onClick={() => setServings(entry, Math.min(cap, entry.servings + 1))}>+</button>
+                    <button type="button" aria-label="more servings" className="pill-quiet w-7 h-7 text-sm" onClick={() => setServings(m.slug, Math.min(cap, entry.servings + 1))}>+</button>
                   </div>
                 </div>
               )}
