@@ -7,7 +7,8 @@
     "read_by": "Blaine, 2026-09-13",
     "SOURCED": "meal names, active/total minutes, servings, protein grams, cuts, seasonings, all household rules, the portion table, store sections, shop cadence",
     "INFERRED — ANDREW MUST CORRECT BEFORE THIS IS TRUSTED": "every ingredient qty_per_person for vegetables, starches and aromatics. The docs give protein weights per person and name the sides, but never quantify the sides. Marked \"inferred\": true on each. The protein rows are sourced and are NOT inferred.",
-    "count_note": "8 meals, not the ~20 the FOR-177 spec estimated. 8 is one complete fortnight rotation, which is the cycle Andrew actually runs. The spec's ~20 was an estimate, not a requirement."
+    "count_note": "8 meals, not the ~20 the FOR-177 spec estimated. 8 is one complete fortnight rotation, which is the cycle Andrew actually runs. The spec's ~20 was an estimate, not a requirement.",
+    "macros": "carbs_g_per_person, fat_g_per_person and calories_per_person are NULL on all 8 (FOR-234 §4, shape only): the docs give protein per person and nothing else. Andrew supplies them or a source computes them later — never estimated here. The phase-1 seed migration does not carry them; the generator refuses a fixture with values until a seed migration does."
   },
 
   "fuel_household": {
@@ -74,6 +75,9 @@
       "total_minutes": 25,
       "servings": 2,
       "protein_g_per_person": 48,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
       "perishable_within_days": 4,
       "rotation_note": "The only steak in the fortnight. Does not reheat — cooks to order, 2 servings.",
       "ingredients": [
@@ -93,6 +97,9 @@
       "total_minutes": 35,
       "servings": 3,
       "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
       "perishable_within_days": 2,
       "rotation_note": "One pan. Best night of the week for a bad day. Cooks 3 so a leftover night comes free.",
       "ingredients": [
@@ -115,6 +122,9 @@
       "total_minutes": 20,
       "servings": 2,
       "protein_g_per_person": 42,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
       "perishable_within_days": 3,
       "rotation_note": "FISH — week 1. Bought fresh at Costco with the main shop.",
       "ingredients": [
@@ -135,6 +145,9 @@
       "total_minutes": 25,
       "servings": 3,
       "protein_g_per_person": 42,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
       "perishable_within_days": 2,
       "rotation_note": "TURKEY — week 1. 'Bright and lean, nothing like the rest of the week. This is the variety night.' Lisa's meal.",
       "ingredients": [
@@ -157,6 +170,9 @@
       "total_minutes": 30,
       "servings": 3,
       "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
       "perishable_within_days": 2,
       "rotation_note": "Week 2. Same thigh as the chili-lime night, different profile and format — L5 in practice.",
       "ingredients": [
@@ -177,6 +193,9 @@
       "total_minutes": 30,
       "servings": 3,
       "protein_g_per_person": 42,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
       "perishable_within_days": 2,
       "rotation_note": "TURKEY — week 2, replacing the steak night. Bun optional; the potato is already the carb. 93/7 ONLY.",
       "ingredients": [
@@ -197,6 +216,9 @@
       "total_minutes": 20,
       "servings": 2,
       "protein_g_per_person": 40,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
       "perishable_within_days": 3,
       "rotation_note": "FISH — week 2. BOUGHT ON THE SECOND TRIP, not the main shop. This is the meal that forces the mid-cycle top-up — learning L3. Cod is leaner than salmon, so weigh heavier.",
       "ingredients": [
@@ -216,6 +238,9 @@
       "total_minutes": 25,
       "servings": 2,
       "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
       "perishable_within_days": 2,
       "rotation_note": "Week 2. BREAST not thigh — deliberately, to keep a full pound of margin in the thigh bag. Active time is 25, close to the 30-min cap.",
       "ingredients": [

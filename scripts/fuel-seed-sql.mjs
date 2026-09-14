@@ -24,7 +24,17 @@ const n = (v) => (v == null ? 'NULL' : String(v))
 
 const sectionOrder = seed.store_section_order
 
+// FOR-234 §4: the fixture carries carbs, fat and calories per person, but
+// this phase-1 seed does not — the file it renders is applied in production.
+// A fixture with real macro values needs a NEW seed migration that carries
+// them; until then they must be present and null, never estimated.
+const MACROS = ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']
+
 export function render() {
+  for (const m of seed.fuel_meals) for (const k of MACROS) {
+    if (!(k in m)) throw new Error(`${m.slug}: fixture is missing ${k} (FOR-234 §4 shape) — set it to null until sourced`)
+    if (m[k] != null) throw new Error(`${m.slug}: ${k} = ${m[k]} — the phase-1 seed does not carry macros; render them in a new seed migration (FOR-234)`)
+  }
   const rows = seed.fuel_meals.map((m) => `  (${[
     q(m.slug), q(m.name), q(m.protein_cut), q(m.spice_profile), q(m.format),
     n(m.active_cook_minutes), n(m.total_minutes), n(m.servings), n(m.protein_g_per_person),

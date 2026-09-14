@@ -19,7 +19,7 @@
 //      the meal-planner line now that Fuel ships
 // Every assertion verified by reintroducing the bug it catches and confirming
 // it fires, then restoring the tree byte-identical.
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, householdFor, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
@@ -556,6 +556,29 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(!existsSync(join(ROOT, 'src/components/FuelStation.tsx')), 'FuelStation.tsx is not resurrected')
   const w = validatePlan({ entries: [...W1.map((s) => entry(s, 1)), entry('blackened-cod', 1)] }, meals, andrew)
   assert(w.some((x) => /fish nights/.test(x)) && w.some((x) => /5 nights planned/.test(x)), 'the frequency and night-count rules are reported, not silently fixed')
+}
+
+// ── 8. macro columns (FOR-234 §4) — schema only ─────────────────────────────
+// carbs, fat and calories per person alongside protein, so the library can
+// grow against its final shape. Nothing reads them; nothing estimates them.
+{
+  const MACROS = ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']
+  const mig = readLF('supabase/migrations/20260915_fuel_macro_columns.sql')
+  assert(/ALTER TABLE public\.fuel_meals\n/.test(mig), 'the macro migration alters fuel_meals')
+  for (const c of MACROS) {
+    assert(new RegExp(`ADD COLUMN IF NOT EXISTS ${c}\\s+int CHECK \\(${c} IS NULL OR ${c} >= 0\\)`).test(mig), `${c}: an int column like protein, nullable, never negative, idempotent`)
+    assert(new RegExp(`COMMENT ON COLUMN public\\.fuel_meals\\.${c}\\s+IS '[^']*never estimated`).test(mig), `${c} says on the column that it is never estimated`)
+  }
+  assert(!/NOT NULL/.test(mig) && !/\bUPDATE\b|\bINSERT\b/.test(mig), 'the migration populates nothing and forces nothing — NULL until sourced')
+  const names = readdirSync(join(ROOT, 'supabase/migrations')).sort()
+  assert(names.indexOf('20260915_fuel_macro_columns.sql') > names.indexOf('20260914_fuel_phase_1.sql'), 'the macro migration sorts after phase 1, which creates the table it alters')
+  for (const m of meals) for (const c of MACROS) assert(c in m && m[c] === null, `${m.slug}.${c} is present and null — supplied or computed later, never estimated`)
+  assert(/never estimated/.test(seed._provenance.macros ?? ''), 'the provenance says the macros are null and never estimated')
+  const gen = readLF('scripts/fuel-seed-sql.mjs')
+  assert(/const MACROS = \['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person'\]/.test(gen) && /if \(m\[k\] != null\) throw new Error/.test(gen) && /if \(!\(k in m\)\) throw new Error/.test(gen),
+    'the generator refuses a fixture with macro values the phase-1 seed would drop, and one without the keys')
+  const readers = ['src/lib/fuel/solve.ts', 'src/lib/fuel/store.ts', 'src/lib/fuel/types.ts', 'src/lib/fuel/version.ts', 'src/lib/fuel/cycle.ts', 'src/lib/fuel/ticks.ts', 'src/components/fuel/Checklist.tsx', 'src/components/fuel/PlanBuilder.tsx', 'src/components/fuel/IntakeForm.tsx', 'src/app/fuel/page.tsx']
+  for (const f of readers) assert(!/carbs_g_per_person|fat_g_per_person|calories_per_person/.test(readLF(f)), `${f} does not read the macro columns — schema only`)
 }
 
 if (failures) { console.log(`\nfuel-solve: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }
