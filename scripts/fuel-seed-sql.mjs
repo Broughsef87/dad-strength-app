@@ -171,6 +171,10 @@ BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'not signed in' USING ERRCODE = '42501';
   END IF;
+  -- Serialise version allocation per user and cycle: two builds racing for
+  -- the same MAX would otherwise abort one on the unique constraint. The
+  -- lock is transaction-scoped and released on commit.
+  PERFORM pg_advisory_xact_lock(hashtext(auth.uid()::text || ':' || p_week_start::text));
   SELECT COALESCE(MAX(version), 0) + 1 INTO v_version
     FROM public.fuel_plans WHERE user_id = auth.uid() AND week_start = p_week_start;
   INSERT INTO public.fuel_plans (user_id, week_start, version, meal_ids, rules_snapshot)

@@ -22,9 +22,9 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
+import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, defaultServings, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
-import { activeCycle, cycleKeyFor, daysInto, mondayOf } from '../../src/lib/fuel/cycle.ts'
+import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, mondayOf } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, enqueue, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
@@ -80,6 +80,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const noSteak = validatePlan(twoRibeye(), meals, { ...andrew, dietary_rules: { ...andrew.dietary_rules, steak_per_month: 0 } })
   assert(noSteak.some((w) => /steak night/.test(w)), 'a zero-steak household is warned about a ribeye night')
   function twoRibeye() { return { entries: [entry('cast-iron-ribeye', 1)] } }
+  // servings default from the household (Codex r2): the seed's 3-for-2 is "everyone eats, plus half again for a leftover night"
+  assert(defaultServings(byslug('chili-lime-thighs'), { people_count: 2 }) === 3 && defaultServings(byslug('cast-iron-ribeye'), { people_count: 2 }) === 2,
+    'for two, the defaults are the seed\'s own: 3 on a reheating night, 2 on the steak night')
+  assert(defaultServings(byslug('chili-lime-thighs'), { people_count: 4 }) === 6 && defaultServings(byslug('cast-iron-ribeye'), { people_count: 4 }) === 4 && defaultServings(byslug('chili-lime-thighs'), { people_count: 1 }) === 2,
+    'for four, a reheating night cooks 6 and a steak night 4; for one, 2 and 1')
+  const underfed = validatePlan({ entries: [{ slug: 'cast-iron-ribeye', week: 1, servings: 2 }] }, meals, { ...andrew, people_count: 4 })
+  assert(underfed.some((w) => /cooks 2 for 4 people/.test(w)), 'a night that cooks fewer servings than people is reported')
 }
 
 // ── 2. inventory ────────────────────────────────────────────────────────────
@@ -171,6 +178,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(activeCycle([{ week_start: mon, version: 1, shop_cadence_days: 7 }], new Date(2026, 8, 21)) === null, 'a weekly cycle is gone on day 7')
   assert(activeCycle([...rows, { week_start: '2026-09-28', version: 1, shop_cadence_days: 14 }], new Date(2026, 8, 29))?.week_start === '2026-09-28', 'the newest live start wins')
   assert(cycleKeyFor(rows[1], new Date(2026, 8, 23)) === mon && cycleKeyFor(null, new Date(2026, 8, 23)) === '2026-09-21', 'a regeneration stays in the live cycle; a fresh start keys on this Monday')
+  // Sunday is planning day: a plan made on Sunday the 13th is for the week starting Monday the 14th (Codex r2)
+  assert(cycleStartFor(new Date(2026, 8, 13)) === '2026-09-14' && cycleKeyFor(null, new Date(2026, 8, 13)) === '2026-09-14' && cycleStartFor(new Date(2026, 8, 12)) === '2026-09-07',
+    'a cycle planned on Sunday starts on the coming Monday, not the one that just passed')
+  assert(activeCycle([{ week_start: '2026-09-14', version: 1, shop_cadence_days: 14 }], new Date(2026, 8, 13))?.version === 1, 'that Sunday plan is live on the Sunday it was made')
+  // a superseded version cannot resurrect: fortnight v1, regenerated weekly as v2, on day 9 (Codex r2)
+  assert(activeCycle([{ week_start: mon, version: 1, shop_cadence_days: 14 }, { week_start: mon, version: 2, shop_cadence_days: 7 }], new Date(2026, 8, 23)) === null,
+    'only the highest version of a start speaks — an older fortnight version does not come back after the weekly one expires')
   const st = readLF('src/lib/fuel/store.ts')
   const la = (st.match(/export async function loadActive[\s\S]*?\n\}/) || [])[0] || ''
   assert(/activeCycle</.test(la) && !/eq\('week_start'/.test(la) && /order\('week_start', \{ ascending: false \}\)/.test(la), 'the store loads the live cycle, not only the current calendar week')
@@ -236,6 +250,18 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/disabled=\{!ok && !entry\}/.test(pb) && /if \(existing\) \{ setEntries\(entries\.filter/.test(pb), 'a selected meal that fell outside the cap can still be removed')
   assert(/\.filter\(\(e\) => e\.week <= weeks\)/.test(pb), 'a saved fortnight plan is cut to the cycle when the shop becomes weekly')
   assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, entry\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
+  assert(/servings: Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /servings: Math\.max\(e\.servings, defaultServings\(m, household\)\)/.test(pb),
+    'a night defaults to what the household needs, and a saved night is brought up to it (Codex r2)')
+  // round 2: stale reads, cross-list answers, stale lists, version allocation
+  const cl7 = readLF('src/components/fuel/Checklist.tsx')
+  assert(/const seen = writes\.current/.test(cl7) && /if \(fresh && writes\.current === seen\)/.test(cl7) && /writes\.current \+= 1/.test(cl7),
+    'a reconciliation read that overlapped an acknowledgement is discarded, not applied over it')
+  assert(/onRowItems\(listId, next\.items\)/.test(cl7) && /onRowItems\(listId, r\.items\)/.test(cl7), 'every answer names the list it belongs to')
+  assert(/setList\(\(l\) => \(l && l\.id === forListId \? \{ \.\.\.l, items \} : l\)\)/.test(pg), 'the page rejects an answer for a list that is no longer current')
+  assert(/const stale = !!\(plan && household && changed\(plan\.rules_snapshot, household, \{ entries: plan\.meal_ids \}\)\)/.test(pg) && /stale && \(/.test(pg) && /!stale && \(/.test(pg) && /persistedStale/.test(pg),
+    'a list whose household has changed is stale — on load as on save — and is rebuilt, not ticked from')
+  assert(/PERFORM pg_advisory_xact_lock\(hashtext\(auth\.uid\(\)::text \|\| ':' \|\| p_week_start::text\)\);/.test(onDisk) && onDisk.indexOf('pg_advisory_xact_lock') < onDisk.indexOf('COALESCE(MAX(version), 0) + 1'),
+    'version allocation takes a per-user, per-cycle lock before reading MAX')
   assert((onDisk.match(/^  \('/gm) || []).length === meals.length && meals.length === 8, `the seed carries the fortnight rotation — ${meals.length} meals`)
   assert(/"inferred":true/.test(onDisk) && /"inferred":false/.test(onDisk), 'the seed keeps the inferred flag on every ingredient')
   const solve = readLF('src/lib/fuel/solve.ts')

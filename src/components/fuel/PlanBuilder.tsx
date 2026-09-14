@@ -6,7 +6,7 @@
 // profile and format over the same cuts (L5), never as more ingredients.
 import { useMemo, useState } from 'react'
 import type { Household, MealRow, Plan, PlanEntry } from '../../lib/fuel/types'
-import { cycleWeeks, validatePlan } from '../../lib/fuel/solve'
+import { cycleWeeks, defaultServings, validatePlan } from '../../lib/fuel/solve'
 
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
@@ -15,9 +15,13 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean; onBuild: (plan: Plan) => void
 }) {
   const weeks = cycleWeeks(household)
-  // A saved plan is reconciled against the cycle it is being rebuilt for: a
-  // fortnight's week-two nights do not ride along into a weekly shop.
-  const [entries, setEntries] = useState<PlanEntry[]>((initial?.entries ?? []).filter((e) => e.week <= weeks))
+  const bySlug = useMemo(() => new Map(meals.map((m) => [m.slug, m])), [meals])
+  // A saved plan is reconciled against the household it is being rebuilt
+  // for: a fortnight's week-two nights do not ride along into a weekly shop,
+  // and a night saved for two people is brought up to what four need.
+  const [entries, setEntries] = useState<PlanEntry[]>(() => (initial?.entries ?? [])
+    .filter((e) => e.week <= weeks)
+    .map((e) => { const m = bySlug.get(e.slug); return m ? { ...e, servings: Math.max(e.servings, defaultServings(m, household)) } : e }))
   const [week, setWeek] = useState<1 | 2>(1)
   const warnings = useMemo(() => validatePlan({ entries }, meals, household), [entries, meals, household])
   const inWeek = (w: number) => entries.filter((e) => e.week === w)
@@ -31,7 +35,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     if (existing) { setEntries(entries.filter((e) => e !== existing)); return }
     if (!eligible(m)) return
     if (inWeek(week).length >= household.nights_per_week) return
-    setEntries([...entries, { slug: m.slug, week, servings: Math.min(m.servings, cap) }])
+    setEntries([...entries, { slug: m.slug, week, servings: Math.min(defaultServings(m, household), cap) }])
   }
   const setServings = (entry: PlanEntry, servings: number) => setEntries(entries.map((e) => (e === entry ? { ...e, servings } : e)))
   const eligible = (m: MealRow) => m.active_cook_minutes <= household.cook_cap_minutes
@@ -78,7 +82,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
               </button>
               {entry && (
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                  <span className="text-[11px] text-muted-foreground lowercase">cook servings · leftovers come free</span>
+                  <span className="text-[11px] text-muted-foreground lowercase">cook servings · {household.people_count} eating{m.servings > 2 ? ' · leftovers come free' : ''}</span>
                   <div className="flex items-center gap-2">
                     <button type="button" aria-label="fewer servings" className="pill-quiet w-7 h-7 text-sm" onClick={() => setServings(entry, Math.max(1, entry.servings - 1))}>−</button>
                     <span className="stat-num text-[18px] min-w-[2ch] text-center">{entry.servings}</span>

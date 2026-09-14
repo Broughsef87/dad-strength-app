@@ -31,8 +31,8 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   versions: number[]
   /** The row's items — the truth. */
   items: ListItem[]
-  /** The row answered: replace the truth. */
-  onRowItems: (items: ListItem[]) => void
+  /** The row answered: replace the truth — for THIS list; the page ignores a stale list's answer. */
+  onRowItems: (listId: string, items: ListItem[]) => void
   /** The one write path: returns the row's items, or null on failure. */
   send: (key: string, checked: boolean) => Promise<ListItem[] | null>
   /** A fresh read of the row. */
@@ -46,6 +46,11 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   const flushing = useRef(false)
   const outboxRef = useRef(outbox)
   outboxRef.current = outbox
+  // Every acknowledgement bumps this. A reconciliation read that started
+  // before an acknowledgement and resolved after it is STALE — it would put
+  // the older snapshot back over the row's newer answer — so it is discarded
+  // and the next mount or reconnect reads again (Codex, round 2).
+  const writes = useRef(0)
 
   useEffect(() => { writeOutbox(listId, outbox) }, [listId, outbox])
   useEffect(() => {
@@ -69,22 +74,25 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
         outboxRef.current = next.outbox
         setOutbox(next.outbox)
         setFailed((f) => { const n = new Set(f); n.delete(intent.key); return n })
-        onRowItems(next.items)
+        writes.current += 1
+        onRowItems(listId, next.items)
         setLastSaved(Date.now())
       }
     } finally { flushing.current = false }
-  }, [send, onRowItems])
+  }, [send, onRowItems, listId])
 
   // On mount and on reconnect: re-read the row (the truth), drop intents it
-  // already satisfies, then flush what is left.
+  // already satisfies, then flush what is left. The read is applied only if
+  // no acknowledgement landed while it was in flight.
   useEffect(() => {
     let cancelled = false
     void (async () => {
+      const seen = writes.current
       const fresh = await refetch()
       if (cancelled) return
-      if (fresh) {
+      if (fresh && writes.current === seen) {
         const r = reconcile(fresh, outboxRef.current)
-        outboxRef.current = r.outbox; setOutbox(r.outbox); onRowItems(r.items)
+        outboxRef.current = r.outbox; setOutbox(r.outbox); onRowItems(listId, r.items)
       }
       void flush()
     })()

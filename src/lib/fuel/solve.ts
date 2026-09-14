@@ -84,6 +84,19 @@ export function isSecondTrip(ing: MealIngredient, meal: MealRow, entry: PlanEntr
   return false
 }
 
+/**
+ * Cooked servings a night defaults to. The seed's `servings` is written for
+ * a household of two: 3 on a night that reheats (a leftover night comes
+ * free), 2 on a night that does not. For any household: everyone eats, and
+ * a reheating night cooks half again (Codex, round 2 — a household of four
+ * was defaulting to the seed's three).
+ */
+export function defaultServings(meal: Pick<MealRow, 'servings'>, household: Pick<Household, 'people_count'>): number {
+  const people = Math.max(1, household.people_count)
+  const reheats = meal.servings > 2
+  return reheats ? Math.ceil(people * 1.5) : people
+}
+
 /** Steak nights allowed in one cycle from a per-month rule. Zero stays zero. */
 export function steakNightsPerCycle(steakPerMonth: number, household: Pick<Household, 'shop_cadence_days'>): number {
   if (steakPerMonth <= 0) return 0
@@ -106,6 +119,9 @@ export function validatePlan(plan: Plan, meals: MealRow[], household: Household)
     for (const m of week) {
       if (m.active_cook_minutes > household.cook_cap_minutes) warnings.push(`${m.slug}: ${m.active_cook_minutes} active minutes, cap is ${household.cook_cap_minutes}`)
       if (!m.protein_g_per_person) warnings.push(`${m.slug}: no protein figure, so the ${rules.protein_floor_g_per_person} g floor cannot be applied to it`)
+    }
+    for (const e of plan.entries.filter((x) => x.week === w)) {
+      if (e.servings > 0 && e.servings < household.people_count) warnings.push(`${e.slug}: cooks ${e.servings} for ${household.people_count} people`)
     }
   }
   const outOfCycle = plan.entries.filter((e) => e.week > weeks).length

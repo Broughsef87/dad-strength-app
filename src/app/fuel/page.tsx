@@ -58,7 +58,10 @@ export default function FuelPage() {
       setHousehold(h.household)
       setPlan(active.plan); setList(active.list)
       if (active.plan) setVersions((await loadVersions(supabase, user.id, active.plan.week_start)).map((v) => v.version))
-      setStep(active.list ? 'list' : h.household ? 'plan' : 'intake')
+      // A persisted list whose household has since changed opens on the
+      // plan step, not on the stale list.
+      const persistedStale = !!(active.plan && h.household && changed(active.plan.rules_snapshot, h.household, { entries: active.plan.meal_ids }))
+      setStep(active.list && !persistedStale ? 'list' : h.household ? 'plan' : 'intake')
       setLoading(false)
     })()
     return () => { cancelled = true }
@@ -96,7 +99,14 @@ export default function FuelPage() {
     return e ? null : items
   }, [supabase, listId])
   const refetch = useCallback(async () => (listId ? readItems(supabase, listId) : null), [supabase, listId])
-  const onRowItems = useCallback((items: ListItem[]) => setList((l) => (l ? { ...l, items } : l)), [])
+  // An answer belongs to the list that asked. A tick still in flight when
+  // the plan is rebuilt must not land its old list's items on the new one
+  // (Codex, round 2).
+  const onRowItems = useCallback((forListId: string, items: ListItem[]) => setList((l) => (l && l.id === forListId ? { ...l, items } : l)), [])
+  // A list is STALE when the household has changed since it was solved — a
+  // rule change invalidates the list (L7), on load as much as on save. A
+  // stale list is not ticked from; it is rebuilt.
+  const stale = !!(plan && household && changed(plan.rules_snapshot, household, { entries: plan.meal_ids }))
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -131,7 +141,15 @@ export default function FuelPage() {
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}`} household={household} meals={meals} building={busy} onBuild={onBuild}
                   initial={plan ? { entries: plan.meal_ids } : null} />
               )}
-              {step === 'list' && list && plan && listId && (
+              {step === 'list' && list && plan && listId && stale && (
+                <div className="tile p-4 space-y-3">
+                  <div className="status-msg danger text-[12px]" role="status">
+                    the household changed after this list was built — its quantities are out of date
+                  </div>
+                  <button type="button" className="pill-volt w-full py-3 text-sm" onClick={() => setStep('plan')}>rebuild the list</button>
+                </div>
+              )}
+              {step === 'list' && list && plan && listId && !stale && (
                 <Checklist listId={listId} version={list.version} versions={versions} items={list.items}
                   onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} />
               )}
