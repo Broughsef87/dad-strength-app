@@ -20,7 +20,7 @@ import {
 } from '../../lib/fuel/store'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, validatePlan } from '../../lib/fuel/solve'
-import { cycleKeyFor, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
+import { cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -42,6 +42,11 @@ export default function FuelPage() {
   // across cycles (the monthly steak allowance) read it (Codex, round 10).
   const [recent, setRecent] = useState<PlanRow[]>([])
   const [householdSavedAt, setHouseholdSavedAt] = useState<string | null>(null)
+  const [newestPlanAt, setNewestPlanAt] = useState<string | null>(null)
+  // Every completed save or build bumps this; a refresh that started before
+  // one applies nothing, or it would put the older snapshot back over what
+  // was just written (Codex, round 18).
+  const writesRef = useRef(0)
   // The page is re-reading the household and the plan — on waking, on
   // reconnect — and the checklist sends nothing until it has (Codex, round 17).
   const [refreshing, setRefreshing] = useState(false)
@@ -54,14 +59,6 @@ export default function FuelPage() {
   // (Codex, round 3). The athlete can flip it either way.
   const [nextCycle, setNextCycle] = useState(false)
   const liveCycle: CycleRow | null = plan ? asCycle(plan) : null
-  // Whether to count what is on hand is ASKED for anything but a rebuild of
-  // a plan that already counted it: a next cycle, a rebuild of a plan built
-  // without it, and a fresh start after a cycle expired — the household
-  // still holds the stock that cycle ate (Codex, rounds 15, 16 and 17). The
-  // ask defaults to the inventory's freshness; the saved choice stands
-  // unless the athlete changes it.
-  const startingNextNow = !!(liveCycle && nextCycle)
-  const askInventory = (household?.inventory.length ?? 0) > 0 && !(plan && !startingNextNow && (plan.rules_snapshot?.inventory_counted ?? true))
   // The identity the checklist keys on. Callbacks depend on THIS, not on the
   // list object, so a row update never recreates them and never re-triggers
   // the checklist's reconciliation (Codex, round 1).
@@ -81,7 +78,7 @@ export default function FuelPage() {
       if (err) setError(err.message ?? 'could not load')
       setMeals(m.meals)
       setHousehold(h.household); setHouseholdSavedAt(h.updatedAt)
-      setPlan(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent)
+      setPlan(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent); setNewestPlanAt(active.newestPlanAt)
       if (active.plan) {
         setVersions((await loadVersions(supabase, user.id, active.plan.week_start)).map((v) => v.version))
         setNextCycle(planningMode(asCycle(active.plan), new Date()) === 'next' && !active.upcoming)
@@ -99,22 +96,34 @@ export default function FuelPage() {
   // another tab may have changed the household or built a newer version,
   // and shopping would otherwise go on against a superseded list, its ticks
   // landing there (Codex, round 17). Not while a build or a save is in
-  // flight. The checklist is paused until the read lands.
+  // flight, and applied only if none completed meanwhile (round 18). The
+  // cycle the athlete SELECTED — opened ahead, or built early — stays
+  // selected at its newest version while it is still live or ahead; only an
+  // expired selection gives way to today's live cycle (round 18). The
+  // checklist is paused until the read lands.
   const busyRef = useRef(busy)
   busyRef.current = busy
+  const selectedStart = plan?.week_start ?? null
   const refresh = useCallback(async () => {
     if (!userId || busyRef.current) return
+    const seen = writesRef.current
     setRefreshing(true)
     try {
-      const [h, active] = await Promise.all([loadHousehold(supabase, userId), loadActive(supabase, userId, new Date())])
-      if (h.error || active.error) return
+      const now = new Date()
+      const [h, active] = await Promise.all([loadHousehold(supabase, userId), loadActive(supabase, userId, now)])
+      if (h.error || active.error || writesRef.current !== seen) return
+      const kept = selectedStart ? newestVersion(active.recent, selectedStart) : null
+      const nextPlan = kept && !expired(asCycle(kept), now) ? kept : active.plan
+      const nextList = nextPlan ? (nextPlan.id === active.plan?.id ? active.list : await loadListFor(supabase, nextPlan.id)) : null
+      if (writesRef.current !== seen) return
       setHousehold(h.household); setHouseholdSavedAt(h.updatedAt)
-      setPlan(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent)
-      if (active.plan) setVersions((await loadVersions(supabase, userId, active.plan.week_start)).map((v) => v.version))
-      const persistedStale = !!(active.plan && h.household && changed(active.plan.rules_snapshot, h.household, { entries: active.plan.meal_ids }))
-      setStep((s) => (s === 'list' && (!active.list || persistedStale) ? 'plan' : s))
+      setPlan(nextPlan); setList(nextList); setRecent(active.recent); setNewestPlanAt(active.newestPlanAt)
+      setUpcoming(active.upcoming && active.upcoming.week_start !== nextPlan?.week_start ? active.upcoming : null)
+      if (nextPlan) setVersions((await loadVersions(supabase, userId, nextPlan.week_start)).map((v) => v.version))
+      const persistedStale = !!(nextPlan && h.household && changed(nextPlan.rules_snapshot, h.household, { entries: nextPlan.meal_ids }))
+      setStep((s) => (s === 'list' && (!nextList || persistedStale) ? 'plan' : s))
     } finally { setRefreshing(false) }
-  }, [supabase, userId])
+  }, [supabase, userId, selectedStart])
   useEffect(() => {
     const onVisibility = () => { if (document.visibilityState === 'visible') void refresh() }
     const onShow = (e: PageTransitionEvent) => { if (e.persisted) void refresh() }
@@ -129,6 +138,7 @@ export default function FuelPage() {
     const { error: e } = await saveHousehold(supabase, userId, h)
     setBusy(false)
     if (e) { setError(e.message); return }
+    writesRef.current += 1
     setHousehold(h); setHouseholdSavedAt(new Date().toISOString())
     // A rule change invalidates the list (L7): if a version exists and the
     // household differs from its snapshot, the next build writes version + 1.
@@ -151,14 +161,32 @@ export default function FuelPage() {
       : liveCycle ? rebuildKey(liveCycle, household.shop_cadence_days, now) : cycleKeyFor(null, now)
   }
 
+  // Whether to count what is on hand is ASKED for anything but a rebuild of
+  // a plan that already counted it — judged on the start the build would
+  // actually land on: a fortnight shortened to weekly in its second week is
+  // a NEW start under rebuildKey, and what week one ate is not on hand
+  // (Codex, rounds 15 to 18). A next cycle, a rebuild of a plan built
+  // without it, and a fresh start after a cycle expired all ask. The ask
+  // defaults to the inventory's freshness; the saved choice stands unless
+  // the athlete changes it.
+  const startingNextNow = !!(liveCycle && nextCycle)
+  const rebuildOfCounted = (start: string) => !!plan && !startingNextNow && start === plan.week_start && (plan.rules_snapshot?.inventory_counted ?? true)
+  const askInventory = (household?.inventory.length ?? 0) > 0 && !rebuildOfCounted(buildTarget(new Date()))
+
   const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
     if (!userId || !household) return
     const startingNext = !!(liveCycle && nextCycle)
+    const weekStart = buildTarget(new Date())
+    // The ask is judged again at build time, on the start the build lands
+    // on: a page left open across a boundary was drawn for another target
+    // (Codex, round 18). If the answer changed, nothing is built — the page
+    // redraws with the ask where it now belongs.
+    const askNow = household.inventory.length > 0 && !rebuildOfCounted(weekStart)
+    if (askNow !== askInventory) { setError('the cycle has moved on since this page was drawn — check what is on hand, then build again'); return }
     // What is on hand counts only on say-so wherever the ask was shown —
     // otherwise always (Codex, rounds 15 and 16). Recorded in the snapshot,
     // so the plan is compared the way it was built.
-    const inventoryCounted = askInventory ? opts.countInventory : true
-    const weekStart = buildTarget(new Date())
+    const inventoryCounted = askNow ? opts.countInventory : true
     // Validated again HERE, against the target the build actually lands on:
     // a builder left open across a cycle boundary was enabled against a
     // target that has since moved, with a different history around it
@@ -177,7 +205,8 @@ export default function FuelPage() {
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     const built = res.plan
-    setPlan(built); setList(res.list); setRecent((r) => [...r, built])
+    writesRef.current += 1
+    setPlan(built); setList(res.list); setRecent((r) => [...r, built]); setNewestPlanAt(built.created_at ?? new Date().toISOString())
     if (upcoming && (upcoming.week_start === weekStart || weekStart > upcoming.week_start)) setUpcoming(null)
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
     setNextCycle(false)
@@ -254,7 +283,7 @@ export default function FuelPage() {
                 </div>
               )}
               {step === 'plan' && household && (
-                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, recent)}
+                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt)}
                   initial={plan ? { entries: plan.meal_ids } : null}
                   cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}

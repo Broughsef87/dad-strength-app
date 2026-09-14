@@ -37,13 +37,30 @@ function NumberRow({ label, hint, value, min, max, step = 1, onChange }: { label
 
 export default function IntakeForm({ initial, meals = NO_MEALS, saving, onSave }: { initial: Household; meals?: MealRow[]; saving: boolean; onSave: (h: Household) => void }) {
   const [h, setH] = useState<Household>(initial)
+  // The saved household can change under the draft — another tab saved,
+  // and the page re-read it. Untouched, the draft follows; touched, saving
+  // it would overwrite the newer save with stale rules and stock, so the
+  // conflict is shown and the athlete chooses: reload what was saved, or
+  // keep working and decide later (Codex, round 18). A save of this very
+  // draft coming back is no conflict.
+  const [dirty, setDirty] = useState(false)
+  const [conflict, setConflict] = useState(false)
+  // Adjusted during render when the saved household changes (React's own
+  // pattern for state that depends on a prop), not in an effect.
+  const incomingKey = JSON.stringify(initial)
+  const [seenKey, setSeenKey] = useState(incomingKey)
+  if (incomingKey !== seenKey) {
+    setSeenKey(incomingKey)
+    if (!dirty || incomingKey === JSON.stringify(h)) { setH(initial); setDirty(false); setConflict(false) } else setConflict(true)
+  }
+  const reload = () => { setSeenKey(incomingKey); setH(initial); setDirty(false); setConflict(false) }
   // Every unit the library measures in is offered, or what is on hand in
   // cloves or teaspoons could never come off the list (Codex, round 7).
   const units = useMemo(() => libraryUnits(meals), [meals])
   const [newItem, setNewItem] = useState<InventoryItem>({ item: '', qty: 1, unit: 'lb' })
   const rules = h.dietary_rules
-  const set = (patch: Partial<Household>) => setH({ ...h, ...patch })
-  const setRule = (patch: Partial<Household['dietary_rules']>) => setH({ ...h, dietary_rules: { ...rules, ...patch } })
+  const set = (patch: Partial<Household>) => { setH({ ...h, ...patch }); setDirty(true) }
+  const setRule = (patch: Partial<Household['dietary_rules']>) => { setH({ ...h, dietary_rules: { ...rules, ...patch } }); setDirty(true) }
 
   return (
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onSave(h) }}>
@@ -116,8 +133,14 @@ export default function IntakeForm({ initial, meals = NO_MEALS, saving, onSave }
         </div>
       </section>
 
-      <button type="submit" disabled={saving} className="pill-volt w-full py-3 text-sm">
-        {saving ? 'saving…' : 'save the household'}
+      {conflict && (
+        <div className="status-msg danger text-[12px] flex items-center justify-between gap-3" role="alert">
+          <span>the household was changed elsewhere while you were editing — saving this would overwrite it</span>
+          <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={reload}>reload what was saved</button>
+        </div>
+      )}
+      <button type="submit" disabled={saving || conflict} className="pill-volt w-full py-3 text-sm">
+        {saving ? 'saving…' : conflict ? 'reload before saving' : 'save the household'}
       </button>
     </form>
   )

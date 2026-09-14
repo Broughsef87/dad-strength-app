@@ -80,12 +80,13 @@ export function listUnchanged(built: ListItem[], stored: ListItem[]): boolean {
  * household saved after the newest plan was built — Sunday's intake done
  * before Sunday's plan — is fresh; otherwise a cycle has been eating it,
  * and a new cycle should not count it without being asked (Codex, round
- * 17). Nothing planned yet: fresh.
+ * 17). The newest plan is looked up on its own, unbounded: a break longer
+ * than the cycle-history window must not read as "never planned" (round
+ * 18). Nothing planned yet: fresh.
  */
-export function inventoryFresh(householdSavedAt: string | null | undefined, plans: Array<{ created_at?: string }>): boolean {
-  const newest = plans.reduce((m, p) => Math.max(m, p.created_at ? Date.parse(p.created_at) : 0), 0)
-  if (!newest) return true
-  return !!householdSavedAt && Date.parse(householdSavedAt) > newest
+export function inventoryFresh(householdSavedAt: string | null | undefined, newestPlanAt: string | null | undefined): boolean {
+  if (!newestPlanAt) return true
+  return !!householdSavedAt && Date.parse(householdSavedAt) > Date.parse(newestPlanAt)
 }
 
 /** The version the next write gets: one more than the latest, never a rewrite. */

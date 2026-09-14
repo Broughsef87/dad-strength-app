@@ -107,7 +107,11 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
  * fourteen days from its start (cycle.ts), so the second week — and the
  * second trip — is still on the page.
  */
-export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; upcoming: PlanRow | null; recent: PlanRow[]; error: { code?: string; message?: string } | null }> {
+export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; upcoming: PlanRow | null; recent: PlanRow[]; newestPlanAt: string | null; error: { code?: string; message?: string } | null }> {
+  // When was ANY plan last built? Unbounded, so a break longer than the
+  // history window cannot pass off eaten stock as never counted (Codex, round 18).
+  const { data: newest } = await db.from('fuel_plans').select('created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const newestPlanAt = typeof newest?.created_at === 'string' ? newest.created_at : null
   // Bounded by START, not by row count: every start from five weeks back
   // (any live fortnight, and the four weeks the steak rule is judged over)
   // forward (anything planned ahead), all versions, so a busy cycle's
@@ -115,7 +119,7 @@ export async function loadActive(db: Db, userId: string, today: Date): Promise<{
   // back as `recent` for the rules that look across cycles (Codex, round 10).
   const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot, created_at')
     .eq('user_id', userId).gte('week_start', historyFloor(today)).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(500)
-  if (error || !rows?.length) return { plan: null, list: null, upcoming: null, recent: [], error }
+  if (error || !rows?.length) return { plan: null, list: null, upcoming: null, recent: [], newestPlanAt, error }
   const candidates = (rows as PlanRow[]).map((r) => ({ ...r, shop_cadence_days: Number(r.rules_snapshot?.shop_cadence_days ?? 7) }))
   // A cycle planned ahead is loadable before it is live (Codex, round 4) —
   // but it never STANDS IN for a live one: with nothing live, the page must
@@ -124,10 +128,10 @@ export async function loadActive(db: Db, userId: string, today: Date): Promise<{
   const upcoming = upcomingCycle<PlanRow & CycleRow>(candidates, today)
   const plan = activeCycle<PlanRow & CycleRow>(candidates, today)
   const recent = rows as PlanRow[]
-  if (!plan) return { plan: null, list: null, upcoming, recent, error: null }
+  if (!plan) return { plan: null, list: null, upcoming, recent, newestPlanAt, error: null }
   const { data: list, error: lerr } = await db.from('fuel_lists').select('id, plan_id, version, items, updated_at')
     .eq('plan_id', plan.id).order('version', { ascending: false }).limit(1).maybeSingle()
-  return { plan, list: (list as ListRow | null) ?? null, upcoming, recent, error: lerr }
+  return { plan, list: (list as ListRow | null) ?? null, upcoming, recent, newestPlanAt, error: lerr }
 }
 
 /** The newest list for a plan — used to resume a cycle the athlete chose. */

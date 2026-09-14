@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, householdFor, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, inventoryFresh, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
-import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
+import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, expired, historyFloor, mondayOf, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
@@ -220,8 +220,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'a plan built without what is on hand is compared that way — an inventory change does not invalidate it, while it still invalidates a plan that counted it')
   assert(householdFor(andrew, true) === andrew && householdFor(andrew, false).inventory.length === 0 && householdFor(andrew, false).people_count === andrew.people_count, 'householdFor: as is, or with nothing on hand')
   // the ask defaults to the inventory's freshness (Codex r17): saved after the newest plan was built, it is fresh
-  assert(inventoryFresh(null, []) && inventoryFresh('2026-09-14T10:00:00Z', [{ created_at: '2026-09-14T09:00:00Z' }]) && inventoryFresh('2026-09-14T10:00:00Z', [{ created_at: '2026-09-14T09:00:00Z' }, { created_at: '2026-09-07T09:00:00Z' }])
-    && !inventoryFresh('2026-09-14T08:00:00Z', [{ created_at: '2026-09-14T09:00:00Z' }]) && !inventoryFresh(null, [{ created_at: '2026-09-14T09:00:00Z' }]) && !inventoryFresh('2026-09-14T10:00:00Z', [{ created_at: '2026-09-07T09:00:00Z' }, { created_at: '2026-09-14T11:00:00Z' }]),
+  assert(inventoryFresh(null, null) && inventoryFresh('2026-09-14T10:00:00Z', '2026-09-14T09:00:00Z') && !inventoryFresh('2026-09-14T08:00:00Z', '2026-09-14T09:00:00Z') && !inventoryFresh(null, '2026-09-14T09:00:00Z') && !inventoryFresh('2026-09-14T10:00:00Z', '2026-09-14T11:00:00Z'),
     'what is on hand is fresh when saved after the NEWEST plan was built, or when nothing was ever planned — never when a plan is newer, or the save time is unknown')
   assert(buildShoppingList(householdFor(andrew, false), meals, fortnight).stocked.length === 0 && buildShoppingList(andrew, meals, fortnight).stocked.some((i) => i.item === 'rice'),
     'a next cycle built without say-so buys its rice — the live cycle is eating the bag')
@@ -277,8 +276,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'an expired next-cycle target advances to the cycle that covers today; one still live or still ahead is kept')
   assert(nextCycleKey(weekly14, '2026-09-21', 7, new Date(2026, 9, 5)) === '2026-10-05' && nextCycleKey(fortnight14, null, 14, new Date(2026, 8, 27)) === '2026-09-28',
     'the same guard covers a cycle planned ahead; a fortnight on its final Sunday still keys to the coming Monday')
-  // the query is bounded by start, not by row count (Codex r5): five weeks back covers any live fortnight and the four-week steak window (r10)
-  assert(historyFloor(new Date(2026, 8, 23)) === '2026-08-19' && daysInto(historyFloor(new Date(2026, 8, 28)), new Date(2026, 8, 28)) === 35, 'the history floor is five weeks back — a live fortnight plus the four weeks a monthly rule is judged over')
+  // the query is bounded by start, not by row count (Codex r5): eight weeks back covers a live fortnight being rebuilt, the four-week
+  // steak window before each of its week boundaries, and the fortnight that may hold a night that far back (r10, r18)
+  assert(historyFloor(new Date(2026, 8, 26)) === '2026-08-01' && daysInto(historyFloor(new Date(2026, 8, 28)), new Date(2026, 8, 28)) === 56, 'the history floor is eight weeks back — on the 26th of September it reaches the fortnight of the 17th of August')
+  // the selected cycle survives a refresh at its newest version while it is still live or ahead (r18)
+  const versions3 = [{ week_start: mon, version: 1 }, { week_start: mon, version: 3 }, { week_start: mon, version: 2 }, { week_start: '2026-09-21', version: 1 }]
+  assert(newestVersion(versions3, mon)?.version === 3 && newestVersion(versions3, '2026-09-21')?.version === 1 && newestVersion(versions3, '2026-09-28') === null, 'the newest version of a start, or null')
+  assert(!expired(fortnight14, new Date(2026, 8, 27)) && expired(fortnight14, new Date(2026, 8, 28)) && !expired({ week_start: '2026-09-28', version: 1, shop_cadence_days: 7 }, new Date(2026, 8, 20)), 'a cycle is expired past its span — not while live, not while ahead')
   assert(daysBetween('2026-09-21', '2026-09-28') === 7 && daysBetween('2026-09-21', '2026-09-14') === -7, 'days between two cycle keys, signed')
   const twentyVersions = Array.from({ length: 20 }, (_, i) => ({ week_start: '2026-09-28', version: i + 1, shop_cadence_days: 14 }))
   assert(activeCycle([...twentyVersions, fortnight14], new Date(2026, 8, 23))?.week_start === mon, 'twenty versions of a future cycle do not hide the live one')
@@ -449,22 +453,36 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 11: the shortcut stands only when a fresh solve comes out identical — the library can have been corrected
   assert(/&& listUnchanged\(buildShoppingList\(householdFor\(household, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg), 'the unchanged-plan shortcut re-solves before it stands — the way the stored plan was built — so a library correction is never skipped')
   // round 15: what is on hand counts against a next cycle only on say-so, recorded in the snapshot
-  assert(/const inventoryCounted = askInventory \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)/.test(pg) && /askInventory=\{askInventory\}/.test(pg),
+  assert(/const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)/.test(pg) && /askInventory=\{askInventory\}/.test(pg),
     'a next cycle counts what is on hand only on say-so; a rebuild always; the say-so goes into the version')
   assert(/onBuild\(\{ entries \}, \{ countInventory: askInventory \? countInventory : true \}\)/.test(pb) && /count what\\'s on hand again/.test(pb) && /askInventory && household\.inventory\.length > 0 &&/.test(pb),
     'the builder asks, for a next cycle with something on hand, whether to count it again — off by default')
   // round 16: the saved choice stands on a rebuild unless changed, and a changed choice is never short-cut
   // round 17: the ask is shown for anything but a rebuild of a plan that already counted it — a fresh start after an expired cycle asks too — and defaults to freshness
-  assert(/const askInventory = \(household\?\.inventory\.length \?\? 0\) > 0 && !\(plan && !startingNextNow && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\)\)/.test(pg),
+  assert(/const rebuildOfCounted = \(start: string\) => !!plan && !startingNextNow && start === plan\.week_start && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\)/.test(pg) && /const askInventory = \(household\?\.inventory\.length \?\? 0\) > 0 && !rebuildOfCounted\(buildTarget\(new Date\(\)\)\)/.test(pg),
     'a rebuild of a plan built without counting what is on hand asks again — the saved choice stands unless changed — and a fresh start asks too')
-  assert(/countByDefault=\{inventoryFresh\(householdSavedAt, recent\)\}/.test(pg) && /setHousehold\(h\.household\); setHouseholdSavedAt\(h\.updatedAt\)/.test(pg) && /setHousehold\(h\); setHouseholdSavedAt\(new Date\(\)\.toISOString\(\)\)/.test(pg) && /useState\(countByDefault\)/.test(pb),
+  // round 18: the ask is judged on the start the build would land on, and judged again at build time
+  assert(/const askNow = household\.inventory\.length > 0 && !rebuildOfCounted\(weekStart\)/.test(pg) && /if \(askNow !== askInventory\) \{ setError\(/.test(pg) && /const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg),
+    'the ask is based on the target the build would land on — a shortened fortnight is a new start — and rechecked at build time')
+  assert(/countByDefault=\{inventoryFresh\(householdSavedAt, newestPlanAt\)\}/.test(pg) && /setHousehold\(h\.household\); setHouseholdSavedAt\(h\.updatedAt\)/.test(pg) && /setHousehold\(h\); setHouseholdSavedAt\(new Date\(\)\.toISOString\(\)\)/.test(pg) && /useState\(countByDefault\)/.test(pb),
     'the ask defaults to whether what is on hand was saved after the newest plan was built')
+  const st18 = readLF('src/lib/fuel/store.ts')
+  assert(/select\('created_at'\)\.eq\('user_id', userId\)\.order\('created_at', \{ ascending: false \}\)\.limit\(1\)\.maybeSingle\(\)/.test(st18) && /newestPlanAt: string \| null/.test(st18) && (pg.match(/setNewestPlanAt\(active\.newestPlanAt\)/g) || []).length === 2 && /setNewestPlanAt\(built\.created_at \?\? new Date\(\)\.toISOString\(\)\)/.test(pg),
+    'the newest plan is looked up on its own, unbounded — a long break does not read as never planned')
+  // round 18: a refresh keeps the selected cycle while it is still live or ahead, and yields to a write that completed meanwhile
+  assert(/const kept = selectedStart \? newestVersion\(active\.recent, selectedStart\) : null/.test(pg) && /const nextPlan = kept && !expired\(asCycle\(kept\), now\) \? kept : active\.plan/.test(pg) && /await loadListFor\(supabase, nextPlan\.id\)/.test(pg),
+    'a refresh keeps the cycle the athlete selected, at its newest version, while it is still live or ahead')
+  assert(/const seen = writesRef\.current/.test(pg) && (pg.match(/writesRef\.current !== seen\) return/g) || []).length === 2 && (pg.match(/writesRef\.current \+= 1/g) || []).length === 2,
+    'a refresh that started before a save or a build completed applies nothing')
+  const inf18 = readLF('src/components/fuel/IntakeForm.tsx')
+  assert(/if \(incomingKey !== seenKey\) \{\n\s+setSeenKey\(incomingKey\)\n\s+if \(!dirty \|\| incomingKey === JSON\.stringify\(h\)\) \{ setH\(initial\); setDirty\(false\); setConflict\(false\) \} else setConflict\(true\)/.test(inf18) && /disabled=\{saving \|\| conflict\}/.test(inf18) && /reload what was saved/.test(inf18) && /setH\(\{ \.\.\.h, \.\.\.patch \}\); setDirty\(true\)/.test(inf18),
+    'an untouched intake draft follows a household changed elsewhere; a touched one shows the conflict and cannot save over it until reloaded')
   const st17 = readLF('src/lib/fuel/store.ts')
   assert(/updated_at: new Date\(\)\.toISOString\(\),/.test(st17) && /updatedAt: typeof data\.updated_at === 'string' \? data\.updated_at : null/.test(st17) && /select\('id, week_start, version, meal_ids, rules_snapshot, created_at'\)/.test(st17) && /created_at: row\.updated_at \}/.test(st17),
     'the household save is stamped, and both stamps are read back, so freshness can be judged')
   // round 17: the page re-reads the household and the plan on waking and on reconnect, and the checklist is paused until it has
   assert(/const refresh = useCallback\(async \(\) => \{/.test(pg) && /if \(document\.visibilityState === 'visible'\) void refresh\(\)/.test(pg) && /window\.addEventListener\('online', onOnline\)/.test(pg) && /if \(e\.persisted\) void refresh\(\)/.test(pg)
-    && /setStep\(\(s\) => \(s === 'list' && \(!active\.list \|\| persistedStale\) \? 'plan' : s\)\)/.test(pg) && /paused=\{refreshing\}/.test(pg) && /if \(!userId \|\| busyRef\.current\) return/.test(pg),
+    && /setStep\(\(s\) => \(s === 'list' && \(!nextList \|\| persistedStale\) \? 'plan' : s\)\)/.test(pg) && /paused=\{refreshing\}/.test(pg) && /if \(!userId \|\| busyRef\.current\) return/.test(pg),
     'the page re-reads the household and the plan when it wakes or reconnects — never mid-build — leaves a superseded list, and pauses the checklist meanwhile')
   const cl17 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const pausedRef = useRef\(paused\)/.test(cl17) && /&& !pausedRef\.current\) \{/.test(cl17) && /\[online, listId, refetch, onRowItems, flush, wake, paused\]/.test(cl17),
@@ -488,7 +506,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'every night of a repeated recipe shares the one servings figure the card shows — the control moves them together and another night copies it')
   assert(/setUpcoming\(active\.upcoming\)/.test(pg) && /const openUpcoming = async/.test(pg) && /loadListFor\(supabase, upcoming\.id\)/.test(pg) && /open it/.test(pg), 'a cycle planned ahead is loaded and can be opened')
   const st4 = readLF('src/lib/fuel/store.ts')
-  assert(/const upcoming = upcomingCycle</.test(st4) && /const plan = activeCycle<PlanRow & CycleRow>\(candidates, today\)\n/.test(st4) && !/\?\? upcoming/.test(st4) && /return \{ plan: null, list: null, upcoming, recent, error: null \}/.test(st4),
+  assert(/const upcoming = upcomingCycle</.test(st4) && /const plan = activeCycle<PlanRow & CycleRow>\(candidates, today\)\n/.test(st4) && !/\?\? upcoming/.test(st4) && /return \{ plan: null, list: null, upcoming, recent, newestPlanAt, error: null \}/.test(st4),
     'the store surfaces the upcoming cycle, and it never stands in for a live one — with nothing live, the current week can be planned')
   const cl4 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const inFlightByList = new Map<string, Map<string, number>>\(\)/.test(cl4) && /useRef<Map<string, number>>\(inFlightFor\(listId\)\)/.test(cl4), 'in-flight keys are shared across remounts of the same list')

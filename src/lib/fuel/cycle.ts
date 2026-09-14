@@ -35,15 +35,29 @@ export function cycleStartFor(today: Date): string {
 }
 
 /**
- * The oldest start worth loading: five weeks back — a fortnight cycle
- * started up to fourteen days ago is still live, and the monthly steak rule
- * is judged over the four weeks before a cycle ends (Codex, round 10).
- * Bounding the query by START keeps a busy cycle's version history from
- * crowding the live one out of a row limit (Codex, round 5).
+ * The oldest start worth loading: eight weeks back. A fortnight cycle
+ * started up to fourteen days ago is still live and may be rebuilt; the
+ * monthly steak rule looks four weeks back from each of its week
+ * boundaries; and the cycle holding a night that far back may itself have
+ * started a fortnight earlier (Codex, rounds 10 and 18). Bounding the
+ * query by START keeps a busy cycle's version history from crowding the
+ * live one out of a row limit (Codex, round 5).
  */
 export function historyFloor(today: Date): string {
-  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 35)
+  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 56)
   return key(d)
+}
+
+/** The highest version of one start, or null. */
+export function newestVersion<T extends { week_start: string; version: number }>(rows: T[], start: string): T | null {
+  let best: T | null = null
+  for (const r of rows) if (r.week_start === start && (!best || r.version > best.version)) best = r
+  return best
+}
+
+/** Is this cycle over — past its span? A cycle still live, or still ahead, is not. */
+export function expired(row: CycleRow, today: Date): boolean {
+  return daysInto(row.week_start, today) >= Math.max(7, row.shop_cadence_days)
 }
 
 /** Whole days from one cycle key to another; negative when `to` is earlier. */
