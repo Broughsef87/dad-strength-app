@@ -103,6 +103,22 @@ function writeOutbox(listId: string, outbox: TickIntent[], leaving = false): boo
     return true
   } catch { return false /* storage unavailable: intents live in memory only */ }
 }
+/**
+ * Retire an acknowledged intent from this tab's PERSISTED outbox — for an
+ * instance that has unmounted, whose in-memory outbox is stale and whose
+ * state is gone. Left there, the intent would be replayed on the next
+ * mount over whatever another tab has since saved (Codex, round 13). The
+ * stored outbox is the one edited, so a newer instance's intents survive.
+ */
+function retireStored(listId: string, acked: TickIntent) {
+  try {
+    const k = outboxKey(listId, tabId())
+    const stored = parseStored(localStorage.getItem(k))
+    if (!stored) return
+    const rest = acknowledge([], stored.intents, acked).outbox
+    if (rest.length) localStorage.setItem(k, JSON.stringify({ ...stored, intents: rest } satisfies StoredOutbox)); else localStorage.removeItem(k)
+  } catch { /* storage unavailable */ }
+}
 /** Is this tab's outbox still on disk? Storage that cannot answer is taken as yes. */
 function ownKeyPresent(listId: string): boolean {
   try { return localStorage.getItem(outboxKey(listId, tabId())) !== null } catch { return true }
@@ -199,7 +215,9 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
     const onStorage = (e: StorageEvent) => {
       if (!e.key || !e.key.startsWith(outboxPrefix(listId)) || e.key === outboxKey(listId, tabId()) || document.visibilityState !== 'visible') return
       const stored = parseStored(e.newValue)
-      if (stored?.alive === 0) wakeUp(false)
+      // A release is taken now; a claim that appears or renews is looked at
+      // again when it lapses (Codex, round 13).
+      if (stored?.alive === 0) wakeUp(false); else schedule()
     }
     document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow); window.addEventListener('storage', onStorage)
     return () => { window.clearTimeout(timer); document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow); window.removeEventListener('storage', onStorage) }
@@ -225,6 +243,10 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
         hold(inFlight.current, intent.key)
         let items: ListItem[] | null = null
         try { items = await sendQueued(listId, () => send(intent.key, intent.checked)) } finally { drop(inFlight.current, intent.key) }
+        // The row answered an instance that has since unmounted: the intent is
+        // retired from the persisted outbox all the same — the row snapshot is
+        // not published, but the intent must not be replayed (Codex, round 13).
+        if (items && !mounted.current) retireStored(listId, intent)
         if (!mounted.current) break
         // A refusal leaves the intent queued; hidden by now, the claim held for
         // the write is let go so another tab can retry it (Codex, round 11).

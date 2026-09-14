@@ -22,7 +22,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakNightsElsewhere, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
+import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
@@ -79,18 +79,23 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(steakNightsPerCycle(0, andrew) === 0 && steakNightsPerCycle(2, andrew) === 1 && steakNightsPerCycle(2, { shop_cadence_days: 7 }) === 1, 'steak nights per cycle: two a month is one a fortnight, and zero stays zero')
   const noSteak = validatePlan(twoRibeye(), meals, { ...andrew, dietary_rules: { ...andrew.dietary_rules, steak_per_month: 0 } })
   assert(noSteak.some((w) => /steak night/.test(w)), 'a zero-steak household is warned about a ribeye night')
-  // the monthly steak rule is judged over FOUR WEEKS ACROSS CYCLES (Codex r10): rounding up per cycle let a weekly
-  // household eat steak every week. Target 2026-09-21, weekly: the window is nights from the 31st of August to the 27th
+  // the monthly steak rule is judged over FOUR WEEKS ACROSS CYCLES (Codex r10), in EVERY window a planned cycle ends (r13).
+  // Target 2026-09-21, weekly: this cycle's window is nights from the 31st of August to the 27th
   const weekly = { ...andrew, shop_cadence_days: 7 }
-  const steakWeek = (start, week = 1) => ({ week_start: start, version: 1, meal_ids: [{ slug: 'cast-iron-ribeye', week, servings: 2 }] })
-  assert(steakNightsElsewhere([steakWeek('2026-08-31'), steakWeek('2026-09-07'), steakWeek('2026-09-14')], meals, '2026-09-21', 7) === 3
-    && steakNightsElsewhere([steakWeek('2026-08-24'), steakWeek('2026-09-21')], meals, '2026-09-21', 7) === 0,
-    'three weekly steak nights inside the four-week window count; a night before the window, and the target cycle\'s own nights, do not')
-  assert(steakNightsElsewhere([steakWeek('2026-09-07'), steakWeek('2026-09-14'), { week_start: '2026-09-14', version: 2, meal_ids: [] }], meals, '2026-09-21', 7) === 1,
+  const steakWeek = (start, week = 1, version = 1) => ({ week_start: start, version, meal_ids: [{ slug: 'cast-iron-ribeye', week, servings: 2 }], rules_snapshot: { shop_cadence_days: 7 } })
+  const ctx = (history, targetStart = '2026-09-21', cadenceDays = 7) => ({ history, targetStart, cadenceDays })
+  const steakW = (history, targetStart, cadenceDays) => steakWindowWarnings(twoRibeye(), meals, ctx(history, targetStart, cadenceDays), 2)
+  const four = steakW([steakWeek('2026-08-31'), steakWeek('2026-09-07'), steakWeek('2026-09-14')])
+  assert(four.length === 1 && /4 steak nights in the four weeks to the end of this cycle, rule is 2 a month/.test(four[0]), `three weekly steak nights inside the window plus this one are four against two — got ${JSON.stringify(four)}`)
+  assert(steakW([steakWeek('2026-08-24'), steakWeek('2026-09-21')]).length === 0, 'a night before the window, and the target start\'s own history, do not count')
+  assert(steakW([steakWeek('2026-09-07'), steakWeek('2026-09-14'), { ...steakWeek('2026-09-14', 1, 2), meal_ids: [] }]).length === 0 && steakW([steakWeek('2026-09-07'), steakWeek('2026-09-14')]).length === 1,
     'only the highest version of a start counts — the 14th\'s v2 dropped its steak')
-  assert(steakNightsElsewhere([steakWeek('2026-08-24', 2)], meals, '2026-09-21', 7) === 1, 'a week-two night is placed on its own Monday — the 31st, inside the window')
-  assert(validatePlan(twoRibeye(), meals, weekly, { steakNightsElsewhere: 2 }).some((w) => /3 steak nights in the four weeks/.test(w))
-    && validatePlan(twoRibeye(), meals, weekly, { steakNightsElsewhere: 1 }).every((w) => !/four weeks/.test(w)) && validatePlan(twoRibeye(), meals, weekly).every((w) => !/four weeks/.test(w)),
+  assert(steakW([steakWeek('2026-08-24', 2)]).length === 0 && steakW([steakWeek('2026-08-24', 2), steakWeek('2026-09-07')]).length === 1, 'a week-two night is placed on its own Monday — the 31st, inside the window')
+  // a rebuilt EARLIER cycle must not push a cycle planned ahead over ITS window (r13): steak in weeks one and three, then week two rebuilt with steak
+  const ahead = steakW([steakWeek('2026-09-07'), steakWeek('2026-09-21')], '2026-09-14')
+  assert(ahead.length === 1 && /3 steak nights in the four weeks to the end of the cycle starting 2026-09-21, rule is 2 a month/.test(ahead[0]), `the window of the cycle planned ahead is judged too — got ${JSON.stringify(ahead)}`)
+  assert(validatePlan(twoRibeye(), meals, weekly, { steak: ctx([steakWeek('2026-09-07'), steakWeek('2026-09-14')]) }).some((w) => /3 steak nights in the four weeks/.test(w))
+    && validatePlan(twoRibeye(), meals, weekly, { steak: ctx([steakWeek('2026-09-14')]) }).every((w) => !/four weeks/.test(w)) && validatePlan(twoRibeye(), meals, weekly).every((w) => !/four weeks/.test(w)),
     'a third steak in four weeks is reported against a two-a-month rule; a second is not; no history, no report')
   function twoRibeye() { return { entries: [entry('cast-iron-ribeye', 1)] } }
   // servings default from the household (Codex r2): the seed's 3-for-2 is "everyone eats, plus half again for a leftover night"
@@ -319,6 +324,10 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     const items = buildShoppingList(andrew, meals, fortnight).items
     assert(items.some((i) => 'stocked_reason' in i && i.stocked_reason === undefined) && listUnchanged(items, JSON.parse(JSON.stringify(items))), 'a JSON round-trip — jsonb drops undefined — is not a different list')
   }
+  // round 13: an acknowledged intent is retired even after unmount; a foreign claim that appears is looked at when it lapses
+  assert(/if \(items && !mounted\.current\) retireStored\(listId, intent\)/.test(cl9) && /function retireStored\(listId: string, acked: TickIntent\)/.test(cl9) && /acknowledge\(\[\], stored\.intents, acked\)\.outbox/.test(cl9),
+    'an acknowledged intent is retired from the persisted outbox even after unmount — never replayed over what another tab has since saved')
+  assert(/if \(stored\?\.alive === 0\) wakeUp\(false\); else schedule\(\)/.test(cl9), 'a foreign claim that appears or renews re-schedules the next look for when it lapses')
   // round 11: the claim holds while a write is in flight; a refusal lets it go
   assert(released(true, 0) && !released(true, 1) && !released(false, 0) && !released(false, 2), 'a hidden tab\'s outbox is released — not while a write is in flight, never while visible')
   assert(/if \(!items\) \{ setFailed\(\(f\) => new Set\(f\)\.add\(intent\.key\)\); writeOutbox\(listId, outboxRef\.current\); break \}/.test(cl9), 'a refused write lets the claim go, so another tab can retry it')
@@ -391,9 +400,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the page can plan the NEXT cycle — keyed to where the live one ends (or the cycle already planned ahead), defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
   assert(/rebuildKey\(liveCycle, household\.shop_cadence_days, now\)/.test(pg) && /const buildTarget = \(now: Date\): string =>/.test(pg), 'a rebuild keys through rebuildKey, so a shortened cadence cannot snapshot an expired cycle')
   // round 10: the builder is told the steak nights already planned in other cycles, for the target the build would land on
-  assert(/steakNightsElsewhere=\{steakNightsElsewhere\(recent, meals, buildTarget\(new Date\(\)\), household\.shop_cadence_days\)\}/.test(pg) && /setRecent\(active\.recent\)/.test(pg) && /setRecent\(\(r\) => \[\.\.\.r, built\]\)/.test(pg),
+  assert(/steak=\{\{ history: recent, targetStart: buildTarget\(new Date\(\)\), cadenceDays: household\.shop_cadence_days \}\}/.test(pg) && /setRecent\(active\.recent\)/.test(pg) && /setRecent\(\(r\) => \[\.\.\.r, built\]\)/.test(pg),
     'the builder is told the steak nights already planned in other cycles — loaded with the page, and kept current after a build')
-  assert(/validatePlan\(\{ entries \}, meals, household, \{ steakNightsElsewhere \}\)/.test(pb), 'the builder judges the monthly steak rule across cycles')
+  assert(/validatePlan\(\{ entries \}, meals, household, \{ steak \}\)/.test(pb), 'the builder judges the monthly steak rule across cycles')
   const st10 = readLF('src/lib/fuel/store.ts')
   assert(/recent: PlanRow\[\]/.test(st10) && /const recent = rows as PlanRow\[\]/.test(st10), 'loadActive hands back every recent cycle, all versions')
   // round 9: the next-cycle target is checked against today, and a cycle planned ahead that the build passed is let go

@@ -19,7 +19,7 @@ import {
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed, listUnchanged } from '../../lib/fuel/version'
-import { buildShoppingList, steakNightsElsewhere } from '../../lib/fuel/solve'
+import { buildShoppingList } from '../../lib/fuel/solve'
 import { cycleKeyFor, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
@@ -206,7 +206,7 @@ export default function FuelPage() {
               {step === 'plan' && household && (
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild}
                   initial={plan ? { entries: plan.meal_ids } : null}
-                  steakNightsElsewhere={steakNightsElsewhere(recent, meals, buildTarget(new Date()), household.shop_cadence_days)} />
+                  steak={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}
               {step === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">
