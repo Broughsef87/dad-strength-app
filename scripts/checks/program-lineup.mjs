@@ -71,7 +71,20 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
         `${slug} W${wk} D${d}: the reduced day is actually reduced (${short.items.length} items / ${sets(short)} sets vs ${full.items.length} / ${sets(full)})`)
       assert(short.items.every((i) => !('sets' in i) || i.sets <= TIME_CONSTRAINED_MAX_SETS),
         `${slug} W${wk} D${d}: no kept item exceeds ${TIME_CONSTRAINED_MAX_SETS} sets`)
-      assert(short.items.every((i) => i.kind !== 'lift' || !('superset' in i)), `${slug} W${wk} D${d}: no dangling superset link on a kept lift`)
+      assert(short.items.every((i) => !('superset' in i) || i.superset == null || short.items.some((k) => k !== i && 'superset' in k && k.superset === i.superset)),
+        `${slug} W${wk} D${d}: no dangling superset link on a kept item`)
+      // What was dropped leaves no trace on what was kept (Codex, round 1):
+      // no kept item's note names a dropped item, and a kept item whose
+      // partner was dropped carries no pairing note.
+      const keptSlots = new Set(short.items.map((i) => i.slot))
+      const droppedNames = full.items.filter((i) => !keptSlots.has(i.slot)).map((i) => ('name' in i ? i.name : i.title).toLowerCase())
+      for (const i of short.items) {
+        const note = ('note' in i && i.note) ? i.note.toLowerCase() : ''
+        assert(!droppedNames.some((n) => n.length > 2 && note.includes(n)),
+          `${slug} W${wk} D${d}: kept "${i.name ?? i.title}" still says "${i.note}" — it names dropped work`)
+        assert(!/contrast|superset|pair/i.test(note) || short.items.some((k) => k !== i && 'superset' in k && k.superset === ('superset' in i ? i.superset : undefined)),
+          `${slug} W${wk} D${d}: kept "${i.name ?? i.title}" keeps a pairing note ("${i.note}") with no partner`)
+      }
       const fullLifts = full.items.filter((i) => i.kind === 'lift')
       assert(lifts.every((l, i) => l.slot === fullLifts[i].slot && l.name === fullLifts[i].name),
         `${slug} W${wk} D${d}: the kept lifts are the program's primaries, in order`)
@@ -80,6 +93,32 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
     }
   }
   assert(reducedDays > 0, `${slug}: the mode reduced at least one gym day`)
+}
+// The exact day Codex ran (round 1): Power Dad's non-deload Wednesday drops
+// the trap bar jumps; the kept front squat must not still say "Contrast: trap
+// bar jumps ~30s after each set".
+{
+  const short = PROGRAMS['hybrid-power'].buildDay(1, 3, MAXES, {}, { timeConstrained: true })
+  const fs = short.items.find((i) => i.kind === 'lift' && /front squat/i.test(i.name))
+  assert(!!fs, 'Power Dad W1 D3 reduced keeps the front squat')
+  assert(!short.items.some((i) => /trap bar jump/i.test(i.name ?? i.title ?? '')), 'Power Dad W1 D3 reduced drops the trap bar jumps')
+  assert(!fs || !/trap bar/i.test(fs.note ?? ''), `Power Dad W1 D3: the front squat no longer says "${fs?.note}"`)
+}
+// The general rule, on a plan no program ships today so it cannot be satisfied
+// by accident: a kept lift with NO pairing link whose note names a dropped
+// item loses the note; one whose note is innocent keeps it.
+{
+  const plan = {
+    dayNumber: 1, dayName: 'Synthetic', dayType: 'gym', sessionIntent: 'x',
+    items: [
+      { kind: 'lift', slot: 'a', name: 'Back Squat', sets: 4, reps: 5, note: 'Then straight into the Sled Push' },
+      { kind: 'lift', slot: 'b', name: 'Bench Press', sets: 4, reps: 5, note: '90s rest' },
+      { kind: 'lift', slot: 'c', name: 'Sled Push', sets: 3, reps: 1 },
+    ],
+  }
+  const short = reduceForTime(plan)
+  assert(short.items.length === 2 && short.items[0].note == null, `a note naming dropped work is removed — got "${short.items[0].note}"`)
+  assert(short.items[1].note === '90s rest', 'an innocent note on a kept lift survives')
 }
 // ...and it is a mode, not a program: the registry is the same three with the
 // mode on or off, no slug mentions time, and reduceForTime is pure.

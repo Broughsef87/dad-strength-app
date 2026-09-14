@@ -32,10 +32,7 @@ export function reduceForTime(plan: DayPlan): DayPlan {
     if (item.kind === 'lift') {
       if (lifts >= TIME_CONSTRAINED_LIFTS) break
       lifts++
-      // A kept lift's superset partner is gone, so the link must go too — a
-      // dangling superset id would render as a pair with nothing beside it.
-      const { superset: _superset, ...rest } = item
-      kept.push({ ...rest, sets: Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS) })
+      kept.push({ ...item, sets: Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS) })
     } else if (item.kind === 'plyo' && lifts === 0) {
       kept.push({ ...item, sets: Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS) })
     } else if (lifts >= TIME_CONSTRAINED_LIFTS) {
@@ -43,10 +40,33 @@ export function reduceForTime(plan: DayPlan): DayPlan {
     }
     // anything else before the second lift (a metcon, an outside part) is dropped
   }
+  // What was dropped must leave no trace on what was kept. A kept item's
+  // superset partner is gone, so the link goes (a dangling id renders as a
+  // pair with nothing beside it) — and so does its NOTE, because a paired
+  // item's note is the pairing: "Contrast: trap bar jumps ~30s after each set"
+  // on a front squat whose trap bar jumps were just removed would send the
+  // athlete to do omitted work (Codex, round 1). Likewise any kept item whose
+  // note names a dropped item.
+  const keptSlots = new Set(kept.map((i) => i.slot))
+  const dropped = plan.items.filter((i) => !keptSlots.has(i.slot))
+  const droppedNames = dropped.map((i) => ('name' in i ? i.name : i.title).toLowerCase())
+  const items = kept.map((item) => {
+    if (item.kind !== 'lift' && item.kind !== 'plyo') return item
+    const partnerKept = item.superset != null && kept.some((k) => k !== item && 'superset' in k && k.superset === item.superset)
+    const orphanedPair = item.superset != null && !partnerKept
+    const namesDropped = item.note != null && droppedNames.some((n) => n.length > 2 && item.note!.toLowerCase().includes(n))
+    if (!orphanedPair && !namesDropped) return item
+    // An orphaned pair loses its link and its note. A note that merely names
+    // dropped work loses the note; the link, if any, still has its partner.
+    const rest = { ...item }
+    delete rest.superset
+    delete rest.note
+    return orphanedPair ? rest : { ...rest, ...(item.superset != null ? { superset: item.superset } : {}) }
+  })
   return {
     ...plan,
     dayName: `${plan.dayName} · short`,
     sessionIntent: `Time-constrained: the primaries only. ${plan.sessionIntent}`,
-    items: kept,
+    items,
   }
 }
