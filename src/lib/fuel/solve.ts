@@ -131,11 +131,25 @@ export interface PlanHistory {
   rules_snapshot?: { shop_cadence_days?: number } | null
 }
 
-/** What the monthly steak rule is judged against: the cycles already planned, and where the plan being judged would land. */
-export interface SteakContext {
+/** What a plan is judged against beyond itself: the cycles already planned, and where this plan would land. */
+export interface PlanContext {
   history: PlanHistory[]
   targetStart: string
   cadenceDays: number
+}
+
+/**
+ * A cadence that would swallow a cycle already planned. Two weekly cycles
+ * planned, the first rebuilt as a fortnight: both starts stand, the later
+ * start wins on its Monday, and the fortnight's second week — its second
+ * trip — is hidden while still running (Codex, round 14). Reported, so
+ * the build is refused with the way out.
+ */
+export function overlapWarnings(ctx: PlanContext): string[] {
+  const starts = new Set(ctx.history.map((r) => r.week_start))
+  const span = Math.max(7, ctx.cadenceDays)
+  return [...starts].sort().filter((s) => { const d = daysBetween(ctx.targetStart, s); return d > 0 && d < span })
+    .map((s) => `the cycle starting ${s} is already planned and sits inside this fortnight — keep this cycle weekly, or open that cycle and plan the fortnight from it`)
 }
 
 /**
@@ -150,7 +164,7 @@ export interface SteakContext {
  * is placed on its week's Monday; the target start's own history is the
  * plan being judged, not history.
  */
-export function steakWindowWarnings(plan: Plan, meals: MealRow[], ctx: SteakContext, allowance: number): string[] {
+export function steakWindowWarnings(plan: Plan, meals: MealRow[], ctx: PlanContext, allowance: number): string[] {
   const isSteak = (slug: string) => meals.find((m) => m.slug === slug)?.protein_cut === 'ribeye'
   const latest = new Map<string, PlanHistory>()
   for (const r of ctx.history) {
@@ -179,7 +193,7 @@ export function steakWindowWarnings(plan: Plan, meals: MealRow[], ctx: SteakCont
 }
 
 /** Frequency rules the picker should have enforced; reported, never silently fixed. */
-export function validatePlan(plan: Plan, meals: MealRow[], household: Household, context: { steak?: SteakContext } = {}): string[] {
+export function validatePlan(plan: Plan, meals: MealRow[], household: Household, context: { cycles?: PlanContext } = {}): string[] {
   const bySlug = new Map(meals.map((m) => [m.slug, m]))
   const rules = household.dietary_rules
   const warnings: string[] = []
@@ -204,8 +218,13 @@ export function validatePlan(plan: Plan, meals: MealRow[], household: Household,
   const steak = plan.entries.map((e) => bySlug.get(e.slug)).filter((m) => m?.protein_cut === 'ribeye').length
   const steakCap = steakNightsPerCycle(rules.steak_per_month, household)
   if (steak > steakCap) warnings.push(`${steak} steak night${steak === 1 ? '' : 's'} in the cycle, rule is ${rules.steak_per_month} a month`)
-  // The monthly allowance is judged over four weeks ACROSS cycles, in every window a planned cycle ends (Codex, rounds 10 and 13).
-  if (context.steak && steak > 0 && steak <= steakCap) warnings.push(...steakWindowWarnings(plan, meals, context.steak, rules.steak_per_month))
+  // Judged against the cycles already planned (Codex, rounds 10, 13, 14): a
+  // cadence that would swallow a cycle planned ahead, and the monthly steak
+  // allowance over four weeks, in every window a planned cycle ends.
+  if (context.cycles) {
+    warnings.push(...overlapWarnings(context.cycles))
+    if (steak > 0 && steak <= steakCap) warnings.push(...steakWindowWarnings(plan, meals, context.cycles, rules.steak_per_month))
+  }
   for (const e of plan.entries) if (!bySlug.has(e.slug)) warnings.push(`${e.slug}: not in the library`)
   return warnings
 }

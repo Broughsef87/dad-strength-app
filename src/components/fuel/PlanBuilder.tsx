@@ -6,15 +6,15 @@
 // profile and format over the same cuts (L5), never as more ingredients.
 import { useMemo, useState } from 'react'
 import type { Household, MealRow, Plan, PlanEntry } from '../../lib/fuel/types'
-import { cycleWeeks, defaultServings, validatePlan, type SteakContext } from '../../lib/fuel/solve'
+import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../../lib/fuel/solve'
 
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, steak }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean; onBuild: (plan: Plan) => void
-  /** The cycles already planned and where this plan would land — the monthly steak rule is judged across cycles, in every window (Codex, rounds 10 and 13). */
-  steak?: SteakContext
+  /** The cycles already planned and where this plan would land — the rules that look across cycles read it (Codex, rounds 10, 13, 14). */
+  cycles?: PlanContext
 }) {
   const weeks = cycleWeeks(household)
   const bySlug = useMemo(() => new Map(meals.map((m) => [m.slug, m])), [meals])
@@ -31,7 +31,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     .map((e) => { const m = bySlug.get(e.slug); return m && e.servings < household.people_count ? { ...e, servings: defaultServings(m, household) } : e }))
   const retired = useMemo(() => [...new Set((initial?.entries ?? []).filter((e) => !bySlug.has(e.slug)).map((e) => e.slug))], [initial, bySlug])
   const [week, setWeek] = useState<1 | 2>(1)
-  const warnings = useMemo(() => validatePlan({ entries }, meals, household, { steak }), [entries, meals, household, steak])
+  const warnings = useMemo(() => validatePlan({ entries }, meals, household, { cycles }), [entries, meals, household, cycles])
   const inWeek = (w: number) => entries.filter((e) => e.week === w)
   const picked = (slug: string) => entries.find((e) => e.slug === slug && e.week === week)
   const nightsOf = (slug: string) => entries.filter((e) => e.slug === slug && e.week === week).length

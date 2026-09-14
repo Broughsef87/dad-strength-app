@@ -70,20 +70,36 @@ function foreignOutboxes(listId: string): Array<{ key: string; stored: StoredOut
   } catch { /* storage unavailable */ }
   return others
 }
-/** Take over the outboxes of tabs that are gone: their intents come back, their keys go. A hidden tab takes nothing — it could not hold it. */
-function adoptOrphans(listId: string): TickIntent[] {
-  try {
-    if (document.visibilityState === 'hidden') return []
-    const others = foreignOutboxes(listId)
-    const gone = orphans(others.map((o) => o.stored), tabId(), Date.now())
-    for (const o of others) if (gone.includes(o.stored)) localStorage.removeItem(o.key)
-    return gone.flatMap((s) => s.intents)
-  } catch { return [] }
+/** Run `fn` holding a lock on this list's adoption shared ACROSS documents, where the browser has Web Locks; otherwise as is. */
+function withAdoptionLock<T>(listId: string, fn: () => T): Promise<T> {
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined
+  return locks ? (locks.request(`dad-strength-fuel-adopt:${listId}`, () => fn()) as Promise<T>) : Promise.resolve().then(fn)
 }
+/**
+ * Take over the outboxes of tabs that are gone: their intents come back,
+ * their keys go. Under a lock shared across documents — two visible tabs
+ * could otherwise both read a released outbox before either removed it,
+ * and both flush it (Codex, round 14) — and the taken intents are
+ * persisted under this tab's key BEFORE the lock is let go, so the next
+ * taker finds them claimed. A hidden tab takes nothing — it could not hold
+ * it. Returns what was taken; `own` is read at take time.
+ */
+function adoptOrphans(listId: string, own: () => TickIntent[]): Promise<TickIntent[]> {
+  return withAdoptionLock(listId, () => {
+    try {
+      if (document.visibilityState === 'hidden') return []
+      const others = foreignOutboxes(listId)
+      const gone = orphans(others.map((o) => o.stored), tabId(), Date.now())
+      for (const o of others) if (gone.includes(o.stored)) localStorage.removeItem(o.key)
+      const taken = gone.flatMap((s) => s.intents)
+      if (taken.length) writeOutbox(listId, adopt(own(), taken))
+      return taken
+    } catch { return [] }
+  })
+}
+/** This tab's own persisted outbox; what other tabs left is taken on mount, under the lock. */
 function readOutbox(listId: string): TickIntent[] {
-  let mine: StoredOutbox | null = null
-  try { mine = parseStored(localStorage.getItem(outboxKey(listId, tabId()))) } catch { mine = null }
-  return adopt(mine?.intents ?? [], adoptOrphans(listId))
+  try { return parseStored(localStorage.getItem(outboxKey(listId, tabId())))?.intents ?? [] } catch { return [] }
 }
 /**
  * Persist this tab's outbox under its own key; returns whether storage
@@ -198,26 +214,28 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
     const schedule = () => {
       window.clearTimeout(timer)
       const wait = nextExpiry(foreignOutboxes(listId).map((o) => o.stored), tabId(), Date.now())
-      if (wait !== null) timer = window.setTimeout(() => { if (document.visibilityState === 'visible') wakeUp(false) }, wait + 250)
+      if (wait !== null) timer = window.setTimeout(() => { if (document.visibilityState === 'visible') void wakeUp(false) }, wait + 250)
     }
-    const wakeUp = (reread: boolean) => {
-      let next = outboxRef.current
-      if (next.length && persisted.current && !ownKeyPresent(listId)) next = []
-      next = adopt(next, adoptOrphans(listId))
+    const wakeUp = async (reread: boolean) => {
+      if (outboxRef.current.length && persisted.current && !ownKeyPresent(listId)) { outboxRef.current = []; setOutbox([]) }
+      const taken = await adoptOrphans(listId, () => outboxRef.current)
+      if (!mounted.current) return
+      const next = adopt(outboxRef.current, taken)
       const took = next !== outboxRef.current
       if (took) { outboxRef.current = next; setOutbox(next) } else writeOutbox(listId, next)
       if (reread || took) setWake((n) => n + 1)
       schedule()
     }
     schedule()
-    const onVisibility = () => { if (document.visibilityState === 'hidden') writeOutbox(listId, outboxRef.current); else wakeUp(true) }
-    const onShow = (e: PageTransitionEvent) => { if (e.persisted) wakeUp(true) }
+    void wakeUp(false)
+    const onVisibility = () => { if (document.visibilityState === 'hidden') writeOutbox(listId, outboxRef.current); else void wakeUp(true) }
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) void wakeUp(true) }
     const onStorage = (e: StorageEvent) => {
       if (!e.key || !e.key.startsWith(outboxPrefix(listId)) || e.key === outboxKey(listId, tabId()) || document.visibilityState !== 'visible') return
       const stored = parseStored(e.newValue)
       // A release is taken now; a claim that appears or renews is looked at
       // again when it lapses (Codex, round 13).
-      if (stored?.alive === 0) wakeUp(false); else schedule()
+      if (stored?.alive === 0) void wakeUp(false); else schedule()
     }
     document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow); window.addEventListener('storage', onStorage)
     return () => { window.clearTimeout(timer); document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow); window.removeEventListener('storage', onStorage) }

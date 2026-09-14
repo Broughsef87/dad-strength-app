@@ -19,7 +19,7 @@ import {
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed, listUnchanged } from '../../lib/fuel/version'
-import { buildShoppingList } from '../../lib/fuel/solve'
+import { buildShoppingList, validatePlan } from '../../lib/fuel/solve'
 import { cycleKeyFor, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
@@ -115,6 +115,12 @@ export default function FuelPage() {
     if (!userId || !household) return
     const startingNext = !!(liveCycle && nextCycle)
     const weekStart = buildTarget(new Date())
+    // Validated again HERE, against the target the build actually lands on:
+    // a builder left open across a cycle boundary was enabled against a
+    // target that has since moved, with a different history around it
+    // (Codex, round 14). Refused with the warnings, never saved.
+    const late = validatePlan(p, meals, household, { cycles: { history: recent, targetStart: weekStart, cadenceDays: household.shop_cadence_days } })
+    if (late.length) { setError(late.join(' · ')); return }
     // The unchanged-plan shortcut is a regeneration shortcut only: the next
     // cycle is always a new version under a new start — and so is a cycle
     // that expired while the page stayed open (Codex, round 8). The list is
@@ -206,7 +212,7 @@ export default function FuelPage() {
               {step === 'plan' && household && (
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild}
                   initial={plan ? { entries: plan.meal_ids } : null}
-                  steak={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
+                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}
               {step === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">

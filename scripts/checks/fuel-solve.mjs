@@ -22,7 +22,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
+import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
@@ -94,9 +94,16 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // a rebuilt EARLIER cycle must not push a cycle planned ahead over ITS window (r13): steak in weeks one and three, then week two rebuilt with steak
   const ahead = steakW([steakWeek('2026-09-07'), steakWeek('2026-09-21')], '2026-09-14')
   assert(ahead.length === 1 && /3 steak nights in the four weeks to the end of the cycle starting 2026-09-21, rule is 2 a month/.test(ahead[0]), `the window of the cycle planned ahead is judged too — got ${JSON.stringify(ahead)}`)
-  assert(validatePlan(twoRibeye(), meals, weekly, { steak: ctx([steakWeek('2026-09-07'), steakWeek('2026-09-14')]) }).some((w) => /3 steak nights in the four weeks/.test(w))
-    && validatePlan(twoRibeye(), meals, weekly, { steak: ctx([steakWeek('2026-09-14')]) }).every((w) => !/four weeks/.test(w)) && validatePlan(twoRibeye(), meals, weekly).every((w) => !/four weeks/.test(w)),
+  assert(validatePlan(twoRibeye(), meals, weekly, { cycles: ctx([steakWeek('2026-09-07'), steakWeek('2026-09-14')]) }).some((w) => /3 steak nights in the four weeks/.test(w))
+    && validatePlan(twoRibeye(), meals, weekly, { cycles: ctx([steakWeek('2026-09-14')]) }).every((w) => !/four weeks/.test(w)) && validatePlan(twoRibeye(), meals, weekly).every((w) => !/four weeks/.test(w)),
     'a third steak in four weeks is reported against a two-a-month rule; a second is not; no history, no report')
+  // a cadence cannot swallow a cycle planned ahead (Codex r14): weekly cycles on the 7th and the 14th, the 7th rebuilt as a fortnight
+  const swallowed = overlapWarnings(ctx([steakWeek('2026-09-14')], '2026-09-07', 14))
+  assert(swallowed.length === 1 && /the cycle starting 2026-09-14 is already planned and sits inside this fortnight/.test(swallowed[0]) && /keep this cycle weekly/.test(swallowed[0]),
+    `a fortnight rebuilt over a weekly cycle planned inside it is refused, with the way out — got ${JSON.stringify(swallowed)}`)
+  assert(overlapWarnings(ctx([steakWeek('2026-09-14')], '2026-09-07', 7)).length === 0 && overlapWarnings(ctx([steakWeek('2026-09-21')], '2026-09-07', 14)).length === 0 && overlapWarnings(ctx([steakWeek('2026-09-07')], '2026-09-07', 14)).length === 0 && overlapWarnings(ctx([steakWeek('2026-08-31')], '2026-09-07', 14)).length === 0,
+    'a weekly rebuild, a cycle starting where the fortnight ends, the target start itself, and a cycle before it are not overlaps')
+  assert(validatePlan(fortnight, meals, andrew, { cycles: ctx([steakWeek('2026-09-14')], '2026-09-07', 14) }).some((w) => /sits inside this fortnight/.test(w)), 'validatePlan reports the overlap, so the build is refused')
   function twoRibeye() { return { entries: [entry('cast-iron-ribeye', 1)] } }
   // servings default from the household (Codex r2): the seed's 3-for-2 is "everyone eats, plus half again for a leftover night"
   assert(defaultServings(byslug('chili-lime-thighs'), { people_count: 2 }) === 3 && defaultServings(byslug('cast-iron-ribeye'), { people_count: 2 }) === 2,
@@ -301,7 +308,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'adopted intents queue behind this tab\'s own, oldest first, this tab\'s own winning its keys and the newest adopted winning a key two orphans held')
   assert(adopt(own, []) === own && adopt(own, own) === own, 'nothing to adopt, same outbox back')
   const cl9 = readLF('src/components/fuel/Checklist.tsx')
-  assert(/return adopt\(mine\?\.intents \?\? \[\], adoptOrphans\(listId\)\)/.test(cl9) && /JSON\.stringify\(\{ tab: tabId\(\), alive: rel \? 0 : Date\.now\(\), intents: outbox \} satisfies StoredOutbox\)/.test(cl9),
+  assert(/parseStored\(localStorage\.getItem\(outboxKey\(listId, tabId\(\)\)\)\)\?\.intents \?\? \[\]/.test(cl9) && /JSON\.stringify\(\{ tab: tabId\(\), alive: rel \? 0 : Date\.now\(\), intents: outbox \} satisfies StoredOutbox\)/.test(cl9),
     'the checklist writes its own tab\'s key, stamped alive, and a mount adopts the outboxes tabs left behind')
   // round 10: the tab id is per document; a released outbox is never recreated; hidden means no heartbeat, no flush, no adoption; a release is taken at once
   assert(/function tabId\(\): string \{ return tab \?\? \(tab = Math\.random\(\)/.test(cl9) && !/sessionStorage\./.test(cl9),
@@ -319,7 +326,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     const live = { tab: 't1', alive: 1_000_000, intents: [] }, lapsed = { tab: 't3', alive: 1_000_000 - ORPHAN_AFTER_MS - 1, intents: [] }, let_go = { tab: 't2', alive: 0, intents: [] }
     assert(nextExpiry([live], 'me', 1_000_000) === ORPHAN_AFTER_MS && nextExpiry([live, lapsed], 'me', 1_000_000) === 0 && nextExpiry([let_go], 'me', 1_000_000) === null && nextExpiry([live], 't1', 1_000_000) === null,
       'the next look is scheduled for when the soonest foreign claim lapses — now for one already lapsed, never for a released one or this tab\'s own')
-    assert(/const schedule = \(\) => \{/.test(cl9) && /nextExpiry\(foreignOutboxes\(listId\)\.map\(\(o\) => o\.stored\), tabId\(\), Date\.now\(\)\)/.test(cl9) && /if \(document\.visibilityState === 'visible'\) wakeUp\(false\) \}, wait \+ 250\)/.test(cl9) && /if \(reread \|\| took\) setWake\(\(n\) => n \+ 1\)\n\s+schedule\(\)/.test(cl9) && /\n\s+schedule\(\)\n\s+const onVisibility/.test(cl9),
+    assert(/const schedule = \(\) => \{/.test(cl9) && /nextExpiry\(foreignOutboxes\(listId\)\.map\(\(o\) => o\.stored\), tabId\(\), Date\.now\(\)\)/.test(cl9) && /if \(document\.visibilityState === 'visible'\) void wakeUp\(false\) \}, wait \+ 250\)/.test(cl9) && /if \(reread \|\| took\) setWake\(\(n\) => n \+ 1\)\n\s+schedule\(\)/.test(cl9) && /\n\s+schedule\(\)\n\s+void wakeUp\(false\)\n\s+const onVisibility/.test(cl9),
       'the checklist looks again when a foreign claim lapses — scheduled on mount and after every wake, taken only while visible')
     const items = buildShoppingList(andrew, meals, fortnight).items
     assert(items.some((i) => 'stocked_reason' in i && i.stocked_reason === undefined) && listUnchanged(items, JSON.parse(JSON.stringify(items))), 'a JSON round-trip — jsonb drops undefined — is not a different list')
@@ -327,17 +334,21 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 13: an acknowledged intent is retired even after unmount; a foreign claim that appears is looked at when it lapses
   assert(/if \(items && !mounted\.current\) retireStored\(listId, intent\)/.test(cl9) && /function retireStored\(listId: string, acked: TickIntent\)/.test(cl9) && /acknowledge\(\[\], stored\.intents, acked\)\.outbox/.test(cl9),
     'an acknowledged intent is retired from the persisted outbox even after unmount — never replayed over what another tab has since saved')
-  assert(/if \(stored\?\.alive === 0\) wakeUp\(false\); else schedule\(\)/.test(cl9), 'a foreign claim that appears or renews re-schedules the next look for when it lapses')
+  assert(/if \(stored\?\.alive === 0\) void wakeUp\(false\); else schedule\(\)/.test(cl9), 'a foreign claim that appears or renews re-schedules the next look for when it lapses')
+  // round 14: adoption is serialised across documents, and what is taken is claimed before the lock is let go
+  assert(/function withAdoptionLock</.test(cl9) && /locks\.request\(`dad-strength-fuel-adopt:\$\{listId\}`, \(\) => fn\(\)\)/.test(cl9) && /return withAdoptionLock\(listId, \(\) => \{/.test(cl9),
+    'adoption runs under a lock shared across documents — two visible tabs cannot both take one released outbox')
+  assert(/if \(taken\.length\) writeOutbox\(listId, adopt\(own\(\), taken\)\)/.test(cl9), 'what is taken is persisted under this tab\'s key before the lock is let go')
   // round 11: the claim holds while a write is in flight; a refusal lets it go
   assert(released(true, 0) && !released(true, 1) && !released(false, 0) && !released(false, 2), 'a hidden tab\'s outbox is released — not while a write is in flight, never while visible')
   assert(/if \(!items\) \{ setFailed\(\(f\) => new Set\(f\)\.add\(intent\.key\)\); writeOutbox\(listId, outboxRef\.current\); break \}/.test(cl9), 'a refused write lets the claim go, so another tab can retry it')
   assert(/while \(outboxRef\.current\.length > 0 && navigator\.onLine && mounted\.current && document\.visibilityState !== 'hidden'\)/.test(cl9), 'a hidden tab does not flush — its intents are released for a visible tab')
   assert(/if \(document\.visibilityState === 'hidden'\) return \[\]/.test(cl9), 'a hidden tab adopts nothing')
-  assert(/const onStorage = \(e: StorageEvent\)/.test(cl9) && /if \(stored\?\.alive === 0\) wakeUp\(false\)/.test(cl9) && /if \(reread \|\| took\) setWake/.test(cl9),
+  assert(/const onStorage = \(e: StorageEvent\)/.test(cl9) && /if \(stored\?\.alive === 0\) void wakeUp\(false\)/.test(cl9) && /if \(reread \|\| took\) setWake/.test(cl9),
     'a visible tab takes a released outbox the moment it is released, and re-reads the row only when it took something')
-  assert(/if \(document\.visibilityState === 'hidden'\) writeOutbox\(listId, outboxRef\.current\); else wakeUp\(true\)/.test(cl9) && /window\.addEventListener\('pagehide', hide\)/.test(cl9) && /const hide = \(\) => writeOutbox\(listId, outboxRef\.current, true\)/.test(cl9),
+  assert(/if \(document\.visibilityState === 'hidden'\) writeOutbox\(listId, outboxRef\.current\); else void wakeUp\(true\)/.test(cl9) && /window\.addEventListener\('pagehide', hide\)/.test(cl9) && /const hide = \(\) => writeOutbox\(listId, outboxRef\.current, true\)/.test(cl9),
     'a tab that hides or closes lets its outbox go, so the next tab can take the ticks at once')
-  assert(/if \(next\.length && persisted\.current && !ownKeyPresent\(listId\)\) next = \[\]/.test(cl9) && /next = adopt\(next, adoptOrphans\(listId\)\)/.test(cl9) && /\[online, listId, refetch, onRowItems, flush, wake\]/.test(cl9),
+  assert(/if \(outboxRef\.current\.length && persisted\.current && !ownKeyPresent\(listId\)\) \{ outboxRef\.current = \[\]; setOutbox\(\[\]\) \}/.test(cl9) && /const taken = await adoptOrphans\(listId, \(\) => outboxRef\.current\)/.test(cl9) && /const next = adopt\(outboxRef\.current, taken\)/.test(cl9) && /\[online, listId, refetch, onRowItems, flush, wake\]/.test(cl9),
     'a tab that wakes to find its outbox adopted drops those intents rather than sending them twice, adopts what others left, and re-reads the row')
   const cl6 = readLF('src/components/fuel/Checklist.tsx')
   assert(/hold\(inFlight\.current, intent\.key\)/.test(cl6) && /finally \{ drop\(inFlight\.current, intent\.key\) \}/.test(cl6) && /reconcile\(fresh, outboxRef\.current, new Set\(inFlight\.current\.keys\(\)\)\)/.test(cl6),
@@ -400,9 +411,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the page can plan the NEXT cycle — keyed to where the live one ends (or the cycle already planned ahead), defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
   assert(/rebuildKey\(liveCycle, household\.shop_cadence_days, now\)/.test(pg) && /const buildTarget = \(now: Date\): string =>/.test(pg), 'a rebuild keys through rebuildKey, so a shortened cadence cannot snapshot an expired cycle')
   // round 10: the builder is told the steak nights already planned in other cycles, for the target the build would land on
-  assert(/steak=\{\{ history: recent, targetStart: buildTarget\(new Date\(\)\), cadenceDays: household\.shop_cadence_days \}\}/.test(pg) && /setRecent\(active\.recent\)/.test(pg) && /setRecent\(\(r\) => \[\.\.\.r, built\]\)/.test(pg),
+  assert(/cycles=\{\{ history: recent, targetStart: buildTarget\(new Date\(\)\), cadenceDays: household\.shop_cadence_days \}\}/.test(pg) && /setRecent\(active\.recent\)/.test(pg) && /setRecent\(\(r\) => \[\.\.\.r, built\]\)/.test(pg),
     'the builder is told the steak nights already planned in other cycles — loaded with the page, and kept current after a build')
-  assert(/validatePlan\(\{ entries \}, meals, household, \{ steak \}\)/.test(pb), 'the builder judges the monthly steak rule across cycles')
+  assert(/validatePlan\(\{ entries \}, meals, household, \{ cycles \}\)/.test(pb), 'the builder judges the monthly steak rule across cycles')
+  // round 14: validated again at build time, against the target the build lands on
+  assert(/const late = validatePlan\(p, meals, household, \{ cycles: \{ history: recent, targetStart: weekStart, cadenceDays: household\.shop_cadence_days \} \}\)/.test(pg) && /if \(late\.length\) \{ setError\(late\.join\(' · '\)\); return \}/.test(pg)
+    && pg.indexOf('const weekStart = buildTarget(new Date())') < pg.indexOf('const late = validatePlan(') && pg.indexOf('const late = validatePlan(') < pg.indexOf('plan.week_start === weekStart && !changed('),
+    'the plan is validated again at build time against the target the build lands on — before the shortcut, before any write')
   const st10 = readLF('src/lib/fuel/store.ts')
   assert(/recent: PlanRow\[\]/.test(st10) && /const recent = rows as PlanRow\[\]/.test(st10), 'loadActive hands back every recent cycle, all versions')
   // round 9: the next-cycle target is checked against today, and a cycle planned ahead that the build passed is let go
