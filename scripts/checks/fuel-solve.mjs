@@ -22,8 +22,9 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
+import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
+import { activeCycle, cycleKeyFor, daysInto, mondayOf } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, enqueue, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
@@ -70,6 +71,15 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(find(list, 'ribeye')?.inferred === false && find(list, 'broccoli')?.inferred === true,
     'protein totals are exact; a side total is marked inferred because its inputs were')
   assert(find(list, 'garlic')?.from.join(',') === 'greek-turkey-bowl,lemon-garlic-salmon', 'the same item across nights aggregates to one line and names its meals')
+  // L4: the floor drives raw weight. A 60 g floor scales the ribeye's 8 oz
+  // (written for 48 g) to 10 oz; a 40 g floor leaves it at 8; sides untouched.
+  assert(Math.abs(proteinScale(byslug('cast-iron-ribeye'), 60) - 1.25) < 1e-9 && proteinScale(byslug('cast-iron-ribeye'), 40) === 1, 'the protein floor scales a cut up, never down')
+  const hungry = buildShoppingList({ ...andrew, prep_diversion_pct: 0, dietary_rules: { ...andrew.dietary_rules, protein_floor_g_per_person: 60 } }, meals, { entries: [{ slug: 'cast-iron-ribeye', week: 1, servings: 2 }] })
+  assert(find(hungry, 'ribeye')?.qty === 20 && find(hungry, 'broccoli')?.qty === 12, `a 60 g floor buys 10 oz ribeye a serving (20 for two) and leaves the broccoli at 12 — got ${find(hungry, 'ribeye')?.qty} / ${find(hungry, 'broccoli')?.qty}`)
+  assert(steakNightsPerCycle(0, andrew) === 0 && steakNightsPerCycle(2, andrew) === 1 && steakNightsPerCycle(2, { shop_cadence_days: 7 }) === 1, 'steak nights per cycle: two a month is one a fortnight, and zero stays zero')
+  const noSteak = validatePlan(twoRibeye(), meals, { ...andrew, dietary_rules: { ...andrew.dietary_rules, steak_per_month: 0 } })
+  assert(noSteak.some((w) => /steak night/.test(w)), 'a zero-steak household is warned about a ribeye night')
+  function twoRibeye() { return { entries: [entry('cast-iron-ribeye', 1)] } }
 }
 
 // ── 2. inventory ────────────────────────────────────────────────────────────
@@ -84,10 +94,15 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // partial subtraction
   const l3 = buildShoppingList({ ...andrew, inventory: [{ item: 'broccoli', qty: 10, unit: 'oz' }] }, meals, fortnight)
   assert(find(l3, 'broccoli')?.qty === 20, `10 oz on hand leaves 20 of the week-1 30 — got ${find(l3, 'broccoli')?.qty}`)
-  // meat on hand counts at half (L2)
+  // meat on hand counts at half (L2), and it comes off the DINNER need before
+  // the purchase is scaled — never off the already-doubled figure (Codex r1)
   const l4 = buildShoppingList({ ...andrew, inventory: [{ item: 'chicken thigh, boneless skinless', qty: 4, unit: 'lb' }] }, meals, fortnight)
-  assert(find(l4, 'chicken thigh, boneless skinless')?.qty === 64, `4 lb thighs on hand: only 2 lb (32 oz) counts, 96 → 64 — got ${find(l4, 'chicken thigh, boneless skinless')?.qty}`)
-  assert(/half counts after meal prep/.test(l4.items.find((i) => i.item === 'chicken thigh, boneless skinless')?.stocked_reason ?? '') || find(l4, 'chicken thigh, boneless skinless')?.qty === 64, 'the meat verdict says why only half counted')
+  assert(find(l4, 'chicken thigh, boneless skinless')?.qty === 32, `4 lb thighs on hand: 32 oz counts against a 48 oz dinner need, 16 left, doubled → 32 — got ${find(l4, 'chicken thigh, boneless skinless')?.qty}`)
+  const twoSteaks = { entries: [{ slug: 'cast-iron-ribeye', week: 1, servings: 2 }] }
+  const l4b = buildShoppingList({ ...andrew, inventory: [{ item: 'ribeye', qty: 32, unit: 'oz' }] }, meals, twoSteaks)
+  assert(l4b.stocked.some((i) => i.item === 'ribeye') && find(l4b, 'ribeye')?.qty === 0 && !l4b.sections.some((s) => s.items.some((i) => i.item === 'ribeye')),
+    '32 oz of ribeye on hand at 50% covers a 16 oz dinner need — nothing to buy, not another 16 oz')
+  assert(/half counts after meal prep/.test(l4b.stocked.find((i) => i.item === 'ribeye')?.stocked_reason ?? ''), 'the meat verdict says why only half counted')
   // mismatched units are not subtracted
   const l5 = buildShoppingList({ ...andrew, inventory: [{ item: 'lemon', qty: 3, unit: 'lb' }] }, meals, fortnight)
   assert(find(l5, 'lemon')?.qty === 2.5, 'inventory in a unit the item is not measured in is not subtracted')
@@ -116,6 +131,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the second trip is kept apart, not merged into the main sections')
   const weekly = buildShoppingList({ ...andrew, shop_cadence_days: 7 }, meals, { entries: W1.map((s) => entry(s, 1)) })
   assert(weekly.second_trip.length === 0, 'a weekly shop has no second trip')
+  const strayWeek2 = validatePlan({ entries: [...W1.map((s) => entry(s, 1)), entry('blackened-cod', 2)] }, meals, { ...andrew, shop_cadence_days: 7 })
+  assert(strayWeek2.some((w) => /week 2 on a weekly shop/.test(w)), 'a week-2 night on a weekly shop is reported, not folded into the main shop')
   assert(isSecondTrip({ item: 'x', qty_per_person: 1, unit: 'oz', store_section: 'Pantry', inferred: false }, byslug('blackened-cod'), entry('blackened-cod', 2), andrew) === false, 'pantry never goes on the second trip')
   // the fixture says so, in its own words
   assert(/SECOND TRIP/.test(byslug('blackened-cod').rotation_note) && /week 1/i.test(byslug('lemon-garlic-salmon').rotation_note), 'the fixture names cod as the second-trip meal and salmon as week 1')
@@ -140,6 +157,23 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const rules = Object.fromEntries(Object.entries(s1.dietary_rules).reverse())
   assert(!changed({ ...reordered, dietary_rules: rules, inventory: s1.inventory, entries: s1.entries, store_section_order: s1.store_section_order }, andrew, fortnight),
     'a snapshot read back with reordered keys compares equal — no phantom version')
+}
+
+// ── 5b. the live cycle (Codex r1: a fortnight plan vanished in its second week) ──
+{
+  const mon = '2026-09-14'
+  const rows = [{ week_start: mon, version: 1, shop_cadence_days: 14 }, { week_start: mon, version: 2, shop_cadence_days: 14 }]
+  assert(mondayOf(new Date(2026, 8, 17)) === mon && mondayOf(new Date(2026, 8, 14)) === mon && mondayOf(new Date(2026, 8, 20)) === mon, 'mondayOf keys a week to its Monday')
+  assert(daysInto(mon, new Date(2026, 8, 23)) === 9, 'daysInto counts whole days from the start')
+  assert(activeCycle(rows, new Date(2026, 8, 23))?.version === 2, 'on day 9 of a fortnight the plan is still live, and its highest version wins')
+  assert(activeCycle(rows, new Date(2026, 8, 27))?.version === 2 && activeCycle(rows, new Date(2026, 8, 28)) === null, 'a fortnight cycle is live for fourteen days and gone on the fifteenth')
+  assert(activeCycle(rows, new Date(2026, 8, 13))?.version === 2, 'a plan built on the Sunday before its Monday is live that Sunday')
+  assert(activeCycle([{ week_start: mon, version: 1, shop_cadence_days: 7 }], new Date(2026, 8, 21)) === null, 'a weekly cycle is gone on day 7')
+  assert(activeCycle([...rows, { week_start: '2026-09-28', version: 1, shop_cadence_days: 14 }], new Date(2026, 8, 29))?.week_start === '2026-09-28', 'the newest live start wins')
+  assert(cycleKeyFor(rows[1], new Date(2026, 8, 23)) === mon && cycleKeyFor(null, new Date(2026, 8, 23)) === '2026-09-21', 'a regeneration stays in the live cycle; a fresh start keys on this Monday')
+  const st = readLF('src/lib/fuel/store.ts')
+  const la = (st.match(/export async function loadActive[\s\S]*?\n\}/) || [])[0] || ''
+  assert(/activeCycle</.test(la) && !/eq\('week_start'/.test(la) && /order\('week_start', \{ ascending: false \}\)/.test(la), 'the store loads the live cycle, not only the current calendar week')
 }
 
 // ── 6. the row is authoritative ─────────────────────────────────────────────
@@ -188,6 +222,20 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/CREATE OR REPLACE FUNCTION public\.fuel_set_item_checked\(p_list_id uuid, p_key text, p_checked boolean\)/.test(onDisk) && /SECURITY INVOKER/.test(onDisk) && /WHERE id = p_list_id AND user_id = auth\.uid\(\)/.test(onDisk),
     'the one write path for checked is a SECURITY INVOKER function scoped to the owner')
   assert(/REVOKE EXECUTE ON FUNCTION public\.fuel_set_item_checked\(uuid, text, boolean\) FROM PUBLIC, anon/.test(onDisk), 'anon cannot call it')
+  // a new version is one transaction (Codex r1: an orphan plan held the number)
+  const cv = (onDisk.match(/CREATE OR REPLACE FUNCTION public\.fuel_create_version[\s\S]*?\$\$;/) || [])[0] || ''
+  assert(/SECURITY INVOKER/.test(cv) && /INSERT INTO public\.fuel_plans/.test(cv) && /INSERT INTO public\.fuel_lists/.test(cv) && /COALESCE\(MAX\(version\), 0\) \+ 1/.test(cv) && /auth\.uid\(\)/.test(cv),
+    'fuel_create_version inserts plan and list in one transaction, picks the version inside the database, as the signed-in user')
+  assert(/REVOKE EXECUTE ON FUNCTION public\.fuel_create_version\(date, jsonb, jsonb, jsonb\) FROM PUBLIC, anon/.test(onDisk), 'anon cannot create a version')
+  assert(/db\.rpc\('fuel_create_version'/.test(readLF('src/lib/fuel/store.ts')) && !/from\('fuel_plans'\)\.insert/.test(readLF('src/lib/fuel/store.ts')), 'the store creates a version through the function, never two client inserts')
+  // the checklist's callbacks are keyed on the list id, not the list object (Codex r1: a refetch loop)
+  const pg = readLF('src/app/fuel/page.tsx')
+  assert(/const listId = list\?\.id \?\? null/.test(pg) && /\}, \[supabase, listId\]\)/.test(pg) && !/\}, \[supabase, list\]\)/.test(pg), 'send and refetch depend on the list id — a row update cannot re-trigger reconciliation')
+  // the builder (Codex r1): deselect is always allowed, saved entries are cut to the cycle, servings scale with the household
+  const pb = readLF('src/components/fuel/PlanBuilder.tsx')
+  assert(/disabled=\{!ok && !entry\}/.test(pb) && /if \(existing\) \{ setEntries\(entries\.filter/.test(pb), 'a selected meal that fell outside the cap can still be removed')
+  assert(/\.filter\(\(e\) => e\.week <= weeks\)/.test(pb), 'a saved fortnight plan is cut to the cycle when the shop becomes weekly')
+  assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, entry\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
   assert((onDisk.match(/^  \('/gm) || []).length === meals.length && meals.length === 8, `the seed carries the fortnight rotation — ${meals.length} meals`)
   assert(/"inferred":true/.test(onDisk) && /"inferred":false/.test(onDisk), 'the seed keeps the inferred flag on every ingredient')
   const solve = readLF('src/lib/fuel/solve.ts')
@@ -197,6 +245,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/\{ id: 'fuel', label: 'fuel', path: '\/fuel', icon: Utensils \}/.test(nav) && (nav.match(/\{ id: '/g) || []).length === 4, 'Fuel is the fourth BottomNav config entry')
   const page = readLF('src/app/fuel/page.tsx')
   assert(/<PremiumGate feature=/.test(page) && page.indexOf('<PremiumGate') < page.indexOf('<IntakeForm'), 'the Fuel page sits behind PremiumGate')
+  const mw = readLF('middleware.ts')
+  const protectedList = (mw.match(/const protectedPaths = \[([\s\S]*?)\]/) || [])[1] || ''
+  assert(/'\/fuel'/.test(protectedList), '/fuel is a protected path in the middleware — signed-out visitors are redirected server-side, not by the page alone')
   const modal = readLF('src/components/UpgradeModal.tsx')
   assert(/\/\/ Meal planner \+ shopping list: held out until FOR-177 ships/.test(modal) && !/^\s*'Meal planner/m.test(modal), 'PRO_FEATURES still holds the meal-planner line out until this ships')
   const checklist = readLF('src/components/fuel/Checklist.tsx')

@@ -40,6 +40,7 @@ export async function middleware(request: NextRequest) {
     '/dashboard', '/body', '/profile',
     '/workout', '/edit-program', '/onboarding', '/history', '/library',
     '/build', '/schedule', '/exercises', '/train',
+    '/fuel', // FOR-177: the Pro anchor is signed-in only, server-side, like every other surface
   ]
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
 

@@ -119,6 +119,39 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.fuel_set_item_checked(uuid, text, boolean) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION public.fuel_set_item_checked(uuid, text, boolean) TO authenticated;
 
+-- ── A new version is ONE transaction: plan row + list row together ───────
+-- The version number is chosen here under the unique constraint, so two
+-- clients cannot race for it and a failed list insert cannot leave an
+-- orphan plan holding a number. SECURITY INVOKER: RLS applies to both
+-- inserts, and user_id is auth.uid() by construction.
+CREATE OR REPLACE FUNCTION public.fuel_create_version(p_week_start date, p_meal_ids jsonb, p_rules_snapshot jsonb, p_items jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$
+DECLARE
+  v_version int;
+  v_plan_id uuid;
+  v_list_id uuid;
+  v_updated timestamptz;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not signed in' USING ERRCODE = '42501';
+  END IF;
+  SELECT COALESCE(MAX(version), 0) + 1 INTO v_version
+    FROM public.fuel_plans WHERE user_id = auth.uid() AND week_start = p_week_start;
+  INSERT INTO public.fuel_plans (user_id, week_start, version, meal_ids, rules_snapshot)
+    VALUES (auth.uid(), p_week_start, v_version, p_meal_ids, p_rules_snapshot)
+    RETURNING id INTO v_plan_id;
+  INSERT INTO public.fuel_lists (plan_id, user_id, version, items)
+    VALUES (v_plan_id, auth.uid(), v_version, p_items)
+    RETURNING id, updated_at INTO v_list_id, v_updated;
+  RETURN jsonb_build_object('plan_id', v_plan_id, 'list_id', v_list_id, 'version', v_version, 'updated_at', v_updated);
+END
+$$;
+REVOKE EXECUTE ON FUNCTION public.fuel_create_version(date, jsonb, jsonb, jsonb) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.fuel_create_version(date, jsonb, jsonb, jsonb) TO authenticated;
+
 -- ── Seed: Andrew's fortnight rotation (8 meals), from the fixture ───
 INSERT INTO public.fuel_meals
   (slug, name, protein_cut, spice_profile, format, active_cook_minutes, total_minutes, servings, protein_g_per_person, perishable_within_days, rotation_note, ingredients)

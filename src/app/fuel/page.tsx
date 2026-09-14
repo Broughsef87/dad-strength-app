@@ -15,10 +15,11 @@ import PlanBuilder from '../../components/fuel/PlanBuilder'
 import Checklist from '../../components/fuel/Checklist'
 import type { Household, ListItem, MealRow, Plan } from '../../lib/fuel/types'
 import {
-  DEFAULT_HOUSEHOLD, createVersion, isMissingTable, loadHousehold, loadLatest, loadMeals, loadVersions,
-  readItems, saveHousehold, setItemChecked, weekStartKey, type ListRow, type PlanRow,
+  DEFAULT_HOUSEHOLD, createVersion, isMissingTable, loadActive, loadHousehold, loadMeals, loadVersions,
+  readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed } from '../../lib/fuel/version'
+import { cycleKeyFor } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -36,7 +37,10 @@ export default function FuelPage() {
   const [versions, setVersions] = useState<number[]>([])
   const [step, setStep] = useState<Step>('intake')
   const [busy, setBusy] = useState(false)
-  const weekStart = weekStartKey()
+  // The identity the checklist keys on. Callbacks depend on THIS, not on the
+  // list object, so a row update never recreates them and never re-triggers
+  // the checklist's reconciliation (Codex, round 1).
+  const listId = list?.id ?? null
 
   useEffect(() => {
     let cancelled = false
@@ -45,20 +49,20 @@ export default function FuelPage() {
       if (!user) { router.push('/'); return }
       if (cancelled) return
       setUserId(user.id)
-      const [m, h, latest] = await Promise.all([loadMeals(supabase), loadHousehold(supabase, user.id), loadLatest(supabase, user.id, weekStart)])
+      const [m, h, active] = await Promise.all([loadMeals(supabase), loadHousehold(supabase, user.id), loadActive(supabase, user.id, new Date())])
       if (cancelled) return
-      const err = m.error ?? h.error ?? latest.error
+      const err = m.error ?? h.error ?? active.error
       if (isMissingTable(err)) { setNotReady(true); setLoading(false); return }
       if (err) setError(err.message ?? 'could not load')
       setMeals(m.meals)
       setHousehold(h.household)
-      setPlan(latest.plan); setList(latest.list)
-      setVersions((await loadVersions(supabase, user.id, weekStart)).map((v) => v.version))
-      setStep(latest.list ? 'list' : h.household ? 'plan' : 'intake')
+      setPlan(active.plan); setList(active.list)
+      if (active.plan) setVersions((await loadVersions(supabase, user.id, active.plan.week_start)).map((v) => v.version))
+      setStep(active.list ? 'list' : h.household ? 'plan' : 'intake')
       setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [supabase, router, weekStart])
+  }, [supabase, router])
 
   const onSaveHousehold = async (h: Household) => {
     if (!userId) return
@@ -74,9 +78,11 @@ export default function FuelPage() {
 
   const onBuild = async (p: Plan) => {
     if (!userId || !household) return
-    if (plan && !changed(plan.rules_snapshot, household, p)) { setStep('list'); return }
+    if (plan && list && !changed(plan.rules_snapshot, household, p)) { setStep('list'); return }
     setBusy(true); setError(null)
-    const res = await createVersion(supabase, userId, weekStart, household, meals, p, plan?.version ?? null)
+    // A regeneration stays in the live cycle; a fresh start keys on this week.
+    const weekStart = cycleKeyFor(plan ? { week_start: plan.week_start, version: plan.version, shop_cadence_days: Number(plan.rules_snapshot?.shop_cadence_days ?? 7) } : null, new Date())
+    const res = await createVersion(supabase, weekStart, household, meals, p)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     setPlan(res.plan); setList(res.list)
@@ -85,11 +91,11 @@ export default function FuelPage() {
   }
 
   const send = useCallback(async (key: string, checked: boolean) => {
-    if (!list) return null
-    const { items, error: e } = await setItemChecked(supabase, list.id, key, checked)
+    if (!listId) return null
+    const { items, error: e } = await setItemChecked(supabase, listId, key, checked)
     return e ? null : items
-  }, [supabase, list])
-  const refetch = useCallback(async () => (list ? readItems(supabase, list.id) : null), [supabase, list])
+  }, [supabase, listId])
+  const refetch = useCallback(async () => (listId ? readItems(supabase, listId) : null), [supabase, listId])
   const onRowItems = useCallback((items: ListItem[]) => setList((l) => (l ? { ...l, items } : l)), [])
 
   return (
@@ -122,11 +128,11 @@ export default function FuelPage() {
               {error && <div className="status-msg danger text-[12px]" role="alert">{error}</div>}
               {step === 'intake' && <IntakeForm initial={household ?? DEFAULT_HOUSEHOLD} saving={busy} onSave={onSaveHousehold} />}
               {step === 'plan' && household && (
-                <PlanBuilder household={household} meals={meals} building={busy} onBuild={onBuild}
+                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}`} household={household} meals={meals} building={busy} onBuild={onBuild}
                   initial={plan ? { entries: plan.meal_ids } : null} />
               )}
-              {step === 'list' && list && plan && (
-                <Checklist listId={list.id} version={list.version} versions={versions} items={list.items}
+              {step === 'list' && list && plan && listId && (
+                <Checklist listId={listId} version={list.version} versions={versions} items={list.items}
                   onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} />
               )}
             </>

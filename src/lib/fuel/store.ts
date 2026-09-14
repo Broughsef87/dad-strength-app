@@ -2,11 +2,15 @@
 // Everything that touches Supabase for Fuel lives here, thin, so the solver
 // and the tick model stay pure. The ROW is authoritative for check state
 // (ticks.ts): the only write to items[].checked goes through the database
-// function fuel_set_item_checked, which returns the whole row's items.
+// function fuel_set_item_checked, which returns the whole row's items. A
+// new version is ONE database call, fuel_create_version, which inserts the
+// plan and its list in the same transaction and picks the version number
+// under the unique constraint — no orphan plan, no client-side race.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Household, ListItem, MealRow, Plan } from './types'
 import { buildShoppingList } from './solve'
-import { nextVersion, snapshot, type RulesSnapshot } from './version'
+import { snapshot, type RulesSnapshot } from './version'
+import { activeCycle, type CycleRow } from './cycle'
 
 // The client util returns a stub when env is missing (build time); this is
 // the loosest shape both satisfy.
@@ -38,7 +42,7 @@ export const DEFAULT_HOUSEHOLD: Household = {
 /** Postgres/PostgREST codes that mean "the migration is not applied here". */
 export function isMissingTable(err: { code?: string; message?: string } | null | undefined): boolean {
   if (!err) return false
-  return err.code === '42P01' || err.code === 'PGRST205' || /relation .* does not exist|Could not find the table/i.test(err.message ?? '')
+  return err.code === '42P01' || err.code === 'PGRST205' || err.code === 'PGRST202' || /relation .* does not exist|Could not find the (table|function)/i.test(err.message ?? '')
 }
 
 export interface PlanRow {
@@ -95,37 +99,48 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
   }, { onConflict: 'user_id' })
 }
 
-/** The newest plan version for this week, and its list. */
-export async function loadLatest(db: Db, userId: string, weekStart: string): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
-  const { data: plan, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot')
-    .eq('user_id', userId).eq('week_start', weekStart).order('version', { ascending: false }).limit(1).maybeSingle()
-  if (error || !plan) return { plan: null, list: null, error }
+/**
+ * The live cycle's newest plan and its list. A fortnight plan stays live for
+ * fourteen days from its start (cycle.ts), so the second week — and the
+ * second trip — is still on the page.
+ */
+export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
+  // The last few starts are enough: anything older than a cycle is not live.
+  const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot')
+    .eq('user_id', userId).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(20)
+  if (error || !rows?.length) return { plan: null, list: null, error }
+  const candidates = (rows as PlanRow[]).map((r) => ({ ...r, shop_cadence_days: Number(r.rules_snapshot?.shop_cadence_days ?? 7) }))
+  const plan = activeCycle<PlanRow & CycleRow>(candidates, today)
+  if (!plan) return { plan: null, list: null, error: null }
   const { data: list, error: lerr } = await db.from('fuel_lists').select('id, plan_id, version, items, updated_at')
     .eq('plan_id', plan.id).order('version', { ascending: false }).limit(1).maybeSingle()
-  return { plan: plan as PlanRow, list: (list as ListRow | null) ?? null, error: lerr }
+  return { plan, list: (list as ListRow | null) ?? null, error: lerr }
 }
 
-/** Every version this week, oldest first — proof that regeneration keeps history. */
+/** Every version of a cycle, oldest first — proof that regeneration keeps history. */
 export async function loadVersions(db: Db, userId: string, weekStart: string): Promise<Array<{ version: number; created_at: string; id: string }>> {
   const { data } = await db.from('fuel_plans').select('id, version, created_at').eq('user_id', userId).eq('week_start', weekStart).order('version', { ascending: true })
   return (data ?? []) as Array<{ version: number; created_at: string; id: string }>
 }
 
 /**
- * Solve and write version + 1: a new plan row AND a new list row. Old
- * versions are never touched (L7). Pure solve, then two inserts.
+ * Solve, then write version + 1 in ONE transaction: plan row and list row
+ * together, the version number chosen inside the database under the unique
+ * constraint. Old versions are never touched (L7).
  */
-export async function createVersion(db: Db, userId: string, weekStart: string, household: Household, meals: MealRow[], plan: Plan, latestVersion: number | null) {
-  const version = nextVersion(latestVersion)
+export async function createVersion(db: Db, weekStart: string, household: Household, meals: MealRow[], plan: Plan): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
+  if (typeof db.rpc !== 'function') return { plan: null, list: null, error: { message: 'no client' } }
   const list = buildShoppingList(household, meals, plan)
-  const { data: planRow, error: perr } = await db.from('fuel_plans').insert({
-    user_id: userId, week_start: weekStart, version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan),
-  }).select('id, week_start, version, meal_ids, rules_snapshot').single()
-  if (perr || !planRow) return { plan: null, list: null, error: perr }
-  const { data: listRow, error: lerr } = await db.from('fuel_lists').insert({
-    plan_id: planRow.id, user_id: userId, version, items: list.items,
-  }).select('id, plan_id, version, items, updated_at').single()
-  return { plan: planRow as PlanRow, list: (listRow as ListRow | null) ?? null, error: lerr }
+  const { data, error } = await db.rpc('fuel_create_version', {
+    p_week_start: weekStart, p_meal_ids: plan.entries, p_rules_snapshot: snapshot(household, plan), p_items: list.items,
+  })
+  if (error || !data) return { plan: null, list: null, error }
+  const row = data as { plan_id: string; list_id: string; version: number; updated_at: string }
+  return {
+    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan) },
+    list: { id: row.list_id, plan_id: row.plan_id, version: row.version, items: list.items, updated_at: row.updated_at },
+    error: null,
+  }
 }
 
 /** The one write to checked. Returns the row's items as the row now holds them. */
@@ -139,12 +154,4 @@ export async function setItemChecked(db: Db, listId: string, key: string, checke
 export async function readItems(db: Db, listId: string): Promise<ListItem[] | null> {
   const { data } = await db.from('fuel_lists').select('items').eq('id', listId).maybeSingle()
   return (data?.items as ListItem[] | undefined) ?? null
-}
-
-/** Monday of the current week, local — the plan's week_start key. */
-export function weekStartKey(now: Date = new Date()): string {
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const day = d.getDay() // 0 Sun .. 6 Sat
-  d.setDate(d.getDate() - ((day + 6) % 7))
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
