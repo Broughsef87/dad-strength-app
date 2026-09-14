@@ -75,10 +75,16 @@ export function acknowledge(rowItemsFromRow: ListItem[], outbox: TickIntent[], a
  * A fresh read of the row while intents are pending: the row replaces local
  * state; intents that the row already satisfies are dropped; the rest stay
  * pending and will be sent. Nothing is merged INTO the row from here.
+ *
+ * An intent whose item has a write IN FLIGHT is kept whatever the read says:
+ * the read may predate that write, so "the row already says unchecked" can
+ * be the state the in-flight check is about to overturn, and dropping the
+ * newer uncheck would leave the item checked and reported saved (Codex,
+ * round 3).
  */
-export function reconcile(rowItemsFromRow: ListItem[], outbox: TickIntent[]): { items: ListItem[]; outbox: TickIntent[] } {
+export function reconcile(rowItemsFromRow: ListItem[], outbox: TickIntent[], inFlight: Set<string> = new Set()): { items: ListItem[]; outbox: TickIntent[] } {
   const byKey = new Map(rowItemsFromRow.map((i) => [i.key, i.checked]))
-  const remaining = outbox.filter((i) => byKey.has(i.key) && byKey.get(i.key) !== i.checked)
+  const remaining = outbox.filter((i) => inFlight.has(i.key) || (byKey.has(i.key) && byKey.get(i.key) !== i.checked))
   return { items: rowItemsFromRow, outbox: remaining }
 }
 

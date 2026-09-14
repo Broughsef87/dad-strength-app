@@ -51,6 +51,9 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   // the older snapshot back over the row's newer answer — so it is discarded
   // and the next mount or reconnect reads again (Codex, round 2).
   const writes = useRef(0)
+  // Keys with a write in flight. A reconciliation read that lands while one
+  // is outstanding must not prune that key's newer intent (Codex, round 3).
+  const inFlight = useRef<Set<string>>(new Set())
 
   useEffect(() => { writeOutbox(listId, outbox) }, [listId, outbox])
   useEffect(() => {
@@ -68,7 +71,9 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
     try {
       while (outboxRef.current.length > 0 && navigator.onLine) {
         const intent = outboxRef.current[0]
-        const items = await send(intent.key, intent.checked)
+        inFlight.current.add(intent.key)
+        let items: ListItem[] | null = null
+        try { items = await send(intent.key, intent.checked) } finally { inFlight.current.delete(intent.key) }
         if (!items) { setFailed((f) => new Set(f).add(intent.key)); break }
         const next = acknowledge(items, outboxRef.current, intent)
         outboxRef.current = next.outbox
@@ -91,7 +96,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
       const fresh = await refetch()
       if (cancelled) return
       if (fresh && writes.current === seen) {
-        const r = reconcile(fresh, outboxRef.current)
+        const r = reconcile(fresh, outboxRef.current, inFlight.current)
         outboxRef.current = r.outbox; setOutbox(r.outbox); onRowItems(listId, r.items)
       }
       void flush()

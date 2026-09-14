@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, defaultServings, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
-import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, mondayOf } from '../../src/lib/fuel/cycle.ts'
+import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, mondayOf, nextCycleStart, planningMode } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, enqueue, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
@@ -185,6 +185,12 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // a superseded version cannot resurrect: fortnight v1, regenerated weekly as v2, on day 9 (Codex r2)
   assert(activeCycle([{ week_start: mon, version: 1, shop_cadence_days: 14 }, { week_start: mon, version: 2, shop_cadence_days: 7 }], new Date(2026, 8, 23)) === null,
     'only the highest version of a start speaks — an older fortnight version does not come back after the weekly one expires')
+  // the next cycle (Codex r3): on the final Sunday of a fortnight, planning means the cycle that starts tomorrow
+  const fortnight14 = { week_start: mon, version: 2, shop_cadence_days: 14 }
+  assert(nextCycleStart(fortnight14) === '2026-09-28' && nextCycleStart({ week_start: mon, version: 1, shop_cadence_days: 7 }) === '2026-09-21', 'the next cycle starts where the live one ends')
+  assert(planningMode(fortnight14, new Date(2026, 8, 27)) === 'next' && planningMode(fortnight14, new Date(2026, 8, 26)) === 'regenerate' && planningMode(fortnight14, new Date(2026, 8, 15)) === 'regenerate' && planningMode(null, new Date(2026, 8, 27)) === 'next',
+    'on a cycle\'s final day the default is the next cycle; before that, a rebuild')
+  assert(activeCycle([fortnight14, { week_start: '2026-09-28', version: 1, shop_cadence_days: 14 }], new Date(2026, 8, 28))?.week_start === '2026-09-28', 'the next cycle is live on its Monday')
   const st = readLF('src/lib/fuel/store.ts')
   const la = (st.match(/export async function loadActive[\s\S]*?\n\}/) || [])[0] || ''
   assert(/activeCycle</.test(la) && !/eq\('week_start'/.test(la) && /order\('week_start', \{ ascending: false \}\)/.test(la), 'the store loads the live cycle, not only the current calendar week')
@@ -214,6 +220,14 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(rec.items === fresh && rec.outbox.length === 1 && rec.outbox[0].key === 'b', 'a fresh read drops intents the row already satisfies and keeps the rest pending')
   const gone = reconcile(row.filter((i) => i.key !== 'b'), pending)
   assert(gone.outbox.every((i) => i.key !== 'b'), 'an intent for an item the row no longer has is dropped, not merged in')
+  // a write in flight (Codex r3): check then uncheck 'a'; the check is in flight; a read from before it says unchecked
+  const uncheckA = enqueue([], { key: 'a', checked: false, at: 9 })
+  const stale = reconcile(row, uncheckA, new Set(['a']))
+  assert(stale.outbox.length === 1 && stale.outbox[0].key === 'a', 'an intent whose item has a write in flight survives a read that predates the write')
+  assert(reconcile(row, uncheckA).outbox.length === 0, 'with nothing in flight the same read settles the intent')
+  const cl6 = readLF('src/components/fuel/Checklist.tsx')
+  assert(/inFlight\.current\.add\(intent\.key\)/.test(cl6) && /finally \{ inFlight\.current\.delete\(intent\.key\) \}/.test(cl6) && /reconcile\(fresh, outboxRef\.current, inFlight\.current\)/.test(cl6),
+    'the checklist tracks in-flight writes and hands them to reconcile')
   const ticks = readLF('src/lib/fuel/ticks.ts')
   assert(/THE ROW IS AUTHORITATIVE/.test(ticks) && !/merge\(/.test(ticks), 'ticks.ts states the authority and has no merge')
   const cl = readLF('src/components/fuel/Checklist.tsx')
@@ -250,8 +264,10 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/disabled=\{!ok && !entry\}/.test(pb) && /if \(existing\) \{ setEntries\(entries\.filter/.test(pb), 'a selected meal that fell outside the cap can still be removed')
   assert(/\.filter\(\(e\) => e\.week <= weeks\)/.test(pb), 'a saved fortnight plan is cut to the cycle when the shop becomes weekly')
   assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, entry\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
-  assert(/servings: Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /servings: Math\.max\(e\.servings, defaultServings\(m, household\)\)/.test(pb),
-    'a night defaults to what the household needs, and a saved night is brought up to it (Codex r2)')
+  assert(/servings: Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
+    'a new night defaults to what the household needs; a saved night is raised only if it no longer feeds everyone, otherwise kept as chosen (Codex r2, r3)')
+  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /startingNext && liveCycle \? nextCycleStart\(liveCycle\) : cycleKeyFor\(liveCycle, new Date\(\)\)/.test(pg) && /if \(!startingNext && plan && list && !changed\(/.test(pg) && /planningMode\(/.test(pg),
+    'the page can plan the NEXT cycle — keyed to where the live one ends, defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
   // round 2: stale reads, cross-list answers, stale lists, version allocation
   const cl7 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const seen = writes\.current/.test(cl7) && /if \(fresh && writes\.current === seen\)/.test(cl7) && /writes\.current \+= 1/.test(cl7),

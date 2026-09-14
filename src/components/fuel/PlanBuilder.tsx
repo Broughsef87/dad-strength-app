@@ -18,10 +18,12 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   const bySlug = useMemo(() => new Map(meals.map((m) => [m.slug, m])), [meals])
   // A saved plan is reconciled against the household it is being rebuilt
   // for: a fortnight's week-two nights do not ride along into a weekly shop,
-  // and a night saved for two people is brought up to what four need.
+  // and a night saved for two people is brought up to what four need. A
+  // saved servings choice that still feeds everyone is KEPT as chosen — the
+  // recipe default applies to new selections only (Codex, round 3).
   const [entries, setEntries] = useState<PlanEntry[]>(() => (initial?.entries ?? [])
     .filter((e) => e.week <= weeks)
-    .map((e) => { const m = bySlug.get(e.slug); return m ? { ...e, servings: Math.max(e.servings, defaultServings(m, household)) } : e }))
+    .map((e) => { const m = bySlug.get(e.slug); return m && e.servings < household.people_count ? { ...e, servings: defaultServings(m, household) } : e }))
   const [week, setWeek] = useState<1 | 2>(1)
   const warnings = useMemo(() => validatePlan({ entries }, meals, household), [entries, meals, household])
   const inWeek = (w: number) => entries.filter((e) => e.week === w)

@@ -19,7 +19,7 @@ import {
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed } from '../../lib/fuel/version'
-import { cycleKeyFor } from '../../lib/fuel/cycle'
+import { cycleKeyFor, nextCycleStart, planningMode, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -37,6 +37,12 @@ export default function FuelPage() {
   const [versions, setVersions] = useState<number[]>([])
   const [step, setStep] = useState<Step>('intake')
   const [busy, setBusy] = useState(false)
+  // Rebuild the live cycle, or plan the NEXT one? On a cycle's final day —
+  // the Sunday before the next Monday — the default is the next cycle; a
+  // rebuild that kept the old start would be live for a day and gone
+  // (Codex, round 3). The athlete can flip it either way.
+  const [nextCycle, setNextCycle] = useState(false)
+  const liveCycle: CycleRow | null = plan ? { week_start: plan.week_start, version: plan.version, shop_cadence_days: Number(plan.rules_snapshot?.shop_cadence_days ?? 7) } : null
   // The identity the checklist keys on. Callbacks depend on THIS, not on the
   // list object, so a row update never recreates them and never re-triggers
   // the checklist's reconciliation (Codex, round 1).
@@ -57,7 +63,10 @@ export default function FuelPage() {
       setMeals(m.meals)
       setHousehold(h.household)
       setPlan(active.plan); setList(active.list)
-      if (active.plan) setVersions((await loadVersions(supabase, user.id, active.plan.week_start)).map((v) => v.version))
+      if (active.plan) {
+        setVersions((await loadVersions(supabase, user.id, active.plan.week_start)).map((v) => v.version))
+        setNextCycle(planningMode({ week_start: active.plan.week_start, version: active.plan.version, shop_cadence_days: Number(active.plan.rules_snapshot?.shop_cadence_days ?? 7) }, new Date()) === 'next')
+      }
       // A persisted list whose household has since changed opens on the
       // plan step, not on the stale list.
       const persistedStale = !!(active.plan && h.household && changed(active.plan.rules_snapshot, h.household, { entries: active.plan.meal_ids }))
@@ -81,15 +90,20 @@ export default function FuelPage() {
 
   const onBuild = async (p: Plan) => {
     if (!userId || !household) return
-    if (plan && list && !changed(plan.rules_snapshot, household, p)) { setStep('list'); return }
+    const startingNext = !!(liveCycle && nextCycle)
+    // The unchanged-plan shortcut is a regeneration shortcut only: the next
+    // cycle is always a new version under a new start.
+    if (!startingNext && plan && list && !changed(plan.rules_snapshot, household, p)) { setStep('list'); return }
     setBusy(true); setError(null)
-    // A regeneration stays in the live cycle; a fresh start keys on this week.
-    const weekStart = cycleKeyFor(plan ? { week_start: plan.week_start, version: plan.version, shop_cadence_days: Number(plan.rules_snapshot?.shop_cadence_days ?? 7) } : null, new Date())
+    // A regeneration stays in the live cycle; the next cycle starts where the
+    // live one ends; a fresh start keys on this week.
+    const weekStart = startingNext && liveCycle ? nextCycleStart(liveCycle) : cycleKeyFor(liveCycle, new Date())
     const res = await createVersion(supabase, weekStart, household, meals, p)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     setPlan(res.plan); setList(res.list)
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
+    setNextCycle(false)
     setStep('list')
   }
 
@@ -137,8 +151,18 @@ export default function FuelPage() {
               </nav>
               {error && <div className="status-msg danger text-[12px]" role="alert">{error}</div>}
               {step === 'intake' && <IntakeForm initial={household ?? DEFAULT_HOUSEHOLD} saving={busy} onSave={onSaveHousehold} />}
+              {step === 'plan' && household && liveCycle && (
+                <div className="tile p-3 flex items-center justify-between gap-3">
+                  <p className="text-[12px] text-muted-foreground lowercase">
+                    {nextCycle ? `planning the next cycle · starts ${nextCycleStart(liveCycle)}` : `rebuilding this cycle · started ${liveCycle.week_start}`}
+                  </p>
+                  <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={() => setNextCycle((n) => !n)}>
+                    {nextCycle ? 'rebuild this cycle instead' : 'plan the next cycle'}
+                  </button>
+                </div>
+              )}
               {step === 'plan' && household && (
-                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}`} household={household} meals={meals} building={busy} onBuild={onBuild}
+                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild}
                   initial={plan ? { entries: plan.meal_ids } : null} />
               )}
               {step === 'list' && list && plan && listId && stale && (

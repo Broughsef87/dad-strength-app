@@ -66,3 +66,23 @@ export function activeCycle<T extends CycleRow>(rows: T[], today: Date): T | nul
 export function cycleKeyFor(active: CycleRow | null, today: Date): string {
   return active ? active.week_start : cycleStartFor(today)
 }
+
+/** The Monday the cycle after `active` starts on — its start plus its cadence. */
+export function nextCycleStart(active: CycleRow): string {
+  const start = parse(active.week_start)
+  const next = new Date(start.getFullYear(), start.getMonth(), start.getDate() + Math.max(7, active.shop_cadence_days))
+  return key(next)
+}
+
+/**
+ * Is a plan made today a regeneration of the live cycle, or the NEXT cycle?
+ * On a cycle's final day — the Sunday before the next Monday, planning day —
+ * the answer is the next cycle: a rebuild that kept the old start would be
+ * live for a day and gone (Codex, round 3). Before that, it is a
+ * regeneration. The page lets the athlete override either way.
+ */
+export function planningMode(active: CycleRow | null, today: Date): 'regenerate' | 'next' {
+  if (!active) return 'next'
+  const into = daysInto(active.week_start, today)
+  return into >= Math.max(7, active.shop_cadence_days) - 1 ? 'next' : 'regenerate'
+}
