@@ -11,12 +11,14 @@ import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
   /** `countInventory`: whether what is on hand is counted against this plan — asked only when it was not (a NEXT cycle, or a rebuild of a plan built without it), otherwise always (Codex, rounds 15 and 16). */
   onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
-  /** Ask whether to count what is on hand: a next cycle, or a rebuild of a plan that did not count it — the saved choice stands unless changed here. */
+  /** Ask whether to count what is on hand: anything but a rebuild of a plan that already counted it — the saved choice stands unless changed here. */
   askInventory?: boolean
+  /** The ask's default: on when what is on hand was saved after the newest plan was built, off when a cycle has been eating it (Codex, round 17). */
+  countByDefault?: boolean
   /** The cycles already planned and where this plan would land — the rules that look across cycles read it (Codex, rounds 10, 13, 14). */
   cycles?: PlanContext
 }) {
@@ -35,7 +37,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     .map((e) => { const m = bySlug.get(e.slug); return m && e.servings < household.people_count ? { ...e, servings: defaultServings(m, household) } : e }))
   const retired = useMemo(() => [...new Set((initial?.entries ?? []).filter((e) => !bySlug.has(e.slug)).map((e) => e.slug))], [initial, bySlug])
   const [week, setWeek] = useState<1 | 2>(1)
-  const [countInventory, setCountInventory] = useState(false)
+  const [countInventory, setCountInventory] = useState(countByDefault)
   const warnings = useMemo(() => validatePlan({ entries }, meals, household, { cycles }), [entries, meals, household, cycles])
   const inWeek = (w: number) => entries.filter((e) => e.week === w)
   const picked = (slug: string) => entries.find((e) => e.slug === slug && e.week === week)
@@ -139,7 +141,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
       {askInventory && household.inventory.length > 0 && (
         <div className="tile p-3 space-y-2">
           <p className="text-[12px] text-muted-foreground">
-            What is on hand was not counted against this plan — the cycle before it is eating it. Count it only if it will still be there.
+            {countByDefault ? 'What is on hand was updated after the last plan was built, so it counts against this one unless you say otherwise.' : 'What is on hand has not been updated since the last plan was built — a cycle has been eating it. Count it only if it will still be there.'}
           </p>
           <button type="button" onClick={() => setCountInventory((c) => !c)} aria-pressed={countInventory}
             className={`${countInventory ? 'pill-volt' : 'pill-quiet'} px-3 py-1.5 text-[12px] lowercase`}>

@@ -75,6 +75,19 @@ export function listUnchanged(built: ListItem[], stored: ListItem[]): boolean {
   return strip(built) === strip(stored)
 }
 
+/**
+ * Is what is on hand newer than every plan that could have eaten it? The
+ * household saved after the newest plan was built — Sunday's intake done
+ * before Sunday's plan — is fresh; otherwise a cycle has been eating it,
+ * and a new cycle should not count it without being asked (Codex, round
+ * 17). Nothing planned yet: fresh.
+ */
+export function inventoryFresh(householdSavedAt: string | null | undefined, plans: Array<{ created_at?: string }>): boolean {
+  const newest = plans.reduce((m, p) => Math.max(m, p.created_at ? Date.parse(p.created_at) : 0), 0)
+  if (!newest) return true
+  return !!householdSavedAt && Date.parse(householdSavedAt) > newest
+}
+
 /** The version the next write gets: one more than the latest, never a rewrite. */
 export function nextVersion(latest: number | null | undefined): number {
   return (latest ?? 0) + 1

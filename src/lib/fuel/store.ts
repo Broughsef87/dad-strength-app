@@ -51,6 +51,8 @@ export interface PlanRow {
   version: number
   meal_ids: Plan['entries']
   rules_snapshot: RulesSnapshot
+  /** When this version was built — the inventory's freshness is judged against it (Codex, round 17). */
+  created_at?: string
 }
 
 export interface ListRow {
@@ -66,10 +68,11 @@ export async function loadMeals(db: Db): Promise<{ meals: MealRow[]; error: { co
   return { meals: (data ?? []) as MealRow[], error }
 }
 
-export async function loadHousehold(db: Db, userId: string): Promise<{ household: Household | null; error: { code?: string; message?: string } | null }> {
+export async function loadHousehold(db: Db, userId: string): Promise<{ household: Household | null; updatedAt: string | null; error: { code?: string; message?: string } | null }> {
   const { data, error } = await db.from('fuel_household').select('*').eq('user_id', userId).maybeSingle()
-  if (!data) return { household: null, error }
+  if (!data) return { household: null, updatedAt: null, error }
   return {
+    updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
     household: {
       people_count: data.people_count,
       nights_per_week: data.nights_per_week,
@@ -110,18 +113,21 @@ export async function loadActive(db: Db, userId: string, today: Date): Promise<{
   // forward (anything planned ahead), all versions, so a busy cycle's
   // history cannot crowd the live cycle out (Codex, round 5). The rows come
   // back as `recent` for the rules that look across cycles (Codex, round 10).
-  const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot')
+  const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot, created_at')
     .eq('user_id', userId).gte('week_start', historyFloor(today)).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(500)
   if (error || !rows?.length) return { plan: null, list: null, upcoming: null, recent: [], error }
   const candidates = (rows as PlanRow[]).map((r) => ({ ...r, shop_cadence_days: Number(r.rules_snapshot?.shop_cadence_days ?? 7) }))
-  // A cycle planned ahead is loadable before it is live (Codex, round 4).
+  // A cycle planned ahead is loadable before it is live (Codex, round 4) —
+  // but it never STANDS IN for a live one: with nothing live, the page must
+  // be able to plan the current week, not only rebuild the cycle ahead
+  // (Codex, round 17).
   const upcoming = upcomingCycle<PlanRow & CycleRow>(candidates, today)
-  const plan = activeCycle<PlanRow & CycleRow>(candidates, today) ?? upcoming
+  const plan = activeCycle<PlanRow & CycleRow>(candidates, today)
   const recent = rows as PlanRow[]
-  if (!plan) return { plan: null, list: null, upcoming: null, recent, error: null }
+  if (!plan) return { plan: null, list: null, upcoming, recent, error: null }
   const { data: list, error: lerr } = await db.from('fuel_lists').select('id, plan_id, version, items, updated_at')
     .eq('plan_id', plan.id).order('version', { ascending: false }).limit(1).maybeSingle()
-  return { plan, list: (list as ListRow | null) ?? null, upcoming: upcoming && upcoming.id !== plan.id ? upcoming : null, recent, error: lerr }
+  return { plan, list: (list as ListRow | null) ?? null, upcoming, recent, error: lerr }
 }
 
 /** The newest list for a plan — used to resume a cycle the athlete chose. */
@@ -151,7 +157,7 @@ export async function createVersion(db: Db, weekStart: string, household: Househ
   if (error || !data) return { plan: null, list: null, error }
   const row = data as { plan_id: string; list_id: string; version: number; updated_at: string }
   return {
-    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan, inventoryCounted) },
+    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan, inventoryCounted), created_at: row.updated_at },
     list: { id: row.list_id, plan_id: row.plan_id, version: row.version, items: list.items, updated_at: row.updated_at },
     error: null,
   }

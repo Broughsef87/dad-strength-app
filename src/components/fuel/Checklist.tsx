@@ -146,7 +146,7 @@ const fmtQty = (i: ListItem) => {
   return `${q} ${i.unit}`
 }
 
-export default function Checklist({ listId, version, versions, items: rowItems, onRowItems, send, refetch, onRegenerate }: {
+export default function Checklist({ listId, version, versions, items: rowItems, onRowItems, send, refetch, onRegenerate, paused = false }: {
   listId: string
   version: number
   versions: number[]
@@ -159,7 +159,11 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   /** A fresh read of the row. */
   refetch: () => Promise<ListItem[] | null>
   onRegenerate: () => void
+  /** The page is re-reading the household and the plan (on waking, on reconnect): nothing is sent until it has, so no tick lands on a superseded list (Codex, round 17). */
+  paused?: boolean
 }) {
+  const pausedRef = useRef(paused)
+  pausedRef.current = paused
   const [outbox, setOutbox] = useState<TickIntent[]>(() => (typeof window === 'undefined' ? [] : readOutbox(listId)))
   const [failed, setFailed] = useState<Set<string>>(new Set())
   const [online, setOnline] = useState(true)
@@ -256,7 +260,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
     if (flushing.current) return
     flushing.current = true
     try {
-      while (outboxRef.current.length > 0 && navigator.onLine && mounted.current && document.visibilityState !== 'hidden') {
+      while (outboxRef.current.length > 0 && navigator.onLine && mounted.current && document.visibilityState !== 'hidden' && !pausedRef.current) {
         const intent = outboxRef.current[0]
         hold(inFlight.current, intent.key)
         let items: ListItem[] | null = null
@@ -298,7 +302,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
       void flush()
     })()
     return () => { cancelled = true }
-  }, [online, listId, refetch, onRowItems, flush, wake])
+  }, [online, listId, refetch, onRowItems, flush, wake, paused])
 
   const tap = (item: ListItem, shown: boolean) => {
     // A row that says "not saved · tap again" is retried AS ASKED: the tap

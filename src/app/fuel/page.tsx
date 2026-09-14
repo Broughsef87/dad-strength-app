@@ -5,7 +5,7 @@
 // PremiumGate. The solver is pure (src/lib/fuel/solve.ts); this page is the
 // I/O around it. Every rule or plan change writes version + 1 and keeps the
 // old versions (L6, L7). Check state is row-authoritative (ticks.ts).
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../utils/supabase/client'
 import BottomNav from '../../components/BottomNav'
@@ -18,7 +18,7 @@ import {
   DEFAULT_HOUSEHOLD, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadVersions,
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
-import { changed, listUnchanged } from '../../lib/fuel/version'
+import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, validatePlan } from '../../lib/fuel/solve'
 import { cycleKeyFor, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
 
@@ -41,6 +41,10 @@ export default function FuelPage() {
   // Every cycle from five weeks back, all versions — the rules that look
   // across cycles (the monthly steak allowance) read it (Codex, round 10).
   const [recent, setRecent] = useState<PlanRow[]>([])
+  const [householdSavedAt, setHouseholdSavedAt] = useState<string | null>(null)
+  // The page is re-reading the household and the plan — on waking, on
+  // reconnect — and the checklist sends nothing until it has (Codex, round 17).
+  const [refreshing, setRefreshing] = useState(false)
   const [versions, setVersions] = useState<number[]>([])
   const [step, setStep] = useState<Step>('intake')
   const [busy, setBusy] = useState(false)
@@ -50,10 +54,14 @@ export default function FuelPage() {
   // (Codex, round 3). The athlete can flip it either way.
   const [nextCycle, setNextCycle] = useState(false)
   const liveCycle: CycleRow | null = plan ? asCycle(plan) : null
-  // Whether to count what is on hand is ASKED for a next cycle, and for a
-  // rebuild of a plan that was built without counting it — the saved choice
-  // stands unless the athlete changes it (Codex, rounds 15 and 16).
-  const askInventory = !!(liveCycle && nextCycle) || plan?.rules_snapshot?.inventory_counted === false
+  // Whether to count what is on hand is ASKED for anything but a rebuild of
+  // a plan that already counted it: a next cycle, a rebuild of a plan built
+  // without it, and a fresh start after a cycle expired — the household
+  // still holds the stock that cycle ate (Codex, rounds 15, 16 and 17). The
+  // ask defaults to the inventory's freshness; the saved choice stands
+  // unless the athlete changes it.
+  const startingNextNow = !!(liveCycle && nextCycle)
+  const askInventory = (household?.inventory.length ?? 0) > 0 && !(plan && !startingNextNow && (plan.rules_snapshot?.inventory_counted ?? true))
   // The identity the checklist keys on. Callbacks depend on THIS, not on the
   // list object, so a row update never recreates them and never re-triggers
   // the checklist's reconciliation (Codex, round 1).
@@ -72,7 +80,7 @@ export default function FuelPage() {
       if (isMissingTable(err)) { setNotReady(true); setLoading(false); return }
       if (err) setError(err.message ?? 'could not load')
       setMeals(m.meals)
-      setHousehold(h.household)
+      setHousehold(h.household); setHouseholdSavedAt(h.updatedAt)
       setPlan(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent)
       if (active.plan) {
         setVersions((await loadVersions(supabase, user.id, active.plan.week_start)).map((v) => v.version))
@@ -87,13 +95,41 @@ export default function FuelPage() {
     return () => { cancelled = true }
   }, [supabase, router])
 
+  // Re-read the household and the plan when the page wakes or reconnects:
+  // another tab may have changed the household or built a newer version,
+  // and shopping would otherwise go on against a superseded list, its ticks
+  // landing there (Codex, round 17). Not while a build or a save is in
+  // flight. The checklist is paused until the read lands.
+  const busyRef = useRef(busy)
+  busyRef.current = busy
+  const refresh = useCallback(async () => {
+    if (!userId || busyRef.current) return
+    setRefreshing(true)
+    try {
+      const [h, active] = await Promise.all([loadHousehold(supabase, userId), loadActive(supabase, userId, new Date())])
+      if (h.error || active.error) return
+      setHousehold(h.household); setHouseholdSavedAt(h.updatedAt)
+      setPlan(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent)
+      if (active.plan) setVersions((await loadVersions(supabase, userId, active.plan.week_start)).map((v) => v.version))
+      const persistedStale = !!(active.plan && h.household && changed(active.plan.rules_snapshot, h.household, { entries: active.plan.meal_ids }))
+      setStep((s) => (s === 'list' && (!active.list || persistedStale) ? 'plan' : s))
+    } finally { setRefreshing(false) }
+  }, [supabase, userId])
+  useEffect(() => {
+    const onVisibility = () => { if (document.visibilityState === 'visible') void refresh() }
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) void refresh() }
+    const onOnline = () => { void refresh() }
+    document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow); window.addEventListener('online', onOnline)
+    return () => { document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow); window.removeEventListener('online', onOnline) }
+  }, [refresh])
+
   const onSaveHousehold = async (h: Household) => {
     if (!userId) return
     setBusy(true); setError(null)
     const { error: e } = await saveHousehold(supabase, userId, h)
     setBusy(false)
     if (e) { setError(e.message); return }
-    setHousehold(h)
+    setHousehold(h); setHouseholdSavedAt(new Date().toISOString())
     // A rule change invalidates the list (L7): if a version exists and the
     // household differs from its snapshot, the next build writes version + 1.
     setStep('plan')
@@ -218,7 +254,7 @@ export default function FuelPage() {
                 </div>
               )}
               {step === 'plan' && household && (
-                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory}
+                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, recent)}
                   initial={plan ? { entries: plan.meal_ids } : null}
                   cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}
@@ -234,7 +270,7 @@ export default function FuelPage() {
                 // Keyed by the list: opening another cycle REMOUNTS the checklist, so
                 // its outbox, refs and effects never straddle two lists (Codex, round 5).
                 <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items}
-                  onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} />
+                  onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing} />
               )}
             </>
           )}
