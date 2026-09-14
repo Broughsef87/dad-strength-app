@@ -18,8 +18,8 @@ const PRO_FEATURES = [
   'Body composition tracking',
   'Unlimited workout history',
   'My Mission tracker + milestone check-ins',
-  // Meal planner + shopping list: held out until FOR-177 ships. Stripe is
-  // live, so a line here is a promise that can be charged for.
+  // Fuel (FOR-177) ships with this line: a promise Stripe can charge for, now kept.
+  'Meal planner + shopping list — Fuel, built from what is on hand',
 ]
 
 export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalProps) {

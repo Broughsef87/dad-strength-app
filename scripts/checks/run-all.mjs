@@ -38,6 +38,7 @@ const SUITES = [
   ['adherence (FOR-228)', 'adherence.mjs'],
   ['protocol row key (FOR-228)', 'protocol-row-key.mjs'],
   ['program lineup (FOR-225)', 'program-lineup.mjs'],
+  ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

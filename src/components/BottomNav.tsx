@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Shield, Bot, User } from 'lucide-react'
+import { Shield, Bot, User, Utensils } from 'lucide-react'
 
 // Three tabs, matching what the app actually is. The four-pillar shell
 // (home/mind/body/spirit) advertised pillars the product never grew: it left
@@ -21,6 +21,9 @@ import { Shield, Bot, User } from 'lucide-react'
 const NAV_ITEMS = [
   { id: 'today', label: 'today', path: '/dashboard', icon: Shield },
   { id: 'train', label: 'train', path: '/train', icon: Bot },
+  // Fuel — the Pro anchor (FOR-177 Phase 1). The surface exists now; the
+  // page itself sits behind PremiumGate, so a free user reaches the gate.
+  { id: 'fuel', label: 'fuel', path: '/fuel', icon: Utensils },
   { id: 'profile', label: 'profile', path: '/profile', icon: User },
 ]
 
