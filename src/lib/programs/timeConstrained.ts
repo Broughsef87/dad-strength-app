@@ -48,8 +48,11 @@ export function reduceForTime(plan: DayPlan): DayPlan {
   // athlete to do omitted work (Codex, round 1). Likewise any kept item whose
   // note names a dropped item.
   const keptSlots = new Set(kept.map((i) => i.slot))
+  const keptNames = new Set(kept.map((i) => ('name' in i ? i.name : i.title).toLowerCase()))
   const dropped = plan.items.filter((i) => !keptSlots.has(i.slot))
-  const droppedNames = dropped.map((i) => ('name' in i ? i.name : i.title).toLowerCase())
+  // A name that is also kept is not "dropped work": a snatch day keeps one
+  // Snatch line and drops a second, and a note that says "snatch" is fine.
+  const droppedNames = dropped.map((i) => ('name' in i ? i.name : i.title).toLowerCase()).filter((n) => !keptNames.has(n))
   const items = kept.map((item) => {
     if (item.kind !== 'lift' && item.kind !== 'plyo') return item
     const partnerKept = item.superset != null && kept.some((k) => k !== item && 'superset' in k && k.superset === item.superset)
@@ -63,10 +66,16 @@ export function reduceForTime(plan: DayPlan): DayPlan {
     delete rest.note
     return orphanedPair ? rest : { ...rest, ...(item.superset != null ? { superset: item.superset } : {}) }
   })
+  // The intent is REWRITTEN from what was kept, never the full session's
+  // intent with a prefix: the training page renders it verbatim, and "then
+  // heavy deadlift, dips, core, jumps, and the week's metcon" on a day that
+  // keeps two lifts is an instruction to do removed work (Codex, round 2).
+  const named = items.map((i) => ('name' in i ? i.name : i.title))
+  const sessionIntent = `Time-constrained: ${named.join(', then ')} — the primaries only, ${TIME_CONSTRAINED_MAX_SETS} working sets each at most. Everything else waits for a fuller day.`
   return {
     ...plan,
     dayName: `${plan.dayName} · short`,
-    sessionIntent: `Time-constrained: the primaries only. ${plan.sessionIntent}`,
+    sessionIntent,
     items,
   }
 }

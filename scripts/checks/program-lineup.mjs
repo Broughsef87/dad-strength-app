@@ -77,7 +77,10 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
       // no kept item's note names a dropped item, and a kept item whose
       // partner was dropped carries no pairing note.
       const keptSlots = new Set(short.items.map((i) => i.slot))
-      const droppedNames = full.items.filter((i) => !keptSlots.has(i.slot)).map((i) => ('name' in i ? i.name : i.title).toLowerCase())
+      const keptNames = new Set(short.items.map((i) => ('name' in i ? i.name : i.title).toLowerCase()))
+      // a name that is also kept is not dropped work (a snatch day keeps one
+      // Snatch line and drops a second)
+      const droppedNames = full.items.filter((i) => !keptSlots.has(i.slot)).map((i) => ('name' in i ? i.name : i.title).toLowerCase()).filter((n) => !keptNames.has(n))
       for (const i of short.items) {
         const note = ('note' in i && i.note) ? i.note.toLowerCase() : ''
         assert(!droppedNames.some((n) => n.length > 2 && note.includes(n)),
@@ -90,6 +93,16 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
         `${slug} W${wk} D${d}: the kept lifts are the program's primaries, in order`)
       assert(short.dayName.endsWith(' · short') && short.sessionIntent.startsWith('Time-constrained:'),
         `${slug} W${wk} D${d}: the reduced day says so`)
+      // The intent describes the kept work and nothing else (Codex, round 2):
+      // it names every kept item, names no dropped item, and is not the full
+      // session's intent with a prefix.
+      const intent = short.sessionIntent.toLowerCase()
+      assert(short.items.every((i) => intent.includes(('name' in i ? i.name : i.title).toLowerCase())),
+        `${slug} W${wk} D${d}: the intent names every kept item — "${short.sessionIntent}"`)
+      assert(!droppedNames.some((n) => n.length > 2 && intent.includes(n)),
+        `${slug} W${wk} D${d}: the intent names dropped work — "${short.sessionIntent}"`)
+      assert(!intent.includes(full.sessionIntent.toLowerCase()) && !/metcon|then heavy|the week's/.test(intent),
+        `${slug} W${wk} D${d}: the intent is not the full session's with a prefix — "${short.sessionIntent}"`)
     }
   }
   assert(reducedDays > 0, `${slug}: the mode reduced at least one gym day`)
@@ -103,6 +116,15 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
   assert(!!fs, 'Power Dad W1 D3 reduced keeps the front squat')
   assert(!short.items.some((i) => /trap bar jump/i.test(i.name ?? i.title ?? '')), 'Power Dad W1 D3 reduced drops the trap bar jumps')
   assert(!fs || !/trap bar/i.test(fs.note ?? ''), `Power Dad W1 D3: the front squat no longer says "${fs?.note}"`)
+}
+// The exact day Codex ran (round 2): Power Dad week 1, day 6 keeps the press
+// and the deadlift; its intent must not still promise dips, core, jumps and
+// the week's metcon.
+{
+  const short = PROGRAMS['hybrid-power'].buildDay(1, 6, MAXES, {}, { timeConstrained: true })
+  const intent = short.sessionIntent.toLowerCase()
+  assert(!/dips|core|metcon|jumps/.test(intent), `Power Dad W1 D6: the intent no longer says "${short.sessionIntent}"`)
+  assert(short.items.every((i) => intent.includes(i.name.toLowerCase())), 'Power Dad W1 D6: the intent names what it keeps')
 }
 // The general rule, on a plan no program ships today so it cannot be satisfied
 // by accident: a kept lift with NO pairing link whose note names a dropped
