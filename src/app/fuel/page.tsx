@@ -18,8 +18,8 @@ import {
   DEFAULT_HOUSEHOLD, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadVersions,
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
-import { changed } from '../../lib/fuel/version'
-import { steakNightsElsewhere } from '../../lib/fuel/solve'
+import { changed, listUnchanged } from '../../lib/fuel/version'
+import { buildShoppingList, steakNightsElsewhere } from '../../lib/fuel/solve'
 import { cycleKeyFor, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
@@ -118,8 +118,10 @@ export default function FuelPage() {
     // The unchanged-plan shortcut is a regeneration shortcut only: the next
     // cycle is always a new version under a new start — and so is a cycle
     // that expired while the page stayed open (Codex, round 8). The list is
-    // reused only while its start is still the one a rebuild would get.
-    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p)) { setStep('list'); return }
+    // reused only while its start is still the one a rebuild would get —
+    // and only when a fresh solve comes out identical, because the library
+    // itself can have been corrected since (Codex, round 11).
+    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && listUnchanged(buildShoppingList(household, meals, p).items, list.items)) { setStep('list'); return }
     setBusy(true); setError(null)
     const res = await createVersion(supabase, weekStart, household, meals, p)
     setBusy(false)

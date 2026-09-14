@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import type { ListItem } from '../../lib/fuel/types'
 import { SECOND_TRIP_SECTION, STOCKED_SECTION } from '../../lib/fuel/solve'
-import { acknowledge, adopt, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, pendingFor, progress, reconcile, render, type StoredOutbox, type TickIntent } from '../../lib/fuel/ticks'
+import { acknowledge, adopt, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, pendingFor, progress, reconcile, released, render, type StoredOutbox, type TickIntent } from '../../lib/fuel/ticks'
 
 // Keys with a write in flight, PER LIST and shared across mounts: a checklist
 // unmounted mid-write (the athlete switched steps) still has that write
@@ -80,15 +80,16 @@ function readOutbox(listId: string): TickIntent[] {
  * works. Hidden, or leaving, the outbox is RELEASED — stamped zero for
  * another tab to take — and is re-written only while it is still ours:
  * never recreated after a take, or a replay on waking could overwrite the
- * taker's newer saves (Codex, round 10).
+ * taker's newer saves (Codex, round 10). Not released while one of this
+ * tab's writes is in flight: the claim holds until it lands (round 11).
  */
-function writeOutbox(listId: string, outbox: TickIntent[], alive = Date.now()): boolean {
+function writeOutbox(listId: string, outbox: TickIntent[], leaving = false): boolean {
   try {
     const k = outboxKey(listId, tabId())
     if (!outbox.length) { localStorage.removeItem(k); return true }
-    const released = alive === 0 || document.visibilityState === 'hidden'
-    if (released && localStorage.getItem(k) === null) return true
-    localStorage.setItem(k, JSON.stringify({ tab: tabId(), alive: released ? 0 : alive, intents: outbox } satisfies StoredOutbox))
+    const rel = released(leaving || document.visibilityState === 'hidden', inFlightFor(listId).size)
+    if (rel && localStorage.getItem(k) === null) return true
+    localStorage.setItem(k, JSON.stringify({ tab: tabId(), alive: rel ? 0 : Date.now(), intents: outbox } satisfies StoredOutbox))
     return true
   } catch { return false /* storage unavailable: intents live in memory only */ }
 }
@@ -143,12 +144,14 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   useEffect(() => { persisted.current = writeOutbox(listId, outbox) }, [listId, outbox])
   // While intents are pending and the tab is VISIBLE it stamps its outbox
   // alive, so no other tab adopts it; hidden, it stamps nothing (Codex,
-  // round 10); on pagehide it stamps zero, so the next tab can at once.
+  // round 10) — unless a write is still in flight, when the claim must hold
+  // until it lands (round 11); on pagehide it releases, so the next tab can
+  // take it at once.
   const holding = outbox.length > 0
   useEffect(() => {
     if (!holding) return
-    const stamp = () => { if (document.visibilityState === 'visible') writeOutbox(listId, outboxRef.current) }
-    const hide = () => writeOutbox(listId, outboxRef.current, 0)
+    const stamp = () => { if (document.visibilityState === 'visible' || inFlight.current.size) writeOutbox(listId, outboxRef.current) }
+    const hide = () => writeOutbox(listId, outboxRef.current, true)
     const id = window.setInterval(stamp, ORPHAN_AFTER_MS / 3)
     window.addEventListener('pagehide', hide)
     return () => { window.clearInterval(id); window.removeEventListener('pagehide', hide) }
@@ -170,7 +173,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
       if (took) { outboxRef.current = next; setOutbox(next) } else writeOutbox(listId, next)
       if (reread || took) setWake((n) => n + 1)
     }
-    const onVisibility = () => { if (document.visibilityState === 'hidden') writeOutbox(listId, outboxRef.current, 0); else wakeUp(true) }
+    const onVisibility = () => { if (document.visibilityState === 'hidden') writeOutbox(listId, outboxRef.current); else wakeUp(true) }
     const onShow = (e: PageTransitionEvent) => { if (e.persisted) wakeUp(true) }
     const onStorage = (e: StorageEvent) => {
       if (!e.key || !e.key.startsWith(outboxPrefix(listId)) || e.key === outboxKey(listId, tabId()) || document.visibilityState !== 'visible') return
@@ -202,7 +205,9 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
         let items: ListItem[] | null = null
         try { items = await sendQueued(listId, () => send(intent.key, intent.checked)) } finally { inFlight.current.delete(intent.key) }
         if (!mounted.current) break
-        if (!items) { setFailed((f) => new Set(f).add(intent.key)); break }
+        // A refusal leaves the intent queued; hidden by now, the claim held for
+        // the write is let go so another tab can retry it (Codex, round 11).
+        if (!items) { setFailed((f) => new Set(f).add(intent.key)); writeOutbox(listId, outboxRef.current); break }
         const next = acknowledge(items, outboxRef.current, intent)
         outboxRef.current = next.outbox
         setOutbox(next.outbox)

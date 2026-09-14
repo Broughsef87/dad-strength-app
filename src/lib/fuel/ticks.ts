@@ -111,6 +111,17 @@ export const outboxPrefix = (listId: string) => `dad-strength-fuel-outbox:${list
 /** A tab that has not stamped its outbox for this long is taken to be gone. */
 export const ORPHAN_AFTER_MS = 30_000
 
+/**
+ * Is a hidden (or leaving) tab's outbox released for another tab to take?
+ * Not while one of its writes is still in flight: the taker's first read
+ * could predate that write and settle a newer intent against a row about
+ * to change — a check in flight, an uncheck queued, and the uncheck lost
+ * (Codex, round 11). The claim holds until the write lands.
+ */
+export function released(hidden: boolean, inFlight: number): boolean {
+  return hidden && inFlight === 0
+}
+
 /** Other tabs' outboxes this tab may adopt: those that hid or closed, or fell silent past the window. Never its own. */
 export function orphans(stored: StoredOutbox[], tab: string, now: number): StoredOutbox[] {
   return stored.filter((s) => s.tab !== tab && (s.alive === 0 || now - s.alive > ORPHAN_AFTER_MS))

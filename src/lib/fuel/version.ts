@@ -3,7 +3,7 @@
 // writes version + 1 with the old version kept. The rules that matter are
 // snapshotted onto the plan, so two plans can be compared without the
 // household row that has since changed.
-import type { DietaryRules, Household, Plan } from './types'
+import type { DietaryRules, Household, ListItem, Plan } from './types'
 
 export interface RulesSnapshot {
   people_count: number
@@ -55,6 +55,17 @@ function canonical(v: unknown): string {
 export function changed(previous: RulesSnapshot | null | undefined, household: Household, plan: Plan): boolean {
   if (!previous) return true
   return snapshotKey(previous) !== snapshotKey(snapshot(household, plan))
+}
+
+/**
+ * The same list, ticks aside. A rebuild with the household and the nights
+ * unchanged may still differ — the LIBRARY can have been corrected — so the
+ * stored list stands only when a fresh solve comes out identical (Codex,
+ * round 11).
+ */
+export function listUnchanged(built: ListItem[], stored: ListItem[]): boolean {
+  const strip = (items: ListItem[]) => canonical(items.map((i) => ({ ...i, checked: false })))
+  return strip(built) === strip(stored)
 }
 
 /** The version the next write gets: one more than the latest, never a rewrite. */

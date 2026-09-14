@@ -23,9 +23,9 @@ import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakNightsElsewhere, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
-import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
+import { changed, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
-import { acknowledge, adopt, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
+import { acknowledge, adopt, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
@@ -296,19 +296,22 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'adopted intents queue behind this tab\'s own, oldest first, this tab\'s own winning its keys and the newest adopted winning a key two orphans held')
   assert(adopt(own, []) === own && adopt(own, own) === own, 'nothing to adopt, same outbox back')
   const cl9 = readLF('src/components/fuel/Checklist.tsx')
-  assert(/return adopt\(mine\?\.intents \?\? \[\], adoptOrphans\(listId\)\)/.test(cl9) && /JSON\.stringify\(\{ tab: tabId\(\), alive: released \? 0 : alive, intents: outbox \} satisfies StoredOutbox\)/.test(cl9),
+  assert(/return adopt\(mine\?\.intents \?\? \[\], adoptOrphans\(listId\)\)/.test(cl9) && /JSON\.stringify\(\{ tab: tabId\(\), alive: rel \? 0 : Date\.now\(\), intents: outbox \} satisfies StoredOutbox\)/.test(cl9),
     'the checklist writes its own tab\'s key, stamped alive, and a mount adopts the outboxes tabs left behind')
   // round 10: the tab id is per document; a released outbox is never recreated; hidden means no heartbeat, no flush, no adoption; a release is taken at once
   assert(/function tabId\(\): string \{ return tab \?\? \(tab = Math\.random\(\)/.test(cl9) && !/sessionStorage\./.test(cl9),
     'the tab id is minted once per document — a remount keeps its outbox, a reload adopts the released one, a duplicated tab has its own')
-  assert(/const released = alive === 0 \|\| document\.visibilityState === 'hidden'/.test(cl9) && /if \(released && localStorage\.getItem\(k\) === null\) return true/.test(cl9),
+  assert(/const rel = released\(leaving \|\| document\.visibilityState === 'hidden', inFlightFor\(listId\)\.size\)/.test(cl9) && /if \(rel && localStorage\.getItem\(k\) === null\) return true/.test(cl9),
     'a released outbox is re-written only while still ours — never recreated after another tab took it')
-  assert(/const stamp = \(\) => \{ if \(document\.visibilityState === 'visible'\) writeOutbox\(listId, outboxRef\.current\) \}/.test(cl9), 'the heartbeat stops while hidden')
+  assert(/const stamp = \(\) => \{ if \(document\.visibilityState === 'visible' \|\| inFlight\.current\.size\) writeOutbox\(listId, outboxRef\.current\) \}/.test(cl9), 'the heartbeat stops while hidden — but keeps stamping while a write is in flight')
+  // round 11: the claim holds while a write is in flight; a refusal lets it go
+  assert(released(true, 0) && !released(true, 1) && !released(false, 0) && !released(false, 2), 'a hidden tab\'s outbox is released — not while a write is in flight, never while visible')
+  assert(/if \(!items\) \{ setFailed\(\(f\) => new Set\(f\)\.add\(intent\.key\)\); writeOutbox\(listId, outboxRef\.current\); break \}/.test(cl9), 'a refused write lets the claim go, so another tab can retry it')
   assert(/while \(outboxRef\.current\.length > 0 && navigator\.onLine && mounted\.current && document\.visibilityState !== 'hidden'\)/.test(cl9), 'a hidden tab does not flush — its intents are released for a visible tab')
   assert(/if \(document\.visibilityState === 'hidden'\) return \[\]/.test(cl9), 'a hidden tab adopts nothing')
   assert(/const onStorage = \(e: StorageEvent\)/.test(cl9) && /if \(stored\?\.alive === 0\) wakeUp\(false\)/.test(cl9) && /if \(reread \|\| took\) setWake/.test(cl9),
     'a visible tab takes a released outbox the moment it is released, and re-reads the row only when it took something')
-  assert(/if \(document\.visibilityState === 'hidden'\) writeOutbox\(listId, outboxRef\.current, 0\)/.test(cl9) && /window\.addEventListener\('pagehide', hide\)/.test(cl9) && /const hide = \(\) => writeOutbox\(listId, outboxRef\.current, 0\)/.test(cl9),
+  assert(/if \(document\.visibilityState === 'hidden'\) writeOutbox\(listId, outboxRef\.current\); else wakeUp\(true\)/.test(cl9) && /window\.addEventListener\('pagehide', hide\)/.test(cl9) && /const hide = \(\) => writeOutbox\(listId, outboxRef\.current, true\)/.test(cl9),
     'a tab that hides or closes lets its outbox go, so the next tab can take the ticks at once')
   assert(/if \(next\.length && persisted\.current && !ownKeyPresent\(listId\)\) next = \[\]/.test(cl9) && /next = adopt\(next, adoptOrphans\(listId\)\)/.test(cl9) && /\[online, listId, refetch, onRowItems, flush, wake\]/.test(cl9),
     'a tab that wakes to find its outbox adopted drops those intents rather than sending them twice, adopts what others left, and re-reads the row')
@@ -380,6 +383,16 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/recent: PlanRow\[\]/.test(st10) && /const recent = rows as PlanRow\[\]/.test(st10), 'loadActive hands back every recent cycle, all versions')
   // round 9: the next-cycle target is checked against today, and a cycle planned ahead that the build passed is let go
   assert(/nextCycleKey\(liveCycle, upcoming\?\.week_start \?\? null, household\.shop_cadence_days, now\)/.test(pg) && /if \(upcoming && \(upcoming\.week_start === weekStart \|\| weekStart > upcoming\.week_start\)\) setUpcoming\(null\)/.test(pg), 'a next-cycle build keys through nextCycleKey — checked against today — and drops an upcoming cycle it has passed')
+  // round 11: the shortcut stands only when a fresh solve comes out identical — the library can have been corrected
+  assert(/&& listUnchanged\(buildShoppingList\(household, meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg), 'the unchanged-plan shortcut re-solves before it stands, so a library correction is never skipped')
+  {
+    const items = buildShoppingList(andrew, meals, fortnight).items
+    const ticked = items.map((i) => ({ ...i, checked: true }))
+    const shuffled = ticked.map((i) => Object.fromEntries(Object.entries(i).reverse()))
+    const corrected = items.map((i, n) => (n === 0 ? { ...i, qty: i.qty + 1 } : i))
+    assert(listUnchanged(items, ticked) && listUnchanged(items, shuffled) && !listUnchanged(items, corrected) && !listUnchanged(items, items.slice(1)),
+      'the same list, ticks and key order aside; a corrected quantity or a missing line is a different list')
+  }
   // round 8: the key is decided before the shortcut, and the list is reused only while the plan's start is still the start a rebuild would get
   assert(pg.indexOf('const weekStart = buildTarget(new Date())') < pg.indexOf('plan.week_start === weekStart && !changed(') && pg.indexOf('const weekStart = buildTarget(new Date())') > 0,
     'the unchanged-plan shortcut cannot hand back an expired cycle\'s list — it runs after the target key is known and only while the plan\'s start is still the start a rebuild would get')
