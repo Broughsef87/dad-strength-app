@@ -4,10 +4,11 @@
 // The ~8 questions from the FOR-177 spec. Prep diversion is a first-class
 // question with its own explanation (L2); inventory is the first thing asked
 // about after the household, because the subtraction is the feature (L1).
-import { useState } from 'react'
-import type { Household, InventoryItem } from '../../lib/fuel/types'
+import { useMemo, useState } from 'react'
+import type { Household, InventoryItem, MealRow } from '../../lib/fuel/types'
+import { libraryUnits } from '../../lib/fuel/solve'
 
-const UNITS = ['lb', 'oz', 'each', 'cup dry', 'bag']
+const NO_MEALS: MealRow[] = []
 
 function Chip({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
   return (
@@ -34,8 +35,11 @@ function NumberRow({ label, hint, value, min, max, step = 1, onChange }: { label
   )
 }
 
-export default function IntakeForm({ initial, saving, onSave }: { initial: Household; saving: boolean; onSave: (h: Household) => void }) {
+export default function IntakeForm({ initial, meals = NO_MEALS, saving, onSave }: { initial: Household; meals?: MealRow[]; saving: boolean; onSave: (h: Household) => void }) {
   const [h, setH] = useState<Household>(initial)
+  // Every unit the library measures in is offered, or what is on hand in
+  // cloves or teaspoons could never come off the list (Codex, round 7).
+  const units = useMemo(() => libraryUnits(meals), [meals])
   const [newItem, setNewItem] = useState<InventoryItem>({ item: '', qty: 1, unit: 'lb' })
   const rules = h.dietary_rules
   const set = (patch: Partial<Household>) => setH({ ...h, ...patch })
@@ -103,7 +107,7 @@ export default function IntakeForm({ initial, saving, onSave }: { initial: House
           <input type="number" inputMode="decimal" min={0} step={0.5} value={newItem.qty} onChange={(e) => setNewItem({ ...newItem, qty: Number(e.target.value) })}
             className="row-recessed w-16 px-2 py-2 text-sm bg-transparent outline-none stat-num" aria-label="inventory quantity" />
           <select value={newItem.unit} onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })} className="row-recessed px-2 py-2 text-sm bg-transparent" aria-label="inventory unit">
-            {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+            {units.map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
           <button type="button" className="pill-quiet px-3 py-2 text-sm" disabled={!newItem.item.trim() || newItem.qty <= 0}
             onClick={() => { set({ inventory: [...h.inventory, { ...newItem, item: newItem.item.trim() }] }); setNewItem({ item: '', qty: 1, unit: 'lb' }) }}>

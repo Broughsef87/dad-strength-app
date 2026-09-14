@@ -33,6 +33,22 @@ const TO_BASE: Record<string, { base: string; factor: number }> = {
   lb: { base: 'lb', factor: 1 },
   'cup dry': { base: 'lb', factor: 0.44 }, // dry rice: one cup ≈ 0.44 lb
   cup_dry: { base: 'lb', factor: 0.44 },
+  tsp: { base: 'tsp', factor: 1 },
+  tbsp: { base: 'tsp', factor: 3 },
+}
+
+/** The bulk units a pantry is bought in, offered at intake whatever the library says. */
+export const BASE_UNITS = ['lb', 'oz', 'each', 'cup dry', 'bag'] as const
+
+/**
+ * Units the intake can record inventory in: the bulk units plus every unit
+ * the library measures an ingredient in, so nothing on hand is impossible to
+ * subtract — cloves, teaspoons and tablespoons included (Codex, round 7).
+ */
+export function libraryUnits(meals: Pick<MealRow, 'ingredients'>[]): string[] {
+  const units = new Set<string>(BASE_UNITS)
+  for (const m of meals) for (const ing of m.ingredients) units.add(ing.unit)
+  return [...units]
 }
 
 const norm = (s: string) => s.trim().toLowerCase()

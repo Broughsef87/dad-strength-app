@@ -174,7 +174,7 @@ export default function FuelPage() {
                   <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={() => void openUpcoming()}>open it</button>
                 </div>
               )}
-              {step === 'intake' && <IntakeForm initial={household ?? DEFAULT_HOUSEHOLD} saving={busy} onSave={onSaveHousehold} />}
+              {step === 'intake' && <IntakeForm initial={household ?? DEFAULT_HOUSEHOLD} meals={meals} saving={busy} onSave={onSaveHousehold} />}
               {step === 'plan' && household && liveCycle && (
                 <div className="tile p-3 flex items-center justify-between gap-3">
                   <p className="text-[12px] text-muted-foreground lowercase">

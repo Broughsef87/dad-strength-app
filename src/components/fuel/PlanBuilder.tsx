@@ -20,10 +20,14 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   // for: a fortnight's week-two nights do not ride along into a weekly shop,
   // and a night saved for two people is brought up to what four need. A
   // saved servings choice that still feeds everyone is KEPT as chosen — the
-  // recipe default applies to new selections only (Codex, round 3).
+  // recipe default applies to new selections only (Codex, round 3). A night
+  // whose meal has since left the library is dropped and named: the picker
+  // cannot show it, so it could never be removed, and its warning would hold
+  // the build button down for good (Codex, round 7).
   const [entries, setEntries] = useState<PlanEntry[]>(() => (initial?.entries ?? [])
-    .filter((e) => e.week <= weeks)
+    .filter((e) => e.week <= weeks && bySlug.has(e.slug))
     .map((e) => { const m = bySlug.get(e.slug); return m && e.servings < household.people_count ? { ...e, servings: defaultServings(m, household) } : e }))
+  const retired = useMemo(() => [...new Set((initial?.entries ?? []).filter((e) => !bySlug.has(e.slug)).map((e) => e.slug))], [initial, bySlug])
   const [week, setWeek] = useState<1 | 2>(1)
   const warnings = useMemo(() => validatePlan({ entries }, meals, household), [entries, meals, household])
   const inWeek = (w: number) => entries.filter((e) => e.week === w)
@@ -67,6 +71,11 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
         </div>
       )}
       {weeks === 1 && <p className="eyebrow-mono">this week · {inWeek(1).length}/{household.nights_per_week} nights</p>}
+      {retired.length > 0 && (
+        <p className="status-msg text-[12px]" role="status">
+          {retired.join(', ')} {retired.length === 1 ? 'is' : 'are'} no longer in the library — {retired.length === 1 ? 'that night was' : 'those nights were'} dropped, pick again
+        </p>
+      )}
 
       <ul className="space-y-2">
         {meals.map((m) => {

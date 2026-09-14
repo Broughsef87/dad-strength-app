@@ -22,7 +22,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, defaultServings, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
+import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, historyFloor, mondayOf, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, enqueue, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
@@ -120,6 +120,16 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(JSON.stringify(codFirst.items) === JSON.stringify(ribeyeFirst.items), 'the same nights make the same trips whichever was picked first')
   assert(codFirst.stocked.some((i) => i.item === 'broccoli' && !i.second_trip) && find(codFirst, 'broccoli', true)?.qty === 12,
     '12 oz of broccoli on hand covers the main-trip broccoli; the second trip still buys its own')
+  // the library's own units subtract (Codex r7): garlic in cloves; garlic
+  // powder is 0.5 + 1 + 0.5 tsp × 3 servings = 6 tsp across the fortnight,
+  // and a tablespoon on hand is three of them
+  const offered = libraryUnits(meals)
+  const used = [...new Set(meals.flatMap((m) => m.ingredients.map((i) => i.unit)))]
+  assert(used.every((u) => offered.includes(u)) && ['lb', 'oz', 'each', 'bag'].every((u) => offered.includes(u)),
+    `the intake offers every unit the library measures in, plus the bulk units — missing ${used.filter((u) => !offered.includes(u)).join(', ') || 'none'}`)
+  const l6 = buildShoppingList({ ...andrew, inventory: [{ item: 'garlic', qty: 50, unit: 'clove' }, { item: 'garlic powder', qty: 1, unit: 'tbsp' }] }, meals, fortnight)
+  assert(l6.stocked.some((i) => i.item === 'garlic') && !l6.sections.some((s) => s.items.some((i) => i.item === 'garlic')), 'garlic on hand in cloves comes off the list')
+  assert(find(l6, 'garlic powder')?.qty === 3, `a tablespoon of garlic powder on hand counts as three teaspoons against six — got ${find(l6, 'garlic powder')?.qty}`)
 }
 
 // ── 3. sections ─────────────────────────────────────────────────────────────
@@ -293,7 +303,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // the builder (Codex r1): deselect is always allowed, saved entries are cut to the cycle, servings scale with the household
   const pb = readLF('src/components/fuel/PlanBuilder.tsx')
   assert(/disabled=\{!ok && !entry\}/.test(pb) && /if \(existing\) \{ setEntries\(entries\.filter/.test(pb), 'a selected meal that fell outside the cap can still be removed')
-  assert(/\.filter\(\(e\) => e\.week <= weeks\)/.test(pb), 'a saved fortnight plan is cut to the cycle when the shop becomes weekly')
+  assert(/\.filter\(\(e\) => e\.week <= weeks/.test(pb), 'a saved fortnight plan is cut to the cycle when the shop becomes weekly')
+  // round 7: a retired meal is dropped from a saved plan and named — never held as a night that cannot be removed
+  assert(/\.filter\(\(e\) => e\.week <= weeks && bySlug\.has\(e\.slug\)\)/.test(pb) && /no longer in the library/.test(pb) && /retired\.length > 0 &&/.test(pb),
+    'a saved night whose meal left the library is dropped and named, so the builder is never blocked by a night that cannot be removed')
+  const inf = readLF('src/components/fuel/IntakeForm.tsx')
+  assert(/libraryUnits\(meals\)/.test(inf) && /\{units\.map\(\(u\) => <option/.test(inf) && !/const UNITS = \[/.test(inf), 'the inventory unit picker is built from the library, not a fixed list')
+  assert(/<IntakeForm initial=\{household \?\? DEFAULT_HOUSEHOLD\} meals=\{meals\}/.test(pg), 'the page hands the library to the intake')
   assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, entry\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
   assert(/servings: Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
     'a new night defaults to what the household needs; a saved night is raised only if it no longer feeds everyone, otherwise kept as chosen (Codex r2, r3)')
