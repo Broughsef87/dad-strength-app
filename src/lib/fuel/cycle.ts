@@ -35,14 +35,20 @@ export function cycleStartFor(today: Date): string {
 }
 
 /**
- * The oldest start worth loading: a fortnight cycle started up to fourteen
- * days ago is still live, so three weeks back covers every live cycle with a
- * margin. Bounding the query by START keeps a busy cycle's version history
- * from crowding the live one out of a row limit (Codex, round 5).
+ * The oldest start worth loading: five weeks back — a fortnight cycle
+ * started up to fourteen days ago is still live, and the monthly steak rule
+ * is judged over the four weeks before a cycle ends (Codex, round 10).
+ * Bounding the query by START keeps a busy cycle's version history from
+ * crowding the live one out of a row limit (Codex, round 5).
  */
 export function historyFloor(today: Date): string {
-  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 21)
+  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 35)
   return key(d)
+}
+
+/** Whole days from one cycle key to another; negative when `to` is earlier. */
+export function daysBetween(from: string, to: string): number {
+  return daysInto(from, parse(to))
 }
 
 /** Days from a cycle's start to `today`, whole days. */

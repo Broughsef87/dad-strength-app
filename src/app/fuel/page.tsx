@@ -19,6 +19,7 @@ import {
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed } from '../../lib/fuel/version'
+import { steakNightsElsewhere } from '../../lib/fuel/solve'
 import { cycleKeyFor, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
@@ -37,6 +38,9 @@ export default function FuelPage() {
   const [plan, setPlan] = useState<PlanRow | null>(null)
   const [list, setList] = useState<ListRow | null>(null)
   const [upcoming, setUpcoming] = useState<PlanRow | null>(null)
+  // Every cycle from five weeks back, all versions — the rules that look
+  // across cycles (the monthly steak allowance) read it (Codex, round 10).
+  const [recent, setRecent] = useState<PlanRow[]>([])
   const [versions, setVersions] = useState<number[]>([])
   const [step, setStep] = useState<Step>('intake')
   const [busy, setBusy] = useState(false)
@@ -65,7 +69,7 @@ export default function FuelPage() {
       if (err) setError(err.message ?? 'could not load')
       setMeals(m.meals)
       setHousehold(h.household)
-      setPlan(active.plan); setList(active.list); setUpcoming(active.upcoming)
+      setPlan(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent)
       if (active.plan) {
         setVersions((await loadVersions(supabase, user.id, active.plan.week_start)).map((v) => v.version))
         setNextCycle(planningMode(asCycle(active.plan), new Date()) === 'next' && !active.upcoming)
@@ -91,19 +95,26 @@ export default function FuelPage() {
     setStep('plan')
   }
 
+  // Where a build lands, for `now`. A regeneration stays in the live cycle
+  // — unless the cadence shortened past today, when it is a fresh cycle
+  // keyed on this week (Codex, round 4). The next cycle starts where the
+  // live one ends, or IS the cycle already planned ahead, so building twice
+  // makes a version, not a second start. A fresh start keys on this week.
+  // A next-cycle target that expired while the page sat open advances to
+  // the cycle that covers today (Codex, round 9). Decided at BUILD time,
+  // never cached from a render.
+  const buildTarget = (now: Date): string => {
+    if (!household) return cycleKeyFor(null, now)
+    const next = !!(liveCycle && nextCycle)
+    return next && liveCycle
+      ? nextCycleKey(liveCycle, upcoming?.week_start ?? null, household.shop_cadence_days, now)
+      : liveCycle ? rebuildKey(liveCycle, household.shop_cadence_days, now) : cycleKeyFor(null, now)
+  }
+
   const onBuild = async (p: Plan) => {
     if (!userId || !household) return
     const startingNext = !!(liveCycle && nextCycle)
-    // A regeneration stays in the live cycle — unless the cadence shortened
-    // past today, when it is a fresh cycle keyed on this week (Codex, round
-    // 4). The next cycle starts where the live one ends, or IS the cycle
-    // already planned ahead, so building twice makes a version, not a
-    // second start. A fresh start keys on this week. A next-cycle target
-    // that expired while the page sat open advances to the cycle that
-    // covers today (Codex, round 9).
-    const weekStart = startingNext && liveCycle
-      ? nextCycleKey(liveCycle, upcoming?.week_start ?? null, household.shop_cadence_days, new Date())
-      : liveCycle ? rebuildKey(liveCycle, household.shop_cadence_days, new Date()) : cycleKeyFor(null, new Date())
+    const weekStart = buildTarget(new Date())
     // The unchanged-plan shortcut is a regeneration shortcut only: the next
     // cycle is always a new version under a new start — and so is a cycle
     // that expired while the page stayed open (Codex, round 8). The list is
@@ -113,7 +124,8 @@ export default function FuelPage() {
     const res = await createVersion(supabase, weekStart, household, meals, p)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
-    setPlan(res.plan); setList(res.list)
+    const built = res.plan
+    setPlan(built); setList(res.list); setRecent((r) => [...r, built])
     if (upcoming && (upcoming.week_start === weekStart || weekStart > upcoming.week_start)) setUpcoming(null)
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
     setNextCycle(false)
@@ -191,7 +203,8 @@ export default function FuelPage() {
               )}
               {step === 'plan' && household && (
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild}
-                  initial={plan ? { entries: plan.meal_ids } : null} />
+                  initial={plan ? { entries: plan.meal_ids } : null}
+                  steakNightsElsewhere={steakNightsElsewhere(recent, meals, buildTarget(new Date()), household.shop_cadence_days)} />
               )}
               {step === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">

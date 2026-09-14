@@ -19,6 +19,7 @@
 //   L8  the deliverable is a checklist — the output is sections of items in
 //       store order, ready to tick.
 import type { Household, ListItem, ListSection, MealIngredient, MealRow, Plan, PlanEntry, ShoppingList } from './types'
+import { daysBetween } from './cycle'
 
 /** Cuts the household buys fresh, close to the night they are cooked; everything else freezes. Sourced: "week-1 fresh fish at Costco, week-2 fish and produce elsewhere". */
 export const FRESH_ONLY_CUTS = ['salmon', 'cod_halibut', 'cod', 'halibut'] as const
@@ -119,8 +120,47 @@ export function steakNightsPerCycle(steakPerMonth: number, household: Pick<House
   return Math.ceil(steakPerMonth * (cycleWeeks(household) * 7) / 30)
 }
 
+/** A month, for the steak rule: four weeks. The cadence is weekly or fortnightly, so four weeks is the window a monthly allowance is judged over. */
+export const MONTH_DAYS = 28
+
+/** A cycle already planned, as the store holds it: its start, its version and its nights. */
+export interface PlanHistory {
+  week_start: string
+  version: number
+  meal_ids: PlanEntry[]
+}
+
+/**
+ * Steak nights already planned in OTHER cycles that fall inside the four
+ * weeks ending where the target cycle ends. Rounding the monthly allowance
+ * up per cycle let a weekly household eat steak every week (Codex, round
+ * 10); the rule is monthly, so it is judged across cycles. Only a start's
+ * highest version speaks; a night is placed on its week's Monday; the
+ * target cycle's own nights are the plan being judged, not history.
+ */
+export function steakNightsElsewhere(history: PlanHistory[], meals: MealRow[], targetStart: string, cadenceDays: number): number {
+  const bySlug = new Map(meals.map((m) => [m.slug, m]))
+  const latest = new Map<string, PlanHistory>()
+  for (const r of history) {
+    if (r.week_start === targetStart) continue
+    const cur = latest.get(r.week_start)
+    if (!cur || r.version > cur.version) latest.set(r.week_start, r)
+  }
+  const end = Math.max(7, cadenceDays)
+  let n = 0
+  for (const r of latest.values()) {
+    const offset = daysBetween(targetStart, r.week_start)
+    for (const e of r.meal_ids) {
+      if (bySlug.get(e.slug)?.protein_cut !== 'ribeye') continue
+      const night = offset + (e.week - 1) * 7
+      if (night >= end - MONTH_DAYS && night < end) n++
+    }
+  }
+  return n
+}
+
 /** Frequency rules the picker should have enforced; reported, never silently fixed. */
-export function validatePlan(plan: Plan, meals: MealRow[], household: Household): string[] {
+export function validatePlan(plan: Plan, meals: MealRow[], household: Household, context: { steakNightsElsewhere?: number } = {}): string[] {
   const bySlug = new Map(meals.map((m) => [m.slug, m]))
   const rules = household.dietary_rules
   const warnings: string[] = []
@@ -145,6 +185,9 @@ export function validatePlan(plan: Plan, meals: MealRow[], household: Household)
   const steak = plan.entries.map((e) => bySlug.get(e.slug)).filter((m) => m?.protein_cut === 'ribeye').length
   const steakCap = steakNightsPerCycle(rules.steak_per_month, household)
   if (steak > steakCap) warnings.push(`${steak} steak night${steak === 1 ? '' : 's'} in the cycle, rule is ${rules.steak_per_month} a month`)
+  // The monthly allowance is judged over four weeks ACROSS cycles (Codex, round 10).
+  const elsewhere = context.steakNightsElsewhere ?? 0
+  if (steak > 0 && steak <= steakCap && steak + elsewhere > rules.steak_per_month) warnings.push(`${steak + elsewhere} steak nights in the four weeks to this cycle's end, rule is ${rules.steak_per_month} a month`)
   for (const e of plan.entries) if (!bySlug.has(e.slug)) warnings.push(`${e.slug}: not in the library`)
   return warnings
 }

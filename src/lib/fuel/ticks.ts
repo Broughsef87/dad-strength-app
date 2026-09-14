@@ -111,11 +111,6 @@ export const outboxPrefix = (listId: string) => `dad-strength-fuel-outbox:${list
 /** A tab that has not stamped its outbox for this long is taken to be gone. */
 export const ORPHAN_AFTER_MS = 30_000
 
-/** May a load keep the tab id it found? Not while a live tab — a duplicate of this one — is still stamping that outbox. */
-export function claimable(stored: StoredOutbox | null, now: number): boolean {
-  return !stored || stored.alive === 0 || now - stored.alive > ORPHAN_AFTER_MS
-}
-
 /** Other tabs' outboxes this tab may adopt: those that hid or closed, or fell silent past the window. Never its own. */
 export function orphans(stored: StoredOutbox[], tab: string, now: number): StoredOutbox[] {
   return stored.filter((s) => s.tab !== tab && (s.alive === 0 || now - s.alive > ORPHAN_AFTER_MS))

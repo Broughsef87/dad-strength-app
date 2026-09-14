@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import type { ListItem } from '../../lib/fuel/types'
 import { SECOND_TRIP_SECTION, STOCKED_SECTION } from '../../lib/fuel/solve'
-import { acknowledge, adopt, claimable, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, pendingFor, progress, reconcile, render, type StoredOutbox, type TickIntent } from '../../lib/fuel/ticks'
+import { acknowledge, adopt, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, pendingFor, progress, reconcile, render, type StoredOutbox, type TickIntent } from '../../lib/fuel/ticks'
 
 // Keys with a write in flight, PER LIST and shared across mounts: a checklist
 // unmounted mid-write (the athlete switched steps) still has that write
@@ -40,29 +40,24 @@ function sendQueued<T>(listId: string, fn: () => Promise<T>): Promise<T> {
 // last alive; a tab that hides or closes stamps zero. A mount, or a tab
 // coming back into view, adopts the outboxes of tabs that are gone —
 // stamped zero, or silent past the orphan window — so a closed tab's ticks
-// are flushed by the next tab on the list. The tab id lives in
-// sessionStorage, so a reload keeps its outbox; a DUPLICATED tab (which
-// copies sessionStorage) finds its parent still stamping and takes a fresh
-// id. A tab that wakes to find its outbox adopted drops those intents
-// rather than sending them twice.
-const TAB_KEY = 'dad-strength-fuel-tab'
+// are flushed by the next tab on the list. The tab id is minted
+// once per DOCUMENT: a remount within the same tab keeps its outbox (a
+// sessionStorage id let a remount mistake its own fresh stamp for a
+// duplicate's — Codex, round 10); a reload is a new document, and pagehide
+// stamped the old outbox zero, so the new one adopts it at once; a
+// duplicated tab is a new document too, with its own id. A hidden tab
+// RELEASES its outbox — no heartbeat, no flush, and never a re-write of a
+// key another tab has taken — and a tab that wakes to find its outbox
+// taken drops those intents rather than sending them twice.
 let tab: string | null = null
-function newTab(): string {
-  tab = Math.random().toString(36).slice(2, 10)
-  try { sessionStorage.setItem(TAB_KEY, tab) } catch { /* memory only */ }
-  return tab
-}
-function tabId(): string {
-  if (tab) return tab
-  try { tab = sessionStorage.getItem(TAB_KEY) } catch { /* memory only */ }
-  return tab ?? newTab()
-}
+function tabId(): string { return tab ?? (tab = Math.random().toString(36).slice(2, 10)) }
 function parseStored(raw: string | null): StoredOutbox | null {
   try { const s = raw ? (JSON.parse(raw) as StoredOutbox) : null; return s && Array.isArray(s.intents) ? s : null } catch { return null }
 }
-/** Take over the outboxes of tabs that are gone: their intents come back, their keys go. */
+/** Take over the outboxes of tabs that are gone: their intents come back, their keys go. A hidden tab takes nothing — it could not hold it. */
 function adoptOrphans(listId: string): TickIntent[] {
   try {
+    if (document.visibilityState === 'hidden') return []
     const others: Array<{ key: string; stored: StoredOutbox }> = []
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
@@ -77,17 +72,23 @@ function adoptOrphans(listId: string): TickIntent[] {
 }
 function readOutbox(listId: string): TickIntent[] {
   let mine: StoredOutbox | null = null
-  try {
-    mine = parseStored(localStorage.getItem(outboxKey(listId, tabId())))
-    if (mine && !claimable(mine, Date.now())) { newTab(); mine = null }
-  } catch { mine = null }
+  try { mine = parseStored(localStorage.getItem(outboxKey(listId, tabId()))) } catch { mine = null }
   return adopt(mine?.intents ?? [], adoptOrphans(listId))
 }
-/** Persist this tab's outbox under its own key; returns whether storage took it. */
+/**
+ * Persist this tab's outbox under its own key; returns whether storage
+ * works. Hidden, or leaving, the outbox is RELEASED — stamped zero for
+ * another tab to take — and is re-written only while it is still ours:
+ * never recreated after a take, or a replay on waking could overwrite the
+ * taker's newer saves (Codex, round 10).
+ */
 function writeOutbox(listId: string, outbox: TickIntent[], alive = Date.now()): boolean {
   try {
     const k = outboxKey(listId, tabId())
-    if (outbox.length) localStorage.setItem(k, JSON.stringify({ tab: tabId(), alive, intents: outbox } satisfies StoredOutbox)); else localStorage.removeItem(k)
+    if (!outbox.length) { localStorage.removeItem(k); return true }
+    const released = alive === 0 || document.visibilityState === 'hidden'
+    if (released && localStorage.getItem(k) === null) return true
+    localStorage.setItem(k, JSON.stringify({ tab: tabId(), alive: released ? 0 : alive, intents: outbox } satisfies StoredOutbox))
     return true
   } catch { return false /* storage unavailable: intents live in memory only */ }
 }
@@ -140,12 +141,13 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
 
   const persisted = useRef(true)
   useEffect(() => { persisted.current = writeOutbox(listId, outbox) }, [listId, outbox])
-  // While intents are pending this tab stamps its outbox alive, so no other
-  // tab adopts it; on pagehide it stamps zero, so the next tab can at once.
+  // While intents are pending and the tab is VISIBLE it stamps its outbox
+  // alive, so no other tab adopts it; hidden, it stamps nothing (Codex,
+  // round 10); on pagehide it stamps zero, so the next tab can at once.
   const holding = outbox.length > 0
   useEffect(() => {
     if (!holding) return
-    const stamp = () => writeOutbox(listId, outboxRef.current)
+    const stamp = () => { if (document.visibilityState === 'visible') writeOutbox(listId, outboxRef.current) }
     const hide = () => writeOutbox(listId, outboxRef.current, 0)
     const id = window.setInterval(stamp, ORPHAN_AFTER_MS / 3)
     window.addEventListener('pagehide', hide)
@@ -155,20 +157,28 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   // again (or restored from the back-forward cache): if another tab took
   // them meanwhile they are its to flush — dropped here, never sent twice;
   // otherwise the stamp is renewed. Then adopt what other tabs left, and
-  // re-read the row either way.
+  // re-read the row. A visible tab also takes an outbox the moment another
+  // tab releases it (the storage event), and re-reads the row only when it
+  // took something (Codex, round 10).
   const [wake, setWake] = useState(0)
   useEffect(() => {
-    const wakeUp = () => {
+    const wakeUp = (reread: boolean) => {
       let next = outboxRef.current
       if (next.length && persisted.current && !ownKeyPresent(listId)) next = []
       next = adopt(next, adoptOrphans(listId))
-      if (next !== outboxRef.current) { outboxRef.current = next; setOutbox(next) } else writeOutbox(listId, next)
-      setWake((n) => n + 1)
+      const took = next !== outboxRef.current
+      if (took) { outboxRef.current = next; setOutbox(next) } else writeOutbox(listId, next)
+      if (reread || took) setWake((n) => n + 1)
     }
-    const onVisibility = () => { if (document.visibilityState === 'hidden') writeOutbox(listId, outboxRef.current, 0); else wakeUp() }
-    const onShow = (e: PageTransitionEvent) => { if (e.persisted) wakeUp() }
-    document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow)
-    return () => { document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow) }
+    const onVisibility = () => { if (document.visibilityState === 'hidden') writeOutbox(listId, outboxRef.current, 0); else wakeUp(true) }
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) wakeUp(true) }
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key || !e.key.startsWith(outboxPrefix(listId)) || e.key === outboxKey(listId, tabId()) || document.visibilityState !== 'visible') return
+      const stored = parseStored(e.newValue)
+      if (stored?.alive === 0) wakeUp(false)
+    }
+    document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow); window.addEventListener('storage', onStorage)
+    return () => { document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow); window.removeEventListener('storage', onStorage) }
   }, [listId])
   useEffect(() => {
     setOnline(navigator.onLine)
@@ -178,12 +188,15 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   }, [])
 
   // Flush the outbox in order. Each acknowledgement REPLACES the render with
-  // the row's items; a failure leaves the intent queued and marks it.
+  // the row's items; a failure leaves the intent queued and marks it. A
+  // HIDDEN tab does not flush: its outbox is released for a visible tab to
+  // take, and sending meanwhile could replay what that tab has since
+  // changed (Codex, round 10).
   const flush = useCallback(async () => {
     if (flushing.current) return
     flushing.current = true
     try {
-      while (outboxRef.current.length > 0 && navigator.onLine && mounted.current) {
+      while (outboxRef.current.length > 0 && navigator.onLine && mounted.current && document.visibilityState !== 'hidden') {
         const intent = outboxRef.current[0]
         inFlight.current.add(intent.key)
         let items: ListItem[] | null = null

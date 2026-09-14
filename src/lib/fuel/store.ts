@@ -104,21 +104,24 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
  * fourteen days from its start (cycle.ts), so the second week — and the
  * second trip — is still on the page.
  */
-export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; upcoming: PlanRow | null; error: { code?: string; message?: string } | null }> {
-  // Bounded by START, not by row count: every start from three weeks back
-  // (any live fortnight) forward (anything planned ahead), all versions, so
-  // a busy cycle's history cannot crowd the live cycle out (Codex, round 5).
+export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; upcoming: PlanRow | null; recent: PlanRow[]; error: { code?: string; message?: string } | null }> {
+  // Bounded by START, not by row count: every start from five weeks back
+  // (any live fortnight, and the four weeks the steak rule is judged over)
+  // forward (anything planned ahead), all versions, so a busy cycle's
+  // history cannot crowd the live cycle out (Codex, round 5). The rows come
+  // back as `recent` for the rules that look across cycles (Codex, round 10).
   const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot')
     .eq('user_id', userId).gte('week_start', historyFloor(today)).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(500)
-  if (error || !rows?.length) return { plan: null, list: null, upcoming: null, error }
+  if (error || !rows?.length) return { plan: null, list: null, upcoming: null, recent: [], error }
   const candidates = (rows as PlanRow[]).map((r) => ({ ...r, shop_cadence_days: Number(r.rules_snapshot?.shop_cadence_days ?? 7) }))
   // A cycle planned ahead is loadable before it is live (Codex, round 4).
   const upcoming = upcomingCycle<PlanRow & CycleRow>(candidates, today)
   const plan = activeCycle<PlanRow & CycleRow>(candidates, today) ?? upcoming
-  if (!plan) return { plan: null, list: null, upcoming: null, error: null }
+  const recent = rows as PlanRow[]
+  if (!plan) return { plan: null, list: null, upcoming: null, recent, error: null }
   const { data: list, error: lerr } = await db.from('fuel_lists').select('id, plan_id, version, items, updated_at')
     .eq('plan_id', plan.id).order('version', { ascending: false }).limit(1).maybeSingle()
-  return { plan, list: (list as ListRow | null) ?? null, upcoming: upcoming && upcoming.id !== plan.id ? upcoming : null, error: lerr }
+  return { plan, list: (list as ListRow | null) ?? null, upcoming: upcoming && upcoming.id !== plan.id ? upcoming : null, recent, error: lerr }
 }
 
 /** The newest list for a plan — used to resume a cycle the athlete chose. */

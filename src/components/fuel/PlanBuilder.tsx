@@ -11,8 +11,10 @@ import { cycleWeeks, defaultServings, validatePlan } from '../../lib/fuel/solve'
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, steakNightsElsewhere = 0 }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean; onBuild: (plan: Plan) => void
+  /** Steak nights already planned in other cycles inside the four-week window — the monthly rule is judged across cycles (Codex, round 10). */
+  steakNightsElsewhere?: number
 }) {
   const weeks = cycleWeeks(household)
   const bySlug = useMemo(() => new Map(meals.map((m) => [m.slug, m])), [meals])
@@ -29,7 +31,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     .map((e) => { const m = bySlug.get(e.slug); return m && e.servings < household.people_count ? { ...e, servings: defaultServings(m, household) } : e }))
   const retired = useMemo(() => [...new Set((initial?.entries ?? []).filter((e) => !bySlug.has(e.slug)).map((e) => e.slug))], [initial, bySlug])
   const [week, setWeek] = useState<1 | 2>(1)
-  const warnings = useMemo(() => validatePlan({ entries }, meals, household), [entries, meals, household])
+  const warnings = useMemo(() => validatePlan({ entries }, meals, household, { steakNightsElsewhere }), [entries, meals, household, steakNightsElsewhere])
   const inWeek = (w: number) => entries.filter((e) => e.week === w)
   const picked = (slug: string) => entries.find((e) => e.slug === slug && e.week === week)
   const nightsOf = (slug: string) => entries.filter((e) => e.slug === slug && e.week === week).length

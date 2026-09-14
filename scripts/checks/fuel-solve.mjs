@@ -22,10 +22,10 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
+import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakNightsElsewhere, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
-import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
-import { acknowledge, adopt, claimable, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
+import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
+import { acknowledge, adopt, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
@@ -79,6 +79,19 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(steakNightsPerCycle(0, andrew) === 0 && steakNightsPerCycle(2, andrew) === 1 && steakNightsPerCycle(2, { shop_cadence_days: 7 }) === 1, 'steak nights per cycle: two a month is one a fortnight, and zero stays zero')
   const noSteak = validatePlan(twoRibeye(), meals, { ...andrew, dietary_rules: { ...andrew.dietary_rules, steak_per_month: 0 } })
   assert(noSteak.some((w) => /steak night/.test(w)), 'a zero-steak household is warned about a ribeye night')
+  // the monthly steak rule is judged over FOUR WEEKS ACROSS CYCLES (Codex r10): rounding up per cycle let a weekly
+  // household eat steak every week. Target 2026-09-21, weekly: the window is nights from the 31st of August to the 27th
+  const weekly = { ...andrew, shop_cadence_days: 7 }
+  const steakWeek = (start, week = 1) => ({ week_start: start, version: 1, meal_ids: [{ slug: 'cast-iron-ribeye', week, servings: 2 }] })
+  assert(steakNightsElsewhere([steakWeek('2026-08-31'), steakWeek('2026-09-07'), steakWeek('2026-09-14')], meals, '2026-09-21', 7) === 3
+    && steakNightsElsewhere([steakWeek('2026-08-24'), steakWeek('2026-09-21')], meals, '2026-09-21', 7) === 0,
+    'three weekly steak nights inside the four-week window count; a night before the window, and the target cycle\'s own nights, do not')
+  assert(steakNightsElsewhere([steakWeek('2026-09-07'), steakWeek('2026-09-14'), { week_start: '2026-09-14', version: 2, meal_ids: [] }], meals, '2026-09-21', 7) === 1,
+    'only the highest version of a start counts — the 14th\'s v2 dropped its steak')
+  assert(steakNightsElsewhere([steakWeek('2026-08-24', 2)], meals, '2026-09-21', 7) === 1, 'a week-two night is placed on its own Monday — the 31st, inside the window')
+  assert(validatePlan(twoRibeye(), meals, weekly, { steakNightsElsewhere: 2 }).some((w) => /3 steak nights in the four weeks/.test(w))
+    && validatePlan(twoRibeye(), meals, weekly, { steakNightsElsewhere: 1 }).every((w) => !/four weeks/.test(w)) && validatePlan(twoRibeye(), meals, weekly).every((w) => !/four weeks/.test(w)),
+    'a third steak in four weeks is reported against a two-a-month rule; a second is not; no history, no report')
   function twoRibeye() { return { entries: [entry('cast-iron-ribeye', 1)] } }
   // servings default from the household (Codex r2): the seed's 3-for-2 is "everyone eats, plus half again for a leftover night"
   assert(defaultServings(byslug('chili-lime-thighs'), { people_count: 2 }) === 3 && defaultServings(byslug('cast-iron-ribeye'), { people_count: 2 }) === 2,
@@ -228,8 +241,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'an expired next-cycle target advances to the cycle that covers today; one still live or still ahead is kept')
   assert(nextCycleKey(weekly14, '2026-09-21', 7, new Date(2026, 9, 5)) === '2026-10-05' && nextCycleKey(fortnight14, null, 14, new Date(2026, 8, 27)) === '2026-09-28',
     'the same guard covers a cycle planned ahead; a fortnight on its final Sunday still keys to the coming Monday')
-  // the query is bounded by start, not by row count (Codex r5): three weeks back covers any live fortnight
-  assert(historyFloor(new Date(2026, 8, 23)) === '2026-09-02' && daysInto(historyFloor(new Date(2026, 8, 28)), new Date(2026, 8, 28)) === 21, 'the history floor is three weeks back')
+  // the query is bounded by start, not by row count (Codex r5): five weeks back covers any live fortnight and the four-week steak window (r10)
+  assert(historyFloor(new Date(2026, 8, 23)) === '2026-08-19' && daysInto(historyFloor(new Date(2026, 8, 28)), new Date(2026, 8, 28)) === 35, 'the history floor is five weeks back — a live fortnight plus the four weeks a monthly rule is judged over')
+  assert(daysBetween('2026-09-21', '2026-09-28') === 7 && daysBetween('2026-09-21', '2026-09-14') === -7, 'days between two cycle keys, signed')
   const twentyVersions = Array.from({ length: 20 }, (_, i) => ({ week_start: '2026-09-28', version: i + 1, shop_cadence_days: 14 }))
   assert(activeCycle([...twentyVersions, fortnight14], new Date(2026, 8, 23))?.week_start === mon, 'twenty versions of a future cycle do not hide the live one')
   const st5 = readLF('src/lib/fuel/store.ts')
@@ -276,16 +290,24 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const t3 = { tab: 't3', alive: 1_000_000 - ORPHAN_AFTER_MS - 1, intents: [{ key: 'broccoli', checked: false, at: 9 }, { key: 'lemon', checked: true, at: 2 }] }
   assert(orphans([t1, t2, t3], 'me', 1_000_000).map((s) => s.tab).join() === 't2,t3', 'a tab that hid or fell silent past the window is an orphan; one still stamping is not')
   assert(orphans([t1], 't1', 1_000_000 + ORPHAN_AFTER_MS * 2).length === 0, 'a tab never adopts its own outbox')
-  assert(claimable(null, 1_000_000) && claimable(t2, 1_000_000) && claimable(t3, 1_000_000) && !claimable(t1, 1_000_000),
-    'a load keeps its tab id unless a live tab is still stamping that outbox — a duplicated tab takes a new one')
   const own = [{ key: 'rice', checked: false, at: 20 }]
   const merged = adopt(own, [...t2.intents, ...t3.intents])
   assert(merged.map((i) => `${i.key}:${i.checked}`).join() === 'rice:false,lemon:true,broccoli:false',
     'adopted intents queue behind this tab\'s own, oldest first, this tab\'s own winning its keys and the newest adopted winning a key two orphans held')
   assert(adopt(own, []) === own && adopt(own, own) === own, 'nothing to adopt, same outbox back')
   const cl9 = readLF('src/components/fuel/Checklist.tsx')
-  assert(/if \(mine && !claimable\(mine, Date\.now\(\)\)\) \{ newTab\(\); mine = null \}/.test(cl9) && /return adopt\(mine\?\.intents \?\? \[\], adoptOrphans\(listId\)\)/.test(cl9) && /JSON\.stringify\(\{ tab: tabId\(\), alive, intents: outbox \} satisfies StoredOutbox\)/.test(cl9),
+  assert(/return adopt\(mine\?\.intents \?\? \[\], adoptOrphans\(listId\)\)/.test(cl9) && /JSON\.stringify\(\{ tab: tabId\(\), alive: released \? 0 : alive, intents: outbox \} satisfies StoredOutbox\)/.test(cl9),
     'the checklist writes its own tab\'s key, stamped alive, and a mount adopts the outboxes tabs left behind')
+  // round 10: the tab id is per document; a released outbox is never recreated; hidden means no heartbeat, no flush, no adoption; a release is taken at once
+  assert(/function tabId\(\): string \{ return tab \?\? \(tab = Math\.random\(\)/.test(cl9) && !/sessionStorage\./.test(cl9),
+    'the tab id is minted once per document — a remount keeps its outbox, a reload adopts the released one, a duplicated tab has its own')
+  assert(/const released = alive === 0 \|\| document\.visibilityState === 'hidden'/.test(cl9) && /if \(released && localStorage\.getItem\(k\) === null\) return true/.test(cl9),
+    'a released outbox is re-written only while still ours — never recreated after another tab took it')
+  assert(/const stamp = \(\) => \{ if \(document\.visibilityState === 'visible'\) writeOutbox\(listId, outboxRef\.current\) \}/.test(cl9), 'the heartbeat stops while hidden')
+  assert(/while \(outboxRef\.current\.length > 0 && navigator\.onLine && mounted\.current && document\.visibilityState !== 'hidden'\)/.test(cl9), 'a hidden tab does not flush — its intents are released for a visible tab')
+  assert(/if \(document\.visibilityState === 'hidden'\) return \[\]/.test(cl9), 'a hidden tab adopts nothing')
+  assert(/const onStorage = \(e: StorageEvent\)/.test(cl9) && /if \(stored\?\.alive === 0\) wakeUp\(false\)/.test(cl9) && /if \(reread \|\| took\) setWake/.test(cl9),
+    'a visible tab takes a released outbox the moment it is released, and re-reads the row only when it took something')
   assert(/if \(document\.visibilityState === 'hidden'\) writeOutbox\(listId, outboxRef\.current, 0\)/.test(cl9) && /window\.addEventListener\('pagehide', hide\)/.test(cl9) && /const hide = \(\) => writeOutbox\(listId, outboxRef\.current, 0\)/.test(cl9),
     'a tab that hides or closes lets its outbox go, so the next tab can take the ticks at once')
   assert(/if \(next\.length && persisted\.current && !ownKeyPresent\(listId\)\) next = \[\]/.test(cl9) && /next = adopt\(next, adoptOrphans\(listId\)\)/.test(cl9) && /\[online, listId, refetch, onRowItems, flush, wake\]/.test(cl9),
@@ -349,11 +371,17 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'a new night defaults to what the household needs; a saved night is raised only if it no longer feeds everyone, otherwise kept as chosen (Codex r2, r3)')
   assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /if \(!startingNext && plan && list && plan\.week_start === weekStart && !changed\(/.test(pg) && /planningMode\(/.test(pg),
     'the page can plan the NEXT cycle — keyed to where the live one ends (or the cycle already planned ahead), defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
-  assert(/rebuildKey\(liveCycle, household\.shop_cadence_days, new Date\(\)\)/.test(pg), 'a rebuild keys through rebuildKey, so a shortened cadence cannot snapshot an expired cycle')
+  assert(/rebuildKey\(liveCycle, household\.shop_cadence_days, now\)/.test(pg) && /const buildTarget = \(now: Date\): string =>/.test(pg), 'a rebuild keys through rebuildKey, so a shortened cadence cannot snapshot an expired cycle')
+  // round 10: the builder is told the steak nights already planned in other cycles, for the target the build would land on
+  assert(/steakNightsElsewhere=\{steakNightsElsewhere\(recent, meals, buildTarget\(new Date\(\)\), household\.shop_cadence_days\)\}/.test(pg) && /setRecent\(active\.recent\)/.test(pg) && /setRecent\(\(r\) => \[\.\.\.r, built\]\)/.test(pg),
+    'the builder is told the steak nights already planned in other cycles — loaded with the page, and kept current after a build')
+  assert(/validatePlan\(\{ entries \}, meals, household, \{ steakNightsElsewhere \}\)/.test(pb), 'the builder judges the monthly steak rule across cycles')
+  const st10 = readLF('src/lib/fuel/store.ts')
+  assert(/recent: PlanRow\[\]/.test(st10) && /const recent = rows as PlanRow\[\]/.test(st10), 'loadActive hands back every recent cycle, all versions')
   // round 9: the next-cycle target is checked against today, and a cycle planned ahead that the build passed is let go
-  assert(/nextCycleKey\(liveCycle, upcoming\?\.week_start \?\? null, household\.shop_cadence_days, new Date\(\)\)/.test(pg) && /if \(upcoming && \(upcoming\.week_start === weekStart \|\| weekStart > upcoming\.week_start\)\) setUpcoming\(null\)/.test(pg), 'a next-cycle build keys through nextCycleKey — checked against today — and drops an upcoming cycle it has passed')
+  assert(/nextCycleKey\(liveCycle, upcoming\?\.week_start \?\? null, household\.shop_cadence_days, now\)/.test(pg) && /if \(upcoming && \(upcoming\.week_start === weekStart \|\| weekStart > upcoming\.week_start\)\) setUpcoming\(null\)/.test(pg), 'a next-cycle build keys through nextCycleKey — checked against today — and drops an upcoming cycle it has passed')
   // round 8: the key is decided before the shortcut, and the list is reused only while the plan's start is still the start a rebuild would get
-  assert(pg.indexOf('const weekStart = startingNext && liveCycle') < pg.indexOf('plan.week_start === weekStart && !changed(') && pg.indexOf('plan.week_start === weekStart') > 0,
+  assert(pg.indexOf('const weekStart = buildTarget(new Date())') < pg.indexOf('plan.week_start === weekStart && !changed(') && pg.indexOf('const weekStart = buildTarget(new Date())') > 0,
     'the unchanged-plan shortcut cannot hand back an expired cycle\'s list — it runs after the target key is known and only while the plan\'s start is still the start a rebuild would get')
   assert(/const setServings = \(slug: string, servings: number\) => setEntries\(entries\.map\(\(e\) => \(e\.slug === slug && e\.week === week \? \{ \.\.\.e, servings \} : e\)\)\)/.test(pb) && /setServings\(m\.slug, Math\.max\(1, entry\.servings - 1\)\)/.test(pb) && /nights, each/.test(pb) && /servings: existing \? existing\.servings : Math\.min\(defaultServings\(m, household\), cap\)/.test(pb),
     'every night of a repeated recipe shares the one servings figure the card shows — the control moves them together and another night copies it')
@@ -362,7 +390,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/const upcoming = upcomingCycle</.test(st4) && /activeCycle<PlanRow & CycleRow>\(candidates, today\) \?\? upcoming/.test(st4), 'the store surfaces the upcoming cycle, and falls back to it when nothing is live')
   const cl4 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const inFlightByList = new Map<string, Set<string>>\(\)/.test(cl4) && /useRef<Set<string>>\(inFlightFor\(listId\)\)/.test(cl4), 'in-flight keys are shared across remounts of the same list')
-  assert(/const mounted = useRef\(true\)/.test(cl4) && /if \(!mounted\.current\) break/.test(cl4) && /navigator\.onLine && mounted\.current\)/.test(cl4), 'an unmounted checklist publishes nothing')
+  assert(/const mounted = useRef\(true\)/.test(cl4) && /if \(!mounted\.current\) break/.test(cl4) && /navigator\.onLine && mounted\.current && /.test(cl4), 'an unmounted checklist publishes nothing')
   assert(/const failedIntent = failed\.has\(item\.key\) \? pendingFor\(outboxRef\.current, item\.key\) : undefined/.test(cl4) && /checked: failedIntent \? failedIntent\.checked : !shown/.test(cl4),
     'tapping a failed row retries the intent as asked, never flips it')
   // round 5: the checklist is keyed by list; writes are serialised per list across mounts
