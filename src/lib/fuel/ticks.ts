@@ -122,6 +122,39 @@ export function released(hidden: boolean, inFlight: number): boolean {
   return hidden && inFlight === 0
 }
 
+/**
+ * Outstanding writes per key — a COUNT, not a set. Two requests for one key
+ * can be outstanding at once across a remount, and the first to land must
+ * not clear the second's protection from a reconciling read (Codex, round
+ * 12). `hold` on send, `drop` when the request settles either way.
+ */
+export function hold(counts: Map<string, number>, key: string): void {
+  counts.set(key, (counts.get(key) ?? 0) + 1)
+}
+export function drop(counts: Map<string, number>, key: string): void {
+  const n = (counts.get(key) ?? 0) - 1
+  if (n > 0) counts.set(key, n); else counts.delete(key)
+}
+/** How many writes are outstanding in all. */
+export function outstanding(counts: Map<string, number>): number {
+  let n = 0
+  for (const c of counts.values()) n += c
+  return n
+}
+
+/**
+ * When the soonest foreign claim expires, in ms from `now` — or null when
+ * no other tab holds a live claim. A reload with a write in flight leaves
+ * its old document's outbox claimed; nothing else would look again once
+ * that claim lapses, so the next look is scheduled for then (Codex, round
+ * 12). A claim already lapsed is due now (0); a released one (alive 0) is
+ * not a claim.
+ */
+export function nextExpiry(stored: StoredOutbox[], tab: string, now: number): number | null {
+  const waits = stored.filter((s) => s.tab !== tab && s.alive > 0).map((s) => s.alive + ORPHAN_AFTER_MS - now)
+  return waits.length ? Math.max(0, Math.min(...waits)) : null
+}
+
 /** Other tabs' outboxes this tab may adopt: those that hid or closed, or fell silent past the window. Never its own. */
 export function orphans(stored: StoredOutbox[], tab: string, now: number): StoredOutbox[] {
   return stored.filter((s) => s.tab !== tab && (s.alive === 0 || now - s.alive > ORPHAN_AFTER_MS))

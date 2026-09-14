@@ -25,7 +25,7 @@ import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakNightsElsewhere, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
-import { acknowledge, adopt, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
+import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
@@ -301,9 +301,24 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 10: the tab id is per document; a released outbox is never recreated; hidden means no heartbeat, no flush, no adoption; a release is taken at once
   assert(/function tabId\(\): string \{ return tab \?\? \(tab = Math\.random\(\)/.test(cl9) && !/sessionStorage\./.test(cl9),
     'the tab id is minted once per document — a remount keeps its outbox, a reload adopts the released one, a duplicated tab has its own')
-  assert(/const rel = released\(leaving \|\| document\.visibilityState === 'hidden', inFlightFor\(listId\)\.size\)/.test(cl9) && /if \(rel && localStorage\.getItem\(k\) === null\) return true/.test(cl9),
+  assert(/const rel = released\(leaving \|\| document\.visibilityState === 'hidden', outstanding\(inFlightFor\(listId\)\)\)/.test(cl9) && /if \(rel && localStorage\.getItem\(k\) === null\) return true/.test(cl9),
     'a released outbox is re-written only while still ours — never recreated after another tab took it')
-  assert(/const stamp = \(\) => \{ if \(document\.visibilityState === 'visible' \|\| inFlight\.current\.size\) writeOutbox\(listId, outboxRef\.current\) \}/.test(cl9), 'the heartbeat stops while hidden — but keeps stamping while a write is in flight')
+  assert(/const stamp = \(\) => \{ if \(document\.visibilityState === 'visible' \|\| outstanding\(inFlight\.current\)\) writeOutbox\(listId, outboxRef\.current\) \}/.test(cl9), 'the heartbeat stops while hidden — but keeps stamping while a write is in flight')
+  // round 12: outstanding writes are a count, not a set; a lapsing foreign claim is looked at again; undefined is not a difference
+  {
+    const c = new Map()
+    hold(c, 'a'); hold(c, 'a'); drop(c, 'a')
+    assert(c.has('a') && outstanding(c) === 1, 'two requests for one key: the first to land does not clear the second\'s protection — a count, not a set')
+    drop(c, 'a')
+    assert(!c.has('a') && outstanding(c) === 0, 'the second landing clears it')
+    const live = { tab: 't1', alive: 1_000_000, intents: [] }, lapsed = { tab: 't3', alive: 1_000_000 - ORPHAN_AFTER_MS - 1, intents: [] }, let_go = { tab: 't2', alive: 0, intents: [] }
+    assert(nextExpiry([live], 'me', 1_000_000) === ORPHAN_AFTER_MS && nextExpiry([live, lapsed], 'me', 1_000_000) === 0 && nextExpiry([let_go], 'me', 1_000_000) === null && nextExpiry([live], 't1', 1_000_000) === null,
+      'the next look is scheduled for when the soonest foreign claim lapses — now for one already lapsed, never for a released one or this tab\'s own')
+    assert(/const schedule = \(\) => \{/.test(cl9) && /nextExpiry\(foreignOutboxes\(listId\)\.map\(\(o\) => o\.stored\), tabId\(\), Date\.now\(\)\)/.test(cl9) && /if \(document\.visibilityState === 'visible'\) wakeUp\(false\) \}, wait \+ 250\)/.test(cl9) && /if \(reread \|\| took\) setWake\(\(n\) => n \+ 1\)\n\s+schedule\(\)/.test(cl9) && /\n\s+schedule\(\)\n\s+const onVisibility/.test(cl9),
+      'the checklist looks again when a foreign claim lapses — scheduled on mount and after every wake, taken only while visible')
+    const items = buildShoppingList(andrew, meals, fortnight).items
+    assert(items.some((i) => 'stocked_reason' in i && i.stocked_reason === undefined) && listUnchanged(items, JSON.parse(JSON.stringify(items))), 'a JSON round-trip — jsonb drops undefined — is not a different list')
+  }
   // round 11: the claim holds while a write is in flight; a refusal lets it go
   assert(released(true, 0) && !released(true, 1) && !released(false, 0) && !released(false, 2), 'a hidden tab\'s outbox is released — not while a write is in flight, never while visible')
   assert(/if \(!items\) \{ setFailed\(\(f\) => new Set\(f\)\.add\(intent\.key\)\); writeOutbox\(listId, outboxRef\.current\); break \}/.test(cl9), 'a refused write lets the claim go, so another tab can retry it')
@@ -316,7 +331,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/if \(next\.length && persisted\.current && !ownKeyPresent\(listId\)\) next = \[\]/.test(cl9) && /next = adopt\(next, adoptOrphans\(listId\)\)/.test(cl9) && /\[online, listId, refetch, onRowItems, flush, wake\]/.test(cl9),
     'a tab that wakes to find its outbox adopted drops those intents rather than sending them twice, adopts what others left, and re-reads the row')
   const cl6 = readLF('src/components/fuel/Checklist.tsx')
-  assert(/inFlight\.current\.add\(intent\.key\)/.test(cl6) && /finally \{ inFlight\.current\.delete\(intent\.key\) \}/.test(cl6) && /reconcile\(fresh, outboxRef\.current, inFlight\.current\)/.test(cl6),
+  assert(/hold\(inFlight\.current, intent\.key\)/.test(cl6) && /finally \{ drop\(inFlight\.current, intent\.key\) \}/.test(cl6) && /reconcile\(fresh, outboxRef\.current, new Set\(inFlight\.current\.keys\(\)\)\)/.test(cl6),
     'the checklist tracks in-flight writes and hands them to reconcile')
   const ticks = readLF('src/lib/fuel/ticks.ts')
   assert(/THE ROW IS AUTHORITATIVE/.test(ticks) && !/merge\(/.test(ticks), 'ticks.ts states the authority and has no merge')
@@ -402,7 +417,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const st4 = readLF('src/lib/fuel/store.ts')
   assert(/const upcoming = upcomingCycle</.test(st4) && /activeCycle<PlanRow & CycleRow>\(candidates, today\) \?\? upcoming/.test(st4), 'the store surfaces the upcoming cycle, and falls back to it when nothing is live')
   const cl4 = readLF('src/components/fuel/Checklist.tsx')
-  assert(/const inFlightByList = new Map<string, Set<string>>\(\)/.test(cl4) && /useRef<Set<string>>\(inFlightFor\(listId\)\)/.test(cl4), 'in-flight keys are shared across remounts of the same list')
+  assert(/const inFlightByList = new Map<string, Map<string, number>>\(\)/.test(cl4) && /useRef<Map<string, number>>\(inFlightFor\(listId\)\)/.test(cl4), 'in-flight keys are shared across remounts of the same list')
   assert(/const mounted = useRef\(true\)/.test(cl4) && /if \(!mounted\.current\) break/.test(cl4) && /navigator\.onLine && mounted\.current && /.test(cl4), 'an unmounted checklist publishes nothing')
   assert(/const failedIntent = failed\.has\(item\.key\) \? pendingFor\(outboxRef\.current, item\.key\) : undefined/.test(cl4) && /checked: failedIntent \? failedIntent\.checked : !shown/.test(cl4),
     'tapping a failed row retries the intent as asked, never flips it')

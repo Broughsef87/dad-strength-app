@@ -42,11 +42,15 @@ export function snapshotKey(s: RulesSnapshot): string {
   return canonical(s)
 }
 
+// A key whose value is undefined is omitted, as JSON omits it: a list or a
+// snapshot read back from jsonb must compare equal to one built fresh, or
+// every rebuild after a reload would be "different" and reset its ticks
+// (Codex, round 12).
 function canonical(v: unknown): string {
   if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']'
   if (v && typeof v === 'object') {
     const o = v as Record<string, unknown>
-    return '{' + Object.keys(o).sort().map((k) => JSON.stringify(k) + ':' + canonical(o[k])).join(',') + '}'
+    return '{' + Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canonical(o[k])).join(',') + '}'
   }
   return JSON.stringify(v)
 }

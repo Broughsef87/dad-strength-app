@@ -10,15 +10,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import type { ListItem } from '../../lib/fuel/types'
 import { SECOND_TRIP_SECTION, STOCKED_SECTION } from '../../lib/fuel/solve'
-import { acknowledge, adopt, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, pendingFor, progress, reconcile, released, render, type StoredOutbox, type TickIntent } from '../../lib/fuel/ticks'
+import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, pendingFor, progress, reconcile, released, render, type StoredOutbox, type TickIntent } from '../../lib/fuel/ticks'
 
 // Keys with a write in flight, PER LIST and shared across mounts: a checklist
 // unmounted mid-write (the athlete switched steps) still has that write
 // outstanding when the next instance mounts, and that instance's first
 // reconciliation read must not prune the intent the write is about to
 // overturn (Codex, round 4).
-const inFlightByList = new Map<string, Set<string>>()
-const inFlightFor = (listId: string) => { let s = inFlightByList.get(listId); if (!s) { s = new Set(); inFlightByList.set(listId, s) } return s }
+// A COUNT per key, not a set: two requests for one key can be outstanding
+// across a remount, and the first to land must not clear the second's
+// protection (Codex, round 12).
+const inFlightByList = new Map<string, Map<string, number>>()
+const inFlightFor = (listId: string) => { let s = inFlightByList.get(listId); if (!s) { s = new Map(); inFlightByList.set(listId, s) } return s }
 
 // One write at a time PER LIST, across mounts. `flushing` is instance-local,
 // so a remounted checklist could send a newer intent while the unmounted
@@ -54,17 +57,24 @@ function tabId(): string { return tab ?? (tab = Math.random().toString(36).slice
 function parseStored(raw: string | null): StoredOutbox | null {
   try { const s = raw ? (JSON.parse(raw) as StoredOutbox) : null; return s && Array.isArray(s.intents) ? s : null } catch { return null }
 }
-/** Take over the outboxes of tabs that are gone: their intents come back, their keys go. A hidden tab takes nothing — it could not hold it. */
-function adoptOrphans(listId: string): TickIntent[] {
+/** Every other tab's outbox for this list, as stored. */
+function foreignOutboxes(listId: string): Array<{ key: string; stored: StoredOutbox }> {
+  const others: Array<{ key: string; stored: StoredOutbox }> = []
   try {
-    if (document.visibilityState === 'hidden') return []
-    const others: Array<{ key: string; stored: StoredOutbox }> = []
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
       if (!k || !k.startsWith(outboxPrefix(listId)) || k === outboxKey(listId, tabId())) continue
       const stored = parseStored(localStorage.getItem(k))
       if (stored) others.push({ key: k, stored })
     }
+  } catch { /* storage unavailable */ }
+  return others
+}
+/** Take over the outboxes of tabs that are gone: their intents come back, their keys go. A hidden tab takes nothing — it could not hold it. */
+function adoptOrphans(listId: string): TickIntent[] {
+  try {
+    if (document.visibilityState === 'hidden') return []
+    const others = foreignOutboxes(listId)
     const gone = orphans(others.map((o) => o.stored), tabId(), Date.now())
     for (const o of others) if (gone.includes(o.stored)) localStorage.removeItem(o.key)
     return gone.flatMap((s) => s.intents)
@@ -87,7 +97,7 @@ function writeOutbox(listId: string, outbox: TickIntent[], leaving = false): boo
   try {
     const k = outboxKey(listId, tabId())
     if (!outbox.length) { localStorage.removeItem(k); return true }
-    const rel = released(leaving || document.visibilityState === 'hidden', inFlightFor(listId).size)
+    const rel = released(leaving || document.visibilityState === 'hidden', outstanding(inFlightFor(listId)))
     if (rel && localStorage.getItem(k) === null) return true
     localStorage.setItem(k, JSON.stringify({ tab: tabId(), alive: rel ? 0 : Date.now(), intents: outbox } satisfies StoredOutbox))
     return true
@@ -132,7 +142,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   const writes = useRef(0)
   // Keys with a write in flight. A reconciliation read that lands while one
   // is outstanding must not prune that key's newer intent (Codex, round 3).
-  const inFlight = useRef<Set<string>>(inFlightFor(listId))
+  const inFlight = useRef<Map<string, number>>(inFlightFor(listId))
   // This instance's lifetime. An acknowledgement that arrives after unmount
   // belongs to nobody: the write committed, the next instance's reconcile
   // read will see it, and publishing it here would put an older snapshot
@@ -150,7 +160,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   const holding = outbox.length > 0
   useEffect(() => {
     if (!holding) return
-    const stamp = () => { if (document.visibilityState === 'visible' || inFlight.current.size) writeOutbox(listId, outboxRef.current) }
+    const stamp = () => { if (document.visibilityState === 'visible' || outstanding(inFlight.current)) writeOutbox(listId, outboxRef.current) }
     const hide = () => writeOutbox(listId, outboxRef.current, true)
     const id = window.setInterval(stamp, ORPHAN_AFTER_MS / 3)
     window.addEventListener('pagehide', hide)
@@ -163,8 +173,17 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   // re-read the row. A visible tab also takes an outbox the moment another
   // tab releases it (the storage event), and re-reads the row only when it
   // took something (Codex, round 10).
+  // A foreign claim still alive — a reload with a write in flight leaves
+  // its old document's — lapses in time, and nothing else would look again
+  // then: the next look is scheduled for when it does (Codex, round 12).
   const [wake, setWake] = useState(0)
   useEffect(() => {
+    let timer: number | undefined
+    const schedule = () => {
+      window.clearTimeout(timer)
+      const wait = nextExpiry(foreignOutboxes(listId).map((o) => o.stored), tabId(), Date.now())
+      if (wait !== null) timer = window.setTimeout(() => { if (document.visibilityState === 'visible') wakeUp(false) }, wait + 250)
+    }
     const wakeUp = (reread: boolean) => {
       let next = outboxRef.current
       if (next.length && persisted.current && !ownKeyPresent(listId)) next = []
@@ -172,7 +191,9 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
       const took = next !== outboxRef.current
       if (took) { outboxRef.current = next; setOutbox(next) } else writeOutbox(listId, next)
       if (reread || took) setWake((n) => n + 1)
+      schedule()
     }
+    schedule()
     const onVisibility = () => { if (document.visibilityState === 'hidden') writeOutbox(listId, outboxRef.current); else wakeUp(true) }
     const onShow = (e: PageTransitionEvent) => { if (e.persisted) wakeUp(true) }
     const onStorage = (e: StorageEvent) => {
@@ -181,7 +202,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
       if (stored?.alive === 0) wakeUp(false)
     }
     document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow); window.addEventListener('storage', onStorage)
-    return () => { document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow); window.removeEventListener('storage', onStorage) }
+    return () => { window.clearTimeout(timer); document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow); window.removeEventListener('storage', onStorage) }
   }, [listId])
   useEffect(() => {
     setOnline(navigator.onLine)
@@ -201,9 +222,9 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
     try {
       while (outboxRef.current.length > 0 && navigator.onLine && mounted.current && document.visibilityState !== 'hidden') {
         const intent = outboxRef.current[0]
-        inFlight.current.add(intent.key)
+        hold(inFlight.current, intent.key)
         let items: ListItem[] | null = null
-        try { items = await sendQueued(listId, () => send(intent.key, intent.checked)) } finally { inFlight.current.delete(intent.key) }
+        try { items = await sendQueued(listId, () => send(intent.key, intent.checked)) } finally { drop(inFlight.current, intent.key) }
         if (!mounted.current) break
         // A refusal leaves the intent queued; hidden by now, the claim held for
         // the write is let go so another tab can retry it (Codex, round 11).
@@ -231,7 +252,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
       const fresh = await sendQueued(listId, refetch)
       if (cancelled) return
       if (fresh && writes.current === seen) {
-        const r = reconcile(fresh, outboxRef.current, inFlight.current)
+        const r = reconcile(fresh, outboxRef.current, new Set(inFlight.current.keys()))
         outboxRef.current = r.outbox; setOutbox(r.outbox); onRowItems(listId, r.items)
       }
       void flush()
