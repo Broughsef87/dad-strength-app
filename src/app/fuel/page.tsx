@@ -19,7 +19,7 @@ import {
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed, listUnchanged } from '../../lib/fuel/version'
-import { buildShoppingList, validatePlan } from '../../lib/fuel/solve'
+import { buildShoppingList, householdFor, validatePlan } from '../../lib/fuel/solve'
 import { cycleKeyFor, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
@@ -111,9 +111,14 @@ export default function FuelPage() {
       : liveCycle ? rebuildKey(liveCycle, household.shop_cadence_days, now) : cycleKeyFor(null, now)
   }
 
-  const onBuild = async (p: Plan) => {
+  const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
     if (!userId || !household) return
     const startingNext = !!(liveCycle && nextCycle)
+    // What is on hand counts against a rebuild always — that cycle is the
+    // one eating it — and against a next cycle only on say-so (Codex, round
+    // 15). Recorded in the snapshot, so the plan is compared the way it was
+    // built.
+    const inventoryCounted = !startingNext || opts.countInventory
     const weekStart = buildTarget(new Date())
     // Validated again HERE, against the target the build actually lands on:
     // a builder left open across a cycle boundary was enabled against a
@@ -127,9 +132,9 @@ export default function FuelPage() {
     // reused only while its start is still the one a rebuild would get —
     // and only when a fresh solve comes out identical, because the library
     // itself can have been corrected since (Codex, round 11).
-    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && listUnchanged(buildShoppingList(household, meals, p).items, list.items)) { setStep('list'); return }
+    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && listUnchanged(buildShoppingList(householdFor(household, plan.rules_snapshot?.inventory_counted ?? true), meals, p).items, list.items)) { setStep('list'); return }
     setBusy(true); setError(null)
-    const res = await createVersion(supabase, weekStart, household, meals, p)
+    const res = await createVersion(supabase, weekStart, household, meals, p, inventoryCounted)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     const built = res.plan
@@ -210,7 +215,7 @@ export default function FuelPage() {
                 </div>
               )}
               {step === 'plan' && household && (
-                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild}
+                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} nextCycle={!!(liveCycle && nextCycle)}
                   initial={plan ? { entries: plan.meal_ids } : null}
                   cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}

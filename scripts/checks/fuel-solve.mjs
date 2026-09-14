@@ -22,7 +22,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
+import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, householdFor, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
@@ -90,7 +90,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(steakW([steakWeek('2026-08-24'), steakWeek('2026-09-21')]).length === 0, 'a night before the window, and the target start\'s own history, do not count')
   assert(steakW([steakWeek('2026-09-07'), steakWeek('2026-09-14'), { ...steakWeek('2026-09-14', 1, 2), meal_ids: [] }]).length === 0 && steakW([steakWeek('2026-09-07'), steakWeek('2026-09-14')]).length === 1,
     'only the highest version of a start counts — the 14th\'s v2 dropped its steak')
-  assert(steakW([steakWeek('2026-08-24', 2)]).length === 0 && steakW([steakWeek('2026-08-24', 2), steakWeek('2026-09-07')]).length === 1, 'a week-two night is placed on its own Monday — the 31st, inside the window')
+  const w2 = { ...steakWeek('2026-08-24', 2), rules_snapshot: { shop_cadence_days: 14 } }
+  assert(steakW([w2]).length === 0 && steakW([w2, steakWeek('2026-09-07')]).length === 1, 'a fortnight\'s week-two night is placed on its own Monday — the 31st, inside the window')
+  // a fortnight rebuilt as weekly in its second week does not keep counting the week it lost (r15): a fortnight from the 7th with steak in
+  // week two, rebuilt on the 15th as a weekly cycle from the 14th with that same dinner, is ONE steak night against a one-a-month rule
+  const fortnightSteakW2 = { week_start: '2026-09-07', version: 1, meal_ids: [{ slug: 'cast-iron-ribeye', week: 2, servings: 2 }], rules_snapshot: { shop_cadence_days: 14 } }
+  assert(steakWindowWarnings(twoRibeye(), meals, ctx([fortnightSteakW2], '2026-09-14', 7), 1).length === 0 && steakWindowWarnings(twoRibeye(), meals, ctx([fortnightSteakW2], '2026-09-21', 7), 1).length === 1,
+    'history is cut short where a later planned start takes over — the lost week\'s steak does not count against its replacement, but does against a cycle after it')
   // a rebuilt EARLIER cycle must not push a cycle planned ahead over ITS window (r13): steak in weeks one and three, then week two rebuilt with steak
   const ahead = steakW([steakWeek('2026-09-07'), steakWeek('2026-09-21')], '2026-09-14')
   assert(ahead.length === 1 && /3 steak nights in the four weeks to the end of the cycle starting 2026-09-21, rule is 2 a month/.test(ahead[0]), `the window of the cycle planned ahead is judged too — got ${JSON.stringify(ahead)}`)
@@ -201,6 +207,15 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(changed(s1, { ...andrew, prep_diversion_pct: 25 }, fortnight), 'a diversion change invalidates the list')
   assert(changed(s1, { ...andrew, inventory: [] }, fortnight), 'an inventory change invalidates the list')
   assert(changed(s1, andrew, { entries: fortnight.entries.slice(0, 7) }), 'a plan change invalidates the list')
+  // what is on hand is counted against a next cycle only on say-so, and the snapshot says which way it was built (Codex r15)
+  const uncounted = snapshot(andrew, fortnight, false)
+  assert(uncounted.inventory.length === 0 && uncounted.inventory_counted === false && s1.inventory_counted === true && s1.inventory.length === 1,
+    'a snapshot built without what is on hand records that, and carries no inventory')
+  assert(!changed(uncounted, andrew, fortnight) && !changed(uncounted, { ...andrew, inventory: [] }, fortnight) && changed(s1, { ...andrew, inventory: [] }, fortnight),
+    'a plan built without what is on hand is compared that way — an inventory change does not invalidate it, while it still invalidates a plan that counted it')
+  assert(householdFor(andrew, true) === andrew && householdFor(andrew, false).inventory.length === 0 && householdFor(andrew, false).people_count === andrew.people_count, 'householdFor: as is, or with nothing on hand')
+  assert(buildShoppingList(householdFor(andrew, false), meals, fortnight).stocked.length === 0 && buildShoppingList(andrew, meals, fortnight).stocked.some((i) => i.item === 'rice'),
+    'a next cycle built without say-so buys its rice — the live cycle is eating the bag')
   const v1 = buildShoppingList(andrew, meals, fortnight)
   // 4 lb of ribeye on hand: half counts (32 oz), which covers the 32 needed
   const v2 = buildShoppingList({ ...andrew, inventory: [...andrew.inventory, { item: 'ribeye', qty: 4, unit: 'lb' }] }, meals, fortnight)
@@ -423,7 +438,14 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 9: the next-cycle target is checked against today, and a cycle planned ahead that the build passed is let go
   assert(/nextCycleKey\(liveCycle, upcoming\?\.week_start \?\? null, household\.shop_cadence_days, now\)/.test(pg) && /if \(upcoming && \(upcoming\.week_start === weekStart \|\| weekStart > upcoming\.week_start\)\) setUpcoming\(null\)/.test(pg), 'a next-cycle build keys through nextCycleKey — checked against today — and drops an upcoming cycle it has passed')
   // round 11: the shortcut stands only when a fresh solve comes out identical — the library can have been corrected
-  assert(/&& listUnchanged\(buildShoppingList\(household, meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg), 'the unchanged-plan shortcut re-solves before it stands, so a library correction is never skipped')
+  assert(/&& listUnchanged\(buildShoppingList\(householdFor\(household, plan\.rules_snapshot\?\.inventory_counted \?\? true\), meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg), 'the unchanged-plan shortcut re-solves before it stands — the way the stored plan was built — so a library correction is never skipped')
+  // round 15: what is on hand counts against a next cycle only on say-so, recorded in the snapshot
+  assert(/const inventoryCounted = !startingNext \|\| opts\.countInventory/.test(pg) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)/.test(pg) && /nextCycle=\{!!\(liveCycle && nextCycle\)\}/.test(pg),
+    'a next cycle counts what is on hand only on say-so; a rebuild always; the say-so goes into the version')
+  assert(/onBuild\(\{ entries \}, \{ countInventory: nextCycle \? countInventory : true \}\)/.test(pb) && /count what\\'s on hand again/.test(pb) && /nextCycle && household\.inventory\.length > 0 &&/.test(pb),
+    'the builder asks, for a next cycle with something on hand, whether to count it again — off by default')
+  const st15 = readLF('src/lib/fuel/store.ts')
+  assert(/buildShoppingList\(householdFor\(household, inventoryCounted\), meals, plan\)/.test(st15) && (st15.match(/snapshot\(household, plan, inventoryCounted\)/g) || []).length === 2, 'the version is solved and snapshotted the way it was asked for')
   {
     const items = buildShoppingList(andrew, meals, fortnight).items
     const ticked = items.map((i) => ({ ...i, checked: true }))

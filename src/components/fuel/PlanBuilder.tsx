@@ -11,8 +11,12 @@ import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles }: {
-  household: Household; meals: MealRow[]; initial: Plan | null; building: boolean; onBuild: (plan: Plan) => void
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, nextCycle = false }: {
+  household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
+  /** `countInventory`: whether what is on hand is counted against this plan — always for a rebuild; for a NEXT cycle only on say-so (Codex, round 15). */
+  onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
+  /** Is this the next cycle, built while the live one is still eating what is on hand? */
+  nextCycle?: boolean
   /** The cycles already planned and where this plan would land — the rules that look across cycles read it (Codex, rounds 10, 13, 14). */
   cycles?: PlanContext
 }) {
@@ -31,6 +35,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     .map((e) => { const m = bySlug.get(e.slug); return m && e.servings < household.people_count ? { ...e, servings: defaultServings(m, household) } : e }))
   const retired = useMemo(() => [...new Set((initial?.entries ?? []).filter((e) => !bySlug.has(e.slug)).map((e) => e.slug))], [initial, bySlug])
   const [week, setWeek] = useState<1 | 2>(1)
+  const [countInventory, setCountInventory] = useState(false)
   const warnings = useMemo(() => validatePlan({ entries }, meals, household, { cycles }), [entries, meals, household, cycles])
   const inWeek = (w: number) => entries.filter((e) => e.week === w)
   const picked = (slug: string) => entries.find((e) => e.slug === slug && e.week === week)
@@ -131,6 +136,17 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
         })}
       </ul>
 
+      {nextCycle && household.inventory.length > 0 && (
+        <div className="tile p-3 space-y-2">
+          <p className="text-[12px] text-muted-foreground">
+            What is on hand was counted against this cycle, which is still eating it. Count it against the next cycle too only if it will still be there.
+          </p>
+          <button type="button" onClick={() => setCountInventory((c) => !c)} aria-pressed={countInventory}
+            className={`${countInventory ? 'pill-volt' : 'pill-quiet'} px-3 py-1.5 text-[12px] lowercase`}>
+            {countInventory ? 'counting what\'s on hand again' : 'count what\'s on hand again'}
+          </button>
+        </div>
+      )}
       {warnings.length > 0 && (
         <div className="status-msg danger text-[12px]">
           {warnings.map((w) => <p key={w}>{w}</p>)}
@@ -138,7 +154,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
       )}
 
       <button type="button" className="pill-volt w-full py-3 text-sm" disabled={!complete || building || warnings.length > 0}
-        onClick={() => onBuild({ entries })}>
+        onClick={() => onBuild({ entries }, { countInventory: nextCycle ? countInventory : true })}>
         {building ? 'building the list…' : complete ? 'build the shopping list' : `pick ${household.nights_per_week} nights${weeks === 2 ? ' each week' : ''}`}
       </button>
     </div>

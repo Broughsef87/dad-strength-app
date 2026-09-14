@@ -13,11 +13,13 @@ export interface RulesSnapshot {
   prep_diversion_pct: number
   dietary_rules: DietaryRules
   inventory: Household['inventory']
+  /** Was what is on hand counted against this plan? A next cycle built early counts it only on say-so — the live cycle is eating it (Codex, round 15). Absent on older rows: counted. */
+  inventory_counted?: boolean
   store_section_order: string[]
   entries: Plan['entries']
 }
 
-export function snapshot(household: Household, plan: Plan): RulesSnapshot {
+export function snapshot(household: Household, plan: Plan, inventoryCounted = true): RulesSnapshot {
   return {
     people_count: household.people_count,
     nights_per_week: household.nights_per_week,
@@ -25,7 +27,8 @@ export function snapshot(household: Household, plan: Plan): RulesSnapshot {
     shop_cadence_days: household.shop_cadence_days,
     prep_diversion_pct: household.prep_diversion_pct,
     dietary_rules: { ...household.dietary_rules },
-    inventory: household.inventory.map((i) => ({ ...i })),
+    inventory: inventoryCounted ? household.inventory.map((i) => ({ ...i })) : [],
+    inventory_counted: inventoryCounted,
     store_section_order: [...household.store_section_order],
     entries: plan.entries.map((e) => ({ ...e })),
   }
@@ -55,10 +58,10 @@ function canonical(v: unknown): string {
   return JSON.stringify(v)
 }
 
-/** Does this household + plan differ from the version already stored? */
+/** Does this household + plan differ from the version already stored? Compared the way that version was built: with what is on hand counted, or not. */
 export function changed(previous: RulesSnapshot | null | undefined, household: Household, plan: Plan): boolean {
   if (!previous) return true
-  return snapshotKey(previous) !== snapshotKey(snapshot(household, plan))
+  return snapshotKey(previous) !== snapshotKey(snapshot(household, plan, previous.inventory_counted ?? true))
 }
 
 /**

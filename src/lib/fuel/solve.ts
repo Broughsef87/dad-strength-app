@@ -131,6 +131,16 @@ export interface PlanHistory {
   rules_snapshot?: { shop_cadence_days?: number } | null
 }
 
+/**
+ * The household a plan is solved for: as is, or with nothing on hand. A
+ * next cycle built early would otherwise count the same freezer stock the
+ * live cycle is eating — one pound of ribeye covering two dinners (Codex,
+ * round 15) — so it counts what is on hand only on say-so.
+ */
+export function householdFor(household: Household, inventoryCounted: boolean): Household {
+  return inventoryCounted ? household : { ...household, inventory: [] }
+}
+
 /** What a plan is judged against beyond itself: the cycles already planned, and where this plan would land. */
 export interface PlanContext {
   history: PlanHistory[]
@@ -172,14 +182,21 @@ export function steakWindowWarnings(plan: Plan, meals: MealRow[], ctx: PlanConte
     const cur = latest.get(r.week_start)
     if (!cur || r.version > cur.version) latest.set(r.week_start, r)
   }
-  // Every steak night as a day offset from this plan's start; every cycle's end likewise.
-  const own = plan.entries.filter((e) => isSteak(e.slug)).map((e) => (e.week - 1) * 7)
+  // Every steak night as a day offset from this plan's start; every cycle's
+  // end likewise — cut short where a later planned start takes over, so a
+  // fortnight rebuilt as weekly in its second week does not keep counting
+  // the week it lost (Codex, round 15).
+  const cycles = [...latest.values()].map((r) => ({ r, start: daysBetween(ctx.targetStart, r.week_start), span: Math.max(7, Number(r.rules_snapshot?.shop_cadence_days ?? 7)) }))
+  const starts = [0, ...cycles.map((c) => c.start)]
+  const cutoff = (start: number, span: number) => Math.min(start + span, ...starts.filter((s) => s > start))
+  const ownEnd = cutoff(0, Math.max(7, ctx.cadenceDays))
+  const own = plan.entries.filter((e) => isSteak(e.slug)).map((e) => (e.week - 1) * 7).filter((d) => d < ownEnd)
   const others: number[] = []
-  const ends: Array<{ end: number; label: string }> = [{ end: Math.max(7, ctx.cadenceDays), label: 'this cycle' }]
-  for (const r of latest.values()) {
-    const offset = daysBetween(ctx.targetStart, r.week_start)
-    for (const e of r.meal_ids) if (isSteak(e.slug)) others.push(offset + (e.week - 1) * 7)
-    ends.push({ end: offset + Math.max(7, Number(r.rules_snapshot?.shop_cadence_days ?? 7)), label: `the cycle starting ${r.week_start}` })
+  const ends: Array<{ end: number; label: string }> = [{ end: ownEnd, label: 'this cycle' }]
+  for (const c of cycles) {
+    const end = cutoff(c.start, c.span)
+    for (const e of c.r.meal_ids) if (isSteak(e.slug)) { const d = c.start + (e.week - 1) * 7; if (d < end) others.push(d) }
+    ends.push({ end, label: `the cycle starting ${c.r.week_start}` })
   }
   const warnings: string[] = []
   for (const { end, label } of ends) {

@@ -8,7 +8,7 @@
 // under the unique constraint — no orphan plan, no client-side race.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Household, ListItem, MealRow, Plan } from './types'
-import { buildShoppingList } from './solve'
+import { buildShoppingList, householdFor } from './solve'
 import { snapshot, type RulesSnapshot } from './version'
 import { activeCycle, historyFloor, upcomingCycle, type CycleRow } from './cycle'
 
@@ -142,16 +142,16 @@ export async function loadVersions(db: Db, userId: string, weekStart: string): P
  * together, the version number chosen inside the database under the unique
  * constraint. Old versions are never touched (L7).
  */
-export async function createVersion(db: Db, weekStart: string, household: Household, meals: MealRow[], plan: Plan): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
+export async function createVersion(db: Db, weekStart: string, household: Household, meals: MealRow[], plan: Plan, inventoryCounted = true): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
   if (typeof db.rpc !== 'function') return { plan: null, list: null, error: { message: 'no client' } }
-  const list = buildShoppingList(household, meals, plan)
+  const list = buildShoppingList(householdFor(household, inventoryCounted), meals, plan)
   const { data, error } = await db.rpc('fuel_create_version', {
-    p_week_start: weekStart, p_meal_ids: plan.entries, p_rules_snapshot: snapshot(household, plan), p_items: list.items,
+    p_week_start: weekStart, p_meal_ids: plan.entries, p_rules_snapshot: snapshot(household, plan, inventoryCounted), p_items: list.items,
   })
   if (error || !data) return { plan: null, list: null, error }
   const row = data as { plan_id: string; list_id: string; version: number; updated_at: string }
   return {
-    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan) },
+    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan, inventoryCounted) },
     list: { id: row.list_id, plan_id: row.plan_id, version: row.version, items: list.items, updated_at: row.updated_at },
     error: null,
   }
