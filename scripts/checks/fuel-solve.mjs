@@ -15,8 +15,8 @@
 //   7. the seams — migration generated from the fixture (parity), RLS on all
 //      four tables in the SAME migration, the one write path exists, the
 //      solver has no I/O and no AI, inferred quantities are marked, the nav
-//      entry exists, the page is behind PremiumGate, PRO_FEATURES still holds
-//      the meal-planner line out
+//      entry exists, the page is behind PremiumGate, PRO_FEATURES carries
+//      the meal-planner line now that Fuel ships
 // Every assertion verified by reintroducing the bug it catches and confirming
 // it fires, then restoring the tree byte-identical.
 import { readFileSync, existsSync } from 'node:fs'
@@ -548,7 +548,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const protectedList = (mw.match(/const protectedPaths = \[([\s\S]*?)\]/) || [])[1] || ''
   assert(/'\/fuel'/.test(protectedList), '/fuel is a protected path in the middleware — signed-out visitors are redirected server-side, not by the page alone')
   const modal = readLF('src/components/UpgradeModal.tsx')
-  assert(/\/\/ Meal planner \+ shopping list: held out until FOR-177 ships/.test(modal) && !/^\s*'Meal planner/m.test(modal), 'PRO_FEATURES still holds the meal-planner line out until this ships')
+  assert(/^\s*'Meal planner \+ shopping list — Fuel, built from what is on hand',/m.test(modal) && !/held out until FOR-177 ships/.test(modal), 'PRO_FEATURES carries the meal-planner line now that Fuel ships — the modal promises what the app has')
   const checklist = readLF('src/components/fuel/Checklist.tsx')
   assert(/\{i\.inferred && <span[^>]*>est\.<\/span>\}/.test(checklist), 'an inferred quantity is shown as an estimate on its own line, never as fact')
   assert(/save === 'pending'/.test(checklist) && /save === 'failed'/.test(checklist) && /queued/.test(checklist), 'every tick shows whether it saved: pending, queued offline, or failed')
