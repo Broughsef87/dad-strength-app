@@ -10,7 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Household, ListItem, MealRow, Plan } from './types'
 import { buildShoppingList } from './solve'
 import { snapshot, type RulesSnapshot } from './version'
-import { activeCycle, upcomingCycle, type CycleRow } from './cycle'
+import { activeCycle, historyFloor, upcomingCycle, type CycleRow } from './cycle'
 
 // The client util returns a stub when env is missing (build time); this is
 // the loosest shape both satisfy.
@@ -105,9 +105,11 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
  * second trip — is still on the page.
  */
 export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; upcoming: PlanRow | null; error: { code?: string; message?: string } | null }> {
-  // The last few starts are enough: anything older than a cycle is not live.
+  // Bounded by START, not by row count: every start from three weeks back
+  // (any live fortnight) forward (anything planned ahead), all versions, so
+  // a busy cycle's history cannot crowd the live cycle out (Codex, round 5).
   const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot')
-    .eq('user_id', userId).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(20)
+    .eq('user_id', userId).gte('week_start', historyFloor(today)).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(500)
   if (error || !rows?.length) return { plan: null, list: null, upcoming: null, error }
   const candidates = (rows as PlanRow[]).map((r) => ({ ...r, shop_cadence_days: Number(r.rules_snapshot?.shop_cadence_days ?? 7) }))
   // A cycle planned ahead is loadable before it is live (Codex, round 4).

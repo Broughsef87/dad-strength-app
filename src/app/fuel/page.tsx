@@ -198,7 +198,9 @@ export default function FuelPage() {
                 </div>
               )}
               {step === 'list' && list && plan && listId && !stale && (
-                <Checklist listId={listId} version={list.version} versions={versions} items={list.items}
+                // Keyed by the list: opening another cycle REMOUNTS the checklist, so
+                // its outbox, refs and effects never straddle two lists (Codex, round 5).
+                <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items}
                   onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} />
               )}
             </>

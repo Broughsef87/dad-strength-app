@@ -34,6 +34,17 @@ export function cycleStartFor(today: Date): string {
   return mondayOf(today)
 }
 
+/**
+ * The oldest start worth loading: a fortnight cycle started up to fourteen
+ * days ago is still live, so three weeks back covers every live cycle with a
+ * margin. Bounding the query by START keeps a busy cycle's version history
+ * from crowding the live one out of a row limit (Codex, round 5).
+ */
+export function historyFloor(today: Date): string {
+  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 21)
+  return key(d)
+}
+
 /** Days from a cycle's start to `today`, whole days. */
 export function daysInto(weekStart: string, today: Date): number {
   const start = parse(weekStart)

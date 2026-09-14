@@ -20,6 +20,20 @@ import { acknowledge, enqueue, outboxKey, pendingFor, progress, reconcile, rende
 const inFlightByList = new Map<string, Set<string>>()
 const inFlightFor = (listId: string) => { let s = inFlightByList.get(listId); if (!s) { s = new Set(); inFlightByList.set(listId, s) } return s }
 
+// One write at a time PER LIST, across mounts. `flushing` is instance-local,
+// so a remounted checklist could send a newer intent while the unmounted
+// instance's older request was still outstanding — and if the older one
+// committed last it would overwrite the newer (Codex, round 5). Every send
+// is chained on the list's queue, so a newer intent waits for whatever is
+// already in flight, whichever instance sent it.
+const sendQueues = new Map<string, Promise<unknown>>()
+function sendQueued<T>(listId: string, fn: () => Promise<T>): Promise<T> {
+  const prev = sendQueues.get(listId) ?? Promise.resolve()
+  const next = prev.catch(() => undefined).then(fn)
+  sendQueues.set(listId, next.catch(() => undefined))
+  return next
+}
+
 function readOutbox(listId: string): TickIntent[] {
   try { const raw = localStorage.getItem(outboxKey(listId)); return raw ? (JSON.parse(raw) as TickIntent[]) : [] } catch { return [] }
 }
@@ -87,7 +101,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
         const intent = outboxRef.current[0]
         inFlight.current.add(intent.key)
         let items: ListItem[] | null = null
-        try { items = await send(intent.key, intent.checked) } finally { inFlight.current.delete(intent.key) }
+        try { items = await sendQueued(listId, () => send(intent.key, intent.checked)) } finally { inFlight.current.delete(intent.key) }
         if (!mounted.current) break
         if (!items) { setFailed((f) => new Set(f).add(intent.key)); break }
         const next = acknowledge(items, outboxRef.current, intent)

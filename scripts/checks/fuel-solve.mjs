@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, defaultServings, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
-import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, mondayOf, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
+import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, historyFloor, mondayOf, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, enqueue, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
@@ -206,6 +206,12 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(upcomingCycle(ahead, new Date(2026, 8, 19))?.version === 2 && upcomingCycle(ahead, new Date(2026, 8, 19))?.week_start === '2026-09-21', 'the cycle planned ahead is found on Saturday, highest version')
   assert(upcomingCycle(ahead, new Date(2026, 8, 20)) === null && activeCycle(ahead, new Date(2026, 8, 20))?.week_start === '2026-09-21', 'on Sunday it is no longer upcoming — it is live')
   assert(upcomingCycle([ahead[0]], new Date(2026, 8, 19)) === null, 'nothing planned ahead, nothing upcoming')
+  // the query is bounded by start, not by row count (Codex r5): three weeks back covers any live fortnight
+  assert(historyFloor(new Date(2026, 8, 23)) === '2026-09-02' && daysInto(historyFloor(new Date(2026, 8, 28)), new Date(2026, 8, 28)) === 21, 'the history floor is three weeks back')
+  const twentyVersions = Array.from({ length: 20 }, (_, i) => ({ week_start: '2026-09-28', version: i + 1, shop_cadence_days: 14 }))
+  assert(activeCycle([...twentyVersions, fortnight14], new Date(2026, 8, 23))?.week_start === mon, 'twenty versions of a future cycle do not hide the live one')
+  const st5 = readLF('src/lib/fuel/store.ts')
+  assert(/\.gte\('week_start', historyFloor\(today\)\)/.test(st5) && !/\.limit\(20\)/.test(st5), 'loadActive bounds by start date, not by twenty rows')
   const st = readLF('src/lib/fuel/store.ts')
   const la = (st.match(/export async function loadActive[\s\S]*?\n\}/) || [])[0] || ''
   assert(/activeCycle</.test(la) && !/eq\('week_start'/.test(la) && /order\('week_start', \{ ascending: false \}\)/.test(la), 'the store loads the live cycle, not only the current calendar week')
@@ -292,6 +298,10 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/const mounted = useRef\(true\)/.test(cl4) && /if \(!mounted\.current\) break/.test(cl4) && /navigator\.onLine && mounted\.current\)/.test(cl4), 'an unmounted checklist publishes nothing')
   assert(/const failedIntent = failed\.has\(item\.key\) \? pendingFor\(outboxRef\.current, item\.key\) : undefined/.test(cl4) && /checked: failedIntent \? failedIntent\.checked : !shown/.test(cl4),
     'tapping a failed row retries the intent as asked, never flips it')
+  // round 5: the checklist is keyed by list; writes are serialised per list across mounts
+  assert(/<Checklist key=\{listId\} listId=\{listId\}/.test(pg), 'the checklist remounts when the list changes — no outbox or ref ever straddles two lists')
+  assert(/const sendQueues = new Map<string, Promise<unknown>>\(\)/.test(cl4) && /function sendQueued</.test(cl4) && /await sendQueued\(listId, \(\) => send\(intent\.key, intent\.checked\)\)/.test(cl4) && !/items = await send\(intent\.key/.test(cl4),
+    'every write goes through the list\'s shared queue, so a remounted instance waits for the outstanding request')
   // round 2: stale reads, cross-list answers, stale lists, version allocation
   const cl7 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const seen = writes\.current/.test(cl7) && /if \(fresh && writes\.current === seen\)/.test(cl7) && /writes\.current \+= 1/.test(cl7),
