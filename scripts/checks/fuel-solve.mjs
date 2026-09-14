@@ -271,6 +271,16 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/CREATE OR REPLACE FUNCTION public\.fuel_set_item_checked\(p_list_id uuid, p_key text, p_checked boolean\)/.test(onDisk) && /SECURITY INVOKER/.test(onDisk) && /WHERE id = p_list_id AND user_id = auth\.uid\(\)/.test(onDisk),
     'the one write path for checked is a SECURITY INVOKER function scoped to the owner')
   assert(/REVOKE EXECUTE ON FUNCTION public\.fuel_set_item_checked\(uuid, text, boolean\) FROM PUBLIC, anon/.test(onDisk), 'anon cannot call it')
+  // Pro is enforced at the database (Codex r6): a SECURITY DEFINER trigger
+  // function asks is_premium and refuses every insert or update otherwise,
+  // on all three user tables — which the two functions write through.
+  const gate = (onDisk.match(/CREATE OR REPLACE FUNCTION public\.enforce_fuel_pro\(\)[\s\S]*?\$\$;/) || [])[0] || ''
+  assert(/SECURITY DEFINER/.test(gate) && /NOT public\.is_premium\(auth\.uid\(\)\)/.test(gate) && /ERRCODE = '42501'/.test(gate), 'enforce_fuel_pro is SECURITY DEFINER, asks is_premium, and refuses with 42501')
+  assert(/REVOKE EXECUTE ON FUNCTION public\.enforce_fuel_pro\(\) FROM PUBLIC, anon, authenticated;/.test(onDisk), 'clients cannot call the gate function directly')
+  for (const t of ['fuel_household', 'fuel_plans', 'fuel_lists']) {
+    assert(new RegExp(`CREATE TRIGGER ${t}_pro_gate BEFORE INSERT OR UPDATE ON public\\.${t}\\s+FOR EACH ROW EXECUTE FUNCTION public\\.enforce_fuel_pro\\(\\);`).test(onDisk), `${t} refuses a free user's insert or update at the database`)
+  }
+  assert(onDisk.indexOf('CREATE TRIGGER fuel_plans_pro_gate') < onDisk.indexOf('CREATE OR REPLACE FUNCTION public.fuel_create_version'), 'the gate is in place before the version function that writes through it')
   // a new version is one transaction (Codex r1: an orphan plan held the number)
   const cv = (onDisk.match(/CREATE OR REPLACE FUNCTION public\.fuel_create_version[\s\S]*?\$\$;/) || [])[0] || ''
   assert(/SECURITY INVOKER/.test(cv) && /INSERT INTO public\.fuel_plans/.test(cv) && /INSERT INTO public\.fuel_lists/.test(cv) && /COALESCE\(MAX\(version\), 0\) \+ 1/.test(cv) && /auth\.uid\(\)/.test(cv),
@@ -302,6 +312,14 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/<Checklist key=\{listId\} listId=\{listId\}/.test(pg), 'the checklist remounts when the list changes — no outbox or ref ever straddles two lists')
   assert(/const sendQueues = new Map<string, Promise<unknown>>\(\)/.test(cl4) && /function sendQueued</.test(cl4) && /await sendQueued\(listId, \(\) => send\(intent\.key, intent\.checked\)\)/.test(cl4) && !/items = await send\(intent\.key/.test(cl4),
     'every write goes through the list\'s shared queue, so a remounted instance waits for the outstanding request')
+  // round 6: the reconcile read is serialised with the writes; a recipe can fill more than one night
+  assert(/const fresh = await sendQueued\(listId, refetch\)/.test(cl4) && !/const fresh = await refetch\(\)/.test(cl4),
+    'the reconciliation read goes through the same per-list queue as the writes — it cannot overlap one from any instance')
+  assert(/const nightsOf = \(slug: string\) => entries\.filter/.test(pb) && /another night/.test(pb) && /− night/.test(pb) && /const removeOne = /.test(pb),
+    'a recipe can fill more than one night, and a night can be taken back')
+  const twice = buildShoppingList({ ...andrew, prep_diversion_pct: 0 }, meals, { entries: [entry('chili-lime-thighs', 1), entry('chili-lime-thighs', 1)] })
+  assert(find(twice, 'chicken thigh, boneless skinless')?.qty === 48 && validatePlan({ entries: [entry('chili-lime-thighs', 1), entry('chili-lime-thighs', 1)] }, meals, andrew).length === 0,
+    'two nights of the same recipe double its ingredients and break no rule')
   // round 2: stale reads, cross-list answers, stale lists, version allocation
   const cl7 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const seen = writes\.current/.test(cl7) && /if \(fresh && writes\.current === seen\)/.test(cl7) && /writes\.current \+= 1/.test(cl7),

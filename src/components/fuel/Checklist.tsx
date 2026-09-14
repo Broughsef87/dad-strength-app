@@ -116,13 +116,15 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   }, [send, onRowItems, listId])
 
   // On mount and on reconnect: re-read the row (the truth), drop intents it
-  // already satisfies, then flush what is left. The read is applied only if
-  // no acknowledgement landed while it was in flight.
+  // already satisfies, then flush what is left. The read goes through the
+  // list's send queue, so it cannot overlap a write from ANY instance —
+  // including one an unmounted checklist left outstanding (Codex, round 6).
+  // The epoch guard below is belt to that brace.
   useEffect(() => {
     let cancelled = false
     void (async () => {
       const seen = writes.current
-      const fresh = await refetch()
+      const fresh = await sendQueued(listId, refetch)
       if (cancelled) return
       if (fresh && writes.current === seen) {
         const r = reconcile(fresh, outboxRef.current, inFlight.current)

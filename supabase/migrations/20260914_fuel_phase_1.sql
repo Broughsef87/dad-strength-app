@@ -86,6 +86,37 @@ CREATE POLICY "fuel_lists: owner" ON public.fuel_lists
 CREATE INDEX IF NOT EXISTS fuel_lists_user_version ON public.fuel_lists (user_id, version DESC);
 CREATE INDEX IF NOT EXISTS fuel_plans_user_version ON public.fuel_plans (user_id, week_start, version DESC);
 
+-- ── Fuel is Pro: enforced at the database, not only by PremiumGate ──────
+-- PremiumGate hides the interface; it does not stop a signed-in free user
+-- from calling the functions or writing the tables directly (Codex, round
+-- 6). The same pattern as the program tier gate: a SECURITY DEFINER trigger
+-- function that asks public.is_premium(auth.uid()) — whose EXECUTE is
+-- revoked from clients — and refuses every insert or update otherwise. The
+-- functions below insert into these tables, so the triggers gate them too.
+CREATE OR REPLACE FUNCTION public.enforce_fuel_pro()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.is_premium(auth.uid()) THEN
+    RAISE EXCEPTION 'Fuel is a Pro feature.' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END
+$$;
+REVOKE EXECUTE ON FUNCTION public.enforce_fuel_pro() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS fuel_household_pro_gate ON public.fuel_household;
+CREATE TRIGGER fuel_household_pro_gate BEFORE INSERT OR UPDATE ON public.fuel_household
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_fuel_pro();
+DROP TRIGGER IF EXISTS fuel_plans_pro_gate ON public.fuel_plans;
+CREATE TRIGGER fuel_plans_pro_gate BEFORE INSERT OR UPDATE ON public.fuel_plans
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_fuel_pro();
+DROP TRIGGER IF EXISTS fuel_lists_pro_gate ON public.fuel_lists;
+CREATE TRIGGER fuel_lists_pro_gate BEFORE INSERT OR UPDATE ON public.fuel_lists
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_fuel_pro();
+
 -- ── The one write path for check state — the ROW is authoritative ────────
 -- One item, one atomic update, returning the whole row's items so the
 -- client replaces its render with what the row now says. SECURITY INVOKER:
