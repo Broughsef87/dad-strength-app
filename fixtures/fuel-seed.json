@@ -1,0 +1,232 @@
+{
+  "_provenance": {
+    "sourced_from": [
+      "Household Profile — Andrew & Lisa (Google Doc 1tF7QvvKz5Y2hJJ2jfhkUnaiWuZ9ZkUTIuEZu3tJi1lw)",
+      "Dinner Plan — Aug 24 to Sep 6, 2026 (Google Doc 1_qH6mIL626HJOSsUpBL30b9t6C4WED73eZSkXZiEZMA)"
+    ],
+    "read_by": "Blaine, 2026-09-13",
+    "SOURCED": "meal names, active/total minutes, servings, protein grams, cuts, seasonings, all household rules, the portion table, store sections, shop cadence",
+    "INFERRED — ANDREW MUST CORRECT BEFORE THIS IS TRUSTED": "every ingredient qty_per_person for vegetables, starches and aromatics. The docs give protein weights per person and name the sides, but never quantify the sides. Marked \"inferred\": true on each. The protein rows are sourced and are NOT inferred.",
+    "count_note": "8 meals, not the ~20 the FOR-177 spec estimated. 8 is one complete fortnight rotation, which is the cycle Andrew actually runs. The spec's ~20 was an estimate, not a requirement."
+  },
+
+  "fuel_household": {
+    "_comment": "Andrew's row. Every value here is SOURCED.",
+    "people_count": 2,
+    "_people_note": "Andrew + Lisa. Grace is an infant, not on the dinner rotation.",
+    "nights_per_week": 4,
+    "_nights_note": "4 cook-nights/week; the rest is leftovers or eating out.",
+    "cook_cap_minutes": 30,
+    "_cap_note": "~30 min ACTIVE time on a weeknight, max. Note total time runs to 35; the cap is on active minutes.",
+    "shop_cadence_days": 14,
+    "prep_diversion_pct": 50,
+    "_diversion_note": "THE critical value. 'Half of all meat bought or on hand gets cooked off for Andrew's meal prep. Only half of any inventory counts toward dinners; any new purchase must be doubled.' Getting this wrong makes a plan run out in week 2 — it has already happened once. This is learning L2 and for Andrew it is exactly 50%.",
+    "dietary_rules": {
+      "protein_floor_g_per_person": 40,
+      "fish_per_week": 1,
+      "no_tilapia": true,
+      "ground_turkey_per_week": 1,
+      "turkey_grind": "93/7",
+      "_turkey_note": "NEVER 99% lean — patties fall apart and taste like nothing.",
+      "steak_per_month": 2,
+      "_steak_note": "Consequence of the turkey rule: turkey replaces one chicken dinner in week 1 and the steak dinner in week 2.",
+      "vegetable_every_night": true,
+      "repeat_vegetables_ok": true,
+      "minimal_added_fat": true,
+      "_fat_note": "No cream/butter/oil-forward sauces. Seasoning and acid do the work.",
+      "wheelhouse_cuts": ["chicken thigh boneless skinless", "chicken breast boneless skinless", "ground turkey 93/7", "ribeye", "salmon", "cod", "halibut"],
+      "_ribeye_note": "Lisa will not eat cheap steak.",
+      "frugal_reuse": true,
+      "_frugal_note": "Reuse ingredients across meals rather than buying one-offs. Variety comes from spice profile and format, NOT from more ingredients — learning L5."
+    },
+    "stores": {
+      "primary": "Costco Parker CO — Warehouse #1022",
+      "primary_cadence_days": 14,
+      "topup": "King Soopers or Whole Foods",
+      "_topup_note": "Mid-cycle trip is expected, not a failure. Week-1 fresh fish at Costco, week-2 fish and produce elsewhere — avoids buying a 3 lb frozen bag to use 1 lb. This is learning L3."
+    },
+    "inventory": {
+      "rice_lb": 25,
+      "_rice_note": "New 25 lb bag as of Aug 2026. Do not rebuy."
+    }
+  },
+
+  "store_section_order": ["Produce", "Meat & Seafood", "Snacks", "Dairy", "Pantry", "Frozen"],
+
+  "portion_table_raw_oz_per_person": {
+    "_comment": "SOURCED. Learning L4 — thigh != breast != cod for the same gram number. Drives every quantity.",
+    "chicken_thigh_boneless_skinless": 8,
+    "chicken_breast_boneless_skinless": 6.5,
+    "ground_turkey_93_7": 8.5,
+    "ribeye": 8,
+    "salmon": 7.5,
+    "cod_halibut": 8.5
+  },
+
+  "fuel_meals": [
+    {
+      "slug": "cast-iron-ribeye",
+      "name": "Cast-iron ribeye, roasted broccoli, baked russet",
+      "protein_cut": "ribeye",
+      "spice_profile": "salt-and-pepper",
+      "format": "pan-seared",
+      "active_cook_minutes": 10,
+      "total_minutes": 25,
+      "servings": 2,
+      "protein_g_per_person": 48,
+      "perishable_within_days": 4,
+      "rotation_note": "The only steak in the fortnight. Does not reheat — cooks to order, 2 servings.",
+      "ingredients": [
+        { "item": "ribeye", "qty_per_person": 8, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
+        { "item": "broccoli", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
+        { "item": "russet potato", "qty_per_person": 1, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "olive oil", "qty_per_person": 0.5, "unit": "tsp", "store_section": "Pantry", "inferred": true }
+      ]
+    },
+    {
+      "slug": "chili-lime-thighs",
+      "name": "Sheet-pan chili-lime chicken thighs, broccoli, sweet potato",
+      "protein_cut": "chicken_thigh",
+      "spice_profile": "chili-lime",
+      "format": "sheet-pan",
+      "active_cook_minutes": 10,
+      "total_minutes": 35,
+      "servings": 3,
+      "protein_g_per_person": 44,
+      "perishable_within_days": 2,
+      "rotation_note": "One pan. Best night of the week for a bad day. Cooks 3 so a leftover night comes free.",
+      "ingredients": [
+        { "item": "chicken thigh, boneless skinless", "qty_per_person": 8, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
+        { "item": "broccoli", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
+        { "item": "sweet potato", "qty_per_person": 1, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "lime", "qty_per_person": 0.5, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "chili powder", "qty_per_person": 1, "unit": "tsp", "store_section": "Pantry", "inferred": true },
+        { "item": "cumin", "qty_per_person": 0.5, "unit": "tsp", "store_section": "Pantry", "inferred": true },
+        { "item": "garlic powder", "qty_per_person": 0.5, "unit": "tsp", "store_section": "Pantry", "inferred": true }
+      ]
+    },
+    {
+      "slug": "lemon-garlic-salmon",
+      "name": "Lemon-garlic salmon, green beans, rice",
+      "protein_cut": "salmon",
+      "spice_profile": "lemon-garlic",
+      "format": "pan-seared",
+      "active_cook_minutes": 15,
+      "total_minutes": 20,
+      "servings": 2,
+      "protein_g_per_person": 42,
+      "perishable_within_days": 3,
+      "rotation_note": "FISH — week 1. Bought fresh at Costco with the main shop.",
+      "ingredients": [
+        { "item": "salmon", "qty_per_person": 7.5, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
+        { "item": "green beans", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
+        { "item": "lemon", "qty_per_person": 0.5, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "garlic", "qty_per_person": 2, "unit": "clove", "store_section": "Produce", "inferred": true },
+        { "item": "rice", "qty_per_person": 0.5, "unit": "cup dry", "store_section": "Pantry", "inferred": true }
+      ]
+    },
+    {
+      "slug": "greek-turkey-bowl",
+      "name": "Greek turkey rice bowl",
+      "protein_cut": "ground_turkey",
+      "spice_profile": "greek-oregano-lemon",
+      "format": "bowl",
+      "active_cook_minutes": 20,
+      "total_minutes": 25,
+      "servings": 3,
+      "protein_g_per_person": 42,
+      "perishable_within_days": 2,
+      "rotation_note": "TURKEY — week 1. 'Bright and lean, nothing like the rest of the week. This is the variety night.' Lisa's meal.",
+      "ingredients": [
+        { "item": "ground turkey 93/7", "qty_per_person": 8.5, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
+        { "item": "cucumber", "qty_per_person": 0.5, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "tomato", "qty_per_person": 1, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "lemon", "qty_per_person": 0.5, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "garlic", "qty_per_person": 2, "unit": "clove", "store_section": "Produce", "inferred": true },
+        { "item": "dried oregano", "qty_per_person": 1, "unit": "tsp", "store_section": "Pantry", "inferred": true },
+        { "item": "rice", "qty_per_person": 0.5, "unit": "cup dry", "store_section": "Pantry", "inferred": true }
+      ]
+    },
+    {
+      "slug": "garlic-herb-thighs",
+      "name": "Garlic-herb skillet chicken thighs, green beans, potatoes",
+      "protein_cut": "chicken_thigh",
+      "spice_profile": "garlic-herb-italian",
+      "format": "skillet",
+      "active_cook_minutes": 20,
+      "total_minutes": 30,
+      "servings": 3,
+      "protein_g_per_person": 44,
+      "perishable_within_days": 2,
+      "rotation_note": "Week 2. Same thigh as the chili-lime night, different profile and format — L5 in practice.",
+      "ingredients": [
+        { "item": "chicken thigh, boneless skinless", "qty_per_person": 8, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
+        { "item": "green beans", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
+        { "item": "baby potatoes", "qty_per_person": 8, "unit": "oz", "store_section": "Produce", "inferred": true },
+        { "item": "garlic powder", "qty_per_person": 1, "unit": "tsp", "store_section": "Pantry", "inferred": true },
+        { "item": "italian seasoning", "qty_per_person": 1, "unit": "tsp", "store_section": "Pantry", "inferred": true }
+      ]
+    },
+    {
+      "slug": "turkey-burgers",
+      "name": "Turkey burger patties, roasted broccoli, baked potato",
+      "protein_cut": "ground_turkey",
+      "spice_profile": "smoked-paprika",
+      "format": "patty",
+      "active_cook_minutes": 15,
+      "total_minutes": 30,
+      "servings": 3,
+      "protein_g_per_person": 42,
+      "perishable_within_days": 2,
+      "rotation_note": "TURKEY — week 2, replacing the steak night. Bun optional; the potato is already the carb. 93/7 ONLY.",
+      "ingredients": [
+        { "item": "ground turkey 93/7", "qty_per_person": 8.5, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
+        { "item": "broccoli", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
+        { "item": "russet potato", "qty_per_person": 1, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "smoked paprika", "qty_per_person": 1, "unit": "tsp", "store_section": "Pantry", "inferred": true },
+        { "item": "garlic powder", "qty_per_person": 0.5, "unit": "tsp", "store_section": "Pantry", "inferred": true }
+      ]
+    },
+    {
+      "slug": "blackened-cod",
+      "name": "Blackened cod or halibut, roasted broccoli, rice",
+      "protein_cut": "cod_halibut",
+      "spice_profile": "blackening",
+      "format": "pan-seared",
+      "active_cook_minutes": 15,
+      "total_minutes": 20,
+      "servings": 2,
+      "protein_g_per_person": 40,
+      "perishable_within_days": 3,
+      "rotation_note": "FISH — week 2. BOUGHT ON THE SECOND TRIP, not the main shop. This is the meal that forces the mid-cycle top-up — learning L3. Cod is leaner than salmon, so weigh heavier.",
+      "ingredients": [
+        { "item": "cod or halibut", "qty_per_person": 8.5, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
+        { "item": "broccoli", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
+        { "item": "blackening seasoning", "qty_per_person": 1, "unit": "tsp", "store_section": "Pantry", "inferred": true },
+        { "item": "rice", "qty_per_person": 0.5, "unit": "cup dry", "store_section": "Pantry", "inferred": true }
+      ]
+    },
+    {
+      "slug": "soy-ginger-stirfry",
+      "name": "Soy-ginger chicken breast and pepper stir-fry over rice",
+      "protein_cut": "chicken_breast",
+      "spice_profile": "soy-ginger",
+      "format": "stir-fry",
+      "active_cook_minutes": 25,
+      "total_minutes": 25,
+      "servings": 2,
+      "protein_g_per_person": 44,
+      "perishable_within_days": 2,
+      "rotation_note": "Week 2. BREAST not thigh — deliberately, to keep a full pound of margin in the thigh bag. Active time is 25, close to the 30-min cap.",
+      "ingredients": [
+        { "item": "chicken breast, boneless skinless", "qty_per_person": 6.5, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
+        { "item": "bell pepper", "qty_per_person": 1, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "onion", "qty_per_person": 0.5, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "fresh ginger", "qty_per_person": 1, "unit": "tsp", "store_section": "Produce", "inferred": true },
+        { "item": "garlic", "qty_per_person": 2, "unit": "clove", "store_section": "Produce", "inferred": true },
+        { "item": "low-sodium soy sauce", "qty_per_person": 1, "unit": "tbsp", "store_section": "Pantry", "inferred": true },
+        { "item": "rice", "qty_per_person": 0.5, "unit": "cup dry", "store_section": "Pantry", "inferred": true }
+      ]
+    }
+  ]
+}
