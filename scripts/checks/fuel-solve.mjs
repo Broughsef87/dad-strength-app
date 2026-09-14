@@ -24,8 +24,8 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
-import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, historyFloor, mondayOf, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
-import { acknowledge, enqueue, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
+import { activeCycle, cycleKeyFor, cycleStartFor, daysInto, historyFloor, mondayOf, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
+import { acknowledge, adopt, claimable, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, progress, reconcile, render } from '../../src/lib/fuel/ticks.ts'
 import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
@@ -221,6 +221,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(upcomingCycle(ahead, new Date(2026, 8, 19))?.version === 2 && upcomingCycle(ahead, new Date(2026, 8, 19))?.week_start === '2026-09-21', 'the cycle planned ahead is found on Saturday, highest version')
   assert(upcomingCycle(ahead, new Date(2026, 8, 20)) === null && activeCycle(ahead, new Date(2026, 8, 20))?.week_start === '2026-09-21', 'on Sunday it is no longer upcoming — it is live')
   assert(upcomingCycle([ahead[0]], new Date(2026, 8, 19)) === null, 'nothing planned ahead, nothing upcoming')
+  // the next-cycle target is checked against today at build time (Codex r9): a weekly plan from the 14th, opened
+  // on its Sunday the 20th and built on the 28th, keys to the 28th — not the expired 21st; still live or ahead, kept
+  const weekly14 = { week_start: '2026-09-14', version: 1, shop_cadence_days: 7 }
+  assert(nextCycleKey(weekly14, null, 7, new Date(2026, 8, 20)) === '2026-09-21' && nextCycleKey(weekly14, null, 7, new Date(2026, 8, 22)) === '2026-09-21' && nextCycleKey(weekly14, null, 7, new Date(2026, 8, 28)) === '2026-09-28',
+    'an expired next-cycle target advances to the cycle that covers today; one still live or still ahead is kept')
+  assert(nextCycleKey(weekly14, '2026-09-21', 7, new Date(2026, 9, 5)) === '2026-10-05' && nextCycleKey(fortnight14, null, 14, new Date(2026, 8, 27)) === '2026-09-28',
+    'the same guard covers a cycle planned ahead; a fortnight on its final Sunday still keys to the coming Monday')
   // the query is bounded by start, not by row count (Codex r5): three weeks back covers any live fortnight
   assert(historyFloor(new Date(2026, 8, 23)) === '2026-09-02' && daysInto(historyFloor(new Date(2026, 8, 28)), new Date(2026, 8, 28)) === 21, 'the history floor is three weeks back')
   const twentyVersions = Array.from({ length: 20 }, (_, i) => ({ week_start: '2026-09-28', version: i + 1, shop_cadence_days: 14 }))
@@ -261,13 +268,35 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const stale = reconcile(row, uncheckA, new Set(['a']))
   assert(stale.outbox.length === 1 && stale.outbox[0].key === 'a', 'an intent whose item has a write in flight survives a read that predates the write')
   assert(reconcile(row, uncheckA).outbox.length === 0, 'with nothing in flight the same read settles the intent')
+  // one outbox per tab (Codex r9): a stored outbox is a tab's own until it hides or falls silent; a mount adopts what is left behind
+  assert(outboxKey('L', 't1') === 'dad-strength-fuel-outbox:L:t1' && outboxKey('L', 't1').startsWith(outboxPrefix('L')) && outboxKey('L', 't1') !== outboxKey('L', 't2'),
+    'two tabs on the same list write different keys — neither can erase the other\'s pending ticks')
+  const t1 = { tab: 't1', alive: 1_000_000, intents: [{ key: 'broccoli', checked: true, at: 5 }] }
+  const t2 = { tab: 't2', alive: 0, intents: [{ key: 'rice', checked: true, at: 7 }, { key: 'broccoli', checked: true, at: 6 }] }
+  const t3 = { tab: 't3', alive: 1_000_000 - ORPHAN_AFTER_MS - 1, intents: [{ key: 'broccoli', checked: false, at: 9 }, { key: 'lemon', checked: true, at: 2 }] }
+  assert(orphans([t1, t2, t3], 'me', 1_000_000).map((s) => s.tab).join() === 't2,t3', 'a tab that hid or fell silent past the window is an orphan; one still stamping is not')
+  assert(orphans([t1], 't1', 1_000_000 + ORPHAN_AFTER_MS * 2).length === 0, 'a tab never adopts its own outbox')
+  assert(claimable(null, 1_000_000) && claimable(t2, 1_000_000) && claimable(t3, 1_000_000) && !claimable(t1, 1_000_000),
+    'a load keeps its tab id unless a live tab is still stamping that outbox — a duplicated tab takes a new one')
+  const own = [{ key: 'rice', checked: false, at: 20 }]
+  const merged = adopt(own, [...t2.intents, ...t3.intents])
+  assert(merged.map((i) => `${i.key}:${i.checked}`).join() === 'rice:false,lemon:true,broccoli:false',
+    'adopted intents queue behind this tab\'s own, oldest first, this tab\'s own winning its keys and the newest adopted winning a key two orphans held')
+  assert(adopt(own, []) === own && adopt(own, own) === own, 'nothing to adopt, same outbox back')
+  const cl9 = readLF('src/components/fuel/Checklist.tsx')
+  assert(/if \(mine && !claimable\(mine, Date\.now\(\)\)\) \{ newTab\(\); mine = null \}/.test(cl9) && /return adopt\(mine\?\.intents \?\? \[\], adoptOrphans\(listId\)\)/.test(cl9) && /JSON\.stringify\(\{ tab: tabId\(\), alive, intents: outbox \} satisfies StoredOutbox\)/.test(cl9),
+    'the checklist writes its own tab\'s key, stamped alive, and a mount adopts the outboxes tabs left behind')
+  assert(/if \(document\.visibilityState === 'hidden'\) writeOutbox\(listId, outboxRef\.current, 0\)/.test(cl9) && /window\.addEventListener\('pagehide', hide\)/.test(cl9) && /const hide = \(\) => writeOutbox\(listId, outboxRef\.current, 0\)/.test(cl9),
+    'a tab that hides or closes lets its outbox go, so the next tab can take the ticks at once')
+  assert(/if \(next\.length && persisted\.current && !ownKeyPresent\(listId\)\) next = \[\]/.test(cl9) && /next = adopt\(next, adoptOrphans\(listId\)\)/.test(cl9) && /\[online, listId, refetch, onRowItems, flush, wake\]/.test(cl9),
+    'a tab that wakes to find its outbox adopted drops those intents rather than sending them twice, adopts what others left, and re-reads the row')
   const cl6 = readLF('src/components/fuel/Checklist.tsx')
   assert(/inFlight\.current\.add\(intent\.key\)/.test(cl6) && /finally \{ inFlight\.current\.delete\(intent\.key\) \}/.test(cl6) && /reconcile\(fresh, outboxRef\.current, inFlight\.current\)/.test(cl6),
     'the checklist tracks in-flight writes and hands them to reconcile')
   const ticks = readLF('src/lib/fuel/ticks.ts')
   assert(/THE ROW IS AUTHORITATIVE/.test(ticks) && !/merge\(/.test(ticks), 'ticks.ts states the authority and has no merge')
   const cl = readLF('src/components/fuel/Checklist.tsx')
-  assert(/useEffect\(\(\) => \{ writeOutbox\(listId, outbox\) \}, \[listId, outbox\]\)/.test(cl) && /useState<TickIntent\[\]>\(\(\) => \(typeof window === 'undefined' \? \[\] : readOutbox\(listId\)\)\)/.test(cl),
+  assert(/useEffect\(\(\) => \{ persisted\.current = writeOutbox\(listId, outbox\) \}, \[listId, outbox\]\)/.test(cl) && /useState<TickIntent\[\]>\(\(\) => \(typeof window === 'undefined' \? \[\] : readOutbox\(listId\)\)\)/.test(cl),
     'the outbox persists across a reload — written on every change, read back on mount')
 }
 
@@ -318,9 +347,11 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, entry\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
   assert(/Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
     'a new night defaults to what the household needs; a saved night is raised only if it no longer feeds everyone, otherwise kept as chosen (Codex r2, r3)')
-  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /\(upcoming\?\.week_start \?\? nextCycleStart\(liveCycle\)\)/.test(pg) && /if \(!startingNext && plan && list && plan\.week_start === weekStart && !changed\(/.test(pg) && /planningMode\(/.test(pg),
+  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /if \(!startingNext && plan && list && plan\.week_start === weekStart && !changed\(/.test(pg) && /planningMode\(/.test(pg),
     'the page can plan the NEXT cycle — keyed to where the live one ends (or the cycle already planned ahead), defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
   assert(/rebuildKey\(liveCycle, household\.shop_cadence_days, new Date\(\)\)/.test(pg), 'a rebuild keys through rebuildKey, so a shortened cadence cannot snapshot an expired cycle')
+  // round 9: the next-cycle target is checked against today, and a cycle planned ahead that the build passed is let go
+  assert(/nextCycleKey\(liveCycle, upcoming\?\.week_start \?\? null, household\.shop_cadence_days, new Date\(\)\)/.test(pg) && /if \(upcoming && \(upcoming\.week_start === weekStart \|\| weekStart > upcoming\.week_start\)\) setUpcoming\(null\)/.test(pg), 'a next-cycle build keys through nextCycleKey — checked against today — and drops an upcoming cycle it has passed')
   // round 8: the key is decided before the shortcut, and the list is reused only while the plan's start is still the start a rebuild would get
   assert(pg.indexOf('const weekStart = startingNext && liveCycle') < pg.indexOf('plan.week_start === weekStart && !changed(') && pg.indexOf('plan.week_start === weekStart') > 0,
     'the unchanged-plan shortcut cannot hand back an expired cycle\'s list — it runs after the target key is known and only while the plan\'s start is still the start a rebuild would get')

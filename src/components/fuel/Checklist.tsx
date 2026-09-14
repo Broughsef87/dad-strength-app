@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import type { ListItem } from '../../lib/fuel/types'
 import { SECOND_TRIP_SECTION, STOCKED_SECTION } from '../../lib/fuel/solve'
-import { acknowledge, enqueue, outboxKey, pendingFor, progress, reconcile, render, type TickIntent } from '../../lib/fuel/ticks'
+import { acknowledge, adopt, claimable, enqueue, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, pendingFor, progress, reconcile, render, type StoredOutbox, type TickIntent } from '../../lib/fuel/ticks'
 
 // Keys with a write in flight, PER LIST and shared across mounts: a checklist
 // unmounted mid-write (the athlete switched steps) still has that write
@@ -34,11 +34,66 @@ function sendQueued<T>(listId: string, fn: () => Promise<T>): Promise<T> {
   return next
 }
 
-function readOutbox(listId: string): TickIntent[] {
-  try { const raw = localStorage.getItem(outboxKey(listId)); return raw ? (JSON.parse(raw) as TickIntent[]) : [] } catch { return [] }
+// One outbox PER LIST PER TAB (Codex, round 9). Two tabs on the same list
+// used to write the same key, and the last writer erased the other's
+// pending ticks. Each tab now writes its own key, stamped with when it was
+// last alive; a tab that hides or closes stamps zero. A mount, or a tab
+// coming back into view, adopts the outboxes of tabs that are gone —
+// stamped zero, or silent past the orphan window — so a closed tab's ticks
+// are flushed by the next tab on the list. The tab id lives in
+// sessionStorage, so a reload keeps its outbox; a DUPLICATED tab (which
+// copies sessionStorage) finds its parent still stamping and takes a fresh
+// id. A tab that wakes to find its outbox adopted drops those intents
+// rather than sending them twice.
+const TAB_KEY = 'dad-strength-fuel-tab'
+let tab: string | null = null
+function newTab(): string {
+  tab = Math.random().toString(36).slice(2, 10)
+  try { sessionStorage.setItem(TAB_KEY, tab) } catch { /* memory only */ }
+  return tab
 }
-function writeOutbox(listId: string, outbox: TickIntent[]) {
-  try { if (outbox.length) localStorage.setItem(outboxKey(listId), JSON.stringify(outbox)); else localStorage.removeItem(outboxKey(listId)) } catch { /* storage unavailable: intents live in memory only */ }
+function tabId(): string {
+  if (tab) return tab
+  try { tab = sessionStorage.getItem(TAB_KEY) } catch { /* memory only */ }
+  return tab ?? newTab()
+}
+function parseStored(raw: string | null): StoredOutbox | null {
+  try { const s = raw ? (JSON.parse(raw) as StoredOutbox) : null; return s && Array.isArray(s.intents) ? s : null } catch { return null }
+}
+/** Take over the outboxes of tabs that are gone: their intents come back, their keys go. */
+function adoptOrphans(listId: string): TickIntent[] {
+  try {
+    const others: Array<{ key: string; stored: StoredOutbox }> = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (!k || !k.startsWith(outboxPrefix(listId)) || k === outboxKey(listId, tabId())) continue
+      const stored = parseStored(localStorage.getItem(k))
+      if (stored) others.push({ key: k, stored })
+    }
+    const gone = orphans(others.map((o) => o.stored), tabId(), Date.now())
+    for (const o of others) if (gone.includes(o.stored)) localStorage.removeItem(o.key)
+    return gone.flatMap((s) => s.intents)
+  } catch { return [] }
+}
+function readOutbox(listId: string): TickIntent[] {
+  let mine: StoredOutbox | null = null
+  try {
+    mine = parseStored(localStorage.getItem(outboxKey(listId, tabId())))
+    if (mine && !claimable(mine, Date.now())) { newTab(); mine = null }
+  } catch { mine = null }
+  return adopt(mine?.intents ?? [], adoptOrphans(listId))
+}
+/** Persist this tab's outbox under its own key; returns whether storage took it. */
+function writeOutbox(listId: string, outbox: TickIntent[], alive = Date.now()): boolean {
+  try {
+    const k = outboxKey(listId, tabId())
+    if (outbox.length) localStorage.setItem(k, JSON.stringify({ tab: tabId(), alive, intents: outbox } satisfies StoredOutbox)); else localStorage.removeItem(k)
+    return true
+  } catch { return false /* storage unavailable: intents live in memory only */ }
+}
+/** Is this tab's outbox still on disk? Storage that cannot answer is taken as yes. */
+function ownKeyPresent(listId: string): boolean {
+  try { return localStorage.getItem(outboxKey(listId, tabId())) !== null } catch { return true }
 }
 
 const fmtQty = (i: ListItem) => {
@@ -83,7 +138,38 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   const mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
-  useEffect(() => { writeOutbox(listId, outbox) }, [listId, outbox])
+  const persisted = useRef(true)
+  useEffect(() => { persisted.current = writeOutbox(listId, outbox) }, [listId, outbox])
+  // While intents are pending this tab stamps its outbox alive, so no other
+  // tab adopts it; on pagehide it stamps zero, so the next tab can at once.
+  const holding = outbox.length > 0
+  useEffect(() => {
+    if (!holding) return
+    const stamp = () => writeOutbox(listId, outboxRef.current)
+    const hide = () => writeOutbox(listId, outboxRef.current, 0)
+    const id = window.setInterval(stamp, ORPHAN_AFTER_MS / 3)
+    window.addEventListener('pagehide', hide)
+    return () => { window.clearInterval(id); window.removeEventListener('pagehide', hide) }
+  }, [listId, holding])
+  // Hidden: let the outbox go, so a visible tab can take the ticks. Shown
+  // again (or restored from the back-forward cache): if another tab took
+  // them meanwhile they are its to flush — dropped here, never sent twice;
+  // otherwise the stamp is renewed. Then adopt what other tabs left, and
+  // re-read the row either way.
+  const [wake, setWake] = useState(0)
+  useEffect(() => {
+    const wakeUp = () => {
+      let next = outboxRef.current
+      if (next.length && persisted.current && !ownKeyPresent(listId)) next = []
+      next = adopt(next, adoptOrphans(listId))
+      if (next !== outboxRef.current) { outboxRef.current = next; setOutbox(next) } else writeOutbox(listId, next)
+      setWake((n) => n + 1)
+    }
+    const onVisibility = () => { if (document.visibilityState === 'hidden') writeOutbox(listId, outboxRef.current, 0); else wakeUp() }
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) wakeUp() }
+    document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow)
+    return () => { document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow) }
+  }, [listId])
   useEffect(() => {
     setOnline(navigator.onLine)
     const up = () => setOnline(true), down = () => setOnline(false)
@@ -133,7 +219,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
       void flush()
     })()
     return () => { cancelled = true }
-  }, [online, listId, refetch, onRowItems, flush])
+  }, [online, listId, refetch, onRowItems, flush, wake])
 
   const tap = (item: ListItem, shown: boolean) => {
     // A row that says "not saved · tap again" is retried AS ASKED: the tap

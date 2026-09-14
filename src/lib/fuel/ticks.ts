@@ -12,10 +12,12 @@
 //   2. The outbox flushes in order through one atomic database function per
 //      intent. Each acknowledgement returns the WHOLE row's items, and that
 //      replaces the local render. The row won; the intent is discarded.
-//   3. Offline, the outbox persists (localStorage) and flushes when the
-//      network returns or the page mounts. Reload with a full outbox, and the
-//      pending ticks are still pending — shown as such — until the row takes
-//      them.
+//   3. Offline, the outbox persists (localStorage, one key per list PER TAB)
+//      and flushes when the network returns or the page mounts. Reload with
+//      a full outbox, and the pending ticks are still pending — shown as
+//      such — until the row takes them. A tab that closes or hides leaves
+//      its outbox for the next tab on the list to adopt; two tabs never
+//      write the same key (Codex, round 9).
 //   4. On any conflict — the row says something the outbox does not — the row
 //      wins. There is no merge rule because there is nothing to merge: the
 //      outbox holds intents, not state.
@@ -94,5 +96,46 @@ export function progress(rowItems: ListItem[]): { done: number; total: number } 
   return { done: buyable.filter((i) => i.checked).length, total: buyable.length }
 }
 
-/** localStorage key for a list's outbox — one per list, so lists never share intents. */
-export const outboxKey = (listId: string) => `dad-strength-fuel-outbox:${listId}`
+/** A persisted outbox: one tab's intents for one list, stamped with when that tab was last alive (0 = it hid or closed). */
+export interface StoredOutbox {
+  tab: string
+  alive: number
+  intents: TickIntent[]
+}
+
+/** localStorage key for a list's outbox — one per list PER TAB, so lists never share intents and tabs never overwrite each other's (Codex, round 9). */
+export const outboxKey = (listId: string, tab: string) => `dad-strength-fuel-outbox:${listId}:${tab}`
+/** Every tab's key for a list starts with this. */
+export const outboxPrefix = (listId: string) => `dad-strength-fuel-outbox:${listId}:`
+
+/** A tab that has not stamped its outbox for this long is taken to be gone. */
+export const ORPHAN_AFTER_MS = 30_000
+
+/** May a load keep the tab id it found? Not while a live tab — a duplicate of this one — is still stamping that outbox. */
+export function claimable(stored: StoredOutbox | null, now: number): boolean {
+  return !stored || stored.alive === 0 || now - stored.alive > ORPHAN_AFTER_MS
+}
+
+/** Other tabs' outboxes this tab may adopt: those that hid or closed, or fell silent past the window. Never its own. */
+export function orphans(stored: StoredOutbox[], tab: string, now: number): StoredOutbox[] {
+  return stored.filter((s) => s.tab !== tab && (s.alive === 0 || now - s.alive > ORPHAN_AFTER_MS))
+}
+
+/**
+ * Fold adopted intents into this tab's outbox. This tab's own intent wins
+ * for any key it already holds; among adopted intents for one key the
+ * newest wins; adopted intents queue behind this tab's own, oldest first.
+ * Nothing adopted, same array back.
+ */
+export function adopt(outbox: TickIntent[], adopted: TickIntent[]): TickIntent[] {
+  if (!adopted.length) return outbox
+  const own = new Set(outbox.map((i) => i.key))
+  const newest = new Map<string, TickIntent>()
+  for (const i of adopted) {
+    if (own.has(i.key)) continue
+    const cur = newest.get(i.key)
+    if (!cur || i.at > cur.at) newest.set(i.key, i)
+  }
+  if (!newest.size) return outbox
+  return [...outbox, ...[...newest.values()].sort((a, b) => a.at - b.at)]
+}

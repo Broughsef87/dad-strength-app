@@ -114,6 +114,18 @@ export function nextCycleStart(active: CycleRow): string {
 }
 
 /**
+ * The key a NEXT-cycle build gets: the cycle already planned ahead, or the
+ * start where the live one ends — unless that start has itself expired
+ * while the page sat open (a weekly plan opened on its Sunday and built a
+ * week later), when the next cycle is the one that covers today (Codex,
+ * round 9). A start still live, or still ahead, is kept.
+ */
+export function nextCycleKey(active: CycleRow, upcomingStart: string | null, newCadenceDays: number, today: Date): string {
+  const target = upcomingStart ?? nextCycleStart(active)
+  return daysInto(target, today) >= Math.max(7, newCadenceDays) ? cycleStartFor(today) : target
+}
+
+/**
  * Is a plan made today a regeneration of the live cycle, or the NEXT cycle?
  * On a cycle's final day — the Sunday before the next Monday, planning day —
  * the answer is the next cycle: a rebuild that kept the old start would be

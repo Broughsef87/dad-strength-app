@@ -19,7 +19,7 @@ import {
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed } from '../../lib/fuel/version'
-import { cycleKeyFor, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
+import { cycleKeyFor, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -98,9 +98,11 @@ export default function FuelPage() {
     // past today, when it is a fresh cycle keyed on this week (Codex, round
     // 4). The next cycle starts where the live one ends, or IS the cycle
     // already planned ahead, so building twice makes a version, not a
-    // second start. A fresh start keys on this week.
+    // second start. A fresh start keys on this week. A next-cycle target
+    // that expired while the page sat open advances to the cycle that
+    // covers today (Codex, round 9).
     const weekStart = startingNext && liveCycle
-      ? (upcoming?.week_start ?? nextCycleStart(liveCycle))
+      ? nextCycleKey(liveCycle, upcoming?.week_start ?? null, household.shop_cadence_days, new Date())
       : liveCycle ? rebuildKey(liveCycle, household.shop_cadence_days, new Date()) : cycleKeyFor(null, new Date())
     // The unchanged-plan shortcut is a regeneration shortcut only: the next
     // cycle is always a new version under a new start — and so is a cycle
@@ -112,7 +114,7 @@ export default function FuelPage() {
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     setPlan(res.plan); setList(res.list)
-    if (upcoming && upcoming.week_start === weekStart) setUpcoming(null)
+    if (upcoming && (upcoming.week_start === weekStart || weekStart > upcoming.week_start)) setUpcoming(null)
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
     setNextCycle(false)
     setStep('list')
