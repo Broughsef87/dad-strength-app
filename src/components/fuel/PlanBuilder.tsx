@@ -5,13 +5,17 @@
 // and the solver reports what slips through. Variety is surfaced as spice
 // profile and format over the same cuts (L5), never as more ingredients.
 import { useMemo, useState } from 'react'
-import type { Household, MealRow, Plan, PlanEntry } from '../../lib/fuel/types'
+import type { Household, MealRow, Plan, PlanEntry, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../../lib/fuel/solve'
+import { rotationEntries, rotationOf, sortedRotations } from '../../lib/fuel/rotation'
 
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false }: {
+const NO_ROTATIONS: RotationRow[] = []
+const NO_MEMBERS: RotationMealRow[] = []
+
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
   /** `countInventory`: whether what is on hand is counted against this plan — asked only when it was not (a NEXT cycle, or a rebuild of a plan built without it), otherwise always (Codex, rounds 15 and 16). */
   onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
@@ -21,6 +25,9 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   countByDefault?: boolean
   /** The cycles already planned and where this plan would land — the rules that look across cycles read it (Codex, rounds 10, 13, 14). */
   cycles?: PlanContext
+  /** The rotations the picks can start from, and their membership (FOR-238). None before the rotations migration is applied: no switcher. */
+  rotations?: RotationRow[]
+  members?: RotationMealRow[]
 }) {
   const weeks = cycleWeeks(household)
   const bySlug = useMemo(() => new Map(meals.map((m) => [m.slug, m])), [meals])
@@ -39,6 +46,12 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   const [week, setWeek] = useState<1 | 2>(1)
   const [countInventory, setCountInventory] = useState(countByDefault)
   const warnings = useMemo(() => validatePlan({ entries }, meals, household, { cycles }), [entries, meals, household, cycles])
+  // FOR-238: which rotation the picks are is read from the picks themselves —
+  // there is no rotation state here to disagree with them. Choosing a rotation
+  // starts the picks over from it, each meal at its usual week; any night can
+  // be moved from there, and the plan keeps the athlete's week.
+  const current = useMemo(() => rotationOf(entries, rotations, members), [entries, rotations, members])
+  const startFrom = (slug: string) => { setEntries(rotationEntries(slug, members, meals, household)); setWeek(1) }
   const inWeek = (w: number) => entries.filter((e) => e.week === w)
   const picked = (slug: string) => entries.find((e) => e.slug === slug && e.week === week)
   const nightsOf = (slug: string) => entries.filter((e) => e.slug === slug && e.week === week).length
@@ -74,6 +87,19 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
 
   return (
     <div className="space-y-4">
+      {rotations.length > 1 && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="start from a rotation">
+            {sortedRotations(rotations).map((r) => (
+              <button key={r.slug} type="button" onClick={() => startFrom(r.slug)} aria-pressed={current === r.slug}
+                className={`${current === r.slug ? 'pill-volt' : 'pill-quiet'} px-3 py-1.5 text-[12px] lowercase`}>
+                {r.name}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground">start from a rotation — each meal lands in its usual week, and any night can move</p>
+        </div>
+      )}
       {weeks === 2 && (
         <div className="flex gap-2">
           {[1, 2].map((w) => (

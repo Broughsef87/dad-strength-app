@@ -33,6 +33,26 @@ export interface MealRow {
   ingredients: MealIngredient[]
 }
 
+/** A fuel_rotations row — a named fortnight, read-only to users (FOR-238). */
+export interface RotationRow {
+  slug: string
+  name: string
+  sort_order: number
+  note: string | null
+}
+
+/**
+ * A fuel_rotation_meals row: one meal's place in a rotation, at the week it
+ * USUALLY falls in. That week is where the builder starts; the plan's own
+ * PlanEntry.week is the athlete's and overrides it (FOR-238).
+ */
+export interface RotationMealRow {
+  rotation_slug: string
+  meal_slug: string
+  week: number
+  sort_order: number
+}
+
 /** Dietary rules as intake captures them — taps and numbers, never prose. */
 export interface DietaryRules {
   protein_floor_g_per_person: number
