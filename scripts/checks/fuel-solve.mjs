@@ -23,7 +23,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, householdFor, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
+import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, householdFor, defaultServings, libraryUnits, libraryItems, libraryVocabulary, inventoryIssues, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, inventoryFresh, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, expired, historyFloor, mondayOf, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
@@ -809,6 +809,71 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   for (const f of ['src/components/fuel/Checklist.tsx', 'src/lib/fuel/ticks.ts', 'supabase/migrations/20260916_fuel_tick_superseded_guard.sql']) {
     assert(!/rotation/i.test(readLF(f)), `${f} is untouched by rotations — ticks persist on reload as they shipped`)
   }
+}
+
+// ── 12. inventory speaks the library's vocabulary (FOR-239) ─────────────────
+// L1 never worked in production: inventory was a write-in matched by exact
+// string, so Andrew's rows deducted nothing and nothing said so. Reproduced
+// here FIRST, as he typed them on the live site on 2026-09-15.
+{
+  const typed = [{ item: 'chicken thighs', qty: 8, unit: 'lb' }, { item: 'chicken breast', qty: 5, unit: 'lb' }, { item: 'ground beef', qty: 4, unit: 'lb' }]
+  const asTyped = buildShoppingList({ ...andrew, inventory: typed }, meals, fortnight)
+  assert(find(asTyped, 'chicken thigh, boneless skinless')?.qty === 96 && find(asTyped, 'chicken breast, boneless skinless')?.qty === 26,
+    `a row that names no library item deducts nothing — no guessing — got thighs ${find(asTyped, 'chicken thigh, boneless skinless')?.qty}, breast ${find(asTyped, 'chicken breast, boneless skinless')?.qty}`)
+  for (const r of typed) {
+    assert(asTyped.warnings.some((w) => w.includes(`"${r.item}"`)), `"${r.item}" on hand matches nothing the meals use — the list must say so, not stay silent — warnings were ${JSON.stringify(asTyped.warnings)}`)
+  }
+
+  // acceptance 3: the warning names the row and says what to do, and never blocks a build
+  const beef = asTyped.warnings.find((w) => w.includes('"ground beef"')) ?? ''
+  assert(/no meal uses an ingredient by that name, so nothing comes off the list for it\. In the household, pick the ingredient you mean, or remove it\./.test(beef),
+    `the warning tells a person what is wrong and what to do — got "${beef}"`)
+  assert(!validatePlan(fortnight, meals, { ...andrew, inventory: typed }).some((w) => /on hand/.test(w)), 'a row on hand that comes off nothing is warned about on the list, never in the plan rules that stop a build')
+  const wrongUnit = buildShoppingList({ ...andrew, inventory: [{ item: 'chicken thigh, boneless skinless', qty: 3, unit: 'each' }] }, meals, fortnight)
+  assert(find(wrongUnit, 'chicken thigh, boneless skinless')?.qty === 96 && wrongUnit.warnings.some((w) => /"chicken thigh, boneless skinless" is on hand in each, but the meals measure it in oz/.test(w)),
+    'an ingredient on hand in a unit the meals never measure it in comes off nothing, and the list says so')
+  assert(buildShoppingList(andrew, meals, fortnight).warnings.length === 0 && inventoryIssues([{ item: 'rice', qty: 25, unit: 'lb' }], meals).length === 0,
+    'a row that does come off the list raises nothing — 25 lb of rice converts to the cup dry the meals use')
+  assert(inventoryIssues(typed, []).length === 0, 'with no library loaded there is nothing to judge a row against, and nothing is reported')
+
+  // acceptance 2: picked from the library, 8 lb of thighs comes off the list
+  const picked = buildShoppingList({ ...andrew, inventory: [{ item: 'chicken thigh, boneless skinless', qty: 8, unit: 'lb' }] }, meals, fortnight)
+  const thigh = picked.stocked.find((i) => i.item === 'chicken thigh, boneless skinless')
+  assert(!!thigh && thigh.qty === 0 && thigh.stocked_reason === '8 lb on hand, 50% counts after meal prep' && !picked.sections.some((s) => s.items.some((i) => i.item === 'chicken thigh, boneless skinless')) && picked.warnings.length === 0,
+    `8 lb of chicken thigh, boneless skinless removes the thigh line: stocked, "8 lb on hand, 50% counts after meal prep" — got ${JSON.stringify(thigh)}`)
+  // judged on the solver's code, not its comments — which say, correctly, that there is no plural or fuzzy guess
+  const solve12 = readLF('src/lib/fuel/solve.ts').split('\n').filter((l) => !/^\s*(\/\/|\/\*\*|\*)/.test(l)).join('\n')
+  assert(/if \(norm\(inv\.item\) !== norm\(b\.item\) \|\| inv\.left <= 0\) continue/.test(solve12) && !/singular|plural|levenshtein|startsWith\(norm|includes\(norm\(inv/i.test(solve12),
+    'inventory still matches the library EXACTLY — no plural or fuzzy guess that could remove the wrong food')
+
+  // acceptance 1: the picker is the library's vocabulary, grouped by aisle
+  const vocab = libraryVocabulary(meals, andrew.store_section_order)
+  const everyItem = [...new Set(meals.flatMap((m) => m.ingredients.map((i) => i.item)))].sort((a, b) => a.localeCompare(b))
+  assert(JSON.stringify(libraryItems(meals)) === JSON.stringify(everyItem) && JSON.stringify(vocab.flatMap((g) => g.items).sort((a, b) => a.localeCompare(b))) === JSON.stringify(everyItem),
+    'the picker offers exactly the ingredients the meals use, every one of them')
+  assert(JSON.stringify(vocab.map((g) => g.section)) === JSON.stringify(andrew.store_section_order.filter((s) => vocab.some((g) => g.section === s)))
+    && vocab.every((g) => g.items.every((i) => meals.some((m) => m.ingredients.some((x) => x.item === i && x.store_section === g.section)))),
+    'the picker is grouped by aisle, in the store order, each ingredient under the aisle it is bought in')
+  assert(!libraryItems(meals).includes('chicken thighs') && !libraryItems(meals).includes('ground beef'), "Andrew's typed names are not in the vocabulary — the picker cannot produce them")
+  const intake = readLF('src/components/fuel/IntakeForm.tsx')
+  assert(!/<input value=\{newItem\.item\}/.test(intake) && /<IngredientSelect vocabulary=\{vocabulary\} value=\{newItem\.item\} label="inventory item" onPick=/.test(intake)
+    && /onChange=\{\(e\) => \{ if \(e\.target\.value\) onPick\(e\.target\.value\) \}\}/.test(intake) && /<option value="" disabled>pick an ingredient<\/option>/.test(intake),
+    'the item on hand is picked from the vocabulary — there is no free-text item')
+  assert(/disabled=\{!known\.has\(newItem\.item\) \|\| newItem\.qty <= 0\}/.test(intake), 'nothing outside the vocabulary can be added')
+  assert(/const vocabulary = useMemo\(\(\) => libraryVocabulary\(meals, h\.store_section_order\), \[meals, h\.store_section_order\]\)/.test(intake) && /<optgroup key=\{g\.section\} label=\{g\.section\.toLowerCase\(\)\}>/.test(intake),
+    'the intake picker is the library vocabulary, grouped by aisle')
+  assert(/>only ingredients your meals use can come off the list\{/.test(intake), 'the intake says why an item is missing from the picker')
+
+  // acceptance 4: rows that match nothing render unresolved, with a one-tap re-pick — never dropped, never re-mapped
+  assert(/const issues = useMemo\(\(\) => new Map\(inventoryIssues\(h\.inventory, meals\)\.map/.test(intake) && /\$\{issue \? 'line-through text-muted-foreground' : ''\}/.test(intake)
+    && /not an ingredient your meals use, so this comes off nothing/.test(intake),
+    'a stored row that matches nothing renders unresolved, not as working')
+  assert(/onPick=\{\(item\) => repick\(i, item\)\}/.test(intake) && /j === index \? \{ \.\.\.inv, item \} : inv/.test(intake), 'an unresolved row has a one-tap re-pick of the ingredient')
+  const pg12 = readLF('src/app/fuel/page.tsx')
+  assert(/const onHandWarnings = household \? inventoryWarnings\(household\.inventory, meals\) : \[\]/.test(pg12) && /\{step !== 'intake' && onHandWarnings\.length > 0 && \(/.test(pg12) && /fix what is on hand/.test(pg12),
+    'a row on hand that comes off nothing is seen on the nights and the list, with the way to fix it')
+  const runAll12 = readLF('scripts/checks/run-all.mjs')
+  assert(/\['fuel vocabulary \(FOR-239\)', 'fuel-vocabulary\.mjs'\]/.test(runAll12) && existsSync(join(ROOT, 'scripts/checks/fuel-vocabulary.mjs')), 'the picker grouping invariant is registered as its own suite')
 }
 
 if (failures) { console.log(`\nfuel-solve: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }
