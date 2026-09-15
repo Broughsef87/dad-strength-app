@@ -107,11 +107,14 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
  * fourteen days from its start (cycle.ts), so the second week — and the
  * second trip — is still on the page.
  */
-export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; upcoming: PlanRow | null; recent: PlanRow[]; newestPlanAt: string | null; error: { code?: string; message?: string } | null }> {
+export async function loadActive(db: Db, userId: string, today: Date): Promise<{ plan: PlanRow | null; list: ListRow | null; upcoming: PlanRow | null; recent: PlanRow[]; newestPlanAt: string | null; newestPlanKnown: boolean; error: { code?: string; message?: string } | null }> {
   // When was ANY plan last built? Unbounded, so a break longer than the
-  // history window cannot pass off eaten stock as never counted (Codex, round 18).
-  const { data: newest } = await db.from('fuel_plans').select('created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  // history window cannot pass off eaten stock as never counted (Codex, round
+  // 18). A lookup that FAILS is reported as unknown, never as "none": unknown
+  // is not fresh (FOR-233, finding 3).
+  const { data: newest, error: newestError } = await db.from('fuel_plans').select('created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle()
   const newestPlanAt = typeof newest?.created_at === 'string' ? newest.created_at : null
+  const newestPlanKnown = !newestError
   // Bounded by START, not by row count: every start from five weeks back
   // (any live fortnight, and the four weeks the steak rule is judged over)
   // forward (anything planned ahead), all versions, so a busy cycle's
@@ -119,7 +122,7 @@ export async function loadActive(db: Db, userId: string, today: Date): Promise<{
   // back as `recent` for the rules that look across cycles (Codex, round 10).
   const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot, created_at')
     .eq('user_id', userId).gte('week_start', historyFloor(today)).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(500)
-  if (error || !rows?.length) return { plan: null, list: null, upcoming: null, recent: [], newestPlanAt, error }
+  if (error || !rows?.length) return { plan: null, list: null, upcoming: null, recent: [], newestPlanAt, newestPlanKnown, error: error ?? newestError }
   const candidates = (rows as PlanRow[]).map((r) => ({ ...r, shop_cadence_days: Number(r.rules_snapshot?.shop_cadence_days ?? 7) }))
   // A cycle planned ahead is loadable before it is live (Codex, round 4) —
   // but it never STANDS IN for a live one: with nothing live, the page must
@@ -128,10 +131,10 @@ export async function loadActive(db: Db, userId: string, today: Date): Promise<{
   const upcoming = upcomingCycle<PlanRow & CycleRow>(candidates, today)
   const plan = activeCycle<PlanRow & CycleRow>(candidates, today)
   const recent = rows as PlanRow[]
-  if (!plan) return { plan: null, list: null, upcoming, recent, newestPlanAt, error: null }
+  if (!plan) return { plan: null, list: null, upcoming, recent, newestPlanAt, newestPlanKnown, error: newestError }
   const { data: list, error: lerr } = await db.from('fuel_lists').select('id, plan_id, version, items, updated_at')
     .eq('plan_id', plan.id).order('version', { ascending: false }).limit(1).maybeSingle()
-  return { plan, list: (list as ListRow | null) ?? null, upcoming, recent, newestPlanAt, error: lerr }
+  return { plan, list: (list as ListRow | null) ?? null, upcoming, recent, newestPlanAt, newestPlanKnown, error: lerr ?? newestError }
 }
 
 /** The newest list for a plan — used to resume a cycle the athlete chose. */
@@ -168,10 +171,13 @@ export async function createVersion(db: Db, weekStart: string, household: Househ
 }
 
 /** The one write to checked. Returns the row's items as the row now holds them. */
-export async function setItemChecked(db: Db, listId: string, key: string, checked: boolean): Promise<{ items: ListItem[] | null; error: { code?: string; message?: string } | null }> {
-  if (typeof db.rpc !== 'function') return { items: null, error: { message: 'no client' } }
+/** The SQLSTATE the tick function raises for a list whose cycle has a newer version (FOR-233, the write-side guard). */
+export const SUPERSEDED = 'FU001'
+
+export async function setItemChecked(db: Db, listId: string, key: string, checked: boolean): Promise<{ items: ListItem[] | null; error: { code?: string; message?: string } | null; superseded: boolean }> {
+  if (typeof db.rpc !== 'function') return { items: null, error: { message: 'no client' }, superseded: false }
   const { data, error } = await db.rpc('fuel_set_item_checked', { p_list_id: listId, p_key: key, p_checked: checked })
-  return { items: (data as ListItem[] | null) ?? null, error }
+  return { items: (data as ListItem[] | null) ?? null, error, superseded: error?.code === SUPERSEDED }
 }
 
 /** Re-read the row's items — the truth, for reconciliation after a reload or a reconnect. */

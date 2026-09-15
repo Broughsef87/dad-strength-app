@@ -5,6 +5,26 @@
 // PremiumGate. The solver is pure (src/lib/fuel/solve.ts); this page is the
 // I/O around it. Every rule or plan change writes version + 1 and keeps the
 // old versions (L6, L7). Check state is row-authoritative (ticks.ts).
+//
+// THE CYCLE MODEL (FOR-233): the page shows ONE cycle at a time — `plan`, the
+// selected cycle, which defaults to today's live cycle `live` and is always one
+// tap from it — and says which; the page does NOT re-read on waking or
+// reconnecting — the row is the only truth — and the database refuses a tick on
+// a superseded list (fuel_set_item_checked, SQLSTATE FU001), on which the page
+// re-reads both and moves to the newer list, never changing the selection
+// unless it has expired; a re-read that fails is shown and keeps the
+// checklist paused until a retry succeeds.
+//
+// Why no wake refresh: it only ever made staleness visible, and its
+// interleavings with navigation and with itself cost four Codex rounds
+// (FOR-177 r17–19, FOR-233 r1–3); the guard makes the write correct without
+// it. A household changed in another tab is seen on reload, or when a tick
+// is refused.
+//
+// The transition: a page loaded before this change keeps its old code until
+// it reloads; its ticks still go through the database, which now refuses one
+// on a superseded list, and that old page shows the refusal as "not saved ·
+// tap again" until it reloads. Nothing is lost that was not already dead.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../utils/supabase/client'
@@ -20,7 +40,7 @@ import {
 } from '../../lib/fuel/store'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, validatePlan } from '../../lib/fuel/solve'
-import { cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, type CycleRow } from '../../lib/fuel/cycle'
+import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -35,7 +55,10 @@ export default function FuelPage() {
   const [error, setError] = useState<string | null>(null)
   const [meals, setMeals] = useState<MealRow[]>([])
   const [household, setHousehold] = useState<Household | null>(null)
+  // `plan` is the SELECTED cycle; `live` is today's live cycle, held apart so
+  // the way back to it always exists (FOR-233, finding 2).
   const [plan, setPlan] = useState<PlanRow | null>(null)
+  const [live, setLive] = useState<PlanRow | null>(null)
   const [list, setList] = useState<ListRow | null>(null)
   const [upcoming, setUpcoming] = useState<PlanRow | null>(null)
   // Every cycle from five weeks back, all versions — the rules that look
@@ -43,13 +66,22 @@ export default function FuelPage() {
   const [recent, setRecent] = useState<PlanRow[]>([])
   const [householdSavedAt, setHouseholdSavedAt] = useState<string | null>(null)
   const [newestPlanAt, setNewestPlanAt] = useState<string | null>(null)
-  // Every completed save or build bumps this; a refresh that started before
-  // one applies nothing, or it would put the older snapshot back over what
-  // was just written (Codex, round 18).
-  const writesRef = useRef(0)
+  const [newestPlanKnown, setNewestPlanKnown] = useState(false)
+  // THE GENERATION: one counter, moved by every refresh start and by every
+  // path that changes the page outside a refresh — a navigation, a build, a
+  // household save. A refresh takes the generation when it starts and, after
+  // every await, applies NOTHING if it has moved: not its data, not its
+  // failure state, not its cleanup. Only the newest refresh ever speaks; a
+  // refresh voided by anything else has its pause lifted by that thing. This
+  // is the writes epoch of round 18 widened to navigation and to refreshes
+  // overlapping each other (FOR-233, Codex rounds 1 and 2).
+  const genRef = useRef(0)
   // The page is re-reading the household and the plan — on waking, on
-  // reconnect — and the checklist sends nothing until it has (Codex, round 17).
+  // reconnect — and the checklist sends nothing until it has (Codex, round
+  // 17). A re-read that FAILED is a state of its own: shown, retryable, and
+  // the checklist stays paused until a retry succeeds (FOR-233, finding 1).
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshFailed, setRefreshFailed] = useState(false)
   const [versions, setVersions] = useState<number[]>([])
   const [step, setStep] = useState<Step>('intake')
   const [busy, setBusy] = useState(false)
@@ -78,7 +110,7 @@ export default function FuelPage() {
       if (err) setError(err.message ?? 'could not load')
       setMeals(m.meals)
       setHousehold(h.household); setHouseholdSavedAt(h.updatedAt)
-      setPlan(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent); setNewestPlanAt(active.newestPlanAt)
+      setPlan(active.plan); setLive(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent); setNewestPlanAt(active.newestPlanAt); setNewestPlanKnown(active.newestPlanKnown)
       if (active.plan) {
         setVersions((await loadVersions(supabase, user.id, active.plan.week_start)).map((v) => v.version))
         setNextCycle(planningMode(asCycle(active.plan), new Date()) === 'next' && !active.upcoming)
@@ -92,45 +124,71 @@ export default function FuelPage() {
     return () => { cancelled = true }
   }, [supabase, router])
 
-  // Re-read the household and the plan when the page wakes or reconnects:
-  // another tab may have changed the household or built a newer version,
-  // and shopping would otherwise go on against a superseded list, its ticks
-  // landing there (Codex, round 17). Not while a build or a save is in
-  // flight, and applied only if none completed meanwhile (round 18). The
+  // Re-read the household and the plan — when the database refuses a tick on
+  // a superseded list, and on the retry of a re-read that failed. NOT on
+  // waking or reconnecting: that wake refresh (Codex, round 17) is deleted
+  // (FOR-233, Codex r3) — see the model above. Not while a build or a save is
+  // in flight, and applied only if nothing moved meanwhile — a write, a
+  // navigation, a newer refresh (round 18; FOR-233, Codex r2). The
   // cycle the athlete SELECTED — opened ahead, or built early — stays
   // selected at its newest version while it is still live or ahead; only an
   // expired selection gives way to today's live cycle (round 18). The
   // checklist is paused until the read lands.
   const busyRef = useRef(busy)
   busyRef.current = busy
-  const selectedStart = plan?.week_start ?? null
+  // The selection and the list, as refs: the refresh is not re-created when
+  // they change, so it reads them here — the selection when it starts, under
+  // the generation, which guarantees no navigation lands between that read
+  // and its apply; the list when a refused tick answers (Codex r1, r2).
+  const selectedStartRef = useRef<string | null>(null)
+  selectedStartRef.current = plan?.week_start ?? null
+  const listIdRef = useRef<string | null>(null)
+  listIdRef.current = listId
+  // Every path that changes the page outside a refresh passes through here
+  // AS IT APPLIES. It moves the generation — a refresh in flight applies
+  // nothing from here on — and lifts that refresh's pause, which has no owner
+  // any more. A navigation also writes the selection it lands on, so a
+  // refresh starting before the page has redrawn reads the new one (Codex r2).
+  const moved = (selected?: PlanRow | null) => {
+    genRef.current += 1
+    if (selected !== undefined) selectedStartRef.current = selected?.week_start ?? null
+    setRefreshing(false)
+  }
   const refresh = useCallback(async () => {
     if (!userId || busyRef.current) return
-    const seen = writesRef.current
+    // This refresh's generation, and the selection it serves: moved by any
+    // later refresh, navigation, build or save, after which this one applies
+    // nothing — checked after every await.
+    genRef.current += 1
+    const gen = genRef.current
+    const start = selectedStartRef.current
     setRefreshing(true)
     try {
       const now = new Date()
       const [h, active] = await Promise.all([loadHousehold(supabase, userId), loadActive(supabase, userId, now)])
-      if (h.error || active.error || writesRef.current !== seen) return
-      const kept = selectedStart ? newestVersion(active.recent, selectedStart) : null
+      // Something moved meanwhile: this read is stale and whatever moved is
+      // current — not a failure, just discarded.
+      if (gen !== genRef.current) return
+      // The read failed: shown, and the checklist stays paused until a retry
+      // succeeds — ticks never resume on a guess (FOR-233, finding 1).
+      if (h.error || active.error) { setRefreshFailed(true); return }
+      const kept = start ? newestVersion(active.recent, start) : null
       const nextPlan = kept && !expired(asCycle(kept), now) ? kept : active.plan
       const nextList = nextPlan ? (nextPlan.id === active.plan?.id ? active.list : await loadListFor(supabase, nextPlan.id)) : null
-      if (writesRef.current !== seen) return
+      if (gen !== genRef.current) return
       setHousehold(h.household); setHouseholdSavedAt(h.updatedAt)
-      setPlan(nextPlan); setList(nextList); setRecent(active.recent); setNewestPlanAt(active.newestPlanAt)
+      setPlan(nextPlan); setLive(active.plan); setList(nextList); setRecent(active.recent); setNewestPlanAt(active.newestPlanAt); setNewestPlanKnown(active.newestPlanKnown)
       setUpcoming(active.upcoming && active.upcoming.week_start !== nextPlan?.week_start ? active.upcoming : null)
-      if (nextPlan) setVersions((await loadVersions(supabase, userId, nextPlan.week_start)).map((v) => v.version))
+      setRefreshFailed(false)
       const persistedStale = !!(nextPlan && h.household && changed(nextPlan.rules_snapshot, h.household, { entries: nextPlan.meal_ids }))
       setStep((s) => (s === 'list' && (!nextList || persistedStale) ? 'plan' : s))
-    } finally { setRefreshing(false) }
-  }, [supabase, userId, selectedStart])
-  useEffect(() => {
-    const onVisibility = () => { if (document.visibilityState === 'visible') void refresh() }
-    const onShow = (e: PageTransitionEvent) => { if (e.persisted) void refresh() }
-    const onOnline = () => { void refresh() }
-    document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow); window.addEventListener('online', onOnline)
-    return () => { document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow); window.removeEventListener('online', onOnline) }
-  }, [refresh])
+      if (nextPlan) {
+        const vs = await loadVersions(supabase, userId, nextPlan.week_start)
+        if (gen !== genRef.current) return
+        setVersions(vs.map((v) => v.version))
+      }
+    } finally { if (gen === genRef.current) setRefreshing(false) }
+  }, [supabase, userId])
 
   const onSaveHousehold = async (h: Household) => {
     if (!userId) return
@@ -138,7 +196,7 @@ export default function FuelPage() {
     const { error: e } = await saveHousehold(supabase, userId, h)
     setBusy(false)
     if (e) { setError(e.message); return }
-    writesRef.current += 1
+    moved()
     setHousehold(h); setHouseholdSavedAt(new Date().toISOString())
     // A rule change invalidates the list (L7): if a version exists and the
     // household differs from its snapshot, the next build writes version + 1.
@@ -205,28 +263,51 @@ export default function FuelPage() {
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     const built = res.plan
-    writesRef.current += 1
-    setPlan(built); setList(res.list); setRecent((r) => [...r, built]); setNewestPlanAt(built.created_at ?? new Date().toISOString())
+    moved(built)
+    setPlan(built); setList(res.list); setRecent((r) => [...r, built]); setNewestPlanAt(built.created_at ?? new Date().toISOString()); setNewestPlanKnown(true)
+    // `live` is today's live cycle BY DATE, never "whatever was just built":
+    // a rebuild of the cycle selected ahead must not become this week, and
+    // the way back stays on the page (FOR-233, finding 2; Codex r1).
+    setLive(activeCycle([...recent, built].map((r) => ({ ...r, ...asCycle(r) })), new Date()))
     if (upcoming && (upcoming.week_start === weekStart || weekStart > upcoming.week_start)) setUpcoming(null)
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
     setNextCycle(false)
     setStep('list')
   }
 
-  // Resume the cycle planned ahead (Codex, round 4).
+  // Resume the cycle planned ahead (Codex, round 4). The live cycle stays
+  // held; "back to this week" brings it back (FOR-233, finding 2).
   const openUpcoming = async () => {
     if (!upcoming || !userId) return
     const l = await loadListFor(supabase, upcoming.id)
+    moved(upcoming)
     setPlan(upcoming); setList(l); setUpcoming(null); setNextCycle(false)
     setVersions((await loadVersions(supabase, userId, upcoming.week_start)).map((v) => v.version))
+    setStep(l ? 'list' : 'plan')
+  }
+  // The way back: from any selection made ahead of it, this week's cycle is
+  // one tap away, and the cycle just left is offered ahead again.
+  const openLive = async () => {
+    if (!live || !userId) return
+    const l = await loadListFor(supabase, live.id)
+    moved(live)
+    setPlan(live); setList(l); setNextCycle(false)
+    setUpcoming(upcomingCycle(recent.map((r) => ({ ...r, ...asCycle(r) })), new Date()))
+    setVersions((await loadVersions(supabase, userId, live.week_start)).map((v) => v.version))
     setStep(l ? 'list' : 'plan')
   }
 
   const send = useCallback(async (key: string, checked: boolean) => {
     if (!listId) return null
-    const { items, error: e } = await setItemChecked(supabase, listId, key, checked)
+    const { items, error: e, superseded } = await setItemChecked(supabase, listId, key, checked)
+    // The database refused the tick because this list's cycle has a newer
+    // version (FOR-233, the write-side guard): the page re-reads and moves to
+    // it — only while this list is still the one selected; a refusal from a
+    // list the athlete has since left steers nothing (Codex r1). The tick is
+    // not retried against a list that is already dead.
+    if (superseded && listIdRef.current === listId) void refresh()
     return e ? null : items
-  }, [supabase, listId])
+  }, [supabase, listId, refresh])
   const refetch = useCallback(async () => (listId ? readItems(supabase, listId) : null), [supabase, listId])
   // An answer belongs to the list that asked. A tick still in flight when
   // the plan is rebuilt must not land its old list's items on the new one
@@ -265,6 +346,18 @@ export default function FuelPage() {
                 ))}
               </nav>
               {error && <div className="status-msg danger text-[12px]" role="alert">{error}</div>}
+              {refreshFailed && (
+                <div className="status-msg danger text-[12px] flex items-center justify-between gap-3" role="alert">
+                  <span>could not re-read the household and the plan — ticks are held until it succeeds</span>
+                  <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={() => void refresh()}>retry</button>
+                </div>
+              )}
+              {live && plan && plan.id !== live.id && (
+                <div className="tile p-3 flex items-center justify-between gap-3">
+                  <p className="text-[12px] text-muted-foreground lowercase">showing the cycle starting {plan.week_start} · this week&apos;s started {live.week_start}</p>
+                  <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={() => void openLive()}>back to this week</button>
+                </div>
+              )}
               {upcoming && (
                 <div className="tile p-3 flex items-center justify-between gap-3">
                   <p className="text-[12px] text-muted-foreground lowercase">next cycle already planned · starts {upcoming.week_start}</p>
@@ -283,7 +376,7 @@ export default function FuelPage() {
                 </div>
               )}
               {step === 'plan' && household && (
-                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt)}
+                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
                   initial={plan ? { entries: plan.meal_ids } : null}
                   cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}
@@ -299,7 +392,7 @@ export default function FuelPage() {
                 // Keyed by the list: opening another cycle REMOUNTS the checklist, so
                 // its outbox, refs and effects never straddle two lists (Codex, round 5).
                 <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items}
-                  onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing} />
+                  onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing || refreshFailed} />
               )}
             </>
           )}
