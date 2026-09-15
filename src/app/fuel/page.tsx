@@ -41,11 +41,13 @@ import PremiumGate from '../../components/PremiumGate'
 import IntakeForm from '../../components/fuel/IntakeForm'
 import PlanBuilder from '../../components/fuel/PlanBuilder'
 import Checklist from '../../components/fuel/Checklist'
+import AddItem from '../../components/fuel/AddItem'
 import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import {
-  DEFAULT_HOUSEHOLD, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadVersions,
-  readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
+  DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
+  readItems, removeCustomItem, saveHousehold, setItemChecked, stopStaple, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
+import type { StapleRow } from '../../lib/fuel/custom'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
@@ -69,6 +71,11 @@ export default function FuelPage() {
   // page is on; a plan's rotation is read from its picks.
   const [rotations, setRotations] = useState<RotationRow[]>([])
   const [members, setMembers] = useState<RotationMealRow[]>([])
+  // The athlete's own items (FOR-240). `customReady` stays false until the
+  // custom-items migration is applied: no add form, and Fuel runs as it did.
+  const [staples, setStaples] = useState<StapleRow[]>([])
+  const [customReady, setCustomReady] = useState(false)
+  const [adding, setAdding] = useState(false)
   const [household, setHousehold] = useState<Household | null>(null)
   // `plan` is the SELECTED cycle; `live` is today's live cycle, held apart so
   // the way back to it always exists (FOR-233, finding 2).
@@ -133,6 +140,10 @@ export default function FuelPage() {
       // A persisted list whose household has since changed opens on the
       // plan step, not on the stale list.
       const persistedStale = !!(active.plan && h.household && changed(active.plan.rules_snapshot, h.household, { entries: active.plan.meal_ids }))
+      const st = await loadStaples(supabase, user.id)
+      if (cancelled) return
+      setStaples(st.staples); setCustomReady(st.available)
+      if (st.error) setError(st.error.message ?? 'could not load the items you put on every list')
       setStep(active.list && !persistedStale ? 'list' : h.household ? 'plan' : 'intake')
       setLoading(false)
     })()
@@ -287,7 +298,14 @@ export default function FuelPage() {
     // itself can have been corrected since (Codex, round 11).
     if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(household, inventoryCounted), meals, p).items, list.items)) { setStep('list'); return }
     setBusy(true); setError(null)
-    const res = await createVersion(supabase, weekStart, household, meals, p, inventoryCounted)
+    // What goes on every list is read HERE, at the moment a version is written
+    // — never from page state another tab could have moved. A read that fails
+    // builds nothing: a staple silently missing from the new list is the
+    // deletion FOR-240 exists to stop.
+    const st = await loadStaples(supabase, userId)
+    if (st.error) { setBusy(false); setError('could not read the items you put on every list, so nothing was built — try again'); return }
+    setStaples(st.staples); setCustomReady(st.available)
+    const res = await createVersion(supabase, weekStart, household, meals, p, inventoryCounted, st.staples)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     const built = res.plan
@@ -341,10 +359,53 @@ export default function FuelPage() {
   // the plan is rebuilt must not land its old list's items on the new one
   // (Codex, round 2).
   const onRowItems = useCallback((forListId: string, items: ListItem[]) => setList((l) => (l && l.id === forListId ? { ...l, items } : l)), [])
+  // The athlete's own items (FOR-240). An add or a remove goes through a
+  // guarded database function and the row answers, exactly as a tick does.
+  // Refused on a superseded list, it says so and writes nothing. It does not
+  // re-read the page: FOR-233 keeps the re-read to the callers it has, and the
+  // next tick moves the page to the newer list, as it does today.
+  const rebuiltElsewhere = 'this list was rebuilt somewhere else, so nothing changed on it — reload to open the newest list'
+  const onAddCustom = async (item: string, section: string, everyList: boolean): Promise<string | null> => {
+    if (!userId || !listId) return 'there is no list to add to yet'
+    setAdding(true)
+    try {
+      let stapleId: string | null = null
+      if (everyList) {
+        const s = await addStaple(supabase, userId, item, section)
+        // Already a staple: put that staple's own line on this list — keyed on
+        // the staple, so it is one line however often it is asked for.
+        const saved = s.duplicate ? staples.find((x) => x.item.trim().toLowerCase() === item.trim().toLowerCase() && x.store_section === section) : s.staple
+        if (!saved) return s.duplicate ? `${item} is already on every list` : s.error?.message ?? 'could not save it for every list'
+        stapleId = saved.id
+        if (!s.duplicate) setStaples((xs) => [...xs, saved])
+      }
+      const r = await addCustomItem(supabase, listId, item, section, stapleId)
+      if (r.superseded) return everyList ? `saved for every list, but ${rebuiltElsewhere}` : rebuiltElsewhere
+      if (r.error || !r.items) return r.error?.message ?? 'could not add it'
+      onRowItems(listId, r.items)
+      return null
+    } finally { setAdding(false) }
+  }
+  const onRemoveCustom = async (key: string) => {
+    if (!listId) return
+    const r = await removeCustomItem(supabase, listId, key)
+    if (r.superseded) { setError(rebuiltElsewhere); return }
+    if (r.error || !r.items) { setError(r.error?.message ?? 'could not take it off the list'); return }
+    onRowItems(listId, r.items)
+  }
+  const onStopStaple = async (id: string) => {
+    if (!userId) return
+    const { error: e } = await stopStaple(supabase, userId, id)
+    if (e) { setError(e.message ?? 'could not stop it'); return }
+    setStaples((xs) => xs.filter((x) => x.id !== id))
+  }
   // A list is STALE when the household has changed since it was solved — a
   // rule change invalidates the list (L7), on load as much as on save. A
   // stale list is not ticked from; it is rebuilt.
   const stale = !!(plan && household && changed(plan.rules_snapshot, household, { entries: plan.meal_ids }))
+  // The aisle order the list was built with — its own snapshot — so a list is
+  // walked the way it was solved, the athlete's lines included (FOR-240).
+  const sectionOrder = plan?.rules_snapshot?.store_section_order ?? household?.store_section_order ?? DEFAULT_HOUSEHOLD.store_section_order
   // A row on hand that comes off nothing is SEEN, on the nights and on the
   // list, not only in the household (FOR-239): the list otherwise looks right
   // while buying food that is already in the freezer.
@@ -429,8 +490,14 @@ export default function FuelPage() {
               {step === 'list' && list && plan && listId && !stale && (
                 // Keyed by the list: opening another cycle REMOUNTS the checklist, so
                 // its outbox, refs and effects never straddle two lists (Codex, round 5).
-                <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items}
-                  onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing || refreshFailed} />
+                <>
+                  <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items} sectionOrder={sectionOrder}
+                    onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing || refreshFailed}
+                    onRemoveCustom={customReady ? (key) => void onRemoveCustom(key) : undefined} />
+                  {customReady && (
+                    <AddItem sectionOrder={sectionOrder} staples={staples} busy={adding} onAdd={onAddCustom} onStopStaple={(id) => void onStopStaple(id)} />
+                  )}
+                </>
               )}
             </>
           )}

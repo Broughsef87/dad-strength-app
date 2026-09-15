@@ -44,6 +44,8 @@ const SUITES = [
   ['fuel rotations (FOR-238)', 'fuel-rotations.mjs'],
   // The picker's grouping against the whole library, its own suite (FOR-239).
   ['fuel vocabulary (FOR-239)', 'fuel-vocabulary.mjs'],
+  // No custom key is ever a solver key, over generated libraries — its own suite (FOR-240).
+  ['fuel custom keys (FOR-240)', 'fuel-custom-keys.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

@@ -33,6 +33,10 @@ import * as planBuilderModule from '../../src/components/fuel/PlanBuilder.tsx'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { PAIRS, renderPair, onDisk as migrationOnDisk, drifted } from '../fuel-seed-sql.mjs'
+import { createVersion } from '../../src/lib/fuel/store.ts'
+import { customKey, customLine, defaultSection, isCustom, sectionsInOrder, solverLines, withStaples } from '../../src/lib/fuel/custom.ts'
+import * as checklistModule from '../../src/components/fuel/Checklist.tsx'
+import * as addItemModule from '../../src/components/fuel/AddItem.tsx'
 
 let failures = 0, passes = 0
 // A .tsx component imported from this .mjs arrives CommonJS-wrapped under tsx: the
@@ -41,6 +45,9 @@ const planBuilderExports = planBuilderModule.default && typeof planBuilderModule
 const PlanBuilder = typeof planBuilderExports.default === 'function' ? planBuilderExports.default : planBuilderModule.default
 const LibraryDrawer = planBuilderExports.LibraryDrawer ?? planBuilderModule.LibraryDrawer
 const maxServings = planBuilderExports.maxServings ?? planBuilderModule.maxServings
+const unwrapDefault = (mod) => { const e = mod.default && typeof mod.default === 'object' ? mod.default : mod; return typeof e.default === 'function' ? e.default : mod.default }
+const Checklist = unwrapDefault(checklistModule)
+const AddItem = unwrapDefault(addItemModule)
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const readLF = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
@@ -467,7 +474,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 11: the shortcut stands only when a fresh solve comes out identical — the library can have been corrected
   assert(/&& listUnchanged\(buildShoppingList\(householdFor\(household, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg), 'the unchanged-plan shortcut re-solves before it stands — the way the stored plan was built — so a library correction is never skipped')
   // round 15: what is on hand counts against a next cycle only on say-so, recorded in the snapshot
-  assert(/const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)/.test(pg) && /askInventory=\{askInventory\}/.test(pg),
+  assert(/const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted, st\.staples\)/.test(pg) && /askInventory=\{askInventory\}/.test(pg),
     'a next cycle counts what is on hand only on say-so; a rebuild always; the say-so goes into the version')
   assert(/onBuild\(\{ entries \}, \{ countInventory: askInventory \? countInventory : true \}\)/.test(pb) && /count what\\'s on hand again/.test(pb) && /askInventory && household\.inventory\.length > 0 &&/.test(pb),
     'the builder asks, for a next cycle with something on hand, whether to count it again — off by default')
@@ -1039,6 +1046,131 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const pg13 = readLF('src/app/fuel/page.tsx')
   assert(!/step === s \? 'pill-volt'/.test(pg13) && /aria-current=\{step === s \? 'step' : undefined\}/.test(pg13), "the page's step nav is quiet, so the planner's one volt control is the build")
   assert(/if \(late\.length\) \{ setError\(planIssueSentences\(late, p\.entries, meals\)\.join\(' · '\)\); return \}/.test(pg13), 'a plan refused at build time is explained in words that name the night, not in rule ids')
+}
+
+// ── 14. the athlete's own items (FOR-240): merged when a version is created, so regeneration cannot delete them ──
+// THE failure the ticket exists to prevent, as a check that can see it: a
+// staple on the list, the plan regenerated, the staple still there. Written
+// and run RED against the shipped createVersion — which wrote solver output
+// only, so anything else on the list was deleted by the next version — before
+// the merge existed. What a regeneration writes is captured at the one call
+// that writes it: fuel_create_version's p_items.
+const regenerate = async (staples) => {
+  const calls = []
+  const db = { rpc: async (fn, args) => { calls.push({ fn, args }); return { data: { plan_id: 'plan-v2', list_id: 'list-v2', version: 2, updated_at: '2026-09-21T12:00:00Z' }, error: null } } }
+  const res = await createVersion(db, '2026-09-21', andrew, meals, fortnight, true, staples)
+  return { items: calls.find((c) => c.fn === 'fuel_create_version')?.args?.p_items ?? [], list: res.list }
+}
+const customLines = (items) => items.filter((i) => typeof i.key === 'string' && i.key.startsWith('custom~'))
+{
+  const coffee = { id: '6f1c2d3e-0000-4000-8000-00000000c0ff', item: 'coffee', store_section: 'Pantry' }
+  const riceStaple = { id: '6f1c2d3e-0000-4000-8000-0000000071ce', item: 'rice', store_section: 'Pantry' }
+  const first = await regenerate([coffee, riceStaple])
+  // acceptance 1, the half that shipped broken: a staple survives regeneration
+  assert(customLines(first.items).map((i) => i.item).sort().join() === 'coffee,rice',
+    `a staple survives regeneration — the list a new version writes carries every staple; got ${customLines(first.items).map((i) => i.item).join() || 'no custom line at all'}`)
+  assert(!!first.list && customLines(first.list.items).length === 2, 'the list the page holds after a build is the list the database was given — staples included')
+  // acceptance 5: a second regeneration does not duplicate a staple
+  const again = await regenerate([coffee, riceStaple])
+  assert(customLines(again.items).filter((i) => i.item === 'coffee').length === 1 && customLines(again.items).length === 2,
+    `regenerating a second time does not duplicate a staple — got ${customLines(again.items).length} custom lines`)
+  // acceptance 4: a custom item named like a solver line is its own line
+  const rices = first.items.filter((i) => i.item === 'rice')
+  assert(rices.length === 2 && new Set(rices.map((i) => i.key)).size === 2 && rices.some((i) => !i.key.startsWith('custom~')),
+    `a custom item named like a solver line is a second line, never merged into it — got ${rices.length} rice line(s)`)
+  // acceptance 1, the other half: a one-off belonged to the list it was added to — nothing carries it into a new version
+  assert(customLines(first.items).every((i) => i.custom === 'staple'), 'a one-off is not carried into a new version — only staples are merged')
+}
+
+// the merge, the aisles, the tick, the shortcut — and the rest of the acceptance criteria, as behaviour
+{
+  const solver = buildShoppingList(andrew, meals, fortnight).items
+  const coffee = { id: 'c0ffee00-0000-4000-8000-000000000001', item: 'coffee', store_section: 'Snacks' }
+  const coffeeKey = customKey(coffee.id)
+  const candles = customLine('0ff0ff00-0000-4000-8000-000000000002', 'birthday candles', 'Pantry', 'one-off')
+  const merged = withStaples(solver, [coffee])
+  assert(customLines(withStaples(merged, [coffee])).length === 1 && withStaples(merged, [coffee]).length === merged.length,
+    "a list that already carries its staples, merged again, carries each once — the merge starts from the solver's lines, never from a stored list")
+  assert(!withStaples([...merged, candles], [coffee]).some((l) => l.key === candles.key), 'a one-off on the old list is not carried into the new one')
+  assert(withStaples(solver, [coffee, coffee]).filter((l) => l.key === coffeeKey).length === 1, 'the same staple twice is one line')
+  // acceptance 3: in its aisle, in aisle order with everything else
+  const secs14 = sectionsInOrder([...merged.filter((l) => !l.second_trip && !l.stocked), candles], andrew.store_section_order)
+  const names14s = secs14.map((s) => s.section)
+  const rank14 = (s) => { const i = andrew.store_section_order.indexOf(s); return i < 0 ? 99 : i }
+  assert(new Set(names14s).size === names14s.length && names14s.every((s, i) => i === 0 || rank14(names14s[i - 1]) <= rank14(s)),
+    `the aisles are walked once each, in the household's order — got ${names14s.join(' → ')}`)
+  const snacks14 = secs14.find((s) => s.section === 'Snacks'), pantry14 = secs14.find((s) => s.section === 'Pantry')
+  assert(!!snacks14 && snacks14.items.some((l) => l.key === coffeeKey) && !!pantry14 && pantry14.items[pantry14.items.length - 1].key === candles.key && pantry14.items.slice(0, -1).every((l) => !isCustom(l)),
+    "coffee lands in Snacks and the candles in Pantry — each in its aisle, after the solver's lines there")
+  // acceptance 2: a tick on a custom line is a tick like any other
+  const ticked14 = merged.map((l) => (l.key === coffeeKey ? { ...l, checked: true } : l))
+  const shown14 = render(ticked14, [], new Set()).find((l) => l.key === coffeeKey)
+  assert(shown14?.shown === true && shown14.save === 'saved' && reconcile(ticked14, [{ key: coffeeKey, checked: true, at: 1 }]).outbox.length === 0,
+    'a custom line re-read from the row shows its tick saved, and the re-read settles its intent — the reload path, unchanged')
+  assert(progress(ticked14).total === progress(solver).total + 1 && progress(ticked14).done === 1, 'a custom line counts toward the list like any line to buy')
+  // the shortcut compares the solver's lines
+  assert(listUnchanged(solver, merged) && listUnchanged(solver, [...merged, candles]) && !listUnchanged(solver.slice(1), merged) && solverLines(merged).length === solver.length,
+    "a list with the athlete's lines on it is the same list to the regeneration shortcut — and a changed solve is still a changed list")
+  assert(defaultSection(andrew.store_section_order) === 'Pantry' && defaultSection(['Produce', 'Frozen']) === 'Frozen', 'a new item defaults to Pantry, or to the last aisle when there is none — never guessed from its name')
+
+  // the checklist, rendered
+  const listProps = { listId: 'list-v2', version: 2, versions: [1, 2], items: [...merged, candles], sectionOrder: andrew.store_section_order, onRowItems: () => {}, send: async () => null, refetch: async () => null, onRegenerate: () => {} }
+  const listHtml = renderToStaticMarkup(createElement(Checklist, { ...listProps, onRemoveCustom: () => {} }))
+  const rowOf = (html, item) => (html.match(new RegExp(`<li[^>]*>(?:(?!<li[ >]).)*?>${item}<(?:(?!<li[ >]).)*?</li>`, 's')) || [])[0] || ''
+  assert((listHtml.match(/eyebrow-mono px-1 mb-1">pantry · /g) || []).length === 1 && (listHtml.match(/eyebrow-mono px-1 mb-1">snacks · /g) || []).length === 1,
+    'the rendered list has one Pantry and one Snacks — a custom line never opens a second aisle')
+  const coffeeRow = rowOf(listHtml, 'coffee'), candlesRow = rowOf(listHtml, 'birthday candles'), broccoliRow = rowOf(listHtml, 'broccoli')
+  assert(!!coffeeRow && !/data-mono/.test(coffeeRow) && /every list/.test(coffeeRow) && /aria-label="take coffee off this list"/.test(coffeeRow),
+    'a staple is drawn as a line to tick, marked every list, with no quantity and its own remove')
+  assert(!!candlesRow && /this list/.test(candlesRow) && !/data-mono/.test(candlesRow), 'a one-off is marked this list, with no quantity')
+  assert(!!broccoliRow && /data-mono/.test(broccoliRow) && !/off this list/.test(broccoliRow), "a solver line keeps its quantity and has no remove — the solver decides those")
+  assert(!/off this list/.test(renderToStaticMarkup(createElement(Checklist, listProps))), 'no remove control until the custom-items migration is applied')
+
+  // the add form, rendered
+  const addHtml = renderToStaticMarkup(createElement(AddItem, { sectionOrder: andrew.store_section_order, staples: [coffee], busy: false, onAdd: async () => null, onStopStaple: () => {} }))
+  assert(/<input[^>]*aria-label="what to buy"/.test(addHtml) && !/<select[^>]*aria-label="what to buy"/.test(addHtml), 'the item is free text — the solver has never heard of it, so nothing tries to match it')
+  assert(/<option value="Pantry" selected="">/.test(addHtml) && (addHtml.match(/<option /g) || []).length === andrew.store_section_order.length, "the aisle is picked from the household's walk, defaulting to Pantry")
+  assert(/aria-pressed="false"[^>]*>every list</.test(addHtml) && /on this list only/.test(addHtml), 'a new item is a one-off unless the athlete says every list')
+  assert(/stop putting coffee on new lists/.test(addHtml) && /stopping keeps it on lists already built/.test(addHtml), 'a staple can be stopped, and the page says the lists already built keep it')
+  assert(!/pill-volt/.test(addHtml) && !/pill-volt/.test(listHtml), 'adding your own is quiet — no volt control on the list screen')
+
+  // wired where it counts
+  const pg14 = readLF('src/app/fuel/page.tsx')
+  const st14 = readLF('src/lib/fuel/store.ts')
+  assert(/const items = withStaples\(list\.items, staples\)\n/.test(st14) && /p_items: items,\n/.test(st14) && /version: row\.version, items, updated_at/.test(st14) && /THE MERGE \(FOR-240\), stated where it happens/.test(st14),
+    'the merge happens in createVersion, stated there, and the list the page holds is the items the database was given')
+  assert(/const st = await loadStaples\(supabase, userId\)\n\s+if \(st\.error\) \{ setBusy\(false\); setError\(/.test(pg14) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted, st\.staples\)/.test(pg14)
+    && pg14.indexOf('const st = await loadStaples(supabase, userId)') < pg14.indexOf('const res = await createVersion('),
+    'a build reads the staples at build time, and builds nothing when that read fails — a staple silently missing is the deletion this exists to stop')
+  assert(/if \(error\) return \{ staples: \[\], available: false, error: isMissingTable\(error\) \? null : error \}/.test(st14), 'before the migration is applied: no staples, no add form, and never "not ready"')
+  assert(/db\.rpc\('fuel_add_custom_item'/.test(st14) && /db\.rpc\('fuel_remove_custom_item'/.test(st14) && (st14.match(/superseded: error\?\.code === SUPERSEDED/g) || []).length === 3,
+    'an add and a remove go through guarded database functions and name the refusal, as a tick does')
+  assert(/canonical\(solverLines\(items\)\.map/.test(readLF('src/lib/fuel/version.ts')), "the unchanged-plan shortcut compares the solver's lines")
+  assert(/\{customReady && \(\n\s+<AddItem /.test(pg14) && /onRemoveCustom=\{customReady \? /.test(pg14) && /sectionOrder=\{sectionOrder\}/.test(pg14),
+    'the add form and the remove control appear only once the migration is applied, and the list is walked in its own aisle order')
+
+  // the migration: one table, two functions, the same guard
+  const cmig = readLF('supabase/migrations/20260918_fuel_custom_items.sql')
+  assert(/CREATE TABLE IF NOT EXISTS public\.fuel_staples \(/.test(cmig) && /ALTER TABLE public\.fuel_staples ENABLE ROW LEVEL SECURITY/.test(cmig)
+    && /CREATE TRIGGER fuel_staples_pro_gate BEFORE INSERT OR UPDATE ON public\.fuel_staples\s+FOR EACH ROW EXECUTE FUNCTION public\.enforce_fuel_pro\(\);/.test(cmig),
+    'fuel_staples is created with row level security and the Pro gate, in the same migration')
+  assert(!/FOR DELETE|FOR ALL/.test(cmig) && /removed_at\s+timestamptz/.test(cmig) && /WHERE removed_at IS NULL/.test(cmig),
+    'a staple is stopped with a stamp and never deleted through the app — no delete policy — with one active staple per item per aisle')
+  for (const fn of ['fuel_add_custom_item', 'fuel_remove_custom_item']) {
+    const body = (cmig.match(new RegExp(`CREATE OR REPLACE FUNCTION public\\.${fn}\\([\\s\\S]*?\\$\\$;`)) || [])[0] || ''
+    assert(/SECURITY INVOKER/.test(body) && /PERFORM pg_advisory_xact_lock\(hashtext\(auth\.uid\(\)::text \|\| ':' \|\| v_week_start::text\)\)/.test(body) && /newer\.version > p\.version/.test(body)
+      && body.indexOf("ERRCODE = 'FU001'") > body.indexOf('PERFORM pg_advisory_xact_lock') && body.lastIndexOf("ERRCODE = 'FU001'") < body.indexOf('UPDATE public.fuel_lists') && /WHERE id = p_list_id AND user_id = auth\.uid\(\)/.test(body),
+      `${fn} takes the per-cycle lock, refuses a superseded list with FU001 before it writes, and keeps the owner test`)
+    assert(new RegExp(`REVOKE EXECUTE ON FUNCTION public\\.${fn}\\([a-z, ]+\\) FROM PUBLIC, anon;`).test(cmig), `anon cannot call ${fn}`)
+  }
+  assert(/'custom~' \|\| replace\(p_staple_id::text, '-', ''\)/.test(cmig) && /'custom~' \|\| replace\(gen_random_uuid\(\)::text, '-', ''\)/.test(cmig) && customKey('6f1c2d3e-0000-4000-8000-00000000c0ff') === 'custom~6f1c2d3e00004000800000000000c0ff',
+    "the database mints custom keys in customKey's shape — the prefix and the uuid's hex, never a colon")
+  assert(/p_key !~ '\^custom~\[A-Za-z0-9\]\+\$'/.test(cmig), 'the remove function refuses any key that is not a custom key — a solver line is never removed this way')
+  assert(/WHEN EXISTS \(SELECT 1 FROM jsonb_array_elements\(items\) AS e WHERE e->>'key' = v_key\) THEN items/.test(cmig), "a staple's line added twice is one line")
+  const names14 = readdirSync(join(ROOT, 'supabase/migrations')).sort()
+  assert(names14.indexOf('20260918_fuel_custom_items.sql') > names14.indexOf('20260917_fuel_rotations.sql'), 'the custom-items migration sorts after everything it references')
+  assert(!/ALTER TABLE public\.fuel_(meals|household|plans|lists)|DROP TABLE|DROP COLUMN|DELETE FROM|TRUNCATE|FUNCTION public\.fuel_(set_item_checked|create_version)/.test(cmig), 'the migration is additive: nothing existing is altered, dropped or replaced')
+  assert(/\['fuel custom keys \(FOR-240\)', 'fuel-custom-keys\.mjs'\]/.test(readLF('scripts/checks/run-all.mjs')) && existsSync(join(ROOT, 'scripts/checks/fuel-custom-keys.mjs')), 'the key invariant is registered as its own suite')
 }
 
 if (failures) { console.log(`\nfuel-solve: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

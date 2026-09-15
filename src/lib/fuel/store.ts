@@ -10,6 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from './types'
 import { buildShoppingList, householdFor } from './solve'
 import { snapshot, type RulesSnapshot } from './version'
+import { withStaples, type StapleRow } from './custom'
 import { activeCycle, historyFloor, upcomingCycle, type CycleRow } from './cycle'
 
 // The client util returns a stub when env is missing (build time); this is
@@ -170,18 +171,29 @@ export async function loadVersions(db: Db, userId: string, weekStart: string): P
  * Solve, then write version + 1 in ONE transaction: plan row and list row
  * together, the version number chosen inside the database under the unique
  * constraint. Old versions are never touched (L7).
+ *
+ * THE MERGE (FOR-240), stated where it happens: the athlete's staples are
+ * merged into the items HERE, when the version is created. One items array,
+ * so a custom line ticks through the same function and inherits the same
+ * superseded-list guard (FU001) as every other line — one guard, not two.
+ * Staples come from the staples store, never from the previous list, so a
+ * regeneration carries each exactly once and cannot delete one. One-offs are
+ * not carried: they belonged to the list they were added to. The cost,
+ * accepted: a staple stopped or changed reaches lists built from then on,
+ * never a list already built.
  */
-export async function createVersion(db: Db, weekStart: string, household: Household, meals: MealRow[], plan: Plan, inventoryCounted = true): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
+export async function createVersion(db: Db, weekStart: string, household: Household, meals: MealRow[], plan: Plan, inventoryCounted = true, staples: StapleRow[] = []): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
   if (typeof db.rpc !== 'function') return { plan: null, list: null, error: { message: 'no client' } }
   const list = buildShoppingList(householdFor(household, inventoryCounted), meals, plan)
+  const items = withStaples(list.items, staples)
   const { data, error } = await db.rpc('fuel_create_version', {
-    p_week_start: weekStart, p_meal_ids: plan.entries, p_rules_snapshot: snapshot(household, plan, inventoryCounted), p_items: list.items,
+    p_week_start: weekStart, p_meal_ids: plan.entries, p_rules_snapshot: snapshot(household, plan, inventoryCounted), p_items: items,
   })
   if (error || !data) return { plan: null, list: null, error }
   const row = data as { plan_id: string; list_id: string; version: number; updated_at: string }
   return {
     plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan, inventoryCounted), created_at: row.updated_at },
-    list: { id: row.list_id, plan_id: row.plan_id, version: row.version, items: list.items, updated_at: row.updated_at },
+    list: { id: row.list_id, plan_id: row.plan_id, version: row.version, items, updated_at: row.updated_at },
     error: null,
   }
 }
@@ -200,4 +212,46 @@ export async function setItemChecked(db: Db, listId: string, key: string, checke
 export async function readItems(db: Db, listId: string): Promise<ListItem[] | null> {
   const { data } = await db.from('fuel_lists').select('items').eq('id', listId).maybeSingle()
   return (data?.items as ListItem[] | undefined) ?? null
+}
+
+// ── The athlete's own items (FOR-240) ───────────────────────────────────────
+/**
+ * The staples still on: what every list built from now on carries. Before the
+ * custom-items migration is applied the table does not exist — no staples, the
+ * feature stays hidden, and Fuel runs as it did; that is never "not ready".
+ */
+export async function loadStaples(db: Db, userId: string): Promise<{ staples: StapleRow[]; available: boolean; error: { code?: string; message?: string } | null }> {
+  const { data, error } = await db.from('fuel_staples').select('id, item, store_section').eq('user_id', userId).is('removed_at', null).order('created_at')
+  if (error) return { staples: [], available: false, error: isMissingTable(error) ? null : error }
+  return { staples: (data ?? []) as StapleRow[], available: true, error: null }
+}
+
+/** A new staple. The same item in the same aisle twice is refused by the unique index (23505) and reported as a duplicate. */
+export async function addStaple(db: Db, userId: string, item: string, section: string): Promise<{ staple: StapleRow | null; duplicate: boolean; error: { code?: string; message?: string } | null }> {
+  const { data, error } = await db.from('fuel_staples').insert({ user_id: userId, item: item.trim(), store_section: section }).select('id, item, store_section').single()
+  return { staple: (data as StapleRow | null) ?? null, duplicate: error?.code === '23505', error }
+}
+
+/** Stop a staple on lists built from now on. The row is stamped, never deleted, and lists already built keep their copy. */
+export async function stopStaple(db: Db, userId: string, id: string): Promise<{ error: { code?: string; message?: string } | null }> {
+  const { error } = await db.from('fuel_staples').update({ removed_at: new Date().toISOString() }).eq('id', id).eq('user_id', userId)
+  return { error }
+}
+
+/**
+ * Put a line on ONE list: a one-off, or a staple's own line — keyed on the
+ * staple, so it is the very line every later version merges. Guarded like a
+ * tick: refused on a superseded list (FU001), and it returns the row's items.
+ */
+export async function addCustomItem(db: Db, listId: string, item: string, section: string, stapleId: string | null = null): Promise<{ items: ListItem[] | null; error: { code?: string; message?: string } | null; superseded: boolean }> {
+  if (typeof db.rpc !== 'function') return { items: null, error: { message: 'no client' }, superseded: false }
+  const { data, error } = await db.rpc('fuel_add_custom_item', { p_list_id: listId, p_item: item, p_section: section, p_staple_id: stapleId })
+  return { items: (data as ListItem[] | null) ?? null, error, superseded: error?.code === SUPERSEDED }
+}
+
+/** Take one of the athlete's lines off ONE list. The database refuses a solver line. */
+export async function removeCustomItem(db: Db, listId: string, key: string): Promise<{ items: ListItem[] | null; error: { code?: string; message?: string } | null; superseded: boolean }> {
+  if (typeof db.rpc !== 'function') return { items: null, error: { message: 'no client' }, superseded: false }
+  const { data, error } = await db.rpc('fuel_remove_custom_item', { p_list_id: listId, p_key: key })
+  return { items: (data as ListItem[] | null) ?? null, error, superseded: error?.code === SUPERSEDED }
 }

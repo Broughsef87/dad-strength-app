@@ -115,6 +115,8 @@ export interface ListItem {
   stocked: boolean
   stocked_reason?: string
   checked: boolean
+  /** FOR-240: a line the athlete added, never solver output — a staple (on every list) or a one-off (this list only). Absent on solver lines. */
+  custom?: 'staple' | 'one-off'
 }
 
 export interface ListSection {

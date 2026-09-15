@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import type { ListItem } from '../../lib/fuel/types'
 import { SECOND_TRIP_SECTION, STOCKED_SECTION } from '../../lib/fuel/solve'
+import { isCustom, sectionsInOrder } from '../../lib/fuel/custom'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, pendingFor, progress, reconcile, released, render, type StoredOutbox, type TickIntent } from '../../lib/fuel/ticks'
 
 // Keys with a write in flight, PER LIST and shared across mounts: a checklist
@@ -146,12 +147,14 @@ const fmtQty = (i: ListItem) => {
   return `${q} ${i.unit}`
 }
 
-export default function Checklist({ listId, version, versions, items: rowItems, onRowItems, send, refetch, onRegenerate, paused = false }: {
+export default function Checklist({ listId, version, versions, items: rowItems, sectionOrder, onRowItems, send, refetch, onRegenerate, onRemoveCustom, paused = false }: {
   listId: string
   version: number
   versions: number[]
   /** The row's items — the truth. */
   items: ListItem[]
+  /** The aisle order the list was built with. Sections are walked in it, the athlete's own lines included (FOR-240). */
+  sectionOrder: string[]
   /** The row answered: replace the truth — for THIS list; the page ignores a stale list's answer. */
   onRowItems: (listId: string, items: ListItem[]) => void
   /** The one write path: returns the row's items, or null on failure. */
@@ -159,6 +162,8 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   /** A fresh read of the row. */
   refetch: () => Promise<ListItem[] | null>
   onRegenerate: () => void
+  /** Take one of the athlete's own lines off this list. Absent until the custom-items migration is applied. */
+  onRemoveCustom?: (key: string) => void
   /** The page is re-reading the household and the plan (on waking, on reconnect): nothing is sent until it has, so no tick lands on a superseded list (Codex, round 17). */
   paused?: boolean
 }) {
@@ -320,11 +325,10 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   const main = rendered.filter((i) => !i.second_trip && !i.stocked)
   const trip2 = rendered.filter((i) => i.second_trip && !i.stocked)
   const stocked = rendered.filter((i) => i.stocked)
-  const sections: Array<{ title: string; items: typeof rendered; note?: string }> = []
-  for (const i of main) {
-    const s = sections[sections.length - 1]
-    if (s && s.title === i.section) s.items.push(i); else sections.push({ title: i.section, items: [i] })
-  }
+  // Grouped by aisle in the household's walk, not by adjacency: the athlete's
+  // lines are stored after the solver's and must still land in their own
+  // aisle, once (FOR-240).
+  const sections: Array<{ title: string; items: typeof rendered; note?: string }> = sectionsInOrder(main, sectionOrder).map((s) => ({ title: s.section, items: s.items }))
   if (trip2.length) sections.push({ title: SECOND_TRIP_SECTION, items: trip2, note: 'mid-cycle top-up — fresh fish and produce for week two, bought closer to the night' })
   const p = progress(rowItems)
   const pending = outbox.length
@@ -358,13 +362,15 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
           {s.note && <p className="text-[11px] text-muted-foreground px-1 mb-2">{s.note}</p>}
           <ul className="space-y-1">
             {s.items.map((i) => (
-              <li key={i.key}>
+              <li key={i.key} className="flex items-stretch gap-1">
                 <button type="button" onClick={() => tap(i, i.shown)} aria-pressed={i.shown}
-                  className={`row-recessed w-full flex items-center gap-3 px-3 py-3 text-left ${i.shown ? 'text-muted-foreground' : ''}`}>
+                  className={`row-recessed w-full min-w-0 flex items-center gap-3 px-3 py-3 text-left ${i.shown ? 'text-muted-foreground' : ''}`}>
                   <span className={`day-pill shrink-0 ${i.shown ? 'on' : ''}`} aria-hidden="true" />
                   <span className={`flex-1 min-w-0 text-sm ${i.shown ? 'line-through' : ''}`}>
                     {i.item}
-                    <span className="data-mono ml-2"><b>{fmtQty(i)}</b>{i.inferred && <span className="ml-1 text-muted-foreground">est.</span>}</span>
+                    {isCustom(i)
+                      ? <span className="eyebrow-mono-sm ml-2">{i.custom === 'staple' ? 'every list' : 'this list'}</span>
+                      : <span className="data-mono ml-2"><b>{fmtQty(i)}</b>{i.inferred && <span className="ml-1 text-muted-foreground">est.</span>}</span>}
                   </span>
                   <span className="shrink-0 text-[10px] lowercase text-muted-foreground flex items-center gap-1" aria-label={`save state: ${i.save}`}>
                     {i.save === 'saved' && i.shown && <><Check size={12} aria-hidden="true" /> saved</>}
@@ -372,6 +378,10 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
                     {i.save === 'failed' && <span className="text-status-danger-ink">not saved · tap again</span>}
                   </span>
                 </button>
+                {isCustom(i) && onRemoveCustom && (
+                  <button type="button" onClick={() => onRemoveCustom(i.key)} aria-label={`take ${i.item} off this list`}
+                    className="pill-quiet shrink-0 px-3 text-[11px] lowercase">remove</button>
+                )}
               </li>
             ))}
           </ul>
