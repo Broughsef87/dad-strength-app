@@ -33,6 +33,10 @@ import * as planBuilderModule from '../../src/components/fuel/PlanBuilder.tsx'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { PAIRS, renderPair, onDisk as migrationOnDisk, drifted } from '../fuel-seed-sql.mjs'
+import { createVersion } from '../../src/lib/fuel/store.ts'
+import { customKey, defaultSection, isCustom, sectionsInOrder, solverLines, stapleIdFromKey } from '../../src/lib/fuel/custom.ts'
+import * as checklistModule from '../../src/components/fuel/Checklist.tsx'
+import * as addItemModule from '../../src/components/fuel/AddItem.tsx'
 
 let failures = 0, passes = 0
 // A .tsx component imported from this .mjs arrives CommonJS-wrapped under tsx: the
@@ -41,6 +45,10 @@ const planBuilderExports = planBuilderModule.default && typeof planBuilderModule
 const PlanBuilder = typeof planBuilderExports.default === 'function' ? planBuilderExports.default : planBuilderModule.default
 const LibraryDrawer = planBuilderExports.LibraryDrawer ?? planBuilderModule.LibraryDrawer
 const maxServings = planBuilderExports.maxServings ?? planBuilderModule.maxServings
+const unwrapDefault = (mod) => { const e = mod.default && typeof mod.default === 'object' ? mod.default : mod; return typeof e.default === 'function' ? e.default : mod.default }
+const Checklist = unwrapDefault(checklistModule)
+const checklistExports = checklistModule.default && typeof checklistModule.default === 'object' ? checklistModule.default : checklistModule
+const AddItem = unwrapDefault(addItemModule)
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const readLF = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
@@ -1039,6 +1047,194 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const pg13 = readLF('src/app/fuel/page.tsx')
   assert(!/step === s \? 'pill-volt'/.test(pg13) && /aria-current=\{step === s \? 'step' : undefined\}/.test(pg13), "the page's step nav is quiet, so the planner's one volt control is the build")
   assert(/if \(late\.length\) \{ setError\(planIssueSentences\(late, p\.entries, meals\)\.join\(' · '\)\); return \}/.test(pg13), 'a plan refused at build time is explained in words that name the night, not in rule ids')
+}
+
+// ── 14. the athlete's own items (FOR-240): merged when a version is created, so regeneration cannot delete them ──
+// THE failure the ticket exists to prevent was written and run RED against the
+// shipped createVersion — which wrote solver output only, so anything else on
+// a list was deleted by the next version — before any merge existed: 4 of 465,
+// the staple assertions and nothing else. Since Andrew's ruling A the DATABASE
+// is the only source of staple lines, so this check reads the STORED items —
+// what the database answered, which the page then holds — never what the
+// client sent; and what the client sends must be the solver's lines only. That
+// the database rebuilds every staple still on, once, and drops one stopped in
+// the gap is proven against Postgres itself (the custom-items database proof).
+const stapleLine = (id, item, section) => ({ key: customKey(id), item: item.trim(), qty: 0, unit: '', section, from: [], second_trip: false, inferred: false, stocked: false, checked: false, custom: 'staple' })
+const oneOffLine = (id, item, section) => ({ ...stapleLine(id, item, section), custom: 'one-off' })
+const customLines = (items) => items.filter((i) => typeof i.key === 'string' && i.key.startsWith('custom~'))
+const buildAgainst = async (storedItems) => {
+  const calls = []
+  const db = { rpc: async (fn, args) => { calls.push({ fn, args }); return { data: { plan_id: 'plan-v2', list_id: 'list-v2', version: 2, updated_at: '2026-09-21T12:00:00Z', items: storedItems }, error: null } } }
+  const res = await createVersion(db, '2026-09-21', andrew, meals, fortnight, true)
+  return { calls, sent: calls[0]?.args?.p_items ?? [], held: res.list?.items ?? [] }
+}
+{
+  const solverNow = buildShoppingList(andrew, meals, fortnight).items
+  const storedRow = [...solverNow, stapleLine('6f1c2d3e-0000-4000-8000-00000000c0ff', 'coffee', 'Pantry'), stapleLine('6f1c2d3e-0000-4000-8000-0000000071ce', 'rice', 'Pantry')]
+  const first = await buildAgainst(storedRow)
+  // acceptance 1, the half that shipped broken: a staple survives regeneration — the page holds the STORED list, staples and all
+  assert(customLines(first.held).map((i) => i.item).sort().join() === 'coffee,rice' && JSON.stringify(first.held) === JSON.stringify(storedRow),
+    `a staple survives regeneration — the page holds the list the database stored, every staple on it; got ${customLines(first.held).map((i) => i.item).join() || 'no custom line at all'}`)
+  assert(JSON.stringify(first.held) === JSON.stringify(storedRow) && first.calls.length === 1 && first.calls[0].fn === 'fuel_create_version_with_staples',
+    'the list the page holds after a build is the list the database stored — staples included, written through the function that rebuilds them')
+  // Andrew's ruling A: the client sends the solver's lines only
+  assert(first.sent.length === solverNow.length && customLines(first.sent).length === 0,
+    `the client sends the solver's lines only — never a staple line; it sent ${customLines(first.sent).length} custom line(s)`)
+  // acceptance 5: regenerating again, from a page already holding staples, still sends none and holds the stored list
+  const again = await buildAgainst(storedRow)
+  assert(customLines(again.sent).length === 0 && JSON.stringify(again.held) === JSON.stringify(storedRow),
+    `regenerating a second time sends no staple line and holds the stored list — it sent ${customLines(again.sent).length}`)
+  // acceptance 4: a custom item named like a solver line is its own line
+  const rices = first.held.filter((i) => i.item === 'rice')
+  assert(rices.length === 2 && new Set(rices.map((i) => i.key)).size === 2 && rices.some((i) => !i.key.startsWith('custom~')),
+    `a custom item named like a solver line is a second line, never merged into it — got ${rices.length} rice line(s)`)
+}
+
+// the merge, the aisles, the tick, the shortcut — and the rest of the acceptance criteria, as behaviour
+{
+  const solver = buildShoppingList(andrew, meals, fortnight).items
+  const coffee = { id: 'c0ffee00-0000-4000-8000-000000000001', item: 'coffee', store_section: 'Snacks' }
+  const coffeeKey = customKey(coffee.id)
+  const candles = oneOffLine('0ff0ff00-0000-4000-8000-000000000002', 'birthday candles', 'Pantry')
+  // the list as the database stores it: the solver's lines, then the staple's line
+  const merged = [...solver, stapleLine(coffee.id, coffee.item, coffee.store_section)]
+  // acceptance 3: in its aisle, in aisle order with everything else
+  const secs14 = sectionsInOrder([...merged.filter((l) => !l.second_trip && !l.stocked), candles], andrew.store_section_order)
+  const names14s = secs14.map((s) => s.section)
+  const rank14 = (s) => { const i = andrew.store_section_order.indexOf(s); return i < 0 ? 99 : i }
+  assert(new Set(names14s).size === names14s.length && names14s.every((s, i) => i === 0 || rank14(names14s[i - 1]) <= rank14(s)),
+    `the aisles are walked once each, in the household's order — got ${names14s.join(' → ')}`)
+  const snacks14 = secs14.find((s) => s.section === 'Snacks'), pantry14 = secs14.find((s) => s.section === 'Pantry')
+  assert(!!snacks14 && snacks14.items.some((l) => l.key === coffeeKey) && !!pantry14 && pantry14.items[pantry14.items.length - 1].key === candles.key && pantry14.items.slice(0, -1).every((l) => !isCustom(l)),
+    "coffee lands in Snacks and the candles in Pantry — each in its aisle, after the solver's lines there")
+  // acceptance 2: a tick on a custom line is a tick like any other
+  const ticked14 = merged.map((l) => (l.key === coffeeKey ? { ...l, checked: true } : l))
+  const shown14 = render(ticked14, [], new Set()).find((l) => l.key === coffeeKey)
+  assert(shown14?.shown === true && shown14.save === 'saved' && reconcile(ticked14, [{ key: coffeeKey, checked: true, at: 1 }]).outbox.length === 0,
+    'a custom line re-read from the row shows its tick saved, and the re-read settles its intent — the reload path, unchanged')
+  assert(progress(ticked14).total === progress(solver).total + 1 && progress(ticked14).done === 1, 'a custom line counts toward the list like any line to buy')
+  // the shortcut compares the solver's lines
+  assert(listUnchanged(solver, merged) && listUnchanged(solver, [...merged, candles]) && !listUnchanged(solver.slice(1), merged) && solverLines(merged).length === solver.length,
+    "a list with the athlete's lines on it is the same list to the regeneration shortcut — and a changed solve is still a changed list")
+  assert(defaultSection(andrew.store_section_order) === 'Pantry' && defaultSection(['Produce', 'Frozen']) === 'Frozen', 'a new item defaults to Pantry, or to the last aisle when there is none — never guessed from its name')
+
+  // the checklist, rendered
+  const listProps = { listId: 'list-v2', version: 2, versions: [1, 2], items: [...merged, candles], sectionOrder: andrew.store_section_order, onRowItems: () => {}, send: async () => null, refetch: async () => null, onRegenerate: () => {} }
+  const listHtml = renderToStaticMarkup(createElement(Checklist, { ...listProps, onRemoveCustom: () => {}, onStopStaple: () => {} }))
+  const rowOf = (html, item) => (html.match(new RegExp(`<li[^>]*>(?:(?!<li[ >]).)*?>${item}<(?:(?!<li[ >]).)*?</li>`, 's')) || [])[0] || ''
+  assert((listHtml.match(/eyebrow-mono px-1 mb-1">pantry · /g) || []).length === 1 && (listHtml.match(/eyebrow-mono px-1 mb-1">snacks · /g) || []).length === 1,
+    'the rendered list has one Pantry and one Snacks — a custom line never opens a second aisle')
+  const coffeeRow = rowOf(listHtml, 'coffee'), candlesRow = rowOf(listHtml, 'birthday candles'), broccoliRow = rowOf(listHtml, 'broccoli')
+  assert(!!coffeeRow && !/data-mono/.test(coffeeRow) && /every list/.test(coffeeRow) && /aria-label="stop coffee — off this list and every new list"[^>]*>stop</.test(coffeeRow) && !/take coffee off this list/.test(coffeeRow),
+    'a staple is drawn as a line to tick, marked every list, with no quantity — and stopped in one tap from its line')
+  assert(!!candlesRow && /this list/.test(candlesRow) && !/data-mono/.test(candlesRow) && /aria-label="take birthday candles off this list"/.test(candlesRow) && !/>stop</.test(candlesRow), 'a one-off is marked this list, with no quantity, and removed — not stopped — from its line')
+  assert(!!broccoliRow && /data-mono/.test(broccoliRow) && !/off this list/.test(broccoliRow), "a solver line keeps its quantity and has no remove — the solver decides those")
+  const bareList = renderToStaticMarkup(createElement(Checklist, listProps))
+  assert(!/off this list/.test(bareList) && !/>stop</.test(bareList), 'no remove control until the custom-items migration is applied — and no stop')
+
+  // the add form, rendered
+  const addHtml = renderToStaticMarkup(createElement(AddItem, { sectionOrder: andrew.store_section_order, staples: [coffee], busy: false, onAdd: async () => null, onStopStaple: () => {} }))
+  assert(/<input[^>]*aria-label="what to buy"/.test(addHtml) && !/<select[^>]*aria-label="what to buy"/.test(addHtml), 'the item is free text — the solver has never heard of it, so nothing tries to match it')
+  assert(/<option value="Pantry" selected="">/.test(addHtml) && (addHtml.match(/<option /g) || []).length === andrew.store_section_order.length, "the aisle is picked from the household's walk, defaulting to Pantry")
+  assert(/aria-pressed="false"[^>]*>every list</.test(addHtml) && /on this list only/.test(addHtml), 'a new item is a one-off unless the athlete says every list')
+  assert(/aria-label="stop coffee — off this list and every new list"/.test(addHtml) && /stopping takes it off this list and every new list — lists already built for other weeks keep it/.test(addHtml), 'a staple can be stopped from the list of staples too, and the page says what stopping does')
+  assert(!/pill-volt/.test(addHtml) && !/pill-volt/.test(listHtml), 'adding your own is quiet — no volt control on the list screen')
+
+  // wired where it counts
+  const pg14 = readLF('src/app/fuel/page.tsx')
+  const st14 = readLF('src/lib/fuel/store.ts')
+  assert(/p_items: list\.items \}\n/.test(st14) && /const stored = Array\.isArray\(row\.items\) \? row\.items : list\.items\n/.test(st14) && /version: row\.version, items: stored, updated_at/.test(st14) && /DATABASE is the only source of staple lines \(Andrew's ruling A\)/.test(st14),
+    "the client sends the solver's lines only, says so where the version is written, and holds the items the database stored")
+  const onBuild14 = pg14.slice(pg14.indexOf('const onBuild = async'), pg14.indexOf('const openUpcoming = async')).split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+  assert(onBuild14.length > 200 && !/loadStaples|\bstaples\b/.test(onBuild14) && /const res = await createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)\n/.test(onBuild14),
+    'a build reads no staples on the client — the database is the only source of staple lines')
+  assert(!/withStaples|customLine/.test(readLF('src/lib/fuel/custom.ts') + pg14 + st14), 'nothing on the client merges staples — the client merge has left the write path')
+  assert(/if \(error\) return \{ staples: \[\], available: false, error: isMissingTable\(error\) \? null : error \}/.test(st14), 'before the migration is applied: no staples, no add form, and never "not ready"')
+  assert(/db\.rpc\('fuel_add_custom_item'/.test(st14) && /db\.rpc\('fuel_remove_custom_item'/.test(st14) && (st14.match(/superseded: error\?\.code === SUPERSEDED/g) || []).length === 3,
+    'an add and a remove go through guarded database functions and name the refusal, as a tick does')
+  assert(/canonical\(solverLines\(items\)\.map/.test(readLF('src/lib/fuel/version.ts')), "the unchanged-plan shortcut compares the solver's lines")
+  assert(/\{customReady && \(\n\s+<AddItem /.test(pg14) && /onRemoveCustom=\{customReady \? /.test(pg14) && /sectionOrder=\{sectionOrder\}/.test(pg14),
+    'the add form and the remove control appear only once the migration is applied, and the list is walked in its own aisle order')
+
+  // the migration: one table, two functions, the same guard
+  const cmig = readLF('supabase/migrations/20260918_fuel_custom_items.sql')
+  assert(/CREATE TABLE IF NOT EXISTS public\.fuel_staples \(/.test(cmig) && /ALTER TABLE public\.fuel_staples ENABLE ROW LEVEL SECURITY/.test(cmig)
+    && /CREATE TRIGGER fuel_staples_pro_gate BEFORE INSERT OR UPDATE ON public\.fuel_staples\s+FOR EACH ROW EXECUTE FUNCTION public\.enforce_fuel_pro\(\);/.test(cmig),
+    'fuel_staples is created with row level security and the Pro gate, in the same migration')
+  assert(!/FOR DELETE|FOR ALL/.test(cmig) && /removed_at\s+timestamptz/.test(cmig) && /WHERE removed_at IS NULL/.test(cmig),
+    'a staple is stopped with a stamp and never deleted through the app — no delete policy — with one active staple per item per aisle')
+  for (const fn of ['fuel_add_custom_item', 'fuel_remove_custom_item']) {
+    const body = (cmig.match(new RegExp(`CREATE OR REPLACE FUNCTION public\\.${fn}\\([\\s\\S]*?\\$\\$;`)) || [])[0] || ''
+    assert(/SECURITY INVOKER/.test(body) && /PERFORM pg_advisory_xact_lock\(hashtext\(auth\.uid\(\)::text \|\| ':' \|\| v_week_start::text\)\)/.test(body) && /newer\.version > p\.version/.test(body)
+      && body.indexOf("ERRCODE = 'FU001'") > body.indexOf('PERFORM pg_advisory_xact_lock') && body.lastIndexOf("ERRCODE = 'FU001'") < body.indexOf('UPDATE public.fuel_lists') && /WHERE id = p_list_id AND user_id = auth\.uid\(\)/.test(body),
+      `${fn} takes the per-cycle lock, refuses a superseded list with FU001 before it writes, and keeps the owner test`)
+    assert(new RegExp(`REVOKE EXECUTE ON FUNCTION public\\.${fn}\\([a-z, ]+\\) FROM PUBLIC, anon;`).test(cmig), `anon cannot call ${fn}`)
+  }
+  assert(/'custom~' \|\| replace\(p_staple_id::text, '-', ''\)/.test(cmig) && /'custom~' \|\| replace\(gen_random_uuid\(\)::text, '-', ''\)/.test(cmig) && customKey('6f1c2d3e-0000-4000-8000-00000000c0ff') === 'custom~6f1c2d3e00004000800000000000c0ff',
+    "the database mints custom keys in customKey's shape — the prefix and the uuid's hex, never a colon")
+  assert(/p_key !~ '\^custom~\[A-Za-z0-9\]\+\$'/.test(cmig), 'the remove function refuses any key that is not a custom key — a solver line is never removed this way')
+  assert(/WHEN EXISTS \(SELECT 1 FROM jsonb_array_elements\(items\) AS e WHERE e->>'key' = v_key\) THEN items/.test(cmig), "a staple's line added twice is one line")
+  const names14 = readdirSync(join(ROOT, 'supabase/migrations')).sort()
+  assert(names14.indexOf('20260918_fuel_custom_items.sql') > names14.indexOf('20260917_fuel_rotations.sql'), 'the custom-items migration sorts after everything it references')
+  assert(!/ALTER TABLE public\.fuel_(meals|household|plans|lists)|DROP TABLE|DROP COLUMN|DELETE FROM|TRUNCATE|FUNCTION public\.fuel_(set_item_checked|create_version)\(/.test(cmig), 'the migration is additive: nothing existing is altered, dropped or replaced')
+  assert(/\['fuel custom keys \(FOR-240\)', 'fuel-custom-keys\.mjs'\]/.test(readLF('scripts/checks/run-all.mjs')) && existsSync(join(ROOT, 'scripts/checks/fuel-custom-keys.mjs')), 'the key invariant is registered as its own suite')
+}
+
+// Codex r1 (FOR-240) and Andrew's ruling — answers in order, staples read under the lock, duplicates from the database, one tap to stop
+{
+  // 1. the athlete's writes wait their turn in the list's queue
+  const sendQueuedFn = checklistExports.sendQueued ?? checklistModule.sendQueued
+  const published = []
+  const slow = sendQueuedFn('list-order', () => new Promise((r) => setTimeout(() => r('tick answered before the add'), 30))).then((v) => published.push(v))
+  const quick = sendQueuedFn('list-order', async () => 'the add').then((v) => published.push(v))
+  await Promise.all([slow, quick])
+  assert(typeof sendQueuedFn === 'function' && published.join(' → ') === 'tick answered before the add → the add',
+    `answers on one list are published in the order they were sent, however long each takes — got ${published.join(' → ')}`)
+  const pgR1 = readLF('src/app/fuel/page.tsx')
+  assert(/import Checklist, \{ sendQueued \} from '\.\.\/\.\.\/components\/fuel\/Checklist'/.test(pgR1) && /await sendQueued\(id, \(\) => addCustomItem\(supabase, id, item, section, stapleId\)\)/.test(pgR1)
+    && (pgR1.match(/await sendQueued\(id, \(\) => removeCustomItem\(supabase, id, /g) || []).length === 2 && !/await (addCustomItem|removeCustomItem)\(/.test(pgR1),
+    "custom writes wait their turn in the checklist's queue, behind any tick or re-read — an older answer never lands over a newer one")
+  // 2. a duplicate staple is found in the database, not in the page's copy
+  assert(/if \(s\.duplicate\) \{[\s\S]{0,400}?const fresh = await loadStaples\(supabase, userId\)[\s\S]{0,300}?setStaples\(fresh\.staples\)\n\s+saved = fresh\.staples\.find\(/.test(pgR1) && !/\bstaples\.find\(/.test(pgR1.replace(/fresh\.staples\.find\(/g, '')),
+    "a duplicate staple is resolved from the database — one another tab saved is found — never from the page's copy")
+  // 3. the version is written through the function that reads the staples under the version lock
+  const answered = async (answer) => { const calls = []; const db = { rpc: async (fn, args) => { calls.push(fn); return answer(fn, args) } }; const res = await createVersion(db, '2026-09-21', andrew, meals, fortnight, true); return { calls, res } }
+  const diapers = stapleLine('d1a9e700-0000-4000-8000-000000000003', 'diapers', 'Pantry')
+  const withDb = await answered((fn, args) => ({ data: { plan_id: 'p', list_id: 'l', version: 3, updated_at: 'now', items: [...args.p_items, diapers] }, error: null }))
+  assert(withDb.calls.join() === 'fuel_create_version_with_staples' && withDb.res.list?.items[withDb.res.list.items.length - 1]?.key === diapers.key,
+    'a version is written through the function that reads the staples under the version lock, and the list the page holds is the one the database stored — a staple saved since the page read is on it')
+  const beforeMigration = await answered((fn) => (fn === 'fuel_create_version_with_staples'
+    ? { data: null, error: { code: 'PGRST202', message: 'Could not find the function public.fuel_create_version_with_staples' } }
+    : { data: { plan_id: 'p', list_id: 'l', version: 3, updated_at: 'now' }, error: null }))
+  assert(beforeMigration.calls.join() === 'fuel_create_version_with_staples,fuel_create_version' && !!beforeMigration.res.list && beforeMigration.res.list.items.length === buildShoppingList(andrew, meals, fortnight).items.length,
+    'before the migration is applied the version is written as it always was')
+  const otherFailure = await answered(() => ({ data: null, error: { code: '40001', message: 'could not serialize access' } }))
+  assert(otherFailure.calls.join() === 'fuel_create_version_with_staples' && otherFailure.res.list === null && otherFailure.res.error?.code === '40001',
+    'any other failure is reported — never retried around the lock through the function that does not read staples')
+  const cmigR1 = readLF('supabase/migrations/20260918_fuel_custom_items.sql')
+  const ws = (cmigR1.match(/CREATE OR REPLACE FUNCTION public\.fuel_create_version_with_staples\([\s\S]*?\$\$;/) || [])[0] || ''
+  assert(/SECURITY INVOKER/.test(ws) && /PERFORM pg_advisory_xact_lock\(hashtext\(auth\.uid\(\)::text \|\| ':' \|\| p_week_start::text\)\)/.test(ws) && ws.indexOf('PERFORM pg_advisory_xact_lock') > -1 && ws.indexOf('PERFORM pg_advisory_xact_lock') < ws.indexOf('FROM public.fuel_staples'),
+    'fuel_create_version_with_staples reads the staples under the version lock — taken before the read, not after')
+  assert(/  WHERE s\.user_id = auth\.uid\(\) AND s\.removed_at IS NULL;\n/.test(ws), "it merges only the staples still on — rebuilding every staple line from its own read — and only the athlete's own")
+  assert(/  WHERE NOT \(COALESCE\(c\.elem->>'key', ''\) LIKE 'custom~%' AND strpos\(COALESCE\(c\.elem->>'key', ''\), ':'\) = 0\);\n/.test(ws)
+    && ws.indexOf("LIKE 'custom~%'") > ws.indexOf('PERFORM pg_advisory_xact_lock') && ws.indexOf("LIKE 'custom~%'") < ws.indexOf('FROM public.fuel_staples'),
+    "it drops every custom line the client sends — a custom key is 'custom~' with no colon — before it rebuilds the staples: the database is the only source of staple lines (Andrew's ruling A)")
+  const keysOf = (src) => [...src.matchAll(/'([a-z_]+)', /g)].map((m) => m[1]).join()
+  const wsLine = (ws.match(/jsonb_build_object\([\s\S]*?'custom', 'staple'/) || [])[0] || ''
+  const addLine = (cmigR1.match(/jsonb_build_array\(jsonb_build_object\([\s\S]*?'custom', v_kind\)/) || [])[0] || ''
+  const lineShape = Object.keys(stapleLine('d1a9e700-0000-4000-8000-000000000003', 'x', 'Pantry')).join()
+  assert(keysOf(wsLine) === lineShape && keysOf(addLine) === lineShape && lineShape === 'key,item,qty,unit,section,from,second_trip,inferred,stocked,checked,custom',
+    `a staple line is the same shape wherever the database builds it — rebuilt at version creation, or added to one list — got ${keysOf(wsLine)} | ${keysOf(addLine)}`)
+  assert(/RETURN public\.fuel_create_version\(p_week_start, p_meal_ids, p_rules_snapshot, v_items\) \|\| jsonb_build_object\('items', v_items\)/.test(ws) && /REVOKE EXECUTE ON FUNCTION public\.fuel_create_version_with_staples\(date, jsonb, jsonb, jsonb\) FROM PUBLIC, anon;/.test(cmigR1),
+    'it writes through fuel_create_version unchanged, answers the items it stored, and anon cannot call it')
+  // 4. Andrew's ruling: a staple is stoppable in ONE tap, from the list, where it can be seen
+  const idR1 = '6f1c2d3e-0000-4000-8000-00000000c0ff'
+  assert(stapleIdFromKey(customKey(idR1)) === idR1 && stapleIdFromKey('Pantry:rice:cup dry') === null && stapleIdFromKey('custom~abc') === null, "a staple line's key leads back to its staple, and nothing else does")
+  const clR1 = readLF('src/components/fuel/Checklist.tsx')
+  assert(/\{i\.custom === 'staple' && onStopStaple && \(\n\s+<button type="button" onClick=\{\(\) => onStopStaple\(i\.key\)\}/.test(clR1), 'the stop on a staple line is one button, one tap, on the line itself')
+  assert(/const onStopStaple = async \(stapleId: string\) => \{/.test(pgR1) && pgR1.indexOf('await stopStaple(supabase, userId, stapleId)') > -1
+    && pgR1.indexOf('await stopStaple(supabase, userId, stapleId)') < pgR1.indexOf('await sendQueued(id, () => removeCustomItem(supabase, id, customKey(stapleId)))') && /onStopStaple=\{customReady \? onStopStapleLine : undefined\}/.test(pgR1),
+    'one tap stops the staple for every new list and then takes its line off this list, through the queue; before the migration there is no stop')
 }
 
 if (failures) { console.log(`\nfuel-solve: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

@@ -40,12 +40,14 @@ import BottomNav from '../../components/BottomNav'
 import PremiumGate from '../../components/PremiumGate'
 import IntakeForm from '../../components/fuel/IntakeForm'
 import PlanBuilder from '../../components/fuel/PlanBuilder'
-import Checklist from '../../components/fuel/Checklist'
+import Checklist, { sendQueued } from '../../components/fuel/Checklist'
+import AddItem from '../../components/fuel/AddItem'
 import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import {
-  DEFAULT_HOUSEHOLD, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadVersions,
-  readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
+  DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
+  readItems, removeCustomItem, saveHousehold, setItemChecked, stopStaple, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
+import { customKey, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
@@ -69,6 +71,11 @@ export default function FuelPage() {
   // page is on; a plan's rotation is read from its picks.
   const [rotations, setRotations] = useState<RotationRow[]>([])
   const [members, setMembers] = useState<RotationMealRow[]>([])
+  // The athlete's own items (FOR-240). `customReady` stays false until the
+  // custom-items migration is applied: no add form, and Fuel runs as it did.
+  const [staples, setStaples] = useState<StapleRow[]>([])
+  const [customReady, setCustomReady] = useState(false)
+  const [adding, setAdding] = useState(false)
   const [household, setHousehold] = useState<Household | null>(null)
   // `plan` is the SELECTED cycle; `live` is today's live cycle, held apart so
   // the way back to it always exists (FOR-233, finding 2).
@@ -133,6 +140,10 @@ export default function FuelPage() {
       // A persisted list whose household has since changed opens on the
       // plan step, not on the stale list.
       const persistedStale = !!(active.plan && h.household && changed(active.plan.rules_snapshot, h.household, { entries: active.plan.meal_ids }))
+      const st = await loadStaples(supabase, user.id)
+      if (cancelled) return
+      setStaples(st.staples); setCustomReady(st.available)
+      if (st.error) setError(st.error.message ?? 'could not load the items you put on every list')
       setStep(active.list && !persistedStale ? 'list' : h.household ? 'plan' : 'intake')
       setLoading(false)
     })()
@@ -287,6 +298,8 @@ export default function FuelPage() {
     // itself can have been corrected since (Codex, round 11).
     if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(household, inventoryCounted), meals, p).items, list.items)) { setStep('list'); return }
     setBusy(true); setError(null)
+    // No staples are read here: the database is the only source of staple
+    // lines, rebuilt under the version's own lock (FOR-240, Andrew's ruling A).
     const res = await createVersion(supabase, weekStart, household, meals, p, inventoryCounted)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
@@ -341,10 +354,79 @@ export default function FuelPage() {
   // the plan is rebuilt must not land its old list's items on the new one
   // (Codex, round 2).
   const onRowItems = useCallback((forListId: string, items: ListItem[]) => setList((l) => (l && l.id === forListId ? { ...l, items } : l)), [])
+  // The athlete's own items (FOR-240). An add or a remove goes through a
+  // guarded database function and the row answers, exactly as a tick does.
+  // Refused on a superseded list, it says so and writes nothing. It does not
+  // re-read the page: FOR-233 keeps the re-read to the callers it has, and the
+  // next tick moves the page to the newer list, as it does today.
+  const rebuiltElsewhere = 'this list was rebuilt somewhere else, so nothing changed on it — reload to open the newest list'
+  const onAddCustom = async (item: string, section: string, everyList: boolean): Promise<string | null> => {
+    if (!userId || !listId) return 'there is no list to add to yet'
+    const id = listId
+    setAdding(true)
+    try {
+      let stapleId: string | null = null
+      if (everyList) {
+        const s = await addStaple(supabase, userId, item, section)
+        let saved: StapleRow | null = s.staple
+        if (s.duplicate) {
+          // Already a staple, perhaps saved in another tab since this page
+          // loaded: found in the database, never in the page's copy (Codex r1).
+          const fresh = await loadStaples(supabase, userId)
+          if (fresh.error) return fresh.error.message ?? 'could not read the items on every list'
+          setStaples(fresh.staples)
+          saved = fresh.staples.find((x) => x.item.trim().toLowerCase() === item.trim().toLowerCase() && x.store_section === section) ?? null
+          if (!saved) return `${item} is already on every list`
+        } else {
+          if (s.error || !saved) return s.error?.message ?? 'could not save it for every list'
+          const added = saved
+          setStaples((xs) => [...xs, added])
+        }
+        // The staple's own line, keyed on the staple: one line however often it is asked for.
+        stapleId = saved.id
+      }
+      // Through the list's queue, behind any tick or re-read already in flight,
+      // so their answers and this one land in the order they were sent (Codex r1).
+      const r = await sendQueued(id, () => addCustomItem(supabase, id, item, section, stapleId))
+      if (r.superseded) return everyList ? `saved for every list, but ${rebuiltElsewhere}` : rebuiltElsewhere
+      if (r.error || !r.items) return r.error?.message ?? 'could not add it'
+      onRowItems(id, r.items)
+      return null
+    } finally { setAdding(false) }
+  }
+  const onRemoveCustom = async (key: string) => {
+    if (!listId) return
+    const id = listId
+    const r = await sendQueued(id, () => removeCustomItem(supabase, id, key))
+    if (r.superseded) { setError(rebuiltElsewhere); return }
+    if (r.error || !r.items) { setError(r.error?.message ?? 'could not take it off the list'); return }
+    onRowItems(id, r.items)
+  }
+  // Stopping a staple is ONE tap, from its line on the list or from the list of
+  // staples (Andrew, FOR-240): a mistyped staple with no visible way out is a
+  // trap. It stops the staple on every list built from now on — stamped, never
+  // deleted — and then takes its line off the list on screen, through the
+  // list's queue. Lists already built for other cycles keep their copy.
+  const onStopStaple = async (stapleId: string) => {
+    if (!userId) return
+    const { error: e } = await stopStaple(supabase, userId, stapleId)
+    if (e) { setError(e.message ?? 'could not stop it'); return }
+    setStaples((xs) => xs.filter((x) => x.id !== stapleId))
+    if (!listId) return
+    const id = listId
+    const r = await sendQueued(id, () => removeCustomItem(supabase, id, customKey(stapleId)))
+    if (r.superseded) { setError(`stopped on every new list, but ${rebuiltElsewhere}`); return }
+    if (r.error || !r.items) { setError(r.error?.message ?? 'stopped on every new list, but could not take it off this list'); return }
+    onRowItems(id, r.items)
+  }
+  const onStopStapleLine = (key: string) => { const stapleId = stapleIdFromKey(key); if (stapleId) void onStopStaple(stapleId) }
   // A list is STALE when the household has changed since it was solved — a
   // rule change invalidates the list (L7), on load as much as on save. A
   // stale list is not ticked from; it is rebuilt.
   const stale = !!(plan && household && changed(plan.rules_snapshot, household, { entries: plan.meal_ids }))
+  // The aisle order the list was built with — its own snapshot — so a list is
+  // walked the way it was solved, the athlete's lines included (FOR-240).
+  const sectionOrder = plan?.rules_snapshot?.store_section_order ?? household?.store_section_order ?? DEFAULT_HOUSEHOLD.store_section_order
   // A row on hand that comes off nothing is SEEN, on the nights and on the
   // list, not only in the household (FOR-239): the list otherwise looks right
   // while buying food that is already in the freezer.
@@ -429,8 +511,14 @@ export default function FuelPage() {
               {step === 'list' && list && plan && listId && !stale && (
                 // Keyed by the list: opening another cycle REMOUNTS the checklist, so
                 // its outbox, refs and effects never straddle two lists (Codex, round 5).
-                <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items}
-                  onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing || refreshFailed} />
+                <>
+                  <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items} sectionOrder={sectionOrder}
+                    onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing || refreshFailed}
+                    onRemoveCustom={customReady ? (key) => void onRemoveCustom(key) : undefined} onStopStaple={customReady ? onStopStapleLine : undefined} />
+                  {customReady && (
+                    <AddItem sectionOrder={sectionOrder} staples={staples} busy={adding} onAdd={onAddCustom} onStopStaple={(id) => void onStopStaple(id)} />
+                  )}
+                </>
               )}
             </>
           )}

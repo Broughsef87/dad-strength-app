@@ -4,6 +4,7 @@
 // snapshotted onto the plan, so two plans can be compared without the
 // household row that has since changed.
 import type { DietaryRules, Household, ListItem, Plan } from './types'
+import { solverLines } from './custom'
 
 export interface RulesSnapshot {
   people_count: number
@@ -68,10 +69,12 @@ export function changed(previous: RulesSnapshot | null | undefined, household: H
  * The same list, ticks aside. A rebuild with the household and the nights
  * unchanged may still differ — the LIBRARY can have been corrected — so the
  * stored list stands only when a fresh solve comes out identical (Codex,
- * round 11).
+ * round 11). Compared on the SOLVER's lines: what the athlete added to a list
+ * is not solver output, and a list with coffee on it is still the same list
+ * (FOR-240).
  */
 export function listUnchanged(built: ListItem[], stored: ListItem[]): boolean {
-  const strip = (items: ListItem[]) => canonical(items.map((i) => ({ ...i, checked: false })))
+  const strip = (items: ListItem[]) => canonical(solverLines(items).map((i) => ({ ...i, checked: false })))
   return strip(built) === strip(stored)
 }
 
