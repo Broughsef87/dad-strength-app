@@ -220,6 +220,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'a plan built without what is on hand is compared that way — an inventory change does not invalidate it, while it still invalidates a plan that counted it')
   assert(householdFor(andrew, true) === andrew && householdFor(andrew, false).inventory.length === 0 && householdFor(andrew, false).people_count === andrew.people_count, 'householdFor: as is, or with nothing on hand')
   // the ask defaults to the inventory's freshness (Codex r17): saved after the newest plan was built, it is fresh
+  assert(!inventoryFresh(null, null, false) && !inventoryFresh('2026-09-14T10:00:00Z', null, false) && inventoryFresh(null, null, true), 'an unknown newest plan is never fresh — a failed lookup is not "never planned" (FOR-233, finding 3)')
   assert(inventoryFresh(null, null) && inventoryFresh('2026-09-14T10:00:00Z', '2026-09-14T09:00:00Z') && !inventoryFresh('2026-09-14T08:00:00Z', '2026-09-14T09:00:00Z') && !inventoryFresh(null, '2026-09-14T09:00:00Z') && !inventoryFresh('2026-09-14T10:00:00Z', '2026-09-14T11:00:00Z'),
     'what is on hand is fresh when saved after the NEWEST plan was built, or when nothing was ever planned — never when a plan is newer, or the save time is unknown')
   assert(buildShoppingList(householdFor(andrew, false), meals, fortnight).stocked.length === 0 && buildShoppingList(andrew, meals, fortnight).stocked.some((i) => i.item === 'rice'),
@@ -421,7 +422,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/db\.rpc\('fuel_create_version'/.test(readLF('src/lib/fuel/store.ts')) && !/from\('fuel_plans'\)\.insert/.test(readLF('src/lib/fuel/store.ts')), 'the store creates a version through the function, never two client inserts')
   // the checklist's callbacks are keyed on the list id, not the list object (Codex r1: a refetch loop)
   const pg = readLF('src/app/fuel/page.tsx')
-  assert(/const listId = list\?\.id \?\? null/.test(pg) && /\}, \[supabase, listId\]\)/.test(pg) && !/\}, \[supabase, list\]\)/.test(pg), 'send and refetch depend on the list id — a row update cannot re-trigger reconciliation')
+  assert(/const listId = list\?\.id \?\? null/.test(pg) && /\}, \[supabase, listId, refresh\]\)/.test(pg) && /\), \[supabase, listId\]\)/.test(pg) && !/\[supabase, list\]\)/.test(pg), 'send and refetch depend on the list id — a row update cannot re-trigger reconciliation')
   // the builder (Codex r1): deselect is always allowed, saved entries are cut to the cycle, servings scale with the household
   const pb = readLF('src/components/fuel/PlanBuilder.tsx')
   assert(/disabled=\{!ok && !entry\}/.test(pb) && /if \(existing\) \{ setEntries\(entries\.filter/.test(pb), 'a selected meal that fell outside the cap can still be removed')
@@ -464,7 +465,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 18: the ask is judged on the start the build would land on, and judged again at build time
   assert(/const askNow = household\.inventory\.length > 0 && !rebuildOfCounted\(weekStart\)/.test(pg) && /if \(askNow !== askInventory\) \{ setError\(/.test(pg) && /const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg),
     'the ask is based on the target the build would land on — a shortened fortnight is a new start — and rechecked at build time')
-  assert(/countByDefault=\{inventoryFresh\(householdSavedAt, newestPlanAt\)\}/.test(pg) && /setHousehold\(h\.household\); setHouseholdSavedAt\(h\.updatedAt\)/.test(pg) && /setHousehold\(h\); setHouseholdSavedAt\(new Date\(\)\.toISOString\(\)\)/.test(pg) && /useState\(countByDefault\)/.test(pb),
+  assert(/countByDefault=\{inventoryFresh\(householdSavedAt, newestPlanAt, newestPlanKnown\)\}/.test(pg) && /setHousehold\(h\.household\); setHouseholdSavedAt\(h\.updatedAt\)/.test(pg) && /setHousehold\(h\); setHouseholdSavedAt\(new Date\(\)\.toISOString\(\)\)/.test(pg) && /useState\(countByDefault\)/.test(pb),
     'the ask defaults to whether what is on hand was saved after the newest plan was built')
   const st18 = readLF('src/lib/fuel/store.ts')
   assert(/select\('created_at'\)\.eq\('user_id', userId\)\.order\('created_at', \{ ascending: false \}\)\.limit\(1\)\.maybeSingle\(\)/.test(st18) && /newestPlanAt: string \| null/.test(st18) && (pg.match(/setNewestPlanAt\(active\.newestPlanAt\)/g) || []).length === 2 && /setNewestPlanAt\(built\.created_at \?\? new Date\(\)\.toISOString\(\)\)/.test(pg),
@@ -472,7 +473,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 18: a refresh keeps the selected cycle while it is still live or ahead, and yields to a write that completed meanwhile
   assert(/const kept = selectedStart \? newestVersion\(active\.recent, selectedStart\) : null/.test(pg) && /const nextPlan = kept && !expired\(asCycle\(kept\), now\) \? kept : active\.plan/.test(pg) && /await loadListFor\(supabase, nextPlan\.id\)/.test(pg),
     'a refresh keeps the cycle the athlete selected, at its newest version, while it is still live or ahead')
-  assert(/const seen = writesRef\.current/.test(pg) && (pg.match(/writesRef\.current !== seen\) return/g) || []).length === 2 && (pg.match(/writesRef\.current \+= 1/g) || []).length === 2,
+  assert(/const seen = writesRef\.current/.test(pg) && (pg.match(/if \(writesRef\.current !== seen\) return/g) || []).length === 2 && (pg.match(/writesRef\.current \+= 1/g) || []).length === 2,
     'a refresh that started before a save or a build completed applies nothing')
   const inf18 = readLF('src/components/fuel/IntakeForm.tsx')
   assert(/if \(incomingKey !== seenKey\) \{\n\s+setSeenKey\(incomingKey\)\n\s+if \(!dirty \|\| incomingKey === JSON\.stringify\(h\)\) \{ setH\(initial\); setDirty\(false\); setConflict\(false\) \} else setConflict\(true\)/.test(inf18) && /disabled=\{saving \|\| conflict\}/.test(inf18) && /reload what was saved/.test(inf18) && /setH\(\{ \.\.\.h, \.\.\.patch \}\); setDirty\(true\)/.test(inf18),
@@ -482,7 +483,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the household save is stamped, and both stamps are read back, so freshness can be judged')
   // round 17: the page re-reads the household and the plan on waking and on reconnect, and the checklist is paused until it has
   assert(/const refresh = useCallback\(async \(\) => \{/.test(pg) && /if \(document\.visibilityState === 'visible'\) void refresh\(\)/.test(pg) && /window\.addEventListener\('online', onOnline\)/.test(pg) && /if \(e\.persisted\) void refresh\(\)/.test(pg)
-    && /setStep\(\(s\) => \(s === 'list' && \(!nextList \|\| persistedStale\) \? 'plan' : s\)\)/.test(pg) && /paused=\{refreshing\}/.test(pg) && /if \(!userId \|\| busyRef\.current\) return/.test(pg),
+    && /setStep\(\(s\) => \(s === 'list' && \(!nextList \|\| persistedStale\) \? 'plan' : s\)\)/.test(pg) && /paused=\{refreshing \|\| refreshFailed\}/.test(pg) && /if \(!userId \|\| busyRef\.current\) return/.test(pg),
     'the page re-reads the household and the plan when it wakes or reconnects — never mid-build — leaves a superseded list, and pauses the checklist meanwhile')
   const cl17 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const pausedRef = useRef\(paused\)/.test(cl17) && /&& !pausedRef\.current\) \{/.test(cl17) && /\[online, listId, refetch, onRowItems, flush, wake, paused\]/.test(cl17),
@@ -506,7 +507,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'every night of a repeated recipe shares the one servings figure the card shows — the control moves them together and another night copies it')
   assert(/setUpcoming\(active\.upcoming\)/.test(pg) && /const openUpcoming = async/.test(pg) && /loadListFor\(supabase, upcoming\.id\)/.test(pg) && /open it/.test(pg), 'a cycle planned ahead is loaded and can be opened')
   const st4 = readLF('src/lib/fuel/store.ts')
-  assert(/const upcoming = upcomingCycle</.test(st4) && /const plan = activeCycle<PlanRow & CycleRow>\(candidates, today\)\n/.test(st4) && !/\?\? upcoming/.test(st4) && /return \{ plan: null, list: null, upcoming, recent, newestPlanAt, error: null \}/.test(st4),
+  assert(/const upcoming = upcomingCycle</.test(st4) && /const plan = activeCycle<PlanRow & CycleRow>\(candidates, today\)\n/.test(st4) && !/\?\? upcoming/.test(st4) && /return \{ plan: null, list: null, upcoming, recent, newestPlanAt, newestPlanKnown, error: newestError \}/.test(st4),
     'the store surfaces the upcoming cycle, and it never stands in for a live one — with nothing live, the current week can be planned')
   const cl4 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const inFlightByList = new Map<string, Map<string, number>>\(\)/.test(cl4) && /useRef<Map<string, number>>\(inFlightFor\(listId\)\)/.test(cl4), 'in-flight keys are shared across remounts of the same list')
@@ -556,6 +557,45 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(!existsSync(join(ROOT, 'src/components/FuelStation.tsx')), 'FuelStation.tsx is not resurrected')
   const w = validatePlan({ entries: [...W1.map((s) => entry(s, 1)), entry('blackened-cod', 1)] }, meals, andrew)
   assert(w.some((x) => /fish nights/.test(x)) && w.some((x) => /5 nights planned/.test(x)), 'the frequency and night-count rules are reported, not silently fixed')
+}
+
+// ── 9. the cycle model (FOR-233): one cycle at a time, and the write-side guard ──
+// The page states its model in one sentence; the three round-19 findings are
+// closed under it — a failed refresh keeps the checklist paused and shows a
+// retry; the live cycle is held apart from the selection and is always one
+// tap away; an unknown newest plan is never fresh — and the database refuses
+// a tick on a superseded list, which the page answers by re-reading.
+{
+  const pg9 = readLF('src/app/fuel/page.tsx')
+  assert(/THE CYCLE MODEL \(FOR-233\): the page shows ONE cycle at a time/.test(pg9) && /a refresh that fails is shown and keeps the\n\/\/ checklist paused until a retry succeeds/.test(pg9) && /the database refuses a tick on\n\/\/ a superseded list/.test(pg9),
+    'the page states its cycle model in one sentence: one cycle at a time, a refresh that never changes the selection unless it expired, a failed refresh shown and pausing, the database refusing a superseded tick')
+  assert(/The transition: a page loaded before this change/.test(pg9), 'the transition is stated — what a page open across the change sees')
+  // finding 1
+  assert(/if \(h\.error \|\| active\.error\) \{ setRefreshFailed\(true\); return \}/.test(pg9) && pg9.indexOf('if (writesRef.current !== seen) return') < pg9.indexOf('if (h.error || active.error) { setRefreshFailed(true); return }'),
+    'a failed re-read is a state of its own, and a write that landed meanwhile is not a failure — it is judged first')
+  assert(/paused=\{refreshing \|\| refreshFailed\}/.test(pg9) && /onClick=\{\(\) => void refresh\(\)\}>retry</.test(pg9) && /ticks are held until it succeeds/.test(pg9) && /setRefreshFailed\(false\)/.test(pg9),
+    'a failed refresh is shown with a retry and keeps the checklist paused; a refresh that lands clears it')
+  // finding 2
+  assert(/const \[live, setLive\] = useState<PlanRow \| null>\(null\)/.test(pg9) && (pg9.match(/setLive\(active\.plan\)/g) || []).length === 2 && /if \(!startingNext\) setLive\(built\)/.test(pg9),
+    'the live cycle is held apart from the selection — set on load, on every refresh, and by a rebuild or fresh start, never by a next cycle built early')
+  assert(/const openLive = async/.test(pg9) && /live && plan && plan\.id !== live\.id && \(/.test(pg9) && /onClick=\{\(\) => void openLive\(\)\}>back to this week</.test(pg9) && /setUpcoming\(upcomingCycle\(recent\.map\(\(r\) => \(\{ \.\.\.r, \.\.\.asCycle\(r\) \}\)\), new Date\(\)\)\)/.test(pg9),
+    'from any selection ahead of it, this week is one tap away, and the cycle just left is offered ahead again')
+  // finding 3
+  const st9 = readLF('src/lib/fuel/store.ts')
+  assert(/const \{ data: newest, error: newestError \} = await db\.from\('fuel_plans'\)\.select\('created_at'\)/.test(st9) && /const newestPlanKnown = !newestError/.test(st9) && (st9.match(/newestPlanKnown,/g) || []).length === 3 && /error: lerr \?\? newestError/.test(st9),
+    'the newest-plan lookup reports whether it succeeded, and its error is surfaced, not swallowed')
+  assert(/setNewestPlanKnown\(active\.newestPlanKnown\)/.test(pg9) && (pg9.match(/setNewestPlanKnown\(active\.newestPlanKnown\)/g) || []).length === 2 && /setNewestPlanKnown\(true\)/.test(pg9), 'the page carries whether the newest plan is known — on load, on refresh, and after its own build')
+  // the write-side guard
+  const guard = readLF('supabase/migrations/20260916_fuel_tick_superseded_guard.sql')
+  assert(/CREATE OR REPLACE FUNCTION public\.fuel_set_item_checked\(p_list_id uuid, p_key text, p_checked boolean\)/.test(guard) && /SECURITY INVOKER/.test(guard) && /REVOKE EXECUTE ON FUNCTION public\.fuel_set_item_checked\(uuid, text, boolean\) FROM PUBLIC, anon/.test(guard),
+    'the guard replaces the tick function with the same signature, invoker security and revoke')
+  assert(/ON newer\.user_id = p\.user_id AND newer\.week_start = p\.week_start AND newer\.version > p\.version\n/.test(guard) && /USING ERRCODE = 'FU001'/.test(guard) && /WHERE id = p_list_id AND user_id = auth\.uid\(\)/.test(guard),
+    'a list whose cycle has a newer version refuses the tick with FU001, and the owner test stays')
+  assert(guard.lastIndexOf("ERRCODE = 'FU001'") < guard.indexOf('UPDATE public.fuel_lists'), 'the refusal comes before the write — nothing is written to a superseded list')
+  const names9 = readdirSync(join(ROOT, 'supabase/migrations')).sort()
+  assert(names9.indexOf('20260916_fuel_tick_superseded_guard.sql') > names9.indexOf('20260915_fuel_macro_columns.sql'), 'the guard migration sorts after everything it replaces')
+  assert(/export const SUPERSEDED = 'FU001'/.test(st9) && /superseded: error\?\.code === SUPERSEDED/.test(st9), 'the store names the refusal')
+  assert(/if \(superseded\) void refresh\(\)/.test(pg9) && /\}, \[supabase, listId, refresh\]\)/.test(pg9), 'the page answers a refused tick by re-reading — and moves to the newer list')
 }
 
 // ── 8. macro columns (FOR-234 §4) — schema only ─────────────────────────────

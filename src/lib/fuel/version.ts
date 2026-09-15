@@ -84,7 +84,11 @@ export function listUnchanged(built: ListItem[], stored: ListItem[]): boolean {
  * than the cycle-history window must not read as "never planned" (round
  * 18). Nothing planned yet: fresh.
  */
-export function inventoryFresh(householdSavedAt: string | null | undefined, newestPlanAt: string | null | undefined): boolean {
+export function inventoryFresh(householdSavedAt: string | null | undefined, newestPlanAt: string | null | undefined, known = true): boolean {
+  // Unknown is not "none": a lookup that failed says nothing about whether a
+  // cycle has been eating the stock, and nothing is never counted on a guess
+  // (FOR-233, finding 3).
+  if (!known) return false
   if (!newestPlanAt) return true
   return !!householdSavedAt && Date.parse(householdSavedAt) > Date.parse(newestPlanAt)
 }
