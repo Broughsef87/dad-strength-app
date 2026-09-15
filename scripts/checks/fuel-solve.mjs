@@ -471,7 +471,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/select\('created_at'\)\.eq\('user_id', userId\)\.order\('created_at', \{ ascending: false \}\)\.limit\(1\)\.maybeSingle\(\)/.test(st18) && /newestPlanAt: string \| null/.test(st18) && (pg.match(/setNewestPlanAt\(active\.newestPlanAt\)/g) || []).length === 2 && /setNewestPlanAt\(built\.created_at \?\? new Date\(\)\.toISOString\(\)\)/.test(pg),
     'the newest plan is looked up on its own, unbounded — a long break does not read as never planned')
   // round 18: a refresh keeps the selected cycle while it is still live or ahead, and yields to a write that completed meanwhile
-  assert(/const kept = selectedStart \? newestVersion\(active\.recent, selectedStart\) : null/.test(pg) && /const nextPlan = kept && !expired\(asCycle\(kept\), now\) \? kept : active\.plan/.test(pg) && /await loadListFor\(supabase, nextPlan\.id\)/.test(pg),
+  assert(/const kept = start \? newestVersion\(active\.recent, start\) : null/.test(pg) && /const nextPlan = kept && !expired\(asCycle\(kept\), now\) \? kept : active\.plan/.test(pg) && /await loadListFor\(supabase, nextPlan\.id\)/.test(pg),
     'a refresh keeps the cycle the athlete selected, at its newest version, while it is still live or ahead')
   assert(/const seen = writesRef\.current/.test(pg) && (pg.match(/if \(writesRef\.current !== seen\) return/g) || []).length === 2 && (pg.match(/writesRef\.current \+= 1/g) || []).length === 2,
     'a refresh that started before a save or a build completed applies nothing')
@@ -576,8 +576,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/paused=\{refreshing \|\| refreshFailed\}/.test(pg9) && /onClick=\{\(\) => void refresh\(\)\}>retry</.test(pg9) && /ticks are held until it succeeds/.test(pg9) && /setRefreshFailed\(false\)/.test(pg9),
     'a failed refresh is shown with a retry and keeps the checklist paused; a refresh that lands clears it')
   // finding 2
-  assert(/const \[live, setLive\] = useState<PlanRow \| null>\(null\)/.test(pg9) && (pg9.match(/setLive\(active\.plan\)/g) || []).length === 2 && /if \(!startingNext\) setLive\(built\)/.test(pg9),
-    'the live cycle is held apart from the selection — set on load, on every refresh, and by a rebuild or fresh start, never by a next cycle built early')
+  assert(/const \[live, setLive\] = useState<PlanRow \| null>\(null\)/.test(pg9) && (pg9.match(/setLive\(active\.plan\)/g) || []).length === 2 && /setLive\(activeCycle\(\[\.\.\.recent, built\]\.map\(\(r\) => \(\{ \.\.\.r, \.\.\.asCycle\(r\) \}\)\), new Date\(\)\)\)/.test(pg9) && !/setLive\(built\)/.test(pg9),
+    'the live cycle is held apart from the selection — set on load, on every refresh, and after a build BY DATE from the updated history, never as whatever was just built')
   assert(/const openLive = async/.test(pg9) && /live && plan && plan\.id !== live\.id && \(/.test(pg9) && /onClick=\{\(\) => void openLive\(\)\}>back to this week</.test(pg9) && /setUpcoming\(upcomingCycle\(recent\.map\(\(r\) => \(\{ \.\.\.r, \.\.\.asCycle\(r\) \}\)\), new Date\(\)\)\)/.test(pg9),
     'from any selection ahead of it, this week is one tap away, and the cycle just left is offered ahead again')
   // finding 3
@@ -595,7 +595,11 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const names9 = readdirSync(join(ROOT, 'supabase/migrations')).sort()
   assert(names9.indexOf('20260916_fuel_tick_superseded_guard.sql') > names9.indexOf('20260915_fuel_macro_columns.sql'), 'the guard migration sorts after everything it replaces')
   assert(/export const SUPERSEDED = 'FU001'/.test(st9) && /superseded: error\?\.code === SUPERSEDED/.test(st9), 'the store names the refusal')
-  assert(/if \(superseded\) void refresh\(\)/.test(pg9) && /\}, \[supabase, listId, refresh\]\)/.test(pg9), 'the page answers a refused tick by re-reading — and moves to the newer list')
+  assert(/if \(superseded && listIdRef\.current === listId\) void refresh\(\)/.test(pg9) && /\}, \[supabase, listId, refresh\]\)/.test(pg9), 'the page answers a refused tick by re-reading — and moves to the newer list — only while that list is still the one selected; a refusal from a list no longer selected steers nothing')
+  assert(/const start = selectedStartRef\.current\n\s+const kept = start \? newestVersion\(active\.recent, start\) : null/.test(pg9) && /selectedStartRef\.current = plan\?\.week_start \?\? null/.test(pg9) && /\}, \[supabase, userId\]\)/.test(pg9),
+    'a refresh reads the selection through a ref at the moment it applies, never as captured when the refresh was made')
+  assert(/PERFORM pg_advisory_xact_lock\(hashtext\(auth\.uid\(\)::text \|\| ':' \|\| v_week_start::text\)\)/.test(guard) && guard.indexOf('PERFORM pg_advisory_xact_lock') < guard.indexOf('IF EXISTS (') && guard.indexOf('IF EXISTS (') < guard.indexOf('UPDATE public.fuel_lists'),
+    'the guard takes the same per-cycle lock fuel_create_version takes, before its check, and holds it through the write')
 }
 
 // ── 8. macro columns (FOR-234 §4) — schema only ─────────────────────────────

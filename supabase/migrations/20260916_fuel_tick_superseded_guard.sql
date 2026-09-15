@@ -18,11 +18,18 @@ AS $$
 DECLARE
   new_items jsonb;
   v_plan_id uuid;
+  v_week_start date;
 BEGIN
-  SELECT plan_id INTO v_plan_id FROM public.fuel_lists WHERE id = p_list_id AND user_id = auth.uid();
+  SELECT l.plan_id, p.week_start INTO v_plan_id, v_week_start
+  FROM public.fuel_lists l JOIN public.fuel_plans p ON p.id = l.plan_id
+  WHERE l.id = p_list_id AND l.user_id = auth.uid();
   IF v_plan_id IS NULL THEN
     RAISE EXCEPTION 'fuel list % is not yours or does not exist', p_list_id USING ERRCODE = '42501';
   END IF;
+  -- The same per-cycle lock fuel_create_version takes, held to the end of
+  -- this transaction: no version can land between the check below and the
+  -- write, so a tick never slips onto a list superseded mid-flight (Codex r1).
+  PERFORM pg_advisory_xact_lock(hashtext(auth.uid()::text || ':' || v_week_start::text));
   -- FOR-233: superseded lists refuse ticks. Newer = same user, same start, higher version.
   IF EXISTS (
     SELECT 1

@@ -33,7 +33,7 @@ import {
 } from '../../lib/fuel/store'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, validatePlan } from '../../lib/fuel/solve'
-import { cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
+import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -123,7 +123,14 @@ export default function FuelPage() {
   // checklist is paused until the read lands.
   const busyRef = useRef(busy)
   busyRef.current = busy
-  const selectedStart = plan?.week_start ?? null
+  // The selection and the list are read through refs at the moment a refresh
+  // applies, never captured when it was made: a refresh answering a tick that
+  // was refused on a list the athlete has since left must not put that list
+  // back (Codex r1).
+  const selectedStartRef = useRef<string | null>(null)
+  selectedStartRef.current = plan?.week_start ?? null
+  const listIdRef = useRef<string | null>(null)
+  listIdRef.current = listId
   const refresh = useCallback(async () => {
     if (!userId || busyRef.current) return
     const seen = writesRef.current
@@ -137,7 +144,8 @@ export default function FuelPage() {
       // The read failed: shown, and the checklist stays paused until a retry
       // succeeds — ticks never resume on a guess (FOR-233, finding 1).
       if (h.error || active.error) { setRefreshFailed(true); return }
-      const kept = selectedStart ? newestVersion(active.recent, selectedStart) : null
+      const start = selectedStartRef.current
+      const kept = start ? newestVersion(active.recent, start) : null
       const nextPlan = kept && !expired(asCycle(kept), now) ? kept : active.plan
       const nextList = nextPlan ? (nextPlan.id === active.plan?.id ? active.list : await loadListFor(supabase, nextPlan.id)) : null
       if (writesRef.current !== seen) return
@@ -149,7 +157,7 @@ export default function FuelPage() {
       const persistedStale = !!(nextPlan && h.household && changed(nextPlan.rules_snapshot, h.household, { entries: nextPlan.meal_ids }))
       setStep((s) => (s === 'list' && (!nextList || persistedStale) ? 'plan' : s))
     } finally { setRefreshing(false) }
-  }, [supabase, userId, selectedStart])
+  }, [supabase, userId])
   useEffect(() => {
     const onVisibility = () => { if (document.visibilityState === 'visible') void refresh() }
     const onShow = (e: PageTransitionEvent) => { if (e.persisted) void refresh() }
@@ -233,10 +241,10 @@ export default function FuelPage() {
     const built = res.plan
     writesRef.current += 1
     setPlan(built); setList(res.list); setRecent((r) => [...r, built]); setNewestPlanAt(built.created_at ?? new Date().toISOString()); setNewestPlanKnown(true)
-    // A rebuild — or a fresh start — is the live cycle's newest version; a
-    // next cycle built early is selected but not live, and the way back to
-    // this week stays on the page (FOR-233, finding 2).
-    if (!startingNext) setLive(built)
+    // `live` is today's live cycle BY DATE, never "whatever was just built":
+    // a rebuild of the cycle selected ahead must not become this week, and
+    // the way back stays on the page (FOR-233, finding 2; Codex r1).
+    setLive(activeCycle([...recent, built].map((r) => ({ ...r, ...asCycle(r) })), new Date()))
     if (upcoming && (upcoming.week_start === weekStart || weekStart > upcoming.week_start)) setUpcoming(null)
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
     setNextCycle(false)
@@ -268,8 +276,10 @@ export default function FuelPage() {
     const { items, error: e, superseded } = await setItemChecked(supabase, listId, key, checked)
     // The database refused the tick because this list's cycle has a newer
     // version (FOR-233, the write-side guard): the page re-reads and moves to
-    // it. The tick is not retried against a list that is already dead.
-    if (superseded) void refresh()
+    // it — only while this list is still the one selected; a refusal from a
+    // list the athlete has since left steers nothing (Codex r1). The tick is
+    // not retried against a list that is already dead.
+    if (superseded && listIdRef.current === listId) void refresh()
     return e ? null : items
   }, [supabase, listId, refresh])
   const refetch = useCallback(async () => (listId ? readItems(supabase, listId) : null), [supabase, listId])
