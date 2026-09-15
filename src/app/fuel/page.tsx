@@ -40,14 +40,14 @@ import BottomNav from '../../components/BottomNav'
 import PremiumGate from '../../components/PremiumGate'
 import IntakeForm from '../../components/fuel/IntakeForm'
 import PlanBuilder from '../../components/fuel/PlanBuilder'
-import Checklist from '../../components/fuel/Checklist'
+import Checklist, { sendQueued } from '../../components/fuel/Checklist'
 import AddItem from '../../components/fuel/AddItem'
 import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import {
   DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
   readItems, removeCustomItem, saveHousehold, setItemChecked, stopStaple, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
-import type { StapleRow } from '../../lib/fuel/custom'
+import { customKey, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
@@ -367,38 +367,64 @@ export default function FuelPage() {
   const rebuiltElsewhere = 'this list was rebuilt somewhere else, so nothing changed on it — reload to open the newest list'
   const onAddCustom = async (item: string, section: string, everyList: boolean): Promise<string | null> => {
     if (!userId || !listId) return 'there is no list to add to yet'
+    const id = listId
     setAdding(true)
     try {
       let stapleId: string | null = null
       if (everyList) {
         const s = await addStaple(supabase, userId, item, section)
-        // Already a staple: put that staple's own line on this list — keyed on
-        // the staple, so it is one line however often it is asked for.
-        const saved = s.duplicate ? staples.find((x) => x.item.trim().toLowerCase() === item.trim().toLowerCase() && x.store_section === section) : s.staple
-        if (!saved) return s.duplicate ? `${item} is already on every list` : s.error?.message ?? 'could not save it for every list'
+        let saved: StapleRow | null = s.staple
+        if (s.duplicate) {
+          // Already a staple, perhaps saved in another tab since this page
+          // loaded: found in the database, never in the page's copy (Codex r1).
+          const fresh = await loadStaples(supabase, userId)
+          if (fresh.error) return fresh.error.message ?? 'could not read the items on every list'
+          setStaples(fresh.staples)
+          saved = fresh.staples.find((x) => x.item.trim().toLowerCase() === item.trim().toLowerCase() && x.store_section === section) ?? null
+          if (!saved) return `${item} is already on every list`
+        } else {
+          if (s.error || !saved) return s.error?.message ?? 'could not save it for every list'
+          const added = saved
+          setStaples((xs) => [...xs, added])
+        }
+        // The staple's own line, keyed on the staple: one line however often it is asked for.
         stapleId = saved.id
-        if (!s.duplicate) setStaples((xs) => [...xs, saved])
       }
-      const r = await addCustomItem(supabase, listId, item, section, stapleId)
+      // Through the list's queue, behind any tick or re-read already in flight,
+      // so their answers and this one land in the order they were sent (Codex r1).
+      const r = await sendQueued(id, () => addCustomItem(supabase, id, item, section, stapleId))
       if (r.superseded) return everyList ? `saved for every list, but ${rebuiltElsewhere}` : rebuiltElsewhere
       if (r.error || !r.items) return r.error?.message ?? 'could not add it'
-      onRowItems(listId, r.items)
+      onRowItems(id, r.items)
       return null
     } finally { setAdding(false) }
   }
   const onRemoveCustom = async (key: string) => {
     if (!listId) return
-    const r = await removeCustomItem(supabase, listId, key)
+    const id = listId
+    const r = await sendQueued(id, () => removeCustomItem(supabase, id, key))
     if (r.superseded) { setError(rebuiltElsewhere); return }
     if (r.error || !r.items) { setError(r.error?.message ?? 'could not take it off the list'); return }
-    onRowItems(listId, r.items)
+    onRowItems(id, r.items)
   }
-  const onStopStaple = async (id: string) => {
+  // Stopping a staple is ONE tap, from its line on the list or from the list of
+  // staples (Andrew, FOR-240): a mistyped staple with no visible way out is a
+  // trap. It stops the staple on every list built from now on — stamped, never
+  // deleted — and then takes its line off the list on screen, through the
+  // list's queue. Lists already built for other cycles keep their copy.
+  const onStopStaple = async (stapleId: string) => {
     if (!userId) return
-    const { error: e } = await stopStaple(supabase, userId, id)
+    const { error: e } = await stopStaple(supabase, userId, stapleId)
     if (e) { setError(e.message ?? 'could not stop it'); return }
-    setStaples((xs) => xs.filter((x) => x.id !== id))
+    setStaples((xs) => xs.filter((x) => x.id !== stapleId))
+    if (!listId) return
+    const id = listId
+    const r = await sendQueued(id, () => removeCustomItem(supabase, id, customKey(stapleId)))
+    if (r.superseded) { setError(`stopped on every new list, but ${rebuiltElsewhere}`); return }
+    if (r.error || !r.items) { setError(r.error?.message ?? 'stopped on every new list, but could not take it off this list'); return }
+    onRowItems(id, r.items)
   }
+  const onStopStapleLine = (key: string) => { const stapleId = stapleIdFromKey(key); if (stapleId) void onStopStaple(stapleId) }
   // A list is STALE when the household has changed since it was solved — a
   // rule change invalidates the list (L7), on load as much as on save. A
   // stale list is not ticked from; it is rebuilt.
@@ -493,7 +519,7 @@ export default function FuelPage() {
                 <>
                   <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items} sectionOrder={sectionOrder}
                     onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing || refreshFailed}
-                    onRemoveCustom={customReady ? (key) => void onRemoveCustom(key) : undefined} />
+                    onRemoveCustom={customReady ? (key) => void onRemoveCustom(key) : undefined} onStopStaple={customReady ? onStopStapleLine : undefined} />
                   {customReady && (
                     <AddItem sectionOrder={sectionOrder} staples={staples} busy={adding} onAdd={onAddCustom} onStopStaple={(id) => void onStopStaple(id)} />
                   )}

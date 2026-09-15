@@ -29,9 +29,12 @@ const inFlightFor = (listId: string) => { let s = inFlightByList.get(listId); if
 // instance's older request was still outstanding — and if the older one
 // committed last it would overwrite the newer (Codex, round 5). Every send
 // is chained on the list's queue, so a newer intent waits for whatever is
-// already in flight, whichever instance sent it.
+// already in flight, whichever instance sent it. The page's own writes to the
+// list — adding and removing the athlete's items (FOR-240) — go through the
+// same queue, so no answer, from a tick, a re-read or an add, lands out of
+// order and puts an older row over a newer one (Codex r1).
 const sendQueues = new Map<string, Promise<unknown>>()
-function sendQueued<T>(listId: string, fn: () => Promise<T>): Promise<T> {
+export function sendQueued<T>(listId: string, fn: () => Promise<T>): Promise<T> {
   const prev = sendQueues.get(listId) ?? Promise.resolve()
   const next = prev.catch(() => undefined).then(fn)
   sendQueues.set(listId, next.catch(() => undefined))
@@ -147,7 +150,7 @@ const fmtQty = (i: ListItem) => {
   return `${q} ${i.unit}`
 }
 
-export default function Checklist({ listId, version, versions, items: rowItems, sectionOrder, onRowItems, send, refetch, onRegenerate, onRemoveCustom, paused = false }: {
+export default function Checklist({ listId, version, versions, items: rowItems, sectionOrder, onRowItems, send, refetch, onRegenerate, onRemoveCustom, onStopStaple, paused = false }: {
   listId: string
   version: number
   versions: number[]
@@ -164,6 +167,8 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   onRegenerate: () => void
   /** Take one of the athlete's own lines off this list. Absent until the custom-items migration is applied. */
   onRemoveCustom?: (key: string) => void
+  /** Stop the staple a line was merged from, in one tap on the line: off this list and every new list (FOR-240, Andrew). Absent until the migration is applied. */
+  onStopStaple?: (key: string) => void
   /** The page is re-reading the household and the plan (on waking, on reconnect): nothing is sent until it has, so no tick lands on a superseded list (Codex, round 17). */
   paused?: boolean
 }) {
@@ -378,7 +383,11 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
                     {i.save === 'failed' && <span className="text-status-danger-ink">not saved · tap again</span>}
                   </span>
                 </button>
-                {isCustom(i) && onRemoveCustom && (
+                {i.custom === 'staple' && onStopStaple && (
+                  <button type="button" onClick={() => onStopStaple(i.key)} aria-label={`stop ${i.item} — off this list and every new list`}
+                    className="pill-quiet shrink-0 px-3 text-[11px] lowercase">stop</button>
+                )}
+                {isCustom(i) && i.custom !== 'staple' && onRemoveCustom && (
                   <button type="button" onClick={() => onRemoveCustom(i.key)} aria-label={`take ${i.item} off this list`}
                     className="pill-quiet shrink-0 px-3 text-[11px] lowercase">remove</button>
                 )}

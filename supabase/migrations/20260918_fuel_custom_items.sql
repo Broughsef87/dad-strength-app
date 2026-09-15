@@ -15,7 +15,12 @@
 -- section:item:unit and always holds a colon; a custom key is 'custom~' and
 -- letters and digits only, never a colon.
 --
--- Additive: one new table, two new functions. Nothing existing changes.
+-- A version is written through fuel_create_version_with_staples, which reads
+-- the staples under the version's own per-cycle lock and appends any the
+-- client's read missed (Codex r1) — then writes through fuel_create_version,
+-- unchanged.
+--
+-- Additive: one new table, three new functions. Nothing existing changes.
 -- Dated after 20260917 so it sorts after everything it references.
 
 -- ── fuel_staples: on every list, every cycle, until removed ──────────────────
@@ -161,3 +166,39 @@ END
 $$;
 REVOKE EXECUTE ON FUNCTION public.fuel_remove_custom_item(uuid, text) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION public.fuel_remove_custom_item(uuid, text) TO authenticated;
+
+-- ── A new version with every staple, read under the version's own lock ─────
+-- The client merges the staples it read into p_items (store.ts, createVersion),
+-- but that read happens before this transaction: a staple saved in another tab
+-- between the two would be missing from the new version (Codex r1). This takes
+-- the per-cycle lock FIRST, then reads the staples still on, and appends every
+-- one whose line p_items lacks. A staple line can only have landed on the
+-- version this one supersedes by holding that same lock, so it is always on
+-- the new one. The write goes through fuel_create_version unchanged; advisory
+-- transaction locks are re-entrant, so it takes the lock again as a no-op.
+-- It answers with the items it stored, and the page holds exactly those.
+CREATE OR REPLACE FUNCTION public.fuel_create_version_with_staples(p_week_start date, p_meal_ids jsonb, p_rules_snapshot jsonb, p_items jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$
+DECLARE
+  v_items jsonb;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not signed in' USING ERRCODE = '42501';
+  END IF;
+  PERFORM pg_advisory_xact_lock(hashtext(auth.uid()::text || ':' || p_week_start::text));
+  SELECT COALESCE(p_items, '[]'::jsonb) || COALESCE(jsonb_agg(jsonb_build_object(
+           'key', 'custom~' || replace(s.id::text, '-', ''), 'item', btrim(s.item), 'qty', 0, 'unit', '', 'section', s.store_section,
+           'from', '[]'::jsonb, 'second_trip', false, 'inferred', false, 'stocked', false, 'checked', false, 'custom', 'staple'
+         ) ORDER BY s.created_at, s.id), '[]'::jsonb)
+    INTO v_items
+  FROM public.fuel_staples s
+  WHERE s.user_id = auth.uid() AND s.removed_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(p_items, '[]'::jsonb)) AS e WHERE e->>'key' = 'custom~' || replace(s.id::text, '-', ''));
+  RETURN public.fuel_create_version(p_week_start, p_meal_ids, p_rules_snapshot, v_items) || jsonb_build_object('items', v_items);
+END
+$$;
+REVOKE EXECUTE ON FUNCTION public.fuel_create_version_with_staples(date, jsonb, jsonb, jsonb) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.fuel_create_version_with_staples(date, jsonb, jsonb, jsonb) TO authenticated;

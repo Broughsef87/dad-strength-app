@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList } from '../../src/lib/fuel/solve.ts'
-import { customKey, isCustom, isCustomKey, sectionsInOrder, withStaples } from '../../src/lib/fuel/custom.ts'
+import { customKey, isCustom, isCustomKey, sectionsInOrder, stapleIdFromKey, withStaples } from '../../src/lib/fuel/custom.ts'
 import { listUnchanged } from '../../src/lib/fuel/version.ts'
 
 let failures = 0, passes = 0
@@ -65,7 +65,7 @@ function library() {
 
 const CASES = 400
 let examined = 0, solverKeysSeen = 0, customKeysSeen = 0
-let keyClash = null, solverReadsCustom = null, customReadsSolver = null, uuidShape = null
+let keyClash = null, solverReadsCustom = null, customReadsSolver = null, uuidShape = null, roundTrip = null
 let notIdempotent = null, solverTouched = null, unchangedBroken = null, orderBroken = null
 for (let c = 0; c < CASES; c++) {
   const { meals, household, plan } = library()
@@ -79,6 +79,8 @@ for (let c = 0; c < CASES; c++) {
     if (!keyClash && solverKeys.has(k)) keyClash = { id: x, key: k }
     if (!customReadsSolver && !isCustomKey(k)) customReadsSolver = { id: x, key: k }
     if (!uuidShape && /^[0-9a-f-]{36}$/.test(x) && !/^custom~[0-9a-f]{32}$/.test(k)) uuidShape = { id: x, key: k }
+    if (!roundTrip && /^[0-9a-f-]{36}$/.test(x) && stapleIdFromKey(k) !== x) roundTrip = { id: x, key: k, back: stapleIdFromKey(k) }
+    if (!roundTrip && solverKeys.has(x) && stapleIdFromKey(x) !== null) roundTrip = { solverKey: x, back: stapleIdFromKey(x) }
   }
   for (const k of solverKeys) if (!solverReadsCustom && isCustomKey(k)) solverReadsCustom = k
 
@@ -116,6 +118,7 @@ assert(!keyClash, `no custom key equals a key the solver minted, for any library
 assert(!solverReadsCustom, `no solver key reads as a custom key, whatever its section is called — ${solverReadsCustom ? JSON.stringify(solverReadsCustom) : 'none'}`)
 assert(!customReadsSolver, `every custom key reads as custom, whatever its id — ${customReadsSolver ? JSON.stringify(customReadsSolver) : 'all'}`)
 assert(!uuidShape, `a row id mints the key the database mints: 'custom~' and the uuid's 32 hex digits — ${uuidShape ? JSON.stringify(uuidShape) : 'all'}`)
+assert(!roundTrip, `a staple line's key leads back to exactly its staple, and no solver key leads to one — ${roundTrip ? JSON.stringify(roundTrip) : 'held'}`)
 assert(!notIdempotent, `the merge is idempotent: a list merged again carries each staple exactly once — ${notIdempotent ? JSON.stringify(notIdempotent) : 'held'}`)
 assert(solverTouched === null, `the merge never changes, drops or reorders a solver line — ${solverTouched === null ? 'held' : `case ${solverTouched}`}`)
 assert(unchangedBroken === null, `the regeneration shortcut sees a list with custom lines as the same list — ${unchangedBroken === null ? 'held' : `case ${unchangedBroken}`}`)

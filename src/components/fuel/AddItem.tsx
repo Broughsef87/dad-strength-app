@@ -16,7 +16,7 @@ export default function AddItem({ sectionOrder, staples, busy, onAdd, onStopStap
   busy: boolean
   /** Returns what went wrong, in words, or null when it landed. */
   onAdd: (item: string, section: string, everyList: boolean) => Promise<string | null>
-  /** Stop a staple on lists built from now on. */
+  /** Stop a staple: off this list and every list built from now on. */
   onStopStaple: (id: string) => void
 }) {
   const [item, setItem] = useState('')
@@ -56,12 +56,12 @@ export default function AddItem({ sectionOrder, staples, busy, onAdd, onStopStap
             {staples.map((s) => (
               <li key={s.id} className="row-recessed flex items-center justify-between gap-2 px-3 py-2 text-sm">
                 <span className="min-w-0">{s.item} <span className="text-[11px] text-muted-foreground">· {s.store_section.toLowerCase()}</span></span>
-                <button type="button" onClick={() => onStopStaple(s.id)} aria-label={`stop putting ${s.item} on new lists`}
+                <button type="button" onClick={() => onStopStaple(s.id)} aria-label={`stop ${s.item} — off this list and every new list`}
                   className="pill-quiet shrink-0 px-3 py-1 text-[11px] lowercase">stop</button>
               </li>
             ))}
           </ul>
-          <p className="text-[11px] text-muted-foreground px-1 mt-1">stopping keeps it on lists already built</p>
+          <p className="text-[11px] text-muted-foreground px-1 mt-1">stopping takes it off this list and every new list — lists already built for other weeks keep it</p>
         </div>
       )}
     </section>

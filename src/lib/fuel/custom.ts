@@ -32,6 +32,17 @@ export const customKey = (id: string): string => CUSTOM_PREFIX + id.replace(/[^a
 export const isCustomKey = (key: string): boolean => key.startsWith(CUSTOM_PREFIX) && !key.includes(':')
 export const isCustom = (line: Pick<ListItem, 'key'>): boolean => isCustomKey(line.key)
 
+/**
+ * The staple a staple line was merged from: its key is the staple's uuid with
+ * the dashes taken out, so the uuid comes straight back. Null for any key that
+ * is not a custom key of that shape — a solver key never leads to a staple.
+ * This is what lets one tap on the line stop the staple (FOR-240, Andrew).
+ */
+export function stapleIdFromKey(key: string): string | null {
+  const m = /^custom~([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/.exec(key)
+  return m ? `${m[1]}-${m[2]}-${m[3]}-${m[4]}-${m[5]}` : null
+}
+
 /** One custom line, shaped like every other line on the list so the checklist and the tick path treat it the same. */
 export function customLine(id: string, item: string, section: string, kind: CustomKind): ListItem {
   return { key: customKey(id), item: item.trim(), qty: 0, unit: '', section, from: [], second_trip: false, inferred: false, stocked: false, checked: false, custom: kind }
