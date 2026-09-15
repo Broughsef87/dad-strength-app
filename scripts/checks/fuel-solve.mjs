@@ -20,13 +20,14 @@
 // Every assertion verified by reintroducing the bug it catches and confirming
 // it fires, then restoring the tree byte-identical.
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, householdFor, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, inventoryFresh, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, expired, historyFloor, mondayOf, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
-import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
+import { PAIRS, renderPair, onDisk as migrationOnDisk, drifted } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
@@ -391,8 +392,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
 
 // ── 7. the seams ────────────────────────────────────────────────────────────
 {
-  const onDisk = readFileSync(MIGRATION, 'utf8').replace(/\r\n/g, '\n')
-  assert(onDisk === renderMigration(), 'the migration is exactly what the fixture generates — no drift between seed and SQL')
+  const phase1 = PAIRS.find((p) => p.migration === 'supabase/migrations/20260914_fuel_phase_1.sql')
+  const onDisk = migrationOnDisk(phase1) ?? ''
+  assert(onDisk === renderPair(phase1), 'the migration is exactly what the fixture generates — no drift between seed and SQL')
   for (const t of ['fuel_meals', 'fuel_household', 'fuel_plans', 'fuel_lists']) {
     assert(new RegExp(`CREATE TABLE IF NOT EXISTS public\\.${t} \\(`).test(onDisk) && new RegExp(`ALTER TABLE public\\.${t} ENABLE ROW LEVEL SECURITY`).test(onDisk),
       `${t} is created WITH row level security in the same migration`)
@@ -637,6 +639,60 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the generator refuses a fixture with macro values the phase-1 seed would drop, and one without the keys')
   const readers = ['src/lib/fuel/solve.ts', 'src/lib/fuel/store.ts', 'src/lib/fuel/types.ts', 'src/lib/fuel/version.ts', 'src/lib/fuel/cycle.ts', 'src/lib/fuel/ticks.ts', 'src/components/fuel/Checklist.tsx', 'src/components/fuel/PlanBuilder.tsx', 'src/components/fuel/IntakeForm.tsx', 'src/app/fuel/page.tsx']
   for (const f of readers) assert(!/carbs_g_per_person|fat_g_per_person|calories_per_person/.test(readLF(f)), `${f} does not read the macro columns — schema only`)
+}
+
+// ── 10. rotations (FOR-238): the generator over pairs, and an additive migration ──
+// Rotation B renders its own migration through the ONE generator, generalised
+// over (fixture -> migration) pairs rather than copied; every pair is checked
+// for drift and passes the macro guard. The rotations migration is additive
+// only: two tables with RLS, read-only to users, the five new meals and both
+// rotations' membership — no rotation-A meal row, no prose parsed. The
+// standing data invariants live in fuel-rotations.mjs, not here.
+{
+  const rot = JSON.parse(readLF('fixtures/fuel-seed-rotation-b.json'))
+  const pairs = PAIRS.map((p) => `${p.fixture} -> ${p.migration}`)
+  assert(pairs.length === 2 && pairs.includes('fixtures/fuel-seed.json -> supabase/migrations/20260914_fuel_phase_1.sql') && pairs.includes('fixtures/fuel-seed-rotation-b.json -> supabase/migrations/20260917_fuel_rotations.sql'),
+    `the generator renders exactly two (fixture -> migration) pairs, phase 1 and rotations — got ${pairs.join('; ')}`)
+  const rotPair = PAIRS.find((p) => p.fixture === 'fixtures/fuel-seed-rotation-b.json')
+  assert(readdirSync(join(ROOT, 'scripts')).filter((f) => /seed/i.test(f)).length === 1, 'there is one seed generator — rotation B got a pair, not a second copy of the script')
+  const bad = drifted().map((p) => p.migration)
+  assert(bad.length === 0, `every migration is exactly what its fixture generates — drifted: ${bad.join(', ') || 'none'}`)
+  const cli = spawnSync(process.execPath, [join(ROOT, 'scripts/fuel-seed-sql.mjs'), '--check'], { cwd: ROOT, encoding: 'utf8' })
+  assert(cli.status === 0 && /every migration matches its fixture \(2 pairs\)/.test(cli.stdout), `node scripts/fuel-seed-sql.mjs --check passes for both fixtures — exit ${cli.status}: ${(cli.stderr || cli.stdout || '').trim().slice(0, 160)}`)
+  const gen10 = readLF('scripts/fuel-seed-sql.mjs')
+  assert((gen10.match(/guardMacros\(/g) || []).length === 2 && /guardMacros\(pair\.meals\(seed\)\)\n\s+return pair\.render\(seed\)/.test(gen10), 'the macro guard runs on every pair\'s meals, before anything renders — rotation B\'s five new meals included')
+  let unkeyed = ''
+  try { renderPair({ ...rotPair, meals: () => [{ slug: 'no-macro-keys' }] }) } catch (e) { unkeyed = String(e.message) }
+  assert(/no-macro-keys: fixture is missing carbs_g_per_person/.test(unkeyed), 'a rotation meal without the macro keys is refused')
+  let collide = ''
+  try { rotPair.render({ ...rot, fuel_meals_new: [...rot.fuel_meals_new, { ...rot.fuel_meals_new[0], slug: 'cast-iron-ribeye' }] }) } catch (e) { collide = String(e.message) }
+  assert(/cast-iron-ribeye: already a meal in fixtures\/fuel-seed\.json/.test(collide), 'the generator refuses a new meal whose slug is a rotation-A meal — the upsert would rewrite that row')
+  let dangling = ''
+  try { rotPair.render({ ...rot, fuel_rotation_meals: [...rot.fuel_rotation_meals, { rotation_slug: 'rotation-b', meal_slug: 'no-such-meal', week: 1, sort_order: 9 }] }) } catch (e) { dangling = String(e.message) }
+  assert(/no-such-meal is not a meal in either fixture/.test(dangling), 'the generator refuses a membership row that names no meal')
+
+  const rmig = migrationOnDisk(rotPair) ?? ''
+  for (const t of ['fuel_rotations', 'fuel_rotation_meals']) {
+    assert(new RegExp(`CREATE TABLE IF NOT EXISTS public\\.${t} \\(`).test(rmig) && new RegExp(`ALTER TABLE public\\.${t} ENABLE ROW LEVEL SECURITY`).test(rmig)
+      && new RegExp(`ON public\\.${t}\\n  FOR SELECT TO authenticated USING \\(true\\)`).test(rmig) && !new RegExp(`ON public\\.${t}\\s+FOR (ALL|INSERT|UPDATE|DELETE)`).test(rmig),
+      `${t} is created with row level security, read-only to users, in the same migration`)
+  }
+  assert(/rotation_slug text NOT NULL REFERENCES public\.fuel_rotations\(slug\)/.test(rmig) && /meal_slug     text NOT NULL REFERENCES public\.fuel_meals\(slug\)/.test(rmig)
+    && /PRIMARY KEY \(rotation_slug, meal_slug\)/.test(rmig) && /week          int  NOT NULL CHECK \(week IN \(1, 2\)\)/.test(rmig),
+    'membership is a join keyed on (rotation, meal), both slugs foreign keys, the default week 1 or 2 — not a column on fuel_meals')
+  assert(!/ALTER TABLE public\.fuel_(meals|household|plans|lists)|DROP TABLE|DROP COLUMN|DELETE FROM|TRUNCATE|\bUPDATE public\./.test(rmig),
+    'the rotations migration is additive only — no column on fuel_meals changes, nothing dropped, deleted or updated outside an upsert')
+  const mealInsert10 = (rmig.match(/INSERT INTO public\.fuel_meals[\s\S]*?ON CONFLICT \(slug\)/) || [])[0] || ''
+  assert((mealInsert10.match(/^  \('/gm) || []).length === 5 && rot.fuel_meals_new.every((m) => mealInsert10.includes(`('${m.slug}', `)) && meals.every((m) => !mealInsert10.includes(`('${m.slug}', `)),
+    'the migration inserts the five new meals and not one rotation-A meal row')
+  assert(!/rotation_note\s*(~|LIKE|ILIKE|SIMILAR)|regexp_|substring\(/i.test(rmig), 'the migration parses no prose — rotation_note is colour, never read for meaning')
+  assert((rmig.match(/^  \('rotation-[ab]', '[a-z-]+', [12], \d+\)/gm) || []).length === 16 && /ON CONFLICT \(rotation_slug, meal_slug\) DO UPDATE SET/.test(rmig),
+    'all sixteen membership rows are in the migration, each with its default week and order')
+  const names10 = readdirSync(join(ROOT, 'supabase/migrations')).sort()
+  assert(names10.indexOf('20260917_fuel_rotations.sql') > names10.indexOf('20260916_fuel_tick_superseded_guard.sql'), 'the rotations migration sorts after everything it references')
+  const runAll = readLF('scripts/checks/run-all.mjs')
+  assert(/\['fuel rotations \(FOR-238\)', 'fuel-rotations\.mjs'\]/.test(runAll) && existsSync(join(ROOT, 'scripts/checks/fuel-rotations.mjs')),
+    'the standing rotation invariants are registered as their own suite')
 }
 
 if (failures) { console.log(`\nfuel-solve: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }
