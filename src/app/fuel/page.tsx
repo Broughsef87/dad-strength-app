@@ -47,7 +47,7 @@ import {
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
-import { buildShoppingList, householdFor, validatePlan } from '../../lib/fuel/solve'
+import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
 import { builderStart } from '../../lib/fuel/rotation'
 
@@ -342,6 +342,10 @@ export default function FuelPage() {
   // rule change invalidates the list (L7), on load as much as on save. A
   // stale list is not ticked from; it is rebuilt.
   const stale = !!(plan && household && changed(plan.rules_snapshot, household, { entries: plan.meal_ids }))
+  // A row on hand that comes off nothing is SEEN, on the nights and on the
+  // list, not only in the household (FOR-239): the list otherwise looks right
+  // while buying food that is already in the freezer.
+  const onHandWarnings = household ? inventoryWarnings(household.inventory, meals) : []
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -371,6 +375,12 @@ export default function FuelPage() {
                 ))}
               </nav>
               {error && <div className="status-msg danger text-[12px]" role="alert">{error}</div>}
+              {step !== 'intake' && onHandWarnings.length > 0 && (
+                <div className="status-msg danger text-[12px] space-y-2" role="alert">
+                  {onHandWarnings.map((w) => <p key={w}>{w}</p>)}
+                  <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase" onClick={() => setStep('intake')}>fix what is on hand</button>
+                </div>
+              )}
               {refreshFailed && (
                 <div className="status-msg danger text-[12px] flex items-center justify-between gap-3" role="alert">
                   <span>could not re-read the household and the plan — ticks are held until it succeeds</span>

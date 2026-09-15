@@ -18,7 +18,7 @@
 //       and writes version + 1 (see version.ts).
 //   L8  the deliverable is a checklist — the output is sections of items in
 //       store order, ready to tick.
-import type { Household, ListItem, ListSection, MealIngredient, MealRow, Plan, PlanEntry, ShoppingList } from './types'
+import type { Household, InventoryItem, ListItem, ListSection, MealIngredient, MealRow, Plan, PlanEntry, ShoppingList } from './types'
 import { daysBetween } from './cycle'
 
 /** Cuts the household buys fresh, close to the night they are cooked; everything else freezes. Sourced: "week-1 fresh fish at Costco, week-2 fish and produce elsewhere". */
@@ -52,7 +52,72 @@ export function libraryUnits(meals: Pick<MealRow, 'ingredients'>[]): string[] {
   return [...units]
 }
 
+/**
+ * The ingredient vocabulary (FOR-239): every item the active library cooks
+ * with, exactly as the meals name it. What is on hand is picked from this and
+ * nothing else, because the solver matches inventory on the name. Derived
+ * beside libraryUnits so the item and unit controls share one source.
+ */
+export function libraryItems(meals: Pick<MealRow, 'ingredients'>[]): string[] {
+  const items = new Set<string>()
+  for (const m of meals) for (const ing of m.ingredients) items.add(ing.item)
+  return [...items].sort((a, b) => a.localeCompare(b))
+}
+
+/**
+ * The vocabulary grouped the way the store is walked: the household's section
+ * order first, then any section it does not name, alphabetically — appended,
+ * never dropped, so a new section cannot orphan its ingredients.
+ */
+export function libraryVocabulary(meals: Pick<MealRow, 'ingredients'>[], sectionOrder: string[]): Array<{ section: string; items: string[] }> {
+  const bySection = new Map<string, Set<string>>()
+  for (const m of meals) for (const ing of m.ingredients) bySection.set(ing.store_section, (bySection.get(ing.store_section) ?? new Set<string>()).add(ing.item))
+  const rank = (s: string) => { const i = sectionOrder.indexOf(s); return i < 0 ? sectionOrder.length : i }
+  return [...bySection.keys()]
+    .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+    .map((section) => ({ section, items: [...(bySection.get(section) ?? [])].sort((a, b) => a.localeCompare(b)) }))
+}
+
 const norm = (s: string) => s.trim().toLowerCase()
+
+/** Why a row on hand comes off nothing: its name is no ingredient the meals use, or its unit is one the meals never measure that ingredient in and cannot convert to. */
+export interface InventoryIssue {
+  index: number
+  item: string
+  unit: string
+  reason: 'not-an-ingredient' | 'unit'
+  /** The units the meals measure this ingredient in, for the fix. Empty when it is not an ingredient. */
+  units: string[]
+}
+
+/**
+ * Rows on hand that can never come off the list (FOR-239). Matching stays
+ * EXACT — no plural or fuzzy guess, because a wrong deduction silently removes
+ * food from a list — so a row that matches nothing is reported, never
+ * re-mapped. With no library loaded there is nothing to judge a row against,
+ * and nothing is reported.
+ */
+export function inventoryIssues(inventory: InventoryItem[], meals: Pick<MealRow, 'ingredients'>[]): InventoryIssue[] {
+  const unitsOf = new Map<string, Set<string>>()
+  for (const m of meals) for (const ing of m.ingredients) unitsOf.set(norm(ing.item), (unitsOf.get(norm(ing.item)) ?? new Set<string>()).add(ing.unit))
+  if (unitsOf.size === 0) return []
+  const issues: InventoryIssue[] = []
+  inventory.forEach((inv, index) => {
+    const units = unitsOf.get(norm(inv.item))
+    if (!units) { issues.push({ index, item: inv.item, unit: inv.unit, reason: 'not-an-ingredient', units: [] }); return }
+    const onHand = TO_BASE[norm(inv.unit)]
+    const counts = [...units].some((u) => norm(u) === norm(inv.unit) || (!!onHand && TO_BASE[norm(u)]?.base === onHand.base))
+    if (!counts) issues.push({ index, item: inv.item, unit: inv.unit, reason: 'unit', units: [...units].sort() })
+  })
+  return issues
+}
+
+/** The same rows, worded for a person: what is wrong, and what to do about it. */
+export function inventoryWarnings(inventory: InventoryItem[], meals: Pick<MealRow, 'ingredients'>[]): string[] {
+  return inventoryIssues(inventory, meals).map((i) => (i.reason === 'not-an-ingredient'
+    ? `"${i.item}" is on hand, but no meal uses an ingredient by that name, so nothing comes off the list for it. In the household, pick the ingredient you mean, or remove it.`
+    : `"${i.item}" is on hand in ${i.unit}, but the meals measure it in ${i.units.join(' or ')}, so nothing comes off the list for it. In the household, remove it and add it again in ${i.units.join(' or ')}.`))
+}
 const round = (n: number) => Math.round(n * 100) / 100
 
 /** How many weeks a cycle spans: a fortnight shop is two, anything shorter is one. */
@@ -364,7 +429,10 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
   }
   return {
     sections, second_trip, stocked,
-    warnings: validatePlan(plan, meals, household),
+    // The plan's rules, then every row on hand that came off nothing (FOR-239).
+    // Inventory warnings live HERE and not in validatePlan: they must be seen,
+    // but they never stop a plan from being built.
+    warnings: [...validatePlan(plan, meals, household), ...inventoryWarnings(household.inventory, meals)],
     items: [...main, ...second_trip, ...stocked],
   }
 }

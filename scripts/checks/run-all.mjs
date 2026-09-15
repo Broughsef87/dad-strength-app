@@ -42,6 +42,8 @@ const SUITES = [
   // Its own suite, not a section of fuel-solve: a revert of the rotations
   // feature must not take the check that would catch the revert with it.
   ['fuel rotations (FOR-238)', 'fuel-rotations.mjs'],
+  // The picker's grouping against the whole library, its own suite (FOR-239).
+  ['fuel vocabulary (FOR-239)', 'fuel-vocabulary.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

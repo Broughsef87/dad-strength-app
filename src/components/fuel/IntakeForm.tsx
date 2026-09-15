@@ -6,9 +6,29 @@
 // about after the household, because the subtraction is the feature (L1).
 import { useMemo, useState } from 'react'
 import type { Household, InventoryItem, MealRow } from '../../lib/fuel/types'
-import { libraryUnits } from '../../lib/fuel/solve'
+import { inventoryIssues, libraryUnits, libraryVocabulary } from '../../lib/fuel/solve'
 
 const NO_MEALS: MealRow[] = []
+
+/**
+ * The only way an item on hand is named (FOR-239): the ingredients the meals
+ * use, grouped by the aisle they are bought in. It cannot produce a name the
+ * solver would not match — there is no free-text item, not even a labelled
+ * one.
+ */
+function IngredientSelect({ vocabulary, value, label, onPick }: { vocabulary: Array<{ section: string; items: string[] }>; value: string; label: string; onPick: (item: string) => void }) {
+  return (
+    <select value={value} aria-label={label} onChange={(e) => { if (e.target.value) onPick(e.target.value) }}
+      className="row-recessed flex-1 min-w-0 px-2 py-2 text-sm bg-transparent">
+      <option value="" disabled>pick an ingredient</option>
+      {vocabulary.map((g) => (
+        <optgroup key={g.section} label={g.section.toLowerCase()}>
+          {g.items.map((item) => <option key={item} value={item}>{item}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  )
+}
 
 function Chip({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
   return (
@@ -57,6 +77,14 @@ export default function IntakeForm({ initial, meals = NO_MEALS, saving, onSave }
   // Every unit the library measures in is offered, or what is on hand in
   // cloves or teaspoons could never come off the list (Codex, round 7).
   const units = useMemo(() => libraryUnits(meals), [meals])
+  // What is on hand is PICKED from the ingredients the meals use (FOR-239):
+  // the solver matches on the name, and a typed name that was not one of them
+  // came off nothing, silently. A stored row that still matches nothing is
+  // shown unresolved with a one-tap re-pick — never dropped, never re-mapped.
+  const vocabulary = useMemo(() => libraryVocabulary(meals, h.store_section_order), [meals, h.store_section_order])
+  const known = useMemo(() => new Set(vocabulary.flatMap((g) => g.items)), [vocabulary])
+  const issues = useMemo(() => new Map(inventoryIssues(h.inventory, meals).map((i) => [i.index, i])), [h.inventory, meals])
+  const repick = (index: number, item: string) => set({ inventory: h.inventory.map((inv, j) => (j === index ? { ...inv, item } : inv)) })
   const [newItem, setNewItem] = useState<InventoryItem>({ item: '', qty: 1, unit: 'lb' })
   const rules = h.dietary_rules
   const set = (patch: Partial<Household>) => { setH({ ...h, ...patch }); setDirty(true) }
@@ -106,28 +134,43 @@ export default function IntakeForm({ initial, meals = NO_MEALS, saving, onSave }
       <section className="tile p-4 space-y-2">
         <p className="eyebrow-mono">already on hand</p>
         <p className="text-[12px] text-muted-foreground">Freezer and pantry. What is here comes off the list before you shop.</p>
+        <p className="text-[11px] text-muted-foreground">only ingredients your meals use can come off the list{known.size === 0 ? ' — none are loaded yet' : ''}</p>
         {h.inventory.length > 0 && (
           <ul className="space-y-1">
-            {h.inventory.map((inv, i) => (
-              <li key={`${inv.item}-${i}`} className="row-recessed flex items-center justify-between px-3 py-2 text-sm">
-                <span className="lowercase">{inv.item}</span>
-                <span className="data-mono"><b>{inv.qty}</b> {inv.unit}
-                  <button type="button" aria-label={`remove ${inv.item}`} className="ml-3 text-muted-foreground" onClick={() => set({ inventory: h.inventory.filter((_, j) => j !== i) })}>×</button>
-                </span>
-              </li>
-            ))}
+            {h.inventory.map((inv, i) => {
+              const issue = issues.get(i)
+              return (
+                <li key={`${inv.item}-${i}`} className="row-recessed px-3 py-2 text-sm space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`lowercase min-w-0 ${issue ? 'line-through text-muted-foreground' : ''}`}>{inv.item}</span>
+                    <span className="data-mono shrink-0"><b>{inv.qty}</b> {inv.unit}
+                      <button type="button" aria-label={`remove ${inv.item}`} className="ml-3 text-muted-foreground" onClick={() => set({ inventory: h.inventory.filter((_, j) => j !== i) })}>×</button>
+                    </span>
+                  </div>
+                  {issue && (
+                    <div className="status-msg danger text-[12px] space-y-2" role="status">
+                      <p>{issue.reason === 'not-an-ingredient'
+                        ? 'not an ingredient your meals use, so this comes off nothing — pick the one you mean, or remove it'
+                        : `your meals never measure this in ${issue.unit}, so it comes off nothing — remove it and add it again in ${issue.units.join(' or ')}`}</p>
+                      {issue.reason === 'not-an-ingredient' && known.size > 0 && (
+                        <div className="flex"><IngredientSelect vocabulary={vocabulary} value="" label={`the ingredient ${inv.item} should be`} onPick={(item) => repick(i, item)} /></div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
         <div className="flex items-center gap-2">
-          <input value={newItem.item} onChange={(e) => setNewItem({ ...newItem, item: e.target.value })} placeholder="item"
-            className="row-recessed flex-1 min-w-0 px-3 py-2 text-sm bg-transparent outline-none" aria-label="inventory item" />
+          <IngredientSelect vocabulary={vocabulary} value={newItem.item} label="inventory item" onPick={(item) => setNewItem({ ...newItem, item })} />
           <input type="number" inputMode="decimal" min={0} step={0.5} value={newItem.qty} onChange={(e) => setNewItem({ ...newItem, qty: Number(e.target.value) })}
             className="row-recessed w-16 px-2 py-2 text-sm bg-transparent outline-none stat-num" aria-label="inventory quantity" />
           <select value={newItem.unit} onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })} className="row-recessed px-2 py-2 text-sm bg-transparent" aria-label="inventory unit">
             {units.map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
-          <button type="button" className="pill-quiet px-3 py-2 text-sm" disabled={!newItem.item.trim() || newItem.qty <= 0}
-            onClick={() => { set({ inventory: [...h.inventory, { ...newItem, item: newItem.item.trim() }] }); setNewItem({ item: '', qty: 1, unit: 'lb' }) }}>
+          <button type="button" className="pill-quiet px-3 py-2 text-sm" disabled={!known.has(newItem.item) || newItem.qty <= 0}
+            onClick={() => { set({ inventory: [...h.inventory, { ...newItem }] }); setNewItem({ item: '', qty: 1, unit: 'lb' }) }}>
             add
           </button>
         </div>
