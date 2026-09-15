@@ -28,9 +28,19 @@ import { changed, inventoryFresh, listUnchanged, nextVersion, snapshot } from '.
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, expired, historyFloor, mondayOf, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
 import { builderStart, defaultRotation, rotationEntries, rotationJustRun, rotationOf, sortedRotations } from '../../src/lib/fuel/rotation.ts'
+import { addNight, isKnownWarning, planIssues, planIssueSentences, removeNight, setServings, swapNight } from '../../src/lib/fuel/planner.ts'
+import * as planBuilderModule from '../../src/components/fuel/PlanBuilder.tsx'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { PAIRS, renderPair, onDisk as migrationOnDisk, drifted } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
+// A .tsx component imported from this .mjs arrives CommonJS-wrapped under tsx: the
+// component is on `default`, or on `default.default`. Unwrapped once, here (FOR-241).
+const planBuilderExports = planBuilderModule.default && typeof planBuilderModule.default === 'object' ? planBuilderModule.default : planBuilderModule
+const PlanBuilder = typeof planBuilderExports.default === 'function' ? planBuilderExports.default : planBuilderModule.default
+const LibraryDrawer = planBuilderExports.LibraryDrawer ?? planBuilderModule.LibraryDrawer
+const maxServings = planBuilderExports.maxServings ?? planBuilderModule.maxServings
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const readLF = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
@@ -428,7 +438,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/const listId = list\?\.id \?\? null/.test(pg) && /\}, \[supabase, listId, refresh\]\)/.test(pg) && /\), \[supabase, listId\]\)/.test(pg) && !/\[supabase, list\]\)/.test(pg), 'send and refetch depend on the list id — a row update cannot re-trigger reconciliation')
   // the builder (Codex r1): deselect is always allowed, saved entries are cut to the cycle, servings scale with the household
   const pb = readLF('src/components/fuel/PlanBuilder.tsx')
-  assert(/disabled=\{!ok && !entry\}/.test(pb) && /if \(existing\) \{ setEntries\(entries\.filter/.test(pb), 'a selected meal that fell outside the cap can still be removed')
+  assert(/export const removeNight = \(entries: PlanEntry\[\], index: number\): PlanEntry\[\] => entries\.filter\(\(_, i\) => i !== index\)/.test(readLF('src/lib/fuel/planner.ts')) && /aria-label=\{`remove \$\{name\}`\} onClick=\{\(\) => \{ setEntries\(removeNight\(entries, i\)\); setDrawer\(null\) \}\}>remove<\/button>/.test(pb), 'a selected meal that fell outside the cap can still be removed')
   assert(/\.filter\(\(e\) => e\.week <= weeks/.test(pb), 'a saved fortnight plan is cut to the cycle when the shop becomes weekly')
   // round 7: a retired meal is dropped from a saved plan and named — never held as a night that cannot be removed
   assert(/\.filter\(\(e\) => e\.week <= weeks && bySlug\.has\(e\.slug\)\)/.test(pb) && /no longer in the library/.test(pb) && /retired\.length > 0 &&/.test(pb),
@@ -436,8 +446,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const inf = readLF('src/components/fuel/IntakeForm.tsx')
   assert(/libraryUnits\(meals\)/.test(inf) && /\{units\.map\(\(u\) => <option/.test(inf) && !/const UNITS = \[/.test(inf), 'the inventory unit picker is built from the library, not a fixed list')
   assert(/<IntakeForm initial=\{household \?\? DEFAULT_HOUSEHOLD\} meals=\{meals\}/.test(pg), 'the page hands the library to the intake')
-  assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, entry\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
-  assert(/Math\.min\(defaultServings\(m, household\), cap\)/.test(pb) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
+  assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, e\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
+  assert(/Math\.min\(defaultServings\(meal, household\), cap\)/.test(readLF('src/lib/fuel/planner.ts')) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
     'a new night defaults to what the household needs; a saved night is raised only if it no longer feeds everyone, otherwise kept as chosen (Codex r2, r3)')
   assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /if \(!startingNext && plan && list && plan\.week_start === weekStart && !changed\(/.test(pg) && /planningMode\(/.test(pg),
     'the page can plan the NEXT cycle — keyed to where the live one ends (or the cycle already planned ahead), defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
@@ -447,7 +457,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the builder is told the steak nights already planned in other cycles — loaded with the page, and kept current after a build')
   assert(/validatePlan\(\{ entries \}, meals, household, \{ cycles \}\)/.test(pb), 'the builder judges the monthly steak rule across cycles')
   // round 14: validated again at build time, against the target the build lands on
-  assert(/const late = validatePlan\(p, meals, household, \{ cycles: \{ history: recent, targetStart: weekStart, cadenceDays: household\.shop_cadence_days \} \}\)/.test(pg) && /if \(late\.length\) \{ setError\(late\.join\(' · '\)\); return \}/.test(pg)
+  assert(/const late = validatePlan\(p, meals, household, \{ cycles: \{ history: recent, targetStart: weekStart, cadenceDays: household\.shop_cadence_days \} \}\)/.test(pg) && /if \(late\.length\) \{ setError\(planIssueSentences\(late, p\.entries, meals\)\.join\(' · '\)\); return \}/.test(pg)
     && pg.indexOf('const weekStart = buildTarget(new Date())') < pg.indexOf('const late = validatePlan(') && pg.indexOf('const late = validatePlan(') < pg.indexOf('plan.week_start === weekStart && !changed('),
     'the plan is validated again at build time against the target the build lands on — before the shortcut, before any write')
   const st10 = readLF('src/lib/fuel/store.ts')
@@ -509,7 +519,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 8: the key is decided before the shortcut, and the list is reused only while the plan's start is still the start a rebuild would get
   assert(pg.indexOf('const weekStart = buildTarget(new Date())') < pg.indexOf('plan.week_start === weekStart && !changed(') && pg.indexOf('const weekStart = buildTarget(new Date())') > 0,
     'the unchanged-plan shortcut cannot hand back an expired cycle\'s list — it runs after the target key is known and only while the plan\'s start is still the start a rebuild would get')
-  assert(/const setServings = \(slug: string, servings: number\) => setEntries\(entries\.map\(\(e\) => \(e\.slug === slug && e\.week === week \? \{ \.\.\.e, servings \} : e\)\)\)/.test(pb) && /setServings\(m\.slug, Math\.max\(1, entry\.servings - 1\)\)/.test(pb) && /nights, each/.test(pb) && /servings: existing \? existing\.servings : Math\.min\(defaultServings\(m, household\), cap\)/.test(pb),
+  const pl7 = readLF('src/lib/fuel/planner.ts')
+  assert(/export const setServings = \(entries: PlanEntry\[\], slug: string, week: number, servings: number\): PlanEntry\[\] => entries\.map\(\(e\) => \(e\.slug === slug && e\.week === week \? \{ \.\.\.e, servings \} : e\)\)/.test(pl7) && /return existing \? existing\.servings : Math\.min\(defaultServings\(meal, household\), cap\)/.test(pl7) && /nights, each/.test(pb),
     'every night of a repeated recipe shares the one servings figure the card shows — the control moves them together and another night copies it')
   assert(/setUpcoming\(active\.upcoming\)/.test(pg) && /const openUpcoming = async/.test(pg) && /loadListFor\(supabase, upcoming\.id\)/.test(pg) && /open it/.test(pg), 'a cycle planned ahead is loaded and can be opened')
   const st4 = readLF('src/lib/fuel/store.ts')
@@ -527,7 +538,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 6: the reconcile read is serialised with the writes; a recipe can fill more than one night
   assert(/const fresh = await sendQueued\(listId, refetch\)/.test(cl4) && !/const fresh = await refetch\(\)/.test(cl4),
     'the reconciliation read goes through the same per-list queue as the writes — it cannot overlap one from any instance')
-  assert(/const nightsOf = \(slug: string\) => entries\.filter/.test(pb) && /aria-label=\{`another night of \$\{m\.name\}`\}[^>]*onClick=\{\(\) => add\(m\)\}/.test(pb) && /− night/.test(pb) && /const removeOne = /.test(pb),
+  assert(/return \[\.\.\.entries, \{ slug: meal\.slug, week, servings: servingsFor\(entries, meal, week, household, cap\) \}\]/.test(pl7) && /export const removeNight = /.test(pl7),
     'a recipe can fill more than one night, and a night can be taken back')
   const twice = buildShoppingList({ ...andrew, prep_diversion_pct: 0 }, meals, { entries: [entry('chili-lime-thighs', 1), entry('chili-lime-thighs', 1)] })
   assert(find(twice, 'chicken thigh, boneless skinless')?.qty === 48 && validatePlan({ entries: [entry('chili-lime-thighs', 1), entry('chili-lime-thighs', 1)] }, meals, andrew).length === 0,
@@ -801,9 +812,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/if \(error\) return \{ rotations: \[\], members: \[\], error: isMissingTable\(error\) \? null : error \}/.test(st11) && /from\('fuel_rotations'\)\.select\('slug, name, sort_order, note'\)/.test(st11) && /from\('fuel_rotation_meals'\)\.select\('rotation_slug, meal_slug, week, sort_order'\)/.test(st11),
     'before the rotations migration is applied, Fuel runs as it did: no rotations, and never "not ready"')
   const pb11 = readLF('src/components/fuel/PlanBuilder.tsx')
-  assert(/const startFrom = \(slug: string\) => \{ setEntries\(rotationEntries\(slug, members, meals, household\)\); setWeek\(1\) \}/.test(pb11) && /onClick=\{\(\) => startFrom\(r\.slug\)\}/.test(pb11),
+  assert(/const startFrom = \(slug: string\) => \{ setEntries\(rotationEntries\(slug, members, meals, household\)\); setDrawer\(null\) \}/.test(pb11) && /onClick=\{\(\) => startFrom\(r\.slug\)\}/.test(pb11),
     'the switcher starts the picks over from a rotation')
-  assert(/const current = useMemo\(\(\) => rotationOf\(entries, rotations, members\), \[entries, rotations, members\]\)/.test(pb11) && /aria-pressed=\{current === r\.slug\}/.test(pb11) && /\{rotations\.length > 1 && \(/.test(pb11) && !/useState<string/.test(pb11),
+  assert(/const current = useMemo\(\(\) => rotationOf\(entries, rotations, members\), \[entries, rotations, members\]\)/.test(pb11) && /\{rotationName \? `started from \$\{rotationName\}` : 'your own picks'\}/.test(pb11) && /\.filter\(\(r\) => r\.slug !== current\)/.test(pb11) && /\{rotations\.length > 1 && \(/.test(pb11) && !/useState<string/.test(pb11),
     'the switcher shows which rotation the picks are, read from the picks, with no rotation state beside them')
   // acceptance 6: ticks persist on reload exactly as FOR-177 shipped them
   for (const f of ['src/components/fuel/Checklist.tsx', 'src/lib/fuel/ticks.ts', 'supabase/migrations/20260916_fuel_tick_superseded_guard.sql']) {
@@ -874,6 +885,160 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'a row on hand that comes off nothing is seen on the nights and the list, with the way to fix it')
   const runAll12 = readLF('scripts/checks/run-all.mjs')
   assert(/\['fuel vocabulary \(FOR-239\)', 'fuel-vocabulary\.mjs'\]/.test(runAll12) && existsSync(join(ROOT, 'scripts/checks/fuel-vocabulary.mjs')), 'the picker grouping invariant is registered as its own suite')
+}
+
+// ── 13. the nights planner (FOR-241): the rotation fills the fortnight, the athlete reviews it ──
+// Presentation plus prefill. The planner is RENDERED here — the real component,
+// to static markup — so "both weeks visible", "eight nights already filled" and
+// "no underscore or solver identifier on screen" are asserted on what it
+// renders, not only on its source. The honest limit, stated where the checks
+// are: none of this measures whether a person understands the screen. The
+// acceptance test is Andrew opening it and understanding it unaided.
+{
+  const rot = JSON.parse(readLF('fixtures/fuel-seed-rotation-b.json'))
+  const library = [...meals, ...rot.fuel_meals_new]
+  const lib = (s) => library.find((m) => m.slug === s)
+  const rotations = rot.fuel_rotations
+  const members = rot.fuel_rotation_meals
+  const decode = (s) => s.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+  const paint = (el) => {
+    const html = renderToStaticMarkup(el)
+    const text = decode(html.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
+    const attrs = [...html.matchAll(/(?:aria-label|title|placeholder|alt)="([^"]*)"/g)].map((m) => decode(m[1]))
+    return { html, text, attrs }
+  }
+  const builder = (props) => paint(createElement(PlanBuilder, { household: andrew, meals: library, initial: null, building: false, onBuild: () => {}, rotations, members, ...props }))
+  const section = (html, label) => { const at = html.indexOf(`aria-label="${label}"`); return at < 0 ? '' : html.slice(at, html.indexOf('</section>', at)) }
+  const nightsOf = (html) => [...html.matchAll(/aria-label="remove ([^"]+)"/g)].map((m) => decode(m[1]))
+  const rowFor = (html, name) => { const at = html.indexOf(`aria-label="remove ${name}"`); return at < 0 ? '' : decode(html.slice(html.lastIndexOf('<li', at), html.indexOf('</li>', at))) }
+  const nameOf = (slug) => lib(slug).name.toLowerCase()
+
+  // acceptance 1: an empty plan for rotation B opens with eight nights already filled, four a week, exactly the rotation
+  const sep7 = { week_start: '2026-09-07', version: 1, meal_ids: rotationEntries('rotation-a', members, library, andrew) }
+  const prefill = builderStart('2026-09-21', [sep7], rotations, members, library, andrew, null)
+  const bPairs = members.filter((x) => x.rotation_slug === 'rotation-b').map((x) => `${x.week}:${x.meal_slug}`).sort()
+  assert(JSON.stringify(prefill.map((e) => `${e.week}:${e.slug}`).sort()) === JSON.stringify(bPairs),
+    `an empty plan after rotation A is prefilled with exactly rotation B's eight (slug, week) pairs — got ${prefill.map((e) => `${e.week}:${e.slug}`).join(' ')}`)
+  const filled = builder({ initial: { entries: prefill } })
+  for (const w of [1, 2]) {
+    const expected = members.filter((x) => x.rotation_slug === 'rotation-b' && x.week === w).sort((a, b) => a.sort_order - b.sort_order).map((x) => nameOf(x.meal_slug))
+    const shown = nightsOf(section(filled.html, `week ${w}`))
+    assert(JSON.stringify(shown) === JSON.stringify(expected), `week ${w} renders its four rotation-B nights, in the rotation's order, on first render — got ${shown.join(' | ')}`)
+  }
+
+  // acceptance 2: both weeks are visible without interaction
+  const pb13 = readLF('src/components/fuel/PlanBuilder.tsx')
+  assert(section(filled.html, 'week 1').length > 0 && section(filled.html, 'week 2').length > 0 && !/setWeek|aria-pressed=\{week === w\}/.test(pb13),
+    'both weeks render at once, on first render — there is no week toggle')
+  const weeklyHousehold = { ...andrew, shop_cadence_days: 7 }
+  const weekly = builder({ household: weeklyHousehold, initial: { entries: rotationEntries('rotation-b', members, library, weeklyHousehold) } })
+  assert(section(weekly.html, 'this week').length > 0 && section(weekly.html, 'week 2') === '', 'a weekly shop renders its one week')
+
+  // what the screen is, in plain words
+  assert(/your dinners for the next two weeks/.test(filled.text) && /goes on your shopping list/.test(filled.text), 'the planner says what it is and what it produces, in plain words')
+
+  // a night the rotation chose and a night the athlete picked are told apart
+  const swappedIn = swapNight(prefill, prefill.findIndex((e) => e.slug === 'jerk-thighs'), lib('garlic-herb-thighs'), andrew, maxServings(andrew))
+  const mixed = builder({ initial: { entries: swappedIn } })
+  assert(/from fortnight two/.test(rowFor(mixed.html, nameOf('miso-ginger-salmon'))) && !/your pick/.test(rowFor(mixed.html, nameOf('miso-ginger-salmon'))) && /your pick/.test(rowFor(mixed.html, nameOf('garlic-herb-thighs'))),
+    'a night the rotation chose says so, and a night the athlete picked says so — the screen never implies he decided what he did not')
+
+  // acceptance 3: every night carries swap and remove; the library opens only to swap or add
+  const every = nightsOf(filled.html)
+  assert(every.length === 8 && every.every((n) => filled.attrs.includes(`swap ${n}`)) && !/aria-label="the library"/.test(filled.html),
+    'every night carries its own swap and remove, and the library is closed until one is used')
+  assert(/onClick=\{\(\) => setDrawer\(\{ swap: i \}\)\}/.test(pb13) && /onClick=\{\(\) => \{ setEntries\(removeNight\(entries, i\)\); setDrawer\(null\) \}\}/.test(pb13) && /onClick=\{\(\) => setDrawer\(\{ add: w \}\)\}/.test(pb13) && /\{drawer && \(/.test(pb13),
+    'swap and add open the library for that night or that week; remove acts in one tap')
+  const swapAt = prefill.findIndex((e) => e.slug === 'tandoori-breast')
+  const swapped = swapNight(prefill, swapAt, lib('soy-ginger-stirfry'), andrew, maxServings(andrew))
+  assert(swapped.length === 8 && swapped[swapAt].slug === 'soy-ginger-stirfry' && swapped[swapAt].week === 2 && swapped.every((e, i) => i === swapAt || e === prefill[i]),
+    'a swap replaces that one night with the new meal, in the same week, and touches no other night')
+  assert(removeNight(prefill, 0).length === 7 && removeNight(prefill, 0)[0] === prefill[1], 'a remove takes that one night out')
+  const tightCap = { ...andrew, cook_cap_minutes: 12 }
+  const overCap = [{ slug: 'turkey-meatballs', week: 2, servings: 3 }]
+  assert(removeNight(overCap, 0).length === 0 && swapNight(prefill, 0, lib('turkey-meatballs'), tightCap, 8) === prefill && addNight([], lib('turkey-meatballs'), 1, tightCap, 8).length === 0,
+    'a night over the cook cap can still be removed, and a meal over the cap cannot be swapped or added in')
+
+  // servings semantics, unchanged
+  const twoNights = addNight([{ slug: 'chili-lime-thighs', week: 1, servings: 5 }], lib('chili-lime-thighs'), 1, andrew, maxServings(andrew))
+  assert(twoNights.length === 2 && twoNights[1].servings === 5, 'another night of a recipe copies the servings it already has that week')
+  const threeNights = [...twoNights, { slug: 'chili-lime-thighs', week: 2, servings: 3 }]
+  assert(setServings(threeNights, 'chili-lime-thighs', 1, 6).map((e) => e.servings).join(',') === '6,6,3', 'every night of a repeated recipe in a week shares one servings figure — the control moves them together, and no other week')
+  assert(addNight(prefill, lib('lemon-garlic-salmon'), 1, andrew, maxServings(andrew)) === prefill, 'a full week takes no more nights')
+  assert(addNight([], lib('chili-lime-thighs'), 1, { ...andrew, people_count: 4 }, maxServings({ people_count: 4 }))[0].servings === defaultServings(lib('chili-lime-thighs'), { people_count: 4 }),
+    'a new night starts at what the household needs')
+  assert(/Math\.min\(cap, e\.servings \+ 1\)/.test(pb13) && /setEntries\(setServings\(entries, e\.slug, w, Math\.max\(1, e\.servings - 1\)\)\)/.test(pb13), 'the servings control steps between one and the household cap')
+
+  // acceptance 4: rebuilding a saved plan keeps its choices — a non-default servings figure included
+  const saved = { week_start: '2026-09-21', version: 2, meal_ids: prefill.map((e, i) => (i === 0 ? { ...e, servings: 5 } : e)) }
+  const reopened = builderStart('2026-09-21', [sep7, saved], rotations, members, library, andrew, null)
+  const rebuilt = builder({ initial: { entries: reopened } })
+  assert(JSON.stringify(reopened) === JSON.stringify(saved.meal_ids) && /<span class="stat-num[^"]*">5<\/span>/.test(rowFor(rebuilt.html, nameOf(saved.meal_ids[0].slug))),
+    'rebuilding a saved plan starts from its own nights, and a saved servings figure of 5 is still 5 on screen — never the rotation default')
+
+  // acceptance 5: a rule violation names the night causing it
+  const fishTwice = { entries: [...prefill.filter((e) => e.week === 1 && e.slug !== 'greek-turkey-bowl'), { slug: 'lemon-garlic-salmon', week: 1, servings: 2 }, ...prefill.filter((e) => e.week === 2)] }
+  const fishWarnings = validatePlan(fishTwice, library, andrew)
+  const fishIssues = planIssues(fishWarnings, fishTwice.entries, library)
+  const fishAt = fishTwice.entries.flatMap((e, i) => (['miso-ginger-salmon', 'lemon-garlic-salmon'].includes(e.slug) ? [i] : []))
+  assert(fishWarnings.some((w) => /fish nights/.test(w)) && fishIssues.nights.size === 2 && fishAt.every((i) => (fishIssues.nights.get(i) ?? []).some((x) => /^2 fish nights in week 1 — the rule is 1 a week$/.test(x))),
+    'two fish nights in one week flag both fish nights, and only them')
+  const fishScreen = builder({ initial: fishTwice })
+  assert(/2 fish nights in week 1/.test(rowFor(fishScreen.html, nameOf('lemon-garlic-salmon'))) && !/fish nights/.test(rowFor(fishScreen.html, nameOf('cast-iron-ribeye'))),
+    'the rule renders on the night at fault, not in a block above a dead button')
+  assert(/fix the flagged nights to build the list/.test(fishScreen.text) && /add 1 more night to build the list/.test(builder({ initial: { entries: prefill.slice(1) } }).text), 'a blocked build says why in its own label')
+
+  // every warning validatePlan speaks is placed, and none leaks an id
+  const noProtein = library.map((m) => (m.slug === 'jerk-thighs' ? { ...m, protein_g_per_person: null } : m))
+  const week1 = fishTwice.entries.filter((e) => e.week === 1)
+  const week2 = fishTwice.entries.filter((e) => e.week === 2)
+  const battery = [
+    { plan: fishTwice, household: andrew, meals: library },
+    { plan: { entries: [...week1.slice(0, 3), { slug: 'turkey-burgers', week: 1, servings: 3 }, { slug: 'greek-turkey-bowl', week: 1, servings: 3 }, ...week2] }, household: andrew, meals: library },
+    { plan: { entries: [{ slug: 'chili-lime-thighs', week: 1, servings: 1 }] }, household: andrew, meals: library },
+    { plan: { entries: prefill }, household: tightCap, meals: library },
+    { plan: { entries: prefill }, household: weeklyHousehold, meals: library },
+    { plan: { entries: [...prefill, { slug: 'cast-iron-ribeye', week: 2, servings: 2 }] }, household: andrew, meals: library },
+    { plan: { entries: prefill }, household: andrew, meals: library, cycles: { history: [{ week_start: '2026-09-07', version: 1, meal_ids: [{ slug: 'cast-iron-ribeye', week: 1, servings: 2 }, { slug: 'cast-iron-ribeye', week: 2, servings: 2 }], rules_snapshot: { shop_cadence_days: 14 } }], targetStart: '2026-09-21', cadenceDays: 14 } },
+    { plan: { entries: prefill }, household: andrew, meals: library, cycles: { history: [{ week_start: '2026-09-28', version: 1, meal_ids: [], rules_snapshot: { shop_cadence_days: 7 } }], targetStart: '2026-09-21', cadenceDays: 14 } },
+    { plan: { entries: prefill }, household: andrew, meals: noProtein },
+    { plan: { entries: [...prefill.slice(0, 7), { slug: 'no-such-meal', week: 2, servings: 2 }] }, household: andrew, meals: library },
+  ]
+  const wordings = new Set()
+  for (const b of battery) {
+    const ws = validatePlan(b.plan, b.meals, b.household, b.cycles ? { cycles: b.cycles } : {})
+    for (const w of ws) {
+      wordings.add(w.replace(/^[a-z0-9-]+: /, 'id: ').replace(/\d+/g, '#'))
+      assert(isKnownWarning(w), `the planner places every warning validatePlan speaks — this one it does not know: "${w}"`)
+    }
+    const iss = planIssues(ws, b.plan.entries, b.meals)
+    const shown = [...[...iss.nights.values()].flat(), ...[...iss.weeks.values()].flat(), ...iss.plan]
+    assert(ws.length === 0 || shown.length >= ws.length, `every warning is placed somewhere — ${ws.length} warnings, ${shown.length} placed`)
+    for (const s of [...shown, ...planIssueSentences(ws, b.plan.entries, b.meals)]) {
+      assert(!/_/.test(s) && !b.meals.some((m) => s.includes(m.slug)) && !s.includes('no-such-meal'), `no issue shown to a person carries an underscore or a meal id — "${s}"`)
+    }
+  }
+  assert(wordings.size >= 11, `the battery drives every rule wording validatePlan has — ${wordings.size} distinct: ${[...wordings].join(' / ')}`)
+  const unknown = planIssues(['greek-turkey-bowl: something the solver has not said before'], [{ slug: 'greek-turkey-bowl', week: 1, servings: 3 }], library)
+  assert(unknown.plan.length === 1 && !/greek-turkey-bowl/.test(unknown.plan[0]) && /greek turkey rice bowl/.test(unknown.plan[0]),
+    `a warning in a wording the planner does not know is still shown, with the meal named, not its id — got "${unknown.plan[0]}"`)
+
+  // acceptance 6: no rendered string — text or label — carries an underscore or a solver identifier
+  const library13 = paint(createElement(LibraryDrawer, { meals: library, household: tightCap, heading: 'swap this night for', onPick: () => {}, onClose: () => {} }))
+  const screens = [filled, mixed, rebuilt, fishScreen, weekly, library13, builder({ initial: { entries: prefill }, household: tightCap }), builder({ initial: { entries: [...prefill.slice(0, 7), { slug: 'no-such-meal', week: 2, servings: 2 }] } })]
+  const ids = [...library.map((m) => m.slug), ...rotations.map((r) => r.slug), 'no-such-meal']
+  screens.forEach((s, n) => {
+    const bad = [s.text, ...s.attrs].flatMap((x) => [...(/_/.test(x) ? ['an underscore'] : []), ...ids.filter((id) => x.includes(id))])
+    assert(bad.length === 0, `screen ${n + 1}: no rendered string carries an underscore or a solver identifier — found ${[...new Set(bad)].join(', ')}`)
+  })
+
+  // one volt control: the build button
+  const withRoom = builder({ initial: { entries: prefill.slice(1) } })
+  assert(/add a night to week 1/.test(withRoom.text) && [filled, fishScreen, withRoom].every((s) => (s.html.match(/pill-volt/g) || []).length === 1) && !/pill-volt/.test(library13.html) && /build the shopping list/.test(filled.text),
+    'the build button is the one volt control on the planner — with a week full, with a week that has room, and in the library')
+  const pg13 = readLF('src/app/fuel/page.tsx')
+  assert(!/step === s \? 'pill-volt'/.test(pg13) && /aria-current=\{step === s \? 'step' : undefined\}/.test(pg13), "the page's step nav is quiet, so the planner's one volt control is the build")
+  assert(/if \(late\.length\) \{ setError\(planIssueSentences\(late, p\.entries, meals\)\.join\(' · '\)\); return \}/.test(pg13), 'a plan refused at build time is explained in words that name the night, not in rule ids')
 }
 
 if (failures) { console.log(`\nfuel-solve: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

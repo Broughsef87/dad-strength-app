@@ -50,6 +50,7 @@ import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
 import { builderStart } from '../../lib/fuel/rotation'
+import { planIssueSentences } from '../../lib/fuel/planner'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -275,7 +276,9 @@ export default function FuelPage() {
     // target that has since moved, with a different history around it
     // (Codex, round 14). Refused with the warnings, never saved.
     const late = validatePlan(p, meals, household, { cycles: { history: recent, targetStart: weekStart, cadenceDays: household.shop_cadence_days } })
-    if (late.length) { setError(late.join(' · ')); return }
+    // Refused at build time, the plan is explained in words that name the
+    // night, never in rule ids (FOR-241).
+    if (late.length) { setError(planIssueSentences(late, p.entries, meals).join(' · ')); return }
     // The unchanged-plan shortcut is a regeneration shortcut only: the next
     // cycle is always a new version under a new start — and so is a cycle
     // that expired while the page stayed open (Codex, round 8). The list is
@@ -369,7 +372,7 @@ export default function FuelPage() {
                 {(['intake', 'plan', 'list'] as Step[]).map((s) => (
                   <button key={s} type="button" onClick={() => setStep(s)} aria-current={step === s ? 'step' : undefined}
                     disabled={(s === 'plan' && !household) || (s === 'list' && !list)}
-                    className={`${step === s ? 'pill-volt' : 'pill-quiet'} px-3 py-1.5 text-[12px] lowercase disabled:text-muted-foreground`}>
+                    className={`pill-quiet px-3 py-1.5 text-[12px] lowercase ${step === s ? 'font-semibold' : 'text-muted-foreground'}`}>
                     {s === 'intake' ? 'household' : s === 'plan' ? 'the nights' : 'the list'}
                   </button>
                 ))}
