@@ -15,10 +15,11 @@
 -- section:item:unit and always holds a colon; a custom key is 'custom~' and
 -- letters and digits only, never a colon.
 --
--- A version is written through fuel_create_version_with_staples, which reads
--- the staples under the version's own per-cycle lock and appends any the
--- client's read missed (Codex r1) — then writes through fuel_create_version,
--- unchanged.
+-- A version is written through fuel_create_version_with_staples. The database
+-- is the ONLY source of staple lines (Andrew's ruling A, after Codex rounds 1
+-- and 2 found two sources): it drops every custom line the client sends and
+-- rebuilds the staples from its own read under the version's per-cycle lock,
+-- then writes through fuel_create_version, unchanged.
 --
 -- Additive: one new table, three new functions. Nothing existing changes.
 -- Dated after 20260917 so it sorts after everything it references.
@@ -167,16 +168,20 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.fuel_remove_custom_item(uuid, text) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION public.fuel_remove_custom_item(uuid, text) TO authenticated;
 
--- ── A new version with every staple, read under the version's own lock ─────
--- The client merges the staples it read into p_items (store.ts, createVersion),
--- but that read happens before this transaction: a staple saved in another tab
--- between the two would be missing from the new version (Codex r1). This takes
--- the per-cycle lock FIRST, then reads the staples still on, and appends every
--- one whose line p_items lacks. A staple line can only have landed on the
--- version this one supersedes by holding that same lock, so it is always on
--- the new one. The write goes through fuel_create_version unchanged; advisory
--- transaction locks are re-entrant, so it takes the lock again as a no-op.
--- It answers with the items it stored, and the page holds exactly those.
+-- ── A new version: the solver's lines as sent, every staple line rebuilt here ─
+-- The database is the ONLY source of staple lines (FOR-240, Andrew's ruling A).
+-- Codex rounds 1 and 2 were one cause, two sources: a client read of the
+-- staples, and this function's. The client sends the solver's lines only; a
+-- custom line it sends anyway is stale by definition and is dropped. This takes
+-- the per-cycle lock FIRST, then reads the staples still on and rebuilds every
+-- staple line from that read: a staple saved in the gap is on the new version,
+-- one stopped in the gap is not, and a staple line can only have reached the
+-- version this supersedes by holding this same lock. A stop that commits after
+-- this read is after this build, and the list built first keeps its copy, as
+-- any list built before a stop does. The write goes through fuel_create_version
+-- unchanged; advisory transaction locks are re-entrant, so it takes the lock
+-- again as a no-op. It answers with the items it stored, and the page holds
+-- exactly those.
 CREATE OR REPLACE FUNCTION public.fuel_create_version_with_staples(p_week_start date, p_meal_ids jsonb, p_rules_snapshot jsonb, p_items jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -189,14 +194,19 @@ BEGIN
     RAISE EXCEPTION 'not signed in' USING ERRCODE = '42501';
   END IF;
   PERFORM pg_advisory_xact_lock(hashtext(auth.uid()::text || ':' || p_week_start::text));
-  SELECT COALESCE(p_items, '[]'::jsonb) || COALESCE(jsonb_agg(jsonb_build_object(
+  -- The client's lines with every custom one taken out: a custom key is 'custom~' and never holds a colon.
+  SELECT COALESCE(jsonb_agg(c.elem ORDER BY c.ord), '[]'::jsonb)
+    INTO v_items
+  FROM jsonb_array_elements(COALESCE(p_items, '[]'::jsonb)) WITH ORDINALITY AS c(elem, ord)
+  WHERE NOT (COALESCE(c.elem->>'key', '') LIKE 'custom~%' AND strpos(COALESCE(c.elem->>'key', ''), ':') = 0);
+  -- Every staple line, rebuilt from the staples still on, read under the lock.
+  SELECT v_items || COALESCE(jsonb_agg(jsonb_build_object(
            'key', 'custom~' || replace(s.id::text, '-', ''), 'item', btrim(s.item), 'qty', 0, 'unit', '', 'section', s.store_section,
            'from', '[]'::jsonb, 'second_trip', false, 'inferred', false, 'stocked', false, 'checked', false, 'custom', 'staple'
          ) ORDER BY s.created_at, s.id), '[]'::jsonb)
     INTO v_items
   FROM public.fuel_staples s
-  WHERE s.user_id = auth.uid() AND s.removed_at IS NULL
-    AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(p_items, '[]'::jsonb)) AS e WHERE e->>'key' = 'custom~' || replace(s.id::text, '-', ''));
+  WHERE s.user_id = auth.uid() AND s.removed_at IS NULL;
   RETURN public.fuel_create_version(p_week_start, p_meal_ids, p_rules_snapshot, v_items) || jsonb_build_object('items', v_items);
 END
 $$;

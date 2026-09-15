@@ -298,14 +298,9 @@ export default function FuelPage() {
     // itself can have been corrected since (Codex, round 11).
     if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(household, inventoryCounted), meals, p).items, list.items)) { setStep('list'); return }
     setBusy(true); setError(null)
-    // What goes on every list is read HERE, at the moment a version is written
-    // — never from page state another tab could have moved. A read that fails
-    // builds nothing: a staple silently missing from the new list is the
-    // deletion FOR-240 exists to stop.
-    const st = await loadStaples(supabase, userId)
-    if (st.error) { setBusy(false); setError('could not read the items you put on every list, so nothing was built — try again'); return }
-    setStaples(st.staples); setCustomReady(st.available)
-    const res = await createVersion(supabase, weekStart, household, meals, p, inventoryCounted, st.staples)
+    // No staples are read here: the database is the only source of staple
+    // lines, rebuilt under the version's own lock (FOR-240, Andrew's ruling A).
+    const res = await createVersion(supabase, weekStart, household, meals, p, inventoryCounted)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     const built = res.plan

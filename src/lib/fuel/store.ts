@@ -10,7 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from './types'
 import { buildShoppingList, householdFor } from './solve'
 import { snapshot, type RulesSnapshot } from './version'
-import { withStaples, type StapleRow } from './custom'
+import type { StapleRow } from './custom'
 import { activeCycle, historyFloor, upcomingCycle, type CycleRow } from './cycle'
 
 // The client util returns a stub when env is missing (build time); this is
@@ -172,35 +172,29 @@ export async function loadVersions(db: Db, userId: string, weekStart: string): P
  * together, the version number chosen inside the database under the unique
  * constraint. Old versions are never touched (L7).
  *
- * THE MERGE (FOR-240), stated where it happens: the athlete's staples are
- * merged into the items HERE, when the version is created. One items array,
- * so a custom line ticks through the same function and inherits the same
- * superseded-list guard (FU001) as every other line — one guard, not two.
- * Staples come from the staples store, never from the previous list, so a
- * regeneration carries each exactly once and cannot delete one. One-offs are
- * not carried: they belonged to the list they were added to. The cost,
- * accepted: a staple stopped or changed reaches lists built from then on,
- * never a list already built.
- *
- * The staples this page read are merged here, and the database merges again
- * under the version's own per-cycle lock (fuel_create_version_with_staples):
- * a staple saved in another tab after that read — perhaps already put on the
- * list this version supersedes — is on the new version too (Codex r1). The
- * list the page holds is the one the database stored. Before the custom-items
- * migration is applied that function does not exist and there are no staples
- * to miss, so the version is written as it always was; any other failure is
- * reported, never retried around the lock.
+ * THE MERGE (FOR-240): the athlete's staples are merged into the items when
+ * the version is created. One items array, so a custom line ticks through the
+ * same function and inherits the same superseded-list guard (FU001). The
+ * DATABASE is the only source of staple lines (Andrew's ruling A): the client
+ * sends the solver's lines only, and fuel_create_version_with_staples drops
+ * anything custom it is sent and rebuilds the staples from its own read under
+ * the version's per-cycle lock, then writes through fuel_create_version. No
+ * client read races the write in either direction: a staple saved in the gap
+ * is on the new version and one stopped in the gap is not (Codex r1, r2).
+ * One-offs are not carried. The list the page holds is the one the database
+ * stored. Before the custom-items migration is applied that function does not
+ * exist and there are no staples, so the version is written as it always was;
+ * any other failure is reported, never retried around the lock.
  */
-export async function createVersion(db: Db, weekStart: string, household: Household, meals: MealRow[], plan: Plan, inventoryCounted = true, staples: StapleRow[] = []): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
+export async function createVersion(db: Db, weekStart: string, household: Household, meals: MealRow[], plan: Plan, inventoryCounted = true): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
   if (typeof db.rpc !== 'function') return { plan: null, list: null, error: { message: 'no client' } }
   const list = buildShoppingList(householdFor(household, inventoryCounted), meals, plan)
-  const items = withStaples(list.items, staples)
-  const args = { p_week_start: weekStart, p_meal_ids: plan.entries, p_rules_snapshot: snapshot(household, plan, inventoryCounted), p_items: items }
+  const args = { p_week_start: weekStart, p_meal_ids: plan.entries, p_rules_snapshot: snapshot(household, plan, inventoryCounted), p_items: list.items }
   let { data, error } = await db.rpc('fuel_create_version_with_staples', args)
   if (error && isMissingTable(error)) ({ data, error } = await db.rpc('fuel_create_version', args))
   if (error || !data) return { plan: null, list: null, error }
   const row = data as { plan_id: string; list_id: string; version: number; updated_at: string; items?: ListItem[] }
-  const stored = Array.isArray(row.items) ? row.items : items
+  const stored = Array.isArray(row.items) ? row.items : list.items
   return {
     plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan, inventoryCounted), created_at: row.updated_at },
     list: { id: row.list_id, plan_id: row.plan_id, version: row.version, items: stored, updated_at: row.updated_at },

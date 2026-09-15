@@ -7,17 +7,19 @@
 // the solver's own keys used as ids, the most hostile id there is. A fixed
 // seed, so a failure reproduces.
 //
-// Alongside the key invariant, the properties regeneration rests on:
-//   · the merge is idempotent: a list that already carries its staples,
-//     merged again, carries each exactly once, and no solver line changes
+// Alongside the key invariant, the properties the stored list rests on:
 //   · the regeneration shortcut sees a list with custom lines as the same list
 //   · aisle order holds: every line once, one section each, sections in the
 //     household's walk, the athlete's lines after the solver's within a section
+// The list is built here the way the database stores it — the solver's lines,
+// then one line per staple still on, keyed on the staple — because the
+// database is the only source of staple lines (Andrew's ruling A). What the
+// database merges is proven against Postgres, not modelled as a client merge.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList } from '../../src/lib/fuel/solve.ts'
-import { customKey, isCustom, isCustomKey, sectionsInOrder, stapleIdFromKey, withStaples } from '../../src/lib/fuel/custom.ts'
+import { customKey, isCustom, isCustomKey, sectionsInOrder, stapleIdFromKey } from '../../src/lib/fuel/custom.ts'
 import { listUnchanged } from '../../src/lib/fuel/version.ts'
 
 let failures = 0, passes = 0
@@ -63,10 +65,23 @@ function library() {
   return { meals, household, plan }
 }
 
+// The list as the database stores it: the solver's lines, then one line per staple, keyed on the staple.
+const storedList = (solverItems, staples) => {
+  const seen = new Set()
+  const lines = []
+  for (const st of staples) {
+    const key = customKey(st.id)
+    if (seen.has(key)) continue
+    seen.add(key)
+    lines.push({ key, item: st.item.trim(), qty: 0, unit: '', section: st.store_section, from: [], second_trip: false, inferred: false, stocked: false, checked: false, custom: 'staple' })
+  }
+  return [...solverItems, ...lines]
+}
+
 const CASES = 400
 let examined = 0, solverKeysSeen = 0, customKeysSeen = 0
 let keyClash = null, solverReadsCustom = null, customReadsSolver = null, uuidShape = null, roundTrip = null
-let notIdempotent = null, solverTouched = null, unchangedBroken = null, orderBroken = null
+let unchangedBroken = null, orderBroken = null
 for (let c = 0; c < CASES; c++) {
   const { meals, household, plan } = library()
   const list = buildShoppingList(household, meals, plan)
@@ -85,16 +100,7 @@ for (let c = 0; c < CASES; c++) {
   for (const k of solverKeys) if (!solverReadsCustom && isCustomKey(k)) solverReadsCustom = k
 
   const staples = ids.map((x) => ({ id: x, item: text(), store_section: R() < 0.7 ? pick(household.store_section_order) : text() }))
-  const merged = withStaples(list.items, staples)
-  const again = withStaples(merged, staples)
-  const distinct = new Set(staples.map((s) => customKey(s.id))).size
-  if (!notIdempotent && (JSON.stringify(again) !== JSON.stringify(merged) || merged.filter(isCustom).length !== distinct)) {
-    notIdempotent = { case: c, merged: merged.filter(isCustom).length, again: again.filter(isCustom).length, distinct }
-  }
-  // Read positionally, never through solverLines: a merge that reorders the
-  // solver's lines through solverLines would be undone by reading them back
-  // through it (the harness found exactly that).
-  if (solverTouched === null && (JSON.stringify(merged.slice(0, list.items.length)) !== JSON.stringify(list.items) || !merged.slice(list.items.length).every(isCustom))) solverTouched = c
+  const merged = storedList(list.items, staples)
   if (unchangedBroken === null && !listUnchanged(list.items, merged)) unchangedBroken = c
 
   // Shuffled: a row is not promised to hold the athlete's lines last, so the
@@ -119,8 +125,6 @@ assert(!solverReadsCustom, `no solver key reads as a custom key, whatever its se
 assert(!customReadsSolver, `every custom key reads as custom, whatever its id — ${customReadsSolver ? JSON.stringify(customReadsSolver) : 'all'}`)
 assert(!uuidShape, `a row id mints the key the database mints: 'custom~' and the uuid's 32 hex digits — ${uuidShape ? JSON.stringify(uuidShape) : 'all'}`)
 assert(!roundTrip, `a staple line's key leads back to exactly its staple, and no solver key leads to one — ${roundTrip ? JSON.stringify(roundTrip) : 'held'}`)
-assert(!notIdempotent, `the merge is idempotent: a list merged again carries each staple exactly once — ${notIdempotent ? JSON.stringify(notIdempotent) : 'held'}`)
-assert(solverTouched === null, `the merge never changes, drops or reorders a solver line — ${solverTouched === null ? 'held' : `case ${solverTouched}`}`)
 assert(unchangedBroken === null, `the regeneration shortcut sees a list with custom lines as the same list — ${unchangedBroken === null ? 'held' : `case ${unchangedBroken}`}`)
 assert(orderBroken === null, `aisle order holds: every line once, one section each, sections in the household's walk, the athlete's lines after the solver's — ${orderBroken === null ? 'held' : `case ${orderBroken}`}`)
 

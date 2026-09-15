@@ -1,14 +1,14 @@
 // ── Fuel: the athlete's own items (FOR-240) ──────────────────────────────────
 // Recurring staples and one-offs: lines on the list the solver has never heard
 // of. They never enter solver output — buildShoppingList does not see them —
-// and they carry no quantity, no diversion and no rule. Staples are MERGED
-// when a version is created (store.ts, createVersion), so a regeneration
-// carries them and cannot delete one; a tick on any custom line persists
-// through the same row-authoritative write as every other line.
+// and they carry no quantity, no diversion and no rule. The DATABASE is the
+// only source of staple lines (Andrew's ruling A): it rebuilds them under the
+// version's own lock, so a regeneration carries every staple still on and
+// cannot delete one. Nothing here merges. This file names the key namespace,
+// walks the aisles, and reads a staple line back to its staple; a tick on any
+// custom line persists through the same row-authoritative write as every other.
 // Pure: rows in, no I/O, no clock.
 import type { ListItem } from './types'
-
-export type CustomKind = 'staple' | 'one-off'
 
 /** A fuel_staples row: on every list built from now on, until stopped. */
 export interface StapleRow {
@@ -41,31 +41,6 @@ export const isCustom = (line: Pick<ListItem, 'key'>): boolean => isCustomKey(li
 export function stapleIdFromKey(key: string): string | null {
   const m = /^custom~([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/.exec(key)
   return m ? `${m[1]}-${m[2]}-${m[3]}-${m[4]}-${m[5]}` : null
-}
-
-/** One custom line, shaped like every other line on the list so the checklist and the tick path treat it the same. */
-export function customLine(id: string, item: string, section: string, kind: CustomKind): ListItem {
-  return { key: customKey(id), item: item.trim(), qty: 0, unit: '', section, from: [], second_trip: false, inferred: false, stocked: false, checked: false, custom: kind }
-}
-
-/**
- * The items a new version is created with: the solver's own lines, then every
- * staple once. It starts from SOLVER lines — anything custom already in the
- * input is dropped first — so feeding it a list that already carries its
- * staples cannot duplicate one. One-offs are not carried: they belonged to the
- * list they were added to. Staples come from the staples store, never from the
- * previous list.
- */
-export function withStaples(lines: ListItem[], staples: StapleRow[]): ListItem[] {
-  const seen = new Set<string>()
-  const merged: ListItem[] = []
-  for (const s of staples) {
-    const key = customKey(s.id)
-    if (seen.has(key)) continue
-    seen.add(key)
-    merged.push(customLine(s.id, s.item, s.store_section, 'staple'))
-  }
-  return [...solverLines(lines), ...merged]
 }
 
 /** The solver's own lines of a list — what a fresh solve is compared against, the athlete's lines aside. */
