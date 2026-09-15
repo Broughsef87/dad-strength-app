@@ -1,0 +1,4 @@
+# Line endings travel with the clone instead of each machine's core.autocrlf.
+# Every committed text file was already LF in the index when this was added
+# (git ls-files --eol, 2026-09-15), so it renormalises nothing.
+* text=auto eol=lf

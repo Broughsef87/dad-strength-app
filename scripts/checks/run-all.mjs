@@ -39,6 +39,9 @@ const SUITES = [
   ['protocol row key (FOR-228)', 'protocol-row-key.mjs'],
   ['program lineup (FOR-225)', 'program-lineup.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
+  // Its own suite, not a section of fuel-solve: a revert of the rotations
+  // feature must not take the check that would catch the revert with it.
+  ['fuel rotations (FOR-238)', 'fuel-rotations.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

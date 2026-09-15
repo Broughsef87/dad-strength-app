@@ -20,13 +20,15 @@
 // Every assertion verified by reintroducing the bug it catches and confirming
 // it fires, then restoring the tree byte-identical.
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecondTrip, validatePlan, proteinScale, steakNightsPerCycle, steakWindowWarnings, overlapWarnings, householdFor, defaultServings, libraryUnits, SECOND_TRIP_SECTION } from '../../src/lib/fuel/solve.ts'
 import { changed, inventoryFresh, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, expired, historyFloor, mondayOf, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
-import { render as renderMigration, MIGRATION } from '../fuel-seed-sql.mjs'
+import { builderStart, defaultRotation, rotationEntries, rotationJustRun, rotationOf, sortedRotations } from '../../src/lib/fuel/rotation.ts'
+import { PAIRS, renderPair, onDisk as migrationOnDisk, drifted } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
@@ -391,8 +393,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
 
 // ── 7. the seams ────────────────────────────────────────────────────────────
 {
-  const onDisk = readFileSync(MIGRATION, 'utf8').replace(/\r\n/g, '\n')
-  assert(onDisk === renderMigration(), 'the migration is exactly what the fixture generates — no drift between seed and SQL')
+  const phase1 = PAIRS.find((p) => p.migration === 'supabase/migrations/20260914_fuel_phase_1.sql')
+  const onDisk = migrationOnDisk(phase1) ?? ''
+  assert(onDisk === renderPair(phase1), 'the migration is exactly what the fixture generates — no drift between seed and SQL')
   for (const t of ['fuel_meals', 'fuel_household', 'fuel_plans', 'fuel_lists']) {
     assert(new RegExp(`CREATE TABLE IF NOT EXISTS public\\.${t} \\(`).test(onDisk) && new RegExp(`ALTER TABLE public\\.${t} ENABLE ROW LEVEL SECURITY`).test(onDisk),
       `${t} is created WITH row level security in the same migration`)
@@ -635,8 +638,177 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const gen = readLF('scripts/fuel-seed-sql.mjs')
   assert(/const MACROS = \['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person'\]/.test(gen) && /if \(m\[k\] != null\) throw new Error/.test(gen) && /if \(!\(k in m\)\) throw new Error/.test(gen),
     'the generator refuses a fixture with macro values the phase-1 seed would drop, and one without the keys')
-  const readers = ['src/lib/fuel/solve.ts', 'src/lib/fuel/store.ts', 'src/lib/fuel/types.ts', 'src/lib/fuel/version.ts', 'src/lib/fuel/cycle.ts', 'src/lib/fuel/ticks.ts', 'src/components/fuel/Checklist.tsx', 'src/components/fuel/PlanBuilder.tsx', 'src/components/fuel/IntakeForm.tsx', 'src/app/fuel/page.tsx']
+  const readers = ['src/lib/fuel/solve.ts', 'src/lib/fuel/store.ts', 'src/lib/fuel/types.ts', 'src/lib/fuel/version.ts', 'src/lib/fuel/cycle.ts', 'src/lib/fuel/ticks.ts', 'src/lib/fuel/rotation.ts', 'src/components/fuel/Checklist.tsx', 'src/components/fuel/PlanBuilder.tsx', 'src/components/fuel/IntakeForm.tsx', 'src/app/fuel/page.tsx']
   for (const f of readers) assert(!/carbs_g_per_person|fat_g_per_person|calories_per_person/.test(readLF(f)), `${f} does not read the macro columns — schema only`)
+}
+
+// ── 10. rotations (FOR-238): the generator over pairs, and an additive migration ──
+// Rotation B renders its own migration through the ONE generator, generalised
+// over (fixture -> migration) pairs rather than copied; every pair is checked
+// for drift and passes the macro guard. The rotations migration is additive
+// only: two tables with RLS, read-only to users, the five new meals and both
+// rotations' membership — no rotation-A meal row, no prose parsed. The
+// standing data invariants live in fuel-rotations.mjs, not here.
+{
+  const rot = JSON.parse(readLF('fixtures/fuel-seed-rotation-b.json'))
+  const pairs = PAIRS.map((p) => `${p.fixture} -> ${p.migration}`)
+  assert(pairs.length === 2 && pairs.includes('fixtures/fuel-seed.json -> supabase/migrations/20260914_fuel_phase_1.sql') && pairs.includes('fixtures/fuel-seed-rotation-b.json -> supabase/migrations/20260917_fuel_rotations.sql'),
+    `the generator renders exactly two (fixture -> migration) pairs, phase 1 and rotations — got ${pairs.join('; ')}`)
+  const rotPair = PAIRS.find((p) => p.fixture === 'fixtures/fuel-seed-rotation-b.json')
+  assert(readdirSync(join(ROOT, 'scripts')).filter((f) => /seed/i.test(f)).length === 1, 'there is one seed generator — rotation B got a pair, not a second copy of the script')
+  const bad = drifted().map((p) => p.migration)
+  assert(bad.length === 0, `every migration is exactly what its fixture generates — drifted: ${bad.join(', ') || 'none'}`)
+  const cli = spawnSync(process.execPath, [join(ROOT, 'scripts/fuel-seed-sql.mjs'), '--check'], { cwd: ROOT, encoding: 'utf8' })
+  assert(cli.status === 0 && /every migration matches its fixture \(2 pairs\)/.test(cli.stdout), `node scripts/fuel-seed-sql.mjs --check passes for both fixtures — exit ${cli.status}: ${(cli.stderr || cli.stdout || '').trim().slice(0, 160)}`)
+  const gen10 = readLF('scripts/fuel-seed-sql.mjs')
+  assert((gen10.match(/guardMacros\(/g) || []).length === 2 && /\n  guardMacros\(pair\.meals\(seed\)\)\n  return pair\.render\(seed\)\n\}/.test(gen10), "the macro guard runs on every pair's meals, before anything renders — rotation B's five new meals included")
+  assert(/export function drifted\(\) \{\n  return PAIRS\.filter\(\(p\) => onDisk\(p\) !== renderPair\(p\)\)\n\}/.test(gen10) && /if \(process\.argv\.includes\('--check'\)\) \{\n    const bad = drifted\(\)/.test(gen10), 'drift and --check cover every pair — no pair is left unchecked')
+  let unkeyed = ''
+  try { renderPair({ ...rotPair, meals: () => [{ slug: 'no-macro-keys' }] }) } catch (e) { unkeyed = String(e.message) }
+  assert(/no-macro-keys: fixture is missing carbs_g_per_person/.test(unkeyed), 'a rotation meal without the macro keys is refused')
+  let collide = ''
+  try { rotPair.render({ ...rot, fuel_meals_new: [...rot.fuel_meals_new, { ...rot.fuel_meals_new[0], slug: 'cast-iron-ribeye' }] }) } catch (e) { collide = String(e.message) }
+  assert(/cast-iron-ribeye: already a meal in fixtures\/fuel-seed\.json/.test(collide), 'the generator refuses a new meal whose slug is a rotation-A meal — the upsert would rewrite that row')
+  let dangling = ''
+  try { rotPair.render({ ...rot, fuel_rotation_meals: [...rot.fuel_rotation_meals, { rotation_slug: 'rotation-b', meal_slug: 'no-such-meal', week: 1, sort_order: 9 }] }) } catch (e) { dangling = String(e.message) }
+  assert(/no-such-meal is not a meal in either fixture/.test(dangling), 'the generator refuses a membership row that names no meal')
+
+  const rmig = migrationOnDisk(rotPair) ?? ''
+  for (const t of ['fuel_rotations', 'fuel_rotation_meals']) {
+    assert(new RegExp(`CREATE TABLE IF NOT EXISTS public\\.${t} \\(`).test(rmig) && new RegExp(`ALTER TABLE public\\.${t} ENABLE ROW LEVEL SECURITY`).test(rmig)
+      && new RegExp(`ON public\\.${t}\\n  FOR SELECT TO authenticated USING \\(true\\)`).test(rmig) && !new RegExp(`ON public\\.${t}\\s+FOR (ALL|INSERT|UPDATE|DELETE)`).test(rmig),
+      `${t} is created with row level security, read-only to users, in the same migration`)
+  }
+  assert(/rotation_slug text NOT NULL REFERENCES public\.fuel_rotations\(slug\)/.test(rmig) && /meal_slug     text NOT NULL REFERENCES public\.fuel_meals\(slug\)/.test(rmig)
+    && /PRIMARY KEY \(rotation_slug, meal_slug\)/.test(rmig) && /week          int  NOT NULL CHECK \(week IN \(1, 2\)\)/.test(rmig),
+    'membership is a join keyed on (rotation, meal), both slugs foreign keys, the default week 1 or 2 — not a column on fuel_meals')
+  assert(!/ALTER TABLE public\.fuel_(meals|household|plans|lists)|DROP TABLE|DROP COLUMN|DELETE FROM|TRUNCATE|\bUPDATE public\./.test(rmig),
+    'the rotations migration is additive only — no column on fuel_meals changes, nothing dropped, deleted or updated outside an upsert')
+  const mealInsert10 = (rmig.match(/INSERT INTO public\.fuel_meals[\s\S]*?ON CONFLICT \(slug\)/) || [])[0] || ''
+  assert((mealInsert10.match(/^  \('/gm) || []).length === 5 && rot.fuel_meals_new.every((m) => mealInsert10.includes(`('${m.slug}', `)) && meals.every((m) => !mealInsert10.includes(`('${m.slug}', `)),
+    'the migration inserts the five new meals and not one rotation-A meal row')
+  assert(!/rotation_note\s*(~|LIKE|ILIKE|SIMILAR)|regexp_|substring\(/i.test(rmig), 'the migration parses no prose — rotation_note is colour, never read for meaning')
+  assert((rmig.match(/^  \('rotation-[ab]', '[a-z-]+', [12], \d+\)/gm) || []).length === 16 && /ON CONFLICT \(rotation_slug, meal_slug\) DO UPDATE SET/.test(rmig),
+    'all sixteen membership rows are in the migration, each with its default week and order')
+  const names10 = readdirSync(join(ROOT, 'supabase/migrations')).sort()
+  assert(names10.indexOf('20260917_fuel_rotations.sql') > names10.indexOf('20260916_fuel_tick_superseded_guard.sql'), 'the rotations migration sorts after everything it references')
+  const runAll = readLF('scripts/checks/run-all.mjs')
+  assert(/\['fuel rotations \(FOR-238\)', 'fuel-rotations\.mjs'\]/.test(runAll) && existsSync(join(ROOT, 'scripts/checks/fuel-rotations.mjs')),
+    'the standing rotation invariants are registered as their own suite')
+}
+
+// ── 11. rotations (FOR-238): where the builder starts, on the cycle sentence ──
+// A rotation is where the builder STARTS a version of the selected cycle —
+// each meal at its default week, the plan's own week the athlete's — and
+// which rotation a plan ran is read from its picks, never stored beside them.
+// Switching rotation builds the next version, so the list regenerates and
+// changes; the page holds no rotation selection for a re-read to keep or lose.
+{
+  const rot = JSON.parse(readLF('fixtures/fuel-seed-rotation-b.json'))
+  const library = [...meals, ...rot.fuel_meals_new]
+  const lib = (s) => library.find((m) => m.slug === s)
+  const rotations = rot.fuel_rotations
+  const members = rot.fuel_rotation_meals
+  const rotationPlan = (slug, household = andrew) => ({ entries: rotationEntries(slug, members, library, household) })
+  const defaultWeek = (rotation, slug) => members.find((x) => x.rotation_slug === rotation && x.meal_slug === slug)?.week
+
+  // acceptance 4: the default week comes from the rotation; the athlete's week wins
+  const b = rotationPlan('rotation-b')
+  assert(b.entries.length === 8 && b.entries.every((e) => e.week === defaultWeek('rotation-b', e.slug)),
+    "a plan started from a rotation takes each meal's DEFAULT week from fuel_rotation_meals.week")
+  const swapped = { entries: b.entries.map((e) => (e.slug === 'jerk-thighs' ? { ...e, week: 1 } : e.slug === 'chili-lime-thighs' ? { ...e, week: 2 } : e)) }
+  assert(snapshot(andrew, swapped).entries.find((e) => e.slug === 'jerk-thighs')?.week === 1 && rotationOf(swapped.entries, rotations, members) === 'rotation-b' && changed(snapshot(andrew, b), andrew, swapped),
+    "the plan's own week is the athlete's: a night moved off its default week stays moved, is still rotation B, and is a new version")
+
+  // where the builder starts, for this household
+  const weekly = rotationPlan('rotation-b', { ...andrew, shop_cadence_days: 7 }).entries
+  assert(weekly.length === 4 && weekly.every((e) => e.week === 1), "a weekly shop starts from the rotation's week-1 nights only")
+  const three = rotationPlan('rotation-b', { ...andrew, nights_per_week: 3 }).entries.map((e) => `${e.week}:${e.slug}`)
+  assert(JSON.stringify(three) === JSON.stringify(['1:cast-iron-ribeye', '1:chili-lime-thighs', '1:miso-ginger-salmon', '2:jerk-thighs', '2:turkey-meatballs', '2:tandoori-breast']),
+    `never more nights a week than the household cooks, in the rotation's order — got ${three.join(' ')}`)
+  const capped = rotationPlan('rotation-b', { ...andrew, cook_cap_minutes: 15 }).entries
+  assert(capped.length > 0 && capped.every((e) => lib(e.slug).active_cook_minutes <= 15), 'a meal over the cook cap is left out of where the builder starts')
+  const four = rotationPlan('rotation-b', { ...andrew, people_count: 4 }).entries
+  assert(four.every((e) => e.servings === defaultServings(lib(e.slug), { people_count: 4 })), "servings start at the household's default, not the seed's")
+
+  // acceptance 3 and section 6: switching rotation regenerates the list, and it changes
+  const la = buildShoppingList(andrew, library, rotationPlan('rotation-a'))
+  const lb = buildShoppingList(andrew, library, b)
+  assert(JSON.stringify(la.items) !== JSON.stringify(lb.items), 'switching rotation changes the list')
+  const meatLines = (l) => JSON.stringify(l.items.filter((i) => i.section === 'Meat & Seafood').map((i) => [i.item, i.qty, i.unit, i.second_trip]).sort())
+  assert(meatLines(la) === meatLines(lb), 'both rotations buy the same meat, cut for cut and ounce for ounce — the Costco shop is the same shape')
+  const rest = (l) => new Set(l.items.filter((i) => i.section !== 'Meat & Seafood').map((i) => `${i.key}=${i.qty}`))
+  const ra = rest(la), rb = rest(lb)
+  assert([...rb].some((k) => !ra.has(k)) && [...ra].some((k) => !rb.has(k)), 'produce and pantry lines differ between the rotations')
+
+  // acceptance 5: the doubled number on a list generated from rotation B, not the per-person one
+  const qty = (item) => find(lb, item)?.qty
+  assert(qty('chicken thigh, boneless skinless') === 96 && qty('ground turkey 93/7') === 102 && qty('chicken breast, boneless skinless') === 26,
+    `rotation B's meat is doubled for the 50% prep diversion — thighs 96, turkey 102, breast 26 oz, not 48 / 51 / 13 — got ${qty('chicken thigh, boneless skinless')} / ${qty('ground turkey 93/7')} / ${qty('chicken breast, boneless skinless')}`)
+  assert(find(lb, 'cod or halibut', true)?.qty === 34 && !find(lb, 'cod or halibut', false) && find(lb, 'salmon', false)?.qty === 30,
+    'rotation B keeps L3: the week-2 cod tacos are the second trip, the week-1 salmon the main shop')
+  assert(validatePlan(rotationPlan('rotation-a'), library, andrew).length === 0 && validatePlan(b, library, andrew).length === 0, 'both rotations, started as they stand, break no household rule')
+
+  // which rotation a plan ran is read from its picks
+  assert(rotationOf(rotationPlan('rotation-a').entries, rotations, members) === 'rotation-a' && rotationOf(b.entries, rotations, members) === 'rotation-b', "a plan's rotation is read from its picks")
+  assert(rotationOf(['cast-iron-ribeye', 'chili-lime-thighs', 'greek-turkey-bowl'].map((slug) => ({ slug })), rotations, members) === null, 'meals in both rotations say nothing — the keepers alone are no rotation')
+  const uneven = [{ slug: 'r1', name: 'One', sort_order: 1, note: null }, { slug: 'r2', name: 'Two', sort_order: 2, note: null }, { slug: 'r3', name: 'Three', sort_order: 3, note: null }]
+  const unevenMembers = [['r1', 'm1'], ['r2', 'm1'], ['r1', 'm2'], ['r3', 'm2']].map(([rotation_slug, meal_slug], i) => ({ rotation_slug, meal_slug, week: 1, sort_order: i + 1 }))
+  assert(rotationOf([{ slug: 'm1' }, { slug: 'm2' }], uneven, unevenMembers) === null, 'a meal in more than one rotation says nothing about which was run — even where rotations overlap unevenly')
+  assert(rotationOf([{ slug: 'miso-ginger-salmon' }, { slug: 'lemon-garlic-salmon' }], rotations, members) === null, 'a tie is no rotation — never a guess')
+  assert(rotationOf([...b.entries.slice(0, 7), { slug: 'blackened-cod' }], rotations, members) === 'rotation-b', 'a rotation with one night swapped is still that rotation')
+
+  // a new cycle starts from the lowest rotation not just run
+  assert(defaultRotation(rotations, null) === 'rotation-a' && defaultRotation(rotations, 'rotation-a') === 'rotation-b' && defaultRotation(rotations, 'rotation-b') === 'rotation-a',
+    'a new cycle starts from the lowest rotation not just run')
+  assert(defaultRotation([...rotations].reverse(), null) === 'rotation-a' && sortedRotations([...rotations].reverse())[0].slug === 'rotation-a', 'rotation order is sort_order, whatever order the rows arrive in')
+  assert(defaultRotation([], null) === null, 'no rotations, no default — the builder starts as it always did')
+  const hist = [
+    { week_start: '2026-08-24', version: 1, meal_ids: rotationPlan('rotation-a').entries },
+    { week_start: '2026-09-07', version: 1, meal_ids: b.entries },
+    { week_start: '2026-09-07', version: 2, meal_ids: rotationPlan('rotation-a').entries },
+  ]
+  assert(rotationJustRun(hist, '2026-09-21', rotations, members) === 'rotation-a', 'the cycle just run is the newest version of the latest cycle before the target')
+  assert(rotationJustRun(hist, '2026-09-07', rotations, members) === 'rotation-a' && rotationJustRun(hist, '2026-08-24', rotations, members) === null,
+    'the target cycle itself is not history; with nothing before it, nothing was just run')
+
+  // the page: on the sentence, no selection, loaded once, degrading before the migration
+  const pg11 = readLF('src/app/fuel/page.tsx')
+  assert(/ROTATIONS \(FOR-238\), on that sentence and not beside it: a rotation is not a\n\/\/ second thing the page shows/.test(pg11)
+    && pg11.indexOf('ROTATIONS (FOR-238)') > pg11.indexOf('THE CYCLE MODEL (FOR-233)') && pg11.indexOf('ROTATIONS (FOR-238)') < pg11.indexOf('Why no wake refresh'),
+    'the page states rotations on the cycle sentence, directly under it: where the builder starts, read from the picks, never a second thing shown')
+  assert(!/const \[\w*[Rr]otation\w*, set\w*\] = useState<string/.test(pg11) && !/rotation_slug/.test(pg11) && !/localStorage/.test(pg11),
+    'the page holds no rotation selection — nothing for a re-read to keep or lose')
+  assert(/const entries = builderStart\(targetStart, recent, rotations, members, meals, h, plan \? plan\.meal_ids : null\)/.test(pg11) && /initial=\{startEntries\(buildTarget\(new Date\(\)\), household\)\} rotations=\{rotations\} members=\{members\}/.test(pg11) && !/if \(plan && !nextCycle\) return/.test(pg11),
+    'the page starts the builder through builderStart, on the start the build lands on — never on which toggle is set')
+  // builderStart: the picks saved for the target start, else the rotation not just run, else the selected picks (Codex, FOR-238 r1)
+  const sep7 = { week_start: '2026-09-07', version: 1, meal_ids: rotationPlan('rotation-a').entries }
+  const sep7v2 = { week_start: '2026-09-07', version: 2, meal_ids: rotationPlan('rotation-a').entries.slice(1) }
+  const sep21 = { week_start: '2026-09-21', version: 1, meal_ids: b.entries }
+  assert(JSON.stringify(builderStart('2026-09-07', [sep7, sep7v2, sep21], rotations, members, library, andrew, null)) === JSON.stringify(sep7v2.meal_ids) && JSON.stringify(builderStart('2026-09-21', [sep7, sep7v2, sep21], rotations, members, library, andrew, null)) === JSON.stringify(sep21.meal_ids),
+    'a rebuild starts from the picks saved for its own start, at their newest version — the selected cycle, or the cycle planned ahead')
+  const shortened = rebuildKey({ week_start: '2026-09-07', version: 1, shop_cadence_days: 14 }, 7, new Date('2026-09-15T12:00:00'))
+  const weeklyAndrew = { ...andrew, shop_cadence_days: 7 }
+  assert(shortened === '2026-09-14' && JSON.stringify(builderStart(shortened, [sep7], rotations, members, library, weeklyAndrew, sep7.meal_ids)) === JSON.stringify(rotationEntries('rotation-b', members, library, weeklyAndrew)),
+    `a cadence shortened into a new week starts from the rotation not just run, not from the cycle it left — Codex r1: the September 7 fortnight shortened on September 15 targets ${shortened}`)
+  assert(JSON.stringify(builderStart('2026-09-21', [sep7], rotations, members, library, andrew, sep7.meal_ids)) === JSON.stringify(b.entries), 'the next cycle starts from the rotation the cycle before it did not run')
+  assert(builderStart('2026-09-21', [sep7], [], [], library, andrew, sep7.meal_ids) === sep7.meal_ids && builderStart('2026-09-21', [], [], [], library, andrew, null) === null,
+    'with no rotations, the builder starts from the selected picks, as it did before rotations')
+  const refreshBody = pg11.slice(pg11.indexOf('const refresh = useCallback'), pg11.indexOf('const onSaveHousehold'))
+  assert(/loadRotations\(supabase\)\]\)/.test(pg11) && /const err = m\.error \?\? h\.error \?\? active\.error \?\? rot\.error/.test(pg11) && /setRotations\(rot\.rotations\); setMembers\(rot\.members\)/.test(pg11) && refreshBody.length > 0 && !/Rotations/.test(refreshBody),
+    'the rotations are loaded once with the library, never by the re-read')
+  const st11 = readLF('src/lib/fuel/store.ts')
+  assert(/if \(error\) return \{ rotations: \[\], members: \[\], error: isMissingTable\(error\) \? null : error \}/.test(st11) && /from\('fuel_rotations'\)\.select\('slug, name, sort_order, note'\)/.test(st11) && /from\('fuel_rotation_meals'\)\.select\('rotation_slug, meal_slug, week, sort_order'\)/.test(st11),
+    'before the rotations migration is applied, Fuel runs as it did: no rotations, and never "not ready"')
+  const pb11 = readLF('src/components/fuel/PlanBuilder.tsx')
+  assert(/const startFrom = \(slug: string\) => \{ setEntries\(rotationEntries\(slug, members, meals, household\)\); setWeek\(1\) \}/.test(pb11) && /onClick=\{\(\) => startFrom\(r\.slug\)\}/.test(pb11),
+    'the switcher starts the picks over from a rotation')
+  assert(/const current = useMemo\(\(\) => rotationOf\(entries, rotations, members\), \[entries, rotations, members\]\)/.test(pb11) && /aria-pressed=\{current === r\.slug\}/.test(pb11) && /\{rotations\.length > 1 && \(/.test(pb11) && !/useState<string/.test(pb11),
+    'the switcher shows which rotation the picks are, read from the picks, with no rotation state beside them')
+  // acceptance 6: ticks persist on reload exactly as FOR-177 shipped them
+  for (const f of ['src/components/fuel/Checklist.tsx', 'src/lib/fuel/ticks.ts', 'supabase/migrations/20260916_fuel_tick_superseded_guard.sql']) {
+    assert(!/rotation/i.test(readLF(f)), `${f} is untouched by rotations — ticks persist on reload as they shipped`)
+  }
 }
 
 if (failures) { console.log(`\nfuel-solve: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

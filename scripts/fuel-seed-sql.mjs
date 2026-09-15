@@ -1,46 +1,71 @@
-// ── Fuel Phase 1 migration, generated from fixtures/fuel-seed.json ──────────
+// ── Fuel seed migrations, each generated from its fixture ───────────────────
 //
-//   node scripts/fuel-seed-sql.mjs          writes supabase/migrations/20260914_fuel_phase_1.sql
-//   node scripts/fuel-seed-sql.mjs --check  exits 1 if the file on disk differs from what it would write
+//   node scripts/fuel-seed-sql.mjs          writes every migration in PAIRS from its fixture
+//   node scripts/fuel-seed-sql.mjs --check  exits 1 if any migration on disk differs from what it would write
 //
-// The seed rows are Andrew's fortnight rotation as Blaine read it from the two
-// Google Docs. Generating the SQL from the fixture means the migration and
-// the fixture cannot disagree; the fuel-solve check runs --check.
+// Each PAIR is one fixture and the one migration generated from it. The
+// fixture is the source; the migration cannot disagree with it, because the
+// fuel-solve check runs --check over every pair. FOR-238 generalised this
+// from the single phase-1 pair — one module, one set of helpers, one macro
+// guard, one CLI — rather than a second copy for rotation B. A fixture with
+// no pair here has no migration.
 //
-// Tables and RLS ship in the SAME migration (rls_hardening lesson). The one
-// write path for check state is a database function so that the row stays
-// authoritative — see src/lib/fuel/ticks.ts.
-import { readFileSync, writeFileSync } from 'node:fs'
+//   fixtures/fuel-seed.json             -> 20260914_fuel_phase_1.sql   (FOR-177)
+//   fixtures/fuel-seed-rotation-b.json  -> 20260917_fuel_rotations.sql (FOR-238)
+//
+// The phase-1 migration is applied in production: what it renders never
+// changes. Tables and RLS ship in the SAME migration (rls_hardening lesson).
+// The one write path for check state is a database function so that the row
+// stays authoritative — see src/lib/fuel/ticks.ts.
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
-export const MIGRATION = join(ROOT, 'supabase', 'migrations', '20260914_fuel_phase_1.sql')
-const seed = JSON.parse(readFileSync(join(ROOT, 'fixtures', 'fuel-seed.json'), 'utf8'))
+const readFixture = (rel) => JSON.parse(readFileSync(join(ROOT, rel), 'utf8'))
 
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`
 const j = (v) => `${q(JSON.stringify(v))}::jsonb`
 const n = (v) => (v == null ? 'NULL' : String(v))
 
-const sectionOrder = seed.store_section_order
-
-// FOR-234 §4: the fixture carries carbs, fat and calories per person, but
-// this phase-1 seed does not — the file it renders is applied in production.
+// FOR-234 §4: a fixture carries carbs, fat and calories per person, but no
+// seed migration here does — the files they render are applied in production.
 // A fixture with real macro values needs a NEW seed migration that carries
-// them; until then they must be present and null, never estimated.
+// them; until then they must be present and null, never estimated. Every
+// pair's meals pass through this one guard.
 const MACROS = ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']
 
-export function render() {
-  for (const m of seed.fuel_meals) for (const k of MACROS) {
+function guardMacros(meals) {
+  for (const m of meals) for (const k of MACROS) {
     if (!(k in m)) throw new Error(`${m.slug}: fixture is missing ${k} (FOR-234 §4 shape) — set it to null until sourced`)
-    if (m[k] != null) throw new Error(`${m.slug}: ${k} = ${m[k]} — the phase-1 seed does not carry macros; render them in a new seed migration (FOR-234)`)
+    if (m[k] != null) throw new Error(`${m.slug}: ${k} = ${m[k]} — no seed migration carries macros yet; render them in a new seed migration (FOR-234)`)
   }
-  const rows = seed.fuel_meals.map((m) => `  (${[
-    q(m.slug), q(m.name), q(m.protein_cut), q(m.spice_profile), q(m.format),
-    n(m.active_cook_minutes), n(m.total_minutes), n(m.servings), n(m.protein_g_per_person),
-    n(m.perishable_within_days), m.rotation_note ? q(m.rotation_note) : 'NULL', j(m.ingredients),
-  ].join(', ')})`).join(',\n')
+}
 
+// ── Meal rows: one renderer and one upsert, shared by every pair ─────────────
+const MEAL_HEAD = `INSERT INTO public.fuel_meals
+  (slug, name, protein_cut, spice_profile, format, active_cook_minutes, total_minutes, servings, protein_g_per_person, perishable_within_days, rotation_note, ingredients)
+VALUES
+`
+
+const MEAL_UPSERT = `ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name, protein_cut = EXCLUDED.protein_cut, spice_profile = EXCLUDED.spice_profile,
+  format = EXCLUDED.format, active_cook_minutes = EXCLUDED.active_cook_minutes, total_minutes = EXCLUDED.total_minutes,
+  servings = EXCLUDED.servings, protein_g_per_person = EXCLUDED.protein_g_per_person,
+  perishable_within_days = EXCLUDED.perishable_within_days, rotation_note = EXCLUDED.rotation_note,
+  ingredients = EXCLUDED.ingredients;
+`
+
+const mealRows = (meals) => meals.map((m) => `  (${[
+  q(m.slug), q(m.name), q(m.protein_cut), q(m.spice_profile), q(m.format),
+  n(m.active_cook_minutes), n(m.total_minutes), n(m.servings), n(m.protein_g_per_person),
+  n(m.perishable_within_days), m.rotation_note ? q(m.rotation_note) : 'NULL', j(m.ingredients),
+].join(', ')})`).join(',\n')
+
+const mealInsert = (meals) => `${MEAL_HEAD}${mealRows(meals)}\n${MEAL_UPSERT}`
+
+// ── fixtures/fuel-seed.json -> Fuel Phase 1 ──────────────────────────────────
+function renderPhase1(seed) {
   return `-- ============================================================
 -- Fuel Phase 1 (FOR-177) — 2026-09-14
 -- GENERATED by scripts/fuel-seed-sql.mjs from fixtures/fuel-seed.json.
@@ -87,7 +112,7 @@ CREATE TABLE IF NOT EXISTS public.fuel_household (
   prep_diversion_pct  int NOT NULL DEFAULT 0 CHECK (prep_diversion_pct BETWEEN 0 AND 90), -- L2, first-class
   dietary_rules       jsonb NOT NULL DEFAULT '{}'::jsonb,
   inventory           jsonb NOT NULL DEFAULT '[]'::jsonb,   -- [{item, qty, unit}]
-  store_section_order jsonb NOT NULL DEFAULT ${j(sectionOrder)},
+  store_section_order jsonb NOT NULL DEFAULT ${j(seed.store_section_order)},
   updated_at          timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.fuel_household ENABLE ROW LEVEL SECURITY;
@@ -231,29 +256,124 @@ REVOKE EXECUTE ON FUNCTION public.fuel_create_version(date, jsonb, jsonb, jsonb)
 GRANT  EXECUTE ON FUNCTION public.fuel_create_version(date, jsonb, jsonb, jsonb) TO authenticated;
 
 -- ── Seed: Andrew's fortnight rotation (${seed.fuel_meals.length} meals), from the fixture ───
-INSERT INTO public.fuel_meals
-  (slug, name, protein_cut, spice_profile, format, active_cook_minutes, total_minutes, servings, protein_g_per_person, perishable_within_days, rotation_note, ingredients)
+${mealInsert(seed.fuel_meals)}`
+}
+
+// ── fixtures/fuel-seed-rotation-b.json -> Fuel rotations ─────────────────────
+// ADDITIVE ONLY (FOR-238 §4): the new meals, two new tables, both rotations'
+// membership. It refuses to render a new meal whose slug is already a
+// rotation-A meal — the upsert would otherwise rewrite that row — and a
+// membership row that names a meal or a rotation that does not exist.
+function renderRotations(seed) {
+  const base = readFixture('fixtures/fuel-seed.json').fuel_meals.map((m) => m.slug)
+  const fresh = seed.fuel_meals_new.map((m) => m.slug)
+  for (const s of fresh) if (base.includes(s)) throw new Error(`${s}: already a meal in fixtures/fuel-seed.json — a rotation migration adds meals, it never rewrites one`)
+  for (const x of seed.fuel_rotation_meals) {
+    if (!base.includes(x.meal_slug) && !fresh.includes(x.meal_slug)) throw new Error(`${x.rotation_slug}: ${x.meal_slug} is not a meal in either fixture`)
+    if (!seed.fuel_rotations.some((r) => r.slug === x.rotation_slug)) throw new Error(`${x.meal_slug}: rotation ${x.rotation_slug} does not exist`)
+  }
+  const rotationRows = seed.fuel_rotations.map((r) => `  (${[q(r.slug), q(r.name), n(r.sort_order), r.note ? q(r.note) : 'NULL'].join(', ')})`).join(',\n')
+  const memberRows = seed.fuel_rotation_meals.map((x) => `  (${[q(x.rotation_slug), q(x.meal_slug), n(x.week), n(x.sort_order)].join(', ')})`).join(',\n')
+
+  return `-- ============================================================
+-- Fuel rotations (FOR-238) — 2026-09-17
+-- GENERATED by scripts/fuel-seed-sql.mjs from fixtures/fuel-seed-rotation-b.json.
+-- Do not edit by hand; edit the fixture and regenerate.
+--
+-- ADDITIVE ONLY: two new tables, the ${seed.fuel_meals_new.length} new meals, and both rotations'
+-- membership. No column on fuel_meals changes and no rotation-A meal row is
+-- touched. A meal belongs to many rotations — three are in both — so
+-- membership is a join, not a column, and a meal in two rotations is ONE
+-- meal row. Each membership carries the rotation's DEFAULT week; a plan's own
+-- week stays the athlete's. rotation_note stays human-readable colour and
+-- nothing parses it. Dated after 20260916 so it sorts after everything it
+-- references.
+-- ============================================================
+
+-- ── fuel_rotations: the named fortnights, read-only to users ─────────────
+CREATE TABLE IF NOT EXISTS public.fuel_rotations (
+  slug       text PRIMARY KEY,
+  name       text NOT NULL,
+  sort_order int  NOT NULL,
+  note       text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.fuel_rotations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "fuel_rotations: authenticated read" ON public.fuel_rotations;
+CREATE POLICY "fuel_rotations: authenticated read" ON public.fuel_rotations
+  FOR SELECT TO authenticated USING (true);
+-- No INSERT / UPDATE / DELETE policy: users never write the rotations.
+
+-- ── fuel_rotation_meals: membership, each meal at its default week ───────
+-- Meal slugs are foreign keys here too: a slug is a stable identifier, not a
+-- label, and renaming one breaks membership (FOR-238 §7).
+CREATE TABLE IF NOT EXISTS public.fuel_rotation_meals (
+  rotation_slug text NOT NULL REFERENCES public.fuel_rotations(slug),
+  meal_slug     text NOT NULL REFERENCES public.fuel_meals(slug),
+  week          int  NOT NULL CHECK (week IN (1, 2)),   -- the builder's DEFAULT; PlanEntry.week is the athlete's
+  sort_order    int  NOT NULL,
+  PRIMARY KEY (rotation_slug, meal_slug)
+);
+ALTER TABLE public.fuel_rotation_meals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "fuel_rotation_meals: authenticated read" ON public.fuel_rotation_meals;
+CREATE POLICY "fuel_rotation_meals: authenticated read" ON public.fuel_rotation_meals
+  FOR SELECT TO authenticated USING (true);
+-- No INSERT / UPDATE / DELETE policy: users never write membership.
+
+-- ── The new meals, from the fixture ──────────────────────────────────────
+${mealInsert(seed.fuel_meals_new)}
+-- ── The rotations ────────────────────────────────────────────────────────
+INSERT INTO public.fuel_rotations (slug, name, sort_order, note)
 VALUES
-${rows}
+${rotationRows}
 ON CONFLICT (slug) DO UPDATE SET
-  name = EXCLUDED.name, protein_cut = EXCLUDED.protein_cut, spice_profile = EXCLUDED.spice_profile,
-  format = EXCLUDED.format, active_cook_minutes = EXCLUDED.active_cook_minutes, total_minutes = EXCLUDED.total_minutes,
-  servings = EXCLUDED.servings, protein_g_per_person = EXCLUDED.protein_g_per_person,
-  perishable_within_days = EXCLUDED.perishable_within_days, rotation_note = EXCLUDED.rotation_note,
-  ingredients = EXCLUDED.ingredients;
+  name = EXCLUDED.name, sort_order = EXCLUDED.sort_order, note = EXCLUDED.note;
+
+-- ── Membership: both rotations, each meal at its default week ────────────
+INSERT INTO public.fuel_rotation_meals (rotation_slug, meal_slug, week, sort_order)
+VALUES
+${memberRows}
+ON CONFLICT (rotation_slug, meal_slug) DO UPDATE SET
+  week = EXCLUDED.week, sort_order = EXCLUDED.sort_order;
 `
+}
+
+// ── The pairs ────────────────────────────────────────────────────────────────
+export const PAIRS = [
+  { fixture: 'fixtures/fuel-seed.json', migration: 'supabase/migrations/20260914_fuel_phase_1.sql', meals: (seed) => seed.fuel_meals, render: renderPhase1 },
+  { fixture: 'fixtures/fuel-seed-rotation-b.json', migration: 'supabase/migrations/20260917_fuel_rotations.sql', meals: (seed) => seed.fuel_meals_new, render: renderRotations },
+]
+
+/** The migration a pair's fixture generates. Throws, before rendering, on anything a seed migration must not carry. */
+export function renderPair(pair) {
+  const seed = readFixture(pair.fixture)
+  guardMacros(pair.meals(seed))
+  return pair.render(seed)
+}
+
+/** The migration on disk for a pair, line endings normalised; null when it does not exist. */
+export function onDisk(pair) {
+  const path = join(ROOT, pair.migration)
+  return existsSync(path) ? readFileSync(path, 'utf8').replace(/\r\n/g, '\n') : null
+}
+
+/** Every pair whose migration on disk is not exactly what its fixture generates. */
+export function drifted() {
+  return PAIRS.filter((p) => onDisk(p) !== renderPair(p))
 }
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === join(process.cwd(), process.argv[1].replace(process.cwd(), '').replace(/^[\\/]/, ''))
   || process.argv[1]?.endsWith('fuel-seed-sql.mjs')
 if (isMain) {
-  const out = render()
   if (process.argv.includes('--check')) {
-    const onDisk = readFileSync(MIGRATION, 'utf8').replace(/\r\n/g, '\n')
-    if (onDisk !== out) { console.error('migration differs from the fixture — run: node scripts/fuel-seed-sql.mjs'); process.exit(1) }
-    console.log('migration matches the fixture')
+    const bad = drifted()
+    for (const p of bad) console.error(`${p.migration} differs from ${p.fixture} — run: node scripts/fuel-seed-sql.mjs`)
+    if (bad.length) process.exit(1)
+    console.log(`every migration matches its fixture (${PAIRS.length} pairs)`)
   } else {
-    writeFileSync(MIGRATION, out)
-    console.log('wrote', MIGRATION, `(${seed.fuel_meals.length} meals)`)
+    for (const p of PAIRS) {
+      writeFileSync(join(ROOT, p.migration), renderPair(p))
+      console.log('wrote', p.migration, `(${p.meals(readFixture(p.fixture)).length} meals, from ${p.fixture})`)
+    }
   }
 }

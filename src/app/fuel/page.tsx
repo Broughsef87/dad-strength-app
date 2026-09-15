@@ -15,6 +15,14 @@
 // unless it has expired; a re-read that fails is shown and keeps the
 // checklist paused until a retry succeeds.
 //
+// ROTATIONS (FOR-238), on that sentence and not beside it: a rotation is not a
+// second thing the page shows. It is where the builder STARTS a version of the
+// selected cycle — each meal at its rotation's default week, the plan's own
+// week the athlete's — and which rotation a plan ran is read from its own
+// picks, never stored beside them. Switching rotation builds the selected
+// cycle's next version, so the list regenerates under the same sentence; a new
+// cycle starts from the rotation the cycle before it did not run.
+//
 // Why no wake refresh: it only ever made staleness visible, and its
 // interleavings with navigation and with itself cost four Codex rounds
 // (FOR-177 r17–19, FOR-233 r1–3); the guard makes the write correct without
@@ -33,14 +41,15 @@ import PremiumGate from '../../components/PremiumGate'
 import IntakeForm from '../../components/fuel/IntakeForm'
 import PlanBuilder from '../../components/fuel/PlanBuilder'
 import Checklist from '../../components/fuel/Checklist'
-import type { Household, ListItem, MealRow, Plan } from '../../lib/fuel/types'
+import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import {
-  DEFAULT_HOUSEHOLD, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadVersions,
+  DEFAULT_HOUSEHOLD, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadVersions,
   readItems, saveHousehold, setItemChecked, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
+import { builderStart } from '../../lib/fuel/rotation'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -54,6 +63,11 @@ export default function FuelPage() {
   const [notReady, setNotReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [meals, setMeals] = useState<MealRow[]>([])
+  // The rotations and their membership (FOR-238): library data, read once
+  // like the meals. Not a selection — nothing here says which rotation the
+  // page is on; a plan's rotation is read from its picks.
+  const [rotations, setRotations] = useState<RotationRow[]>([])
+  const [members, setMembers] = useState<RotationMealRow[]>([])
   const [household, setHousehold] = useState<Household | null>(null)
   // `plan` is the SELECTED cycle; `live` is today's live cycle, held apart so
   // the way back to it always exists (FOR-233, finding 2).
@@ -103,12 +117,12 @@ export default function FuelPage() {
       if (!user) { router.push('/'); return }
       if (cancelled) return
       setUserId(user.id)
-      const [m, h, active] = await Promise.all([loadMeals(supabase), loadHousehold(supabase, user.id), loadActive(supabase, user.id, new Date())])
+      const [m, h, active, rot] = await Promise.all([loadMeals(supabase), loadHousehold(supabase, user.id), loadActive(supabase, user.id, new Date()), loadRotations(supabase)])
       if (cancelled) return
-      const err = m.error ?? h.error ?? active.error
+      const err = m.error ?? h.error ?? active.error ?? rot.error
       if (isMissingTable(err)) { setNotReady(true); setLoading(false); return }
       if (err) setError(err.message ?? 'could not load')
-      setMeals(m.meals)
+      setMeals(m.meals); setRotations(rot.rotations); setMembers(rot.members)
       setHousehold(h.household); setHouseholdSavedAt(h.updatedAt)
       setPlan(active.plan); setLive(active.plan); setList(active.list); setUpcoming(active.upcoming); setRecent(active.recent); setNewestPlanAt(active.newestPlanAt); setNewestPlanKnown(active.newestPlanKnown)
       if (active.plan) {
@@ -230,6 +244,17 @@ export default function FuelPage() {
   const startingNextNow = !!(liveCycle && nextCycle)
   const rebuildOfCounted = (start: string) => !!plan && !startingNextNow && start === plan.week_start && (plan.rules_snapshot?.inventory_counted ?? true)
   const askInventory = (household?.inventory.length ?? 0) > 0 && !rebuildOfCounted(buildTarget(new Date()))
+
+  // Where the builder STARTS (FOR-238), decided in rotation.ts on the start
+  // the build lands on — never on which toggle is set: picks already saved for
+  // that start (the selected cycle rebuilt, or the cycle planned ahead), or
+  // else the rotation the cycle before it did not run. A cadence shortened
+  // into a new week is a new cycle, not a rebuild (Codex, FOR-238 r1). Before
+  // the rotations migration is applied: the selected cycle's picks, as before.
+  const startEntries = (targetStart: string, h: Household): Plan | null => {
+    const entries = builderStart(targetStart, recent, rotations, members, meals, h, plan ? plan.meal_ids : null)
+    return entries ? { entries } : null
+  }
 
   const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
     if (!userId || !household) return
@@ -376,8 +401,8 @@ export default function FuelPage() {
                 </div>
               )}
               {step === 'plan' && household && (
-                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
-                  initial={plan ? { entries: plan.meal_ids } : null}
+                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}-${rotations.length}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
+                  initial={startEntries(buildTarget(new Date()), household)} rotations={rotations} members={members}
                   cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}
               {step === 'list' && list && plan && listId && stale && (

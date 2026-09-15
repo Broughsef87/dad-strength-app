@@ -7,7 +7,7 @@
 // plan and its list in the same transaction and picks the version number
 // under the unique constraint — no orphan plan, no client-side race.
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Household, ListItem, MealRow, Plan } from './types'
+import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from './types'
 import { buildShoppingList, householdFor } from './solve'
 import { snapshot, type RulesSnapshot } from './version'
 import { activeCycle, historyFloor, upcomingCycle, type CycleRow } from './cycle'
@@ -66,6 +66,22 @@ export interface ListRow {
 export async function loadMeals(db: Db): Promise<{ meals: MealRow[]; error: { code?: string; message?: string } | null }> {
   const { data, error } = await db.from('fuel_meals').select('slug, name, protein_cut, spice_profile, format, active_cook_minutes, total_minutes, servings, protein_g_per_person, perishable_within_days, rotation_note, ingredients').eq('active', true).order('slug')
   return { meals: (data ?? []) as MealRow[], error }
+}
+
+/**
+ * The rotations and their membership (FOR-238) — library data, like the
+ * meals, read once. Before the rotations migration is applied the tables do
+ * not exist: Fuel runs exactly as it did, with no rotations and no switcher,
+ * and that is never "not ready". Any other failure is reported.
+ */
+export async function loadRotations(db: Db): Promise<{ rotations: RotationRow[]; members: RotationMealRow[]; error: { code?: string; message?: string } | null }> {
+  const [r, m] = await Promise.all([
+    db.from('fuel_rotations').select('slug, name, sort_order, note').order('sort_order').order('slug'),
+    db.from('fuel_rotation_meals').select('rotation_slug, meal_slug, week, sort_order').order('rotation_slug').order('sort_order'),
+  ])
+  const error = r.error ?? m.error
+  if (error) return { rotations: [], members: [], error: isMissingTable(error) ? null : error }
+  return { rotations: (r.data ?? []) as RotationRow[], members: (m.data ?? []) as RotationMealRow[], error: null }
 }
 
 export async function loadHousehold(db: Db, userId: string): Promise<{ household: Household | null; updatedAt: string | null; error: { code?: string; message?: string } | null }> {
