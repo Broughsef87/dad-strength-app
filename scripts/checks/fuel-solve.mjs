@@ -473,8 +473,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 18: a refresh keeps the selected cycle while it is still live or ahead, and yields to a write that completed meanwhile
   assert(/const kept = start \? newestVersion\(active\.recent, start\) : null/.test(pg) && /const nextPlan = kept && !expired\(asCycle\(kept\), now\) \? kept : active\.plan/.test(pg) && /await loadListFor\(supabase, nextPlan\.id\)/.test(pg),
     'a refresh keeps the cycle the athlete selected, at its newest version, while it is still live or ahead')
-  assert(/const seen = writesRef\.current/.test(pg) && (pg.match(/if \(writesRef\.current !== seen\) return/g) || []).length === 2 && (pg.match(/writesRef\.current \+= 1/g) || []).length === 2,
-    'a refresh that started before a save or a build completed applies nothing')
+  assert(/genRef\.current \+= 1\n\s+const gen = genRef\.current\n/.test(pg) && (pg.match(/if \(gen !== genRef\.current\) return/g) || []).length === 3 && /const built = res\.plan\n\s+moved\(built\)\n/.test(pg) && /moved\(\)\n\s+setHousehold\(h\); setHouseholdSavedAt/.test(pg) && !/writesRef/.test(pg),
+    'a refresh that started before a save or a build completed applies nothing — the generation moved as the write applied (the writes epoch, subsumed)')
   const inf18 = readLF('src/components/fuel/IntakeForm.tsx')
   assert(/if \(incomingKey !== seenKey\) \{\n\s+setSeenKey\(incomingKey\)\n\s+if \(!dirty \|\| incomingKey === JSON\.stringify\(h\)\) \{ setH\(initial\); setDirty\(false\); setConflict\(false\) \} else setConflict\(true\)/.test(inf18) && /disabled=\{saving \|\| conflict\}/.test(inf18) && /reload what was saved/.test(inf18) && /setH\(\{ \.\.\.h, \.\.\.patch \}\); setDirty\(true\)/.test(inf18),
     'an untouched intake draft follows a household changed elsewhere; a touched one shows the conflict and cannot save over it until reloaded')
@@ -571,8 +571,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the page states its cycle model in one sentence: one cycle at a time, a refresh that never changes the selection unless it expired, a failed refresh shown and pausing, the database refusing a superseded tick')
   assert(/The transition: a page loaded before this change/.test(pg9), 'the transition is stated — what a page open across the change sees')
   // finding 1
-  assert(/if \(h\.error \|\| active\.error\) \{ setRefreshFailed\(true\); return \}/.test(pg9) && pg9.indexOf('if (writesRef.current !== seen) return') < pg9.indexOf('if (h.error || active.error) { setRefreshFailed(true); return }'),
-    'a failed re-read is a state of its own, and a write that landed meanwhile is not a failure — it is judged first')
+  assert(/if \(h\.error \|\| active\.error\) \{ setRefreshFailed\(true\); return \}/.test(pg9) && pg9.indexOf('if (gen !== genRef.current) return') < pg9.indexOf('if (h.error || active.error) { setRefreshFailed(true); return }'),
+    'a failed re-read is a state of its own, and anything that moved meanwhile — a write, a navigation, a newer refresh — is not a failure — it is judged first')
   assert(/paused=\{refreshing \|\| refreshFailed\}/.test(pg9) && /onClick=\{\(\) => void refresh\(\)\}>retry</.test(pg9) && /ticks are held until it succeeds/.test(pg9) && /setRefreshFailed\(false\)/.test(pg9),
     'a failed refresh is shown with a retry and keeps the checklist paused; a refresh that lands clears it')
   // finding 2
@@ -596,10 +596,21 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(names9.indexOf('20260916_fuel_tick_superseded_guard.sql') > names9.indexOf('20260915_fuel_macro_columns.sql'), 'the guard migration sorts after everything it replaces')
   assert(/export const SUPERSEDED = 'FU001'/.test(st9) && /superseded: error\?\.code === SUPERSEDED/.test(st9), 'the store names the refusal')
   assert(/if \(superseded && listIdRef\.current === listId\) void refresh\(\)/.test(pg9) && /\}, \[supabase, listId, refresh\]\)/.test(pg9), 'the page answers a refused tick by re-reading — and moves to the newer list — only while that list is still the one selected; a refusal from a list no longer selected steers nothing')
-  assert(/const start = selectedStartRef\.current\n\s+const kept = start \? newestVersion\(active\.recent, start\) : null/.test(pg9) && /selectedStartRef\.current = plan\?\.week_start \?\? null/.test(pg9) && /\}, \[supabase, userId\]\)/.test(pg9),
-    'a refresh reads the selection through a ref at the moment it applies, never as captured when the refresh was made')
+  assert(/const gen = genRef\.current\n\s+const start = selectedStartRef\.current\n\s+setRefreshing\(true\)/.test(pg9) && /const kept = start \? newestVersion\(active\.recent, start\) : null/.test(pg9) && /selectedStartRef\.current = plan\?\.week_start \?\? null/.test(pg9) && /\}, \[supabase, userId\]\)/.test(pg9),
+    'a refresh reads the selection through a ref as it starts, under its generation — never as captured when the refresh was made, and never applied once a navigation has moved it')
   assert(/PERFORM pg_advisory_xact_lock\(hashtext\(auth\.uid\(\)::text \|\| ':' \|\| v_week_start::text\)\)/.test(guard) && guard.indexOf('PERFORM pg_advisory_xact_lock') < guard.indexOf('IF EXISTS (') && guard.indexOf('IF EXISTS (') < guard.indexOf('UPDATE public.fuel_lists'),
     'the guard takes the same per-cycle lock fuel_create_version takes, before its check, and holds it through the write')
+  // Codex round 2: the refresh is serialised — against itself and against navigation — by one generation
+  assert(/const genRef = useRef\(0\)/.test(pg9) && /genRef\.current \+= 1\n\s+const gen = genRef\.current\n\s+const start = selectedStartRef\.current/.test(pg9) && (pg9.match(/if \(gen !== genRef\.current\) return/g) || []).length === 3
+    && pg9.indexOf('if (gen !== genRef.current) return') < pg9.indexOf('if (h.error || active.error) { setRefreshFailed(true); return }')
+    && /await loadListFor\(supabase, nextPlan\.id\)\) : null\n\s+if \(gen !== genRef\.current\) return\n\s+setHousehold\(h\.household\)/.test(pg9)
+    && /const vs = await loadVersions\(supabase, userId, nextPlan\.week_start\)\n\s+if \(gen !== genRef\.current\) return\n\s+setVersions\(vs\.map\(\(v\) => v\.version\)\)/.test(pg9),
+    'the refresh takes a generation as it starts and, after every await, applies nothing if it has moved — not its data, not its failure state; only the newest refresh speaks')
+  assert(/\} finally \{ if \(gen === genRef\.current\) setRefreshing\(false\) \}/.test(pg9),
+    'a refresh whose generation moved does not lift the pause — the newest refresh, or the navigation that voided it, owns that')
+  assert(/const moved = \(selected\?: PlanRow \| null\) => \{\n\s+genRef\.current \+= 1\n\s+if \(selected !== undefined\) selectedStartRef\.current = selected\?\.week_start \?\? null\n\s+setRefreshing\(false\)\n\s+\}/.test(pg9)
+    && /await loadListFor\(supabase, live\.id\)\n\s+moved\(live\)\n\s+setPlan\(live\)/.test(pg9) && /await loadListFor\(supabase, upcoming\.id\)\n\s+moved\(upcoming\)\n\s+setPlan\(upcoming\)/.test(pg9) && /moved\(built\)\n\s+setPlan\(built\)/.test(pg9) && /moved\(\)\n\s+setHousehold\(h\)/.test(pg9),
+    'every navigation, build and save moves the generation AS IT APPLIES — a refresh in flight applies nothing after it, its pause is lifted, and the selection landed on is what the next refresh reads')
 }
 
 // ── 8. macro columns (FOR-234 §4) — schema only ─────────────────────────────
