@@ -481,10 +481,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const st17 = readLF('src/lib/fuel/store.ts')
   assert(/updated_at: new Date\(\)\.toISOString\(\),/.test(st17) && /updatedAt: typeof data\.updated_at === 'string' \? data\.updated_at : null/.test(st17) && /select\('id, week_start, version, meal_ids, rules_snapshot, created_at'\)/.test(st17) && /created_at: row\.updated_at \}/.test(st17),
     'the household save is stamped, and both stamps are read back, so freshness can be judged')
-  // round 17's wake refresh is DELETED (FOR-233, Codex r3): the page re-reads only when the database refuses a tick, and on the retry of a failed re-read
-  assert(/const refresh = useCallback\(async \(\) => \{/.test(pg) && !/visibilitychange/.test(pg) && !/pageshow/.test(pg) && !/addEventListener\('online'/.test(pg) && (pg.match(/void refresh\(\)/g) || []).length === 2
+  // round 17's wake refresh is DELETED (FOR-233, Codex r3): the page re-reads only when the database refuses a tick, and on the retry of a failed re-read.
+  // Pinned by how many times the code NAMES `refresh`, not by trigger names: a trigger re-added in any form has to name it to call it (FOR-233, review of ad68a14).
+  const code17 = pg.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+  assert(/const refresh = useCallback\(async \(\) => \{/.test(pg) && !/visibilitychange/.test(pg) && !/pageshow/.test(pg) && !/addEventListener\(['"]online['"]/.test(pg)
+    && (code17.match(/\brefresh\b/g) || []).length === 4 && /if \(superseded && listIdRef\.current === listId\) void refresh\(\)\n/.test(code17) && /\}, \[supabase, listId, refresh\]\)/.test(code17) && /onClick=\{\(\) => void refresh\(\)\}>retry</.test(code17)
     && /setStep\(\(s\) => \(s === 'list' && \(!nextList \|\| persistedStale\) \? 'plan' : s\)\)/.test(pg) && /paused=\{refreshing \|\| refreshFailed\}/.test(pg) && /if \(!userId \|\| busyRef\.current\) return/.test(pg),
-    'the page does NOT re-read on waking or reconnecting — the wake refresh is deleted; it re-reads on a refused tick and on the retry of a failed re-read, never mid-build, leaves a superseded list, and pauses the checklist meanwhile')
+    'the page does NOT re-read on waking or reconnecting — the wake refresh is deleted; `refresh` is named in exactly four places in code — its definition, the refused-tick answer and its dependency list, the retry — so no trigger can come back in any form; never mid-build, leaves a superseded list, and pauses the checklist meanwhile')
   const cl17 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const pausedRef = useRef\(paused\)/.test(cl17) && /&& !pausedRef\.current\) \{/.test(cl17) && /\[online, listId, refetch, onRowItems, flush, wake, paused\]/.test(cl17),
     'a paused checklist sends nothing, and flushes when the pause lifts')
