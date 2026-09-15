@@ -661,7 +661,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const cli = spawnSync(process.execPath, [join(ROOT, 'scripts/fuel-seed-sql.mjs'), '--check'], { cwd: ROOT, encoding: 'utf8' })
   assert(cli.status === 0 && /every migration matches its fixture \(2 pairs\)/.test(cli.stdout), `node scripts/fuel-seed-sql.mjs --check passes for both fixtures — exit ${cli.status}: ${(cli.stderr || cli.stdout || '').trim().slice(0, 160)}`)
   const gen10 = readLF('scripts/fuel-seed-sql.mjs')
-  assert((gen10.match(/guardMacros\(/g) || []).length === 2 && /guardMacros\(pair\.meals\(seed\)\)\n\s+return pair\.render\(seed\)/.test(gen10), 'the macro guard runs on every pair\'s meals, before anything renders — rotation B\'s five new meals included')
+  assert((gen10.match(/guardMacros\(/g) || []).length === 2 && /\n  guardMacros\(pair\.meals\(seed\)\)\n  return pair\.render\(seed\)\n\}/.test(gen10), "the macro guard runs on every pair's meals, before anything renders — rotation B's five new meals included")
+  assert(/export function drifted\(\) \{\n  return PAIRS\.filter\(\(p\) => onDisk\(p\) !== renderPair\(p\)\)\n\}/.test(gen10) && /if \(process\.argv\.includes\('--check'\)\) \{\n    const bad = drifted\(\)/.test(gen10), 'drift and --check cover every pair — no pair is left unchecked')
   let unkeyed = ''
   try { renderPair({ ...rotPair, meals: () => [{ slug: 'no-macro-keys' }] }) } catch (e) { unkeyed = String(e.message) }
   assert(/no-macro-keys: fixture is missing carbs_g_per_person/.test(unkeyed), 'a rotation meal without the macro keys is refused')
@@ -751,6 +752,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // which rotation a plan ran is read from its picks
   assert(rotationOf(rotationPlan('rotation-a').entries, rotations, members) === 'rotation-a' && rotationOf(b.entries, rotations, members) === 'rotation-b', "a plan's rotation is read from its picks")
   assert(rotationOf(['cast-iron-ribeye', 'chili-lime-thighs', 'greek-turkey-bowl'].map((slug) => ({ slug })), rotations, members) === null, 'meals in both rotations say nothing — the keepers alone are no rotation')
+  const uneven = [{ slug: 'r1', name: 'One', sort_order: 1, note: null }, { slug: 'r2', name: 'Two', sort_order: 2, note: null }, { slug: 'r3', name: 'Three', sort_order: 3, note: null }]
+  const unevenMembers = [['r1', 'm1'], ['r2', 'm1'], ['r1', 'm2'], ['r3', 'm2']].map(([rotation_slug, meal_slug], i) => ({ rotation_slug, meal_slug, week: 1, sort_order: i + 1 }))
+  assert(rotationOf([{ slug: 'm1' }, { slug: 'm2' }], uneven, unevenMembers) === null, 'a meal in more than one rotation says nothing about which was run — even where rotations overlap unevenly')
   assert(rotationOf([{ slug: 'miso-ginger-salmon' }, { slug: 'lemon-garlic-salmon' }], rotations, members) === null, 'a tie is no rotation — never a guess')
   assert(rotationOf([...b.entries.slice(0, 7), { slug: 'blackened-cod' }], rotations, members) === 'rotation-b', 'a rotation with one night swapped is still that rotation')
 
