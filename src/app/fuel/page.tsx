@@ -49,7 +49,7 @@ import {
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
-import { defaultRotation, rotationEntries, rotationJustRun } from '../../lib/fuel/rotation'
+import { builderStart } from '../../lib/fuel/rotation'
 
 type Step = 'intake' | 'plan' | 'list'
 
@@ -245,19 +245,15 @@ export default function FuelPage() {
   const rebuildOfCounted = (start: string) => !!plan && !startingNextNow && start === plan.week_start && (plan.rules_snapshot?.inventory_counted ?? true)
   const askInventory = (household?.inventory.length ?? 0) > 0 && !rebuildOfCounted(buildTarget(new Date()))
 
-  // Where the builder STARTS (FOR-238). A rebuild of the selected cycle starts
-  // from its own picks, and the next cycle, when it is already planned, from
-  // its own; any other build — the next cycle, or a fresh start — starts from
-  // the rotation the cycle before it did not run, each meal at that rotation's
-  // default week. Before the rotations migration is applied there are no
-  // rotations, and a new cycle starts from the selected cycle's picks as it
-  // always did.
-  const builderStart = (targetStart: string): Plan | null => {
-    if (plan && !nextCycle) return { entries: plan.meal_ids }
-    if (nextCycle && upcoming) return { entries: upcoming.meal_ids }
-    const slug = household ? defaultRotation(rotations, rotationJustRun(recent, targetStart, rotations, members)) : null
-    if (slug && household) return { entries: rotationEntries(slug, members, meals, household) }
-    return plan ? { entries: plan.meal_ids } : null
+  // Where the builder STARTS (FOR-238), decided in rotation.ts on the start
+  // the build lands on — never on which toggle is set: picks already saved for
+  // that start (the selected cycle rebuilt, or the cycle planned ahead), or
+  // else the rotation the cycle before it did not run. A cadence shortened
+  // into a new week is a new cycle, not a rebuild (Codex, FOR-238 r1). Before
+  // the rotations migration is applied: the selected cycle's picks, as before.
+  const startEntries = (targetStart: string, h: Household): Plan | null => {
+    const entries = builderStart(targetStart, recent, rotations, members, meals, h, plan ? plan.meal_ids : null)
+    return entries ? { entries } : null
   }
 
   const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
@@ -406,7 +402,7 @@ export default function FuelPage() {
               )}
               {step === 'plan' && household && (
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}-${rotations.length}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
-                  initial={builderStart(buildTarget(new Date()))} rotations={rotations} members={members}
+                  initial={startEntries(buildTarget(new Date()), household)} rotations={rotations} members={members}
                   cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
               )}
               {step === 'list' && list && plan && listId && stale && (

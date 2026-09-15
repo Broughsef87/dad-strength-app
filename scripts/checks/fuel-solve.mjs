@@ -27,7 +27,7 @@ import { buildShoppingList, purchaseMultiplier, usableInventoryFraction, isSecon
 import { changed, inventoryFresh, listUnchanged, nextVersion, snapshot } from '../../src/lib/fuel/version.ts'
 import { activeCycle, cycleKeyFor, cycleStartFor, daysBetween, daysInto, expired, historyFloor, mondayOf, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle } from '../../src/lib/fuel/cycle.ts'
 import { acknowledge, adopt, drop, enqueue, hold, nextExpiry, orphans, outboxKey, outboxPrefix, ORPHAN_AFTER_MS, outstanding, progress, reconcile, released, render } from '../../src/lib/fuel/ticks.ts'
-import { defaultRotation, rotationEntries, rotationJustRun, rotationOf, sortedRotations } from '../../src/lib/fuel/rotation.ts'
+import { builderStart, defaultRotation, rotationEntries, rotationJustRun, rotationOf, sortedRotations } from '../../src/lib/fuel/rotation.ts'
 import { PAIRS, renderPair, onDisk as migrationOnDisk, drifted } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
@@ -779,9 +779,21 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the page states rotations on the cycle sentence, directly under it: where the builder starts, read from the picks, never a second thing shown')
   assert(!/const \[\w*[Rr]otation\w*, set\w*\] = useState<string/.test(pg11) && !/rotation_slug/.test(pg11) && !/localStorage/.test(pg11),
     'the page holds no rotation selection — nothing for a re-read to keep or lose')
-  assert(/const builderStart = \(targetStart: string\): Plan \| null => \{\n\s+if \(plan && !nextCycle\) return \{ entries: plan\.meal_ids \}\n\s+if \(nextCycle && upcoming\) return \{ entries: upcoming\.meal_ids \}\n\s+const slug = household \? defaultRotation\(rotations, rotationJustRun\(recent, targetStart, rotations, members\)\) : null\n\s+if \(slug && household\) return \{ entries: rotationEntries\(slug, members, meals, household\) \}\n\s+return plan \? \{ entries: plan\.meal_ids \} : null\n/.test(pg11)
-    && /initial=\{builderStart\(buildTarget\(new Date\(\)\)\)\} rotations=\{rotations\} members=\{members\}/.test(pg11),
-    'the builder starts a rebuild from its own picks, a cycle already planned ahead from its own, and anything new from the rotation not just run — falling back to the selected picks when there are no rotations')
+  assert(/const entries = builderStart\(targetStart, recent, rotations, members, meals, h, plan \? plan\.meal_ids : null\)/.test(pg11) && /initial=\{startEntries\(buildTarget\(new Date\(\)\), household\)\} rotations=\{rotations\} members=\{members\}/.test(pg11) && !/if \(plan && !nextCycle\) return/.test(pg11),
+    'the page starts the builder through builderStart, on the start the build lands on — never on which toggle is set')
+  // builderStart: the picks saved for the target start, else the rotation not just run, else the selected picks (Codex, FOR-238 r1)
+  const sep7 = { week_start: '2026-09-07', version: 1, meal_ids: rotationPlan('rotation-a').entries }
+  const sep7v2 = { week_start: '2026-09-07', version: 2, meal_ids: rotationPlan('rotation-a').entries.slice(1) }
+  const sep21 = { week_start: '2026-09-21', version: 1, meal_ids: b.entries }
+  assert(JSON.stringify(builderStart('2026-09-07', [sep7, sep7v2, sep21], rotations, members, library, andrew, null)) === JSON.stringify(sep7v2.meal_ids) && JSON.stringify(builderStart('2026-09-21', [sep7, sep7v2, sep21], rotations, members, library, andrew, null)) === JSON.stringify(sep21.meal_ids),
+    'a rebuild starts from the picks saved for its own start, at their newest version — the selected cycle, or the cycle planned ahead')
+  const shortened = rebuildKey({ week_start: '2026-09-07', version: 1, shop_cadence_days: 14 }, 7, new Date('2026-09-15T12:00:00'))
+  const weeklyAndrew = { ...andrew, shop_cadence_days: 7 }
+  assert(shortened === '2026-09-14' && JSON.stringify(builderStart(shortened, [sep7], rotations, members, library, weeklyAndrew, sep7.meal_ids)) === JSON.stringify(rotationEntries('rotation-b', members, library, weeklyAndrew)),
+    `a cadence shortened into a new week starts from the rotation not just run, not from the cycle it left — Codex r1: the September 7 fortnight shortened on September 15 targets ${shortened}`)
+  assert(JSON.stringify(builderStart('2026-09-21', [sep7], rotations, members, library, andrew, sep7.meal_ids)) === JSON.stringify(b.entries), 'the next cycle starts from the rotation the cycle before it did not run')
+  assert(builderStart('2026-09-21', [sep7], [], [], library, andrew, sep7.meal_ids) === sep7.meal_ids && builderStart('2026-09-21', [], [], [], library, andrew, null) === null,
+    'with no rotations, the builder starts from the selected picks, as it did before rotations')
   const refreshBody = pg11.slice(pg11.indexOf('const refresh = useCallback'), pg11.indexOf('const onSaveHousehold'))
   assert(/loadRotations\(supabase\)\]\)/.test(pg11) && /const err = m\.error \?\? h\.error \?\? active\.error \?\? rot\.error/.test(pg11) && /setRotations\(rot\.rotations\); setMembers\(rot\.members\)/.test(pg11) && refreshBody.length > 0 && !/Rotations/.test(refreshBody),
     'the rotations are loaded once with the library, never by the re-read')

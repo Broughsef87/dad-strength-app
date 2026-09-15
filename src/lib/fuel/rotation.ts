@@ -7,6 +7,7 @@
 // two cannot disagree. Pure: rows in, no I/O, no clock.
 import type { Household, MealRow, PlanEntry, RotationMealRow, RotationRow } from './types'
 import { cycleWeeks, defaultServings } from './solve'
+import { newestVersion } from './cycle'
 
 /** Rotations in their order: sort_order, then slug, so a tie still has one answer. */
 export function sortedRotations(rotations: RotationRow[]): RotationRow[] {
@@ -71,4 +72,22 @@ export function rotationJustRun(history: Array<{ week_start: string; version: nu
 export function defaultRotation(rotations: RotationRow[], justRun: string | null): string | null {
   const sorted = sortedRotations(rotations)
   return (sorted.find((r) => r.slug !== justRun) ?? sorted[0])?.slug ?? null
+}
+
+/**
+ * Where the builder STARTS for a build landing on `targetStart`, decided on
+ * that start alone. Picks already saved for it — the selected cycle rebuilt,
+ * or the cycle planned ahead — are where it starts, at their newest version.
+ * Any other start is a new cycle, whatever led to it: the next cycle, a fresh
+ * start, or a fortnight shortened to weekly in its second week, which lands on
+ * a new week (Codex, FOR-238 r1). A new cycle starts from the rotation the
+ * cycle before it did not run. With no rotations, `fallback`: the selected
+ * cycle's picks, as the builder started before rotations existed.
+ */
+export function builderStart(targetStart: string, history: Array<{ week_start: string; version: number; meal_ids: PlanEntry[] }>, rotations: RotationRow[], members: RotationMealRow[], meals: MealRow[], household: Household, fallback: PlanEntry[] | null): PlanEntry[] | null {
+  const saved = newestVersion(history, targetStart)
+  if (saved) return saved.meal_ids
+  const slug = defaultRotation(rotations, rotationJustRun(history, targetStart, rotations, members))
+  if (slug) return rotationEntries(slug, members, meals, household)
+  return fallback
 }
