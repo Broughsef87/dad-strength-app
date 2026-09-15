@@ -481,10 +481,10 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const st17 = readLF('src/lib/fuel/store.ts')
   assert(/updated_at: new Date\(\)\.toISOString\(\),/.test(st17) && /updatedAt: typeof data\.updated_at === 'string' \? data\.updated_at : null/.test(st17) && /select\('id, week_start, version, meal_ids, rules_snapshot, created_at'\)/.test(st17) && /created_at: row\.updated_at \}/.test(st17),
     'the household save is stamped, and both stamps are read back, so freshness can be judged')
-  // round 17: the page re-reads the household and the plan on waking and on reconnect, and the checklist is paused until it has
-  assert(/const refresh = useCallback\(async \(\) => \{/.test(pg) && /if \(document\.visibilityState === 'visible'\) void refresh\(\)/.test(pg) && /window\.addEventListener\('online', onOnline\)/.test(pg) && /if \(e\.persisted\) void refresh\(\)/.test(pg)
+  // round 17's wake refresh is DELETED (FOR-233, Codex r3): the page re-reads only when the database refuses a tick, and on the retry of a failed re-read
+  assert(/const refresh = useCallback\(async \(\) => \{/.test(pg) && !/visibilitychange/.test(pg) && !/pageshow/.test(pg) && !/addEventListener\('online'/.test(pg) && (pg.match(/void refresh\(\)/g) || []).length === 2
     && /setStep\(\(s\) => \(s === 'list' && \(!nextList \|\| persistedStale\) \? 'plan' : s\)\)/.test(pg) && /paused=\{refreshing \|\| refreshFailed\}/.test(pg) && /if \(!userId \|\| busyRef\.current\) return/.test(pg),
-    'the page re-reads the household and the plan when it wakes or reconnects — never mid-build — leaves a superseded list, and pauses the checklist meanwhile')
+    'the page does NOT re-read on waking or reconnecting — the wake refresh is deleted; it re-reads on a refused tick and on the retry of a failed re-read, never mid-build, leaves a superseded list, and pauses the checklist meanwhile')
   const cl17 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const pausedRef = useRef\(paused\)/.test(cl17) && /&& !pausedRef\.current\) \{/.test(cl17) && /\[online, listId, refetch, onRowItems, flush, wake, paused\]/.test(cl17),
     'a paused checklist sends nothing, and flushes when the pause lifts')
@@ -567,8 +567,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
 // a tick on a superseded list, which the page answers by re-reading.
 {
   const pg9 = readLF('src/app/fuel/page.tsx')
-  assert(/THE CYCLE MODEL \(FOR-233\): the page shows ONE cycle at a time/.test(pg9) && /a refresh that fails is shown and keeps the\n\/\/ checklist paused until a retry succeeds/.test(pg9) && /the database refuses a tick on\n\/\/ a superseded list/.test(pg9),
-    'the page states its cycle model in one sentence: one cycle at a time, a refresh that never changes the selection unless it expired, a failed refresh shown and pausing, the database refusing a superseded tick')
+  assert(/THE CYCLE MODEL \(FOR-233\): the page shows ONE cycle at a time/.test(pg9) && /the page does NOT re-read on waking or\n\/\/ reconnecting/.test(pg9) && /a re-read that fails is shown and keeps the\n\/\/ checklist paused until a retry succeeds/.test(pg9) && /the database refuses a tick on\n\/\/ a superseded list/.test(pg9) && /Why no wake refresh/.test(pg9),
+    'the page states its cycle model in one sentence: one cycle at a time, NO wake refresh — the row is the only truth — a refused tick answered by a re-read that never changes the selection unless it expired, a failed re-read shown and pausing')
   assert(/The transition: a page loaded before this change/.test(pg9), 'the transition is stated — what a page open across the change sees')
   // finding 1
   assert(/if \(h\.error \|\| active\.error\) \{ setRefreshFailed\(true\); return \}/.test(pg9) && pg9.indexOf('if (gen !== genRef.current) return') < pg9.indexOf('if (h.error || active.error) { setRefreshFailed(true); return }'),

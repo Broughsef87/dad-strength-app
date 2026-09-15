@@ -8,11 +8,18 @@
 //
 // THE CYCLE MODEL (FOR-233): the page shows ONE cycle at a time — `plan`, the
 // selected cycle, which defaults to today's live cycle `live` and is always one
-// tap from it — and says which; a refresh re-reads both and never changes the
-// selection unless it has expired; a refresh that fails is shown and keeps the
-// checklist paused until a retry succeeds; and the database refuses a tick on
+// tap from it — and says which; the page does NOT re-read on waking or
+// reconnecting — the row is the only truth — and the database refuses a tick on
 // a superseded list (fuel_set_item_checked, SQLSTATE FU001), on which the page
-// re-reads and moves to the newer list.
+// re-reads both and moves to the newer list, never changing the selection
+// unless it has expired; a re-read that fails is shown and keeps the
+// checklist paused until a retry succeeds.
+//
+// Why no wake refresh: it only ever made staleness visible, and its
+// interleavings with navigation and with itself cost four Codex rounds
+// (FOR-177 r17–19, FOR-233 r1–3); the guard makes the write correct without
+// it. A household changed in another tab is seen on reload, or when a tick
+// is refused.
 //
 // The transition: a page loaded before this change keeps its old code until
 // it reloads; its ticks still go through the database, which now refuses one
@@ -117,11 +124,11 @@ export default function FuelPage() {
     return () => { cancelled = true }
   }, [supabase, router])
 
-  // Re-read the household and the plan when the page wakes or reconnects:
-  // another tab may have changed the household or built a newer version,
-  // and shopping would otherwise go on against a superseded list, its ticks
-  // landing there (Codex, round 17). Not while a build or a save is in
-  // flight, and applied only if nothing moved meanwhile — a write, a
+  // Re-read the household and the plan — when the database refuses a tick on
+  // a superseded list, and on the retry of a re-read that failed. NOT on
+  // waking or reconnecting: that wake refresh (Codex, round 17) is deleted
+  // (FOR-233, Codex r3) — see the model above. Not while a build or a save is
+  // in flight, and applied only if nothing moved meanwhile — a write, a
   // navigation, a newer refresh (round 18; FOR-233, Codex r2). The
   // cycle the athlete SELECTED — opened ahead, or built early — stays
   // selected at its newest version while it is still live or ahead; only an
@@ -182,13 +189,6 @@ export default function FuelPage() {
       }
     } finally { if (gen === genRef.current) setRefreshing(false) }
   }, [supabase, userId])
-  useEffect(() => {
-    const onVisibility = () => { if (document.visibilityState === 'visible') void refresh() }
-    const onShow = (e: PageTransitionEvent) => { if (e.persisted) void refresh() }
-    const onOnline = () => { void refresh() }
-    document.addEventListener('visibilitychange', onVisibility); window.addEventListener('pageshow', onShow); window.addEventListener('online', onOnline)
-    return () => { document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('pageshow', onShow); window.removeEventListener('online', onOnline) }
-  }, [refresh])
 
   const onSaveHousehold = async (h: Household) => {
     if (!userId) return
