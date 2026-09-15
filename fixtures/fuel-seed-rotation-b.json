@@ -1,0 +1,483 @@
+{
+  "_provenance": {
+    "authored_by": "Blaine, 2026-09-15",
+    "approved_by": "Andrew, 2026-09-15 — reviewed against the rule set, no vetoes",
+    "why": "Rotation A ran Aug 24 – Sep 14. Andrew: 'my family doesn't want to eat those same 8 meals again for the next two weeks.'",
+    "SOURCED": "the household rule set, the portion table, the store section order, and the three keeper meals — all carried unchanged from fuel-seed.json",
+    "INFERRED": "every qty_per_person for vegetables, starches, aromatics and seasonings in the five NEW meals. Protein weights come from the portion table and are NOT inferred. Same convention as rotation A: inferred rows render as 'est.' in the UI and get corrected in the aisle.",
+    "design_note": "A meal belongs to MANY rotations — three meals are in both A and B. Rotation membership is therefore a join, not a column on fuel_meals. Week number moves out of rotation_note prose and becomes data.",
+    "macros": "carbs_g_per_person, fat_g_per_person and calories_per_person are NULL on all five new meals (FOR-234 SS4, shape only), same as the eight in fuel-seed.json. scripts/fuel-seed-sql.mjs throws on a meal MISSING a macro key and throws again on a meal carrying a VALUE — the keys must be present and null until a seed migration carries them. Corrected 2026-09-15 after CC found them absent: they were absent because this fixture was drafted against a checkout 77 commits behind origin/master, where FOR-234 had not landed."
+  },
+  "fuel_rotations": [
+    {
+      "slug": "rotation-a",
+      "name": "Fortnight One",
+      "sort_order": 1,
+      "note": "The original eight. Ran Aug 24 – Sep 14, 2026."
+    },
+    {
+      "slug": "rotation-b",
+      "name": "Fortnight Two",
+      "sort_order": 2,
+      "note": "Five new meals plus the three keepers. Same cut mix as rotation A — ribeye 1, chicken thigh 2, ground turkey 2, fish 2, chicken breast 1 — so the Costco shop is identical in shape and cost. Every spice profile and format is new against rotation A."
+    }
+  ],
+  "fuel_rotation_meals": [
+    {
+      "rotation_slug": "rotation-a",
+      "meal_slug": "cast-iron-ribeye",
+      "week": 1,
+      "sort_order": 1
+    },
+    {
+      "rotation_slug": "rotation-a",
+      "meal_slug": "chili-lime-thighs",
+      "week": 1,
+      "sort_order": 2
+    },
+    {
+      "rotation_slug": "rotation-a",
+      "meal_slug": "lemon-garlic-salmon",
+      "week": 1,
+      "sort_order": 3
+    },
+    {
+      "rotation_slug": "rotation-a",
+      "meal_slug": "greek-turkey-bowl",
+      "week": 1,
+      "sort_order": 4
+    },
+    {
+      "rotation_slug": "rotation-a",
+      "meal_slug": "garlic-herb-thighs",
+      "week": 2,
+      "sort_order": 5
+    },
+    {
+      "rotation_slug": "rotation-a",
+      "meal_slug": "turkey-burgers",
+      "week": 2,
+      "sort_order": 6
+    },
+    {
+      "rotation_slug": "rotation-a",
+      "meal_slug": "blackened-cod",
+      "week": 2,
+      "sort_order": 7
+    },
+    {
+      "rotation_slug": "rotation-a",
+      "meal_slug": "soy-ginger-stirfry",
+      "week": 2,
+      "sort_order": 8
+    },
+    {
+      "rotation_slug": "rotation-b",
+      "meal_slug": "cast-iron-ribeye",
+      "week": 1,
+      "sort_order": 1
+    },
+    {
+      "rotation_slug": "rotation-b",
+      "meal_slug": "chili-lime-thighs",
+      "week": 1,
+      "sort_order": 2
+    },
+    {
+      "rotation_slug": "rotation-b",
+      "meal_slug": "miso-ginger-salmon",
+      "week": 1,
+      "sort_order": 3
+    },
+    {
+      "rotation_slug": "rotation-b",
+      "meal_slug": "greek-turkey-bowl",
+      "week": 1,
+      "sort_order": 4
+    },
+    {
+      "rotation_slug": "rotation-b",
+      "meal_slug": "jerk-thighs",
+      "week": 2,
+      "sort_order": 5
+    },
+    {
+      "rotation_slug": "rotation-b",
+      "meal_slug": "turkey-meatballs",
+      "week": 2,
+      "sort_order": 6
+    },
+    {
+      "rotation_slug": "rotation-b",
+      "meal_slug": "tandoori-breast",
+      "week": 2,
+      "sort_order": 7
+    },
+    {
+      "rotation_slug": "rotation-b",
+      "meal_slug": "chipotle-cod-tacos",
+      "week": 2,
+      "sort_order": 8
+    }
+  ],
+  "fuel_meals_new": [
+    {
+      "slug": "miso-ginger-salmon",
+      "name": "Miso-ginger glazed salmon, green beans, rice",
+      "protein_cut": "salmon",
+      "spice_profile": "miso-ginger",
+      "format": "broiled",
+      "active_cook_minutes": 15,
+      "total_minutes": 25,
+      "servings": 2,
+      "protein_g_per_person": 42,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "FISH — week 1. Bought fresh at Costco with the main shop, same slot as the lemon-garlic salmon it replaces. Glaze goes on before the broiler, so most of the clock is hands-off.",
+      "ingredients": [
+        {
+          "item": "salmon",
+          "qty_per_person": 7.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "green beans",
+          "qty_per_person": 6,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "white miso paste",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "fresh ginger",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "honey",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "low-sodium soy sauce",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "rice",
+          "qty_per_person": 0.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "jerk-thighs",
+      "name": "Jerk chicken thighs, roasted sweet potato, broccoli",
+      "protein_cut": "chicken_thigh",
+      "spice_profile": "jerk",
+      "format": "oven-roast",
+      "active_cook_minutes": 10,
+      "total_minutes": 35,
+      "servings": 3,
+      "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 4,
+      "rotation_note": "Week 2. Same thigh as the chili-lime night, different profile and format — L5 in practice. 10 active minutes; the oven does the rest. Cooks 3 so a leftover night comes free.",
+      "ingredients": [
+        {
+          "item": "chicken thigh, boneless skinless",
+          "qty_per_person": 8,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "sweet potato",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "broccoli",
+          "qty_per_person": 6,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "jerk seasoning",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "lime",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "turkey-meatballs",
+      "name": "Turkey meatballs, tomato-basil, green beans",
+      "protein_cut": "ground_turkey",
+      "spice_profile": "tomato-basil",
+      "format": "meatball",
+      "active_cook_minutes": 20,
+      "total_minutes": 30,
+      "servings": 3,
+      "protein_g_per_person": 42,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "TURKEY — week 2, in the slot the turkey burgers held. 93/7 ONLY — 99% lean will not hold a meatball together any better than it holds a patty. Reheats better than anything else in either rotation.",
+      "ingredients": [
+        {
+          "item": "ground turkey 93/7",
+          "qty_per_person": 8.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "crushed tomatoes",
+          "qty_per_person": 4,
+          "unit": "oz",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "fresh basil",
+          "qty_per_person": 0.25,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "onion",
+          "qty_per_person": 0.25,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 2,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "egg",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Dairy",
+          "inferred": true
+        },
+        {
+          "item": "dried oregano",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "green beans",
+          "qty_per_person": 6,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "rice",
+          "qty_per_person": 0.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "tandoori-breast",
+      "name": "Tandoori chicken breast, cucumber-tomato salad, rice",
+      "protein_cut": "chicken_breast",
+      "spice_profile": "tandoori-yogurt",
+      "format": "marinate-and-broil",
+      "active_cook_minutes": 15,
+      "total_minutes": 45,
+      "servings": 2,
+      "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 2,
+      "rotation_note": "Week 2. BREAST not thigh — deliberately, to keep a full pound of margin in the thigh bag, same reason as the stir-fry it replaces. Active time drops 25 → 15 because the marinade is passive. Marinate in the morning or the night before; total_minutes excludes the marinade.",
+      "ingredients": [
+        {
+          "item": "chicken breast, boneless skinless",
+          "qty_per_person": 6.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "nonfat greek yogurt",
+          "qty_per_person": 2,
+          "unit": "oz",
+          "store_section": "Dairy",
+          "inferred": true
+        },
+        {
+          "item": "tandoori seasoning",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "lemon",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 2,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "cucumber",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "tomato",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "rice",
+          "qty_per_person": 0.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "chipotle-cod-tacos",
+      "name": "Chipotle-lime cod tacos, cabbage slaw",
+      "protein_cut": "cod_halibut",
+      "spice_profile": "chipotle-lime",
+      "format": "taco",
+      "active_cook_minutes": 15,
+      "total_minutes": 20,
+      "servings": 2,
+      "protein_g_per_person": 40,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "FISH — week 2. BOUGHT ON THE SECOND TRIP, not the main shop — learning L3, same as the blackened cod it replaces. Cod is leaner than salmon, so weigh heavier. THE ONE DELIBERATE L5 EXCEPTION: corn tortillas and cabbage are bought for this meal and nothing else. Approved by Andrew 2026-09-15 on the grounds that it is the most different plate in the rotation and both items are cheap.",
+      "ingredients": [
+        {
+          "item": "cod or halibut",
+          "qty_per_person": 8.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "green cabbage",
+          "qty_per_person": 4,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "lime",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "cilantro",
+          "qty_per_person": 0.25,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "corn tortillas",
+          "qty_per_person": 3,
+          "unit": "each",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "chipotle powder",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "cumin",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    }
+  ],
+  "_rule_check": {
+    "_comment": "Rotation B checked against fuel_household.dietary_rules. Every line measured from fuel_rotation_meals + fuel_meals, not asserted.",
+    "meals_per_fortnight": "8 — 4 keeper/new in week 1, 4 new in week 2",
+    "fish_per_week": "1 and 1 — miso salmon (wk1, main shop) and cod tacos (wk2, second trip)",
+    "ground_turkey_per_week": "1 and 1 — greek turkey bowl (wk1, keeper) and turkey meatballs (wk2). Both 93/7.",
+    "steak_per_month": "1 ribeye in rotation B. Running A then B in one month = exactly 2. At the cap, not over.",
+    "protein_floor_g_per_person": "min 40 (cod tacos), max 48 (ribeye). Floor is 40. PASS.",
+    "cook_cap_minutes": "max active is 20 (turkey meatballs). Rotation A's worst was 25. PASS.",
+    "vegetable_every_night": "8 of 8. PASS.",
+    "no_tilapia": "PASS.",
+    "wheelhouse_cuts_only": "PASS — ribeye, thigh, breast, turkey 93/7, salmon, cod/halibut.",
+    "new_profiles_vs_rotation_a": "miso-ginger, jerk, tomato-basil, tandoori-yogurt, chipotle-lime — none appear in rotation A.",
+    "new_formats_vs_rotation_a": "broiled, oven-roast, meatball, marinate-and-broil, taco — none appear in rotation A.",
+    "frugal_reuse_L5": "Held everywhere except chipotle-cod-tacos, which is a flagged and approved exception. Every other new ingredient (miso, jerk seasoning, tandoori seasoning, greek yogurt, crushed tomatoes, basil, egg) is a pantry or dairy staple that outlives the fortnight.",
+    "prep_diversion_pct": "UNCHANGED at 50. Every meat quantity in this file is PER PERSON PER MEAL and must still be doubled at the shopping-list layer. This file does not apply the diversion."
+  }
+}
