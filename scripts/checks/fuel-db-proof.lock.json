@@ -1,0 +1,32 @@
+{
+  "image": "public.ecr.aws/supabase/postgres:17.6.1.156",
+  "proof": {
+    "file": "scripts/checks/fuel-db-proof.sql",
+    "sha256": "e9d49140c00be5bf3c0b79f0b1d229adde4a258df6876455a5a64b61fdd04d62",
+    "cases": 17
+  },
+  "migrations": [
+    {
+      "file": "supabase/migrations/20260914_fuel_phase_1.sql",
+      "sha256": "a2f2f70a8cad7ba46f3dd214334f1cf03f6367eccd10a2a659b1eb1d21d2f403"
+    },
+    {
+      "file": "supabase/migrations/20260915_fuel_macro_columns.sql",
+      "sha256": "a1399247016ab89512234a706a550bdf52b37c77ac7bbca700c65ea86601862b"
+    },
+    {
+      "file": "supabase/migrations/20260916_fuel_tick_superseded_guard.sql",
+      "sha256": "52a1174a3b120f40a44b2e18eb48486e4c315bbf36ab277a17fd7f5b3d0f17f6"
+    },
+    {
+      "file": "supabase/migrations/20260917_fuel_rotations.sql",
+      "sha256": "fe391e9359e725914d849bdb1c8f7bb694dc1193408196f90fc9ccab46cb751e"
+    },
+    {
+      "file": "supabase/migrations/20260918_fuel_custom_items.sql",
+      "sha256": "2a0557433eddfe69e3f2acee8d3018d22c3274e2106f0036e8b26c5b79f4d559"
+    }
+  ],
+  "fuel_lists_triggers": "fuel_lists_pro_gate,fuel_lists_staples",
+  "provenAgainst": "a throwaway Supabase Postgres: every Fuel migration in order, the custom-items migration twice"
+}

@@ -15,13 +15,15 @@
 -- section:item:unit and always holds a colon; a custom key is 'custom~' and
 -- letters and digits only, never a colon.
 --
--- A version is written through fuel_create_version_with_staples. The database
--- is the ONLY source of staple lines (Andrew's ruling A, after Codex rounds 1
--- and 2 found two sources): it drops every custom line the client sends and
--- rebuilds the staples from its own read under the version's per-cycle lock,
--- then writes through fuel_create_version, unchanged.
+-- The database is the ONLY source of staple lines, for EVERY writer (Andrew's
+-- ruling A, and his ruling on the third provenance finding). The
+-- fuel_lists_staples trigger rebuilds every new list row: it drops the custom
+-- lines the row carries and rebuilds the staples from its own read under the
+-- row's per-cycle lock. fuel_create_version is unchanged;
+-- fuel_create_version_with_staples is it plus the items the row stored.
 --
--- Additive: one new table, three new functions. Nothing existing changes.
+-- Additive: one new table, four new functions, one new trigger on fuel_lists.
+-- No existing function, table or column changes.
 -- Dated after 20260917 so it sorts after everything it references.
 
 -- ── fuel_staples: on every list, every cycle, until removed ──────────────────
@@ -168,36 +170,39 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.fuel_remove_custom_item(uuid, text) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION public.fuel_remove_custom_item(uuid, text) TO authenticated;
 
--- ── A new version: the solver's lines as sent, every staple line rebuilt here ─
--- The database is the ONLY source of staple lines (FOR-240, Andrew's ruling A).
--- Codex rounds 1 and 2 were one cause, two sources: a client read of the
--- staples, and this function's. The client sends the solver's lines only; a
--- custom line it sends anyway is stale by definition and is dropped. This takes
--- the per-cycle lock FIRST, then reads the staples still on and rebuilds every
--- staple line from that read: a staple saved in the gap is on the new version,
--- one stopped in the gap is not, and a staple line can only have reached the
--- version this supersedes by holding this same lock. A stop that commits after
--- this read is after this build, and the list built first keeps its copy, as
--- any list built before a stop does. The write goes through fuel_create_version
--- unchanged; advisory transaction locks are re-entrant, so it takes the lock
--- again as a no-op. It answers with the items it stored, and the page holds
--- exactly those.
-CREATE OR REPLACE FUNCTION public.fuel_create_version_with_staples(p_week_start date, p_meal_ids jsonb, p_rules_snapshot jsonb, p_items jsonb)
-RETURNS jsonb
+-- ── Every new list row rebuilds its staple lines: one site, every writer ─────
+-- Andrew's ruling on the third provenance finding (FOR-240). fuel_create_version
+-- stays directly callable, so a tab still running an older page, or a rolled-back
+-- deploy, could write a list with no staple lines. This trigger closes that door
+-- without touching fuel_create_version. EVERY insert of a list row runs it:
+-- through fuel_create_version_with_staples, through fuel_create_version from an
+-- old tab, or a raw insert by the row's owner. It drops every custom line the
+-- row carries, then rebuilds every staple line from the staples still on, read
+-- under the row's per-cycle lock. fuel_create_version already holds that lock
+-- when it inserts (advisory transaction locks are re-entrant, so taking it here
+-- is a no-op there); a raw insert takes it here. A staple saved in the gap is on
+-- the new row, and one stopped in the gap is not. A stop that commits after this
+-- read is after this build, and the list built first keeps its copy.
+-- INSERT only: the add, remove and tick functions update items under their own
+-- guard, and a rebuild there would wipe the one-offs.
+CREATE OR REPLACE FUNCTION public.fuel_lists_rebuild_staples()
+RETURNS trigger
 LANGUAGE plpgsql
 SECURITY INVOKER
 AS $$
 DECLARE
+  v_week_start date;
   v_items jsonb;
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'not signed in' USING ERRCODE = '42501';
+  SELECT p.week_start INTO v_week_start FROM public.fuel_plans p WHERE p.id = NEW.plan_id;
+  IF v_week_start IS NULL THEN
+    RAISE EXCEPTION 'fuel list for plan % has no plan the writer can read', NEW.plan_id USING ERRCODE = '23503';
   END IF;
-  PERFORM pg_advisory_xact_lock(hashtext(auth.uid()::text || ':' || p_week_start::text));
-  -- The client's lines with every custom one taken out: a custom key is 'custom~' and never holds a colon.
+  PERFORM pg_advisory_xact_lock(hashtext(NEW.user_id::text || ':' || v_week_start::text));
+  -- The row's lines with every custom one taken out: a custom key is 'custom~' and never holds a colon.
   SELECT COALESCE(jsonb_agg(c.elem ORDER BY c.ord), '[]'::jsonb)
     INTO v_items
-  FROM jsonb_array_elements(COALESCE(p_items, '[]'::jsonb)) WITH ORDINALITY AS c(elem, ord)
+  FROM jsonb_array_elements(COALESCE(NEW.items, '[]'::jsonb)) WITH ORDINALITY AS c(elem, ord)
   WHERE NOT (COALESCE(c.elem->>'key', '') LIKE 'custom~%' AND strpos(COALESCE(c.elem->>'key', ''), ':') = 0);
   -- Every staple line, rebuilt from the staples still on, read under the lock.
   SELECT v_items || COALESCE(jsonb_agg(jsonb_build_object(
@@ -206,8 +211,35 @@ BEGIN
          ) ORDER BY s.created_at, s.id), '[]'::jsonb)
     INTO v_items
   FROM public.fuel_staples s
-  WHERE s.user_id = auth.uid() AND s.removed_at IS NULL;
-  RETURN public.fuel_create_version(p_week_start, p_meal_ids, p_rules_snapshot, v_items) || jsonb_build_object('items', v_items);
+  WHERE s.user_id = NEW.user_id AND s.removed_at IS NULL;
+  NEW.items := v_items;
+  RETURN NEW;
+END
+$$;
+REVOKE EXECUTE ON FUNCTION public.fuel_lists_rebuild_staples() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS fuel_lists_staples ON public.fuel_lists;
+CREATE TRIGGER fuel_lists_staples BEFORE INSERT ON public.fuel_lists
+  FOR EACH ROW EXECUTE FUNCTION public.fuel_lists_rebuild_staples();
+
+-- ── A new version, answered with the items the row stored ────────────────────
+-- The staple rebuild lives in ONE place, the trigger above. This function is
+-- fuel_create_version plus the items the new row holds, so the page holds
+-- exactly what the database stored.
+CREATE OR REPLACE FUNCTION public.fuel_create_version_with_staples(p_week_start date, p_meal_ids jsonb, p_rules_snapshot jsonb, p_items jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$
+DECLARE
+  v jsonb;
+  v_items jsonb;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not signed in' USING ERRCODE = '42501';
+  END IF;
+  v := public.fuel_create_version(p_week_start, p_meal_ids, p_rules_snapshot, p_items);
+  SELECT l.items INTO v_items FROM public.fuel_lists l WHERE l.id = (v->>'list_id')::uuid;
+  RETURN v || jsonb_build_object('items', v_items);
 END
 $$;
 REVOKE EXECUTE ON FUNCTION public.fuel_create_version_with_staples(date, jsonb, jsonb, jsonb) FROM PUBLIC, anon;

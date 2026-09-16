@@ -47,7 +47,7 @@ import {
   DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
   readItems, removeCustomItem, saveHousehold, setItemChecked, stopStaple, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
-import { customKey, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
+import { customKey, isCustom, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
@@ -420,6 +420,22 @@ export default function FuelPage() {
     onRowItems(id, r.items)
   }
   const onStopStapleLine = (key: string) => { const stapleId = stapleIdFromKey(key); if (stapleId) void onStopStaple(stapleId) }
+  // The staples panel is display only, never a source of lines, and is read
+  // again whenever the list on screen changes, so it follows a build, another
+  // cycle, or a staple added elsewhere. The stop, remove and add controls show
+  // whenever the migration is in, and a custom line on the list proves it is:
+  // one failed staples read at load never hides them (FOR-240, the pre-Codex
+  // review; Andrew's one-tap-stop ruling).
+  useEffect(() => {
+    if (!userId || !listId) return
+    let cancelled = false
+    void loadStaples(supabase, userId).then((st) => {
+      if (cancelled || st.error) return
+      setStaples(st.staples); setCustomReady(st.available)
+    })
+    return () => { cancelled = true }
+  }, [supabase, userId, listId])
+  const customOn = customReady || !!list?.items.some((l) => isCustom(l))
   // A list is STALE when the household has changed since it was solved — a
   // rule change invalidates the list (L7), on load as much as on save. A
   // stale list is not ticked from; it is rebuilt.
@@ -514,8 +530,8 @@ export default function FuelPage() {
                 <>
                   <Checklist key={listId} listId={listId} version={list.version} versions={versions} items={list.items} sectionOrder={sectionOrder}
                     onRowItems={onRowItems} send={send} refetch={refetch} onRegenerate={() => setStep('plan')} paused={refreshing || refreshFailed}
-                    onRemoveCustom={customReady ? (key) => void onRemoveCustom(key) : undefined} onStopStaple={customReady ? onStopStapleLine : undefined} />
-                  {customReady && (
+                    onRemoveCustom={customOn ? (key) => void onRemoveCustom(key) : undefined} onStopStaple={customOn ? onStopStapleLine : undefined} />
+                  {customOn && (
                     <AddItem sectionOrder={sectionOrder} staples={staples} busy={adding} onAdd={onAddCustom} onStopStaple={(id) => void onStopStaple(id)} />
                   )}
                 </>
