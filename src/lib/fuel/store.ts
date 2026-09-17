@@ -116,16 +116,6 @@ export async function updateOwnMeal(db: Db, slug: string, draft: OwnMealDraft): 
 }
 
 /**
- * Retire one of the athlete's own meals. Never a delete — there is no DELETE
- * policy, and a stored plan must keep resolving the slug it references.
- * PlanBuilder already drops a retired meal from a rebuilt plan and names it.
- */
-export async function retireOwnMeal(db: Db, slug: string): Promise<{ error: { code?: string; message?: string } | null }> {
-  const { error } = await db.from('fuel_meals').update({ active: false }).eq('slug', slug)
-  return { error }
-}
-
-/**
  * The rotations and their membership (FOR-238) — library data, like the
  * meals, read once. Before the rotations migration is applied the tables do
  * not exist: Fuel runs exactly as it did, with no rotations and no switcher,

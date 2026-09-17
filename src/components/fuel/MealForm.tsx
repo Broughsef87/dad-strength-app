@@ -126,7 +126,7 @@ export default function MealForm({ meal, meals, sectionOrder, busy, cutLocked = 
         </div>
         <p className="text-[11px] text-muted-foreground px-1">
           {cutLocked
-            ? 'you have already shopped this meal, so what it is cannot change — a past night is counted on it. retire it and add a new one instead'
+            ? 'you have already shopped this meal, so what it is cannot change — a past night is counted on it. add a new meal instead'
             : 'all three are counted: the protein floor needs the grams, the fish, turkey and steak rules need to know what it is, and your cook cap is measured against the minutes'}
         </p>
 
