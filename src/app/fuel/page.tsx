@@ -281,7 +281,16 @@ export default function FuelPage() {
     const res = slug ? await updateOwnMeal(supabase, slug, draft) : await createOwnMeal(supabase, userId, draft)
     if (res.error) return isMissingColumn(res.error) ? 'your own meals are not switched on yet' : (res.error.message ?? 'could not save the meal')
     const m = await loadMeals(supabase)
-    if (!m.error) setMeals(m.meals)
+    if (m.error) {
+      // The write LANDED. Reporting this as a failure would invite a retry that
+      // hits the unique constraint on a new meal, or silently re-saves an edit —
+      // so the form closes and the page says the one thing that is true: what is
+      // on screen is out of date, and a list built from it would use the old
+      // ingredients (Codex r2).
+      setError('your meal was saved, but the library could not be re-read — reload the page before building a list')
+      return null
+    }
+    setMeals(m.meals)
     return null
   }
 

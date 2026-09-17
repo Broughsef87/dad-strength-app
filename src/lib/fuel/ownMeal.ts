@@ -131,7 +131,9 @@ export function ownMealIssues(draft: OwnMealDraft): string[] {
   if (!Number.isInteger(draft.servings) || draft.servings < 1) issues.push('servings must be a whole number, at least 1')
   // Not optional: a plan carrying a warning cannot be built, and validatePlan
   // warns on a missing protein figure (Codex r1, P1).
-  if (!(draft.protein_g_per_person > 0)) issues.push('give the protein per person in grams — without it the plan cannot be built')
+  // Whole grams: fuel_meals.protein_g_per_person is an int, so 42.5 is refused
+  // here rather than failing on the way into the database (Codex r2).
+  if (!Number.isInteger(draft.protein_g_per_person) || draft.protein_g_per_person <= 0) issues.push('give the protein per person in whole grams — without it the plan cannot be built')
   if (!draft.protein_cut?.trim()) issues.push('say what the protein is — the fish, turkey and steak rules are counted on it')
   const rows = draft.ingredients.filter((i) => i.item.trim())
   if (!rows.length) issues.push('add at least one ingredient — a meal with none cannot put anything on the shopping list')

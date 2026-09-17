@@ -260,7 +260,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
         </div>
       )}
 
-      <button type="button" className="pill-volt w-full py-3 text-sm" disabled={!complete || building || warnings.length > 0}
+      <button type="button" className="pill-volt w-full py-3 text-sm" disabled={!complete || building || savingMeal || warnings.length > 0}
         onClick={() => onBuild({ entries }, { countInventory: askInventory ? countInventory : true })}>
         {building ? 'building the list…' : missing > 0 ? `add ${missing} more night${missing === 1 ? '' : 's'} to build the list` : !complete || warnings.length > 0 ? 'fix the flagged nights to build the list' : 'build the shopping list'}
       </button>

@@ -105,7 +105,7 @@ export default function MealForm({ meal, meals, sectionOrder, busy, onSave, onCa
         <div className="flex flex-wrap gap-2">
           <label className="row-recessed flex items-center gap-2 px-3 py-2 text-sm">
             <span className="eyebrow-mono-sm">protein</span>
-            <input type="number" inputMode="decimal" min={0} step="any" value={draft.protein_g_per_person || ''}
+            <input type="number" inputMode="numeric" min={0} step="1" value={draft.protein_g_per_person || ''}
               onChange={(e) => set({ protein_g_per_person: Number(e.target.value) })}
               aria-label="protein per person in grams" className="w-14 bg-transparent text-right stat-num text-base" />
             <span className="eyebrow-mono-sm">g each</span>

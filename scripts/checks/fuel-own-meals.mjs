@@ -115,6 +115,8 @@ assert(ownMealIssues(draft({ name: '---' })).some((i) => /letter or number/.test
 assert(ownMealIssues(draft({ servings: 0 })).some((i) => /servings/.test(i)), 'servings below one is refused')
 // The two the solver actually gates on. Defaulting either made every own meal
 // unbuildable, or invisible to the frequency rules (Codex r1, P1 and P2).
+assert(ownMealIssues(draft({ protein_g_per_person: 42.5 })).some((i) => /whole grams/.test(i)),
+  'a fractional protein figure is refused here — the column is an int, so it would fail on the way into the database')
 assert(ownMealIssues(draft({ protein_g_per_person: 0 })).some((i) => /protein per person/.test(i)),
   'a meal with no protein figure is refused — validatePlan warns on it, and a plan carrying a warning cannot be built')
 assert(ownMealIssues(draft({ protein_cut: '' })).some((i) => /what the protein is/.test(i)),
