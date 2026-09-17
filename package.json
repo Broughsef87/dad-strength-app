@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "checks": "node scripts/checks/run-all.mjs",
+    "proof:db": "node scripts/fuel-db-proof.mjs",
     "design-system:bundle": "node scripts/design-system-bundle.mjs"
   },
   "dependencies": {
