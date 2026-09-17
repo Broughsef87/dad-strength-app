@@ -67,6 +67,10 @@ export default function FuelPage() {
   const [notReady, setNotReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [meals, setMeals] = useState<MealRow[]>([])
+  // A meal write landed but the library re-read failed: what is on screen is out
+  // of date, and a list built from it would use the old ingredients. Blocking,
+  // not advisory — a message nobody acts on is not a guard (Codex r3).
+  const [libraryStale, setLibraryStale] = useState(false)
   // The rotations and their membership (FOR-238): library data, read once
   // like the meals. Not a selection — nothing here says which rotation the
   // page is on; a plan's rotation is read from its picks.
@@ -282,6 +286,7 @@ export default function FuelPage() {
     if (res.error) return isMissingColumn(res.error) ? 'your own meals are not switched on yet' : (res.error.message ?? 'could not save the meal')
     const m = await loadMeals(supabase)
     if (m.error) {
+      setLibraryStale(true)
       // The write LANDED. Reporting this as a failure would invite a retry that
       // hits the unique constraint on a new meal, or silently re-saves an edit —
       // so the form closes and the page says the one thing that is true: what is
@@ -291,6 +296,7 @@ export default function FuelPage() {
       return null
     }
     setMeals(m.meals)
+    setLibraryStale(false)
     return null
   }
 
@@ -540,7 +546,7 @@ export default function FuelPage() {
               {step === 'plan' && household && (
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}-${rotations.length}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
                   initial={startEntries(buildTarget(new Date()), household)} rotations={rotations} members={members}
-                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} />
+                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} libraryStale={libraryStale} />
               )}
               {step === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">

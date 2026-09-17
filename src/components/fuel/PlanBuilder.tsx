@@ -82,7 +82,7 @@ export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAd
   )
 }
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal, libraryStale = false }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
   /** `countInventory`: whether what is on hand is counted against this plan — asked only when it was not (a NEXT cycle, or a rebuild of a plan built without it), otherwise always (Codex, rounds 15 and 16). */
   onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
@@ -97,6 +97,8 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   members?: RotationMealRow[]
   /** Save a meal of the athlete's own: a new one when slug is null, otherwise an edit. Returns what went wrong, in words, or null. Absent when the page cannot write meals, and then the library offers no add or edit. */
   onSaveMeal?: (slug: string | null, draft: OwnMealDraft) => Promise<string | null>
+  /** The library on screen is known to be out of date — a meal write landed but the re-read failed. A list built from it would use the old ingredients, so no list is built until it is reloaded (Codex r3). */
+  libraryStale?: boolean
 }) {
   const weeks = cycleWeeks(household)
   const bySlug = useMemo(() => new Map(meals.map((m) => [m.slug, m])), [meals])
@@ -260,7 +262,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
         </div>
       )}
 
-      <button type="button" className="pill-volt w-full py-3 text-sm" disabled={!complete || building || savingMeal || warnings.length > 0}
+      <button type="button" className="pill-volt w-full py-3 text-sm" disabled={!complete || building || savingMeal || libraryStale || warnings.length > 0}
         onClick={() => onBuild({ entries }, { countInventory: askInventory ? countInventory : true })}>
         {building ? 'building the list…' : missing > 0 ? `add ${missing} more night${missing === 1 ? '' : 's'} to build the list` : !complete || warnings.length > 0 ? 'fix the flagged nights to build the list' : 'build the shopping list'}
       </button>

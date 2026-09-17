@@ -83,7 +83,7 @@ export default function MealForm({ meal, meals, sectionOrder, busy, onSave, onCa
           <p className="eyebrow-mono">{meal ? 'your meal' : 'add your own'}</p>
           <p className="text-sm lowercase">{meal ? 'change it — the shopping list follows next time you build' : 'it joins your library straight away'}</p>
         </div>
-        <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={onCancel}>close</button>
+        <button type="button" disabled={busy} className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={onCancel}>close</button>
       </div>
 
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void submit() }}>
@@ -91,15 +91,15 @@ export default function MealForm({ meal, meals, sectionOrder, busy, onSave, onCa
           <input value={draft.name} onChange={(e) => set({ name: e.target.value })} maxLength={120}
             placeholder="what you call it" aria-label="meal name"
             className="row-recessed flex-1 min-w-0 px-3 py-2 text-sm bg-transparent" />
-          <label className="row-recessed flex items-center gap-2 px-3 py-2 text-sm">
-            <span className="eyebrow-mono-sm">cooks</span>
-            <input type="number" inputMode="numeric" min={1} max={24} value={draft.servings}
-              onChange={(e) => set({ servings: Number(e.target.value) })} aria-label="servings this meal cooks"
-              className="w-12 bg-transparent text-right stat-num text-base" />
-          </label>
+          <button type="button" aria-pressed={draft.servings > 2} onClick={() => set({ servings: draft.servings > 2 ? 2 : 3 })}
+            className={`pill-quiet px-3 py-2 text-[12px] lowercase ${draft.servings > 2 ? 'font-semibold' : 'text-muted-foreground'}`}>
+            cooks a leftover night
+          </button>
         </div>
         <p className="text-[11px] text-muted-foreground px-1">
-          servings is what it COOKS, not what you eat — three covers a leftover night
+          {draft.servings > 2
+            ? 'cooks half again, so there is a night you do not cook'
+            : 'cooks what everyone eats tonight, and no more'}
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -162,7 +162,7 @@ export default function MealForm({ meal, meals, sectionOrder, busy, onSave, onCa
           <button type="submit" disabled={busy} className="pill-quiet px-4 py-2 text-[12px] lowercase font-semibold">
             {busy ? 'saving…' : meal ? 'save changes' : 'add it'}
           </button>
-          <button type="button" onClick={onCancel} className="pill-quiet px-4 py-2 text-[12px] lowercase">cancel</button>
+          <button type="button" disabled={busy} onClick={onCancel} className="pill-quiet px-4 py-2 text-[12px] lowercase">cancel</button>
         </div>
       </form>
     </section>
