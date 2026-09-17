@@ -196,6 +196,13 @@ DECLARE v jsonb; line jsonb; k_coffee text; k_diapers text;
 BEGIN
   SELECT 'custom~' || replace(id::text, '-', '') INTO k_coffee FROM public.fuel_staples WHERE item = 'coffee' AND removed_at IS NULL;
   SELECT 'custom~' || replace(id::text, '-', '') INTO k_diapers FROM public.fuel_staples WHERE item = 'diapers' AND removed_at IS NULL;
+  -- FOR-243 made a tick carry across a rebuild, so this case now says what
+  -- coffee's tick IS before it asks what a rebuild does with what the client
+  -- sent. The athlete unticks it on the newest list; the client then sends
+  -- checked:true and is still ignored, which is what this case has always
+  -- been about. Without this line coffee is still ticked from case 4, and the
+  -- assertion would be testing the carry instead of the provenance.
+  PERFORM public.fuel_set_item_checked(current_setting('t.l2')::uuid, k_coffee, false);
   UPDATE public.fuel_staples SET store_section = 'Frozen' WHERE item = 'diapers' AND removed_at IS NULL;
   v := public.fuel_create_version_with_staples('2026-09-21', '[]'::jsonb, '{}'::jsonb, jsonb_build_array(
     jsonb_build_object('key', k_coffee, 'item', 'stale coffee', 'qty', 3, 'unit', 'lb', 'section', 'Frozen', 'from', '["x"]'::jsonb, 'second_trip', true, 'inferred', true, 'stocked', true, 'checked', true, 'custom', 'staple')));
@@ -223,6 +230,123 @@ BEGIN
     RAISE EXCEPTION 'FAIL a staple named like a solver line is not its own line beside the solver''s: %', v->'items'; END IF;
   PERFORM set_config('t.l2', v->>'list_id', true);
   RAISE NOTICE 'PASS 16 a staple named like a solver line is its own line on a rebuilt version, beside the solver''s';
+END
+$t$;
+
+-- ── FOR-243: a tick survives a rebuild wherever the line's identity survives ──
+-- On their own cycle, so these stand on their own state and not on cases 1-16.
+-- ListItem.key IS the identity (FOR-243 §4): section, item, unit and trip. The
+-- client always sends checked:false — it solves the list fresh — so a tick on a
+-- new version can only have come from the database's own read of the previous
+-- one, under the lock the staple rebuild already holds.
+
+-- 17. a rebuild keeps the ticks of every line whose key is unchanged, solver
+--     lines and staple lines alike, and leaves the untouched ones unticked
+DO $t$
+DECLARE v jsonb; items jsonb; l1 uuid; k_st text; sent jsonb;
+BEGIN
+  INSERT INTO public.fuel_staples (user_id, item, store_section) VALUES (auth.uid(), 'tinned tomatoes', 'Pantry')
+    RETURNING 'custom~' || replace(id::text, '-', '') INTO k_st;
+  PERFORM set_config('t.k243', k_st, true);
+  sent := jsonb_build_array(
+    jsonb_build_object('key','Pantry:rice:cup dry','item','rice','qty',4,'unit','cup dry','section','Pantry','from','[]'::jsonb,'second_trip',false,'inferred',true,'stocked',false,'checked',false),
+    jsonb_build_object('key','Meat & Seafood:chicken:lb','item','chicken','qty',4,'unit','lb','section','Meat & Seafood','from','[]'::jsonb,'second_trip',false,'inferred',false,'stocked',false,'checked',false),
+    jsonb_build_object('key','Produce:broccoli:each','item','broccoli','qty',2,'unit','each','section','Produce','from','[]'::jsonb,'second_trip',false,'inferred',false,'stocked',false,'checked',false));
+  v := public.fuel_create_version_with_staples('2026-11-02', '[]'::jsonb, '{}'::jsonb, sent);
+  l1 := (v->>'list_id')::uuid;
+  PERFORM public.fuel_set_item_checked(l1, 'Pantry:rice:cup dry', true);
+  PERFORM public.fuel_set_item_checked(l1, 'Meat & Seafood:chicken:lb', true);
+  PERFORM public.fuel_set_item_checked(l1, k_st, true);
+  PERFORM set_config('t.l243a', l1::text, true);
+
+  -- the rebuild: a night changed, so the client solves again and sends every line unticked
+  v := public.fuel_create_version_with_staples('2026-11-02', '[]'::jsonb, '{}'::jsonb, sent);
+  items := v->'items';
+  IF (SELECT (e->>'checked')::boolean FROM jsonb_array_elements(items) e WHERE e->>'key' = 'Pantry:rice:cup dry') IS DISTINCT FROM true
+     OR (SELECT (e->>'checked')::boolean FROM jsonb_array_elements(items) e WHERE e->>'key' = 'Meat & Seafood:chicken:lb') IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'FAIL a solver line lost its tick across a rebuild: %', items; END IF;
+  IF (SELECT (e->>'checked')::boolean FROM jsonb_array_elements(items) e WHERE e->>'key' = k_st) IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'FAIL a staple line lost its tick across a rebuild: %', items; END IF;
+  IF (SELECT (e->>'checked')::boolean FROM jsonb_array_elements(items) e WHERE e->>'key' = 'Produce:broccoli:each') IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'FAIL a line nobody ticked came back ticked: %', items; END IF;
+  IF (SELECT l.items FROM public.fuel_lists l WHERE l.id = (v->>'list_id')::uuid) IS DISTINCT FROM items THEN
+    RAISE EXCEPTION 'FAIL the answered items are not the stored items: %', v; END IF;
+  PERFORM set_config('t.l243b', v->>'list_id', true);
+  RAISE NOTICE 'PASS 17 (FOR-243) a rebuild keeps the ticks of every line whose key is unchanged, solver and staple alike, and leaves the untouched ones unticked';
+END
+$t$;
+
+-- 18. a quantity change is not an identity change (FOR-243 §4): six pounds of
+--     chicken instead of four is the same line, and it keeps its tick
+DO $t$
+DECLARE v jsonb; items jsonb; line jsonb;
+BEGIN
+  v := public.fuel_create_version_with_staples('2026-11-02', '[]'::jsonb, '{}'::jsonb, jsonb_build_array(
+    jsonb_build_object('key','Pantry:rice:cup dry','item','rice','qty',4,'unit','cup dry','section','Pantry','from','[]'::jsonb,'second_trip',false,'inferred',true,'stocked',false,'checked',false),
+    jsonb_build_object('key','Meat & Seafood:chicken:lb','item','chicken','qty',6,'unit','lb','section','Meat & Seafood','from','[]'::jsonb,'second_trip',false,'inferred',false,'stocked',false,'checked',false)));
+  items := v->'items';
+  SELECT e INTO line FROM jsonb_array_elements(items) e WHERE e->>'key' = 'Meat & Seafood:chicken:lb';
+  IF (line->>'qty')::numeric <> 6 THEN RAISE EXCEPTION 'FAIL the quantity did not change: %', line; END IF;
+  IF (line->>'checked')::boolean IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'FAIL a line lost its tick because its quantity changed: %', line; END IF;
+  PERFORM set_config('t.l243c', v->>'list_id', true);
+  RAISE NOTICE 'PASS 18 (FOR-243) a quantity change keeps the key, so the line keeps its tick';
+END
+$t$;
+
+-- 19. a line whose key changed is a DIFFERENT line: it starts unticked and
+--     inherits nothing. Carrying a tick to the wrong line is the dangerous
+--     failure (FOR-243 §7) — unticked means check the shelf, wrongly ticked
+--     means walk past it. A staple beside it still carries, so this is not
+--     passing by carrying nothing.
+DO $t$
+DECLARE v jsonb; items jsonb;
+BEGIN
+  v := public.fuel_create_version_with_staples('2026-11-02', '[]'::jsonb, '{}'::jsonb, jsonb_build_array(
+    -- rice by the pound now: a different unit is a different key
+    jsonb_build_object('key','Pantry:rice:lb','item','rice','qty',2,'unit','lb','section','Pantry','from','[]'::jsonb,'second_trip',false,'inferred',true,'stocked',false,'checked',false)));
+  items := v->'items';
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(items) e WHERE e->>'key' = 'Pantry:rice:cup dry') THEN
+    RAISE EXCEPTION 'FAIL a line the rebuild did not send survived: %', items; END IF;
+  IF (SELECT (e->>'checked')::boolean FROM jsonb_array_elements(items) e WHERE e->>'key' = 'Pantry:rice:lb') IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'FAIL a line whose key changed inherited a tick: %', items; END IF;
+  IF (SELECT (e->>'checked')::boolean FROM jsonb_array_elements(items) e WHERE e->>'key' = current_setting('t.k243')) IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'FAIL the staple beside it lost its tick, so this case proves nothing: %', items; END IF;
+  PERFORM set_config('t.l243d', v->>'list_id', true);
+  RAISE NOTICE 'PASS 19 (FOR-243) a line whose key changed starts unticked and inherits nothing from the line it replaced';
+END
+$t$;
+
+-- 20. the DATABASE decides a tick, not the client: a line the previous version
+--     had unticked comes back unticked though the client sent checked:true, for
+--     a solver line and a staple line alike. An untick sticks across a rebuild.
+DO $t$
+DECLARE v jsonb; items jsonb; k_st text;
+BEGIN
+  k_st := current_setting('t.k243');
+  -- the athlete unticks the staple on the newest list: that must survive too
+  PERFORM public.fuel_set_item_checked(current_setting('t.l243d')::uuid, k_st, false);
+  v := public.fuel_create_version_with_staples('2026-11-02', '[]'::jsonb, '{}'::jsonb, jsonb_build_array(
+    jsonb_build_object('key','Pantry:rice:lb','item','rice','qty',2,'unit','lb','section','Pantry','from','[]'::jsonb,'second_trip',false,'inferred',true,'stocked',false,'checked',true),
+    jsonb_build_object('key',k_st,'item','tinned tomatoes','qty',0,'unit','','section','Pantry','from','[]'::jsonb,'second_trip',false,'inferred',false,'stocked',false,'checked',true,'custom','staple')));
+  items := v->'items';
+  IF (SELECT (e->>'checked')::boolean FROM jsonb_array_elements(items) e WHERE e->>'key' = 'Pantry:rice:lb') IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'FAIL the client dictated a tick on a solver line: %', items; END IF;
+  IF (SELECT (e->>'checked')::boolean FROM jsonb_array_elements(items) e WHERE e->>'key' = k_st) IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'FAIL an untick did not survive the rebuild, or the client dictated a staple tick: %', items; END IF;
+  RAISE NOTICE 'PASS 20 (FOR-243) the database decides a tick: a line unticked on the previous version comes back unticked though the client sent it ticked, and an untick survives';
+END
+$t$;
+
+-- 21. old versions keep the ticks they had (FOR-243 AC5): the list the athlete
+--     shopped is still the list they shopped, whatever was built after it
+DO $t$
+DECLARE n int;
+BEGIN
+  SELECT count(*) INTO n FROM public.fuel_lists l, jsonb_array_elements(l.items) e
+   WHERE l.id = current_setting('t.l243a')::uuid AND (e->>'checked')::boolean;
+  IF n <> 3 THEN RAISE EXCEPTION 'FAIL the first version has % ticks, expected the 3 it was left with', n; END IF;
+  RAISE NOTICE 'PASS 21 (FOR-243) an old version keeps the ticks it had, whatever was built after it';
 END
 $t$;
 
