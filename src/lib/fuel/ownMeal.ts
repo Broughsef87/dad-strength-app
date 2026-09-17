@@ -11,6 +11,16 @@
 // constraint already demands, it does not define the rule. The two must agree:
 // 20260920_fuel_own_meals.sql checks left(slug, 34) = 'u' || <32 hex> || '~'.
 import type { MealIngredient, MealRow } from './types'
+import { FRESH_ONLY_CUTS } from './solve'
+
+/**
+ * The cuts validatePlan and the second-trip rule key on. Taken from the
+ * solver's own list where there is one, so a cut cannot carry a rule the form
+ * never offers. 'ground_turkey' and 'ribeye' are named in validatePlan itself
+ * rather than in a list, so they are repeated here — the fuel-own-meals suite
+ * pins them against solve.ts so this copy cannot drift.
+ */
+export const RULE_CUTS: readonly string[] = [...FRESH_ONLY_CUTS, 'ground_turkey', 'ribeye']
 
 /** 'u' + the owner's uuid with its dashes removed + '~'. 34 characters, always. */
 export const OWN_PREFIX_LENGTH = 34
@@ -49,28 +59,62 @@ export function mintOwnSlug(userId: string, name: string): string | null {
   return ownNamespace(userId) + tail
 }
 
-/** What the athlete types. Everything the solver needs and nothing it does not — the rest is defaulted, because a form asking fourteen questions does not get used (FOR-242 §7). */
+/**
+ * What the athlete types. The minimum that SOLVES AND VALIDATES a list, which
+ * is a higher bar than the minimum that solves one — a plan cannot be built
+ * while it carries a warning (PlanBuilder's build control), so a field
+ * validatePlan warns about is not optional however little the solver needs it.
+ *
+ * Everything else — spice profile, format, minutes, perishable days — is
+ * defaulted and never asked, because a form asking fourteen questions does not
+ * get used (FOR-242 §7).
+ */
 export interface OwnMealDraft {
   name: string
   servings: number
   ingredients: MealIngredient[]
-  /** Optional, and defaulted when left out. Shown on the meal but never used to solve a list. */
-  protein_g_per_person?: number | null
+  /**
+   * REQUIRED. validatePlan warns when a meal has no protein figure, and a plan
+   * with any warning cannot be built — so defaulting this to null made every
+   * own meal unusable (Codex r1, P1).
+   */
+  protein_g_per_person: number
+  /**
+   * REQUIRED. The solver keys the fish, turkey and steak frequency rules on the
+   * cut, and second-trip placement too. A meal marked with an ownership word
+   * instead of its real cut is invisible to all of them, which is exactly the
+   * bug FOR-242 §4 says must not exist: the rules apply to whatever is picked,
+   * seeded or own (Codex r1, P2).
+   */
+  protein_cut: string
   active_cook_minutes?: number
   total_minutes?: number | null
   perishable_within_days?: number | null
 }
 
-/** What an own meal is when the athlete did not say. These are shown and editable later; none of them changes a shopping list. */
+/** What an own meal is when the athlete did not say. None of these changes a shopping list or a rule. */
 export const OWN_MEAL_DEFAULTS = {
-  protein_cut: 'own',
   spice_profile: 'own',
   format: 'own',
   active_cook_minutes: 20,
   total_minutes: null,
-  protein_g_per_person: null,
   perishable_within_days: null,
 } as const
+
+/** The cut an athlete picks when none of the named ones fit. Deliberately not a cut any rule keys on. */
+export const OTHER_CUT = 'other'
+
+/**
+ * The cuts to offer, from the library itself plus the ones the rules key on —
+ * so the cuts that carry a frequency rule can always be chosen even if the
+ * library happens not to cook one this fortnight. One source: no hand-kept list
+ * to drift from what the solver reads.
+ */
+export function cutOptions(meals: Pick<MealRow, 'protein_cut'>[]): string[] {
+  const cuts = new Set<string>(RULE_CUTS)
+  for (const m of meals) if (m.protein_cut && m.protein_cut !== OTHER_CUT) cuts.add(m.protein_cut)
+  return [...cuts].sort((a, b) => a.localeCompare(b)).concat(OTHER_CUT)
+}
 
 /**
  * Why this meal cannot be saved, in words that name the field. Empty means it
@@ -85,6 +129,10 @@ export function ownMealIssues(draft: OwnMealDraft): string[] {
   else if (name.length > 120) issues.push('the name is too long — keep it under 120 characters')
   else if (!slugifyName(name)) issues.push('the name needs at least one letter or number')
   if (!Number.isInteger(draft.servings) || draft.servings < 1) issues.push('servings must be a whole number, at least 1')
+  // Not optional: a plan carrying a warning cannot be built, and validatePlan
+  // warns on a missing protein figure (Codex r1, P1).
+  if (!(draft.protein_g_per_person > 0)) issues.push('give the protein per person in grams — without it the plan cannot be built')
+  if (!draft.protein_cut?.trim()) issues.push('say what the protein is — the fish, turkey and steak rules are counted on it')
   const rows = draft.ingredients.filter((i) => i.item.trim())
   if (!rows.length) issues.push('add at least one ingredient — a meal with none cannot put anything on the shopping list')
   for (const ing of rows) {
@@ -110,13 +158,13 @@ export function ownMealIssues(draft: OwnMealDraft): string[] {
 export function ownMealFields(draft: OwnMealDraft): Omit<MealRow, 'slug' | 'user_id'> {
   return {
     name: draft.name.trim(),
-    protein_cut: OWN_MEAL_DEFAULTS.protein_cut,
+    protein_cut: draft.protein_cut.trim(),
     spice_profile: OWN_MEAL_DEFAULTS.spice_profile,
     format: OWN_MEAL_DEFAULTS.format,
     active_cook_minutes: draft.active_cook_minutes ?? OWN_MEAL_DEFAULTS.active_cook_minutes,
     total_minutes: draft.total_minutes ?? OWN_MEAL_DEFAULTS.total_minutes,
     servings: draft.servings,
-    protein_g_per_person: draft.protein_g_per_person ?? OWN_MEAL_DEFAULTS.protein_g_per_person,
+    protein_g_per_person: draft.protein_g_per_person,
     perishable_within_days: draft.perishable_within_days ?? OWN_MEAL_DEFAULTS.perishable_within_days,
     rotation_note: null,
     ingredients: draft.ingredients

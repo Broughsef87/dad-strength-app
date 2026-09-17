@@ -473,6 +473,29 @@ BEGIN
 END
 $t$;
 
+-- 27. a slug never moves once a row exists (FOR-242). The UPDATE policy and the
+--     namespace CHECK would both accept a rename inside the owner's namespace,
+--     and PostgREST would send one — but fuel_plans.meal_ids and stored lists
+--     carry the slug as written and nothing rewrites them, so a rename orphans
+--     every plan already shopped. Renaming a slug is a migration, not an edit.
+DO $t$
+DECLARE own_slug text; n int;
+BEGIN
+  own_slug := current_setting('t.m242');
+  BEGIN
+    UPDATE public.fuel_meals SET slug = 'u' || replace(auth.uid()::text, '-', '') || '~renamed' WHERE slug = own_slug;
+    RAISE EXCEPTION 'FAIL an own meal was renamed, orphaning any plan that references it';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  IF NOT EXISTS (SELECT 1 FROM public.fuel_meals WHERE slug = own_slug) THEN
+    RAISE EXCEPTION 'FAIL the meal is no longer under its original slug'; END IF;
+  -- Editing everything else still works: it is the SLUG that is frozen, not the meal.
+  UPDATE public.fuel_meals SET name = 'Lisa''s chicken thing, hotter' WHERE slug = own_slug;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL the owner could not edit their own meal at all (% rows)', n; END IF;
+  RAISE NOTICE 'PASS 27 (FOR-242) a slug never moves once a row exists, though everything else about the meal can be edited';
+END
+$t$;
+
 -- 10. someone else cannot touch the list, see the staples, or plant one
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000002ff","role":"authenticated"}', true);
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-0000000002ff', true);

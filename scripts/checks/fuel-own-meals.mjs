@@ -18,7 +18,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { OWN_PREFIX_LENGTH, isOwn, isOwnSlug, mintOwnSlug, ownMealFields, ownMealIssues, ownNamespace, ownedBy, slugifyName } from '../../src/lib/fuel/ownMeal.ts'
+import { OTHER_CUT, OWN_PREFIX_LENGTH, RULE_CUTS, cutOptions, isOwn, isOwnSlug, mintOwnSlug, ownMealFields, ownMealIssues, ownNamespace, ownedBy, slugifyName } from '../../src/lib/fuel/ownMeal.ts'
 
 let failures = 0, passes = 0
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
@@ -95,10 +95,16 @@ assert(/CREATE TRIGGER[\s\S]*?WHEN \(NEW\.user_id IS NOT NULL\)[\s\S]*?enforce_f
 // exist is a DELETE policy, which is what would let a row leave the table.
 assert(!/FOR\s+DELETE/i.test(sql),
   'the migration creates no DELETE policy — retiring is the only removal, so a stored plan keeps resolving its slug')
+// A policy cannot see OLD, so the slug has to be frozen by a trigger. Without
+// it an owner can rename one of their own slugs straight through PostgREST and
+// orphan every plan that references it (Codex r1).
+assert(/CREATE TRIGGER[\s\S]*?BEFORE UPDATE ON public\.fuel_meals[\s\S]*?fuel_meals_slug_is_immutable/.test(sql)
+  && /NEW\.slug IS DISTINCT FROM OLD\.slug/.test(sql),
+  'a slug is frozen by a BEFORE UPDATE trigger — renaming one is a migration, not an edit')
 
 // ── A meal that cannot put anything on a list is refused, not accepted ──────
 const ing = (over = {}) => ({ item: 'gochujang', qty_per_person: 1, unit: 'tbsp', store_section: 'Pantry', inferred: false, ...over })
-const draft = (over = {}) => ({ name: 'Lisa\'s chicken thing', servings: 3, ingredients: [ing()], ...over })
+const draft = (over = {}) => ({ name: 'Lisa\'s chicken thing', servings: 3, protein_g_per_person: 42, protein_cut: 'chicken_thigh', ingredients: [ing()], ...over })
 assert(ownMealIssues(draft()).length === 0, 'a meal with a name, servings and one ingredient is accepted')
 assert(ownMealIssues(draft({ ingredients: [] })).some((i) => /at least one ingredient/.test(i)),
   'a meal with no ingredients is refused — it would contribute nothing to any list')
@@ -107,6 +113,22 @@ assert(ownMealIssues(draft({ ingredients: [ing({ item: '   ' })] })).some((i) =>
 assert(ownMealIssues(draft({ name: '   ' })).some((i) => /name/.test(i)), 'a meal with no name is refused')
 assert(ownMealIssues(draft({ name: '---' })).some((i) => /letter or number/.test(i)), 'a name that slugifies to nothing is refused')
 assert(ownMealIssues(draft({ servings: 0 })).some((i) => /servings/.test(i)), 'servings below one is refused')
+// The two the solver actually gates on. Defaulting either made every own meal
+// unbuildable, or invisible to the frequency rules (Codex r1, P1 and P2).
+assert(ownMealIssues(draft({ protein_g_per_person: 0 })).some((i) => /protein per person/.test(i)),
+  'a meal with no protein figure is refused — validatePlan warns on it, and a plan carrying a warning cannot be built')
+assert(ownMealIssues(draft({ protein_cut: '' })).some((i) => /what the protein is/.test(i)),
+  'a meal with no protein cut is refused — the fish, turkey and steak rules are counted on it')
+assert(ownMealFields(draft({ protein_cut: 'salmon' })).protein_cut === 'salmon',
+  'the cut the athlete chose is what gets written, not an ownership marker the rules would ignore')
+for (const cut of RULE_CUTS) assert(cutOptions([]).includes(cut), `the form offers ${cut}, which carries a frequency rule, even for an empty library`)
+assert(cutOptions([{ protein_cut: 'chicken_thigh' }]).includes('chicken_thigh'), 'the form also offers the cuts the library already cooks')
+assert(cutOptions([]).at(-1) === OTHER_CUT && !RULE_CUTS.includes(OTHER_CUT),
+  'the escape hatch is last and carries no rule — picking it cannot silently satisfy a fish or steak limit')
+// RULE_CUTS repeats two cut names that validatePlan spells inline. Pinned to the
+// source so the form cannot stop offering a cut that still carries a rule.
+const solveSrc = readFileSync(join(ROOT, 'src/lib/fuel/solve.ts'), 'utf8')
+for (const cut of RULE_CUTS) assert(solveSrc.includes(`'${cut}'`), `solve.ts still keys a rule on ${cut} — RULE_CUTS has not drifted from it`)
 assert(ownMealIssues(draft({ ingredients: [ing({ qty_per_person: 0 })] })).some((i) => /quantity/.test(i)), 'a quantity of zero is refused')
 assert(ownMealIssues(draft({ ingredients: [ing({ store_section: '' })] })).some((i) => /aisle/.test(i)), 'an ingredient with no aisle is refused')
 assert(ownMealIssues(draft({ ingredients: [ing(), ing()] })).some((i) => /twice/.test(i)), 'the same item twice in one unit is refused')

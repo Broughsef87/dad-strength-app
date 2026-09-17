@@ -41,7 +41,8 @@
 -- replaying the seeds would fail — which npm run proof:db now does on every run.
 --
 -- Additive: one nullable column, one CHECK, one index, three policies replacing
--- one, one trigger. No existing column, function or row changes. In its own
+-- one, and two triggers — the Pro gate, and the one that freezes a slug once a
+-- row exists. No existing column, function or row changes. In its own
 -- migration, NOT folded into 20260914: scripts/fuel-seed-sql.mjs renders that
 -- file in full, CREATE TABLE included, so editing it there desyncs the generator
 -- and breaks `node scripts/fuel-seed-sql.mjs --check` immediately.
@@ -82,6 +83,33 @@ CREATE POLICY "fuel_meals: owner edits own" ON public.fuel_meals
   FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 -- No DELETE policy: retiring flips `active`, so stored plans and lists keep
 -- resolving the slug they reference.
+
+-- ── A slug never moves, once a row exists ────────────────────────────────────
+-- The UPDATE policy and the namespace CHECK both accept a change from one slug
+-- in the owner's namespace to another, and PostgREST will happily send one. But
+-- fuel_plans.meal_ids and stored fuel_lists rows carry the slug as written, and
+-- nothing rewrites them — so a rename orphans every plan the athlete has
+-- already shopped, which is what the no-DELETE rule exists to prevent in the
+-- first place. CLAUDE.md: renaming a slug is a migration, not an edit.
+-- Enforced for every writer, including a raw PostgREST update, because a policy
+-- cannot see OLD (Codex r1).
+CREATE OR REPLACE FUNCTION public.fuel_meals_slug_is_immutable()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+AS $$
+BEGIN
+  IF NEW.slug IS DISTINCT FROM OLD.slug THEN
+    RAISE EXCEPTION 'a meal slug cannot be changed — it is referenced by plans and lists already built'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END
+$$;
+REVOKE EXECUTE ON FUNCTION public.fuel_meals_slug_is_immutable() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS fuel_meals_slug_immutable ON public.fuel_meals;
+CREATE TRIGGER fuel_meals_slug_immutable BEFORE UPDATE ON public.fuel_meals
+  FOR EACH ROW EXECUTE FUNCTION public.fuel_meals_slug_is_immutable();
 
 -- ── The Pro gate, as on fuel_household, fuel_plans, fuel_lists, fuel_staples ──
 -- WHEN (NEW.user_id IS NOT NULL): the seeded library is inserted by the seed
