@@ -350,6 +350,129 @@ BEGIN
 END
 $t$;
 
+-- ── FOR-242: the athlete's own meals live in fuel_meals, owned ───────────────
+-- One table, one nullable user_id. NULL is the seeded library. A value is that
+-- athlete's own meal. AC4 says invisible to any other user, asserted AT THE
+-- DATABASE and not from the UI — so these run as two different signed-in users.
+
+-- 22. an own meal is created with a namespaced slug, and its owner reads it
+--     beside the seeded library through the SAME select the app uses
+DO $t$
+DECLARE own_slug text; n_lib int; n_all int;
+BEGIN
+  own_slug := 'u' || replace(auth.uid()::text, '-', '') || '~lisas-chicken-thing';
+  PERFORM set_config('t.m242', own_slug, true);
+  INSERT INTO public.fuel_meals (user_id, slug, name, protein_cut, spice_profile, format, active_cook_minutes, total_minutes, servings, protein_g_per_person, perishable_within_days, ingredients)
+  VALUES (auth.uid(), own_slug, 'Lisa''s chicken thing', 'chicken_thigh', 'house', 'skillet', 15, 25, 3, 42, 3,
+    '[{"item":"gochujang","qty_per_person":1,"unit":"tbsp","store_section":"Pantry","inferred":false}]'::jsonb);
+  SELECT count(*) INTO n_lib FROM public.fuel_meals WHERE user_id IS NULL;
+  SELECT count(*) INTO n_all FROM public.fuel_meals;
+  IF n_lib < 8 OR n_all <> n_lib + 1 THEN
+    RAISE EXCEPTION 'FAIL the owner does not read the library plus exactly their own: % library, % total', n_lib, n_all; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.fuel_meals WHERE slug = own_slug AND user_id = auth.uid() AND active) THEN
+    RAISE EXCEPTION 'FAIL the own meal is not readable by its owner, or is not active by default'; END IF;
+  RAISE NOTICE 'PASS 22 (FOR-242) an own meal is created and its owner reads it beside the seeded library, through one select';
+END
+$t$;
+
+-- 23. the slug namespace is enforced BY THE DATABASE, not by the client: a slug
+--     that is not namespaced to its owner is refused, and a seeded slug cannot
+--     be taken at all. Slugs are foreign keys; a collision corrupts history.
+DO $t$
+BEGIN
+  BEGIN
+    INSERT INTO public.fuel_meals (user_id, slug, name, protein_cut, spice_profile, format, active_cook_minutes, servings, ingredients)
+    VALUES (auth.uid(), 'lisas-other-thing', 'not namespaced', 'x', 'x', 'x', 10, 2, '[]'::jsonb);
+    RAISE EXCEPTION 'FAIL an own meal was accepted with an un-namespaced slug';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  BEGIN
+    INSERT INTO public.fuel_meals (user_id, slug, name, protein_cut, spice_profile, format, active_cook_minutes, servings, ingredients)
+    VALUES (auth.uid(), 'u' || replace('00000000-0000-4000-8000-0000000002ff'::uuid::text, '-', '') || '~stolen', 'someone else''s namespace', 'x', 'x', 'x', 10, 2, '[]'::jsonb);
+    RAISE EXCEPTION 'FAIL an own meal was accepted namespaced to ANOTHER athlete';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  BEGIN
+    INSERT INTO public.fuel_meals (user_id, slug, name, protein_cut, spice_profile, format, active_cook_minutes, servings, ingredients)
+    VALUES (auth.uid(), 'jerk-thighs', 'shadowing a seeded slug', 'x', 'x', 'x', 10, 2, '[]'::jsonb);
+    RAISE EXCEPTION 'FAIL an own meal took a seeded slug';
+  EXCEPTION WHEN check_violation THEN NULL; WHEN unique_violation THEN NULL; END;
+  RAISE NOTICE 'PASS 23 (FOR-242) the slug namespace is a database constraint: un-namespaced, another athlete''s namespace, and a seeded slug are all refused';
+END
+$t$;
+
+-- 24. nobody writes the library. Not an insert with no owner, and not an edit of
+--     a seeded row — an UPDATE cannot even see one, so it can be neither taken
+--     over nor pushed out of the library.
+DO $t$
+DECLARE n int;
+BEGIN
+  BEGIN
+    INSERT INTO public.fuel_meals (slug, name, protein_cut, spice_profile, format, active_cook_minutes, servings, ingredients)
+    VALUES ('planted-library-meal', 'planted', 'x', 'x', 'x', 10, 2, '[]'::jsonb);
+    RAISE EXCEPTION 'FAIL an athlete wrote a library row (user_id IS NULL)';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  UPDATE public.fuel_meals SET name = 'hijacked' WHERE slug = 'jerk-thighs';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL an athlete edited % seeded row(s)', n; END IF;
+  UPDATE public.fuel_meals SET user_id = auth.uid() WHERE slug = 'jerk-thighs';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL an athlete took over a seeded row'; END IF;
+  IF (SELECT name FROM public.fuel_meals WHERE slug = 'jerk-thighs') = 'hijacked' THEN
+    RAISE EXCEPTION 'FAIL the seeded row changed'; END IF;
+  RAISE NOTICE 'PASS 24 (FOR-242) nobody writes the library: no owner-less insert, and a seeded row can be neither edited nor taken over';
+END
+$t$;
+
+-- 25. AC4 at the database: another athlete cannot read, edit, retire or delete
+--     an own meal, and cannot plant one on its owner
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000002ff","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-0000000002ff', true);
+DO $t$
+DECLARE n int; other text;
+BEGIN
+  other := current_setting('t.m242');
+  IF EXISTS (SELECT 1 FROM public.fuel_meals WHERE slug = other) THEN
+    RAISE EXCEPTION 'FAIL another athlete can READ an own meal'; END IF;
+  IF (SELECT count(*) FROM public.fuel_meals WHERE user_id IS NOT NULL) <> 0 THEN
+    RAISE EXCEPTION 'FAIL another athlete sees somebody''s own meals'; END IF;
+  UPDATE public.fuel_meals SET name = 'hijacked' WHERE slug = other;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL another athlete edited an own meal'; END IF;
+  UPDATE public.fuel_meals SET active = false WHERE slug = other;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL another athlete retired an own meal'; END IF;
+  DELETE FROM public.fuel_meals WHERE slug = other;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL another athlete deleted an own meal'; END IF;
+  BEGIN
+    INSERT INTO public.fuel_meals (user_id, slug, name, protein_cut, spice_profile, format, active_cook_minutes, servings, ingredients)
+    VALUES ('00000000-0000-4000-8000-000000000240', 'u00000000000040008000000000000240~planted', 'planted', 'x', 'x', 'x', 10, 2, '[]'::jsonb);
+    RAISE EXCEPTION 'FAIL a meal was planted on another athlete';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  RAISE NOTICE 'PASS 25 (FOR-242) another athlete cannot read, edit, retire, delete or plant an own meal';
+END
+$t$;
+
+-- 26. the owner can retire their own meal, and retiring is the only removal
+--     there is — there is no DELETE policy, so a stored plan's slug still resolves
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000240","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000240', true);
+DO $t$
+DECLARE n int; own_slug text;
+BEGIN
+  own_slug := current_setting('t.m242');
+  UPDATE public.fuel_meals SET active = false WHERE slug = own_slug;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL the owner could not retire their own meal (% rows)', n; END IF;
+  DELETE FROM public.fuel_meals WHERE slug = own_slug;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL an own meal was DELETED — retiring must be the only removal, or a stored plan stops resolving'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.fuel_meals WHERE slug = own_slug AND NOT active) THEN
+    RAISE EXCEPTION 'FAIL the retired meal is gone rather than retired'; END IF;
+  UPDATE public.fuel_meals SET active = true WHERE slug = own_slug;
+  RAISE NOTICE 'PASS 26 (FOR-242) the owner retires their own meal, and cannot delete it — the row stays so a stored plan keeps resolving its slug';
+END
+$t$;
+
 -- 10. someone else cannot touch the list, see the staples, or plant one
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000002ff","role":"authenticated"}', true);
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-0000000002ff', true);
@@ -382,7 +505,17 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
   BEGIN PERFORM public.fuel_create_version_with_staples('2026-09-28', '[]'::jsonb, '{}'::jsonb, '[]'::jsonb); RAISE EXCEPTION 'FAIL a free user built a version with staples';
   EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
-  RAISE NOTICE 'PASS 11a a free user is refused a staple, a custom line and a version with staples at the database (42501)';
+  -- FOR-242: own meals are Pro, like every other Fuel write path (Andrew's ruling).
+  BEGIN
+    INSERT INTO public.fuel_meals (user_id, slug, name, protein_cut, spice_profile, format, active_cook_minutes, servings, ingredients)
+    VALUES (auth.uid(), 'u' || replace(auth.uid()::text, '-', '') || '~free-tier-meal', 'free tier', 'x', 'x', 'x', 10, 2, '[]'::jsonb);
+    RAISE EXCEPTION 'FAIL a free user added their own meal';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+  -- ...but the seeded library is still readable: the gate has a WHEN clause,
+  -- so it never touches a user_id IS NULL row.
+  IF (SELECT count(*) FROM public.fuel_meals WHERE user_id IS NULL) < 8 THEN
+    RAISE EXCEPTION 'FAIL a free user cannot read the seeded library'; END IF;
+  RAISE NOTICE 'PASS 11a a free user is refused a staple, a custom line, a version with staples and their own meal at the database (42501), and still reads the seeded library';
 END
 $t$;
 RESET ROLE;

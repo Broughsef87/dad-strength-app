@@ -44,10 +44,11 @@ import Checklist, { sendQueued } from '../../components/fuel/Checklist'
 import AddItem from '../../components/fuel/AddItem'
 import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import {
-  DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createVersion, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
-  readItems, removeCustomItem, saveHousehold, setItemChecked, stopStaple, type ListRow, type PlanRow,
+  DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createOwnMeal, createVersion, isMissingColumn, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
+  readItems, removeCustomItem, saveHousehold, setItemChecked, stopStaple, updateOwnMeal, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { customKey, isCustom, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
+import type { OwnMealDraft } from '../../lib/fuel/ownMeal'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
@@ -266,6 +267,22 @@ export default function FuelPage() {
   const startEntries = (targetStart: string, h: Household): Plan | null => {
     const entries = builderStart(targetStart, recent, rotations, members, meals, h, plan ? plan.meal_ids : null)
     return entries ? { entries } : null
+  }
+
+  // FOR-242: the athlete's own meal. One write, then the LIBRARY IS RE-READ —
+  // the new meal is never spliced into the list by hand, because row security
+  // is what decides which meals this athlete has, and a hand-built copy would
+  // be a second source of the same fact. It lands in the same list as the
+  // seeded meals, in the same order, and nothing downstream knows the
+  // difference. Before the own-meals migration is applied the column is not
+  // there: say so plainly rather than reporting a PostgREST code.
+  const onSaveMeal = async (slug: string | null, draft: OwnMealDraft): Promise<string | null> => {
+    if (!userId) return 'sign in to add a meal'
+    const res = slug ? await updateOwnMeal(supabase, slug, draft) : await createOwnMeal(supabase, userId, draft)
+    if (res.error) return isMissingColumn(res.error) ? 'your own meals are not switched on yet' : (res.error.message ?? 'could not save the meal')
+    const m = await loadMeals(supabase)
+    if (!m.error) setMeals(m.meals)
+    return null
   }
 
   const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
@@ -514,7 +531,7 @@ export default function FuelPage() {
               {step === 'plan' && household && (
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}-${rotations.length}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
                   initial={startEntries(buildTarget(new Date()), household)} rotations={rotations} members={members}
-                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} />
+                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} />
               )}
               {step === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">

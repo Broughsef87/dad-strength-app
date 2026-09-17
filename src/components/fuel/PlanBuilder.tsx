@@ -14,6 +14,8 @@ import type { Household, MealRow, Plan, PlanEntry, RotationMealRow, RotationRow 
 import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../../lib/fuel/solve'
 import { rotationEntries, rotationOf, sortedRotations } from '../../lib/fuel/rotation'
 import { addNight, nightLine, nightSource, planIssues, removeNight, setServings, swapNight, withinCap } from '../../lib/fuel/planner'
+import { isOwn, type OwnMealDraft } from '../../lib/fuel/ownMeal'
+import MealForm from './MealForm'
 
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
@@ -24,8 +26,22 @@ const NO_MEMBERS: RotationMealRow[] = []
 /** What the library drawer is open for: swapping one night, or adding a night to a week. Closed otherwise. */
 type Drawer = { swap: number } | { add: 1 | 2 } | null
 
-/** The meal library, as a drawer under the fortnight — open only to swap a night or add one. A meal over the cook cap is shown, and cannot be picked. */
-export function LibraryDrawer({ meals, household, heading, onPick, onClose }: { meals: MealRow[]; household: Household; heading: string; onPick: (meal: MealRow) => void; onClose: () => void }) {
+/**
+ * The meal library, as a drawer under the fortnight — open only to swap a night
+ * or add one. A meal over the cook cap is shown, and cannot be picked.
+ *
+ * The athlete's own meals (FOR-242) sit in this same list, in the same order,
+ * because they come from the same read and nothing here knows the difference.
+ * They carry a quiet "yours" marker and an edit control; the marker is concrete
+ * ink, not volt — an own meal is not an earned accent.
+ */
+export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAddOwn, onEditOwn }: {
+  meals: MealRow[]; household: Household; heading: string; onPick: (meal: MealRow) => void; onClose: () => void
+  /** Add a meal of your own. Absent when the page cannot write meals. */
+  onAddOwn?: () => void
+  /** Edit one of yours. Absent for a library meal, and when the page cannot write meals. */
+  onEditOwn?: (meal: MealRow) => void
+}) {
   return (
     <section className="tile p-5 space-y-3" aria-label="the library">
       <div className="flex items-center justify-between gap-3">
@@ -33,20 +49,31 @@ export function LibraryDrawer({ meals, household, heading, onPick, onClose }: { 
           <p className="eyebrow-mono">the library</p>
           <p className="text-sm lowercase">{heading}</p>
         </div>
-        <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={onClose}>close</button>
+        <div className="flex items-center gap-2 shrink-0">
+          {onAddOwn && <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase" onClick={onAddOwn}>add your own</button>}
+          <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase" onClick={onClose}>close</button>
+        </div>
       </div>
       <ul className="space-y-2">
         {meals.map((m) => {
           const ok = withinCap(m, household)
+          const mine = isOwn(m)
           return (
-            <li key={m.slug}>
-              <button type="button" className="row-recessed w-full px-3.5 py-3 text-left disabled:text-muted-foreground" disabled={!ok} onClick={() => onPick(m)}>
-                <span className="block text-sm font-medium lowercase">{m.name}</span>
+            <li key={m.slug} className="flex items-stretch gap-2">
+              <button type="button" className="row-recessed flex-1 min-w-0 px-3.5 py-3 text-left disabled:text-muted-foreground" disabled={!ok} onClick={() => onPick(m)}>
+                <span className="block text-sm font-medium lowercase">
+                  {m.name}
+                  {mine && <span className="eyebrow-mono-sm ml-2">yours</span>}
+                </span>
                 <span className="block eyebrow-mono mt-1">{nightLine(m)}</span>
                 <span className="block eyebrow-mono-sm mt-0.5">
                   {m.active_cook_minutes} min active{m.protein_g_per_person ? ` · ${m.protein_g_per_person} g protein` : ''}{ok ? '' : ` · over your ${household.cook_cap_minutes}-min cap`}
                 </span>
               </button>
+              {mine && onEditOwn && (
+                <button type="button" onClick={() => onEditOwn(m)} aria-label={`edit ${m.name}`}
+                  className="pill-quiet shrink-0 px-3 text-[11px] lowercase">edit</button>
+              )}
             </li>
           )
         })}
@@ -55,7 +82,7 @@ export function LibraryDrawer({ meals, household, heading, onPick, onClose }: { 
   )
 }
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
   /** `countInventory`: whether what is on hand is counted against this plan — asked only when it was not (a NEXT cycle, or a rebuild of a plan built without it), otherwise always (Codex, rounds 15 and 16). */
   onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
@@ -68,6 +95,8 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   /** The rotations the picks can start from, and their membership (FOR-238). None before the rotations migration is applied: no rotation control. */
   rotations?: RotationRow[]
   members?: RotationMealRow[]
+  /** Save a meal of the athlete's own: a new one when slug is null, otherwise an edit. Returns what went wrong, in words, or null. Absent when the page cannot write meals, and then the library offers no add or edit. */
+  onSaveMeal?: (slug: string | null, draft: OwnMealDraft) => Promise<string | null>
 }) {
   const weeks = cycleWeeks(household)
   const bySlug = useMemo(() => new Map(meals.map((m) => [m.slug, m])), [meals])
@@ -85,6 +114,10 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     .map((e) => { const m = bySlug.get(e.slug); return m && e.servings < household.people_count ? { ...e, servings: defaultServings(m, household) } : e }))
   const retired = useMemo(() => [...new Set((initial?.entries ?? []).filter((e) => !bySlug.has(e.slug)).map((e) => e.slug))], [initial, bySlug])
   const [drawer, setDrawer] = useState<Drawer>(null)
+  // The meal form takes over the drawer rather than opening beside it: one
+  // thing on screen at a time, on a phone, in a kitchen (FOR-242).
+  const [mealForm, setMealForm] = useState<{ meal: MealRow | null } | null>(null)
+  const [savingMeal, setSavingMeal] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (drawer) drawerRef.current?.scrollIntoView({ block: 'start' }) }, [drawer])
   const [countInventory, setCountInventory] = useState(countByDefault)
@@ -191,7 +224,22 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
 
       {drawer && (
         <div ref={drawerRef}>
-          <LibraryDrawer meals={meals} household={household} heading={drawerHeading} onPick={pick} onClose={() => setDrawer(null)} />
+          {mealForm ? (
+            <MealForm meal={mealForm.meal} meals={meals} sectionOrder={household.store_section_order} busy={savingMeal}
+              onSave={async (draft) => {
+                if (!onSaveMeal) return 'meals cannot be saved from here'
+                setSavingMeal(true)
+                const e = await onSaveMeal(mealForm.meal?.slug ?? null, draft)
+                setSavingMeal(false)
+                if (!e) setMealForm(null)
+                return e
+              }}
+              onCancel={() => setMealForm(null)} />
+          ) : (
+            <LibraryDrawer meals={meals} household={household} heading={drawerHeading} onPick={pick} onClose={() => setDrawer(null)}
+              onAddOwn={onSaveMeal ? () => setMealForm({ meal: null }) : undefined}
+              onEditOwn={onSaveMeal ? (m) => setMealForm({ meal: m }) : undefined} />
+          )}
         </div>
       )}
 

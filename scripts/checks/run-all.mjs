@@ -46,8 +46,10 @@ const SUITES = [
   ['fuel vocabulary (FOR-239)', 'fuel-vocabulary.mjs'],
   // No custom key is ever a solver key, over generated libraries — its own suite (FOR-240).
   ['fuel custom keys (FOR-240)', 'fuel-custom-keys.mjs'],
+  // An own meal's slug can never be a seeded slug, over generated names — its own suite (FOR-242).
+  ['fuel own meals (FOR-242)', 'fuel-own-meals.mjs'],
   // The database proof ran against exactly this SQL (npm run proof:db writes the lock) — its own suite (FOR-240).
-  ['fuel db proof lock (FOR-240, FOR-243)', 'fuel-db-proof-lock.mjs'],
+  ['fuel db proof lock (FOR-240, FOR-242, FOR-243)', 'fuel-db-proof-lock.mjs'],
 ]
 
 const run = (file) => new Promise((resolve) => {

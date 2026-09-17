@@ -9,6 +9,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from './types'
 import { buildShoppingList, householdFor } from './solve'
+import { ownMealFields, ownMealRow, type OwnMealDraft } from './ownMeal'
 import { snapshot, type RulesSnapshot } from './version'
 import type { StapleRow } from './custom'
 import { activeCycle, historyFloor, upcomingCycle, type CycleRow } from './cycle'
@@ -64,9 +65,64 @@ export interface ListRow {
   updated_at: string
 }
 
+const MEAL_COLUMNS = 'slug, name, protein_cut, spice_profile, format, active_cook_minutes, total_minutes, servings, protein_g_per_person, perishable_within_days, rotation_note, ingredients'
+
+/** PostgREST codes that mean "this column is not there yet" — the own-meals migration is not applied (FOR-242). */
+export function isMissingColumn(err: { code?: string; message?: string } | null | undefined): boolean {
+  if (!err) return false
+  return err.code === '42703' || err.code === 'PGRST204' || /column .* does not exist|Could not find the .* column/i.test(err.message ?? '')
+}
+
+/**
+ * The library: the seeded meals plus this athlete's own, in ONE read (FOR-242).
+ * Row security decides which rows come back — user_id IS NULL is the seeded
+ * library and a value is the athlete's own — so nothing here filters by owner
+ * and nothing downstream branches on where a meal came from.
+ *
+ * Before the own-meals migration is applied there is no user_id column and
+ * there are no own meals, so the library reads exactly as it always did. That
+ * is never "not ready"; any other failure is reported.
+ */
 export async function loadMeals(db: Db): Promise<{ meals: MealRow[]; error: { code?: string; message?: string } | null }> {
-  const { data, error } = await db.from('fuel_meals').select('slug, name, protein_cut, spice_profile, format, active_cook_minutes, total_minutes, servings, protein_g_per_person, perishable_within_days, rotation_note, ingredients').eq('active', true).order('slug')
+  let { data, error } = await db.from('fuel_meals').select(`${MEAL_COLUMNS}, user_id`).eq('active', true).order('slug')
+  if (error && isMissingColumn(error)) ({ data, error } = await db.from('fuel_meals').select(MEAL_COLUMNS).eq('active', true).order('slug'))
   return { meals: (data ?? []) as MealRow[], error }
+}
+
+/**
+ * Add a meal of the athlete's own. The slug is minted from the name ONCE, here,
+ * and the database's CHECK refuses it if it is not in the owner's namespace.
+ * The same name twice mints the same slug and the UNIQUE constraint refuses the
+ * second — reported as words rather than as a constraint name.
+ */
+export async function createOwnMeal(db: Db, userId: string, draft: OwnMealDraft): Promise<{ meal: MealRow | null; error: { code?: string; message?: string } | null }> {
+  const row = ownMealRow(userId, draft)
+  if (!row) return { meal: null, error: { message: 'that name leaves nothing to build a slug from — give it a letter or a number' } }
+  const { data, error } = await db.from('fuel_meals').insert(row).select(`${MEAL_COLUMNS}, user_id`).single()
+  if (error?.code === '23505') return { meal: null, error: { code: error.code, message: `you already have a meal called "${draft.name.trim()}"` } }
+  return { meal: (data as MealRow) ?? null, error }
+}
+
+/**
+ * Edit one of the athlete's own meals. The SLUG IS NEVER TOUCHED, however the
+ * name changes: fuel_rotation_meals.meal_slug references it, and fuel_plans and
+ * stored lists carry it, so a rename that moved the slug would orphan a plan
+ * the athlete has already shopped. Row security does the ownership check — a
+ * seeded row is not visible to an UPDATE at all.
+ */
+export async function updateOwnMeal(db: Db, slug: string, draft: OwnMealDraft): Promise<{ meal: MealRow | null; error: { code?: string; message?: string } | null }> {
+  const { data, error } = await db.from('fuel_meals').update(ownMealFields(draft)).eq('slug', slug).select(`${MEAL_COLUMNS}, user_id`).single()
+  return { meal: (data as MealRow) ?? null, error }
+}
+
+/**
+ * Retire one of the athlete's own meals. Never a delete — there is no DELETE
+ * policy, and a stored plan must keep resolving the slug it references.
+ * PlanBuilder already drops a retired meal from a rebuilt plan and names it.
+ */
+export async function retireOwnMeal(db: Db, slug: string): Promise<{ error: { code?: string; message?: string } | null }> {
+  const { error } = await db.from('fuel_meals').update({ active: false }).eq('slug', slug)
+  return { error }
 }
 
 /**

@@ -2,8 +2,8 @@
   "image": "public.ecr.aws/supabase/postgres:17.6.1.156",
   "proof": {
     "file": "scripts/checks/fuel-db-proof.sql",
-    "sha256": "a31029e39027c671cc11e8e0ec9343498083b354f28fdc27ba91ea3f8796c41c",
-    "cases": 22
+    "sha256": "f8f70948e6a0b0e6776c11e80c776b15849fe638c615b04b4b8813d0c61668ec",
+    "cases": 27
   },
   "migrations": [
     {
@@ -29,6 +29,10 @@
     {
       "file": "supabase/migrations/20260919_fuel_carry_ticks.sql",
       "sha256": "d32f695747f47735a388f7548ee73547e4cddf3cd13794f6b7d1506ec74f1612"
+    },
+    {
+      "file": "supabase/migrations/20260920_fuel_own_meals.sql",
+      "sha256": "ea3e344b09badc1f9c0afcfc65c58d2aa634d13c4f10a3640fa1f1a686cb07ca"
     }
   ],
   "fuel_lists_triggers": "fuel_lists_pro_gate,fuel_lists_staples",
