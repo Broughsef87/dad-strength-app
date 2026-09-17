@@ -496,6 +496,35 @@ BEGIN
 END
 $t$;
 
+-- 28. a cut a plan has already counted cannot be edited, AT THE WRITE BOUNDARY
+--     (FOR-242). The form disables the control, but a second tab holding a stale
+--     plan list, or a direct API call, goes straight past it. steakWindowWarnings
+--     decides whether a PAST night was a steak by looking the slug up in today's
+--     library, so this edit rewrites what last month allowed.
+DO $t$
+DECLARE own_slug text; n int;
+BEGIN
+  own_slug := current_setting('t.m242');
+  -- Not planned yet: the cut is the athlete's to correct.
+  UPDATE public.fuel_meals SET protein_cut = 'ribeye' WHERE slug = own_slug;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL an unplanned meal could not have its cut corrected (% rows)', n; END IF;
+  -- Plan it, and it is now history.
+  PERFORM public.fuel_create_version('2026-11-16', jsonb_build_array(jsonb_build_object('slug', own_slug, 'week', 1, 'servings', 3)), '{}'::jsonb, '[]'::jsonb);
+  BEGIN
+    UPDATE public.fuel_meals SET protein_cut = 'chicken_thigh' WHERE slug = own_slug;
+    RAISE EXCEPTION 'FAIL a planned meal had its cut changed, rewriting what the steak allowance counted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  IF (SELECT protein_cut FROM public.fuel_meals WHERE slug = own_slug) <> 'ribeye' THEN
+    RAISE EXCEPTION 'FAIL the cut changed anyway'; END IF;
+  -- Everything else about a planned meal is still editable.
+  UPDATE public.fuel_meals SET name = 'renamed, still a ribeye' WHERE slug = own_slug;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL a planned meal became entirely uneditable (% rows)', n; END IF;
+  RAISE NOTICE 'PASS 28 (FOR-242) a cut a plan has already counted cannot be edited at the write boundary, though the rest of the meal still can';
+END
+$t$;
+
 -- 10. someone else cannot touch the list, see the staples, or plant one
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000002ff","role":"authenticated"}', true);
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-0000000002ff', true);

@@ -99,7 +99,7 @@ assert(!/FOR\s+DELETE/i.test(sql),
 // A policy cannot see OLD, so the slug has to be frozen by a trigger. Without
 // it an owner can rename one of their own slugs straight through PostgREST and
 // orphan every plan that references it (Codex r1).
-assert(/CREATE TRIGGER[\s\S]*?BEFORE UPDATE ON public\.fuel_meals[\s\S]*?fuel_meals_slug_is_immutable/.test(sql)
+assert(/CREATE TRIGGER[\s\S]*?BEFORE UPDATE ON public\.fuel_meals[\s\S]*?fuel_meals_history_is_immutable/.test(sql)
   && /NEW\.slug IS DISTINCT FROM OLD\.slug/.test(sql),
   'a slug is frozen by a BEFORE UPDATE trigger — renaming one is a migration, not an edit')
 

@@ -109,6 +109,12 @@ export async function createOwnMeal(db: Db, userId: string, draft: OwnMealDraft)
  * stored lists carry it, so a rename that moved the slug would orphan a plan
  * the athlete has already shopped. Row security does the ownership check — a
  * seeded row is not visible to an UPDATE at all.
+ *
+ * THE CUT is refused by the database once a stored plan references the meal:
+ * a past night's steak is counted by resolving the slug against the library as
+ * it stands now, so the edit would rewrite what last month allowed. The form
+ * disables the control, and this is the boundary that actually holds it —
+ * a stale second tab and a direct API call both come through here (Codex r7).
  */
 export async function updateOwnMeal(db: Db, slug: string, draft: OwnMealDraft): Promise<{ meal: MealRow | null; error: { code?: string; message?: string } | null }> {
   const { data, error } = await db.from('fuel_meals').update(ownMealFields(draft)).eq('slug', slug).select(`${MEAL_COLUMNS}, user_id`).single()

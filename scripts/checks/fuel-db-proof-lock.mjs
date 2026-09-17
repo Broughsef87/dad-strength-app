@@ -54,10 +54,11 @@ const MUST = [
   ['another athlete cannot read, edit, retire, delete or plant an own meal', 'AC4 proved at the database, not asserted from the UI (FOR-242)'],
   ['cannot delete it — the row stays', 'retiring is the only removal, so a stored plan keeps resolving its slug (FOR-242)'],
   ['a slug never moves once a row exists', 'a rename is a migration, not an edit — it would orphan a plan already shopped (FOR-242)'],
+  ['a cut a plan has already counted cannot be edited at the write boundary', 'the cut lock is enforced in the database, not only in the form (FOR-242)'],
   ['and their own meal at the database', 'own meals are behind the Pro gate, like every other Fuel write (FOR-242)'],
 ]
 for (const [text, what] of MUST) assert(proof.includes(text), `the proof covers it: ${what}`)
-assert(now.proof.cases >= 28, `the proof keeps all its cases (${now.proof.cases})`)
+assert(now.proof.cases >= 29, `the proof keeps all its cases (${now.proof.cases})`)
 assert(/"proof:db": "node scripts\/fuel-db-proof\.mjs"/.test(readFileSync(join(ROOT, 'package.json'), 'utf8')), 'npm run proof:db runs the proof')
 
 if (failures) { console.log(`\nfuel-db-proof-lock: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

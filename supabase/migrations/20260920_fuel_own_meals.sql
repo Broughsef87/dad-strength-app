@@ -84,16 +84,29 @@ CREATE POLICY "fuel_meals: owner edits own" ON public.fuel_meals
 -- No DELETE policy: retiring flips `active`, so stored plans and lists keep
 -- resolving the slug they reference.
 
--- ── A slug never moves, once a row exists ────────────────────────────────────
--- The UPDATE policy and the namespace CHECK both accept a change from one slug
--- in the owner's namespace to another, and PostgREST will happily send one. But
--- fuel_plans.meal_ids and stored fuel_lists rows carry the slug as written, and
--- nothing rewrites them — so a rename orphans every plan the athlete has
--- already shopped, which is what the no-DELETE rule exists to prevent in the
--- first place. CLAUDE.md: renaming a slug is a migration, not an edit.
--- Enforced for every writer, including a raw PostgREST update, because a policy
--- cannot see OLD (Codex r1).
-CREATE OR REPLACE FUNCTION public.fuel_meals_slug_is_immutable()
+-- ── What history is counted on cannot be edited ──────────────────────────────
+-- Two rules, one guard, because a POLICY CANNOT SEE OLD.
+--
+-- 1. A SLUG NEVER MOVES. The UPDATE policy and the namespace CHECK both accept a
+--    change from one slug in the owner's namespace to another, and PostgREST
+--    will happily send one. But fuel_plans.meal_ids and stored fuel_lists rows
+--    carry the slug as written and nothing rewrites them, so a rename orphans
+--    every plan already shopped — the harm the no-DELETE rule exists to prevent.
+--    CLAUDE.md: renaming a slug is a migration, not an edit (Codex r1).
+--
+-- 2. A CUT A PLAN HAS ALREADY COUNTED NEVER CHANGES. steakWindowWarnings decides
+--    whether a PAST night was a steak by looking its slug up in the library as it
+--    stands now (solve.ts:243). So editing an own meal from ribeye to chicken
+--    retroactively removes that night from the monthly allowance, and the reverse
+--    edit can block a plan that was fine. The form disables the control, but a
+--    second tab holding a stale plan list, or a direct API call, goes straight
+--    past it — a guard that lives only in the UI is not a guard (Codex r5, r7).
+--
+-- Rule 2 applies to OWN meals only. The seeded library is corrected BY MIGRATION,
+-- which is the sanctioned path for exactly this, and the seed migrations are
+-- INSERT ... ON CONFLICT DO UPDATE — scoping this to user_id IS NOT NULL is what
+-- keeps replaying them from failing once a seeded meal has been planned.
+CREATE OR REPLACE FUNCTION public.fuel_meals_history_is_immutable()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY INVOKER
@@ -103,13 +116,21 @@ BEGIN
     RAISE EXCEPTION 'a meal slug cannot be changed — it is referenced by plans and lists already built'
       USING ERRCODE = '23514';
   END IF;
+  IF OLD.user_id IS NOT NULL AND NEW.protein_cut IS DISTINCT FROM OLD.protein_cut AND EXISTS (
+    SELECT 1 FROM public.fuel_plans p, jsonb_array_elements(p.meal_ids) AS e
+     WHERE p.user_id = OLD.user_id AND e->>'slug' = OLD.slug
+  ) THEN
+    RAISE EXCEPTION 'what this meal is cannot be changed once you have planned it — a night already counted on it'
+      USING ERRCODE = '23514';
+  END IF;
   RETURN NEW;
 END
 $$;
-REVOKE EXECUTE ON FUNCTION public.fuel_meals_slug_is_immutable() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fuel_meals_history_is_immutable() FROM PUBLIC, anon, authenticated;
 DROP TRIGGER IF EXISTS fuel_meals_slug_immutable ON public.fuel_meals;
-CREATE TRIGGER fuel_meals_slug_immutable BEFORE UPDATE ON public.fuel_meals
-  FOR EACH ROW EXECUTE FUNCTION public.fuel_meals_slug_is_immutable();
+DROP TRIGGER IF EXISTS fuel_meals_history_immutable ON public.fuel_meals;
+CREATE TRIGGER fuel_meals_history_immutable BEFORE UPDATE ON public.fuel_meals
+  FOR EACH ROW EXECUTE FUNCTION public.fuel_meals_history_is_immutable();
 
 -- ── The Pro gate, as on fuel_household, fuel_plans, fuel_lists, fuel_staples ──
 -- WHEN (NEW.user_id IS NOT NULL): the seeded library is inserted by the seed
