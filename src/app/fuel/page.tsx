@@ -71,6 +71,9 @@ export default function FuelPage() {
   // of date, and a list built from it would use the old ingredients. Blocking,
   // not advisory — a message nobody acts on is not a guard (Codex r3).
   const [libraryStale, setLibraryStale] = useState(false)
+  // A meal write and its re-read, in flight. Held HERE, not in PlanBuilder,
+  // which remounts on a step change and would clear it (Codex r4).
+  const [mealSaving, setMealSaving] = useState(false)
   // The rotations and their membership (FOR-238): library data, read once
   // like the meals. Not a selection — nothing here says which rotation the
   // page is on; a plan's rotation is read from its picks.
@@ -282,26 +285,34 @@ export default function FuelPage() {
   // there: say so plainly rather than reporting a PostgREST code.
   const onSaveMeal = async (slug: string | null, draft: OwnMealDraft): Promise<string | null> => {
     if (!userId) return 'sign in to add a meal'
-    const res = slug ? await updateOwnMeal(supabase, slug, draft) : await createOwnMeal(supabase, userId, draft)
-    if (res.error) return isMissingColumn(res.error) ? 'your own meals are not switched on yet' : (res.error.message ?? 'could not save the meal')
-    const m = await loadMeals(supabase)
-    if (m.error) {
-      setLibraryStale(true)
-      // The write LANDED. Reporting this as a failure would invite a retry that
-      // hits the unique constraint on a new meal, or silently re-saves an edit —
-      // so the form closes and the page says the one thing that is true: what is
-      // on screen is out of date, and a list built from it would use the old
-      // ingredients (Codex r2).
-      setError('your meal was saved, but the library could not be re-read — reload the page before building a list')
+    setMealSaving(true)
+    try {
+      const res = slug ? await updateOwnMeal(supabase, slug, draft) : await createOwnMeal(supabase, userId, draft)
+      if (res.error) return isMissingColumn(res.error) ? 'your own meals are not switched on yet' : (res.error.message ?? 'could not save the meal')
+      const m = await loadMeals(supabase)
+      if (m.error) {
+        setLibraryStale(true)
+        // The write LANDED. Reporting this as a failure would invite a retry that
+        // hits the unique constraint on a new meal, or silently re-saves an edit —
+        // so the form closes and the page says the one thing that is true: what is
+        // on screen is out of date, and a list built from it would use the old
+        // ingredients (Codex r2).
+        setError('your meal was saved, but the library could not be re-read — reload the page before building a list')
+        return null
+      }
+      setMeals(m.meals)
+      setLibraryStale(false)
       return null
+    } finally {
+      setMealSaving(false)
     }
-    setMeals(m.meals)
-    setLibraryStale(false)
-    return null
   }
 
   const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
     if (!userId || !household) return
+    // A meal write is in flight: its ingredients are not on screen yet, so a
+    // list built now would be built from the old ones (Codex r4).
+    if (mealSaving || libraryStale) { setError('your meal library is still catching up — try again in a moment, or reload'); return }
     const startingNext = !!(liveCycle && nextCycle)
     const weekStart = buildTarget(new Date())
     // The ask is judged again at build time, on the start the build lands
@@ -546,7 +557,7 @@ export default function FuelPage() {
               {step === 'plan' && household && (
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}-${rotations.length}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
                   initial={startEntries(buildTarget(new Date()), household)} rotations={rotations} members={members}
-                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} libraryStale={libraryStale} />
+                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} libraryStale={libraryStale} savingMeal={mealSaving} />
               )}
               {step === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">

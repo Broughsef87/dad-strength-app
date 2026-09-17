@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { OTHER_CUT, OWN_PREFIX_LENGTH, RULE_CUTS, cutOptions, isOwn, isOwnSlug, mintOwnSlug, ownMealFields, ownMealIssues, ownNamespace, ownedBy, slugifyName } from '../../src/lib/fuel/ownMeal.ts'
+import { isKnownWarning } from '../../src/lib/fuel/planner.ts'
 
 let failures = 0, passes = 0
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
@@ -101,6 +102,18 @@ assert(!/FOR\s+DELETE/i.test(sql),
 assert(/CREATE TRIGGER[\s\S]*?BEFORE UPDATE ON public\.fuel_meals[\s\S]*?fuel_meals_slug_is_immutable/.test(sql)
   && /NEW\.slug IS DISTINCT FROM OLD\.slug/.test(sql),
   'a slug is frozen by a BEFORE UPDATE trigger — renaming one is a migration, not an edit')
+
+// ── A warning about an own meal still lands on its night ───────────────────
+// planner.ts matches a meal-specific warning by its slug. An own slug carries a
+// `~`, which the families did not accept — so the warning lost the night it
+// belonged on and fell back to a plan-level line naming no week (Codex r4).
+const ownSlugForWarnings = mintOwnSlug('3f9a2c1b-0000-4000-8000-00000000abcd', 'Lisas chicken thing')
+for (const w of [
+  `${ownSlugForWarnings}: 30 active minutes, cap is 20`,
+  `${ownSlugForWarnings}: no protein figure, so the 40 g floor cannot be applied to it`,
+  `${ownSlugForWarnings}: cooks 2 for 4 people`,
+  `${ownSlugForWarnings}: not in the library`,
+]) assert(isKnownWarning(w), `a warning naming an own meal is still recognised by its family: ${JSON.stringify(w)}`)
 
 // ── A meal that cannot put anything on a list is refused, not accepted ──────
 const ing = (over = {}) => ({ item: 'gochujang', qty_per_person: 1, unit: 'tbsp', store_section: 'Pantry', inferred: false, ...over })

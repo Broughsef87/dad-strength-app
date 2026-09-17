@@ -82,7 +82,7 @@ export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAd
   )
 }
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal, libraryStale = false }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal, libraryStale = false, savingMeal = false }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
   /** `countInventory`: whether what is on hand is counted against this plan — asked only when it was not (a NEXT cycle, or a rebuild of a plan built without it), otherwise always (Codex, rounds 15 and 16). */
   onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
@@ -99,6 +99,8 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   onSaveMeal?: (slug: string | null, draft: OwnMealDraft) => Promise<string | null>
   /** The library on screen is known to be out of date — a meal write landed but the re-read failed. A list built from it would use the old ingredients, so no list is built until it is reloaded (Codex r3). */
   libraryStale?: boolean
+  /** A meal write, or its library re-read, is in flight. Owned by the PAGE: this component remounts when the step changes, and a guard that a remount clears is not a guard (Codex r4). */
+  savingMeal?: boolean
 }) {
   const weeks = cycleWeeks(household)
   const bySlug = useMemo(() => new Map(meals.map((m) => [m.slug, m])), [meals])
@@ -119,7 +121,6 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   // The meal form takes over the drawer rather than opening beside it: one
   // thing on screen at a time, on a phone, in a kitchen (FOR-242).
   const [mealForm, setMealForm] = useState<{ meal: MealRow | null } | null>(null)
-  const [savingMeal, setSavingMeal] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (drawer) drawerRef.current?.scrollIntoView({ block: 'start' }) }, [drawer])
   const [countInventory, setCountInventory] = useState(countByDefault)
@@ -230,9 +231,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
             <MealForm meal={mealForm.meal} meals={meals} sectionOrder={household.store_section_order} busy={savingMeal}
               onSave={async (draft) => {
                 if (!onSaveMeal) return 'meals cannot be saved from here'
-                setSavingMeal(true)
                 const e = await onSaveMeal(mealForm.meal?.slug ?? null, draft)
-                setSavingMeal(false)
                 if (!e) setMealForm(null)
                 return e
               }}
