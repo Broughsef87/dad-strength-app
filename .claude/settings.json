@@ -1,0 +1,21 @@
+{
+  "env": {
+    "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "12"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bus-boot.sh\"" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bus-continue.sh\"" }
+        ]
+      }
+    ]
+  }
+}
