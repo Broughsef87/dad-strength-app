@@ -43,13 +43,15 @@ function draftFrom(meal: MealRow | null, sectionOrder: string[]): OwnMealDraft {
   }
 }
 
-export default function MealForm({ meal, meals, sectionOrder, busy, onSave, onCancel }: {
+export default function MealForm({ meal, meals, sectionOrder, busy, cutLocked = false, onSave, onCancel }: {
   /** The meal being edited, or null to add one. */
   meal: MealRow | null
   /** The library as it stands — the item and unit vocabulary comes from it (FOR-239). */
   meals: MealRow[]
   sectionOrder: string[]
   busy: boolean
+  /** This meal is already in a plan that has been built, so its CUT is frozen: steakWindowWarnings counts a past night by resolving its slug against the library as it stands now, so changing the cut rewrites history (Codex r5). */
+  cutLocked?: boolean
   /** Returns what went wrong, in words, or null when it landed. */
   onSave: (draft: OwnMealDraft) => Promise<string | null>
   onCancel: () => void
@@ -110,14 +112,22 @@ export default function MealForm({ meal, meals, sectionOrder, busy, onSave, onCa
               aria-label="protein per person in grams" className="w-14 bg-transparent text-right stat-num text-base" />
             <span className="eyebrow-mono-sm">g each</span>
           </label>
-          <select value={draft.protein_cut} onChange={(e) => set({ protein_cut: e.target.value })}
-            aria-label="what the protein is" className="row-recessed px-2 py-2 text-sm bg-transparent">
+          <select value={draft.protein_cut} onChange={(e) => set({ protein_cut: e.target.value })} disabled={cutLocked}
+            aria-label="what the protein is" className="row-recessed px-2 py-2 text-sm bg-transparent disabled:text-muted-foreground">
             <option value="">what is the protein?</option>
             {cuts.map((c) => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
           </select>
+          <label className="row-recessed flex items-center gap-2 px-3 py-2 text-sm">
+            <input type="number" inputMode="numeric" min={1} max={480} step="1" value={draft.active_cook_minutes ?? ''}
+              onChange={(e) => set({ active_cook_minutes: Number(e.target.value) })}
+              aria-label="active minutes at the stove" className="w-12 bg-transparent text-right stat-num text-base" />
+            <span className="eyebrow-mono-sm">min active</span>
+          </label>
         </div>
         <p className="text-[11px] text-muted-foreground px-1">
-          both are counted: the protein floor needs the grams, and the fish, turkey and steak rules need to know what it is
+          {cutLocked
+            ? 'you have already shopped this meal, so what it is cannot change — a past night is counted on it. retire it and add a new one instead'
+            : 'all three are counted: the protein floor needs the grams, the fish, turkey and steak rules need to know what it is, and your cook cap is measured against the minutes'}
         </p>
 
         <div className="space-y-2">

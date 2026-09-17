@@ -18,7 +18,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { OTHER_CUT, OWN_PREFIX_LENGTH, RULE_CUTS, cutOptions, isOwn, isOwnSlug, mintOwnSlug, ownMealFields, ownMealIssues, ownNamespace, ownedBy, slugifyName } from '../../src/lib/fuel/ownMeal.ts'
+import { OTHER_CUT, OWN_MEAL_DEFAULTS, OWN_PREFIX_LENGTH, RULE_CUTS, cutOptions, isOwn, isOwnSlug, mintOwnSlug, ownMealFields, ownMealIssues, ownNamespace, ownedBy, slugifyName } from '../../src/lib/fuel/ownMeal.ts'
 import { isKnownWarning } from '../../src/lib/fuel/planner.ts'
 
 let failures = 0, passes = 0
@@ -134,6 +134,18 @@ assert(ownMealIssues(draft({ protein_g_per_person: 0 })).some((i) => /protein pe
   'a meal with no protein figure is refused — validatePlan warns on it, and a plan carrying a warning cannot be built')
 assert(ownMealIssues(draft({ protein_cut: '' })).some((i) => /what the protein is/.test(i)),
   'a meal with no protein cut is refused — the fish, turkey and steak rules are counted on it')
+// LibraryDrawer refuses a meal over the household's cook cap, so this gates
+// selection just as surely as the protein figure gates the build (Codex r5).
+assert(ownMealIssues(draft({ active_cook_minutes: 0 })).some((i) => /active minutes/.test(i)),
+  'zero active minutes is refused — it is what the cook cap is measured against')
+assert(ownMealIssues(draft({ active_cook_minutes: 12.5 })).some((i) => /active minutes/.test(i)),
+  'fractional active minutes is refused — the column is an int')
+assert(ownMealIssues(draft({ active_cook_minutes: 10 })).length === 0,
+  'ten active minutes is accepted, so a household capped at ten can pick its own meal')
+assert(ownMealFields(draft({ active_cook_minutes: 10 })).active_cook_minutes === 10,
+  'the minutes the athlete gave are what get written, not the default')
+assert(ownMealFields(draft()).active_cook_minutes === OWN_MEAL_DEFAULTS.active_cook_minutes,
+  'a draft that says nothing still gets the default, so the field is never null')
 assert(ownMealFields(draft({ protein_cut: 'salmon' })).protein_cut === 'salmon',
   'the cut the athlete chose is what gets written, not an ownership marker the rules would ignore')
 for (const cut of RULE_CUTS) assert(cutOptions([]).includes(cut), `the form offers ${cut}, which carries a frequency rule, even for an empty library`)

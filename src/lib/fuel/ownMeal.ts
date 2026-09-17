@@ -135,6 +135,12 @@ export function ownMealIssues(draft: OwnMealDraft): string[] {
   // here rather than failing on the way into the database (Codex r2).
   if (!Number.isInteger(draft.protein_g_per_person) || draft.protein_g_per_person <= 0) issues.push('give the protein per person in whole grams — without it the plan cannot be built')
   if (!draft.protein_cut?.trim()) issues.push('say what the protein is — the fish, turkey and steak rules are counted on it')
+  // Gates selection: LibraryDrawer refuses a meal over the household's cook cap,
+  // so a defaulted 20 minutes made every own meal unpickable for a household
+  // capped at 10 or 15 (Codex r5).
+  if (draft.active_cook_minutes !== undefined && (!Number.isInteger(draft.active_cook_minutes) || draft.active_cook_minutes <= 0)) {
+    issues.push('active minutes must be a whole number above zero — it is what your cook cap is measured against')
+  }
   const rows = draft.ingredients.filter((i) => i.item.trim())
   if (!rows.length) issues.push('add at least one ingredient — a meal with none cannot put anything on the shopping list')
   for (const ing of rows) {

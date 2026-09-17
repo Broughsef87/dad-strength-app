@@ -121,6 +121,12 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   // The meal form takes over the drawer rather than opening beside it: one
   // thing on screen at a time, on a phone, in a kitchen (FOR-242).
   const [mealForm, setMealForm] = useState<{ meal: MealRow | null } | null>(null)
+  // Every slug any stored cycle has already picked. A meal in here has been
+  // SHOPPED, and steakWindowWarnings counts those past nights by resolving the
+  // slug against the library as it stands now — so changing its cut would
+  // rewrite what last month allowed (Codex r5). The cut freezes; everything
+  // else about the meal stays editable, and retiring it is always available.
+  const plannedSlugs = useMemo(() => new Set((cycles?.history ?? []).flatMap((h) => h.meal_ids.map((e) => e.slug))), [cycles])
   const drawerRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (drawer) drawerRef.current?.scrollIntoView({ block: 'start' }) }, [drawer])
   const [countInventory, setCountInventory] = useState(countByDefault)
@@ -229,6 +235,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
         <div ref={drawerRef}>
           {mealForm ? (
             <MealForm meal={mealForm.meal} meals={meals} sectionOrder={household.store_section_order} busy={savingMeal}
+              cutLocked={!!mealForm.meal && plannedSlugs.has(mealForm.meal.slug)}
               onSave={async (draft) => {
                 if (!onSaveMeal) return 'meals cannot be saved from here'
                 const e = await onSaveMeal(mealForm.meal?.slug ?? null, draft)
