@@ -6,14 +6,14 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "bash", "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/bus-boot.sh"] }
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bus-boot.sh\"" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "bash", "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/bus-continue.sh"] }
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bus-continue.sh\"" }
         ]
       }
     ]
