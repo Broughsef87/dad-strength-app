@@ -1,4 +1,4 @@
-// ── Fuel database proof lock (FOR-240) — a standing check, its own file ──────
+// ── Fuel database proof lock (FOR-240, FOR-243) — a standing check, its own file ─
 // The database proof (npm run proof:db) runs every Fuel migration and
 // scripts/checks/fuel-db-proof.sql against a throwaway Postgres. Only when
 // every case passes does it record the fingerprint of exactly the SQL it
@@ -30,7 +30,9 @@ for (const m of now.migrations) {
 assert(now.migrations.some((m) => m.file === CUSTOM_MIGRATION), 'the custom-items migration is among the migrations proven')
 assert(/fuel_lists_staples/.test(lock.fuel_lists_triggers || ''), 'the proven database carries the fuel_lists staple trigger')
 
-// What FOR-240 rests on is named in the proof, so a case cannot quietly go missing.
+// What FOR-240 and FOR-243 rest on is named in the proof, so a case cannot
+// quietly go missing. Without this, deleting a case and re-running the proof
+// would write a fresh lock and go green with the behaviour no longer covered.
 const proof = readFileSync(join(ROOT, PROOF), 'utf8')
 const MUST = [
   ['a staple stopped inside the gap', 'a staple stopped in the gap is not on a new version'],
@@ -40,9 +42,15 @@ const MUST = [
   ['named like a solver line is its own line on a rebuilt version', 'a staple named like a solver line keeps its own line'],
   ['superseded list refuses', 'a superseded list refuses custom writes'],
   ['cannot call any of', 'anon cannot call the functions'],
+  // FOR-243: a tick survives a rebuild wherever the line's identity survives.
+  ['keeps the ticks of every line whose key is unchanged', 'a rebuild keeps the ticks of lines whose key survives (FOR-243)'],
+  ['a quantity change keeps the key', 'a quantity change is not an identity change, so the tick stays (FOR-243)'],
+  ['inherits nothing from the line it replaced', 'a line whose key changed inherits no tick — the dangerous direction (FOR-243)'],
+  ['the database decides a tick', 'the client cannot dictate a tick, and an untick survives (FOR-243)'],
+  ['an old version keeps the ticks it had', 'old versions keep their own ticks (FOR-243, AC5)'],
 ]
 for (const [text, what] of MUST) assert(proof.includes(text), `the proof covers it: ${what}`)
-assert(now.proof.cases >= 17, `the proof keeps all its cases (${now.proof.cases})`)
+assert(now.proof.cases >= 22, `the proof keeps all its cases (${now.proof.cases})`)
 assert(/"proof:db": "node scripts\/fuel-db-proof\.mjs"/.test(readFileSync(join(ROOT, 'package.json'), 'utf8')), 'npm run proof:db runs the proof')
 
 if (failures) { console.log(`\nfuel-db-proof-lock: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

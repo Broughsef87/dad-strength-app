@@ -2,8 +2,8 @@
   "image": "public.ecr.aws/supabase/postgres:17.6.1.156",
   "proof": {
     "file": "scripts/checks/fuel-db-proof.sql",
-    "sha256": "e9d49140c00be5bf3c0b79f0b1d229adde4a258df6876455a5a64b61fdd04d62",
-    "cases": 17
+    "sha256": "a31029e39027c671cc11e8e0ec9343498083b354f28fdc27ba91ea3f8796c41c",
+    "cases": 22
   },
   "migrations": [
     {
@@ -25,8 +25,12 @@
     {
       "file": "supabase/migrations/20260918_fuel_custom_items.sql",
       "sha256": "2a0557433eddfe69e3f2acee8d3018d22c3274e2106f0036e8b26c5b79f4d559"
+    },
+    {
+      "file": "supabase/migrations/20260919_fuel_carry_ticks.sql",
+      "sha256": "d32f695747f47735a388f7548ee73547e4cddf3cd13794f6b7d1506ec74f1612"
     }
   ],
   "fuel_lists_triggers": "fuel_lists_pro_gate,fuel_lists_staples",
-  "provenAgainst": "a throwaway Supabase Postgres: every Fuel migration in order, the custom-items migration twice"
+  "provenAgainst": "a throwaway Supabase Postgres: every Fuel migration in order, then every one of them again in order"
 }
