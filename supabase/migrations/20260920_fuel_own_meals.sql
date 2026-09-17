@@ -116,12 +116,31 @@ BEGIN
     RAISE EXCEPTION 'a meal slug cannot be changed — it is referenced by plans and lists already built'
       USING ERRCODE = '23514';
   END IF;
-  IF OLD.user_id IS NOT NULL AND NEW.protein_cut IS DISTINCT FROM OLD.protein_cut AND EXISTS (
+  IF OLD.user_id IS NOT NULL AND EXISTS (
     SELECT 1 FROM public.fuel_plans p, jsonb_array_elements(p.meal_ids) AS e
      WHERE p.user_id = OLD.user_id AND e->>'slug' = OLD.slug
   ) THEN
-    RAISE EXCEPTION 'what this meal is cannot be changed once you have planned it — a night already counted on it'
-      USING ERRCODE = '23514';
+    IF NEW.protein_cut IS DISTINCT FROM OLD.protein_cut THEN
+      RAISE EXCEPTION 'what this meal is cannot be changed once you have planned it — a night already counted on it'
+        USING ERRCODE = '23514';
+    END IF;
+    -- 3. AND IT CANNOT BE RETIRED. loadMeals reads active rows only, and
+    --    steakWindowWarnings resolves a past night's cut in that same library —
+    --    so retiring a planned ribeye deletes that night from the monthly
+    --    allowance just as surely as editing its cut would, and one steak last
+    --    week plus one this week would then pass a one-a-month rule. Keeping the
+    --    ROW is not enough when the READ drops it (Codex r8).
+    --
+    --    So retirement is refused here rather than allowed to miscount quietly.
+    --    That is a real limitation, and it is the honest half of the pair: a loud
+    --    refusal over a silent wrong number. Lifting it means history resolving
+    --    from something that does not change — a wider library through
+    --    PlanContext, or the cut snapshotted onto the plan — which is a change to
+    --    the cross-cycle counting rules and is filed, not smuggled in here.
+    IF OLD.active AND NOT NEW.active THEN
+      RAISE EXCEPTION 'this meal is on a plan you have already built, so it cannot be retired yet — a night is still counted on it'
+        USING ERRCODE = '23514';
+    END IF;
   END IF;
   RETURN NEW;
 END

@@ -55,6 +55,7 @@ const MUST = [
   ['cannot delete it — the row stays', 'retiring is the only removal, so a stored plan keeps resolving its slug (FOR-242)'],
   ['a slug never moves once a row exists', 'a rename is a migration, not an edit — it would orphan a plan already shopped (FOR-242)'],
   ['a cut a plan has already counted cannot be edited at the write boundary', 'the cut lock is enforced in the database, not only in the form (FOR-242)'],
+  ['the meal cannot be retired', 'retiring a planned meal would drop its night from the steak allowance (FOR-242)'],
   ['and their own meal at the database', 'own meals are behind the Pro gate, like every other Fuel write (FOR-242)'],
 ]
 for (const [text, what] of MUST) assert(proof.includes(text), `the proof covers it: ${what}`)

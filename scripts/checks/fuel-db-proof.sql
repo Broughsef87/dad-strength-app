@@ -521,7 +521,15 @@ BEGIN
   UPDATE public.fuel_meals SET name = 'renamed, still a ribeye' WHERE slug = own_slug;
   GET DIAGNOSTICS n = ROW_COUNT;
   IF n <> 1 THEN RAISE EXCEPTION 'FAIL a planned meal became entirely uneditable (% rows)', n; END IF;
-  RAISE NOTICE 'PASS 28 (FOR-242) a cut a plan has already counted cannot be edited at the write boundary, though the rest of the meal still can';
+  -- ...and it cannot be retired either: loadMeals reads active rows only, so a
+  -- retired ribeye vanishes from the library steakWindowWarnings counts against.
+  BEGIN
+    UPDATE public.fuel_meals SET active = false WHERE slug = own_slug;
+    RAISE EXCEPTION 'FAIL a planned meal was retired, dropping its night from the steak allowance';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  IF NOT (SELECT active FROM public.fuel_meals WHERE slug = own_slug) THEN
+    RAISE EXCEPTION 'FAIL the meal was retired anyway'; END IF;
+  RAISE NOTICE 'PASS 28 (FOR-242) a cut a plan has already counted cannot be edited at the write boundary, the meal cannot be retired, and the rest of it still can be';
 END
 $t$;
 
