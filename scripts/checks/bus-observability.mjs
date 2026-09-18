@@ -31,11 +31,21 @@
 // dispatcher has not run since that ticket was queued — whatever the wall clock
 // says. No invented interval: the reference comes from the queue.
 //
-// "Became due" is the FIRST hook=boot line at or after the doorbell, falling
-// back to the doorbell itself when no session has started since. A Stop hook
-// can only speak once a session exists to end a turn, so work queued overnight
-// is owed nothing until Claude Code is opened in the morning; without that,
-// every morning would start with a false alarm.
+// "Became due" is the FIRST hook=boot line at or after the doorbell. A Stop
+// hook can only speak once a session exists to end a turn, so work queued
+// overnight is owed nothing until Claude Code is opened in the morning;
+// without that, every morning would start with a false alarm.
+//
+// When no session has started since the doorbell landed there are two very
+// different states, and the log cannot tell them apart because nothing records
+// a session ENDING. Either the doorbell arrived mid-session and the dispatcher
+// is dead — the FOR-246 defect itself — or nobody has opened Claude Code since.
+// The running process can tell them apart where the log cannot: CLAUDECODE is
+// set in this environment when a session is up (measured 2026-09-17, not
+// remembered). Inside a session, a doorbell with no boot after it arrived
+// mid-session and a dispatch is owed now. Outside one, nothing is owed: there
+// has been no opportunity to dispatch, and reporting "the dispatcher is not
+// running" would be a false alarm about a bus nobody has started.
 //
 // The first boot, never the newest: once a dispatch is due it stays due until a
 // hook=stop line acknowledges it. Keying on the newest let every session start
@@ -125,7 +135,11 @@ assert(existsSync(bootPath), 'the SessionStart hook exists at .claude/hooks/bus-
 const boot = existsSync(bootPath) ? readFileSync(bootPath, 'utf8') : ''
 const bootCode = boot.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
 const bootLogAt = bootCode.indexOf('hook=boot')
-const firstBootExit = bootCode.search(/^\s*(\[.*\]\s*&&\s*)?exit\b/m)
+// Any exit token, in any form. This anchored at the start of a line until
+// Codex r3 pointed out the Stop side had the same hole: inserting
+// `[ -d "$BUS/queue" ] || exit 0` above the logger left all sixteen checks
+// green while every session start without a queue skipped the heartbeat.
+const firstBootExit = bootCode.search(/\bexit\b/)
 assert(bootLogAt > 0 && (firstBootExit === -1 || bootLogAt < firstBootExit),
   'the boot line is written BEFORE any exit — a boot that returns early in silence is the thing this ticket is about')
 
@@ -236,9 +250,13 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
     // silence. That would have failed `npm run checks` on a deliberately capped
     // queue, which is the check crying wolf about its own rounding.
     const sec = (ms) => Math.floor(ms / 1000) * 1000
-    const dueAt = (at) => bootStamps.find((t) => sec(t) >= sec(at)) ?? at
-    const unheard = queued
-      .map((d) => ({ ...d, due: dueAt(d.at) }))
+    // A session is up right now iff this is running under one — see the header.
+    const insideSession = process.env.CLAUDECODE != null
+    const dueAt = (at) => bootStamps.find((t) => sec(t) >= sec(at)) ?? (insideSession ? at : null)
+    const dated = queued.map((d) => ({ ...d, due: dueAt(d.at) }))
+    const notYetDue = dated.filter((d) => d.due == null)
+    const unheard = dated
+      .filter((d) => d.due != null)
       .filter((d) => !(lastStop != null && sec(lastStop) >= sec(d.due)))
       .map((d) => ({ ...d, waitedMin: (Date.now() - d.due) / 60000 }))
       .sort((a, b) => b.waitedMin - a.waitedMin)
@@ -246,7 +264,8 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
     assert(overdue.length === 0,
       `the Stop hook has spoken since every queued ticket fell due — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min with no hook=stop entry after it, past the ${GRACE_MINUTES} min grace. The dispatcher is not running.` : ''}`)
     const oldest = unheard[0]
-    console.log(`  · ${queued.length} queued, ${unheard.length} undispatched since due${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
+    const idle = notYetDue.length ? `, ${notYetDue.length} awaiting a session` : ''
+    console.log(`  · ${queued.length} queued, ${unheard.length} undispatched since due${idle}${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
   }
 }
 
