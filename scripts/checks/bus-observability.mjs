@@ -31,10 +31,16 @@
 // dispatcher has not run since that ticket was queued — whatever the wall clock
 // says. No invented interval: the reference comes from the queue.
 //
-// "Became due" is max(doorbell mtime, newest hook=boot line), because a Stop
-// hook can only speak once a session exists to end a turn. Work queued
-// overnight is owed nothing until Claude Code is opened in the morning; without
-// that, every morning would start with a false alarm.
+// "Became due" is the FIRST hook=boot line at or after the doorbell, falling
+// back to the doorbell itself when no session has started since. A Stop hook
+// can only speak once a session exists to end a turn, so work queued overnight
+// is owed nothing until Claude Code is opened in the morning; without that,
+// every morning would start with a false alarm.
+//
+// The first boot, never the newest: once a dispatch is due it stays due until a
+// hook=stop line acknowledges it. Keying on the newest let every session start
+// reset the grace for the whole queue, so a live boot hook and a dead Stop hook
+// hid the stall indefinitely — which is the very failure this file is for.
 //
 // The one number here is a GRACE, and only to stop the alarm flapping in the
 // window between a dispatch falling due and the next Stop hook firing. It is
@@ -177,42 +183,52 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
   passes++
 } else {
   const halted = existsSync(join(BUS, 'HALT'))
-  const doorbells = readdirSync(queueDir).filter((f) => /^[0-9]{3}-FOR-[0-9]+\.json$/.test(f))
-  const newest = doorbells
-    .map((f) => ({ f, at: statSync(join(queueDir, f)).mtimeMs }))
-    .sort((a, b) => b.at - a.at)[0]
+  // ONE metadata pass, and a doorbell may vanish under it: the Stop hook moves
+  // files out of queue/ into claimed/, and it can fire while this is running.
+  // Two statSync passes over a readdirSync list threw ENOENT and reddened the
+  // whole gate on a perfectly healthy dispatch (Codex r3). A ticket that left
+  // the queue mid-read is a ticket that was dispatched — the best possible
+  // outcome, and never something to fail the build over.
+  const queued = readdirSync(queueDir)
+    .filter((f) => /^[0-9]{3}-FOR-[0-9]+\.json$/.test(f))
+    .map((f) => { try { return { f, at: statSync(join(queueDir, f)).mtimeMs } } catch { return null } })
+    .filter((d) => d != null)
+
   // Split by WHICH hook spoke. Only a hook=stop line is evidence the DISPATCHER
   // is alive; hook=boot proves a session started and nothing more. Lines with
   // neither marker are hand-written notes from CC and count as evidence of
   // nothing — a human writing in the log does not make a dead hook live.
   const logLines = existsSync(logPath) ? readFileSync(logPath, 'utf8').split('\n') : []
-  const newestWhere = (marker) => logLines
+  const stampsWhere = (marker) => logLines
     .map((l) => (l.includes(marker) ? Date.parse(/^\[([0-9T:\-Z]+)\]/.exec(l)?.[1] ?? '') : NaN))
     .filter(Number.isFinite)
-    .sort((a, b) => b - a)[0]
-  const lastStop = newestWhere('hook=stop')
-  const lastBoot = newestWhere('hook=boot')
+    .sort((a, b) => a - b)
+  const stopStamps = stampsWhere('hook=stop')
+  const bootStamps = stampsWhere('hook=boot')
+  const lastStop = stopStamps[stopStamps.length - 1]
 
   if (halted) {
     console.log('  · HALT is set — the bus is stopped on purpose, freshness not applicable')
     passes++
-  } else if (!newest) {
+  } else if (queued.length === 0) {
     console.log('  · queue is empty — nothing is waiting, so nothing can be stalled')
     passes++
   } else {
-    // ANY overdue ticket, not just the newest. Keying on the newest meant a
-    // fresh doorbell reset the grace for the whole queue: with the hooks dead,
-    // a ticket waiting ten hours passed because something arrived a minute ago,
-    // and a steady trickle could suppress the alarm forever (Codex r1).
+    // ── when a dispatch falls DUE ───────────────────────────────────────────
+    // A Stop line is owed from the FIRST session start at or after the doorbell
+    // landed — the first moment a session existed to end a turn with that work
+    // queued. If no session has started since, the doorbell arrived mid-session
+    // and the dispatch is owed immediately.
     //
-    // Timestamps are floored to the second before comparing. Both hooks log
-    // whole seconds, and mtimeMs carries fractions — a doorbell at 12:00:00.100
-    // against a hook line at 12:00:00.500 parses as 12:00:00.000 and reads as
-    // silence. That would have failed `npm run checks` on a deliberately capped
-    // queue, which is the check crying wolf about its own rounding.
-    // A dispatch falls DUE at max(doorbell, newest boot) — see the header. The
-    // grace runs from there, not from the doorbell, or a ticket queued
-    // overnight would alarm the moment the morning's session opened.
+    // The first, not the newest. Keying on the newest boot meant every session
+    // start reset the grace for the entire queue, so a working boot hook and a
+    // dead Stop hook hid the stall forever — open Claude Code once every few
+    // hours and the alarm never fires (Codex r3). Once a dispatch is due it
+    // stays due until a hook=stop line acknowledges it.
+    //
+    // Taking the first boot AFTER the doorbell (rather than the doorbell
+    // itself) is what keeps work queued overnight from alarming the instant
+    // the morning's session opens.
     //
     // Timestamps are floored to the second before comparing. Both hooks log
     // whole seconds, and mtimeMs carries fractions — a doorbell at 12:00:00.100
@@ -220,9 +236,9 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
     // silence. That would have failed `npm run checks` on a deliberately capped
     // queue, which is the check crying wolf about its own rounding.
     const sec = (ms) => Math.floor(ms / 1000) * 1000
-    const unheard = doorbells
-      .map((f) => ({ f, at: statSync(join(queueDir, f)).mtimeMs }))
-      .map((d) => ({ ...d, due: Math.max(d.at, lastBoot ?? 0) }))
+    const dueAt = (at) => bootStamps.find((t) => sec(t) >= sec(at)) ?? at
+    const unheard = queued
+      .map((d) => ({ ...d, due: dueAt(d.at) }))
       .filter((d) => !(lastStop != null && sec(lastStop) >= sec(d.due)))
       .map((d) => ({ ...d, waitedMin: (Date.now() - d.due) / 60000 }))
       .sort((a, b) => b.waitedMin - a.waitedMin)
@@ -230,7 +246,7 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
     assert(overdue.length === 0,
       `the Stop hook has spoken since every queued ticket fell due — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min with no hook=stop entry after it, past the ${GRACE_MINUTES} min grace. The dispatcher is not running.` : ''}`)
     const oldest = unheard[0]
-    console.log(`  · ${doorbells.length} queued, ${unheard.length} undispatched since due${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
+    console.log(`  · ${queued.length} queued, ${unheard.length} undispatched since due${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
   }
 }
 
