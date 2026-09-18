@@ -702,6 +702,19 @@ interface PlyoSetEntry {
  * athlete logs the jumps it precedes, and the check is what proves the prep is
  * prescribed at all.
  */
+/**
+ * What the jump card shouts, by ramp stage (FOR-244). One source: the stage on
+ * the prescription decides both the movement and the intensity, so the header
+ * cannot disagree with the note underneath it.
+ */
+const RAMP_INTENT: Record<string, string> = {
+  low: 'LOW AMPLITUDE',
+  submax: 'SUBMAXIMAL — ~3/4',
+  max_vertical: 'MAX INTENT — VERTICAL',
+  low_depth: 'LOW BOX',
+  full: 'MAX INTENT',
+}
+
 function PrepCard({ items }: { items: PrepPrescription[] }) {
   const minutes = items.find(i => i.minutes != null)?.minutes
   return (
@@ -782,7 +795,12 @@ function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSe
           <Zap size={15} className="text-brand shrink-0" />
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight lowercase text-foreground truncate">{item.name}</p>
-            <p className="eyebrow-mono mt-0.5">{item.sets}×{item.reps} · MAX INTENT</p>
+            {/* The intensity label comes from the PRESCRIPTION, not from the card.
+                It used to read MAX INTENT unconditionally, so a ramp week showed
+                "MAX INTENT" in the header above a note asking for three-quarter
+                effort — the loudest words on the card contradicting the whole
+                point of the ramp (Codex r3). */}
+            <p className="eyebrow-mono mt-0.5">{item.sets}×{item.reps} · {RAMP_INTENT[item.ramp ?? 'full']}</p>
           </div>
         </div>
         <div className="flex gap-1 shrink-0 pb-0.5">

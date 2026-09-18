@@ -302,6 +302,15 @@ assert(overBlocks.length === 0,
 assert(prepDays > 0 && prepBlocks === 0,
   `the prep is on ${prepDays} Power Dad gym days and costs ${prepBlocks} blocks on every one of them`)
 
+// ── E. the card cannot shout over the prescription ─────────────────────────
+// The jump card's header read MAX INTENT unconditionally, so a ramp week put
+// those words above a note asking for three-quarter effort — the loudest thing
+// on the card contradicting the reason the ramp exists (Codex r3). The label is
+// derived from the stage now, and this keeps it that way.
+const dayPage = readFileSync(join(ROOT, 'src/app/train/[program]/[day]/page.tsx'), 'utf8')
+assert(/RAMP_INTENT\[item\.ramp \?\? 'full'\]/.test(dayPage) && !/· MAX INTENT</.test(dayPage),
+  'the jump card takes its intensity label from the prescription, not from a hardcoded MAX INTENT')
+
 // ── The counting unit is written down where it is used ─────────────────────
 const self = readFileSync(join(ROOT, 'scripts/checks/ballistic-load.mjs'), 'utf8')
 assert(/2\.0 m of ground/.test(self) && String(METRES_PER_BOUND_STRIDE) === '2',
