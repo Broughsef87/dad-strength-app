@@ -25,18 +25,24 @@
 // through that, and any N large enough to stay quiet is too slow to be worth
 // reading. A clock cannot tell "the hook is dead" from "the turn is long".
 //
-// What CAN tell them apart is the work itself: the hook must have SPOKEN SINCE
-// THE WORK ARRIVED. Every queued doorbell has an mtime. If bus.log holds no
-// entry at or after the newest doorbell's mtime, the hook has not run since
-// that ticket was queued — whatever the wall clock says. No invented interval:
-// the reference comes from the queue.
+// What CAN tell them apart is the work itself: the DISPATCHER must have spoken
+// since a dispatch was owed. Every queued doorbell has an mtime. If bus.log
+// holds no hook=stop entry at or after the moment a Stop line became due, the
+// dispatcher has not run since that ticket was queued — whatever the wall clock
+// says. No invented interval: the reference comes from the queue.
+//
+// "Became due" is max(doorbell mtime, newest hook=boot line), because a Stop
+// hook can only speak once a session exists to end a turn. Work queued
+// overnight is owed nothing until Claude Code is opened in the morning; without
+// that, every morning would start with a false alarm.
 //
 // The one number here is a GRACE, and only to stop the alarm flapping in the
-// window between a doorbell landing and the next Stop hook firing. It is 300
-// minutes, from the 270-minute legitimate wait measured above plus headroom. It
-// errs LATE on purpose: this alarm is read on wake, not pushed to a phone, so a
-// false one costs more attention than a late one. It is never auto-tuned from
-// the log — a stall would raise its own ceiling, which is the FOR-244 mistake.
+// window between a dispatch falling due and the next Stop hook firing. It is
+// 300 minutes, from the 270-minute legitimate wait measured above plus
+// headroom. It errs LATE on purpose: this alarm is read on wake, not pushed to
+// a phone, so a false one costs more attention than a late one. It is never
+// auto-tuned from the log — a stall would raise its own ceiling, which is the
+// FOR-244 mistake.
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
@@ -55,17 +61,34 @@ const contPath = join(HOOKS, 'bus-continue.sh')
 assert(existsSync(contPath), 'the Stop hook exists at .claude/hooks/bus-continue.sh')
 const cont = existsSync(contPath) ? readFileSync(contPath, 'utf8') : ''
 
-// Strip comments first — the header describes the very forms it bans, and a
-// check that reads its own prose instead of its code proves nothing (the
-// lesson from FOR-242's Pro gate, which matched a WHEN clause inside a comment).
-const contCode = cont.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
+// Strip comments AND the heredoc message first. The header describes the very
+// forms it bans, and the dispatch message is prose, not code — a check that
+// reads its own documentation instead of its source proves nothing (the lesson
+// from FOR-242's Pro gate, which matched a WHEN clause inside a comment).
+const contCode = cont
+  .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
+  .replace(/<<(\w+)\n[\s\S]*?\n\1\n/g, '<<$1\n$1\n')
 
-// `finish` is the only way out but for the final `exit 2` that blocks the stop.
-const bareExits = (contCode.match(/^\s*(\[.*\]\s*&&\s*)?exit\b[^\n]*/gm) ?? [])
-  .filter((l) => !/exit "\$\{2:-0\}"|exit "\$\{3:-0\}"/.test(l))
-  .filter((l) => !/^\s*exit 2\s*$/.test(l))
-assert(bareExits.length === 0,
-  `every exit from the Stop hook goes through finish(), which logs — ${bareExits.length ? `${bareExits.length} do not, first: ${JSON.stringify(bareExits[0].trim())}` : 'all of them'}`)
+// finish()'s span, computed once: both the silent-exit sweep and the logging
+// assertion have to tell "inside finish()" from "somewhere after it".
+const finishAt = contCode.indexOf('finish() {')
+const finishEnd = finishAt < 0 ? -1 : contCode.indexOf('\n}', finishAt)
+
+// EVERY `exit` token, wherever it sits on the line. The first version anchored
+// at ^\s*(\[...\]\s*&&\s*)? and so could not see `... || exit 0`, or an exit
+// after a pipeline: restoring the ticket-id guard's original `|| exit 0` left
+// all fifteen checks green, because the OTHER `finish bad-filename` call site
+// still satisfied the outcome assertion below. An early `[ -d ... ] || exit 0`
+// passed too (Codex r2). The only exits allowed are finish()'s own and the
+// final `exit 2` that blocks the stop.
+const trimmedCode = contCode.trimEnd()
+const blockingExitAt = trimmedCode.endsWith('exit 2') ? trimmedCode.length - 'exit 2'.length : -1
+const silentExits = [...contCode.matchAll(/\bexit\b[^\n]*/g)]
+  .filter((m) => !(finishAt >= 0 && m.index > finishAt && m.index < finishEnd))
+  .filter((m) => m.index !== blockingExitAt)
+  .map((m) => m[0].trim())
+assert(silentExits.length === 0,
+  `every exit from the Stop hook goes through finish(), which logs — ${silentExits.length ? `${silentExits.length} do not, first: ${JSON.stringify(silentExits[0])}` : 'all of them'}`)
 
 // The outcomes the ticket names, plus the two this found while writing it. A
 // successful claim is NOT in this list: it has to exit 2 to block the stop, so
@@ -86,12 +109,7 @@ assert(/outcome=claimed[^\n]*ticket=/.test(contCode) && /\nexit 2\s*$/.test(cont
 // closing brace to the successful-claim path's own bus.log write — so deleting
 // the logger out of finish() left all fifteen checks green while every non-claim
 // exit went silent again. The check for silence, silently broken (Codex r1).
-const finishBody = (() => {
-  const at = contCode.indexOf('finish() {')
-  if (at < 0) return null
-  const end = contCode.indexOf('\n}', at)
-  return end < 0 ? null : contCode.slice(at, end)
-})()
+const finishBody = finishAt < 0 || finishEnd < 0 ? null : contCode.slice(finishAt, finishEnd)
 assert(finishBody != null && /bus\.log/.test(finishBody),
   'finish() itself appends to bus.log — asserted against its body, not against anything that happens to follow it')
 
@@ -122,14 +140,29 @@ const collectCommands = (node, out = []) => {
   }
   return out
 }
-let commands = []
+let settings = {}
 try {
-  commands = collectCommands(JSON.parse(existsSync(settingsPath) ? readFileSync(settingsPath, 'utf8') : '{}'))
+  settings = JSON.parse(existsSync(settingsPath) ? readFileSync(settingsPath, 'utf8') : '{}')
 } catch {
   assert(false, '.claude/settings.json does not parse — hooks cannot be registered by a file the host cannot read')
 }
-const busCommands = commands.filter((c) => /bus-(boot|continue)\.sh/.test(c))
-assert(busCommands.length >= 2, `both bus hooks are registered in settings.json — found ${busCommands.length}`)
+const commands = collectCommands(settings)
+
+// PER EVENT. Counting how many commands mention a bus script established
+// nothing about which event fires them: replacing the Stop command with a
+// second copy of bus-boot.sh passed, and so did moving the dispatcher off Stop
+// onto another event — both of which delete the dispatcher outright while every
+// check stays green (Codex r2). A hook registered under the wrong event is a
+// hook that never runs, which is the silence this file is about.
+const REQUIRED = [
+  ['SessionStart', /bus-boot\.sh/, 'the boot heartbeat'],
+  ['Stop', /bus-continue\.sh/, 'the dispatcher'],
+]
+for (const [event, script, what] of REQUIRED) {
+  const forEvent = collectCommands(settings?.hooks?.[event] ?? [])
+  assert(forEvent.some((c) => script.test(c)),
+    `${what} is registered under ${event} — found ${forEvent.length} command(s) there, none matching ${script.source}`)
+}
 const interpreterForm = commands.filter((c) => /^(bash|sh|\/bin\/bash|\/bin\/sh)$/.test(c.trim()))
 assert(interpreterForm.length === 0,
   `no hook is invoked as a bare interpreter — that form resolved to WSL on this host and died silently (${JSON.stringify(interpreterForm[0] ?? '')})`)
@@ -148,9 +181,17 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
   const newest = doorbells
     .map((f) => ({ f, at: statSync(join(queueDir, f)).mtimeMs }))
     .sort((a, b) => b.at - a.at)[0]
-  const lastLog = existsSync(logPath)
-    ? [...readFileSync(logPath, 'utf8').matchAll(/^\[([0-9T:\-Z]+)\]/gm)].map((m) => Date.parse(m[1])).filter(Number.isFinite).sort((a, b) => b - a)[0]
-    : undefined
+  // Split by WHICH hook spoke. Only a hook=stop line is evidence the DISPATCHER
+  // is alive; hook=boot proves a session started and nothing more. Lines with
+  // neither marker are hand-written notes from CC and count as evidence of
+  // nothing — a human writing in the log does not make a dead hook live.
+  const logLines = existsSync(logPath) ? readFileSync(logPath, 'utf8').split('\n') : []
+  const newestWhere = (marker) => logLines
+    .map((l) => (l.includes(marker) ? Date.parse(/^\[([0-9T:\-Z]+)\]/.exec(l)?.[1] ?? '') : NaN))
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0]
+  const lastStop = newestWhere('hook=stop')
+  const lastBoot = newestWhere('hook=boot')
 
   if (halted) {
     console.log('  · HALT is set — the bus is stopped on purpose, freshness not applicable')
@@ -169,18 +210,27 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
     // against a hook line at 12:00:00.500 parses as 12:00:00.000 and reads as
     // silence. That would have failed `npm run checks` on a deliberately capped
     // queue, which is the check crying wolf about its own rounding.
+    // A dispatch falls DUE at max(doorbell, newest boot) — see the header. The
+    // grace runs from there, not from the doorbell, or a ticket queued
+    // overnight would alarm the moment the morning's session opened.
+    //
+    // Timestamps are floored to the second before comparing. Both hooks log
+    // whole seconds, and mtimeMs carries fractions — a doorbell at 12:00:00.100
+    // against a hook line at 12:00:00.500 parses as 12:00:00.000 and reads as
+    // silence. That would have failed `npm run checks` on a deliberately capped
+    // queue, which is the check crying wolf about its own rounding.
     const sec = (ms) => Math.floor(ms / 1000) * 1000
-    const heardSince = (at) => lastLog != null && sec(lastLog) >= sec(at)
     const unheard = doorbells
       .map((f) => ({ f, at: statSync(join(queueDir, f)).mtimeMs }))
-      .filter((d) => !heardSince(d.at))
-      .map((d) => ({ ...d, waitedMin: (Date.now() - d.at) / 60000 }))
+      .map((d) => ({ ...d, due: Math.max(d.at, lastBoot ?? 0) }))
+      .filter((d) => !(lastStop != null && sec(lastStop) >= sec(d.due)))
+      .map((d) => ({ ...d, waitedMin: (Date.now() - d.due) / 60000 }))
       .sort((a, b) => b.waitedMin - a.waitedMin)
     const overdue = unheard.filter((d) => d.waitedMin > GRACE_MINUTES)
     assert(overdue.length === 0,
-      `the bus has spoken since every queued ticket arrived — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min with no hook entry after it, past the ${GRACE_MINUTES} min grace. The hooks are not running.` : ''}`)
+      `the Stop hook has spoken since every queued ticket fell due — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min with no hook=stop entry after it, past the ${GRACE_MINUTES} min grace. The dispatcher is not running.` : ''}`)
     const oldest = unheard[0]
-    console.log(`  · ${doorbells.length} queued, ${unheard.length} with no hook entry since${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
+    console.log(`  · ${doorbells.length} queued, ${unheard.length} undispatched since due${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
   }
 }
 
