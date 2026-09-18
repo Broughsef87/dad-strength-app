@@ -173,6 +173,7 @@ const isSprint = (i) => i.kind === 'outside' && i.slot === 'sprint'
 /** A jump the ramp should have replaced, and one still wearing the ramp label after it ended. */
 const rampBreaches = []
 const staleRamp = []
+const labelMismatch = []
 const overBlocks = []
 let prepDays = 0, prepBlocks = 0
 const unreadable = []
@@ -209,6 +210,11 @@ for (const [slug, program] of Object.entries(PROGRAMS)) {
             landings += n
             const maximal = /broad jump|depth jump|depth drop/i.test(it.name)
             if (stage !== 'full' && maximal && it.ramp !== stage) rampBreaches.push(`${slug} w${week} d${day} ${label}: "${it.name}" at stage ${stage}`)
+            // A ramped line must say what it is, and a low-box depth drop must not
+            // be told it is a max-height box jump.
+            if (it.ramp && !it.intent) labelMismatch.push(`${slug} w${week} d${day}: "${it.name}" is ramped with no intent label`)
+            if (it.intent && /LOW BOX/.test(it.intent) && !/depth/i.test(it.name)) labelMismatch.push(`${slug} w${week} d${day}: "${it.name}" labelled LOW BOX`)
+            if (it.intent && /VERTICAL/.test(it.intent) && !/box jump/i.test(it.name)) labelMismatch.push(`${slug} w${week} d${day}: "${it.name}" labelled VERTICAL`)
             if (stage === 'full' && it.ramp) staleRamp.push(`${slug} w${week} d${day} ${label}: "${it.name}" still marked ${it.ramp}`)
           } else if (isPrep(it)) {
             const n = prepLandings(it)
@@ -308,8 +314,13 @@ assert(prepDays > 0 && prepBlocks === 0,
 // on the card contradicting the reason the ramp exists (Codex r3). The label is
 // derived from the stage now, and this keeps it that way.
 const dayPage = readFileSync(join(ROOT, 'src/app/train/[program]/[day]/page.tsx'), 'utf8')
-assert(/RAMP_INTENT\[item\.ramp \?\? 'full'\]/.test(dayPage) && !/· MAX INTENT</.test(dayPage),
+assert(/item\.intent \?\? 'MAX INTENT'/.test(dayPage) && !/· MAX INTENT</.test(dayPage),
   'the jump card takes its intensity label from the prescription, not from a hardcoded MAX INTENT')
+// PER ITEM, not per stage: at low_depth one stage carries a submaximal broad
+// jump, a low-box depth drop AND a max-height box jump, so a stage-derived label
+// gave two of the three an instruction that was not theirs (Codex r4).
+assert(labelMismatch.length === 0,
+  `every ramped jump carries its own intensity label — ${labelMismatch.length ? `${labelMismatch.length} do not, first: ${labelMismatch[0]}` : 'all of them'}`)
 
 // ── The counting unit is written down where it is used ─────────────────────
 const self = readFileSync(join(ROOT, 'scripts/checks/ballistic-load.mjs'), 'utf8')

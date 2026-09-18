@@ -618,13 +618,13 @@ const D6_OHP: SlotMeso[] = [
 function saturdayPlyo(pos: MacroPos, stage: RampStage): PlyoPrescription[] {
   if (stage !== 'full') {
     const note = (t: string) => `Ramp week — ${t}`
-    if (stage === 'low') return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 4, reps: 5, ramp: stage, note: note('easy height, step down and reset every rep. Low amplitude while the tissue learns to accept a landing.') }]
-    if (stage === 'submax') return [{ kind: 'plyo', slot: 'plyo', name: 'Broad Jumps', sets: 4, reps: 4, ramp: stage, note: note('SUBMAXIMAL, about three-quarters. Stick every one — the landing is the point, not the distance.') }]
-    if (stage === 'max_vertical') return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 3, reps: 3, ramp: stage, note: note('max height, full recovery. Vertical returns before horizontal: its landing is a fraction of a broad jump\'s.') }]
+    if (stage === 'low') return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 4, reps: 5, ramp: stage, intent: 'LOW AMPLITUDE', note: note('easy height, step down and reset every rep. Low amplitude while the tissue learns to accept a landing.') }]
+    if (stage === 'submax') return [{ kind: 'plyo', slot: 'plyo', name: 'Broad Jumps', sets: 4, reps: 4, ramp: stage, intent: 'SUBMAXIMAL — ~3/4', note: note('SUBMAXIMAL, about three-quarters. Stick every one — the landing is the point, not the distance.') }]
+    if (stage === 'max_vertical') return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 3, reps: 3, ramp: stage, intent: 'MAX INTENT — VERTICAL', note: note('max height, full recovery. Vertical returns before horizontal: its landing is a fraction of a broad jump\'s.') }]
     // low_depth: depth enters, on a low box, beside the vertical that is already back.
     return [
-      { kind: 'plyo', slot: 'plyo', name: 'Depth Drops', sets: 3, reps: 3, ramp: stage, note: note('from a LOW box, about 12". Absorb quietly and hold the bottom.') },
-      { kind: 'plyo', slot: 'plyo_2', name: 'Box Jumps', sets: 3, reps: 3, ramp: stage, note: note('max height, full recovery.') },
+      { kind: 'plyo', slot: 'plyo', name: 'Depth Drops', sets: 3, reps: 3, ramp: stage, intent: 'LOW BOX', note: note('from a LOW box, about 12". Absorb quietly and hold the bottom.') },
+      { kind: 'plyo', slot: 'plyo_2', name: 'Box Jumps', sets: 3, reps: 3, ramp: stage, intent: 'MAX INTENT — VERTICAL', note: note('max height, full recovery.') },
     ]
   }
   if (pos.meso === 1) return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 4, reps: 5, note: 'Step down, reset each rep — max intent' }]
@@ -674,18 +674,18 @@ function rampedJump(item: PlyoPrescription, stage: RampStage): PlyoPrescription 
   const weeks = 'Ramp week'
   switch (stage) {
     case 'low':
-      return { ...item, name: 'Box Jumps', ramp: stage, note: `${weeks} — easy height, step down and reset every rep. Low amplitude on purpose: you are building the tissue that sticks a landing before you ask it to.` }
+      return { ...item, name: 'Box Jumps', ramp: stage, intent: 'LOW AMPLITUDE', note: `${weeks} — easy height, step down and reset every rep. Low amplitude on purpose: you are building the tissue that sticks a landing before you ask it to.` }
     case 'submax':
-      return { ...item, ramp: stage, note: `${weeks} — SUBMAXIMAL, about three-quarters. Same movement, same landing, nothing like a best effort. Stick every one.` }
+      return { ...item, ramp: stage, intent: 'SUBMAXIMAL — ~3/4', note: `${weeks} — SUBMAXIMAL, about three-quarters. Same movement, same landing, nothing like a best effort. Stick every one.` }
     case 'max_vertical':
-      return { ...item, name: 'Box Jumps', ramp: stage, note: `${weeks} — max height, full recovery. Vertical comes back before horizontal does: the landing is a fraction of a broad jump's.` }
+      return { ...item, name: 'Box Jumps', ramp: stage, intent: 'MAX INTENT — VERTICAL', note: `${weeks} — max height, full recovery. Vertical comes back before horizontal does: the landing is a fraction of a broad jump's.` }
     case 'low_depth':
       // Monday is the HORIZONTAL day. Depth work enters on Saturday at this
       // stage, not here — swapping the horizontal slot for a depth drop would
       // leave the athlete with no horizontal exposure at all right up to the
       // week it goes maximal, which is the cliff the graded exit exists to
       // avoid.
-      return { ...item, ramp: stage, note: `${weeks} — still SUBMAXIMAL, about three-quarters, and the last week it is. Stick every one.` }
+      return { ...item, ramp: stage, intent: 'SUBMAXIMAL — ~3/4', note: `${weeks} — still SUBMAXIMAL, about three-quarters, and the last week it is. Stick every one.` }
     default:
       return item
   }

@@ -66,6 +66,15 @@ export interface PlyoPrescription {
    * asserted against this field, not against a note that says "go easy".
    */
   ramp?: RampStage
+  /**
+   * What the card should shout above this line — 'SUBMAXIMAL — ~3/4', 'LOW BOX'.
+   * PER ITEM, because a stage does not determine intensity on its own: at
+   * low_depth the same stage carries a submaximal broad jump, a low-box depth
+   * drop and a max-height box jump, and labelling all three from the stage gave
+   * two of them an instruction that was not theirs (Codex r4). Absent means
+   * max intent, which is what a jump is unless something says otherwise.
+   */
+  intent?: string
 }
 
 // Saturday metcon — from the curated pool, not AI.
