@@ -154,6 +154,7 @@ export default function SchedulePage() {
   // easy day, so counting to 5 rendered Mon-Fri: two rest days listed as
   // sessions, and Saturday and the aerobic day unreachable from the app at
   // all. Iterating the scheduled days is what makes rendered == scheduled.
+  const rampOrigin = rampOriginFor(selectedWeek, jumpRampRestarts)
   const weekPlans = scheduledDayNumbers(program, selectedWeek).map(d => ({
     day: d,
     plan: program.buildDay(selectedWeek, d, maxes, undefined, { forceDeload: isForcedDeload, jumpRampFromWeek: rampOrigin }),
@@ -162,7 +163,6 @@ export default function SchedulePage() {
   // than assumed from the program slug — a program grows a ballistic slot and
   // this follows it (FOR-244).
   const prepDays = weekPlans.filter(({ plan }) => plan.items.some(i => i.kind === 'prep')).length
-  const rampOrigin = rampOriginFor(selectedWeek, jumpRampRestarts)
   const stage = rampStage(selectedWeek, rampOrigin)
   const exposure = exposureWeek(selectedWeek, rampOrigin)
   const RAMP_COPY: Record<string, string> = {
@@ -199,8 +199,13 @@ export default function SchedulePage() {
   // already did is what he already did.
   const restartJumpRamp = async () => {
     if (!user) return
-    if (jumpRampRestarts.includes(currentWeek)) return
-    const next = [...jumpRampRestarts, currentWeek].sort((a, b) => a - b)
+    // FROM NEXT WEEK, not this one. Restarting mid-week would re-prescribe days
+    // already trained — Monday's completed Broad Jump redrawing as Box Jumps,
+    // taking its logs off the card with it, because logs match on movement
+    // NAME (Codex r2). Nothing already done is ever re-prescribed.
+    const from = currentWeek + 1
+    if (jumpRampRestarts.includes(from)) return
+    const next = [...jumpRampRestarts, from].sort((a, b) => a - b)
     setJumpRampRestarts(next)
     prefsRef.current = { ...prefsRef.current, jump_ramp_restarts: next }
     await supabase.from('user_programs')
@@ -284,7 +289,7 @@ export default function SchedulePage() {
                 title="coming back from a layoff? start the jump ramp again from this week."
                 className="pill-quiet w-full py-2 text-[11px] hover:text-foreground transition-colors"
               >
-                restart jump ramp
+                restart jump ramp — from next week
               </button>
             </div>
           )}

@@ -1728,6 +1728,10 @@ export default function TrainingDayPage() {
   const missingMaxes = program.requiredMaxes.filter(d => !maxes[d.key])
   // Session progress for the header LED bar: logged blocks / total items.
   const loggedBlocks = new Set(sessionLogs.filter(l => l.completed && l.log_type !== 'session_complete').map(l => l.block_name)).size
+  // Cells in the day header's progress strip: what can actually be LOGGED.
+  // The prep is prescribed and not logged, so counting it left every finished
+  // session permanently one short (Codex r2).
+  const progressCells = plan.items.filter(i => i.kind !== 'prep').length
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
@@ -1749,7 +1753,7 @@ export default function TrainingDayPage() {
               <span className="eyebrow-mono">{program.name.split(' ')[0].toUpperCase()}</span>
             </div>
             <div className="led-bar led-bar-fit">
-              {Array.from({ length: Math.max(plan.items.length, 1) }).map((_, i) => (
+              {Array.from({ length: Math.max(progressCells, 1) }).map((_, i) => (
                 <span key={i} className={`led-cell ${i < loggedBlocks ? 'lit' : ''}`} />
               ))}
             </div>

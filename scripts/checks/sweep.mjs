@@ -1,6 +1,9 @@
 // Deterministic sweep of the athletic-power hybridPower config.
 // Run: npx tsx sweep.mjs (from repo root or with absolute path)
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
+// The registry wraps the raw config (modes, and the FOR-244 prep). Where an
+// assertion is about the day the APP renders, it must read this, not the config.
+import { PROGRAMS } from '../../src/lib/programs/index.ts'
 // The station rule and the week's shape are SHARED with the app now. The
 // schedule screen kept its own copy of blockCount that only knew about
 // *_back, so it would have printed '7 blocks' on a Saturday this suite calls
@@ -385,7 +388,16 @@ for (let wk = 1; wk <= 13; wk++) {
   assert(!parts.some(p => /broad jump/i.test(p)), `W${wk} sprint day still has broad jumps`)
   // "no jogging" is the instruction, not a violation — strip it before testing.
   assert(!parts.some(p => /\bjog(ging)?\b/i.test(p.replace(/no jogging/gi, ''))), `W${wk} sprint day still warms up with a jog`)
-  assert(/no jogging/i.test(parts[0] ?? ''), `W${wk} sprint day missing the drill warm-up`)
+  // The drill warm-up is a PREP SLOT now, not prose in the session's parts
+  // (FOR-244). Read through the REGISTRY, because the registry is what adds it —
+  // this file imports the raw config, which is not the day the app renders.
+  // Stronger than the prose test it replaces: a slot with rep counts, rather
+  // than a sentence that merely contained the words "no jogging".
+  const shipped = PROGRAMS['hybrid-power'].buildDay(wk, 2, MAXES).items
+  const preps = shipped.filter(i => i.kind === 'prep')
+  assert(preps.length > 0, `W${wk} sprint day missing the drill warm-up`)
+  assert(preps.some(i => /pogo/i.test(i.name) && i.reps > 0), `W${wk} sprint warm-up has no countable hops`)
+  assert(shipped.indexOf(preps[0]) === 0, `W${wk} sprint warm-up is not the first thing on the day`)
   const wim = ((wk - 1) % 13) + 1
   if (wim !== 12 && wim !== 13) {
     assert(parts.some(p => /^Neck:/.test(p)), `W${wk} sprint day missing neck work`)

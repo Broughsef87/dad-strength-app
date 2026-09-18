@@ -240,8 +240,14 @@ const METCON_POOL: Array<Omit<MetconPrescription, 'kind' | 'slot'>> = [
 // advances one step per appearance — so the emphasis still alternates (never
 // two top-speed days back to back) but the session itself keeps changing.
 // NO JOGGING in any warm-up: drills only, athlete's rule.
-const SPRINT_WARMUP =
-  'Warm-up (no jogging): pogo hops, A-skips, B-skips, high knees, butt kicks, leg swings'
+// The sprint warm-up is now the PREP SLOT, which the registry puts in front of
+// every ballistic or sprint day (FOR-244). This prose stays as the record of
+// where the prep's content came from — these are its drills, unchanged — but it
+// is no longer prescribed HERE. Leaving it would put the same warm-up on Tuesday
+// twice, in two different orders, with the prose copy carrying no rep counts and
+// therefore no countable landings: a second source of one fact, which is the
+// defect this codebase keeps producing.
+// The drills themselves live in PREP_SEQUENCE (src/lib/programs/prep.ts) — one source.
 const SPRINT_COOLDOWN = 'Cooldown walk 5 min'
 const NECK_ISO = 'Neck: hand-resisted isometrics — 2 × 10s each direction (front/back/sides)'
 
@@ -338,7 +344,7 @@ function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
     return {
       kind: 'outside', slot: 'sprint',
       title: pos.isTest ? 'Easy Strides (test week)' : 'Easy Strides (deload)',
-      parts: [SPRINT_WARMUP, '4 × 15m relaxed strides @ ~70%', 'Full recovery walk-back'],
+      parts: ['4 × 15m relaxed strides @ ~70%', 'Full recovery walk-back'],
       note: 'Keep the legs alive, nothing more. No timing, no straining.',
     }
   }
@@ -348,7 +354,7 @@ function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
   const spec = pool[Math.floor((weekNumber - 1) / 2) % pool.length](pos.meso === 3)
   return {
     kind: 'outside', slot: 'sprint', title: spec.title,
-    parts: [SPRINT_WARMUP, ...spec.parts, SPRINT_COOLDOWN, NECK_ISO],
+    parts: [...spec.parts, SPRINT_COOLDOWN, NECK_ISO],
     note: spec.note,
   }
 }
