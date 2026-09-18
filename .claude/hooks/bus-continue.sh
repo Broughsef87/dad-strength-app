@@ -12,33 +12,59 @@
 # hook that re-blocks for the SAME unmet condition; ours hands over a DIFFERENT ticket each
 # time with real work in between, and obeying it would cap the run at two tickets. We govern
 # with chain.count on disk instead: survives restarts, and Andrew can read it.
-
+#
+# ── EVERY EXIT LOGS (FOR-246) ────────────────────────────────────────────────
+# This hook used to write to bus.log on exactly ONE path: a successful claim.
+# Every other exit was silent, so "the hook ran and the queue was empty" and
+# "the hook did not run at all" produced identical evidence: nothing. The
+# natural reading of nothing is "it drained."
+#
+# That is not hypothetical. On 2026-09-17 the exec form "command": "bash"
+# resolved to C:\Windows\System32\bash.exe (WSL), failed with
+# execvpe(/bin/bash) failed, and exited non-2 — which does not block. It was
+# caught because CC went looking, not because anything said so.
+#
+# So: `finish <outcome> [detail]` writes one line and exits. It is the ONLY way
+# out of this script. A bare `exit` anywhere below is a bug, and
+# scripts/checks/bus-observability.mjs fails the build if one appears.
 set -uo pipefail
 BUS="${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/bus"
 MAXCHAIN=6
 stamp() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
-[ -f "$BUS/HALT" ] && exit 0
-[ -d "$BUS/queue" ] || exit 0
+# One line, one outcome, then out. $2 is free text; $3 is the exit code (default 0).
+finish() {
+  mkdir -p "$BUS" 2>/dev/null || true
+  echo "[$(stamp)] hook=stop outcome=$1${2:+ $2}" >> "$BUS/bus.log" 2>/dev/null || true
+  exit "${3:-0}"
+}
+
+[ -f "$BUS/HALT" ] && finish halted "HALT present - nothing dispatched"
+[ -d "$BUS/queue" ] || finish no-queue-dir "no $BUS/queue on disk"
 
 NEXT=$(ls -1 "$BUS/queue" 2>/dev/null | grep -E '^[0-9]{3}-FOR-[0-9]+\.json$' | sort | head -n1)
-[ -z "$NEXT" ] && exit 0
+if [ -z "$NEXT" ]; then
+  # A file that is PRESENT but does not match the pattern is a different fact
+  # from an empty queue, and it used to look the same: silence.
+  STRAY=$(ls -1 "$BUS/queue" 2>/dev/null | head -n1)
+  [ -n "$STRAY" ] && finish bad-filename "queue holds '$STRAY', which is not NNN-FOR-N.json"
+  finish empty "queue is empty"
+fi
 
 COUNT=$(cat "$BUS/chain.count" 2>/dev/null || echo 0)
 case "$COUNT" in ''|*[!0-9]*) COUNT=0 ;; esac
 if [ "$COUNT" -ge "$MAXCHAIN" ]; then
-  echo "[$(stamp)] chain cap $MAXCHAIN reached - stopping. $NEXT still queued." >> "$BUS/bus.log"
-  exit 0
+  finish cap-reached "chain cap $MAXCHAIN reached; $NEXT still queued"
 fi
 
 # The ONLY thing that crosses from the file into the prompt is a ticket ID matching ^FOR-[0-9]+$.
 TICKET=$(printf '%s' "$NEXT" | sed -E 's/^[0-9]{3}-(FOR-[0-9]+)\.json$/\1/')
-printf '%s' "$TICKET" | grep -qE '^FOR-[0-9]+$' || exit 0
+printf '%s' "$TICKET" | grep -qE '^FOR-[0-9]+$' || finish bad-filename "'$NEXT' did not yield a FOR-N ticket id"
 
 mkdir -p "$BUS/claimed"
-mv "$BUS/queue/$NEXT" "$BUS/claimed/$NEXT" 2>/dev/null || exit 0
+mv "$BUS/queue/$NEXT" "$BUS/claimed/$NEXT" 2>/dev/null || finish claim-failed "could not move $NEXT into claimed/"
 echo $((COUNT + 1)) > "$BUS/chain.count"
-echo "[$(stamp)] claimed $TICKET (chain $((COUNT + 1))/$MAXCHAIN)" >> "$BUS/bus.log"
+echo "[$(stamp)] hook=stop outcome=claimed ticket=$TICKET chain=$((COUNT + 1))/$MAXCHAIN" >> "$BUS/bus.log"
 
 cat >&2 <<MSG
 Next item on the bus: $TICKET

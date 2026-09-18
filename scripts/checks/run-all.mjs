@@ -41,6 +41,9 @@ const SUITES = [
   // The prep slot, the jump ramp and the ground-contact ceiling — its own suite,
   // so a revert of the prep cannot take the check that would catch it (FOR-244).
   ['ballistic load (FOR-244)', 'ballistic-load.mjs'],
+  // A dead hook and an empty queue used to look identical — its own suite, so a
+  // revert of the logging cannot take the check that would catch it (FOR-246).
+  ['bus observability (FOR-246)', 'bus-observability.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
   // Its own suite, not a section of fuel-solve: a revert of the rotations
   // feature must not take the check that would catch the revert with it.
