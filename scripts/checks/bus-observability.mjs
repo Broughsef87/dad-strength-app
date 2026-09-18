@@ -25,11 +25,13 @@
 // through that, and any N large enough to stay quiet is too slow to be worth
 // reading. A clock cannot tell "the hook is dead" from "the turn is long".
 //
-// What CAN tell them apart is the work itself: the DISPATCHER must have spoken
-// since a dispatch was owed. Every queued doorbell has an mtime. If bus.log
-// holds no hook=stop entry at or after the moment a Stop line became due, the
-// dispatcher has not run since that ticket was queued — whatever the wall clock
-// says. No invented interval: the reference comes from the queue.
+// What CAN tell them apart is the work itself: while a ticket sits in the
+// queue, the DISPATCHER owes it a line at the end of every turn. Every queued
+// doorbell has an mtime, and the clock runs from the last moment a dispatch was
+// both owed and observable — the later of when it fell due and when the
+// dispatcher last spoke. A live bus resets that every turn; a dead one leaves
+// it running, whatever the wall clock says. No invented interval: the reference
+// comes from the queue.
 //
 // "Became due" is the FIRST hook=boot line at or after the doorbell. A Stop
 // hook can only speak once a session exists to end a turn, so work queued
@@ -123,16 +125,17 @@ for (const o of FINISH_OUTCOMES) {
   // script that merely mentions it somewhere.
   assert(new RegExp(`finish\\s+${o}\\b`).test(contCode), `the Stop hook exits through finish ${o}`)
 }
-assert(/outcome=claimed[^\n]*ticket=/.test(contCode) && /\nexit 2\s*$/.test(contCode.trimEnd() + '\n'),
-  'the claim path logs outcome=claimed with its ticket, and still exits 2 so the turn is blocked')
+const claimLine = contCode.split('\n').find((l) => /outcome=claimed[^\n]*ticket=/.test(l))
+assert(claimLine != null && />>\s*"\$BUS\/bus\.log"/.test(claimLine) && /\nexit 2\s*$/.test(contCode.trimEnd() + '\n'),
+  'the claim path appends outcome=claimed with its ticket to bus.log, and still exits 2 so the turn is blocked')
 // The BODY, isolated. The first version of this was
 // /finish\(\)\s*\{[\s\S]*?bus\.log/, and `[\s\S]*?` walked straight past the
 // closing brace to the successful-claim path's own bus.log write — so deleting
 // the logger out of finish() left all fifteen checks green while every non-claim
 // exit went silent again. The check for silence, silently broken (Codex r1).
 const finishBody = finishAt < 0 || finishEnd < 0 ? null : contCode.slice(finishAt, finishEnd)
-assert(finishBody != null && /bus\.log/.test(finishBody),
-  'finish() itself appends to bus.log — asserted against its body, not against anything that happens to follow it')
+assert(finishBody != null && />>\s*"\$BUS\/bus\.log"/.test(finishBody),
+  'finish() itself appends to $BUS/bus.log — asserted against its body, not against anything that happens to follow it')
 
 // ── 2. the boot hook logs every session start, before any early return ─────
 const bootPath = join(HOOKS, 'bus-boot.sh')
@@ -140,6 +143,13 @@ assert(existsSync(bootPath), 'the SessionStart hook exists at .claude/hooks/bus-
 const boot = existsSync(bootPath) ? readFileSync(bootPath, 'utf8') : ''
 const bootCode = boot.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
 const bootLogAt = bootCode.indexOf('hook=boot')
+// APPENDED, not merely mentioned. Pointing the redirect at /dev/null removed
+// the heartbeat outright and left all sixteen checks green, because this only
+// ever asked whether the string appeared above an exit (Codex r6). The
+// heartbeat is the line landing in bus.log, not the line existing in a script.
+const bootLogLine = bootCode.split('\n').find((l) => l.includes('hook=boot'))
+assert(bootLogLine != null && />>\s*"\$BUS\/bus\.log"/.test(bootLogLine),
+  'the boot line is appended to $BUS/bus.log')
 // Any exit token, in any form. This anchored at the start of a line until
 // Codex r3 pointed out the Stop side had the same hole: inserting
 // `[ -d "$BUS/queue" ] || exit 0` above the logger left all sixteen checks
@@ -225,6 +235,9 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
   const stopStamps = stampsWhere('hook=stop')
   const bootStamps = stampsWhere('hook=boot')
   const lastStop = stopStamps[stopStamps.length - 1]
+  // Quoted verbatim when the alarm fires: `cap-reached` explains a stalled
+  // queue on its own, and the reader should not have to open bus.log to see it.
+  const lastStopLine = logLines.filter((l) => l.includes('hook=stop')).pop()
 
   if (halted) {
     console.log('  · HALT is set — the bus is stopped on purpose, freshness not applicable')
@@ -255,22 +268,33 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
     // silence. That would have failed `npm run checks` on a deliberately capped
     // queue, which is the check crying wolf about its own rounding.
     const sec = (ms) => Math.floor(ms / 1000) * 1000
+    // The obligation RENEWS. A ticket that is still in the queue is owed a
+    // dispatch at the end of every turn, so one hook=stop line does not settle
+    // it for good: two tickets arriving together, the first claimed and the
+    // dispatcher dying straight after, left the second reported as dispatched
+    // forever, because a single claim line sat after its due time (Codex r6).
+    //
+    // So the clock runs from the LAST moment a dispatch was owed and could
+    // have been seen — the later of "fell due" and "the dispatcher last
+    // spoke". A live bus keeps resetting it every turn; a dead one does not.
+    //
     // Nothing here reads the environment: the same bus gives the same verdict
     // whoever runs the check — Claude Code, a terminal, a monitor.
     const dueAt = (at) => bootStamps.find((t) => sec(t) >= sec(at)) ?? at
-    const unheard = queued
+    const waiting = queued
       .map((d) => ({ ...d, due: dueAt(d.at), bootedSince: bootStamps.some((t) => sec(t) >= sec(d.at)) }))
-      .filter((d) => !(lastStop != null && sec(lastStop) >= sec(d.due)))
-      .map((d) => ({ ...d, waitedMin: (Date.now() - d.due) / 60000 }))
+      .map((d) => ({ ...d, owedSince: Math.max(sec(d.due), lastStop != null ? sec(lastStop) : 0) }))
+      .map((d) => ({ ...d, waitedMin: (Date.now() - d.owedSince) / 60000 }))
       .sort((a, b) => b.waitedMin - a.waitedMin)
-    const overdue = unheard.filter((d) => d.waitedMin > GRACE_MINUTES)
+    const overdue = waiting.filter((d) => d.waitedMin > GRACE_MINUTES)
     const why = overdue[0]?.bootedSince
-      ? 'A session started with it queued and the Stop hook never spoke: the dispatcher is not running.'
+      ? 'A session started with it queued and the Stop hook has not spoken since: the dispatcher is not running.'
       : 'Either the dispatcher is not running, or no session has started since it was queued.'
+    const last = lastStopLine ? ` Newest hook=stop line: ${lastStopLine.trim()}.` : ' bus.log holds no hook=stop line at all.'
     assert(overdue.length === 0,
-      `the Stop hook has spoken since every queued ticket fell due — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min with no hook=stop entry after it, past the ${GRACE_MINUTES} min grace. ${why}` : ''}`)
-    const oldest = unheard[0]
-    console.log(`  · ${queued.length} queued, ${unheard.length} undispatched since due${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
+      `the Stop hook has spoken since every queued ticket was last owed a dispatch — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min, past the ${GRACE_MINUTES} min grace. ${why}${last}` : ''}`)
+    const oldest = waiting[0]
+    console.log(`  · ${queued.length} queued${oldest ? `, longest owed ${oldest.waitedMin.toFixed(0)} min (${oldest.f}, grace ${GRACE_MINUTES})` : ''}`)
   }
 }
 
