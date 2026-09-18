@@ -81,7 +81,19 @@ for (const o of FINISH_OUTCOMES) {
 }
 assert(/outcome=claimed[^\n]*ticket=/.test(contCode) && /\nexit 2\s*$/.test(contCode.trimEnd() + '\n'),
   'the claim path logs outcome=claimed with its ticket, and still exits 2 so the turn is blocked')
-assert(/finish\(\)\s*\{[\s\S]*?bus\.log/.test(contCode), 'finish() appends to bus.log before it exits')
+// The BODY, isolated. The first version of this was
+// /finish\(\)\s*\{[\s\S]*?bus\.log/, and `[\s\S]*?` walked straight past the
+// closing brace to the successful-claim path's own bus.log write — so deleting
+// the logger out of finish() left all fifteen checks green while every non-claim
+// exit went silent again. The check for silence, silently broken (Codex r1).
+const finishBody = (() => {
+  const at = contCode.indexOf('finish() {')
+  if (at < 0) return null
+  const end = contCode.indexOf('\n}', at)
+  return end < 0 ? null : contCode.slice(at, end)
+})()
+assert(finishBody != null && /bus\.log/.test(finishBody),
+  'finish() itself appends to bus.log — asserted against its body, not against anything that happens to follow it')
 
 // ── 2. the boot hook logs every session start, before any early return ─────
 const bootPath = join(HOOKS, 'bus-boot.sh')
@@ -147,12 +159,28 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
     console.log('  · queue is empty — nothing is waiting, so nothing can be stalled')
     passes++
   } else {
-    const waitedMin = (Date.now() - newest.at) / 60000
-    const heard = lastLog != null && lastLog >= newest.at
-    const stalled = !heard && waitedMin > GRACE_MINUTES
-    assert(!stalled,
-      `the bus has spoken since the newest ticket was queued — ${newest.f} has been waiting ${waitedMin.toFixed(0)} min with no hook entry after it, past the ${GRACE_MINUTES} min grace. The hooks are not running.`)
-    console.log(`  · ${doorbells.length} queued, newest ${newest.f} ${waitedMin.toFixed(0)} min old, hook ${heard ? 'has spoken since' : `silent (grace ${GRACE_MINUTES} min)`}`)
+    // ANY overdue ticket, not just the newest. Keying on the newest meant a
+    // fresh doorbell reset the grace for the whole queue: with the hooks dead,
+    // a ticket waiting ten hours passed because something arrived a minute ago,
+    // and a steady trickle could suppress the alarm forever (Codex r1).
+    //
+    // Timestamps are floored to the second before comparing. Both hooks log
+    // whole seconds, and mtimeMs carries fractions — a doorbell at 12:00:00.100
+    // against a hook line at 12:00:00.500 parses as 12:00:00.000 and reads as
+    // silence. That would have failed `npm run checks` on a deliberately capped
+    // queue, which is the check crying wolf about its own rounding.
+    const sec = (ms) => Math.floor(ms / 1000) * 1000
+    const heardSince = (at) => lastLog != null && sec(lastLog) >= sec(at)
+    const unheard = doorbells
+      .map((f) => ({ f, at: statSync(join(queueDir, f)).mtimeMs }))
+      .filter((d) => !heardSince(d.at))
+      .map((d) => ({ ...d, waitedMin: (Date.now() - d.at) / 60000 }))
+      .sort((a, b) => b.waitedMin - a.waitedMin)
+    const overdue = unheard.filter((d) => d.waitedMin > GRACE_MINUTES)
+    assert(overdue.length === 0,
+      `the bus has spoken since every queued ticket arrived — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min with no hook entry after it, past the ${GRACE_MINUTES} min grace. The hooks are not running.` : ''}`)
+    const oldest = unheard[0]
+    console.log(`  · ${doorbells.length} queued, ${unheard.length} with no hook entry since${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
   }
 }
 
