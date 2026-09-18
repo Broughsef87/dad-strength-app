@@ -41,6 +41,13 @@ export interface LiftPrescription {
   subbedFrom?: string      // set client-side when a user substitution renamed this item
 }
 
+/**
+ * Where an athlete is in the jump ramp (FOR-244). Weeks of EXPOSURE, not meso —
+ * Monday's broad jumps ignored meso entirely, and that was the bug. The exit is
+ * graded rather than a cliff: low, submaximal, max vertical, low-box depth, full.
+ */
+export type RampStage = 'low' | 'submax' | 'max_vertical' | 'low_depth' | 'full'
+
 // Plyometrics / jumps — per-set logging like lifts, just no load math.
 export interface PlyoPrescription {
   kind: 'plyo'
@@ -51,6 +58,14 @@ export interface PlyoPrescription {
   note?: string
   superset?: string        // see LiftPrescription.superset
   subbedFrom?: string      // see LiftPrescription.subbedFrom
+  /**
+   * Set when this line is a RAMP SUBSTITUTION rather than the full
+   * prescription (FOR-244). A maximal horizontal or depth jump is never
+   * prescribed before the ramp completes, so during the ramp the slot renders
+   * the stage's movement instead and says so. Structural on purpose: AC2 is
+   * asserted against this field, not against a note that says "go easy".
+   */
+  ramp?: RampStage
 }
 
 // Saturday metcon — from the curated pool, not AI.
@@ -73,8 +88,25 @@ export interface OutsideSession {
   note?: string
 }
 
+// The prep sequence that opens every ballistic or sprint day (FOR-244).
+// A SLOT, not a note: grey text under a title gets skipped, and a skipped
+// warm-up is no warm-up. Carries rep counts so the load it adds can be counted
+// — the whole unit is "every landing, prep included".
+export interface PrepPrescription {
+  kind: 'prep'
+  slot: string
+  name: string             // "Pogo Hops"
+  sets: number
+  reps: number
+  note?: string
+  superset?: string        // every prep line shares one id, so the day renders them as one block
+  /** Minutes the sequence takes, on the first line only. Shown on the week screen and FREE of the six-block budget (FOR-244 ruling 8). */
+  minutes?: number
+}
+
 export type Prescription =
   | LiftPrescription
+  | PrepPrescription
   | PlyoPrescription
   | MetconPrescription
   | OutsideSession
@@ -137,6 +169,13 @@ export interface BuildDayOpts {
   // no row, no slug and no selection UI. Applied by the registry, so no
   // program file needs to know about it. See timeConstrained.ts.
   timeConstrained?: boolean
+  // The absolute week the athlete's JUMP RAMP last (re)started (FOR-244).
+  // Exposure is counted from here, not from the macro — Monday's broad jumps
+  // ignored meso entirely, and that was the bug. A returning athlete taps
+  // "restart jump ramp" and this moves to the week they tapped it; there is no
+  // backfill (Andrew's ruling). Absent means the ramp runs from week one.
+  // Stored in user_programs.preferences.jump_ramp_from_week.
+  jumpRampFromWeek?: number
   // What the athlete has to train with (FOR-225 §6, ruled 2026-09-13: it
   // rides in opts, not as a positional parameter). SHAPE ONLY for now — no
   // program reads it yet. It exists so the equipment questionnaire is an

@@ -7,8 +7,10 @@ import {
   PlyoPrescription,
   ProgramConfig,
   Prescription,
+  RampStage,
   resolveWeight,
 } from './types'
+import { lowRamp, rampStage } from './prep'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // POWER DAD — athletic power, not weightlifting
@@ -218,7 +220,12 @@ function rangeSlot(
 // ── Metcon pool (Saturday) — curated, rotates by absolute week ────────────────
 const METCON_POOL: Array<Omit<MetconPrescription, 'kind' | 'slot'>> = [
   { name: 'Sled & Row', format: 'for_time', timeCapMinutes: 12, description: '4 rounds:\n40yd sled push (heavy)\n15 cal row\n10 burpees' },
-  { name: 'Aerodyne Ladder', format: 'amrap', timeCapMinutes: 10, description: 'AMRAP 10\n10 cal Aerodyne\n10 box jump overs (24")\n10 KB swings (53 lb)' },
+  // Step-overs, permanently (FOR-244 ruling 5). These were box JUMP overs inside
+  // an uncapped AMRAP — so the landings they produce depend on how many rounds
+  // the athlete gets, which means they cannot be counted at all. Volume nothing
+  // can budget is unbudgetable by construction, and a ceiling over a number that
+  // omits it is worse than no ceiling. A step-over is not a landing.
+  { name: 'Aerodyne Ladder', format: 'amrap', timeCapMinutes: 10, description: 'AMRAP 10\n10 cal Aerodyne\n10 box step-overs (24")\n10 KB swings (53 lb)' },
   { name: 'Grind', format: 'for_time', timeCapMinutes: 15, description: '3 rounds:\n20 cal row\n15 DB thrusters (35s)\n10 pull-ups' },
   { name: 'EMOM Engine', format: 'emom', timeCapMinutes: 12, description: 'EMOM 12 (alternating)\nmin 1: 12 cal Aerodyne\nmin 2: 10 DB snatches (50 lb)\nmin 3: 12 box jumps' },
   { name: 'Sled Sprint Repeats', format: 'for_time', timeCapMinutes: 10, description: '6 rounds:\n20yd sled sprint (moderate)\n10 push-ups\nrest 45s between rounds' },
@@ -242,6 +249,23 @@ const NECK_ISO = 'Neck: hand-resisted isometrics — 2 × 10s each direction (fr
 type SprintSpec = { title: string; parts: string[]; note?: string }
 type SprintBuilder = (trim: boolean) => SprintSpec
 
+// WHY THE SPRINT POOLS CARRY NO JUMPS (FOR-244).
+// Bounding, hurdle hops and lateral bounds used to close these sessions. They
+// were the whole of Power Dad's spacing problem: Monday opens with broad jumps
+// every non-deload week, so each of them landed 24 hours after a maximal
+// horizontal jump — four pairs under NSCA's 48 hours (W2, W4, W8, W10).
+//
+// The ticket's own proposed remedy was to bias Tuesday to the acceleration pool
+// on the day after broad jumps. That is EVERY Tuesday, because broad jumps open
+// every non-deload Monday — so the max-velocity pool would never run at all,
+// including W6, which contains no jumps. A per-week swap also reproduces the
+// previous week's Tuesday verbatim, since the pool is picked by
+// pool[floor((wk-1)/2) % 4]. Removing the three lines is the smaller fix and the
+// correct one: lower-body plyometric days become Mon / Wed / Sat at 48 / 72 / 48
+// hours — three a week, which is what NSCA asks for.
+//
+// They are not replaced. A sprint day is a sprint day, and the jumps it lost are
+// prescribed on the days that own them.
 const ACCEL_POOL: SprintBuilder[] = [
   trim => ({
     title: 'Acceleration — Starts',
@@ -280,7 +304,6 @@ const MAXV_POOL: SprintBuilder[] = [
     parts: [
       '2 build-up strides: one at ~80%, one at ~90%',
       `${trim ? 3 : 5} × flying 20s (20m build + 20m fly), FULL recovery (3-4 min)`,
-      `${trim ? 3 : 4} × 30m bounding`,
     ],
     note: 'Tall posture, relaxed face and hands at top speed.',
   }),
@@ -289,7 +312,6 @@ const MAXV_POOL: SprintBuilder[] = [
     parts: [
       '2 build-up strides',
       `${trim ? 4 : 6} × flying 10s (30m build-in + 10m fly), FULL recovery (3 min)`,
-      '3 × 5 hurdle hops or line hops',
     ],
     note: 'Longest build-in you can hold and still stay loose. That 10m is the fastest you will move all week — do not strain for it.',
   }),
@@ -306,7 +328,6 @@ const MAXV_POOL: SprintBuilder[] = [
     parts: [
       `${trim ? 4 : 6} × 5-10-5 shuttle, full recovery between reps`,
       `${trim ? 3 : 4} × 20m curve runs, alternating the direction you lean`,
-      '3 × 5 lateral bounds, stick each landing',
     ],
     note: 'Plant, drop the hips, go. Braking well is what makes the cut fast — the change of direction is a deceleration skill.',
   }),
@@ -579,7 +600,27 @@ const D6_OHP: SlotMeso[] = [
   { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 2, pctStart: 83, pctStep: 1.5, targetRpe: 8, note: 'Strict — no leg drive, glutes tight' },
 ]
 
-function saturdayPlyo(pos: MacroPos): PlyoPrescription[] {
+/**
+ * Saturday's plyo pair, ramped AT THE DAY rather than line by line (FOR-244).
+ *
+ * Per-line substitution was wrong here and the output said so: M2 is broad
+ * jumps PLUS depth drops, and both map to the same stage movement, so the day
+ * rendered the identical line twice. A day is the unit — during the ramp
+ * Saturday gets the pair that stage has earned, and the meso's own pairing
+ * resumes at full exposure.
+ */
+function saturdayPlyo(pos: MacroPos, stage: RampStage): PlyoPrescription[] {
+  if (stage !== 'full') {
+    const note = (t: string) => `Ramp week — ${t}`
+    if (stage === 'low') return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 4, reps: 5, ramp: stage, note: note('easy height, step down and reset every rep. Low amplitude while the tissue learns to accept a landing.') }]
+    if (stage === 'submax') return [{ kind: 'plyo', slot: 'plyo', name: 'Broad Jumps', sets: 4, reps: 4, ramp: stage, note: note('SUBMAXIMAL, about three-quarters. Stick every one — the landing is the point, not the distance.') }]
+    if (stage === 'max_vertical') return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 3, reps: 3, ramp: stage, note: note('max height, full recovery. Vertical returns before horizontal: its landing is a fraction of a broad jump\'s.') }]
+    // low_depth: depth enters, on a low box, beside the vertical that is already back.
+    return [
+      { kind: 'plyo', slot: 'plyo', name: 'Depth Drops', sets: 3, reps: 3, ramp: stage, note: note('from a LOW box, about 12". Absorb quietly and hold the bottom.') },
+      { kind: 'plyo', slot: 'plyo_2', name: 'Box Jumps', sets: 3, reps: 3, ramp: stage, note: note('max height, full recovery.') },
+    ]
+  }
   if (pos.meso === 1) return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 4, reps: 5, note: 'Step down, reset each rep — max intent' }]
   if (pos.meso === 2) return [
     { kind: 'plyo', slot: 'plyo', name: 'Broad Jumps', sets: 4, reps: 4, note: 'Stick landings' },
@@ -603,8 +644,49 @@ function saturdayPlyo(pos: MacroPos): PlyoPrescription[] {
 // loaded bar on every set. Done first they're also the freshest jumps of the
 // week (max-intent power should never be fatigued) and they prime the squat
 // instead of competing with it.
-function broadJumps(): PlyoPrescription {
-  return { kind: 'plyo', slot: 'broad_jump', name: 'Broad Jump', sets: 4, reps: 3, note: 'Session opener — knock these out in the open floor before you claim a rack. Stick every landing, full reset between reps.' }
+/**
+ * THE RAMP (FOR-244 AC2, ruling row 4). A maximal horizontal or depth jump is
+ * never prescribed before the athlete has the exposure for it. Andrew had none:
+ * Monday's broad jumps ran in every meso from week one, because that slot
+ * ignored meso entirely.
+ *
+ * The slot still runs — the day keeps its shape and its ballistic intent — but
+ * it renders the stage's movement, and it SAYS it is a ramp week rather than
+ * leaving the athlete to infer it. Every substitution is a movement Power Dad
+ * already prescribes somewhere; nothing here is a new exercise.
+ *
+ *   low (wk 1-2)          box jumps, easy height, step down
+ *   submax (wk 3-4)       the real movement at about three-quarters
+ *   max_vertical (wk 5-6) box jumps for max height — vertical before horizontal
+ *   low_depth (wk 7-8)    depth drops from a low box (~12")
+ *   full (wk 9+)          as written
+ */
+function rampedJump(item: PlyoPrescription, stage: RampStage): PlyoPrescription {
+  const n = item.name.toLowerCase()
+  const maximal = /broad jump|depth jump|depth drop/.test(n)
+  if (!maximal || stage === 'full') return item
+  const weeks = 'Ramp week'
+  switch (stage) {
+    case 'low':
+      return { ...item, name: 'Box Jumps', ramp: stage, note: `${weeks} — easy height, step down and reset every rep. Low amplitude on purpose: you are building the tissue that sticks a landing before you ask it to.` }
+    case 'submax':
+      return { ...item, ramp: stage, note: `${weeks} — SUBMAXIMAL, about three-quarters. Same movement, same landing, nothing like a best effort. Stick every one.` }
+    case 'max_vertical':
+      return { ...item, name: 'Box Jumps', ramp: stage, note: `${weeks} — max height, full recovery. Vertical comes back before horizontal does: the landing is a fraction of a broad jump's.` }
+    case 'low_depth':
+      // Monday is the HORIZONTAL day. Depth work enters on Saturday at this
+      // stage, not here — swapping the horizontal slot for a depth drop would
+      // leave the athlete with no horizontal exposure at all right up to the
+      // week it goes maximal, which is the cliff the graded exit exists to
+      // avoid.
+      return { ...item, ramp: stage, note: `${weeks} — still SUBMAXIMAL, about three-quarters, and the last week it is. Stick every one.` }
+    default:
+      return item
+  }
+}
+
+function broadJumps(stage: RampStage): PlyoPrescription {
+  return rampedJump({ kind: 'plyo', slot: 'broad_jump', name: 'Broad Jump', sets: 4, reps: 3, note: 'Session opener — knock these out in the open floor before you claim a rack. Stick every landing, full reset between reps.' }, stage)
 }
 
 // Friday's ballistic slot: seated box jump — dead-stop concentric, zero
@@ -616,11 +698,18 @@ function seatedBoxJumps(): PlyoPrescription {
 
 // Wednesday's ballistic slot: trap bar jumps, contrast-paired with front squat.
 // Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
-function trapBarJumps(maxes: Record<string, number>): PlyoPrescription {
+function trapBarJumps(maxes: Record<string, number>, entryPhase: boolean): PlyoPrescription {
   const bs = maxes['back_squat']
   const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
   // 3×3 in every meso (FOR-195 item 5): the front squat is 3 sets everywhere
   // now, and the jumps are its contrast pair — one jump set per squat set.
+  // NOT a contrast pair in the entry weeks (FOR-244 ruling 7): complex training
+  // is for athletes who have already done high-intensity plyometric work
+  // (Essentials p. 480), and the whole point of the ramp is that this one has
+  // not. Same jumps, same load — done fresh, on their own, before the squat.
+  if (entryPhase) {
+    return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Ramp weeks — do these FRESH, before the front squat, not paired with it.` }
+  }
   return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, superset: 'fs_contrast', note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Pair ~30s after each front squat set.` }
 }
 
@@ -704,6 +793,10 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
   if (opts?.forceDeload && !pos.isTest) pos.isDeload = true
   if (pos.isTest) return testDay(dayNumber, maxes)
 
+  // Weeks of EXPOSURE, not meso. A returning athlete taps "restart jump ramp"
+  // and opts.jumpRampFromWeek moves to that week (FOR-244).
+  const stage = rampStage(weekNumber, opts?.jumpRampFromWeek)
+  const entryPhase = lowRamp(weekNumber, opts?.jumpRampFromWeek)
   const m = pos.meso - 1
   const w = pos.weekInMeso
   // Double-progression loads for range-based slots, computed by the caller
@@ -716,7 +809,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       // Broad jumps open the day in EVERY meso (FOR-195 item 2) — a primer,
       // not a competing lift. They were M2-only, which meant two thirds of the
       // macro had no horizontal power in it at all.
-      let items: Prescription[] = [broadJumps()]
+      let items: Prescription[] = [broadJumps(stage)]
       items.push(
         // Squat-priority day: the back squat leads the barbell work — fresh
         // legs go to strength. Snatch follows (80%+ doubles tolerate
@@ -756,8 +849,14 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       // session moves to the bench.
       let items: Prescription[] = [
         liftFromSlot('push_press', D3_PUSH_PRESS[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
-        liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
-        trapBarJumps(maxes),
+        liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments,
+          entryPhase
+            // Both sides of the pairing change together: a note that says "do
+            // them separately" under a card still drawn as a pair would be two
+            // sources of truth disagreeing on the same fact.
+            ? { note: 'Ramp weeks — the trap bar jumps run before this, on their own. Squat is squat.' }
+            : { superset: 'fs_contrast' }),
+        trapBarJumps(maxes, entryPhase),
         rangeSlot('db_bench', 'DB Bench Press', D3_DB_BENCH[m].sets, D3_DB_BENCH[m].window, lt, {
           step: 5,
           superset: 'press_pull',
@@ -858,7 +957,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       // the only part the program insists on.
       const core = accessory('acc_core', "Core — Dealer's Choice", 3, 10,
         'Any core movement you want today — leg raises, Pallof, ab wheel, weighted carry, plank. 10-15 reps (or 30-45s if it is a hold). Pick it when you get there; just do the three sets.')
-      let items: Prescription[] = [liftFromSlot('ohp_press', D6_OHP[m], w, 'ohp', maxes, pos.meso, adjustments), dl, dips, core, ...saturdayPlyo(pos)]
+      let items: Prescription[] = [liftFromSlot('ohp_press', D6_OHP[m], w, 'ohp', maxes, pos.meso, adjustments), dl, dips, core, ...saturdayPlyo(pos, stage)]
       if (pos.isDeload) {
         items = [
           withResolvedDeload(dl, maxes),

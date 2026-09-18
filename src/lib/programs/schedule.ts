@@ -25,7 +25,14 @@ import { DayPlan, Prescription, ProgramConfig } from './types'
  * station it is, Saturday sits at 6 in every meso.
  */
 export function isStationFree(item: Prescription): boolean {
-  return item.slot.endsWith('_back') || item.slot === 'plyo_2'
+  // The prep sequence costs no blocks (FOR-244, Andrew's ruling 8). The budget
+  // is about the CLOCK — stations you set up, because "I have a kid, I can't
+  // spend 2+ hours" — and the prep is six drills on the open floor with no
+  // station at all. Counting it would push every ballistic day from 6 to 12 and
+  // force real work out to make room for a warm-up, which is the opposite of
+  // what this ticket is for. Its minutes are shown on the week screen instead,
+  // so the time it costs is visible without being charged to the budget.
+  return item.kind === 'prep' || item.slot.endsWith('_back') || item.slot === 'plyo_2'
 }
 
 /**

@@ -329,10 +329,24 @@ for (const d of [1, 3, 5, 6]) {
 for (const { key } of hybridPower.requiredMaxes) {
   assert(testedMaxes.has(key), `test week never retests the "${key}" max`)
 }
-// Jumps: broad jumps open Monday in EVERY meso (FOR-195 item 2 — they were
+// Jumps: Monday's ballistic slot runs in EVERY meso (FOR-195 item 2 — it was
 // M2-only, so two thirds of the macro had no horizontal power in it at all);
 // seated box jumps every Friday.
-for (const wk of [1, 5, 9]) assert(nameAt(wk, 1, 'broad_jump') === 'Broad Jump', `W${wk}: Monday needs broad jumps`)
+//
+// FOR-244 did not weaken that rule, it ramped WHAT the slot renders. The slot
+// is still there every meso — that is the FOR-195 assertion, unchanged and
+// checked first. What it renders before week 9 is the ramp's movement, marked
+// as such, because a dad on day one did maximal broad jumps with no prior
+// exposure and that is the injury this ticket exists for. So: the slot always;
+// the horizontal jump once the exposure is there; the marking while it is not.
+for (const wk of [1, 5, 9]) assert(itemAt(wk, 1, 'broad_jump') != null, `W${wk}: Monday needs its ballistic slot`)
+assert(nameAt(9, 1, 'broad_jump') === 'Broad Jump' && itemAt(9, 1, 'broad_jump').ramp == null,
+  'W9: Monday is broad jumps, unramped — full exposure is reached and the horizontal power FOR-195 asked for is back')
+for (const wk of [1, 5]) {
+  const it = itemAt(wk, 1, 'broad_jump')
+  assert(it.ramp != null, `W${wk}: Monday's ballistic slot is inside the ramp and says so`)
+  assert(!/broad jump/i.test(it.name), `W${wk}: no maximal horizontal jump before the ramp completes (FOR-244 AC2)`)
+}
 // Broad jumps OPEN Monday and are unlinked — no room to jump by the racks, so
 // they can't be a squat contrast pair, and doing them last would mean fatigued
 // jumps. Fresh, first, one trip to the open floor.

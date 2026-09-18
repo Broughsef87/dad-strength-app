@@ -174,14 +174,18 @@ function subInScope(
 async function fetchProgramState(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, userId: string, slug: string,
-): Promise<{ week: number; deloadWeeks: number[] }> {
+): Promise<{ week: number; deloadWeeks: number[]; jumpRampFromWeek?: number }> {
   const { data: prog } = await supabase
     .from('user_programs')
     .select('current_week, preferences')
     .eq('user_id', userId).eq('program_slug', slug).eq('status', 'active')
     .maybeSingle()
   const dw = prog?.preferences?.deload_weeks
+  // The week the athlete last restarted their jump ramp (FOR-244). Absent
+  // means it runs from week one, which is right for a new athlete.
+  const jr = prog?.preferences?.jump_ramp_from_week
   return {
+    jumpRampFromWeek: typeof jr === 'number' && jr > 0 ? jr : undefined,
     week: prog?.current_week ?? 1,
     deloadWeeks: Array.isArray(dw) ? dw.filter((n: unknown) => typeof n === 'number') : [],
   }
@@ -1161,7 +1165,7 @@ export default function TrainingDayPage() {
       // Without this the engine still WORKS and every check still passes —
       // buildDay just never receives loadTargets, so every accessory renders
       // with no weight, forever. The whole feature is invisible from here.
-      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload })
+      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, jumpRampFromWeek: progState.jumpRampFromWeek })
       const ranges: Record<string, [number, number]> = {}
       const steps: Record<string, number> = {}
       for (const it of probe.items) {
@@ -1200,7 +1204,7 @@ export default function TrainingDayPage() {
 
       // Deterministic build — instant, no AI — then user substitutions on top.
       const built = applySubs(
-        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads }),
+        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads, jumpRampFromWeek: progState.jumpRampFromWeek }),
         subs,
       )
       basePlanRef.current = built

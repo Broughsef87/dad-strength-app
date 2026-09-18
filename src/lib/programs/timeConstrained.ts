@@ -19,7 +19,8 @@ export const TIME_CONSTRAINED_MAX_SETS = 3
  *
  * Gym days: keep the first two lifts — every program in the registry lists
  * its primaries first — plus any jump primer that precedes them (it is short
- * and it is the warm-up), cap each kept lift at three sets, and drop the
+ * and it is the warm-up), keep the whole prep sequence, cap each kept lift at
+ * three sets, and drop the
  * rest: accessories, supersets, metcons. Test, rest and outside days come
  * back untouched: a test is the test, a rest is a rest, and an outside
  * session is already one thing.
@@ -33,6 +34,12 @@ export function reduceForTime(plan: DayPlan): DayPlan {
       if (lifts >= TIME_CONSTRAINED_LIFTS) break
       lifts++
       kept.push({ ...item, sets: Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS) })
+    } else if (item.kind === 'prep') {
+      // The warm-up is never the thing you cut. A dad with twenty-five minutes
+      // is exactly the dad who jumps cold, and the reduced day keeps the jump
+      // primer below — so dropping the prep would leave the cold jump and take
+      // away the thing that makes it safe (FOR-244).
+      kept.push(item)
     } else if (item.kind === 'plyo' && lifts === 0) {
       kept.push({ ...item, sets: Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS) })
     } else if (lifts >= TIME_CONSTRAINED_LIFTS) {
