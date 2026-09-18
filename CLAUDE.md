@@ -14,9 +14,37 @@ Write a report to `.claude/bus/reports/` and stop if the work needs any of:
 * **A second reversal of the same decision.** Flip-flopped once already means the spec is
   unstable — that is Andrew's, not a tiebreak for you or Blaine.
 
-Everything else technical — schema shape, merge points, counting rules, check design, priority
-inside the backlog, whether a finding blocks or gets filed — **Blaine rules, and you execute.**
-Do not route those to Andrew.
+## Everything else is YOURS. Decide it and keep going.
+
+Schema shape, merge points, counting rules, check design, priority inside the backlog, whether a
+finding blocks a merge or gets filed as a follow-up, whether to ship a feature partially — **these
+are not Andrew's and you must not ask him.** You cannot reach Blaine mid-run, so "Blaine rules these"
+in practice means **you rule them, record the decision and your reasoning in your report, and carry
+on.** Blaine reviews it on the next wake and reverses it if it was wrong.
+
+**The test is reversibility, not risk.** A merge reverts in five minutes. A migration applied to
+production data does not. If a choice is reversible and it is not on the gate list above, it is
+yours — make it.
+
+**When you are unsure, take the reversible option and say in the report that you were unsure.** An
+unsure decision that is written down is worth more than a question that stops the loop, because
+Blaine can act on the first and nobody is there to answer the second.
+
+### Shipping a feature whose acceptance criteria are not all met
+
+Ask one question: **does the unfinished path fail closed?**
+
+* **Refused by a database constraint, trigger or type** — ship the finished part. Nothing can
+  silently do the wrong thing, because the wrong thing is unrepresentable. Keep the ticket **open**
+  against the remaining criterion; file the follow-up and link it.
+* **Prevented only by convention, a comment, or nobody happening to click it** — hold the merge. A
+  guard that depends on someone remembering is not a guard.
+
+**Never close a ticket as done with an unmet acceptance criterion, and never strike a criterion to
+make a ticket closeable.** Done on evidence. A ticket that stays open is not a failure; a ticket that
+says done when it isn't is one.
+
+Do not route any of this to Andrew.
 
 ## Before every commit
 

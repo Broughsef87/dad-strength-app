@@ -1,4 +1,4 @@
-// ── Fuel database proof lock (FOR-240, FOR-243) — a standing check, its own file ─
+// ── Fuel database proof lock (FOR-240, FOR-242, FOR-243) — a standing check, its own file ─
 // The database proof (npm run proof:db) runs every Fuel migration and
 // scripts/checks/fuel-db-proof.sql against a throwaway Postgres. Only when
 // every case passes does it record the fingerprint of exactly the SQL it
@@ -48,9 +48,18 @@ const MUST = [
   ['inherits nothing from the line it replaced', 'a line whose key changed inherits no tick — the dangerous direction (FOR-243)'],
   ['the database decides a tick', 'the client cannot dictate a tick, and an untick survives (FOR-243)'],
   ['an old version keeps the ticks it had', 'old versions keep their own ticks (FOR-243, AC5)'],
+  // FOR-242: an own meal is owned, and the library is nobody's to write.
+  ['the slug namespace is a database constraint', "an own slug cannot be un-namespaced, another athlete's, or a seeded one (FOR-242)"],
+  ['nobody writes the library', 'no owner-less insert, and a seeded row cannot be edited or taken over (FOR-242)'],
+  ['another athlete cannot read, edit, retire, delete or plant an own meal', 'AC4 proved at the database, not asserted from the UI (FOR-242)'],
+  ['cannot delete it — the row stays', 'retiring is the only removal, so a stored plan keeps resolving its slug (FOR-242)'],
+  ['a slug never moves once a row exists', 'a rename is a migration, not an edit — it would orphan a plan already shopped (FOR-242)'],
+  ['a cut a plan has already counted cannot be edited at the write boundary', 'the cut lock is enforced in the database, not only in the form (FOR-242)'],
+  ['the meal cannot be retired', 'retiring a planned meal would drop its night from the steak allowance (FOR-242)'],
+  ['and their own meal at the database', 'own meals are behind the Pro gate, like every other Fuel write (FOR-242)'],
 ]
 for (const [text, what] of MUST) assert(proof.includes(text), `the proof covers it: ${what}`)
-assert(now.proof.cases >= 22, `the proof keeps all its cases (${now.proof.cases})`)
+assert(now.proof.cases >= 29, `the proof keeps all its cases (${now.proof.cases})`)
 assert(/"proof:db": "node scripts\/fuel-db-proof\.mjs"/.test(readFileSync(join(ROOT, 'package.json'), 'utf8')), 'npm run proof:db runs the proof')
 
 if (failures) { console.log(`\nfuel-db-proof-lock: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

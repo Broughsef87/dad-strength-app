@@ -1183,7 +1183,11 @@ const buildAgainst = async (storedItems) => {
   assert(names14.indexOf('20260918_fuel_custom_items.sql') > names14.indexOf('20260917_fuel_rotations.sql'), 'the custom-items migration sorts after everything it references')
   assert(!/ALTER TABLE public\.fuel_(meals|household|plans|lists)|DROP TABLE|DROP COLUMN|DELETE FROM|TRUNCATE|FUNCTION public\.fuel_(set_item_checked|create_version)\(/.test(cmig), 'the migration is additive: nothing existing is altered, dropped or replaced')
   assert(/\['fuel custom keys \(FOR-240\)', 'fuel-custom-keys\.mjs'\]/.test(readLF('scripts/checks/run-all.mjs')) && existsSync(join(ROOT, 'scripts/checks/fuel-custom-keys.mjs')), 'the key invariant is registered as its own suite')
-  assert(/\['fuel db proof lock \(FOR-240\)', 'fuel-db-proof-lock\.mjs'\]/.test(readLF('scripts/checks/run-all.mjs')) && existsSync(join(ROOT, 'scripts/checks/fuel-db-proof.sql')) && existsSync(join(ROOT, 'scripts/fuel-db-proof.mjs')),
+  // Matched on the SCRIPT, not on the label. The label names the tickets the
+  // lock guards and grows as more land — pinning its text made this go red the
+  // moment FOR-243 was added to it, which says nothing about whether the suite
+  // is registered. The file is the fact; the label is prose.
+  assert(/\['[^']*fuel db proof lock[^']*', 'fuel-db-proof-lock\.mjs'\]/.test(readLF('scripts/checks/run-all.mjs')) && existsSync(join(ROOT, 'scripts/checks/fuel-db-proof.sql')) && existsSync(join(ROOT, 'scripts/fuel-db-proof.mjs')),
     'the database proof lives in the repo — its SQL, its runner (npm run proof:db) and its lock check, registered as its own suite')
 }
 

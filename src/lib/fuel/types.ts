@@ -31,6 +31,14 @@ export interface MealRow {
   perishable_within_days: number | null
   rotation_note: string | null
   ingredients: MealIngredient[]
+  /**
+   * Who owns this meal (FOR-242). NULL or absent is the seeded library —
+   * everyone reads it, nobody writes it. A value is that athlete's own meal.
+   * One table and one read path: nothing downstream branches on this, and
+   * validatePlan must never learn about it. It exists so the library can show
+   * whose meal it is, and so the form knows what may be edited.
+   */
+  user_id?: string | null
 }
 
 /** A fuel_rotations row — a named fortnight, read-only to users (FOR-238). */

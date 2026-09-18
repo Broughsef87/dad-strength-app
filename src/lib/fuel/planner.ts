@@ -60,18 +60,22 @@ const isFish = (meal?: MealRow) => !!meal && (FRESH_ONLY_CUTS as readonly string
  * these, so a rule reworded in the solver fails a check instead of falling
  * through to the plan-level fallback unnoticed.
  */
+// The slug class includes `~` because an athlete's own meal is namespaced
+// (FOR-242): u<32 hex>~<name>. Without it a warning about an own meal stops
+// matching its family and loses the night it belongs on, falling back to a
+// plan-level line that does not say which night (Codex r4).
 const FAMILIES: Array<{ re: RegExp; place: (m: RegExpMatchArray) => Placement }> = [
   { re: /^week (\d+): (\d+) fish nights, rule is (\d+)$/, place: (m) => ({ nights: (e, meal) => e.week === Number(m[1]) && isFish(meal), text: `${m[2]} fish nights in week ${m[1]} — the rule is ${m[3]} a week` }) },
   { re: /^week (\d+): (\d+) turkey nights, rule is (\d+)$/, place: (m) => ({ nights: (e, meal) => e.week === Number(m[1]) && meal?.protein_cut === 'ground_turkey', text: `${m[2]} ground turkey nights in week ${m[1]} — the rule is ${m[3]} a week` }) },
   { re: /^week (\d+): (\d+) nights planned, household cooks (\d+)$/, place: (m) => ({ week: Number(m[1]), text: `${m[2]} nights planned — you cook ${m[3]} a week` }) },
-  { re: /^([a-z0-9-]+): (\d+) active minutes, cap is (\d+)$/, place: (m) => ({ nights: (e) => e.slug === m[1], text: `${m[2]} minutes at the stove — your cap is ${m[3]}` }) },
-  { re: /^([a-z0-9-]+): no protein figure, so the (\d+) g floor cannot be applied to it$/, place: (m) => ({ nights: (e) => e.slug === m[1], text: `no protein figure, so your ${m[2]} g floor cannot be applied to it` }) },
-  { re: /^([a-z0-9-]+): cooks (\d+) for (\d+) people$/, place: (m) => ({ nights: (e) => e.slug === m[1] && e.servings === Number(m[2]), text: `cooks ${m[2]}, and ${m[3]} are eating` }) },
+  { re: /^([a-z0-9~-]+): (\d+) active minutes, cap is (\d+)$/, place: (m) => ({ nights: (e) => e.slug === m[1], text: `${m[2]} minutes at the stove — your cap is ${m[3]}` }) },
+  { re: /^([a-z0-9~-]+): no protein figure, so the (\d+) g floor cannot be applied to it$/, place: (m) => ({ nights: (e) => e.slug === m[1], text: `no protein figure, so your ${m[2]} g floor cannot be applied to it` }) },
+  { re: /^([a-z0-9~-]+): cooks (\d+) for (\d+) people$/, place: (m) => ({ nights: (e) => e.slug === m[1] && e.servings === Number(m[2]), text: `cooks ${m[2]}, and ${m[3]} are eating` }) },
   { re: /^(\d+) nights? planned for week 2 on a weekly shop$/, place: () => ({ nights: (e) => e.week === 2, text: 'a weekly shop has no week 2 — remove this night' }) },
   { re: /^(\d+) steak nights? in the cycle, rule is (\d+) a month$/, place: (m) => ({ nights: (_e, meal) => meal?.protein_cut === 'ribeye', text: `${m[1]} steak nights this cycle — the rule is ${m[2]} a month` }) },
   { re: /^(\d+) steak nights in the four weeks ending in (.+), rule is (\d+) a month$/, place: (m) => ({ nights: (_e, meal) => meal?.protein_cut === 'ribeye', text: `${m[1]} steak nights in the four weeks ending in ${m[2]} — the rule is ${m[3]} a month` }) },
   { re: /^the cycle starting \d{4}-\d{2}-\d{2} is already planned and sits inside this fortnight/, place: (m) => ({ text: m.input ?? '' }) },
-  { re: /^([a-z0-9-]+): not in the library$/, place: () => ({ text: 'a night whose meal is no longer in the library — remove it and pick again' }) },
+  { re: /^([a-z0-9~-]+): not in the library$/, place: () => ({ text: 'a night whose meal is no longer in the library — remove it and pick again' }) },
 ]
 
 /** Is this one of the wordings the planner places? */
