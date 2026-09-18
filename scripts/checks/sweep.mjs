@@ -193,13 +193,33 @@ for (const wk of [1, 5, 9]) {
     assert(it?.targetRpe === undefined, `W${wk} ${slot} must carry no targetRpe, got ${it?.targetRpe}`)
   }
 }
-// Wednesday order: push press → front squat → trap bar jump → DB bench.
-const wedSlots = hybridPower.buildDay(1, 3, MAXES).items.map(i => i.slot)
+// Wednesday order: push press → front squat → trap bar jump → DB bench, once
+// the athlete is out of the ramp. Week 1 is checked separately below, because
+// FOR-244 deliberately reverses the squat and the jumps in the entry weeks:
+// contrast training is for athletes who have already done high-intensity
+// plyometric work (Essentials p. 480), and the entry weeks are the ones where
+// he has not. ORDER IS THE INSTRUCTION — the notes say the jumps go first, so
+// the jumps are listed first.
+const wedSlots = hybridPower.buildDay(9, 3, MAXES).items.map(i => i.slot)
 assert(
   wedSlots.indexOf('push_press') < wedSlots.indexOf('front_squat') &&
   wedSlots.indexOf('front_squat') < wedSlots.indexOf('tb_jump') &&
   wedSlots.indexOf('tb_jump') < wedSlots.indexOf('db_bench'),
-  `Wed order wrong: ${wedSlots.join(' → ')}`,
+  `Wed order wrong at full exposure: ${wedSlots.join(' → ')}`,
+)
+
+// ...and in the entry weeks the jumps come FIRST, with no pairing left behind.
+// Asserted rather than assumed: changing only the notes would leave the cards
+// in an order that contradicts them, and the athlete follows the cards.
+const wedEntry = hybridPower.buildDay(1, 3, MAXES).items
+const entrySlots = wedEntry.map(i => i.slot)
+assert(
+  entrySlots.indexOf('tb_jump') < entrySlots.indexOf('front_squat'),
+  `Wed entry-week order wrong — the jumps must precede the squat: ${entrySlots.join(' → ')}`,
+)
+assert(
+  wedEntry.every(i => i.superset !== 'fs_contrast'),
+  'Wed entry week still draws the front squat and the jumps as a contrast pair',
 )
 assert(nameAt(1, 1, 'bench_heavy') === 'Bench Press' && nameAt(5, 1, 'bench_heavy') === '1¼ Bench Press' && nameAt(9, 1, 'bench_heavy') === 'Bench Press', 'Mon bench: 1¼ in M2 only')
 assert(nameAt(5, 3, 'front_squat') === 'Pause Front Squat' && nameAt(9, 3, 'front_squat') === 'Front Squat', 'front squat: pause in M2, straight in M3')

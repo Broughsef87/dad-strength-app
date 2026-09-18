@@ -708,7 +708,7 @@ function trapBarJumps(maxes: Record<string, number>, entryPhase: boolean): PlyoP
   // (Essentials p. 480), and the whole point of the ramp is that this one has
   // not. Same jumps, same load — done fresh, on their own, before the squat.
   if (entryPhase) {
-    return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Ramp weeks — do these FRESH, before the front squat, not paired with it.` }
+    return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Ramp weeks — these come FIRST, before the front squat, not paired with it.` }
   }
   return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, superset: 'fs_contrast', note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Pair ~30s after each front squat set.` }
 }
@@ -849,14 +849,20 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
       // session moves to the bench.
       let items: Prescription[] = [
         liftFromSlot('push_press', D3_PUSH_PRESS[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
-        liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments,
-          entryPhase
-            // Both sides of the pairing change together: a note that says "do
-            // them separately" under a card still drawn as a pair would be two
-            // sources of truth disagreeing on the same fact.
-            ? { note: 'Ramp weeks — the trap bar jumps run before this, on their own. Squat is squat.' }
-            : { superset: 'fs_contrast' }),
-        trapBarJumps(maxes, entryPhase),
+        // ORDER IS THE INSTRUCTION. In the entry weeks the jumps are done fresh,
+        // before the squat — so they are LISTED before the squat. Changing only
+        // the notes would leave the card order saying one thing and the words
+        // another, and the athlete follows the order (Codex r1).
+        ...(entryPhase
+          ? [
+              trapBarJumps(maxes, true),
+              liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments,
+                { note: 'Ramp weeks — the trap bar jumps ran before this, on their own. Squat is squat.' }),
+            ]
+          : [
+              liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
+              trapBarJumps(maxes, false),
+            ]),
         rangeSlot('db_bench', 'DB Bench Press', D3_DB_BENCH[m].sets, D3_DB_BENCH[m].window, lt, {
           step: 5,
           superset: 'press_pull',

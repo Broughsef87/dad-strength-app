@@ -19,7 +19,7 @@ import type { DayPlan } from '../../../lib/programs/types'
 import MaxesCard from '../../../components/MaxesCard'
 import { RUN_EPOCH } from '../../../lib/programs/run'
 import { blockCount, dayLabel, scheduledDayNumbers } from '../../../lib/programs/schedule'
-import { PREP_MINUTES, exposureWeek, rampStage } from '../../../lib/programs/prep'
+import { PREP_MINUTES, exposureWeek, rampOriginFor, rampStage } from '../../../lib/programs/prep'
 
 interface DoneMap { [week: number]: Set<number> }
 
@@ -54,9 +54,10 @@ export default function SchedulePage() {
   const [deloadWeeks, setDeloadWeeks] = useState<number[]>([])
   const [dismissedChecks, setDismissedChecks] = useState<number[]>([])
   const prefsRef = useRef<Record<string, unknown>>({})
-  // The week the jump ramp last (re)started (FOR-244). Undefined means it runs
-  // from week one — right for a new athlete, and what Andrew gets until he taps.
-  const [jumpRampFromWeek, setJumpRampFromWeek] = useState<number | undefined>(undefined)
+  // EVERY week the jump ramp was restarted (FOR-244). A LIST, not a single
+  // week: the origin in force depends on the week being drawn, so a restart
+  // today cannot rewrite what a completed week prescribed.
+  const [jumpRampRestarts, setJumpRampRestarts] = useState<number[]>([])
 
   const load = useCallback(async () => {
     if (!user || !program) return
@@ -76,8 +77,8 @@ export default function SchedulePage() {
       prefsRef.current = (prog?.preferences ?? {}) as Record<string, unknown>
       const dw = (prefsRef.current as { deload_weeks?: unknown }).deload_weeks
       setDeloadWeeks(Array.isArray(dw) ? dw.filter((n): n is number => typeof n === 'number') : [])
-      const jr = (prefsRef.current as { jump_ramp_from_week?: unknown }).jump_ramp_from_week
-      setJumpRampFromWeek(typeof jr === 'number' && jr > 0 ? jr : undefined)
+      const jr = (prefsRef.current as { jump_ramp_restarts?: unknown }).jump_ramp_restarts
+      setJumpRampRestarts(Array.isArray(jr) ? jr.filter((n): n is number => typeof n === 'number' && n > 0) : [])
       const dc = (prefsRef.current as { deload_checks_dismissed?: unknown }).deload_checks_dismissed
       setDismissedChecks(Array.isArray(dc) ? dc.filter((n): n is number => typeof n === 'number') : [])
       const m: Record<string, number> = {}
@@ -155,14 +156,15 @@ export default function SchedulePage() {
   // all. Iterating the scheduled days is what makes rendered == scheduled.
   const weekPlans = scheduledDayNumbers(program, selectedWeek).map(d => ({
     day: d,
-    plan: program.buildDay(selectedWeek, d, maxes, undefined, { forceDeload: isForcedDeload, jumpRampFromWeek }),
+    plan: program.buildDay(selectedWeek, d, maxes, undefined, { forceDeload: isForcedDeload, jumpRampFromWeek: rampOrigin }),
   }))
   // The prep and the ramp, read off the week that was actually built rather
   // than assumed from the program slug — a program grows a ballistic slot and
   // this follows it (FOR-244).
   const prepDays = weekPlans.filter(({ plan }) => plan.items.some(i => i.kind === 'prep')).length
-  const stage = rampStage(selectedWeek, jumpRampFromWeek)
-  const exposure = exposureWeek(selectedWeek, jumpRampFromWeek)
+  const rampOrigin = rampOriginFor(selectedWeek, jumpRampRestarts)
+  const stage = rampStage(selectedWeek, rampOrigin)
+  const exposure = exposureWeek(selectedWeek, rampOrigin)
   const RAMP_COPY: Record<string, string> = {
     low: 'low amplitude — box jumps, step down, nothing maximal',
     submax: 'submaximal — the real movement at about three-quarters',
@@ -197,8 +199,10 @@ export default function SchedulePage() {
   // already did is what he already did.
   const restartJumpRamp = async () => {
     if (!user) return
-    setJumpRampFromWeek(currentWeek)
-    prefsRef.current = { ...prefsRef.current, jump_ramp_from_week: currentWeek }
+    if (jumpRampRestarts.includes(currentWeek)) return
+    const next = [...jumpRampRestarts, currentWeek].sort((a, b) => a - b)
+    setJumpRampRestarts(next)
+    prefsRef.current = { ...prefsRef.current, jump_ramp_restarts: next }
     await supabase.from('user_programs')
       .update({ preferences: prefsRef.current })
       .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')

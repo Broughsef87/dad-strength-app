@@ -21,7 +21,7 @@ import ForgeLoader from '../../../../components/ForgeLoader'
 import MaxesCard from '../../../../components/MaxesCard'
 import {
   DayPlan, LiftPrescription, MetconPrescription, OutsideSession,
-  PlyoPrescription, getProgram,
+  PlyoPrescription, PrepPrescription, getProgram, rampOriginFor,
 } from '../../../../lib/programs'
 import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
@@ -174,18 +174,18 @@ function subInScope(
 async function fetchProgramState(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, userId: string, slug: string,
-): Promise<{ week: number; deloadWeeks: number[]; jumpRampFromWeek?: number }> {
+): Promise<{ week: number; deloadWeeks: number[]; jumpRampRestarts: number[] }> {
   const { data: prog } = await supabase
     .from('user_programs')
     .select('current_week, preferences')
     .eq('user_id', userId).eq('program_slug', slug).eq('status', 'active')
     .maybeSingle()
   const dw = prog?.preferences?.deload_weeks
-  // The week the athlete last restarted their jump ramp (FOR-244). Absent
-  // means it runs from week one, which is right for a new athlete.
-  const jr = prog?.preferences?.jump_ramp_from_week
+  // EVERY week the athlete has restarted their jump ramp (FOR-244), not just
+  // the last — a past week keeps the ramp it was actually trained under.
+  const jr = prog?.preferences?.jump_ramp_restarts
   return {
-    jumpRampFromWeek: typeof jr === 'number' && jr > 0 ? jr : undefined,
+    jumpRampRestarts: Array.isArray(jr) ? jr.filter((n: unknown) => typeof n === 'number' && n > 0) : [],
     week: prog?.current_week ?? 1,
     deloadWeeks: Array.isArray(dw) ? dw.filter((n: unknown) => typeof n === 'number') : [],
   }
@@ -689,6 +689,42 @@ interface PlyoSetEntry {
   done: boolean
 }
 
+/**
+ * The prep sequence (FOR-244) — ONE card at the top of the day, not six.
+ *
+ * The plan carries six prep items so every drill has its own rep count and the
+ * ballistic check can add the hops up. The DAY does not need six cards for a
+ * warm-up, so they render as one block. The plan is the source of truth either
+ * way; this only decides how it is drawn.
+ *
+ * It is a card, with the same weight as the work below it, because a warm-up
+ * that reads as optional is not a warm-up. It is not logged per set: the
+ * athlete logs the jumps it precedes, and the check is what proves the prep is
+ * prescribed at all.
+ */
+function PrepCard({ items }: { items: PrepPrescription[] }) {
+  const minutes = items.find(i => i.minutes != null)?.minutes
+  return (
+    <div className="relative bg-card border border-border overflow-hidden">
+      <div className="px-3.5 pt-3 pb-2 flex items-baseline justify-between gap-3">
+        <p className="eyebrow-mono">prep · before you jump</p>
+        {minutes != null && <span className="eyebrow-mono-sm shrink-0">{minutes} min</span>}
+      </div>
+      <ul className="px-3.5 pb-3 space-y-1.5">
+        {items.map(d => (
+          <li key={d.slot} className="row-recessed px-3 py-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm font-medium">{d.name}</span>
+              <span className="stat-num text-sm shrink-0">{d.sets} × {d.reps}</span>
+            </div>
+            {d.note && <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{d.note}</p>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function PlyoCard({ item, index, initialLogs, onLog, onSwap, onSetComplete, onSetCountChange, onRemove }: {
   item: PlyoPrescription
   index: number
@@ -1165,7 +1201,7 @@ export default function TrainingDayPage() {
       // Without this the engine still WORKS and every check still passes —
       // buildDay just never receives loadTargets, so every accessory renders
       // with no weight, forever. The whole feature is invisible from here.
-      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, jumpRampFromWeek: progState.jumpRampFromWeek })
+      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) })
       const ranges: Record<string, [number, number]> = {}
       const steps: Record<string, number> = {}
       for (const it of probe.items) {
@@ -1204,7 +1240,7 @@ export default function TrainingDayPage() {
 
       // Deterministic build — instant, no AI — then user substitutions on top.
       const built = applySubs(
-        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads, jumpRampFromWeek: progState.jumpRampFromWeek }),
+        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) }),
         subs,
       )
       basePlanRef.current = built
@@ -1777,13 +1813,21 @@ export default function TrainingDayPage() {
           // Consecutive items sharing a superset id render as one linked unit.
           const groups: Array<{ superset?: string; entries: Array<{ item: Item; i: number }> }> = []
           plan.items.forEach((item, i) => {
-            const ss = item.kind === 'lift' || item.kind === 'plyo' ? item.superset : undefined
+            // Prep groups on its own kind, not on a superset id: the six drills are
+            // a sequence, not a circuit, and the linked-superset rail says
+            // "alternate sets", which is the wrong instruction for a warm-up.
+            const ss = item.kind === 'prep' ? 'prep' : item.kind === 'lift' || item.kind === 'plyo' ? item.superset : undefined
             const last = groups[groups.length - 1]
             if (ss && last?.superset === ss) last.entries.push({ item, i })
             else groups.push({ superset: ss, entries: [{ item, i }] })
           })
           return groups.map(g =>
-            g.entries.length > 1 ? (
+            g.entries[0].item.kind === 'prep' ? (
+              <div key={`prep-${g.entries[0].i}`} className="panel-mount" style={{ animationDelay: `${g.entries[0].i * 45}ms` }}>
+                <div className="readout-rule mb-2" />
+                <PrepCard items={g.entries.map(e => e.item as PrepPrescription)} />
+              </div>
+            ) : g.entries.length > 1 ? (
               <div key={`ss-${g.superset}-${g.entries[0].i}`} className="panel-mount" style={{ animationDelay: `${g.entries[0].i * 45}ms` }}>
                 <div className="readout-rule mb-2" />
                 <div className="relative pl-3">

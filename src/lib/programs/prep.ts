@@ -84,6 +84,22 @@ export const RAMP_STAGES: ReadonlyArray<{ from: number; stage: RampStage }> = [
   { from: 9, stage: 'full' },
 ]
 
+/**
+ * The ramp origin in force for a given week, from every restart the athlete has
+ * made. The LATEST restart at or before that week — never a later one.
+ *
+ * A single stored "from" week rewrote history: restart in week 10 and week 9
+ * re-evaluated to exposure 1, so a session already completed as Broad Jump
+ * redrew as Box Jumps, and its logs — matched by exercise name — fell off the
+ * card (Codex r1). The list is what makes a past week keep the ramp it was
+ * actually trained under.
+ */
+export function rampOriginFor(weekNumber: number, restarts: readonly number[] = []): number {
+  let origin = 1
+  for (const r of restarts) if (r > origin && r <= weekNumber) origin = r
+  return origin
+}
+
 /** Weeks of exposure this absolute week represents. `from` is the week the ramp last (re)started. */
 export const exposureWeek = (weekNumber: number, from = 1): number => Math.max(1, weekNumber - Math.max(1, from) + 1)
 
