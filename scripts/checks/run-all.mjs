@@ -38,6 +38,9 @@ const SUITES = [
   ['adherence (FOR-228)', 'adherence.mjs'],
   ['protocol row key (FOR-228)', 'protocol-row-key.mjs'],
   ['program lineup (FOR-225)', 'program-lineup.mjs'],
+  // The prep slot, the jump ramp and the ground-contact ceiling — its own suite,
+  // so a revert of the prep cannot take the check that would catch it (FOR-244).
+  ['ballistic load (FOR-244)', 'ballistic-load.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
   // Its own suite, not a section of fuel-solve: a revert of the rotations
   // feature must not take the check that would catch the revert with it.
