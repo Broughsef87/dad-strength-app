@@ -226,9 +226,12 @@ ok('a lit led cell is volt', /\.led-cell\.lit\s*\{\s*background:\s*hsl\(var\(--b
   // the day name at the 390px design width, and the name truncates. That strip
   // is bounded — its cells flex inside a fixed width — and only that one:
   // every other strip is seven cells or fewer. Codex, round 1.
+  // The count is `progressCells` — the LOGGABLE items — since FOR-244 added six
+  // prescribed-but-unlogged prep lines to every ballistic day. Still bounded:
+  // it is a subset of plan.items.
   const day = readFileSync(join(SRC, 'app', 'train', '[program]', '[day]', 'page.tsx'), 'utf8')
   ok('the day header block strip is bounded (led-bar led-bar-fit) — it can hold eight cells inside phone chrome',
-    /className="led-bar led-bar-fit">\s*\{Array\.from\(\{ length: Math\.max\(plan\.items\.length, 1\) \}\)/.test(day), null)
+    /className="led-bar led-bar-fit">\s*\{Array\.from\(\{ length: Math\.max\(progressCells, 1\) \}\)/.test(day), null)
   const fit = rule('.led-bar-fit')
   const fitPx = px(decl(fit, 'width'))
   ok('.led-bar-fit is a fixed width no wider than 6rem, and its cells flex to fit it',

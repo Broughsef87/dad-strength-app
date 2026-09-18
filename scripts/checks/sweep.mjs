@@ -1,6 +1,9 @@
 // Deterministic sweep of the athletic-power hybridPower config.
 // Run: npx tsx sweep.mjs (from repo root or with absolute path)
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
+// The registry wraps the raw config (modes, and the FOR-244 prep). Where an
+// assertion is about the day the APP renders, it must read this, not the config.
+import { PROGRAMS } from '../../src/lib/programs/index.ts'
 // The station rule and the week's shape are SHARED with the app now. The
 // schedule screen kept its own copy of blockCount that only knew about
 // *_back, so it would have printed '7 blocks' on a Saturday this suite calls
@@ -193,13 +196,33 @@ for (const wk of [1, 5, 9]) {
     assert(it?.targetRpe === undefined, `W${wk} ${slot} must carry no targetRpe, got ${it?.targetRpe}`)
   }
 }
-// Wednesday order: push press → front squat → trap bar jump → DB bench.
-const wedSlots = hybridPower.buildDay(1, 3, MAXES).items.map(i => i.slot)
+// Wednesday order: push press → front squat → trap bar jump → DB bench, once
+// the athlete is out of the ramp. Week 1 is checked separately below, because
+// FOR-244 deliberately reverses the squat and the jumps in the entry weeks:
+// contrast training is for athletes who have already done high-intensity
+// plyometric work (Essentials p. 480), and the entry weeks are the ones where
+// he has not. ORDER IS THE INSTRUCTION — the notes say the jumps go first, so
+// the jumps are listed first.
+const wedSlots = hybridPower.buildDay(9, 3, MAXES).items.map(i => i.slot)
 assert(
   wedSlots.indexOf('push_press') < wedSlots.indexOf('front_squat') &&
   wedSlots.indexOf('front_squat') < wedSlots.indexOf('tb_jump') &&
   wedSlots.indexOf('tb_jump') < wedSlots.indexOf('db_bench'),
-  `Wed order wrong: ${wedSlots.join(' → ')}`,
+  `Wed order wrong at full exposure: ${wedSlots.join(' → ')}`,
+)
+
+// ...and in the entry weeks the jumps come FIRST, with no pairing left behind.
+// Asserted rather than assumed: changing only the notes would leave the cards
+// in an order that contradicts them, and the athlete follows the cards.
+const wedEntry = hybridPower.buildDay(1, 3, MAXES).items
+const entrySlots = wedEntry.map(i => i.slot)
+assert(
+  entrySlots.indexOf('tb_jump') < entrySlots.indexOf('front_squat'),
+  `Wed entry-week order wrong — the jumps must precede the squat: ${entrySlots.join(' → ')}`,
+)
+assert(
+  wedEntry.every(i => i.superset !== 'fs_contrast'),
+  'Wed entry week still draws the front squat and the jumps as a contrast pair',
 )
 assert(nameAt(1, 1, 'bench_heavy') === 'Bench Press' && nameAt(5, 1, 'bench_heavy') === '1¼ Bench Press' && nameAt(9, 1, 'bench_heavy') === 'Bench Press', 'Mon bench: 1¼ in M2 only')
 assert(nameAt(5, 3, 'front_squat') === 'Pause Front Squat' && nameAt(9, 3, 'front_squat') === 'Front Squat', 'front squat: pause in M2, straight in M3')
@@ -329,10 +352,24 @@ for (const d of [1, 3, 5, 6]) {
 for (const { key } of hybridPower.requiredMaxes) {
   assert(testedMaxes.has(key), `test week never retests the "${key}" max`)
 }
-// Jumps: broad jumps open Monday in EVERY meso (FOR-195 item 2 — they were
+// Jumps: Monday's ballistic slot runs in EVERY meso (FOR-195 item 2 — it was
 // M2-only, so two thirds of the macro had no horizontal power in it at all);
 // seated box jumps every Friday.
-for (const wk of [1, 5, 9]) assert(nameAt(wk, 1, 'broad_jump') === 'Broad Jump', `W${wk}: Monday needs broad jumps`)
+//
+// FOR-244 did not weaken that rule, it ramped WHAT the slot renders. The slot
+// is still there every meso — that is the FOR-195 assertion, unchanged and
+// checked first. What it renders before week 9 is the ramp's movement, marked
+// as such, because a dad on day one did maximal broad jumps with no prior
+// exposure and that is the injury this ticket exists for. So: the slot always;
+// the horizontal jump once the exposure is there; the marking while it is not.
+for (const wk of [1, 5, 9]) assert(itemAt(wk, 1, 'broad_jump') != null, `W${wk}: Monday needs its ballistic slot`)
+assert(nameAt(9, 1, 'broad_jump') === 'Broad Jump' && itemAt(9, 1, 'broad_jump').ramp == null,
+  'W9: Monday is broad jumps, unramped — full exposure is reached and the horizontal power FOR-195 asked for is back')
+for (const wk of [1, 5]) {
+  const it = itemAt(wk, 1, 'broad_jump')
+  assert(it.ramp != null, `W${wk}: Monday's ballistic slot is inside the ramp and says so`)
+  assert(!/broad jump/i.test(it.name), `W${wk}: no maximal horizontal jump before the ramp completes (FOR-244 AC2)`)
+}
 // Broad jumps OPEN Monday and are unlinked — no room to jump by the racks, so
 // they can't be a squat contrast pair, and doing them last would mean fatigued
 // jumps. Fresh, first, one trip to the open floor.
@@ -351,7 +388,16 @@ for (let wk = 1; wk <= 13; wk++) {
   assert(!parts.some(p => /broad jump/i.test(p)), `W${wk} sprint day still has broad jumps`)
   // "no jogging" is the instruction, not a violation — strip it before testing.
   assert(!parts.some(p => /\bjog(ging)?\b/i.test(p.replace(/no jogging/gi, ''))), `W${wk} sprint day still warms up with a jog`)
-  assert(/no jogging/i.test(parts[0] ?? ''), `W${wk} sprint day missing the drill warm-up`)
+  // The drill warm-up is a PREP SLOT now, not prose in the session's parts
+  // (FOR-244). Read through the REGISTRY, because the registry is what adds it —
+  // this file imports the raw config, which is not the day the app renders.
+  // Stronger than the prose test it replaces: a slot with rep counts, rather
+  // than a sentence that merely contained the words "no jogging".
+  const shipped = PROGRAMS['hybrid-power'].buildDay(wk, 2, MAXES).items
+  const preps = shipped.filter(i => i.kind === 'prep')
+  assert(preps.length > 0, `W${wk} sprint day missing the drill warm-up`)
+  assert(preps.some(i => /pogo/i.test(i.name) && i.reps > 0), `W${wk} sprint warm-up has no countable hops`)
+  assert(shipped.indexOf(preps[0]) === 0, `W${wk} sprint warm-up is not the first thing on the day`)
   const wim = ((wk - 1) % 13) + 1
   if (wim !== 12 && wim !== 13) {
     assert(parts.some(p => /^Neck:/.test(p)), `W${wk} sprint day missing neck work`)

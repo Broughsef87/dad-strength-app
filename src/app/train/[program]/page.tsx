@@ -19,6 +19,7 @@ import type { DayPlan } from '../../../lib/programs/types'
 import MaxesCard from '../../../components/MaxesCard'
 import { RUN_EPOCH } from '../../../lib/programs/run'
 import { blockCount, dayLabel, scheduledDayNumbers } from '../../../lib/programs/schedule'
+import { PREP_MINUTES, exposureWeek, rampOriginFor, rampStage } from '../../../lib/programs/prep'
 
 interface DoneMap { [week: number]: Set<number> }
 
@@ -53,6 +54,10 @@ export default function SchedulePage() {
   const [deloadWeeks, setDeloadWeeks] = useState<number[]>([])
   const [dismissedChecks, setDismissedChecks] = useState<number[]>([])
   const prefsRef = useRef<Record<string, unknown>>({})
+  // EVERY week the jump ramp was restarted (FOR-244). A LIST, not a single
+  // week: the origin in force depends on the week being drawn, so a restart
+  // today cannot rewrite what a completed week prescribed.
+  const [jumpRampRestarts, setJumpRampRestarts] = useState<number[]>([])
 
   const load = useCallback(async () => {
     if (!user || !program) return
@@ -72,6 +77,8 @@ export default function SchedulePage() {
       prefsRef.current = (prog?.preferences ?? {}) as Record<string, unknown>
       const dw = (prefsRef.current as { deload_weeks?: unknown }).deload_weeks
       setDeloadWeeks(Array.isArray(dw) ? dw.filter((n): n is number => typeof n === 'number') : [])
+      const jr = (prefsRef.current as { jump_ramp_restarts?: unknown }).jump_ramp_restarts
+      setJumpRampRestarts(Array.isArray(jr) ? jr.filter((n): n is number => typeof n === 'number' && n > 0) : [])
       const dc = (prefsRef.current as { deload_checks_dismissed?: unknown }).deload_checks_dismissed
       setDismissedChecks(Array.isArray(dc) ? dc.filter((n): n is number => typeof n === 'number') : [])
       const m: Record<string, number> = {}
@@ -147,10 +154,24 @@ export default function SchedulePage() {
   // easy day, so counting to 5 rendered Mon-Fri: two rest days listed as
   // sessions, and Saturday and the aerobic day unreachable from the app at
   // all. Iterating the scheduled days is what makes rendered == scheduled.
+  const rampOrigin = rampOriginFor(selectedWeek, jumpRampRestarts)
   const weekPlans = scheduledDayNumbers(program, selectedWeek).map(d => ({
     day: d,
-    plan: program.buildDay(selectedWeek, d, maxes, undefined, { forceDeload: isForcedDeload }),
+    plan: program.buildDay(selectedWeek, d, maxes, undefined, { forceDeload: isForcedDeload, jumpRampFromWeek: rampOrigin }),
   }))
+  // The prep and the ramp, read off the week that was actually built rather
+  // than assumed from the program slug — a program grows a ballistic slot and
+  // this follows it (FOR-244).
+  const prepDays = weekPlans.filter(({ plan }) => plan.items.some(i => i.kind === 'prep')).length
+  const stage = rampStage(selectedWeek, rampOrigin)
+  const exposure = exposureWeek(selectedWeek, rampOrigin)
+  const RAMP_COPY: Record<string, string> = {
+    low: 'low amplitude — box jumps, step down, nothing maximal',
+    submax: 'submaximal — the real movement at about three-quarters',
+    max_vertical: 'max vertical — height is back, horizontal is not yet',
+    low_depth: 'low-box depth — the last step before full',
+    full: 'full — every jump as written',
+  }
   const doneDays = doneMap[selectedWeek] ?? new Set<number>()
 
   const weekTag = (wim: number, wk?: number) =>
@@ -167,6 +188,26 @@ export default function SchedulePage() {
       : [...deloadWeeks, selectedWeek]
     setDeloadWeeks(next)
     prefsRef.current = { ...prefsRef.current, deload_weeks: next }
+    await supabase.from('user_programs')
+      .update({ preferences: prefsRef.current })
+      .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')
+  }
+
+  // Restart the jump ramp — a returning athlete, or one coming back from a
+  // layoff, starts their exposure again from the week they tap it. There is NO
+  // BACKFILL (Andrew's ruling): nothing recomputes past weeks, because what he
+  // already did is what he already did.
+  const restartJumpRamp = async () => {
+    if (!user) return
+    // FROM NEXT WEEK, not this one. Restarting mid-week would re-prescribe days
+    // already trained — Monday's completed Broad Jump redrawing as Box Jumps,
+    // taking its logs off the card with it, because logs match on movement
+    // NAME (Codex r2). Nothing already done is ever re-prescribed.
+    const from = currentWeek + 1
+    if (jumpRampRestarts.includes(from)) return
+    const next = [...jumpRampRestarts, from].sort((a, b) => a - b)
+    setJumpRampRestarts(next)
+    prefsRef.current = { ...prefsRef.current, jump_ramp_restarts: next }
     await supabase.from('user_programs')
       .update({ preferences: prefsRef.current })
       .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')
@@ -224,6 +265,34 @@ export default function SchedulePage() {
               )}
             </div>
           </div>
+
+          {prepDays > 0 && (
+            <div className="tile p-4 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="eyebrow-mono mb-1">jump prep</p>
+                  <p className="text-sm">
+                    {PREP_MINUTES} min before the jumps, on {prepDays} {prepDays === 1 ? 'day' : 'days'} this week
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    it does not come out of your six blocks — it is drills on the open floor
+                  </p>
+                </div>
+                <span className="pill-quiet px-2.5 py-1 text-[11px] shrink-0">week {exposure}</span>
+              </div>
+              <div className="row-recessed px-3 py-2">
+                <p className="eyebrow-mono-sm mb-0.5">jump ramp</p>
+                <p className="text-xs leading-relaxed">{RAMP_COPY[stage]}</p>
+              </div>
+              <button
+                onClick={() => void restartJumpRamp()}
+                title="coming back from a layoff? start the jump ramp again from this week."
+                className="pill-quiet w-full py-2 text-[11px] hover:text-foreground transition-colors"
+              >
+                restart jump ramp — from next week
+              </button>
+            </div>
+          )}
 
           {fatigueCheckDue && (
             <div className="tile p-4">
