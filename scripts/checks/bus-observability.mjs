@@ -36,16 +36,21 @@
 // overnight is owed nothing until Claude Code is opened in the morning;
 // without that, every morning would start with a false alarm.
 //
-// When no session has started since the doorbell landed there are two very
-// different states, and the log cannot tell them apart because nothing records
-// a session ENDING. Either the doorbell arrived mid-session and the dispatcher
-// is dead — the FOR-246 defect itself — or nobody has opened Claude Code since.
-// The running process can tell them apart where the log cannot: CLAUDECODE is
-// set in this environment when a session is up (measured 2026-09-17, not
-// remembered). Inside a session, a doorbell with no boot after it arrived
-// mid-session and a dispatch is owed now. Outside one, nothing is owed: there
-// has been no opportunity to dispatch, and reporting "the dispatcher is not
-// running" would be a false alarm about a bus nobody has started.
+// When no session has started since the doorbell landed, the dispatch is owed
+// from the doorbell itself. Two very different states produce that shape — the
+// doorbell arrived mid-session and the dispatcher is dead (the FOR-246 defect),
+// or nobody has opened Claude Code since it was queued — and the log cannot
+// tell them apart, because nothing records a session ENDING.
+//
+// It reports BOTH rather than picking one. An earlier version read CLAUDECODE
+// to decide, which is the checker's own environment and not a fact about the
+// bus: a monitor running outside Claude Code then went quiet while a session
+// was up with a dead dispatcher, and the same queue gave opposite verdicts
+// depending on who ran the check. A check that goes silent when it cannot tell
+// is this ticket's original defect in miniature. So the verdict never depends
+// on the caller, and the message names both explanations instead of asserting
+// the one it cannot prove. Either way the answer is the same: this work is
+// going nowhere, go and look.
 //
 // The first boot, never the newest: once a dispatch is due it stays due until a
 // hook=stop line acknowledges it. Keying on the newest let every session start
@@ -250,22 +255,22 @@ if (!existsSync(BUS) || !existsSync(queueDir)) {
     // silence. That would have failed `npm run checks` on a deliberately capped
     // queue, which is the check crying wolf about its own rounding.
     const sec = (ms) => Math.floor(ms / 1000) * 1000
-    // A session is up right now iff this is running under one — see the header.
-    const insideSession = process.env.CLAUDECODE != null
-    const dueAt = (at) => bootStamps.find((t) => sec(t) >= sec(at)) ?? (insideSession ? at : null)
-    const dated = queued.map((d) => ({ ...d, due: dueAt(d.at) }))
-    const notYetDue = dated.filter((d) => d.due == null)
-    const unheard = dated
-      .filter((d) => d.due != null)
+    // Nothing here reads the environment: the same bus gives the same verdict
+    // whoever runs the check — Claude Code, a terminal, a monitor.
+    const dueAt = (at) => bootStamps.find((t) => sec(t) >= sec(at)) ?? at
+    const unheard = queued
+      .map((d) => ({ ...d, due: dueAt(d.at), bootedSince: bootStamps.some((t) => sec(t) >= sec(d.at)) }))
       .filter((d) => !(lastStop != null && sec(lastStop) >= sec(d.due)))
       .map((d) => ({ ...d, waitedMin: (Date.now() - d.due) / 60000 }))
       .sort((a, b) => b.waitedMin - a.waitedMin)
     const overdue = unheard.filter((d) => d.waitedMin > GRACE_MINUTES)
+    const why = overdue[0]?.bootedSince
+      ? 'A session started with it queued and the Stop hook never spoke: the dispatcher is not running.'
+      : 'Either the dispatcher is not running, or no session has started since it was queued.'
     assert(overdue.length === 0,
-      `the Stop hook has spoken since every queued ticket fell due — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min with no hook=stop entry after it, past the ${GRACE_MINUTES} min grace. The dispatcher is not running.` : ''}`)
+      `the Stop hook has spoken since every queued ticket fell due — ${overdue.length ? `${overdue[0].f} has waited ${overdue[0].waitedMin.toFixed(0)} min with no hook=stop entry after it, past the ${GRACE_MINUTES} min grace. ${why}` : ''}`)
     const oldest = unheard[0]
-    const idle = notYetDue.length ? `, ${notYetDue.length} awaiting a session` : ''
-    console.log(`  · ${queued.length} queued, ${unheard.length} undispatched since due${idle}${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
+    console.log(`  · ${queued.length} queued, ${unheard.length} undispatched since due${oldest ? ` (oldest ${oldest.f}, ${oldest.waitedMin.toFixed(0)} min, grace ${GRACE_MINUTES})` : ' — none'}`)
   }
 }
 
