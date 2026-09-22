@@ -22,7 +22,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { RECORDED, isRecorded, isStoredPlan, isTrained, reattachLogged, samePlan, sessionPlan } from '../../src/lib/programs/sessionPlan.ts'
+import { RECORDED, isRecorded, isStoredPlan, isTrained, reattachLogged, recordOnce, rewriteRecord, samePlan, sessionPlan } from '../../src/lib/programs/sessionPlan.ts'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import { rampOriginFor } from '../../src/lib/programs/prep.ts'
 
@@ -90,6 +90,55 @@ const MAXES = { back_squat: 315, bench: 225, deadlift: 405, ohp: 135, clean: 205
     'recorded means the marker the page writes, exactly — nothing else on a row passes for it')
   assert(samePlan({ a: 1, b: { c: [1, 2], d: 'x' } }, { b: { d: 'x', c: [1, 2] }, a: 1 }) && !samePlan({ a: 1 }, { a: 2 }) && !samePlan({ items: [1, 2] }, { items: [2, 1] }),
     'plans compare the same whatever order jsonb hands their keys back in, and differ when they differ')
+}
+
+// ── 1b. the record is written once, and every log waits for it (Codex r2) ──
+// Driven as behaviour, with writes that take time — the race is the thing.
+{
+  const tick = () => new Promise((r) => setTimeout(r, 5))
+  // THE P1: a log per keystroke, all asked for while the first record is still
+  // in flight. The last value typed must be the last one saved.
+  const st = { recorded: false, pending: null }
+  let writes = 0, landed = false
+  const write = async () => { writes++; await tick(); landed = true; return { error: null } }
+  const saved = []
+  const log = async (v) => { await recordOnce(st, write); saved.push({ v, afterRecord: landed }) }
+  await Promise.all([log('2'), log('22'), log('225')])
+  assert(saved.map((x) => x.v).join(',') === '2,22,225',
+    `logs asked for while the record is in flight are saved in the order they were typed — got ${saved.map((x) => x.v).join(',')} (typing 225 must never persist 2)`)
+  assert(saved.every((x) => x.afterRecord) && writes === 1 && st.recorded,
+    'every one of them waits for that record, the record is written once, and the session counts as recorded only when it lands')
+
+  const st2 = { recorded: false, pending: null }
+  let n2 = 0
+  await recordOnce(st2, async () => { n2++; return { error: { message: 'down' } } })
+  assert(!st2.recorded && st2.pending === null, 'a failed record leaves the session unrecorded, with nothing left pending')
+  await recordOnce(st2, async () => { n2++; return { error: null } })
+  assert(st2.recorded && n2 === 2, 'and the next log writes it again')
+
+  const st3 = { recorded: false, pending: null }
+  const r3 = await recordOnce(st3, async () => { throw new Error('boom') }).then((r) => r, (e) => ({ threw: e }))
+  assert(!r3?.threw && r3?.error?.message === 'boom' && !st3.recorded, 'a record that THROWS comes back as an error — a log is never lost to its record')
+
+  // A swap whose record fails must not leave the session marked recorded:
+  // sets would then save under a name the stored record does not have.
+  const st4 = { recorded: true, pending: null }
+  await rewriteRecord(st4, async () => ({ error: { message: 'down' } }))
+  assert(!st4.recorded, 'a swap whose record fails leaves the session UNRECORDED (Codex r2)')
+  let n4 = 0
+  await recordOnce(st4, async () => { n4++; return { error: null } })
+  assert(n4 === 1 && st4.recorded, 'so the next log writes the swapped plan before it saves')
+
+  const st5 = { recorded: false, pending: null }
+  const order = []
+  // The record in flight is the SLOWER write: equal delays would finish in order
+  // by timer luck, and a swap that raced it would pass anyway.
+  const first = recordOnce(st5, async () => { await tick(); await tick(); await tick(); order.push('record'); return { error: null } })
+  const again = rewriteRecord(st5, async () => { await tick(); order.push('rewrite'); return { error: null } })
+  const logged = (async () => { await recordOnce(st5, async () => { order.push('a second record'); return { error: null } }); order.push('log') })()
+  await Promise.all([first, again, logged])
+  assert(order.join(',') === 'record,rewrite,log' && st5.recorded,
+    `a swap's record waits for the one in flight, and a log asked for meanwhile waits for both — got ${order.join(',')}`)
 }
 
 // ── 2. every program, every day: a stored session cannot be rewritten by a build ──
@@ -175,8 +224,9 @@ const asTrained = (v, key) => {
     "an untrained session's stored plan follows what it shows — unmarked, and only when it actually changed (Codex r1)")
   assert(/basePlanRef\.current = drawn/.test(adopt) && /setPlan\(applyOverrides\(drawn, ovr\)\)/.test(adopt),
     'what it draws is the base the session overrides and swaps build on — not the build')
-  assert(/recordedRef\.current = trained && isRecorded\(wd\)/.test(adopt),
+  assert(/recordRef\.current = \{ recorded: trained && isRecorded\(wd\), pending: null \}/.test(adopt),
     'a row is known to be recorded only when it is trained AND carries the record — a row from before the record records at its next log')
+  assert(/trainedRef\.current = trained/.test(adopt), 'and whether it has been trained is known from its logs')
   assert((pg.match(/await adopt\(/g) ?? []).length === 2 && /select\('id, workout_data'\)\s*\.eq\('user_id', user\.id\)\.eq\('program_slug', slug\)\s*\.eq\('week_number', weekNumber\)\.eq\('day_number', dayNumber\)\s*\.order\('id'/.test(pg),
     'BOTH ways a row is found — the run-scoped lookup and the unique-index fallback — draw through the same path')
   assert(/setSessionLogs\(logs\)/.test(pg) && !/if \(workoutId\) setSessionLogs\(await fetchSessionLogs/.test(pg),
@@ -186,8 +236,8 @@ const asTrained = (v, key) => {
   const recordFn = (() => { const at = pg.indexOf('const recordPlan = async () => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
   const writeFn = (() => { const at = pg.indexOf('const writePlan = async ()'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
   assert(/plan: basePlanRef\.current, \[RECORDED\]: true/.test(writeFn), 'the plan recorded is the one the cards are drawn from, marked as the record')
-  assert(/if \(recordedRef\.current\) return/.test(recordFn) && /if \(!res \|\| res\.error\) recordedRef\.current = false/.test(recordFn),
-    'recorded once, at the first log — and a failed write leaves it unrecorded so the next log tries again')
+  assert(/const res = await recordOnce\(recordRef\.current, writePlan\)/.test(recordFn),
+    'the page records through recordOnce — one shared record, every log waiting on it (the behaviour is asserted in 1b)')
   const writers = ['const logLiftSets', 'const logPlyoSets', 'const logSimple'].map((name) => {
     const at = pg.indexOf(name); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at))
   })
@@ -200,8 +250,10 @@ const asTrained = (v, key) => {
   assert(recordsFirst(complete, "log_type: 'session_complete'"),
     'finishing a session records it too — before the sentinel is written, and so before the week can advance past it')
   const swap = (() => { const at = pg.indexOf('if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
-  assert(/if \(recordedRef\.current\) report\('session record', await writePlan\(\)\)/.test(swap),
-    'a swap on a trained session rewrites its record — sets logged after it carry the new name')
+  assert(/if \(trainedRef\.current\) report\('session record', await rewriteRecord\(recordRef\.current, writePlan\)\)/.test(swap),
+    'a swap on a TRAINED session rewrites its record — recorded before or not — through rewriteRecord (Codex r2)')
+  assert(writers.every((w) => /if \(!res\?\.error\) trainedRef\.current = true/.test(w)) && /if \(!done\?\.error\) trainedRef\.current = true/.test(pg),
+    'every log that lands marks the session trained, so a swap after it is recorded')
 
   // Logs stay keyed by NAME: the database's unique index is, and a card keyed
   // by slot would write a second row the first time a set was edited.

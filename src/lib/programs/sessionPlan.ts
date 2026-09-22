@@ -92,6 +92,60 @@ export function sessionPlan(built: DayPlan, stored: unknown, logs: readonly Logg
   return { plan: reattachLogged(built, logs), source: 'built' }
 }
 
+// ── Writing the record: one at a time, and everyone waits for it ────────────
+// A log is written on every keystroke of a set, and each one asks for the
+// record first. Marking the session recorded BEFORE the write finished let the
+// second keystroke skip the wait and save "225" while the first — still
+// waiting — saved "2" over it when the record landed (Codex r2, P1). So the
+// record in flight is SHARED: every log asked for while it is pending waits on
+// that same write and is then issued in the order it was asked for, and the
+// session counts as recorded only once the write has succeeded.
+
+/** Where a session's record stands. `pending` is the write in flight, if any. */
+export interface RecordState {
+  recorded: boolean
+  pending: Promise<unknown> | null
+}
+
+/** A write's outcome, in the shape the database client returns it. */
+export type WriteResult = { error?: { code?: string; message?: string } | null } | null | undefined
+/** A write that THREW, reported like one that returned an error. */
+const thrown = (e: unknown): WriteResult => ({ error: { message: e instanceof Error ? e.message : String(e) } })
+
+/**
+ * Record the plan, once. Already recorded → nothing to do. A record in flight →
+ * wait on THAT one. Otherwise write, and count as recorded only if it landed;
+ * a failed record leaves the session unrecorded, so the next log tries again.
+ * Never throws: a log must never be lost to its record.
+ */
+export function recordOnce(state: RecordState, write: () => Promise<WriteResult>): Promise<WriteResult> {
+  if (state.recorded) return Promise.resolve(null)
+  if (state.pending) return state.pending as Promise<WriteResult>
+  const p: Promise<WriteResult> = write()
+    .then((res) => { if (res && !res.error) state.recorded = true; return res }, thrown)
+    .finally(() => { if (state.pending === p) state.pending = null })
+  state.pending = p
+  return p
+}
+
+/**
+ * Write the record AGAIN because the plan changed under a trained session (a
+ * swap). Waits for any record already in flight, holds every log asked for
+ * meanwhile behind this one, and leaves the session UNRECORDED if it fails, so
+ * the next log writes the current plan instead of saving sets under a name the
+ * stored record does not have (Codex r2).
+ */
+export function rewriteRecord(state: RecordState, write: () => Promise<WriteResult>): Promise<WriteResult> {
+  const before = state.pending ?? Promise.resolve()
+  state.recorded = false
+  const p: Promise<WriteResult> = before
+    .then(() => write(), () => write())
+    .then((res) => { state.recorded = !!res && !res.error; return res }, (e: unknown) => { state.recorded = false; return thrown(e) })
+    .finally(() => { if (state.pending === p) state.pending = null })
+  state.pending = p
+  return p
+}
+
 /**
  * The same plan, whatever order its keys arrived in. Postgres jsonb reorders
  * object keys, so a plan read back from a row never compares equal to one built

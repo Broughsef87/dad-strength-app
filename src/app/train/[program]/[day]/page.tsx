@@ -27,7 +27,7 @@ import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
-import { RECORDED, isRecorded, isTrained, samePlan, sessionPlan } from '../../../../lib/programs/sessionPlan'
+import { RECORDED, isRecorded, isTrained, recordOnce, rewriteRecord, samePlan, sessionPlan, type RecordState } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
 import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
   from '../../../../lib/programs/schedule'
@@ -1143,10 +1143,13 @@ export default function TrainingDayPage() {
   const workoutDataRef = useRef<Record<string, unknown>>({})
 
   const workoutIdRef = useRef<string | null>(null)
-  // Has this session been trained — is its stored plan the record of what it
-  // was trained under (FOR-248)? True once any log lands on it; from then on
-  // the plan it is drawn from is written back whenever it changes.
-  const recordedRef = useRef(false)
+  // Is this session's stored plan the record of what it was trained under, and
+  // is a record in flight (FOR-248)? One shared state, so every log asked for
+  // while the record is being written waits on that same write.
+  const recordRef = useRef<RecordState>({ recorded: false, pending: null })
+  // Has any log landed on this session? A swap on a trained session rewrites
+  // its record whether or not the row was recorded before (Codex r2).
+  const trainedRef = useRef(false)
   const weekRef = useRef<number>(1)
   const logErrTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const subsRef = useRef<SubsMap>({})
@@ -1261,7 +1264,8 @@ export default function TrainingDayPage() {
       basePlanRef.current = built
       setPlan(built)
       setOverrides({})
-      recordedRef.current = false
+      recordRef.current = { recorded: false, pending: null }
+      trainedRef.current = false
       // `adjustments` rides along on the row: next week's autoreg needs to know
       // what this card actually SHOWED, not just what the table said, or it
       // re-counts its own advice as freelancing and ratchets the load up.
@@ -1285,7 +1289,8 @@ export default function TrainingDayPage() {
         drawn = sessionPlan(built, wd.plan, logs, isRecorded(wd)).plan
         // Recorded means the stored plan IS the record. A trained row from
         // before the record existed is not — its next log records it.
-        recordedRef.current = trained && isRecorded(wd)
+        recordRef.current = { recorded: trained && isRecorded(wd), pending: null }
+        trainedRef.current = trained
         // An untrained session's stored plan follows what it shows, so if the
         // record written at its first log ever fails, what is left on the row is
         // today's plan, not the one from its first open (Codex r1).
@@ -1425,10 +1430,7 @@ export default function TrainingDayPage() {
     return supabase.from('generated_workouts').update({ workout_data: workoutDataRef.current }).eq('id', workoutIdRef.current)
   }
   const recordPlan = async () => {
-    if (recordedRef.current) return
-    recordedRef.current = true
-    const res = await writePlan()
-    if (!res || res.error) recordedRef.current = false
+    const res = await recordOnce(recordRef.current, writePlan)
     if (res) report('session record', res)
   }
 
@@ -1450,6 +1452,7 @@ export default function TrainingDayPage() {
     await recordPlan()
     const res = await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
     report(item.name, res)
+    if (!res?.error) trainedRef.current = true
   }
 
   // PR check on set completion: beats your best weight at >= that rep count.
@@ -1491,6 +1494,7 @@ export default function TrainingDayPage() {
     await recordPlan()
     const res = await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
     report(item.name, res)
+    if (!res?.error) trainedRef.current = true
   }
 
   const logSimple = async (blockName: string, logType: string, notes: string, extra?: Record<string, unknown>) => {
@@ -1507,6 +1511,7 @@ export default function TrainingDayPage() {
       ...extra,
     }, { onConflict: UPSERT_CONFLICT })
     report(blockName, res)
+    if (!res?.error) trainedRef.current = true
   }
 
   const completeSession = async () => {
@@ -1521,7 +1526,7 @@ export default function TrainingDayPage() {
     // The sentinel is a log like any other: a session finished without a
     // single set logged is still trained, so it is recorded first (FOR-248).
     await recordPlan()
-    await supabase.from('ares_session_logs').upsert({
+    const done = await supabase.from('ares_session_logs').upsert({
       ...baseRow(),
       log_type: 'session_complete',
       block_name: '__session_complete__',
@@ -1529,6 +1534,7 @@ export default function TrainingDayPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
+    if (!done?.error) trainedRef.current = true
     await advanceWeekIfDone(supabase, user.id, slug, program)
     // Streak shim so dashboard streak sees this session.
     await supabase.from('workout_logs').upsert({
@@ -1617,9 +1623,11 @@ export default function TrainingDayPage() {
     if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)
     setPlan(p => p && patchItems(p))
     setSwapTarget(null)
-    // A trained session's record follows the swap: sets logged from here on
-    // carry the new name, and a reopen must draw the card they belong to.
-    if (recordedRef.current) report('session record', await writePlan())
+    // A TRAINED session's record follows the swap — recorded before or not:
+    // sets logged from here on carry the new name, and a reopen must draw the
+    // card they belong to. If the write fails the session is left unrecorded,
+    // so the next log writes the swapped plan before it saves (Codex r2).
+    if (trainedRef.current) report('session record', await rewriteRecord(recordRef.current, writePlan))
   }
 
   // ── Session overrides: add/remove sets + exercises (this week+day only) ─────
