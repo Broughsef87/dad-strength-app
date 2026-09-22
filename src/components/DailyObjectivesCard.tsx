@@ -102,18 +102,19 @@ export default function DailyObjectivesCard(
       const today = localDay()
       // PAINT from this device's copy, for the first frame…
       const painted = paintedMind(today)
-      if (painted) {
-        book().paint(today, painted)
-        show()
-        setLoading(false)
-      }
+      if (painted) book().paint(today, painted)
+      // …and with it, every change this tab holds that the row does not have.
+      // A first lock-in that failed is kept here and nowhere else — there is no
+      // paint of it — and coming back to an empty editor is losing it (Codex r12).
+      show()
+      if (painted || book().pending().length) setLoading(false)
 
       // …then the RECORD, ALWAYS. This returned early whenever the paint had
       // today, so an objective ticked on another device never showed here and
       // the paint was the authority (FOR-231). What the row says replaces the
       // paint — including that there is nothing today.
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+      if (!user) { settleSync(false); setLoading(false); return }
       ownerRef.current = user.id
       accountIs(user.id)
       // The read goes through the SAME queue as the writes (Codex r1), and takes

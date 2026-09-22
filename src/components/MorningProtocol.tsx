@@ -78,9 +78,9 @@ type Latest = { p: Protocol; c: boolean[]; g: string[]; day: string; by: Promise
 // started before this mount is still a write this screen is waiting for.
 const kept: {
   latest: Latest | null
-  unsent: Latest | null
+  unsent: Map<string, Latest>
   generated: { p: Protocol; by: Promise<string | null> } | null
-} = { latest: null, unsent: null, generated: null }
+} = { latest: null, unsent: new Map(), generated: null }
 let stamp = 0
 let writing = 0
 /**
@@ -89,13 +89,23 @@ let writing = 0
  * this component, so the warning must not go when the component does (Codex r7).
  */
 const statusNow = (): 'synced' | 'saving' | 'unsaved' => {
-  const s = writing ? 'saving' : kept.unsent ? 'unsaved' : 'synced'
+  const s = writing ? 'saving' : kept.unsent.size ? 'unsaved' : 'synced'
   setUnloadGuard('protocol', s !== 'synced')
   return s
 }
-/** `u` has reached the row, or has been decided against: it and everything older stop being kept. */
+/**
+ * `u` has reached its day's row, or has been decided against: it and anything
+ * older for THAT DAY stop being kept. Only for that day — a change made on
+ * another day is another row, and no write of this one can carry it (Codex r12).
+ */
 const settled = (u: Latest) => {
-  if (kept.unsent && kept.unsent.n <= u.n) kept.unsent = null
+  const held = kept.unsent.get(u.day)
+  if (held && held.n <= u.n) kept.unsent.delete(u.day)
+}
+/** A change its day's row does not have. Kept until it does, or until it is decided against. */
+const keep = (u: Latest) => {
+  const held = kept.unsent.get(u.day)
+  if (!held || held.n <= u.n) kept.unsent.set(u.day, u)
 }
 
 // ── THE RECORD IS THE ROW (FOR-231) ──────────────────────────────────────────
@@ -268,7 +278,7 @@ export default function MorningProtocol(
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { if (kept.unsent) setSync('unsaved'); return }
+      if (!user) { if (kept.unsent.size) setSync('unsaved'); return }
       // The row keyed on the protocol's OWN day — where every protocol write
       // has landed since the row-key fix (FOR-228, ruling 2).
       const row = await readSpirit(supabase, user.id, todayKey())
@@ -285,8 +295,10 @@ export default function MorningProtocol(
       // The kept change belongs to the day it was MADE on: after 4am that is
       // no longer today's row, and today's row cannot vouch for it (Codex r5).
       // Until it is decided it stays kept, so a read that fails here retries.
-      const u = kept.unsent
-      if (u) {
+      const hadKept = kept.unsent.size > 0
+      let recovered: Latest | null = null
+      let keepScreen = false
+      for (const u of [...kept.unsent.values()]) {
         // Whose change it is decides first. Kept state outlives a sign-out, and
         // a change account A made is never saved under account B — it would put
         // A's protocol, and A's gratitude, in B's record (Codex r6, P1).
@@ -303,10 +315,13 @@ export default function MorningProtocol(
         }
         settled(u)
         // Deciding that took an await, or two. The account was confirmed before
-        // them, so a change made meanwhile has been written on its own — and
-        // this older snapshot must not land on top of it, nor the record be
-        // applied over it (Codex r10).
-        if (kept.latest !== null && kept.latest.n > u.n) { showStatus(); return }
+        // them, so a change made to THE SAME DAY meanwhile has been written on
+        // its own — and this older snapshot must not land on top of it, nor the
+        // record be applied over it (Codex r10, r12).
+        if (kept.latest !== null && kept.latest.day === u.day && kept.latest.n > u.n) {
+          if (u.day === todayKey()) keepScreen = true
+          continue
+        }
         if (vouched) {
           saveCache(u.p, u.c, u.g, u.day)
           // A change for TODAY is what the screen shows, and the row does not
@@ -314,21 +329,23 @@ export default function MorningProtocol(
           // for an earlier day is not what the screen shows: today's record
           // still applies, or the screen would sit on the config step with a
           // protocol already in the row (Codex r6).
-          if (u.day === todayKey()) {
-            // On screen, not left to the paint: localStorage may be
-            // unavailable, or its last write may have failed, and then
-            // nothing would show what was just recovered (Codex r7).
-            setProtocol(u.p)
-            setCompleted(u.c)
-            setGratitude(u.g)
-            setConfigured(true)
-            return
-          }
+          if (u.day === todayKey()) recovered = u
         }
       }
+      if (recovered) {
+        // On screen, not left to the paint: localStorage may be unavailable,
+        // or its last write may have failed, and then nothing would show what
+        // was just recovered (Codex r7).
+        setProtocol(recovered.p)
+        setCompleted(recovered.c)
+        setGratitude(recovered.g)
+        setConfigured(true)
+        return
+      }
+      if (keepScreen) { showStatus(); return }
       // No change to save, but the screen changed while the read was in flight
       // (Rebuild): that is newer than the read, which does not put it back.
-      if (!u && localEdits.current !== editsAtOpen) { showStatus(); return }
+      if (!hadKept && localEdits.current !== editsAtOpen) { showStatus(); return }
       if (held) {
         const c = m?.completed ?? new Array(held.steps.length).fill(false)
         const g = m?.gratitude ?? ['', '', '']
@@ -349,7 +366,7 @@ export default function MorningProtocol(
       }
       showStatus()
     } catch {
-      setSync(kept.unsent ? 'unsaved' : 'unreached')
+      setSync(kept.unsent.size ? 'unsaved' : 'unreached')
     } finally {
       opening.current = false
     }
@@ -371,7 +388,7 @@ export default function MorningProtocol(
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
     const mine = kept.latest
     if (!owner) {
-      kept.unsent = mine
+      keep(mine)
       const s = statusNow()
       setSync(opening.current ? 'saving' : s)
       return
@@ -407,7 +424,7 @@ export default function MorningProtocol(
       // r5). A write that landed settles ITS OWN change and every older one,
       // never a newer change made meanwhile — on this mount or the next
       // (Codex r6).
-      if (res.error) { if (!kept.unsent || kept.unsent.n <= mine.n) kept.unsent = mine; showStatus(); return }
+      if (res.error) { keep(mine); showStatus(); return }
       settled(mine)
       showStatus()
       // The row has it now. Only now are the readers told (FOR-231): the
