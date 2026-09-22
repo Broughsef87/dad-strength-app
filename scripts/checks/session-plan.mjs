@@ -14,15 +14,18 @@
 //      stored plan is what it draws, whatever the build says — the check that a
 //      buildDay change cannot silently rewrite a stored session (AC4).
 //   3. The ticket's own case, on the real Power Dad build.
-//   4. The page draws through the rule, records the plan the moment a session
-//      is trained, and keeps logs keyed by name (the database's unique index).
+//   1b. The row's one writer, and reattach keeping a swap's identity (Codex r3).
+//   4. The page draws through the rule; records the plan while an untrained
+//      session loads and on every swap — never around a log, which is how two
+//      rounds of this raced the per-keystroke set saves (Codex r2, r3); and
+//      keeps logs keyed by name (the database's unique index).
 //
 // This file is deliberately NOT sessionPlan.ts and NOT the page: a revert of the
 // feature must not take the check that would catch the revert with it.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { RECORDED, isRecorded, isStoredPlan, isTrained, reattachLogged, recordOnce, rewriteRecord, samePlan, sessionPlan } from '../../src/lib/programs/sessionPlan.ts'
+import { RECORDED, isRecorded, isStoredPlan, isTrained, reattachLogged, samePlan, serialWriter, sessionPlan } from '../../src/lib/programs/sessionPlan.ts'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import { rampOriginFor } from '../../src/lib/programs/prep.ts'
 
@@ -92,53 +95,40 @@ const MAXES = { back_squat: 315, bench: 225, deadlift: 405, ohp: 135, clean: 205
     'plans compare the same whatever order jsonb hands their keys back in, and differ when they differ')
 }
 
-// ── 1b. the record is written once, and every log waits for it (Codex r2) ──
-// Driven as behaviour, with writes that take time — the race is the thing.
+// ── 1b. one writer for the row (Codex r3) ──────────────────────────────────
+// Every write of a session's workout_data sends the whole object; two in flight
+// at once can land out of order and put back what the newer one removed. The
+// queue is asserted as behaviour, with writes that take time — and the EARLIER
+// write is the slower one, because equal delays would finish in order by timer
+// luck and a queue that did nothing would pass.
 {
-  const tick = () => new Promise((r) => setTimeout(r, 5))
-  // THE P1: a log per keystroke, all asked for while the first record is still
-  // in flight. The last value typed must be the last one saved.
-  const st = { recorded: false, pending: null }
-  let writes = 0, landed = false
-  const write = async () => { writes++; await tick(); landed = true; return { error: null } }
-  const saved = []
-  const log = async (v) => { await recordOnce(st, write); saved.push({ v, afterRecord: landed }) }
-  await Promise.all([log('2'), log('22'), log('225')])
-  assert(saved.map((x) => x.v).join(',') === '2,22,225',
-    `logs asked for while the record is in flight are saved in the order they were typed — got ${saved.map((x) => x.v).join(',')} (typing 225 must never persist 2)`)
-  assert(saved.every((x) => x.afterRecord) && writes === 1 && st.recorded,
-    'every one of them waits for that record, the record is written once, and the session counts as recorded only when it lands')
+  const tick = (n = 1) => new Promise((r) => setTimeout(r, 5 * n))
+  const queue = serialWriter()
+  const row = { value: null }
+  const landed = []
+  const send = (payload, delay) => queue(async () => { await tick(delay); row.value = payload; landed.push(payload.tag); return { error: null } })
+  // A swap's record, slow; an exercise added straight after it, fast.
+  await Promise.all([send({ tag: 'swap', plan: 'Front Squat', overrides: {} }, 3), send({ tag: 'added', plan: 'Front Squat', overrides: { added: ['Curls'] } }, 1)])
+  assert(landed.join(',') === 'swap,added' && row.value.tag === 'added' && row.value.overrides.added?.[0] === 'Curls',
+    `writes land strictly in the order they were asked for — the exercise added after a swap is not put back by the swap's slower write (got ${landed.join(',')})`)
+  const q2 = serialWriter()
+  const out = []
+  const a = q2(async () => { throw new Error('down') }).then(() => 'ok', () => 'failed')
+  // Settled here: a queue that stops on a failure rejects every write after it,
+  // and that must fail this check by name, not take the suite down.
+  const b = q2(async () => { out.push('second ran'); return 'second' }).then((v) => v, () => 'never ran')
+  assert((await a) === 'failed' && (await b) === 'second' && out.length === 1, 'a failed write does not stop the queue, and each caller gets its own result')
 
-  const st2 = { recorded: false, pending: null }
-  let n2 = 0
-  await recordOnce(st2, async () => { n2++; return { error: { message: 'down' } } })
-  assert(!st2.recorded && st2.pending === null, 'a failed record leaves the session unrecorded, with nothing left pending')
-  await recordOnce(st2, async () => { n2++; return { error: null } })
-  assert(st2.recorded && n2 === 2, 'and the next log writes it again')
-
-  const st3 = { recorded: false, pending: null }
-  const r3 = await recordOnce(st3, async () => { throw new Error('boom') }).then((r) => r, (e) => ({ threw: e }))
-  assert(!r3?.threw && r3?.error?.message === 'boom' && !st3.recorded, 'a record that THROWS comes back as an error — a log is never lost to its record')
-
-  // A swap whose record fails must not leave the session marked recorded:
-  // sets would then save under a name the stored record does not have.
-  const st4 = { recorded: true, pending: null }
-  await rewriteRecord(st4, async () => ({ error: { message: 'down' } }))
-  assert(!st4.recorded, 'a swap whose record fails leaves the session UNRECORDED (Codex r2)')
-  let n4 = 0
-  await recordOnce(st4, async () => { n4++; return { error: null } })
-  assert(n4 === 1 && st4.recorded, 'so the next log writes the swapped plan before it saves')
-
-  const st5 = { recorded: false, pending: null }
-  const order = []
-  // The record in flight is the SLOWER write: equal delays would finish in order
-  // by timer luck, and a swap that raced it would pass anyway.
-  const first = recordOnce(st5, async () => { await tick(); await tick(); await tick(); order.push('record'); return { error: null } })
-  const again = rewriteRecord(st5, async () => { await tick(); order.push('rewrite'); return { error: null } })
-  const logged = (async () => { await recordOnce(st5, async () => { order.push('a second record'); return { error: null } }); order.push('log') })()
-  await Promise.all([first, again, logged])
-  assert(order.join(',') === 'record,rewrite,log' && st5.recorded,
-    `a swap's record waits for the one in flight, and a log asked for meanwhile waits for both — got ${order.join(',')}`)
+  // Reattach keeps a swap's identity: a row from before the record, opened as
+  // Back Squat, swapped to Front Squat and trained as Front Squat (Codex r3).
+  const legacy = { dayNumber: 1, dayName: 'A', dayType: 'gym', sessionIntent: '', items: [{ kind: 'lift', slot: 'squat', name: 'Back Squat', sets: 5, reps: 5 }] }
+  const buildNow = { ...legacy, items: [{ kind: 'lift', slot: 'squat', name: 'Front Squat', subbedFrom: 'Back Squat', sets: 5, reps: 5 }] }
+  const drawnLegacy = sessionPlan(buildNow, legacy, [{ block_name: 'Front Squat', slot: 'squat' }], false).plan.items[0]
+  assert(drawnLegacy.name === 'Front Squat' && drawnLegacy.subbedFrom === 'Back Squat',
+    `a reattached card takes the swap's identity from the build — Front Squat stays a swap of Back Squat, so it can be reverted (got ${drawnLegacy.name} / ${drawnLegacy.subbedFrom})`)
+  const buildNoSub = { ...legacy, items: [{ kind: 'lift', slot: 'squat', name: 'Goblet Squat', sets: 5, reps: 5 }] }
+  assert(!('subbedFrom' in sessionPlan(buildNoSub, legacy, [{ block_name: 'Front Squat', slot: 'squat' }], false).plan.items[0]),
+    'and a logged name the build does not carry is reattached as a name only — no identity is invented for it')
 }
 
 // ── 2. every program, every day: a stored session cannot be rewritten by a build ──
@@ -220,40 +210,47 @@ const asTrained = (v, key) => {
   const fetchFn = (() => { const at = pg.indexOf('async function fetchSessionLogs('); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n}\n', at)) })()
   assert(/const \{ data, error \} = await supabase/.test(fetchFn) && /error: error \?\? null/.test(fetchFn),
     'the log read returns its error instead of swallowing it into an empty list')
-  assert(/if \(!trained && !samePlan\(wd\.plan, built\)\) \{\s*workoutDataRef\.current = \{ \.\.\.wd, plan: built, \[RECORDED\]: false \}/.test(adopt),
-    "an untrained session's stored plan follows what it shows — unmarked, and only when it actually changed (Codex r1)")
   assert(/basePlanRef\.current = drawn/.test(adopt) && /setPlan\(applyOverrides\(drawn, ovr\)\)/.test(adopt),
     'what it draws is the base the session overrides and swaps build on — not the build')
-  assert(/recordRef\.current = \{ recorded: trained && isRecorded\(wd\), pending: null \}/.test(adopt),
-    'a row is known to be recorded only when it is trained AND carries the record — a row from before the record records at its next log')
-  assert(/trainedRef\.current = trained/.test(adopt), 'and whether it has been trained is known from its logs')
+
+  // THE RECORD is written while the session loads, before any card exists to
+  // log against — never around a log (Codex r2, r3).
+  assert(/if \(!trained && \(!samePlan\(wd\.plan, built\) \|\| !isRecorded\(wd\)\)\) \{\s*workoutDataRef\.current = \{ \.\.\.wd, plan: built, \[RECORDED\]: true \}/.test(adopt),
+    "an untrained session's stored plan is written to what its cards will show and marked as the record — whenever it differs or is unmarked")
+  assert(/const synced = await queueRow\(/.test(adopt) && /if \(synced\.error\) throw new Error/.test(adopt),
+    "that write goes through the row's one queue, and if it fails the session does not open — no training against a record that disagrees with the screen")
+  assert(/workout_data: \{ plan: built, adjustments, \[RECORDED\]: true \}/.test(pg) && /workoutDataRef\.current = \{ plan: built, adjustments, \[RECORDED\]: true \}/.test(pg),
+    'a row created for a new session is born recorded, with the plan it shows')
+  assert(pg.indexOf('if (loading) {') > 0 && /setLoading\(false\)/.test(pg),
+    'cards render only once loading is done — the reason the record written in loadDay cannot race a log')
+  const writers = ['const logLiftSets', 'const logPlyoSets', 'const logSimple', 'const completeSession'].map((name) => {
+    const at = pg.indexOf(name); return at < 0 ? '' : pg.slice(at, pg.indexOf('await advanceWeekIfDone', at) > 0 && name === 'const completeSession' ? pg.indexOf('await advanceWeekIfDone', at) : pg.indexOf('\n  }\n', at))
+  })
+  assert(writers.every((w) => w.length > 0 && !/recordPlan|writePlan|sendRow|queueRow|RECORDED/.test(w)),
+    'NO log writer touches the record — sets, jumps, metcons, outside work and the completion sentinel all save exactly as they did (the keystroke races of r2 and r3)')
+
+  // One writer for the row (Codex r3).
+  const sendFn = (() => { const at = pg.indexOf('const sendRow = (): Promise<SbRes | null> => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
+  assert(/const id = workoutIdRef\.current/.test(sendFn) && /const payload = workoutDataRef\.current/.test(sendFn) && /return queueRow\(async \(\) => supabase\.from\('generated_workouts'\)\.update\(\{ workout_data: payload \}\)\.eq\('id', id\)\)/.test(sendFn),
+    'a row write captures its session and the row as it stands when the change is made, then queues — it can never land on another session\'s row')
+  const writeFn = (() => { const at = pg.indexOf('const writePlan = (): Promise<SbRes | null> => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
+  assert(/workoutDataRef\.current = \{ \.\.\.workoutDataRef\.current, plan: basePlanRef\.current, \[RECORDED\]: true \}/.test(writeFn) && /return sendRow\(\)/.test(writeFn),
+    'the plan recorded is the one the cards are drawn from, marked as the record, through the one queue')
+  const overridesFn = (() => { const at = pg.indexOf('const updateOverrides = async'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
+  assert(/report\('session edit', await sendRow\(\)\)/.test(overridesFn) && !/\.update\(/.test(overridesFn),
+    'session edits go through the same queue — an exercise added while a swap is being recorded is not put back by it')
+  const rowWrites = (pg.match(/\.update\(\{ workout_data:/g) ?? []).length
+  assert(rowWrites === 3,
+    `the row's workout_data is written in exactly three places — the load-time adjustments backfill, the load-time record, and sendRow — found ${rowWrites}`)
+  const swap = (() => { const at = pg.indexOf('if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
+  assert(/\n    report\('session record', await writePlan\(\)\)/.test(swap) && !/if \([^)]*\) report\('session record'/.test(swap),
+    'every swap rewrites the record, trained or not — nothing it depends on can still be in flight (Codex r3)')
+
   assert((pg.match(/await adopt\(/g) ?? []).length === 2 && /select\('id, workout_data'\)\s*\.eq\('user_id', user\.id\)\.eq\('program_slug', slug\)\s*\.eq\('week_number', weekNumber\)\.eq\('day_number', dayNumber\)\s*\.order\('id'/.test(pg),
     'BOTH ways a row is found — the run-scoped lookup and the unique-index fallback — draw through the same path')
   assert(/setSessionLogs\(logs\)/.test(pg) && !/if \(workoutId\) setSessionLogs\(await fetchSessionLogs/.test(pg),
     'the logs the rule decided on are the logs the cards show — read once')
   assert(/const liftNames = \[\.\.\.new Set\(drawn\.items/.test(pg), 'records are detected against the movements on screen, not the build')
-
-  const recordFn = (() => { const at = pg.indexOf('const recordPlan = async () => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
-  const writeFn = (() => { const at = pg.indexOf('const writePlan = async ()'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
-  assert(/plan: basePlanRef\.current, \[RECORDED\]: true/.test(writeFn), 'the plan recorded is the one the cards are drawn from, marked as the record')
-  assert(/const res = await recordOnce\(recordRef\.current, writePlan\)/.test(recordFn),
-    'the page records through recordOnce — one shared record, every log waiting on it (the behaviour is asserted in 1b)')
-  const writers = ['const logLiftSets', 'const logPlyoSets', 'const logSimple'].map((name) => {
-    const at = pg.indexOf(name); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at))
-  })
-  // BEFORE, not after: a log that landed while its record failed would read as
-  // recorded on the next open, freezing whatever the row held (Codex r1).
-  const recordsFirst = (w, write) => { const r = w.indexOf('await recordPlan()'), u = w.indexOf(write); return r > 0 && u > 0 && r < u }
-  assert(writers.every((w) => recordsFirst(w, "from('ares_session_logs').upsert(")),
-    'every log writer — sets, jumps, metcons and outside work — records the plan BEFORE its log is written')
-  const complete = (() => { const at = pg.indexOf('const completeSession = async'); return at < 0 ? '' : pg.slice(at, pg.indexOf('await advanceWeekIfDone', at)) })()
-  assert(recordsFirst(complete, "log_type: 'session_complete'"),
-    'finishing a session records it too — before the sentinel is written, and so before the week can advance past it')
-  const swap = (() => { const at = pg.indexOf('if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
-  assert(/if \(trainedRef\.current\) report\('session record', await rewriteRecord\(recordRef\.current, writePlan\)\)/.test(swap),
-    'a swap on a TRAINED session rewrites its record — recorded before or not — through rewriteRecord (Codex r2)')
-  assert(writers.every((w) => /if \(!res\?\.error\) trainedRef\.current = true/.test(w)) && /if \(!done\?\.error\) trainedRef\.current = true/.test(pg),
-    'every log that lands marks the session trained, so a swap after it is recorded')
 
   // Logs stay keyed by NAME: the database's unique index is, and a card keyed
   // by slot would write a second row the first time a set was edited.
@@ -262,7 +259,7 @@ const asTrained = (v, key) => {
   // Autoregulation reads what the card SHOWED from `adjustments`, not from the
   // plan; nothing here may start writing it.
   assert(!/adjustments/.test(readLF('src/lib/programs/sessionPlan.ts').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n'))
-    && !/adjustments/.test(writeFn),
+    && !/adjustments/.test(writeFn) && !/adjustments/.test(sendFn),
     'recording the plan never touches the adjustments autoregulation reads')
 }
 

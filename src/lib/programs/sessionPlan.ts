@@ -13,13 +13,15 @@
 // is built fresh, so it still picks up every correction until the moment it is
 // trained.
 //
-// "Trained under" is a RECORD the page writes, marked `plan_recorded`: before
-// the first log lands, and again when a swap changes a trained session. A row
-// stored before that record existed carries only the plan of its FIRST OPEN,
-// which may predate what was actually trained — so that one, and only that one,
-// is reconciled against its logs. A recorded plan is drawn exactly as recorded:
-// a swap the athlete made is an explicit choice, and logs never overrule it
-// (Codex r1).
+// "Trained under" is a RECORD the page writes, marked `plan_recorded`: the plan
+// the cards are drawn from, written while an untrained session loads (before
+// any card exists to log against) and again on every swap. It is never written
+// around a log — two rounds of doing that raced the per-keystroke set saves and
+// lost what was typed (Codex r2, r3). A trained session is drawn from its
+// record exactly: a swap is an explicit choice, and logs never overrule it
+// (Codex r1). A row stored before the record existed carries only the plan of
+// its FIRST OPEN, which may predate what was trained — so that one, and only
+// that one, is reconciled against its logs.
 //
 // Deterministic and pure: no clock, no I/O, no AI. buildDay stays the only
 // source of a prescription; this decides only which prescription a card shows.
@@ -56,7 +58,7 @@ export function isTrained(logs: readonly LoggedRow[]): boolean {
  * Never a guess: two different names at one slot, none of them the card's,
  * and the card is left exactly as it was.
  */
-export function reattachLogged(plan: DayPlan, logs: readonly LoggedRow[]): DayPlan {
+export function reattachLogged(plan: DayPlan, logs: readonly LoggedRow[], built?: DayPlan): DayPlan {
   let changed = false
   const items = plan.items.map((i) => {
     if (i.kind !== 'lift' && i.kind !== 'plyo') return i
@@ -65,7 +67,12 @@ export function reattachLogged(plan: DayPlan, logs: readonly LoggedRow[]): DayPl
     // card's own name, or a mix — the card stays as it is.
     if (names.length !== 1 || names[0] === i.name) return i
     changed = true
-    return { ...i, name: names[0] }
+    // A logged name the BUILD also carries at this slot is a swap the athlete
+    // saved: take its identity with it, or the swap picker reads the swapped
+    // movement as the original — nothing to revert, and the next swap filed
+    // under the wrong original (Codex r3).
+    const b = built?.items.find((x) => (x.kind === 'lift' || x.kind === 'plyo') && x.slot === i.slot && x.name === names[0])
+    return b && (b.kind === 'lift' || b.kind === 'plyo') ? { ...i, name: names[0], subbedFrom: b.subbedFrom } : { ...i, name: names[0] }
   })
   return changed ? { ...plan, items } : plan
 }
@@ -88,62 +95,26 @@ export function isRecorded(workoutData: Record<string, unknown> | null | undefin
  */
 export function sessionPlan(built: DayPlan, stored: unknown, logs: readonly LoggedRow[], recorded = false): { plan: DayPlan; source: 'stored' | 'built' } {
   if (!isTrained(logs)) return { plan: built, source: 'built' }
-  if (isStoredPlan(stored)) return { plan: recorded ? stored : reattachLogged(stored, logs), source: 'stored' }
-  return { plan: reattachLogged(built, logs), source: 'built' }
+  if (isStoredPlan(stored)) return { plan: recorded ? stored : reattachLogged(stored, logs, built), source: 'stored' }
+  return { plan: reattachLogged(built, logs, built), source: 'built' }
 }
 
-// ── Writing the record: one at a time, and everyone waits for it ────────────
-// A log is written on every keystroke of a set, and each one asks for the
-// record first. Marking the session recorded BEFORE the write finished let the
-// second keystroke skip the wait and save "225" while the first — still
-// waiting — saved "2" over it when the record landed (Codex r2, P1). So the
-// record in flight is SHARED: every log asked for while it is pending waits on
-// that same write and is then issued in the order it was asked for, and the
-// session counts as recorded only once the write has succeeded.
+// ── One writer for the row ──────────────────────────────────────────────────
+// Every write of a session's workout_data — its record, its overrides — sends
+// the WHOLE object. Two in flight at once, and the older can land last and put
+// back what the newer removed: an exercise added while a swap's record was
+// being written, gone (Codex r3). So they queue: each starts only when the one
+// before it has finished, and each reads the state it sends when it STARTS, so
+// whatever is sent last carries every change made before it.
 
-/** Where a session's record stands. `pending` is the write in flight, if any. */
-export interface RecordState {
-  recorded: boolean
-  pending: Promise<unknown> | null
-}
-
-/** A write's outcome, in the shape the database client returns it. */
-export type WriteResult = { error?: { code?: string; message?: string } | null } | null | undefined
-/** A write that THREW, reported like one that returned an error. */
-const thrown = (e: unknown): WriteResult => ({ error: { message: e instanceof Error ? e.message : String(e) } })
-
-/**
- * Record the plan, once. Already recorded → nothing to do. A record in flight →
- * wait on THAT one. Otherwise write, and count as recorded only if it landed;
- * a failed record leaves the session unrecorded, so the next log tries again.
- * Never throws: a log must never be lost to its record.
- */
-export function recordOnce(state: RecordState, write: () => Promise<WriteResult>): Promise<WriteResult> {
-  if (state.recorded) return Promise.resolve(null)
-  if (state.pending) return state.pending as Promise<WriteResult>
-  const p: Promise<WriteResult> = write()
-    .then((res) => { if (res && !res.error) state.recorded = true; return res }, thrown)
-    .finally(() => { if (state.pending === p) state.pending = null })
-  state.pending = p
-  return p
-}
-
-/**
- * Write the record AGAIN because the plan changed under a trained session (a
- * swap). Waits for any record already in flight, holds every log asked for
- * meanwhile behind this one, and leaves the session UNRECORDED if it fails, so
- * the next log writes the current plan instead of saving sets under a name the
- * stored record does not have (Codex r2).
- */
-export function rewriteRecord(state: RecordState, write: () => Promise<WriteResult>): Promise<WriteResult> {
-  const before = state.pending ?? Promise.resolve()
-  state.recorded = false
-  const p: Promise<WriteResult> = before
-    .then(() => write(), () => write())
-    .then((res) => { state.recorded = !!res && !res.error; return res }, (e: unknown) => { state.recorded = false; return thrown(e) })
-    .finally(() => { if (state.pending === p) state.pending = null })
-  state.pending = p
-  return p
+/** A queue of writes that run strictly one at a time, in the order asked for. A failed write does not stop the queue. */
+export function serialWriter(): <T>(write: () => Promise<T>) => Promise<T> {
+  let tail: Promise<unknown> = Promise.resolve()
+  return <T>(write: () => Promise<T>): Promise<T> => {
+    const run = tail.then(() => write(), () => write())
+    tail = run.then(() => undefined, () => undefined)
+    return run
+  }
 }
 
 /**
