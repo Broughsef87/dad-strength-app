@@ -59,6 +59,16 @@ type Protocol = {
   closingWord: string
 }
 
+type Latest = { p: Protocol; c: boolean[]; g: string[]; day: string }
+
+// Kept per TAB, not per mount (Codex r5). Moving to another tab in the app
+// unmounts this component, and a change that has not reached the row must not
+// go with it: the next open reads the row and saves it if the record vouches
+// for it. Touched only by a click or an effect — never while rendering, so a
+// server render cannot make one visitor's change another's.
+const kept: { latest: Latest | null; unsent: Latest | null; generated: Protocol | null } =
+  { latest: null, unsent: null, generated: null }
+
 // ── THE RECORD IS THE ROW (FOR-231) ──────────────────────────────────────────
 // daily_checkins is the record of the morning protocol (spirit_state.morning,
 // in the row keyed on the protocol's own 4am-cutoff day) and of the day's
@@ -128,15 +138,11 @@ export default function MorningProtocol(
   // nothing has been changed since — a change made after the read started is
   // newer than what the read will return.
   const localEdits = useRef(0)
-  type Latest = { p: Protocol; c: boolean[]; g: string[]; day: string }
-  // The latest protocol state made here, and the protocol day it belongs to —
-  // for Retry, which must retry THAT day's record, not today's (Codex r2).
-  const latest = useRef<Latest | null>(null)
-  // The latest change made while no account was confirmed, not yet written.
-  const unsent = useRef<Latest | null>(null)
-  // A protocol generated on this screen — by the signed-in account's own
-  // request, so it is that account's whatever the paint was.
-  const generatedHere = useRef<Protocol | null>(null)
+  // kept.latest: the latest protocol state made here, and the protocol day it
+  // belongs to — for Retry, which must retry THAT day's record, not today's
+  // (Codex r2). kept.unsent: a change the row does not have. kept.generated: a
+  // protocol generated on this screen, by the signed-in account's own request,
+  // so it is that account's whatever the paint was.
   // Protocol writes queued and not yet answered.
   const inFlight = useRef(0)
   // The open-time read is running. A change made meanwhile is saving — the
@@ -195,6 +201,27 @@ export default function MorningProtocol(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // One row of spirit_state, read through the queue. A read that cannot be
+  // made is not an empty record — it is no answer at all, and throws.
+  const readSpirit = async (supabase: ReturnType<typeof createClient>, me: string, day: string) => {
+    const read = await runAs(supabase, me, async (who) => supabase
+      .from('daily_checkins')
+      .select('spirit_state')
+      .eq('user_id', who)
+      .eq('date', day)
+      .maybeSingle())
+    if (read === ACCOUNT_CHANGED || read.error) throw new Error('unreached')
+    return 'data' in read ? read.data : null
+  }
+  const morningIn = (row: { spirit_state?: unknown } | null) =>
+    (row?.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
+  // The protocol that row holds FOR that day — an entry stamped with another
+  // day is not that day's, whatever row it sits in.
+  const protocolOn = (row: { spirit_state?: unknown } | null, day: string) => {
+    const n = morningIn(row)
+    return n?.protocol && n.date === day ? n.protocol : null
+  }
+
   // The open-time read: who is signed in, and what their row holds. What it
   // says replaces the paint entirely — more done, less done, a different
   // protocol, or none at all. Nothing is compared. Run on open, and again by
@@ -206,37 +233,35 @@ export default function MorningProtocol(
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { if (unsent.current) setSync('unsaved'); return }
+      if (!user) { if (kept.unsent) setSync('unsaved'); return }
       // The row keyed on the protocol's OWN day — where every protocol write
       // has landed since the row-key fix (FOR-228, ruling 2).
-      const read = await runAs(supabase, user.id, async () => supabase
-        .from('daily_checkins')
-        .select('spirit_state')
-        .eq('user_id', user.id)
-        .eq('date', todayKey())
-        .maybeSingle())
-      if (read === ACCOUNT_CHANGED || read.error) throw new Error('unreached')
-      const row = 'data' in read ? read.data : null
+      const row = await readSpirit(supabase, user.id, todayKey())
       ownerRef.current = user.id
-      const m = (row?.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
-      // Today's protocol, if the row holds one — an entry stamped with another
-      // day is not today's, whatever row it sits in.
-      const held = m?.protocol && m.date === todayKey() ? m.protocol : null
+      const m = morningIn(row)
+      const held = protocolOn(row, todayKey())
       // A change made before the account was confirmed is saved only if the
       // record vouches for it: the row holds the protocol it was made on, or
       // that protocol was generated here. Otherwise it was made on a paint that
       // is not this account's record, and the record replaces it. Compared as
       // JSON values, not strings: jsonb reorders keys, so the row's copy of a
       // protocol generated here never matches the paint's by string.
-      const u = unsent.current
-      unsent.current = null
-      if (u && (u.p === generatedHere.current || (held !== null && sameJson(held, u.p)))) {
-        saveCache(u.p, u.c, u.g, u.day)
-        return
+      // The kept change belongs to the day it was MADE on: after 4am that is
+      // no longer today's row, and today's row cannot vouch for it (Codex r5).
+      // Until it is decided it stays kept, so a read that fails here retries.
+      const u = kept.unsent
+      if (u) {
+        let vouched = u.p === kept.generated
+        if (!vouched) {
+          const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
+          vouched = its !== null && sameJson(its, u.p)
+        }
+        kept.unsent = null
+        if (vouched) { saveCache(u.p, u.c, u.g, u.day); return }
       }
       // No change to save, but the screen changed while the read was in flight
       // (Rebuild): that is newer than the read, which does not put it back.
-      if (!u && localEdits.current !== editsAtOpen) { setSync('synced'); return }
+      if (!u && localEdits.current !== editsAtOpen) { setSync(kept.unsent ? 'unsaved' : 'synced'); return }
       if (held) {
         const c = m?.completed ?? new Array(held.steps.length).fill(false)
         const g = m?.gratitude ?? ['', '', '']
@@ -255,9 +280,9 @@ export default function MorningProtocol(
         setConfigured(false)
         try { localStorage.removeItem(STORAGE_KEY) } catch { /* paint only */ }
       }
-      setSync('synced')
+      setSync(kept.unsent ? 'unsaved' : 'synced')
     } catch {
-      setSync(unsent.current ? 'unsaved' : 'unreached')
+      setSync(kept.unsent ? 'unsaved' : 'unreached')
     } finally {
       opening.current = false
     }
@@ -269,7 +294,7 @@ export default function MorningProtocol(
     // Retry, the day of the change being retried. Evaluated inside the queued
     // write it could fall after 4am and file this protocol into the next day's
     // row (Codex r1, r2).
-    latest.current = { p, c, g, day }
+    kept.latest = { p, c, g, day }
     // The account that made the change, captured now. Before the open-time
     // read has answered there is no owner to bind to, and the change is kept
     // as unsent — never a write under an account nobody checked. The read
@@ -277,7 +302,7 @@ export default function MorningProtocol(
     const owner = ownerRef.current
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
-    if (!owner) { unsent.current = latest.current; setSync(opening.current ? 'saving' : 'unsaved'); return }
+    if (!owner) { kept.unsent = kept.latest; setSync(opening.current ? 'saving' : 'unsaved'); return }
     // Saving from the moment the change is made, not from its turn in the
     // queue (Codex r4).
     inFlight.current++
@@ -304,8 +329,10 @@ export default function MorningProtocol(
       // Every write carries the whole protocol, so the LAST one answered says
       // whether the row holds the latest change; until then it is saving.
       inFlight.current--
-      if (res.error) { if (!inFlight.current) setSync('unsaved'); return }
-      if (!inFlight.current) setSync('synced')
+      // A write that failed leaves the change kept, for the next open or Retry
+      // to save — it is not in the row, and nothing else remembers it (Codex r5).
+      if (res.error) { kept.unsent = kept.latest; if (!inFlight.current) setSync('unsaved'); return }
+      if (!inFlight.current) { kept.unsent = null; setSync('synced') }
       // The row has it now. Only now are the readers told (FOR-231): the
       // daily number, the checklist and the objectives card re-read the row
       // on this, and a signal sent before the write landed sent them to read
@@ -327,7 +354,7 @@ export default function MorningProtocol(
     // No account confirmed: the open-time read never answered. Run it again —
     // it saves the unsent change if the record vouches for it (Codex r3).
     if (!ownerRef.current) { void open(); return }
-    const l = latest.current
+    const l = kept.latest
     if (l) saveCache(l.p, l.c, l.g, l.day)
   }
 
@@ -363,7 +390,7 @@ export default function MorningProtocol(
       setGratitude(freshGratitude)
       setExpanded(0)
       setConfigured(true)
-      generatedHere.current = fresh
+      kept.generated = fresh
       saveCache(fresh, freshCompleted, freshGratitude)
     } catch {
       setError('Failed to generate. Try again.')

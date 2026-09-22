@@ -20,6 +20,15 @@ const MIND_KEY = 'dad-strength-mind-state'
 // A change, and the account it was made by — fixed at the change.
 type Change = Intent & { owner: Promise<string | null> }
 
+// ONE book per tab, not one per mount (Codex r5). Moving to another tab in the
+// app unmounts this card, and a change that has not reached the row must not go
+// with it — the next open saves it. Created on first use, which is a click or
+// an effect: never while rendering, so a server render cannot make one and
+// hand one visitor's changes to the next.
+const makeBook = () => objectivesBook<Change>(localDay())
+let theBook: ReturnType<typeof makeBook> | null = null
+const book = () => (theBook ??= makeBook())
+
 export default function DailyObjectivesCard(
   { refreshKey = 0 }: { refreshKey?: number } = {},
 ) {
@@ -33,10 +42,6 @@ export default function DailyObjectivesCard(
   // only what this device last saw.
   const [sync, setSync] = useState<'synced' | 'saving' | 'unsaved' | 'unreached'>('synced')
   const supabase = createClient()
-  // The record as this card last read it, in queue order, and every change made
-  // here that the row does not have yet. What the card shows is always the one
-  // with the other on top.
-  const [book] = useState(() => objectivesBook<Change>(localDay()))
   // The account this card was opened for. Every read and write of the row goes
   // through the ONE check-in queue it shares with MorningProtocol
   // (src/lib/checkinQueue.ts, Codex r2), bound to the account that made it.
@@ -44,11 +49,14 @@ export default function DailyObjectivesCard(
   // Saves queued and not yet answered. Each carries every pending change, so
   // while one is still to run the card is saving — not saved, not failed.
   const inFlight = useRef(0)
-  const settleSync = (failed: boolean) =>
-    setSync(inFlight.current ? 'saving' : failed || book.pending().length ? 'unsaved' : 'synced')
+  // A read that failed says so only when there is nothing more urgent: a
+  // change of this device's that the row does not have outranks it, because
+  // that is the one with the Retry and the warning on it (Codex r5).
+  const settleSync = (failed: boolean, unreached = false) =>
+    setSync(inFlight.current ? 'saving' : failed || book().pending().length ? 'unsaved' : unreached ? 'unreached' : 'synced')
 
   const show = () => {
-    const s = book.shown()
+    const s = book().shown()
     setObjectives(s.objectives)
     setCompleted(s.completed)
     setLocked(s.lockedIn)
@@ -76,13 +84,13 @@ export default function DailyObjectivesCard(
         // A change made under another account is not this one's to save. One
         // made while no account was known is saved by the account that saves
         // it — and only onto a record holding the objectives it was made on.
-        for (const c of book.pending()) { const who = await c.owner; if (who && who !== me) book.settle([c]) }
+        for (const c of book().pending()) { const who = await c.owner; if (who && who !== me) book().settle([c]) }
         const landed: Landed[] = []
-        for (const day of book.days()) {
+        for (const day of book().days()) {
           const { data, error } = await supabase.from('daily_checkins').select('mind_state').eq('user_id', me).eq('date', day).maybeSingle()
           if (error) return { ok: false, landed }
-          const seq = book.nextRead()
-          const { write, settles } = book.plan(day, data?.mind_state ?? null)
+          const seq = book().nextRead()
+          const { write, settles } = book().plan(day, data?.mind_state ?? null)
           let ms = (data?.mind_state ?? null) as MindRow | null
           if (write) {
             const row = toRow(day, write)
@@ -93,7 +101,7 @@ export default function DailyObjectivesCard(
             if (w.error) return { ok: false, landed }
             ms = row
           }
-          book.settle(settles)
+          book().settle(settles)
           landed.push({ day, ms, seq })
         }
         return { ok: true, landed }
@@ -101,7 +109,7 @@ export default function DailyObjectivesCard(
       inFlight.current--
       // No `ok`: the account that made the change is not the one signed in.
       if (!('ok' in res)) { settleSync(true); return }
-      for (const l of res.landed) if (book.adopt(l.day, l.ms, l.seq)) paintCache(l.day, l.ms)
+      for (const l of res.landed) if (book().adopt(l.day, l.ms, l.seq)) paintCache(l.day, l.ms)
       show()
       settleSync(!res.ok)
     })()
@@ -122,9 +130,9 @@ export default function DailyObjectivesCard(
     // Objectives are locked in for the day they are typed on. A card left open
     // across midnight still shows yesterday: it turns to today first, and the
     // lock-in is made against today's record (Codex r4).
-    book.turn(localDay())
+    book().turn(localDay())
     const owner = accountAtChange(supabase, ownerRef)
-    book.intend({ kind: 'set', day: book.day(), basis: book.shown().objectives, objectives: dense, owner })
+    book().intend({ kind: 'set', day: book().day(), basis: book().shown().objectives, objectives: dense, owner })
     show()
     flush(owner)
   }
@@ -139,7 +147,7 @@ export default function DailyObjectivesCard(
         if (cached) {
           const data = JSON.parse(cached)
           if (data.date === today) {
-            book.paint(today, data)
+            book().paint(today, data)
             show()
             setLoading(false)
           }
@@ -158,16 +166,19 @@ export default function DailyObjectivesCard(
       // older than it, and does not become the record.
       const read = await runAs(supabase, user.id, async (me) => {
         const r = await supabase.from('daily_checkins').select('mind_state').eq('user_id', me).eq('date', today).maybeSingle()
-        return { error: r.error, ms: r.data?.mind_state ?? null, seq: book.nextRead() }
+        return { error: r.error, ms: r.data?.mind_state ?? null, seq: book().nextRead() }
       })
       if (cancelled) return
-      if (!('seq' in read) || read.error) { setSync('unreached'); setLoading(false); return }
+      if (!('seq' in read) || read.error) { settleSync(false, true); setLoading(false); return }
       // The row replaces the paint; changes made here that it does not have yet
       // stay on top of it.
-      if (book.adopt(today, read.ms, read.seq, true)) paintCache(today, read.ms)
+      if (book().adopt(today, read.ms, read.seq, true)) paintCache(today, read.ms)
       show()
       settleSync(false)
       setLoading(false)
+      // A change kept from an earlier visit to this tab — the card was unmounted
+      // before it reached the row — is saved now (Codex r5).
+      if (book().pending().length) flush(accountAtChange(supabase, ownerRef))
     }
     load()
     return () => { cancelled = true }
@@ -192,10 +203,10 @@ export default function DailyObjectivesCard(
   // change — so a tick made while another is saving builds on it, not on an
   // older answer (Codex r3).
   const toggle = (i: number) => {
-    const now = book.shown()
+    const now = book().shown()
     if (!now.lockedIn) return
     const owner = accountAtChange(supabase, ownerRef)
-    book.intend({ kind: 'tick', day: book.day(), basis: now.objectives, index: i, done: !now.completed[i], owner })
+    book().intend({ kind: 'tick', day: book().day(), basis: now.objectives, index: i, done: !now.completed[i], owner })
     show()
     flush(owner)
   }
