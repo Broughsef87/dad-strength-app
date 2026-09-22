@@ -5,6 +5,7 @@
 // household row that has since changed.
 import type { DietaryRules, Household, ListItem, Plan } from './types'
 import { solverLines } from './custom'
+import { withoutRecord } from './record'
 
 export interface RulesSnapshot {
   people_count: number
@@ -31,7 +32,12 @@ export function snapshot(household: Household, plan: Plan, inventoryCounted = tr
     inventory: inventoryCounted ? household.inventory.map((i) => ({ ...i })) : [],
     inventory_counted: inventoryCounted,
     store_section_order: [...household.store_section_order],
-    entries: plan.entries.map((e) => ({ ...e })),
+    // WITHOUT the record (FOR-247). A plan's snapshot is what it is compared
+    // on, and no stored snapshot has ever carried one: the page builds a fresh
+    // snapshot from the stored meal_ids and compares it to the stored one, so
+    // the day the database began writing records, every plan already built
+    // would read as stale. The record is history, not a rule.
+    entries: plan.entries.map(withoutRecord),
   }
 }
 

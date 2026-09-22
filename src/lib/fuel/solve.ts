@@ -20,6 +20,7 @@
 //       store order, ready to tick.
 import type { Household, InventoryItem, ListItem, ListSection, MealIngredient, MealRow, Plan, PlanEntry, ShoppingList } from './types'
 import { daysBetween } from './cycle'
+import { STEAK_CUT, pastCut } from './record'
 
 /** Cuts the household buys fresh, close to the night they are cooked; everything else freezes. Sourced: "week-1 fresh fish at Costco, week-2 fish and produce elsewhere". */
 export const FRESH_ONLY_CUTS = ['salmon', 'cod_halibut', 'cod', 'halibut'] as const
@@ -240,7 +241,11 @@ export function overlapWarnings(ctx: PlanContext): string[] {
  * plan being judged, not history.
  */
 export function steakWindowWarnings(plan: Plan, meals: MealRow[], ctx: PlanContext, allowance: number): string[] {
-  const isSteak = (slug: string) => meals.find((m) => m.slug === slug)?.protein_cut === 'ribeye'
+  // THIS plan is judged against the library as it stands — it is being built
+  // from it now. A PAST night is judged on what it was (FOR-247): its record
+  // when it has one, so editing or retiring a meal cannot move last month.
+  const isSteak = (slug: string) => meals.find((m) => m.slug === slug)?.protein_cut === STEAK_CUT
+  const wasSteak = (e: PlanEntry) => pastCut(e, meals) === STEAK_CUT
   const latest = new Map<string, PlanHistory>()
   for (const r of ctx.history) {
     if (r.week_start === ctx.targetStart) continue
@@ -265,7 +270,7 @@ export function steakWindowWarnings(plan: Plan, meals: MealRow[], ctx: PlanConte
   const ends = boundaries(0, ownEnd, 'this cycle')
   for (const c of cycles) {
     const end = cutoff(c.start, c.span)
-    for (const e of c.r.meal_ids) if (isSteak(e.slug)) { const d = c.start + (e.week - 1) * 7; if (d < end) others.push(d) }
+    for (const e of c.r.meal_ids) if (wasSteak(e)) { const d = c.start + (e.week - 1) * 7; if (d < end) others.push(d) }
     ends.push(...boundaries(c.start, end, `the cycle starting ${c.r.week_start}`))
   }
   const warnings = new Set<string>()
@@ -302,7 +307,7 @@ export function validatePlan(plan: Plan, meals: MealRow[], household: Household,
   }
   const outOfCycle = plan.entries.filter((e) => e.week > weeks).length
   if (outOfCycle) warnings.push(`${outOfCycle} night${outOfCycle === 1 ? '' : 's'} planned for week 2 on a weekly shop`)
-  const steak = plan.entries.map((e) => bySlug.get(e.slug)).filter((m) => m?.protein_cut === 'ribeye').length
+  const steak = plan.entries.map((e) => bySlug.get(e.slug)).filter((m) => m?.protein_cut === STEAK_CUT).length
   const steakCap = steakNightsPerCycle(rules.steak_per_month, household)
   if (steak > steakCap) warnings.push(`${steak} steak night${steak === 1 ? '' : 's'} in the cycle, rule is ${rules.steak_per_month} a month`)
   // Judged against the cycles already planned (Codex, rounds 10, 13, 14): a
