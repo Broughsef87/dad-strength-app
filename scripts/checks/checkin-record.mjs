@@ -65,7 +65,7 @@ const mpGets = (code(mp).match(/localStorage\.getItem\(/g) ?? []).length
 assert(mpGets === 1 && /localStorage\.getItem\(STORAGE_KEY\)/.test(mpLoader),
   `MorningProtocol reads its paint in ONE place — the first-frame paint on open — found ${mpGets} reads`)
 const objGets = (code(obj).match(/localStorage\.getItem\(/g) ?? []).length
-const objLoad = obj.slice(obj.indexOf('  useEffect(() => {\n    const load = async () => {'), obj.indexOf('  const toggle = async'))
+const objLoad = obj.slice(obj.indexOf('    const load = async () => {'), obj.indexOf('  const toggle = async'))
 assert(objGets === 1 && /localStorage\.getItem\(MIND_KEY\)/.test(objLoad),
   `the objectives card reads its paint in ONE place — the first-frame paint on load — found ${objGets} reads`)
 const toggleFn = fnBody(obj, 'const toggle = async')
@@ -92,6 +92,20 @@ assert(/const editsAtOpen = localEdits\.current/.test(mpLoader) && /if \(localEd
   'a row read that started before a change made here is not applied over it — the change is newer, and already on its way to the row')
 assert(/localEdits\.current\+\+/.test(fnBody(mp, 'const saveCache = ')) && /localEdits\.current\+\+/.test(toggleFn) && /localEdits\.current\+\+/.test(fnBody(obj, 'const saveDraft = async')),
   'every change made here counts as one')
+
+// Reads and writes, in order (Codex r1). A read asked for while a tick's write
+// is pending would return the row from before it and revert the tick on screen;
+// two refreshes in flight could answer out of order.
+assert(/await queue\(async \(\) => supabase\s*\.from\('daily_checkins'\)\s*\.select\('mind_state'\)/.test(objLoad),
+  "the card's row read goes through the SAME queue as its writes — it runs after any pending write lands, and reads it back")
+assert(/const mine = \+\+loadSeq\.current/.test(obj) && /if \(cancelled \|\| mine !== loadSeq\.current\) return/.test(objLoad) && /return \(\) => \{ cancelled = true \}/.test(obj),
+  'only the newest load paints what it read — an older answer landing last is dropped, and so is one for an unmounted card')
+// The day a change belongs to is captured when it is made, not when its
+// queued write runs (Codex r1: across midnight, or 4am, that is the next day).
+assert(/date: state\.date, mind_state: state/.test(fnBody(obj, 'const writeRecord = async')) && !/localDay\(\)/.test(fnBody(obj, 'const writeRecord = async')),
+  "an objectives write goes to the day the change was made — carried on the state — never a day read inside the queue")
+assert(/const day = todayKey\(\)/.test(fnBody(mp, 'const saveCache = ')) && !/todayKey\(\)/.test(fnBody(mp, 'const saveCache = ').slice(fnBody(mp, 'const saveCache = ').indexOf('queue(async')))
+  , 'a protocol write goes to the protocol day the change was made on — captured before it queues, never read inside the queue')
 
 // ── 3. the signal fires once the row has the change ───────────────────────
 const saveFn = fnBody(mp, 'const saveCache = ')

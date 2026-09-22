@@ -34,12 +34,18 @@ export default function DailyObjectivesCard(
   // Bumped by every change made here; a row read that started before one is
   // older than it, and is not applied over it.
   const localEdits = useRef(0)
+  // Which load is the newest. Only it may paint what it read: two refreshes in
+  // flight, and the older answering last would put back obsolete objectives.
+  const loadSeq = useRef(0)
 
-  const writeRecord = async (state: Record<string, unknown>): Promise<boolean> => {
+  // The row is the day the change was MADE — carried on the state, captured
+  // when the change was accepted. Read inside the queue it could be evaluated
+  // after midnight, and file yesterday's objectives into today's row (Codex r1).
+  const writeRecord = async (state: { date: string } & Record<string, unknown>): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSync('unsaved'); return false }
     const res = await queue(async () => supabase.from('daily_checkins').upsert(
-      { user_id: user.id, date: localDay(), mind_state: state, updated_at: new Date().toISOString() },
+      { user_id: user.id, date: state.date, mind_state: state, updated_at: new Date().toISOString() },
       { onConflict: 'user_id,date' },
     )).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
     setSync(res.error ? 'unsaved' : 'synced')
@@ -91,6 +97,8 @@ export default function DailyObjectivesCard(
   }
 
   useEffect(() => {
+    let cancelled = false
+    const mine = ++loadSeq.current
     const load = async () => {
       const today = localDay()
       // PAINT from this device's copy, for the first frame…
@@ -115,12 +123,17 @@ export default function DailyObjectivesCard(
       const editsAtOpen = localEdits.current
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
-      const { data, error } = await supabase
+      // The read goes through the SAME queue as the writes (Codex r1). A read
+      // asked for while a write is pending then runs after it lands and reads
+      // it back, instead of reverting it on screen; and reads run one at a
+      // time, in order.
+      const { data, error } = await queue(async () => supabase
         .from('daily_checkins')
         .select('mind_state')
         .eq('user_id', user.id)
         .eq('date', today)
-        .maybeSingle()
+        .maybeSingle())
+      if (cancelled || mine !== loadSeq.current) return
       if (error) { setSync('unreached'); setLoading(false); return }
       // A change made here while the read was in flight is newer than it.
       if (localEdits.current !== editsAtOpen) { setLoading(false); return }
@@ -137,6 +150,7 @@ export default function DailyObjectivesCard(
       setLoading(false)
     }
     load()
+    return () => { cancelled = true }
     // refreshKey is bumped when MorningProtocol's record changes on the same
     // page — its Goals step writes mind_state, and the signal fires once the
     // row has it, so this re-read reads the new objectives.

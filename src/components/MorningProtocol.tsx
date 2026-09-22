@@ -215,8 +215,12 @@ export default function MorningProtocol(
   const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
     localEdits.current++
     latest.current = { p, c, g }
+    // The protocol day the change was MADE on, captured now. Evaluated inside
+    // the queued write it could fall after 4am and file this protocol into the
+    // next day's row (Codex r1).
+    const day = todayKey()
     // Paint, for the next open's first frame.
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
     // The record. Upsert names only its own column, so mind_state is untouched.
     void (async () => {
       const res = await queue(async () => {
@@ -231,8 +235,8 @@ export default function MorningProtocol(
         return supabase.from('daily_checkins').upsert(
           {
             user_id: user.id,
-            date: todayKey(),
-            spirit_state: { morning: { date: todayKey(), protocol: p, completed: c, gratitude: g } },
+            date: day,
+            spirit_state: { morning: { date: day, protocol: p, completed: c, gratitude: g } },
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'user_id,date' },
