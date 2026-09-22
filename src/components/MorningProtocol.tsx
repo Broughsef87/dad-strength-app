@@ -312,40 +312,50 @@ export default function MorningProtocol(
       const hadKept = kept.unsent.size > 0
       let recovered: Latest | null = null
       let keepScreen = false
-      for (const u of [...kept.unsent.values()]) {
-        // Whose change it is decides first. Kept state outlives a sign-out, and
-        // a change account A made is never saved under account B — it would put
-        // A's protocol, and A's gratitude, in B's record (Codex r6, P1).
-        const by = await u.by
-        let vouched = false
-        if (by !== null && by !== user.id) {
-          if (kept.latest && kept.latest.n <= u.n) kept.latest = null
-        } else {
-          vouched = u.fresh !== null && (await u.fresh) === user.id
-          if (!vouched) {
-            const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
-            vouched = its !== null && sameJson(its, u.p)
+      // Recovering the kept days reads their rows, and one of those reads can
+      // fail on its own. That is that day's answer, not today's: it stays kept
+      // and unchecked, and today's record — already read, right here — still
+      // goes on the screen (Codex r17).
+      try {
+        for (const u of [...kept.unsent.values()]) {
+          // Whose change it is decides first. Kept state outlives a sign-out, and
+          // a change account A made is never saved under account B — it would put
+          // A's protocol, and A's gratitude, in B's record (Codex r6, P1).
+          const by = await u.by
+          let vouched = false
+          if (by !== null && by !== user.id) {
+            if (kept.latest && kept.latest.n <= u.n) kept.latest = null
+          } else {
+            vouched = u.fresh !== null && (await u.fresh) === user.id
+            if (!vouched) {
+              const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
+              vouched = its !== null && sameJson(its, u.p)
+            }
+          }
+          settled(u)
+          // Deciding that took an await, or two. The account was confirmed before
+          // them, so a change made to THE SAME DAY meanwhile has been written on
+          // its own — and this older snapshot must not land on top of it, nor the
+          // record be applied over it (Codex r10, r12).
+          if (kept.latest !== null && kept.latest.day === u.day && kept.latest.n > u.n) {
+            if (u.day === todayKey()) keepScreen = true
+            continue
+          }
+          if (vouched) {
+            // The vouch IS the account: this account's row holds the protocol the
+            // change was made on, or this screen generated it for this account.
+            // A change made while nobody could say who was signed in would
+            // otherwise be refused by the queue for ever (Codex r17).
+            saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })
+            // A change for TODAY is what the screen shows, and the row does not
+            // have it yet — the record must not be applied over it. A change
+            // for an earlier day is not what the screen shows: today's record
+            // still applies, or the screen would sit on the config step with a
+            // protocol already in the row (Codex r6).
+            if (u.day === todayKey()) recovered = u
           }
         }
-        settled(u)
-        // Deciding that took an await, or two. The account was confirmed before
-        // them, so a change made to THE SAME DAY meanwhile has been written on
-        // its own — and this older snapshot must not land on top of it, nor the
-        // record be applied over it (Codex r10, r12).
-        if (kept.latest !== null && kept.latest.day === u.day && kept.latest.n > u.n) {
-          if (u.day === todayKey()) keepScreen = true
-          continue
-        }
-        if (vouched) {
-          saveCache(u.p, u.c, u.g, u.day, u)
-          // A change for TODAY is what the screen shows, and the row does not
-          // have it yet — the record must not be applied over it. A change
-          // for an earlier day is not what the screen shows: today's record
-          // still applies, or the screen would sit on the config step with a
-          // protocol already in the row (Codex r6).
-          if (u.day === todayKey()) recovered = u
-        }
-      }
+      } catch { /* that day's row did not answer; it stays kept */ }
       if (recovered) {
         // On screen, not left to the paint: localStorage may be unavailable,
         // or its last write may have failed, and then nothing would show what

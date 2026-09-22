@@ -360,7 +360,8 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: me,/.test(sav
 // the only thing that could vouch for it.
 assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /fresh: again \? again\.fresh : \(kept\.generated !== null/.test(mp)
   && /checked: again \? again\.checked : ownerRef\.current !== null/.test(mp)
-  && /if \(vouched\) \{\s*saveCache\(u\.p, u\.c, u\.g, u\.day, u\)/.test(openFn),
+  && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
+  && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}/.test(openFn),
   'a snapshot sent again keeps what was fixed when it was MADE — the account that made it, whether this screen generated its protocol, whether anything has checked it — because having been checked under one account is no authorization under the next (Codex r16)')
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
@@ -368,7 +369,7 @@ assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row 
 assert(/vouched = u\.fresh !== null && \(await u\.fresh\) === user\.id/.test(openFn)
   && /const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)/.test(openFn)
   && /vouched = its !== null && sameJson\(its, u\.p\)/.test(openFn)
-  && /if \(vouched\) \{\s*saveCache\(u\.p, u\.c, u\.g, u\.day, u\)/.test(openFn) && /kept\.generated = \{ p: fresh, by: madeBy\(\) \}/.test(mp)
+  && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn) && /kept\.generated = \{ p: fresh, by: madeBy\(\) \}/.test(mp)
   && /fresh: again \? again\.fresh : \(kept\.generated !== null && kept\.generated\.p === p \? kept\.generated\.by : null\)/.test(mp),
   'a change made before then is saved once the record vouches for it — the row holds its protocol, or it was generated here — and otherwise the record replaces it')
 // Codex r5: retried after 4am, it was compared with the NEW day's row, which
@@ -378,7 +379,7 @@ assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayK
   && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\)/.test(openFn)
   && /if \(u\.day === todayKey\(\)\) recovered = u/.test(openFn)
   && /if \(recovered\) \{[\s\S]{0,400}setProtocol\(recovered\.p\)\s*setCompleted\(recovered\.c\)\s*setGratitude\(recovered\.g\)\s*setConfigured\(true\)\s*return\s*\}/.test(openFn)
-  && openFn.indexOf('if (u.day === todayKey()) recovered = u') > openFn.indexOf('saveCache(u.p, u.c, u.g, u.day, u)'),
+  && openFn.indexOf('if (u.day === todayKey()) recovered = u') > openFn.indexOf('saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })'),
   "the kept change is vouched against the row of the day it was made on, stays kept until that row has answered, and an earlier day's change recovered does not stop today's record being applied (Codex r5, r6)")
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
 // never be saved under account B — its protocol, and its gratitude, are A's.
