@@ -301,7 +301,7 @@ assert(mFail > 0 && mSignal > mFail && mindFn.indexOf('await flushObjectives(own
 assert(!/onProtocolSaved/.test(code(mp)) && !/onProtocolSaved/.test(code(dash)),
   'one signal, because there is one record — the protocol-only signal existed to protect a cache no reader consults')
 // ONE queue for both components, bound to the account (Codex r2).
-assert(/runAs\(supabase, mine\.by, async \(me\) => \{[\s\S]{0,900}from\('daily_checkins'\)\.upsert\(/.test(saveFn),
+assert(/runAs\(supabase, mine\.by, async \(me\): Promise<\{ error: \{ message: string \} \| null; stale\?: true \}> => \{[\s\S]{0,900}from\('daily_checkins'\)\.upsert\(/.test(saveFn),
   'protocol writes go through the one check-in queue — gratitude saves per keystroke, and an earlier keystroke landing last would be the record')
 assert(/runAs\(supabase, owner, async \(me\) =>/.test(flushFn) && /const owner = changedBy\(ownerRef\.current\)/.test(toggleFn) && /const owner = changedBy\(ownerRef\.current\)/.test(draftFn)
   && /export const changedBy = \(known: string \| null\): Promise<string \| null> =>\s*accountAtChange\(createClient\(\), \{ current: known \}\)/.test(out),
@@ -366,12 +366,14 @@ assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /fresh: again \? again\
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
   "the protocol's account is confirmed only by its row answering — until then the screen is a paint nobody checked, possibly another account's")
-assert(/vouched = u\.fresh !== null && \(await u\.fresh\) === user\.id/.test(openFn)
-  && /const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)/.test(openFn)
-  && /vouched = its !== null && sameJson\(its, u\.p\)/.test(openFn)
+assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)\s*vouched = its !== null\s*\? sameJson\(its, u\.p\)\s*: u\.fresh !== null && \(await u\.fresh\) === user\.id/.test(openFn)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn) && /kept\.generated = \{ p: fresh, by: madeBy\(\) \}/.test(mp)
   && /fresh: again \? again\.fresh : \(kept\.generated !== null && kept\.generated\.p === p \? kept\.generated\.by : null\)/.test(mp),
-  'a change made before then is saved once the record vouches for it — the row holds its protocol, or it was generated here — and otherwise the record replaces it')
+  'a change made before then is saved once the record vouches for it — what the row holds decides, and only an empty row lets "this screen generated it" vouch, or a protocol saved here and since replaced elsewhere would be put back over the replacement (Codex r18)')
+assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.set\(day, mine\.n\)/.test(saveFn)
+  && /if \(\(queuedFor\.get\(day\) \?\? 0\) > mine\.n\) return \{ error: null, stale: true \}/.test(saveFn)
+  && /if \('stale' in res && res\.stale\) \{ showStatus\(\); return \}/.test(saveFn),
+  'a queued write the day has moved past writes nothing — gratitude saves on every keystroke, each carries the whole protocol, and the newest one is all of them (Codex r18)')
 // Codex r5: retried after 4am, it was compared with the NEW day's row, which
 // cannot hold yesterday's protocol — and was dropped as if the record had
 // replaced it.

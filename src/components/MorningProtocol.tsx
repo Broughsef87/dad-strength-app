@@ -97,6 +97,11 @@ const kept: {
 } = { latest: null, unsent: new Map(), generated: null }
 let stamp = 0
 let writing = 0
+// The newest change queued for a day. Gratitude saves on every keystroke, and
+// each write carries the WHOLE protocol — so a queued write the day has moved
+// past writes nothing, instead of spending its turn in the shared queue on a
+// row state two keystrokes old and holding up everything behind it (Codex r18).
+const queuedFor = new Map<string, number>()
 /**
  * Where this device stands against the record, as everything kept says — and
  * the closing-the-tab warning with it: what is kept lives in the tab, not in
@@ -326,11 +331,14 @@ export default function MorningProtocol(
           if (by !== null && by !== user.id) {
             if (kept.latest && kept.latest.n <= u.n) kept.latest = null
           } else {
-            vouched = u.fresh !== null && (await u.fresh) === user.id
-            if (!vouched) {
-              const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
-              vouched = its !== null && sameJson(its, u.p)
-            }
+            // What the row holds decides, always. Only when it holds NOTHING
+            // for that day does "this screen generated it" vouch for the change
+            // — otherwise a protocol generated here, saved, and since replaced
+            // on another device would be put back over it (Codex r18).
+            const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
+            vouched = its !== null
+              ? sameJson(its, u.p)
+              : u.fresh !== null && (await u.fresh) === user.id
           }
           settled(u)
           // Deciding that took an await, or two. The account was confirmed before
@@ -430,6 +438,7 @@ export default function MorningProtocol(
     }
     // Saving from the moment the change is made, not from its turn in the
     // queue (Codex r4).
+    queuedFor.set(day, mine.n)
     writing++
     showStatus()
     // The record. Upsert names only its own column, so mind_state is untouched.
@@ -439,13 +448,16 @@ export default function MorningProtocol(
       // in when it is sent: having been checked under one account is no
       // authorization under the next (Codex r16, P1). runAs hands the job the
       // account it verified, and that is what the row is filed under.
-      const res = await runAs(supabase, mine.by, async (me) => {
+      const res = await runAs(supabase, mine.by, async (me): Promise<{ error: { message: string } | null; stale?: true }> => {
+        // Overtaken in the queue by a newer change for this day: that one
+        // carries this one too.
+        if ((queuedFor.get(day) ?? 0) > mine.n) return { error: null, stale: true }
         // The row is keyed on the protocol's OWN day — the same 4am-cutoff
         // key the entry carries — not the calendar day. Keyed on the calendar
         // day, a protocol finished at 1am landed in the next day's row, and
         // generating that day's protocol after 4am overwrote it: a completed
         // protocol gone (FOR-228, ruling 2).
-        return supabase.from('daily_checkins').upsert(
+        const w = await supabase.from('daily_checkins').upsert(
           {
             user_id: me,
             date: day,
@@ -454,10 +466,14 @@ export default function MorningProtocol(
           },
           { onConflict: 'user_id,date' },
         )
+        return { error: w.error }
       }).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
       // Every write carries the whole protocol, so the LAST one answered says
       // whether the row holds the latest change; until then it is saving.
       writing--
+      // Nothing was written and nothing is wrong: the newer change for this day
+      // is still to come, and it will settle this one with itself (Codex r18).
+      if ('stale' in res && res.stale) { showStatus(); return }
       // A write that failed leaves the change kept, for the next open or Retry
       // to save — it is not in the row, and nothing else remembers it (Codex
       // r5). A write that landed settles ITS OWN change and every older one,
