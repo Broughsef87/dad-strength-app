@@ -67,11 +67,16 @@ if (mount) {
 const mp = read('../../src/components/MorningProtocol.tsx')
 ok('MorningProtocol reports completion upward', /onSaved/.test(mp),
   'no callback — the checklist cannot learn the protocol was run')
-const saveFns = mp.split(/const saveCache|const saveMindState/).slice(1)
+// Each save function's BODY, to its own closing brace — not a fixed character
+// window. The signal now fires once the row write has landed (FOR-231), which
+// puts it after the write, well past where a window of the function's opening
+// characters would look.
+const bodyOf = (name) => { const at = mp.indexOf(`const ${name} = `); return at < 0 ? '' : mp.slice(at, mp.indexOf('\n  }\n', at)) }
+const saveFns = ['saveMindState', 'saveCache'].map(bodyOf).filter(Boolean)
 ok('every MorningProtocol save path signals the parent',
-  saveFns.length === 2 && saveFns.every((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))),
+  saveFns.length === 2 && saveFns.every((f) => /onSaved\?\.\(\)/.test(f)),
   'found ' + saveFns.length + ' save paths, ' +
-  saveFns.filter((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))).length + ' signalling')
+  saveFns.filter((f) => /onSaved\?\.\(\)/.test(f)).length + ' signalling')
 
 // Date keys across the two components must agree, or the checklist can never
 // mark the item: MorningProtocol writes localDayWithCutoff(4) (YYYY-MM-DD) and
@@ -95,8 +100,9 @@ ok('the checklist watcher depends on the tick',
 ok('the objectives card takes a refresh key',
   /refreshKey/.test(read('../../src/components/DailyObjectivesCard.tsx')),
   'mount-only loader with no signal — a same-page save is invisible to it')
+// One tick since FOR-231: the record changed. The card follows it.
 ok('dashboard feeds the tick to the objectives card',
-  /<DailyObjectivesCard[\s\S]*?refreshKey=\{protocolTick\}/.test(dash))
+  /<DailyObjectivesCard[\s\S]*?refreshKey=\{recordTick\}/.test(dash))
 
 // -- 2d. objectives must be settable without AI -----------------------------
 // The protocol's Goals step sits behind `if (!configured)`, which is only true

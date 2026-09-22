@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame, Heart, Star, Moon, CloudDrizzle, Skull, Zap, Coffee, Wind, Target, ArrowRight } from 'lucide-react'
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
@@ -8,6 +8,7 @@ import { createClient } from '../utils/supabase/client'
 import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import UpgradeModal from './UpgradeModal'
+import { serialWriter } from '../lib/serialWriter'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -57,24 +58,29 @@ type Protocol = {
   closingWord: string
 }
 
+// ── THE RECORD IS THE ROW (FOR-231) ──────────────────────────────────────────
+// daily_checkins is the record of the morning protocol (spirit_state.morning,
+// in the row keyed on the protocol's own 4am-cutoff day) and of the day's
+// objectives (mind_state, in the calendar day's row). localStorage is a PAINT
+// layer and nothing more: written so the next open renders instantly, read only
+// until the row answers, replaced by whatever the row says — including "nothing
+// today" — and never read by anything that decides, counts or saves. A change
+// made here is a render until the row has it, and the screen says so.
 const STORAGE_KEY = 'dad-strength-morning-protocol'
 // The morning routine's "day" runs 4am → 3:59am, so a late-night or pre-dawn
 // check-in doesn't wipe a routine completed that morning.
 const todayKey = () => localDayWithCutoff(4)
 
 export default function MorningProtocol(
-  { objectives = [], onSaved, onProtocolSaved }:
+  { objectives = [], onSaved }:
   {
     objectives?: string[]
-    /** Something was written — protocol OR objectives. Siblings that read either listen here. */
-    onSaved?: () => void
     /**
-     * The PROTOCOL cache was just written (saveCache only, never the
-     * objectives path). The adherence count trusts the local cache only on
-     * the heels of this signal; an objectives-only save must not trip it,
-     * because then a stale cache would override a completion made elsewhere.
+     * The RECORD changed — the row now holds a protocol or objectives change
+     * made here. Fired once the write has landed, never when it starts, so a
+     * reader that re-reads the row on it reads the change (FOR-231).
      */
-    onProtocolSaved?: () => void
+    onSaved?: () => void
   } = {},
 ) {
   const [minutes, setMinutes] = useState(20)
@@ -95,6 +101,22 @@ export default function MorningProtocol(
   // Goals — synced to Mind tab storage
   const [mindObjectives, setMindObjectives] = useState(['', '', ''])
   const [mindSaved, setMindSaved] = useState(false)
+  const [mindError, setMindError] = useState('')
+
+  // Where this device stands against the record. 'unsaved': a change made here
+  // has not reached the row (it retries on the next change, or on Retry).
+  // 'unreached': the row could not be read, so what is on screen is only what
+  // this device last saw.
+  const [sync, setSync] = useState<'synced' | 'unsaved' | 'unreached'>('synced')
+  // Writes to the row, one at a time: gratitude saves on every keystroke, and
+  // an earlier keystroke landing last would leave the record holding it.
+  const [queue] = useState(() => serialWriter())
+  // Bumped by every change made here. The row read on open is applied only if
+  // nothing has been changed since — a change made after the read started is
+  // newer than what the read will return, and is already on its way to the row.
+  const localEdits = useRef(0)
+  // The latest protocol state made here, for Retry.
+  const latest = useRef<{ p: Protocol; c: boolean[]; g: string[] } | null>(null)
 
   const saveMindState = async () => {
     const supabase = createClient()
@@ -109,18 +131,19 @@ export default function MorningProtocol(
       completedObjectives: dense.map(() => false),
       lockedIn: true,
     }
-    // Write to localStorage so DailyObjectivesCard picks it up instantly
-    localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
-    // Persist to DB
+    // Paint only: the objectives card renders it instantly on its next open.
+    try { localStorage.setItem('dad-strength-mind-state', JSON.stringify(state)) } catch { /* paint only */ }
+    // The record. "Saved" means the row has it — nothing earlier.
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase.from('daily_checkins').upsert(
-        { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id,date' }
-      )
-    }
+    if (!user) { setMindError('sign in to save your objectives'); return }
+    const res = await queue(async () => supabase.from('daily_checkins').upsert(
+      { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,date' }
+    )).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
+    if (res.error) { setMindError('not saved — check your connection and try again'); return }
+    setMindError('')
     setMindSaved(true)
-    // Objectives are written HERE, not in saveCache — a separate path, so it
+    // Objectives are written HERE, not in save() — a separate path, so it
     // needs the signal separately. DailyObjectivesCard renders directly below
     // this component and reads mind_state; without this it keeps showing "no
     // objectives set" beside the Saved confirmation until a reload.
@@ -128,84 +151,84 @@ export default function MorningProtocol(
   }
 
   useEffect(() => {
-    // Local first (instant paint)…
-    let localDone = -1
+    // PAINT from this device's copy, so the protocol is on screen at once…
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const data = JSON.parse(saved)
-        if (data.date === todayKey()) {
+        if (data.date === todayKey() && data.protocol) {
           setProtocol(data.protocol)
           setCompleted(data.completed || new Array(data.protocol.steps.length).fill(false))
           setGratitude(data.gratitude || ['', '', ''])
           setConfigured(true)
-          localDone = (data.completed ?? []).filter(Boolean).length
         }
       }
-    } catch {}
+    } catch { /* no paint — the row will answer */ }
 
-    // …then the DB copy, so completion made on another device wins. The 4am-
-    // cutoff day can span two calendar rows, so check today and yesterday.
+    // …then the RECORD answers, and what it says replaces the paint entirely:
+    // more done, less done, a different protocol, or none at all. Nothing is
+    // compared. The one exception is a change made here while the read was in
+    // flight — that change is newer than the read, and already on its way to
+    // the row, so the read is not allowed to put the screen back behind it.
+    const editsAtOpen = localEdits.current
     void (async () => {
       try {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
-        const yesterday = localDay(new Date(Date.now() - 86_400_000))
-        const { data: rows } = await supabase
+        // The row keyed on the protocol's OWN day — where every protocol write
+        // has landed since the row-key fix (FOR-228, ruling 2).
+        const { data: row, error } = await supabase
           .from('daily_checkins')
           .select('spirit_state')
           .eq('user_id', user.id)
-          .in('date', [localDay(), yesterday])
-        for (const r of rows ?? []) {
-          const m = (r.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
-          if (!m?.protocol || m.date !== todayKey()) continue
-          const remoteDone = (m.completed ?? []).filter(Boolean).length
-          if (remoteDone > localDone) {
-            const c = m.completed ?? new Array(m.protocol.steps.length).fill(false)
-            const g = m.gratitude ?? ['', '', '']
-            setProtocol(m.protocol)
-            setCompleted(c)
-            setGratitude(g)
-            setConfigured(true)
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: m.protocol, completed: c, gratitude: g }))
-          }
-          break
+          .eq('date', todayKey())
+          .maybeSingle()
+        if (error) throw error
+        if (localEdits.current !== editsAtOpen) return
+        const m = (row?.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
+        if (m?.protocol && m.date === todayKey()) {
+          const c = m.completed ?? new Array(m.protocol.steps.length).fill(false)
+          const g = m.gratitude ?? ['', '', '']
+          setProtocol(m.protocol)
+          setCompleted(c)
+          setGratitude(g)
+          setConfigured(true)
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: m.protocol, completed: c, gratitude: g })) } catch { /* paint only */ }
+        } else {
+          // The record holds no protocol for today. Whatever this device had
+          // painted — another account's, or one that never reached the row —
+          // is not a protocol, and goes.
+          setProtocol(null)
+          setCompleted([])
+          setGratitude(['', '', ''])
+          setConfigured(false)
+          try { localStorage.removeItem(STORAGE_KEY) } catch { /* paint only */ }
         }
-      } catch { /* offline — localStorage still works */ }
+        setSync('synced')
+      } catch {
+        setSync('unreached')
+      }
     })()
   }, [])
 
   const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g }))
-    // Tell the parent this component just persisted state. Siblings on the
-    // dashboard — the first-week checklist and the objectives card — read that
-    // state back, and a same-tab localStorage write fires no event they can
-    // hear; the storage event is cross-tab only. So this is the notification.
-    //
-    // It fires on EVERY save, not only when a pillar is completed. Gating it on
-    // completion meant saving objectives from the Goals step, without having
-    // ticked a pillar yet, left the objectives card showing "no objectives set"
-    // right beside the Saved confirmation. Consumers decide what a save means
-    // to them; this signal only says that something was written.
-    onSaved?.()
-    // ...and this one says the protocol cache specifically was written. Only
-    // here — saveMindState writes objectives, not the cache.
-    onProtocolSaved?.()
-    // Mirror to daily_checkins.spirit_state so state follows the user across
-    // devices. Upsert touches only the provided columns — mind_state is safe.
+    localEdits.current++
+    latest.current = { p, c, g }
+    // Paint, for the next open's first frame.
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
+    // The record. Upsert names only its own column, so mind_state is untouched.
     void (async () => {
-      try {
+      const res = await queue(async () => {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        if (!user) return { error: { message: 'signed out' } }
         // The row is keyed on the protocol's OWN day — the same 4am-cutoff
         // key the entry carries — not the calendar day. Keyed on the calendar
         // day, a protocol finished at 1am landed in the next day's row, and
         // generating that day's protocol after 4am overwrote it: a completed
-        // protocol gone (FOR-228, ruling 2). The loader below reads today and
-        // yesterday, so a pre-dawn row is still found.
-        await supabase.from('daily_checkins').upsert(
+        // protocol gone (FOR-228, ruling 2).
+        return supabase.from('daily_checkins').upsert(
           {
             user_id: user.id,
             date: todayKey(),
@@ -214,9 +237,17 @@ export default function MorningProtocol(
           },
           { onConflict: 'user_id,date' },
         )
-      } catch { /* offline — will re-sync on next save */ }
+      }).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
+      if (res.error) { setSync('unsaved'); return }
+      setSync('synced')
+      // The row has it now. Only now are the readers told (FOR-231): the
+      // daily number, the checklist and the objectives card re-read the row
+      // on this, and a signal sent before the write landed sent them to read
+      // the old one.
+      onSaved?.()
     })()
   }
+  const retrySave = () => { const l = latest.current; if (l) saveCache(l.p, l.c, l.g) }
 
   const generate = async () => {
     setLoading(true)
@@ -393,13 +424,21 @@ export default function MorningProtocol(
           <h3 className="font-light text-lg tracking-tight leading-tight">{protocol?.theme}</h3>
         </div>
         <button
-          onClick={() => { setConfigured(false); setProtocol(null); setCompleted([]); setGratitude(['', '', '']) }}
+          onClick={() => { localEdits.current++; setConfigured(false); setProtocol(null); setCompleted([]); setGratitude(['', '', '']) }}
           className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
           title="Rebuild"
         >
           <RefreshCw size={13} />
         </button>
       </div>
+
+      {sync !== 'synced' && (
+        <p className="text-[11px] text-muted-foreground" role="status">
+          {sync === 'unsaved'
+            ? <>not saved yet — this device has your changes, your record doesn&apos;t. <button onClick={retrySave} className="underline">retry</button></>
+            : 'couldn\u2019t reach your record — showing what this device last saw'}
+        </p>
+      )}
 
       {allDone && !reviewOpen ? (
         /* ── Collapsed — every check done. Volt marks what's earned. ── */
@@ -554,6 +593,7 @@ export default function MorningProtocol(
                           Saved
                         </div>
                       )}
+                      {mindError && <p className="text-[11px] text-muted-foreground" role="status">{mindError}</p>}
                     </div>
 
                   ) : (

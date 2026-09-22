@@ -1,10 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { serialWriter } from '../lib/serialWriter'
 import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
+
+// ── THE RECORD IS THE ROW (FOR-231) ──────────────────────────────────────────
+// daily_checkins.mind_state, in the calendar day's row, is the record of the
+// day's objectives — the same rule MorningProtocol states for spirit_state, one
+// authority for the whole row. localStorage['dad-strength-mind-state'] is a
+// paint layer: rendered at once, replaced by whatever the row says, and never
+// the basis of a save.
+const MIND_KEY = 'dad-strength-mind-state'
 
 export default function DailyObjectivesCard(
   { refreshKey = 0 }: { refreshKey?: number } = {},
@@ -15,7 +24,27 @@ export default function DailyObjectivesCard(
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
   const [saving, setSaving] = useState(false)
+  // 'unsaved': a change made here has not reached the row. 'unreached': the row
+  // could not be read, so the card shows only what this device last saw.
+  const [sync, setSync] = useState<'synced' | 'unsaved' | 'unreached'>('synced')
   const supabase = createClient()
+  // Writes to the row, one at a time — two taps in quick succession must land in
+  // the order they were made, or the record keeps the first.
+  const [queue] = useState(() => serialWriter())
+  // Bumped by every change made here; a row read that started before one is
+  // older than it, and is not applied over it.
+  const localEdits = useRef(0)
+
+  const writeRecord = async (state: Record<string, unknown>): Promise<boolean> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSync('unsaved'); return false }
+    const res = await queue(async () => supabase.from('daily_checkins').upsert(
+      { user_id: user.id, date: localDay(), mind_state: state, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,date' },
+    )).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
+    setSync(res.error ? 'unsaved' : 'synced')
+    return !res.error
+  }
 
   // Rows written before objectives were stored dense can still be sparse, and
   // the render path pairs objective i with completed i. Compact them TOGETHER
@@ -49,18 +78,13 @@ export default function DailyObjectivesCard(
       completedObjectives: dense.map(() => false),
       lockedIn: true,
     }
+    localEdits.current++
     try {
-      localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase.from('daily_checkins').upsert(
-          { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id,date' },
-        )
-      }
+      try { localStorage.setItem(MIND_KEY, JSON.stringify(state)) } catch { /* paint only */ }
       setObjectives(dense)
       setCompleted(dense.map(() => false))
       setLocked(true)
+      await writeRecord(state)
     } finally {
       setSaving(false)
     }
@@ -69,45 +93,53 @@ export default function DailyObjectivesCard(
   useEffect(() => {
     const load = async () => {
       const today = localDay()
-
-      // Try localStorage first for instant load
-      const cached = localStorage.getItem('dad-strength-mind-state')
-      if (cached) {
-        const data = JSON.parse(cached)
-        if (data.date === localDay()) {
-          const n = normalise(data.objectives, data.completedObjectives)
-          setObjectives(n.objectives)
-          setCompleted(n.completed)
-          setLocked(data.lockedIn || false)
-          setLoading(false)
-          return
+      // PAINT from this device's copy, for the first frame…
+      try {
+        const cached = localStorage.getItem(MIND_KEY)
+        if (cached) {
+          const data = JSON.parse(cached)
+          if (data.date === today) {
+            const n = normalise(data.objectives, data.completedObjectives)
+            setObjectives(n.objectives)
+            setCompleted(n.completed)
+            setLocked(data.lockedIn || false)
+            setLoading(false)
+          }
         }
-      }
+      } catch { /* no paint — the row will answer */ }
 
+      // …then the RECORD, ALWAYS. This returned early whenever the paint had
+      // today, so an objective ticked on another device never showed here and
+      // the paint was the authority (FOR-231). What the row says replaces the
+      // paint — including that there is nothing today.
+      const editsAtOpen = localEdits.current
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
-
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('daily_checkins')
         .select('mind_state')
         .eq('user_id', user.id)
         .eq('date', today)
-        .single()
-
-      if (data?.mind_state) {
-        const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean }
-        const n = normalise(ms.objectives, ms.completedObjectives)
-        setObjectives(n.objectives)
-        setCompleted(n.completed)
-        setLocked(ms.lockedIn || false)
-      }
+        .maybeSingle()
+      if (error) { setSync('unreached'); setLoading(false); return }
+      // A change made here while the read was in flight is newer than it.
+      if (localEdits.current !== editsAtOpen) { setLoading(false); return }
+      const ms = data?.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean } | null | undefined
+      const n = normalise(ms?.objectives, ms?.completedObjectives)
+      setObjectives(n.objectives)
+      setCompleted(n.completed)
+      setLocked(ms?.lockedIn || false)
+      try {
+        if (ms) localStorage.setItem(MIND_KEY, JSON.stringify({ ...ms, date: today }))
+        else localStorage.removeItem(MIND_KEY)
+      } catch { /* paint only */ }
+      setSync('synced')
       setLoading(false)
     }
     load()
-    // refreshKey is bumped when MorningProtocol saves objectives from the
-    // same page. Its Goals step writes mind_state, and a same-tab
-    // localStorage write notifies no sibling — without this the card keeps
-    // saying "no objectives set" next to the ones just entered.
+    // refreshKey is bumped when MorningProtocol's record changes on the same
+    // page — its Goals step writes mind_state, and the signal fires once the
+    // row has it, so this re-read reads the new objectives.
   }, [refreshKey])
 
   const toggle = async (i: number) => {
@@ -115,21 +147,20 @@ export default function DailyObjectivesCard(
     const newCompleted = [...completed]
     newCompleted[i] = !newCompleted[i]
     setCompleted(newCompleted)
+    localEdits.current++
 
-    // Persist
-    const today = localDay()
-    const cached = localStorage.getItem('dad-strength-mind-state')
-    const data = cached ? JSON.parse(cached) : {}
-    const updated = { ...data, completedObjectives: newCompleted, date: localDay() }
-    localStorage.setItem('dad-strength-mind-state', JSON.stringify(updated))
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('daily_checkins').upsert(
-      { user_id: user.id, date: today, mind_state: updated, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id,date' }
-    )
+    // Built from what the RECORD said — the objectives on screen came from the
+    // row — never from the paint. Read-modify-write against the cache wrote a
+    // row with no objectives at all whenever the cache was empty or another
+    // day's, and the tick then erased the day's objectives from the record.
+    const updated = { date: localDay(), objectives, completedObjectives: newCompleted, lockedIn: locked }
+    try { localStorage.setItem(MIND_KEY, JSON.stringify(updated)) } catch { /* paint only */ }
+    await writeRecord(updated)
   }
+
+  const syncNote = sync === 'unsaved'
+    ? 'not saved yet — this device has your changes, your record doesn\u2019t. they save with your next change'
+    : sync === 'unreached' ? 'couldn\u2019t reach your record — showing what this device last saw' : null
 
   const doneCount = completed.filter(Boolean).length
   const filledObjectives = objectives.filter(o => o.trim())
@@ -154,6 +185,8 @@ export default function DailyObjectivesCard(
           </span>
         )}
       </div>
+
+      {syncNote && <p className="text-[11px] text-muted-foreground mb-2 relative z-10" role="status">{syncNote}</p>}
 
       {!hasObjectives ? (
         /* Set them here rather than sending the user somewhere. The old CTA

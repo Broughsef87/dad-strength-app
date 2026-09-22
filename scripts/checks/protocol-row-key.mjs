@@ -34,10 +34,13 @@ assert(!/date: localDay\(\),\s*spirit_state:/.test(mp), 'the mirror row is not k
 assert(/onConflict: 'user_id,date'/.test(mp), 'the upsert conflicts on (user_id, date) — one row per protocol day')
 
 // ── 3. the loader still finds a pre-dawn row ───────────────────────────────
-// Before 4am the protocol's row is yesterday's calendar row; the loader
-// reads today and yesterday and picks the entry stamped todayKey().
-assert(/\.in\('date', \[localDay\(\), yesterday\]\)/.test(mp), 'the loader reads both today\'s and yesterday\'s rows')
-assert(/m\.date !== todayKey\(\)\) continue/.test(mp), 'the loader picks the entry stamped with todayKey()')
+// Before 4am the protocol's row is yesterday's calendar row. Since the row is
+// keyed on todayKey() — the 4am-cutoff day, which before 4am IS yesterday —
+// reading the row keyed todayKey() is that pre-dawn row exactly, and the only
+// row a protocol for today has been written to since the fix (FOR-231: the
+// loader reads the record, not a pair of calendar rows to choose between).
+assert(/\.from\('daily_checkins'\)\s*\.select\('spirit_state'\)\s*\.eq\('user_id', user\.id\)\s*\.eq\('date', todayKey\(\)\)/.test(mp), 'the loader reads the row keyed on todayKey() — the pre-dawn row, before 4am')
+assert(/m\.date === todayKey\(\)/.test(mp), 'the loader takes the entry only when it is stamped with todayKey()')
 
 // ── 4. mind_state keeps its own path, and the mirror names only its columns ─
 assert(/const today = localDay\(\)[\s\S]{0,1500}date: today, mind_state: state/.test(mp), 'objectives still write mind_state under the calendar day, on their own path')
