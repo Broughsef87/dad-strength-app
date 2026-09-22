@@ -27,7 +27,7 @@ import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
-import { isTrained, sessionPlan } from '../../../../lib/programs/sessionPlan'
+import { RECORDED, isRecorded, isTrained, samePlan, sessionPlan } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
 import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
   from '../../../../lib/programs/schedule'
@@ -255,15 +255,19 @@ async function fetchMaxes(
   return out
 }
 
+// The error is RETURNED, not swallowed. Whether a session has been trained is
+// read off these rows (FOR-248), and a failed read that came back as "no logs"
+// would draw a trained session from today's build — and the next log would then
+// record that build over what it was actually trained under (Codex r1).
 async function fetchSessionLogs(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, generatedWorkoutId: string,
-): Promise<SessionLogRow[]> {
-  const { data } = await supabase
+): Promise<{ logs: SessionLogRow[]; error: { code?: string; message?: string } | null }> {
+  const { data, error } = await supabase
     .from('ares_session_logs')
     .select('block_name, log_type, set_number, weight_lbs, reps, rpe, slot, completed, completed_at, notes, metcon_time_seconds, metcon_rounds')
     .eq('generated_workout_id', generatedWorkoutId)
-  return (data ?? []) as SessionLogRow[]
+  return { logs: (data ?? []) as SessionLogRow[], error: error ?? null }
 }
 
 // Per-lift history: the top logged set for each slot in the EARLIER weeks of the
@@ -1272,9 +1276,26 @@ export default function TrainingDayPage() {
       // every way a row is found, so none of them draws a session differently.
       const adopt = async (id: string, wd: Record<string, unknown>) => {
         workoutDataRef.current = wd
-        logs = await fetchSessionLogs(supabase, id)
-        drawn = sessionPlan(built, wd.plan, logs).plan
-        recordedRef.current = isTrained(logs)
+        const read = await fetchSessionLogs(supabase, id)
+        // Not knowing is not "untrained". Nothing is drawn, recorded or
+        // written until this session's logs can be read (Codex r1).
+        if (read.error) throw new Error(`Could not read this session's logs (${read.error.message ?? read.error.code ?? 'unknown error'}) — nothing was changed. Try again.`)
+        logs = read.logs
+        const trained = isTrained(logs)
+        drawn = sessionPlan(built, wd.plan, logs, isRecorded(wd)).plan
+        // Recorded means the stored plan IS the record. A trained row from
+        // before the record existed is not — its next log records it.
+        recordedRef.current = trained && isRecorded(wd)
+        // An untrained session's stored plan follows what it shows, so if the
+        // record written at its first log ever fails, what is left on the row is
+        // today's plan, not the one from its first open (Codex r1).
+        if (!trained && !samePlan(wd.plan, built)) {
+          workoutDataRef.current = { ...wd, plan: built, [RECORDED]: false }
+          // Best effort: if it fails, the record at the first log still writes
+          // the plan on screen. Never a reason to stop the session loading.
+          const synced = await supabase.from('generated_workouts').update({ workout_data: workoutDataRef.current }).eq('id', id)
+          if (synced.error) console.error('[train] session plan sync failed:', synced.error)
+        }
         basePlanRef.current = drawn
         const ovr = (wd.overrides ?? {}) as SessionOverrides
         setOverrides(ovr)
@@ -1391,15 +1412,16 @@ export default function TrainingDayPage() {
   })
 
   // ── What this session was trained under (FOR-248) ─────────────────────────
-  // Recorded the moment the FIRST log lands, from the plan the cards are drawn
+  // Recorded BEFORE the first log is written, from the plan the cards are drawn
   // from — not at first open: a day opened on Monday, corrected on Tuesday and
-  // trained on Wednesday was trained under Wednesday's plan, and freezing
-  // Monday's would strand Wednesday's sets on a reopen. Written again only when
-  // that plan changes under a trained session (a swap). A failed write leaves
-  // the session unrecorded, so the next log tries again.
+  // trained on Wednesday was trained under Wednesday's plan. Before, not after:
+  // a log that landed while its record failed would read as recorded on the
+  // next open (Codex r1). A failed record never blocks the log — a set is never
+  // lost to it — and leaves the session unrecorded, so the next log tries
+  // again. Written again only when that plan changes under a trained session.
   const writePlan = async (): Promise<SbRes | null> => {
     if (!workoutIdRef.current || !basePlanRef.current) return null
-    workoutDataRef.current = { ...workoutDataRef.current, plan: basePlanRef.current }
+    workoutDataRef.current = { ...workoutDataRef.current, plan: basePlanRef.current, [RECORDED]: true }
     return supabase.from('generated_workouts').update({ workout_data: workoutDataRef.current }).eq('id', workoutIdRef.current)
   }
   const recordPlan = async () => {
@@ -1425,9 +1447,9 @@ export default function TrainingDayPage() {
       completed: s.done,
       completed_at: s.done ? now : null,
     }))
+    await recordPlan()
     const res = await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
     report(item.name, res)
-    if (!res?.error) void recordPlan()
   }
 
   // PR check on set completion: beats your best weight at >= that rep count.
@@ -1466,13 +1488,14 @@ export default function TrainingDayPage() {
       completed_at: s.done ? now : null,
       notes: s.setIndex === 0 ? notes || null : null, // card-level notes ride on set 1
     }))
+    await recordPlan()
     const res = await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
     report(item.name, res)
-    if (!res?.error) void recordPlan()
   }
 
   const logSimple = async (blockName: string, logType: string, notes: string, extra?: Record<string, unknown>) => {
     if (!user || !workoutIdRef.current) return
+    await recordPlan()
     const res = await supabase.from('ares_session_logs').upsert({
       ...baseRow(),
       log_type: logType,
@@ -1484,7 +1507,6 @@ export default function TrainingDayPage() {
       ...extra,
     }, { onConflict: UPSERT_CONFLICT })
     report(blockName, res)
-    if (!res?.error) void recordPlan()
   }
 
   const completeSession = async () => {
@@ -1496,7 +1518,10 @@ export default function TrainingDayPage() {
     // rest day is listed anywhere any more, but /train/<slug>/<a rest day> is still
     // a URL anyone can type.
     if (plan && !isCompletable(plan)) return
-    const done = await supabase.from('ares_session_logs').upsert({
+    // The sentinel is a log like any other: a session finished without a
+    // single set logged is still trained, so it is recorded first (FOR-248).
+    await recordPlan()
+    await supabase.from('ares_session_logs').upsert({
       ...baseRow(),
       log_type: 'session_complete',
       block_name: '__session_complete__',
@@ -1504,9 +1529,6 @@ export default function TrainingDayPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
-    // The sentinel is a log like any other: a session finished without a
-    // single set logged is still trained, and is recorded here (FOR-248).
-    if (!done?.error) await recordPlan()
     await advanceWeekIfDone(supabase, user.id, slug, program)
     // Streak shim so dashboard streak sees this session.
     await supabase.from('workout_logs').upsert({

@@ -22,7 +22,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { isStoredPlan, isTrained, reattachLogged, sessionPlan } from '../../src/lib/programs/sessionPlan.ts'
+import { RECORDED, isRecorded, isStoredPlan, isTrained, reattachLogged, samePlan, sessionPlan } from '../../src/lib/programs/sessionPlan.ts'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import { rampOriginFor } from '../../src/lib/programs/prep.ts'
 
@@ -76,6 +76,20 @@ const MAXES = { back_squat: 315, bench: 225, deadlift: 405, ohp: 135, clean: 205
   assert(reattachLogged(built, [{ block_name: 'Back Squat', slot: 'squat' }]) === built, 'nothing to reattach hands the SAME plan back')
   assert(sessionPlan(built, null, logsY).plan.items[0].name === 'Broad Jump',
     'a trained session with no stored plan is still reattached to its logs')
+
+  // A RECORDED plan is the record: drawn exactly, logs never overrule it. Log
+  // Back Squat, swap the card to Front Squat, reload before a Front Squat set —
+  // the swap stands (Codex r1).
+  const swapped = { ...clone(built), items: built.items.map((i) => (i.slot === 'squat' ? { ...i, name: 'Front Squat', subbedFrom: 'Back Squat' } : i)) }
+  const preSwap = [{ block_name: 'Back Squat', slot: 'squat' }]
+  assert(sessionPlan(built, swapped, preSwap, true).plan.items[1].name === 'Front Squat',
+    'a recorded plan is drawn exactly as recorded — a swap persisted after sets were logged is not undone by them')
+  assert(sessionPlan(built, swapped, preSwap, false).plan.items[1].name === 'Back Squat',
+    'an UNRECORDED plan (a row from before the record) is the one reconciled against its logs')
+  assert(isRecorded({ [RECORDED]: true }) && !isRecorded({ [RECORDED]: 'yes' }) && !isRecorded({}) && !isRecorded(null),
+    'recorded means the marker the page writes, exactly — nothing else on a row passes for it')
+  assert(samePlan({ a: 1, b: { c: [1, 2], d: 'x' } }, { b: { d: 'x', c: [1, 2] }, a: 1 }) && !samePlan({ a: 1 }, { a: 2 }) && !samePlan({ items: [1, 2] }, { items: [2, 1] }),
+    'plans compare the same whatever order jsonb hands their keys back in, and differ when they differ')
 }
 
 // ── 2. every program, every day: a stored session cannot be rewritten by a build ──
@@ -103,9 +117,13 @@ const asTrained = (v, key) => {
         if (!built.items.length) continue
         const stored = asTrained(built)
         const logs = stored.items.filter((i) => i.kind === 'lift' || i.kind === 'plyo').map((i) => ({ block_name: i.name, slot: i.slot }))
-        const trained = sessionPlan(built, stored, logs.length ? logs : [{ block_name: '__session_complete__', slot: null }])
+        const trainedLogs = logs.length ? logs : [{ block_name: '__session_complete__', slot: null }]
         sessions++
-        if (!same(trained.plan, stored)) { rewritten++; first ??= `${program.slug} W${week} D${day}` }
+        // Recorded or not: a row from before the record is reconciled against
+        // its logs, and must still come out as exactly what was stored.
+        for (const recorded of [true, false]) {
+          if (!same(sessionPlan(built, stored, trainedLogs, recorded).plan, stored)) { rewritten++; first ??= `${program.slug} W${week} D${day}${recorded ? '' : ' (unrecorded)'}` }
+        }
         if (sessionPlan(built, stored, []).plan === built) untrainedTook++
       }
     }
@@ -144,11 +162,21 @@ const asTrained = (v, key) => {
 {
   const pg = readLF('src/app/train/[program]/[day]/page.tsx')
   const adopt = (() => { const at = pg.indexOf('const adopt = async (id: string, wd: Record<string, unknown>) => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n      }\n', at)) })()
-  assert(/logs = await fetchSessionLogs\(supabase, id\)[\s\S]*drawn = sessionPlan\(built, wd\.plan, logs\)\.plan/.test(adopt),
-    'a found row is drawn through sessionPlan, with its logs read FIRST — the rule needs them to decide')
+  assert(/const read = await fetchSessionLogs\(supabase, id\)[\s\S]*logs = read\.logs[\s\S]*drawn = sessionPlan\(built, wd\.plan, logs, isRecorded\(wd\)\)\.plan/.test(adopt),
+    'a found row is drawn through sessionPlan, with its logs read FIRST and whether its plan is a record — the rule needs both')
+  // Not knowing is not "untrained" (Codex r1).
+  const readFails = adopt.indexOf('if (read.error) throw'), firstDraw = adopt.indexOf('drawn = sessionPlan'), firstWrite = adopt.indexOf('.update(')
+  assert(readFails > 0 && readFails < firstDraw && (firstWrite < 0 || readFails < firstWrite),
+    'a log read that FAILS stops the session before anything is drawn or written — a failed read is not an untrained session')
+  const fetchFn = (() => { const at = pg.indexOf('async function fetchSessionLogs('); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n}\n', at)) })()
+  assert(/const \{ data, error \} = await supabase/.test(fetchFn) && /error: error \?\? null/.test(fetchFn),
+    'the log read returns its error instead of swallowing it into an empty list')
+  assert(/if \(!trained && !samePlan\(wd\.plan, built\)\) \{\s*workoutDataRef\.current = \{ \.\.\.wd, plan: built, \[RECORDED\]: false \}/.test(adopt),
+    "an untrained session's stored plan follows what it shows — unmarked, and only when it actually changed (Codex r1)")
   assert(/basePlanRef\.current = drawn/.test(adopt) && /setPlan\(applyOverrides\(drawn, ovr\)\)/.test(adopt),
     'what it draws is the base the session overrides and swaps build on — not the build')
-  assert(/recordedRef\.current = isTrained\(logs\)/.test(adopt), 'a row that is already trained is known to be recorded')
+  assert(/recordedRef\.current = trained && isRecorded\(wd\)/.test(adopt),
+    'a row is known to be recorded only when it is trained AND carries the record — a row from before the record records at its next log')
   assert((pg.match(/await adopt\(/g) ?? []).length === 2 && /select\('id, workout_data'\)\s*\.eq\('user_id', user\.id\)\.eq\('program_slug', slug\)\s*\.eq\('week_number', weekNumber\)\.eq\('day_number', dayNumber\)\s*\.order\('id'/.test(pg),
     'BOTH ways a row is found — the run-scoped lookup and the unique-index fallback — draw through the same path')
   assert(/setSessionLogs\(logs\)/.test(pg) && !/if \(workoutId\) setSessionLogs\(await fetchSessionLogs/.test(pg),
@@ -157,16 +185,20 @@ const asTrained = (v, key) => {
 
   const recordFn = (() => { const at = pg.indexOf('const recordPlan = async () => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
   const writeFn = (() => { const at = pg.indexOf('const writePlan = async ()'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
-  assert(/plan: basePlanRef\.current/.test(writeFn), 'the plan recorded is the one the cards are drawn from')
+  assert(/plan: basePlanRef\.current, \[RECORDED\]: true/.test(writeFn), 'the plan recorded is the one the cards are drawn from, marked as the record')
   assert(/if \(recordedRef\.current\) return/.test(recordFn) && /if \(!res \|\| res\.error\) recordedRef\.current = false/.test(recordFn),
     'recorded once, at the first log — and a failed write leaves it unrecorded so the next log tries again')
   const writers = ['const logLiftSets', 'const logPlyoSets', 'const logSimple'].map((name) => {
     const at = pg.indexOf(name); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at))
   })
-  assert(writers.every((w) => /if \(!res\?\.error\) void recordPlan\(\)/.test(w)),
-    'every log writer — sets, jumps, metcons and outside work — records the plan when its write lands')
+  // BEFORE, not after: a log that landed while its record failed would read as
+  // recorded on the next open, freezing whatever the row held (Codex r1).
+  const recordsFirst = (w, write) => { const r = w.indexOf('await recordPlan()'), u = w.indexOf(write); return r > 0 && u > 0 && r < u }
+  assert(writers.every((w) => recordsFirst(w, "from('ares_session_logs').upsert(")),
+    'every log writer — sets, jumps, metcons and outside work — records the plan BEFORE its log is written')
   const complete = (() => { const at = pg.indexOf('const completeSession = async'); return at < 0 ? '' : pg.slice(at, pg.indexOf('await advanceWeekIfDone', at)) })()
-  assert(/if \(!done\?\.error\) await recordPlan\(\)/.test(complete), 'finishing a session records it too — before the week can advance past it')
+  assert(recordsFirst(complete, "log_type: 'session_complete'"),
+    'finishing a session records it too — before the sentinel is written, and so before the week can advance past it')
   const swap = (() => { const at = pg.indexOf('if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
   assert(/if \(recordedRef\.current\) report\('session record', await writePlan\(\)\)/.test(swap),
     'a swap on a trained session rewrites its record — sets logged after it carry the new name')

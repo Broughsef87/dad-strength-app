@@ -11,8 +11,15 @@
 // THE RULE: a session that has been trained — any log row on it, the completion
 // sentinel included — is drawn from what it was trained under. One that has not
 // is built fresh, so it still picks up every correction until the moment it is
-// trained. The page records the plan at that moment (the first log), so "stored"
-// means "trained under", not "first opened".
+// trained.
+//
+// "Trained under" is a RECORD the page writes, marked `plan_recorded`: before
+// the first log lands, and again when a swap changes a trained session. A row
+// stored before that record existed carries only the plan of its FIRST OPEN,
+// which may predate what was actually trained — so that one, and only that one,
+// is reconciled against its logs. A recorded plan is drawn exactly as recorded:
+// a swap the athlete made is an explicit choice, and logs never overrule it
+// (Codex r1).
 //
 // Deterministic and pure: no clock, no I/O, no AI. buildDay stays the only
 // source of a prescription; this decides only which prescription a card shows.
@@ -63,15 +70,42 @@ export function reattachLogged(plan: DayPlan, logs: readonly LoggedRow[]): DayPl
   return changed ? { ...plan, items } : plan
 }
 
+/** The marker the page writes beside a plan that is the record of what was trained. */
+export const RECORDED = 'plan_recorded'
+
+/** Is this row's stored plan the page's record, rather than a first-open snapshot? */
+export function isRecorded(workoutData: Record<string, unknown> | null | undefined): boolean {
+  return workoutData?.[RECORDED] === true
+}
+
 /**
  * The plan this session's cards are drawn from, before its session overrides.
  *
- * Trained → what it was trained under: the stored plan when the row has one,
- * with logged names reattached. Not trained → `built`, untouched, so a day not
- * yet started still picks up a correction.
+ * Not trained → `built`, untouched, so a day not yet started still picks up a
+ * correction. Trained → what it was trained under: a RECORDED plan exactly as
+ * recorded; an unrecorded one (a row from before the record) reconciled against
+ * its logs; no stored plan at all, the build reconciled against its logs.
  */
-export function sessionPlan(built: DayPlan, stored: unknown, logs: readonly LoggedRow[]): { plan: DayPlan; source: 'stored' | 'built' } {
+export function sessionPlan(built: DayPlan, stored: unknown, logs: readonly LoggedRow[], recorded = false): { plan: DayPlan; source: 'stored' | 'built' } {
   if (!isTrained(logs)) return { plan: built, source: 'built' }
-  if (isStoredPlan(stored)) return { plan: reattachLogged(stored, logs), source: 'stored' }
+  if (isStoredPlan(stored)) return { plan: recorded ? stored : reattachLogged(stored, logs), source: 'stored' }
   return { plan: reattachLogged(built, logs), source: 'built' }
+}
+
+/**
+ * The same plan, whatever order its keys arrived in. Postgres jsonb reorders
+ * object keys, so a plan read back from a row never compares equal to one built
+ * fresh by string — and a comparison that always said "different" would write
+ * the row on every open.
+ */
+export function samePlan(a: unknown, b: unknown): boolean {
+  return canonical(a) === canonical(b)
+}
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']'
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>
+    return '{' + Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canonical(o[k])).join(',') + '}'
+  }
+  return JSON.stringify(v)
 }
