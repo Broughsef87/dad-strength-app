@@ -258,8 +258,10 @@ assert(/const saveCache = \(p: Protocol, c: boolean\[\], g: string\[\], day: str
   , 'a protocol write goes to the protocol day the change was made on — captured before it queues, never read inside the queue')
 // Codex r2: Retry recomputed the day, so a change that failed before 4am was
 // retried after it — into the NEXT day's row.
-assert(/kept\.latest = \{ p, c, g, day, by: madeBy\(\), n: \+\+stamp \}/.test(mp) && /const l = kept\.latest\s*if \(l\) saveCache\(l\.p, l\.c, l\.g, l\.day\)/.test(fnBody(mp, 'const retrySave = ')),
-  'a Retry retries the change on the day it was made — not today')
+assert(/kept\.latest = \{ p, c, g, day, by: madeBy\(\), n: \+\+stamp \}/.test(mp)
+  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) saveCache\(u\.p, u\.c, u\.g, u\.day\)/.test(fnBody(mp, 'const retrySave = '))
+  && !/kept\.latest/.test(fnBody(mp, 'const retrySave = ')),
+  'a Retry retries every change the row does not have, each on the day it was made — not the latest snapshot, which after one day saved and another failed is the one already in the row (Codex r2, r13)')
 // Codex r5: moving to another tab in the app unmounts these components. What
 // the row does not have yet is kept per TAB, and the next open saves it — and
 // it is never touched while rendering, where a server render would hand one

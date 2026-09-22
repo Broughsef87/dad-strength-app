@@ -436,10 +436,13 @@ export default function MorningProtocol(
   }
   const retrySave = () => {
     // No account confirmed: the open-time read never answered. Run it again —
-    // it saves the unsent change if the record vouches for it (Codex r3).
+    // it saves the kept changes if the record vouches for them (Codex r3).
     if (!ownerRef.current) { void open(); return }
-    const l = kept.latest
-    if (l) saveCache(l.p, l.c, l.g, l.day)
+    // Every change the row does not have, each to ITS OWN day. Not the latest
+    // snapshot: after yesterday's save failed and today's landed, that is
+    // today's — already in the row — and Retry would say it had done something
+    // while yesterday stayed unsaved for as long as the tab was open (Codex r13).
+    for (const u of [...kept.unsent.values()]) saveCache(u.p, u.c, u.g, u.day)
   }
 
   const generate = async () => {
