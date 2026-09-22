@@ -284,6 +284,11 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
                 if (entries.some((x) => x.slug === m.slug)) {
                   setEntries((es) => es.filter((x) => x.slug !== m.slug))
                   setDroppedNow((d) => [...d, { slug: m.slug, name: m.name }])
+                  // The drawer may be open to swap a night BY INDEX, and the
+                  // nights just moved under it: a pick would land on the wrong
+                  // night, or on none. Closed, as removing a night closes it
+                  // (Codex r1).
+                  setDrawer(null)
                 }
                 setMealForm(null)
                 return null

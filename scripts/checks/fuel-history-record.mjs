@@ -203,6 +203,10 @@ const REC_CHICKEN = { protein_cut: 'chicken_thigh', name: 'Sunday Steak' }
   const pb = readLF('src/components/fuel/PlanBuilder.tsx')
   assert(/if \(entries\.some\(\(x\) => x\.slug === m\.slug\)\) \{\s*setEntries\(\(es\) => es\.filter\(\(x\) => x\.slug !== m\.slug\)\)\s*setDroppedNow/.test(pb),
     'a meal retired from this screen takes its drafted nights with it — a night whose meal is not drawn could never be removed (Codex r7)')
+  // The drawer swaps a night BY INDEX; the nights just moved under it.
+  const retireBranch = (() => { const at = pb.indexOf('if (entries.some((x) => x.slug === m.slug)) {'); return at < 0 ? '' : pb.slice(at, pb.indexOf('\n                }', at)) })()
+  assert(/setDrawer\(null\)/.test(retireBranch),
+    'dropping those nights closes the drawer — it may be open to swap a night by index, and a pick would land on the wrong one (Codex r1)')
   assert(/for \(const d of droppedNow\) names\.set\(d\.slug, names\.get\(d\.slug\) \?\? d\.name\)/.test(pb),
     'a meal retired while a saved night stands on it is named once — one meal, whatever the sources')
   const pg = readLF('src/app/fuel/page.tsx')
