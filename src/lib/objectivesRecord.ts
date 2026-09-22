@@ -93,6 +93,13 @@ export function objectivesBook<I extends Intent>(day: string) {
     pending: (): readonly I[] => pending,
     /** Days holding such changes, oldest change first. */
     days: (): string[] => [...new Set(pending.map((p) => p.day))],
+    /**
+     * The day on screen moves forward to `d`. A lock-in is for the day it is
+     * typed on, and a card left open across midnight still shows yesterday
+     * (Codex r4). Nothing is known of `d` until its row is read, so its record
+     * is empty until then; changes pending for earlier days keep their days.
+     */
+    turn(d: string) { if (d > record.day) record = { day: d, mind: EMPTY, seq: record.seq } },
     /** The first-frame paint. Only until a row has been read; it never outranks one. */
     paint(d: string, ms: unknown) { if (record.seq === 0) record = { day: d, mind: fromRow(ms), seq: 0 } },
     intend(i: I) { pending = [...pending, i] },
@@ -102,10 +109,11 @@ export function objectivesBook<I extends Intent>(day: string) {
      * A row read landed. It becomes the record only if no read later in the
      * queue already has — an older answer arriving last is dropped. `load`: an
      * open or a refresh, which decides the day on screen; any other read only
-     * updates the day already there. Changes dead against the new record go.
+     * updates the day already there, and nothing takes the card back a day.
+     * Changes dead against the new record go.
      */
     adopt(d: string, ms: unknown, seq: number, load = false): boolean {
-      if (seq <= record.seq) return false
+      if (seq <= record.seq || d < record.day) return false
       if (!load && d !== record.day) return false
       record = { day: d, mind: fromRow(ms), seq }
       settle(applyIntents(record.mind, onDay(d)).dead)

@@ -185,8 +185,26 @@ assert(/seq: book\.nextRead\(\)/.test(objLoad) && /const seq = book\.nextRead\(\
   'only the newest load paints what it read — every read takes its place in queue order, and one for an unmounted card is dropped')
 // The day a change belongs to is captured when it is made, not when its
 // queued write runs (Codex r1: across midnight, or 4am, that is the next day).
-assert(/for \(const day of book\.days\(\)\)/.test(flushFn) && /date: day, mind_state: row/.test(flushFn) && !/localDay\(\)/.test(flushFn) && !/localDay\(\)/.test(toggleFn) && !/localDay\(\)/.test(draftFn),
+assert(/for \(const day of book\.days\(\)\)/.test(flushFn) && /date: day, mind_state: row/.test(flushFn) && !/localDay\(\)/.test(flushFn) && !/localDay\(\)/.test(toggleFn),
   "an objectives write goes to the day the change was made on — carried on the change — never a day read inside the queue")
+// Codex r4: a card left open across midnight locked new objectives into
+// yesterday's row. A lock-in is for the day it is typed on; a tick stays with
+// the objectives it was made on.
+assert(draftFn.indexOf('book.turn(localDay())') > 0 && draftFn.indexOf('book.turn(localDay())') < draftFn.indexOf("book.intend({ kind: 'set'"),
+  'a lock-in is made for the day it is typed on — the card turns to today first, when the change is made (Codex r4)')
+{
+  const b = objectivesBook('2026-09-21')
+  b.adopt('2026-09-21', { objectives: ['old'], completedObjectives: [true], lockedIn: true }, b.nextRead(), true)
+  b.intend({ kind: 'tick', day: '2026-09-21', basis: ['old'], index: 0, done: false })
+  b.turn('2026-09-22')
+  const set = { kind: 'set', day: b.day(), basis: b.shown().objectives, objectives: ['new'] }
+  b.intend(set)
+  const stale = b.adopt('2026-09-21', { objectives: ['old'], completedObjectives: [true], lockedIn: true }, b.nextRead(), true)
+  const plan = b.plan('2026-09-22', null)
+  assert(b.day() === '2026-09-22' && JSON.stringify(b.shown().objectives) === '["new"]' && !stale && plan.write && plan.write.objectives[0] === 'new'
+    && JSON.stringify(b.days()) === '["2026-09-21","2026-09-22"]',
+    "after midnight a lock-in goes to today's row, a read of yesterday cannot take the card back, and yesterday's pending tick keeps its day")
+}
 assert(/const saveCache = \(p: Protocol, c: boolean\[\], g: string\[\], day: string = todayKey\(\)\) => \{/.test(mp) && !/todayKey\(\)/.test(fnBody(mp, 'const saveCache = ').slice(fnBody(mp, 'const saveCache = ').indexOf('runAs(')))
   , 'a protocol write goes to the protocol day the change was made on — captured before it queues, never read inside the queue')
 // Codex r2: Retry recomputed the day, so a change that failed before 4am was
@@ -196,7 +214,7 @@ assert(/latest\.current = \{ p, c, g, day \}/.test(mp) && /const l = latest\.cur
 
 // ── 3. the signal fires once the row has the change ───────────────────────
 const saveFn = fnBody(mp, 'const saveCache = ')
-const failAt = saveFn.indexOf("if (res.error) { setSync('unsaved'); return }"), signalAt = saveFn.indexOf('onSaved?.()')
+const failAt = saveFn.indexOf("if (res.error) { if (!inFlight.current) setSync('unsaved'); return }"), signalAt = saveFn.indexOf('onSaved?.()')
 assert(failAt > 0 && signalAt > failAt && saveFn.indexOf("from('daily_checkins').upsert(") < failAt,
   'a protocol save signals its readers only AFTER its row write has landed — never when the write starts')
 const mindFn = fnBody(mp, 'const saveMindState = ')
@@ -212,17 +230,33 @@ assert(/runAs\(supabase, owner, async \(me\) =>/.test(flushFn) && /const owner =
   'objectives writes too — each bound to the account that made the change, fixed at the change')
 assert(/for \(const c of book\.pending\(\)\) \{ const who = await c\.owner; if \(who && who !== me\) book\.settle\(\[c\]\) \}/.test(flushFn),
   'a pending change made under another account is dropped, never saved under this one')
-assert(/setSync\(!res\.ok \|\| book\.pending\(\)\.length \? 'unsaved' : 'synced'\)/.test(flushFn) && /setSync\(book\.pending\(\)\.length \? 'unsaved' : 'synced'\)/.test(objLoad),
-  'the card never says a change is saved while any change made here has not reached the row (Codex r3)')
+assert(/const settleSync = \(failed: boolean\) =>\s*setSync\(inFlight\.current \? 'saving' : failed \|\| book\.pending\(\)\.length \? 'unsaved' : 'synced'\)/.test(obj)
+  && /settleSync\(!res\.ok\)/.test(flushFn) && /settleSync\(false\)/.test(objLoad) && !/setSync\('synced'\)/.test(code(obj)),
+  'the card never says a change is saved while any change made here has not reached the row, or while a save is still queued (Codex r3, r4)')
+// Codex r4: queued behind other writes, a change read as saved until its turn came.
+assert(/inFlight\.current\+\+\s*setSync\('saving'\)\s*void \(async/.test(flushFn) && /inFlight\.current\+\+\s*setSync\('saving'\)/.test(saveFn)
+  && /inFlight\.current--\s*if \(res\.error\) \{ if \(!inFlight\.current\) setSync\('unsaved'\); return \}\s*if \(!inFlight\.current\) setSync\('synced'\)/.test(saveFn),
+  'a change says "saving" from the moment it is made, and "saved" only when the last write queued has landed (Codex r4)')
+for (const [label, src] of [['protocol', mp], ['objectives card', obj]]) {
+  assert(/useEffect\(\(\) => \{\s*if \(sync !== 'saving' && sync !== 'unsaved'\) return\s*const warn = \(e: BeforeUnloadEvent\) => \{ e\.preventDefault\(\); e\.returnValue = '' \}\s*window\.addEventListener\('beforeunload', warn\)/.test(src),
+    `the ${label} asks before the tab closes on a change that has not reached the row (Codex r4)`)
+}
+assert(/\{sync === 'saving' && 'saving · '\}\{doneCount\}/.test(obj) && /\{sync === 'saving' && <span[^>]*role="status">saving<\/span>\}/.test(mp),
+  'and the screen says it is saving, in the header, where it moves nothing under the next tap')
 assert(!/serialWriter/.test(code(mp)) && !/serialWriter/.test(code(obj)) && /export const checkinQueue = serialWriter\(\)/.test(readLF('src/lib/checkinQueue.ts')),
   'neither component keeps a queue of its own — with one each, a tick on the card could land after the Goals step replaced the objectives it was made against')
 const openFn = fnBody(mp, 'const open = ')
-assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: owner,/.test(saveFn) && /if \(!owner\) \{ unsent\.current = latest\.current; setSync\('unsaved'\); return \}/.test(saveFn),
+assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: owner,/.test(saveFn) && /if \(!owner\) \{ unsent\.current = latest\.current; setSync\([^)]*\); return \}/.test(saveFn),
   'a protocol write is bound to the account that made it, captured when it was made — and with no confirmed account it is kept, never a write under an account nobody checked')
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf("if (read === ACCOUNT_CHANGED || read.error) throw new Error('unreached')") && openFn.indexOf("if (read === ACCOUNT_CHANGED || read.error)") > 0 && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
   "the protocol's account is confirmed only by its row answering — until then the screen is a paint nobody checked, possibly another account's")
 assert(/if \(u && \(u\.p === generatedHere\.current \|\| \(held !== null && sameJson\(held, u\.p\)\)\)\) \{\s*saveCache\(u\.p, u\.c, u\.g, u\.day\)/.test(openFn) && /generatedHere\.current = fresh/.test(mp),
   'a change made before then is saved once the record vouches for it — the row holds its protocol, or it was generated here — and otherwise the record replaces it')
+// Kept while the open-time read runs is saving, not unsaved — the read saves
+// it — and unsaved the moment that read ends without an account or a row.
+assert(/if \(!owner\) \{ unsent\.current = latest\.current; setSync\(opening\.current \? 'saving' : 'unsaved'\); return \}/.test(saveFn) && /opening\.current = true/.test(openFn) && /\} finally \{\s*opening\.current = false\s*\}/.test(openFn)
+  && /if \(!user\) \{ if \(unsent\.current\) setSync\('unsaved'\); return \}/.test(openFn) && /setSync\(unsent\.current \? 'unsaved' : 'unreached'\)/.test(openFn),
+  'a change kept while the open-time read runs says "saving" — and "not saved" once the read ends without saving it')
 assert(/if \(!ownerRef\.current\) \{ void open\(\); return \}/.test(fnBody(mp, 'const retrySave = ')),
   'Retry recovers a failed open — it runs the read again — instead of refusing every change until a reload (Codex r3)')
 // runAs, as behaviour: a job queued under one account never runs under another.
@@ -278,11 +312,11 @@ assert(JSON.stringify(canon) === JSON.stringify(['src/lib/canonical.ts']),
 // Rendered on the sync state — not merely present in the file, where a dead
 // branch would keep the words and show nothing.
 const UNREACHED = 'couldn' + String.fromCharCode(92) + 'u2019t reach your record'
-assert(/\{sync !== 'synced' && \(\s*<p[^>]*role="status">\s*\{sync === 'unsaved'[\s\S]{0,200}not saved yet[\s\S]{0,200}onClick=\{retrySave\}/.test(mp)
+assert(/\{\(sync === 'unsaved' \|\| sync === 'unreached'\) && \(\s*<p[^>]*role="status">\s*\{sync === 'unsaved'[\s\S]{0,200}not saved yet[\s\S]{0,200}onClick=\{retrySave\}/.test(mp)
   && mp.includes(UNREACHED) && /reach your record[^<]*<button onClick=\{retrySave\}/.test(mp),
   'the protocol says when a change has not reached the record, and when the record could not be read — and offers Retry for both')
 assert(/mindError && <p/.test(mp) && /setMindError\('not saved/.test(mp), 'an objectives save that did not land says so, instead of "Saved"')
-assert(/\{sync !== 'synced' && \(\s*<p[^>]*role="status">\s*\{sync === 'unsaved'[\s\S]{0,200}not saved yet[\s\S]{0,200}onClick=\{retry\}/.test(obj) && obj.includes(UNREACHED)
+assert(/\{\(sync === 'unsaved' \|\| sync === 'unreached'\) && \(\s*<p[^>]*role="status">\s*\{sync === 'unsaved'[\s\S]{0,200}not saved yet[\s\S]{0,200}onClick=\{retry\}/.test(obj) && obj.includes(UNREACHED)
   && /const retry = \(\) => flush\(accountAtChange\(supabase, ownerRef\)\)/.test(obj),
   'the objectives card says the same, and its Retry saves every change the row does not have yet')
 

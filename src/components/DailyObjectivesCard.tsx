@@ -28,9 +28,10 @@ export default function DailyObjectivesCard(
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
-  // 'unsaved': a change made here has not reached the row. 'unreached': the row
-  // could not be read, so the card shows only what this device last saw.
-  const [sync, setSync] = useState<'synced' | 'unsaved' | 'unreached'>('synced')
+  // 'saving': a change made here is on its way to the row. 'unsaved': one did
+  // not get there. 'unreached': the row could not be read, so the card shows
+  // only what this device last saw.
+  const [sync, setSync] = useState<'synced' | 'saving' | 'unsaved' | 'unreached'>('synced')
   const supabase = createClient()
   // The record as this card last read it, in queue order, and every change made
   // here that the row does not have yet. What the card shows is always the one
@@ -40,6 +41,11 @@ export default function DailyObjectivesCard(
   // through the ONE check-in queue it shares with MorningProtocol
   // (src/lib/checkinQueue.ts, Codex r2), bound to the account that made it.
   const ownerRef = useRef<string | null>(null)
+  // Saves queued and not yet answered. Each carries every pending change, so
+  // while one is still to run the card is saving — not saved, not failed.
+  const inFlight = useRef(0)
+  const settleSync = (failed: boolean) =>
+    setSync(inFlight.current ? 'saving' : failed || book.pending().length ? 'unsaved' : 'synced')
 
   const show = () => {
     const s = book.shown()
@@ -60,6 +66,10 @@ export default function DailyObjectivesCard(
   // Retry, and the card never says it is saved while any change is not
   // (Codex r3). Each change goes to the day it was made on, carried on it.
   const flush = (owner: Promise<string | null>) => {
+    // Saving from the moment the change is made — not from when its turn in
+    // the queue comes, behind whatever else is writing (Codex r4).
+    inFlight.current++
+    setSync('saving')
     void (async () => {
       type Landed = { day: string; ms: MindRow | null; seq: number }
       const res = await runAs(supabase, owner, async (me) => {
@@ -88,11 +98,12 @@ export default function DailyObjectivesCard(
         }
         return { ok: true, landed }
       }).catch(() => ({ ok: false, landed: [] as Landed[] }))
+      inFlight.current--
       // No `ok`: the account that made the change is not the one signed in.
-      if (!('ok' in res)) { setSync('unsaved'); return }
+      if (!('ok' in res)) { settleSync(true); return }
       for (const l of res.landed) if (book.adopt(l.day, l.ms, l.seq)) paintCache(l.day, l.ms)
       show()
-      setSync(!res.ok || book.pending().length ? 'unsaved' : 'synced')
+      settleSync(!res.ok)
     })()
   }
   const retry = () => flush(accountAtChange(supabase, ownerRef))
@@ -108,6 +119,10 @@ export default function DailyObjectivesCard(
     // lives at slot 1. Compacting here keeps stored order and rendered order
     // identical, which is the only thing making those indices interchangeable.
     const dense = draft.map(o => o.trim()).filter(Boolean)
+    // Objectives are locked in for the day they are typed on. A card left open
+    // across midnight still shows yesterday: it turns to today first, and the
+    // lock-in is made against today's record (Codex r4).
+    book.turn(localDay())
     const owner = accountAtChange(supabase, ownerRef)
     book.intend({ kind: 'set', day: book.day(), basis: book.shown().objectives, objectives: dense, owner })
     show()
@@ -151,7 +166,7 @@ export default function DailyObjectivesCard(
       // stay on top of it.
       if (book.adopt(today, read.ms, read.seq, true)) paintCache(today, read.ms)
       show()
-      setSync(book.pending().length ? 'unsaved' : 'synced')
+      settleSync(false)
       setLoading(false)
     }
     load()
@@ -161,6 +176,16 @@ export default function DailyObjectivesCard(
     // row has it, so this re-read reads the new objectives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey])
+
+  // A change on its way to the row, or one that did not get there, is lost if
+  // the tab closes now — so closing it asks first (Codex r4). Moving elsewhere
+  // in the app is safe: the queue outlives this component.
+  useEffect(() => {
+    if (sync !== 'saving' && sync !== 'unsaved') return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [sync])
 
   // A tick is an intent: this objective, done or not, against the objective set
   // on screen. Worked out from what the card SHOWS — record plus every pending
@@ -194,12 +219,14 @@ export default function DailyObjectivesCard(
         </div>
         {hasObjectives && (
           <span className="eyebrow-mono text-muted-foreground">
-            {doneCount} of {filledObjectives.length} done
+            {sync === 'saving' && 'saving · '}{doneCount} of {filledObjectives.length} done
           </span>
         )}
       </div>
 
-      {sync !== 'synced' && (
+      {/* 'saving' shows in the header, beside the count: a line appearing here
+          would move the objectives under the next tap. */}
+      {(sync === 'unsaved' || sync === 'unreached') && (
         <p className="text-[11px] text-muted-foreground mb-2 relative z-10" role="status">
           {sync === 'unsaved'
             ? <>not saved yet — this device has your changes, your record doesn&apos;t. <button onClick={retry} className="underline">retry</button></>

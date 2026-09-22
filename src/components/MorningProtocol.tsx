@@ -104,11 +104,12 @@ export default function MorningProtocol(
   const [mindSaved, setMindSaved] = useState(false)
   const [mindError, setMindError] = useState('')
 
-  // Where this device stands against the record. 'unsaved': a change made here
-  // has not reached the row (it retries on the next change, or on Retry).
+  // Where this device stands against the record. 'saving': a change made here
+  // is on its way to the row. 'unsaved': one has not reached it (it retries on
+  // the next change, or on Retry).
   // 'unreached': the row could not be read, so what is on screen is only what
   // this device last saw.
-  const [sync, setSync] = useState<'synced' | 'unsaved' | 'unreached'>('synced')
+  const [sync, setSync] = useState<'synced' | 'saving' | 'unsaved' | 'unreached'>('synced')
   // Every write of the row goes through the ONE check-in queue shared with the
   // objectives card (src/lib/checkinQueue.ts, Codex r2): gratitude saves on
   // every keystroke, and an earlier keystroke landing last would leave the
@@ -136,6 +137,11 @@ export default function MorningProtocol(
   // A protocol generated on this screen — by the signed-in account's own
   // request, so it is that account's whatever the paint was.
   const generatedHere = useRef<Protocol | null>(null)
+  // Protocol writes queued and not yet answered.
+  const inFlight = useRef(0)
+  // The open-time read is running. A change made meanwhile is saving — the
+  // read saves it when it answers — not unsaved.
+  const opening = useRef(false)
 
   const saveMindState = async () => {
     const supabase = createClient()
@@ -196,10 +202,11 @@ export default function MorningProtocol(
   // screen that refuses every change until a reload (Codex r3).
   const open = async () => {
     const editsAtOpen = localEdits.current
+    opening.current = true
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { if (unsent.current) setSync('unsaved'); return }
       // The row keyed on the protocol's OWN day — where every protocol write
       // has landed since the row-key fix (FOR-228, ruling 2).
       const read = await runAs(supabase, user.id, async () => supabase
@@ -251,6 +258,8 @@ export default function MorningProtocol(
       setSync('synced')
     } catch {
       setSync(unsent.current ? 'unsaved' : 'unreached')
+    } finally {
+      opening.current = false
     }
   }
 
@@ -268,7 +277,11 @@ export default function MorningProtocol(
     const owner = ownerRef.current
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
-    if (!owner) { unsent.current = latest.current; setSync('unsaved'); return }
+    if (!owner) { unsent.current = latest.current; setSync(opening.current ? 'saving' : 'unsaved'); return }
+    // Saving from the moment the change is made, not from its turn in the
+    // queue (Codex r4).
+    inFlight.current++
+    setSync('saving')
     // The record. Upsert names only its own column, so mind_state is untouched.
     void (async () => {
       const supabase = createClient()
@@ -288,8 +301,11 @@ export default function MorningProtocol(
           { onConflict: 'user_id,date' },
         )
       }).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
-      if (res.error) { setSync('unsaved'); return }
-      setSync('synced')
+      // Every write carries the whole protocol, so the LAST one answered says
+      // whether the row holds the latest change; until then it is saving.
+      inFlight.current--
+      if (res.error) { if (!inFlight.current) setSync('unsaved'); return }
+      if (!inFlight.current) setSync('synced')
       // The row has it now. Only now are the readers told (FOR-231): the
       // daily number, the checklist and the objectives card re-read the row
       // on this, and a signal sent before the write landed sent them to read
@@ -297,6 +313,16 @@ export default function MorningProtocol(
       onSaved?.()
     })()
   }
+  // A change on its way to the row, or one that did not get there, is lost if
+  // the tab closes now — so closing it asks first (Codex r4). Moving elsewhere
+  // in the app is safe: the queue outlives this component.
+  useEffect(() => {
+    if (sync !== 'saving' && sync !== 'unsaved') return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [sync])
+
   const retrySave = () => {
     // No account confirmed: the open-time read never answered. Run it again —
     // it saves the unsent change if the record vouches for it (Codex r3).
@@ -480,6 +506,8 @@ export default function MorningProtocol(
           </div>
           <h3 className="font-light text-lg tracking-tight leading-tight">{protocol?.theme}</h3>
         </div>
+        <div className="flex items-center gap-2">
+        {sync === 'saving' && <span className="eyebrow-mono text-muted-foreground" role="status">saving</span>}
         <button
           onClick={() => { localEdits.current++; setConfigured(false); setProtocol(null); setCompleted([]); setGratitude(['', '', '']) }}
           className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
@@ -487,9 +515,12 @@ export default function MorningProtocol(
         >
           <RefreshCw size={13} />
         </button>
+        </div>
       </div>
 
-      {sync !== 'synced' && (
+      {/* 'saving' shows in the header: a line appearing here on every
+          keystroke would move the gratitude field being typed in. */}
+      {(sync === 'unsaved' || sync === 'unreached') && (
         <p className="text-[11px] text-muted-foreground" role="status">
           {sync === 'unsaved'
             ? <>not saved yet — this device has your changes, your record doesn&apos;t. <button onClick={retrySave} className="underline">retry</button></>
