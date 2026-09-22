@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { runAs } from '../lib/checkinQueue'
-import { adoptRead, book, changedBy, flushObjectives, intend, paintedMind, savingObjectives } from '../lib/objectivesOutbox'
+import { adoptRead, book, changedBy, flushObjectives, intend, onObjectives, paintedMind, savingObjectives, type Change } from '../lib/objectivesOutbox'
 import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
@@ -25,6 +25,9 @@ export default function DailyObjectivesCard(
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
+  // A change of this device's the record overtook: the objectives it was made
+  // against are gone, so it was not saved and never will be (Codex r8).
+  const [overtaken, setOvertaken] = useState(false)
   // 'saving': a change made here is on its way to the row. 'unsaved': one did
   // not get there. 'unreached': the row could not be read, so the card shows
   // only what this device last saw.
@@ -49,10 +52,15 @@ export default function DailyObjectivesCard(
   }
 
   // Saving from the moment the change is made — not from when its turn in the
-  // queue comes, behind whatever else is writing (Codex r4).
-  const save = (owner: Promise<string | null>) => {
+  // queue comes, behind whatever else is writing (Codex r4). `mine` is the
+  // change just made, if any: it is the one whose answer this screen owes.
+  const save = (owner: Promise<string | null>, mine?: Change) => {
     setSync('saving')
-    void flushObjectives(owner).then((res) => { show(); settleSync(!res.ok) })
+    void flushObjectives(owner).then((res) => {
+      show()
+      settleSync(!res.ok)
+      if (mine && res.dropped.includes(mine)) setOvertaken(true)
+    })
   }
   const retry = () => save(changedBy(ownerRef.current))
 
@@ -72,10 +80,17 @@ export default function DailyObjectivesCard(
     // lock-in is made against today's record (Codex r4).
     book().turn(localDay())
     const owner = changedBy(ownerRef.current)
-    intend({ kind: 'set', day: book().day(), basis: book().shown().objectives, objectives: dense, owner })
+    const mine: Change = { kind: 'set', day: book().day(), basis: book().shown().objectives, objectives: dense, owner }
+    setOvertaken(false)
+    intend(mine)
     show()
-    save(owner)
+    save(owner, mine)
   }
+
+  // What this card shows is what the outbox holds — the Goals step changes the
+  // same objectives on the same screen, and a tick applied to a copy taken when
+  // this card last rendered would land on a different objective (Codex r8).
+  useEffect(() => onObjectives(show), [])
 
   useEffect(() => {
     let cancelled = false
@@ -132,9 +147,11 @@ export default function DailyObjectivesCard(
     const now = book().shown()
     if (!now.lockedIn) return
     const owner = changedBy(ownerRef.current)
-    intend({ kind: 'tick', day: book().day(), basis: now.objectives, index: i, done: !now.completed[i], owner })
+    const mine: Change = { kind: 'tick', day: book().day(), basis: now.objectives, index: i, done: !now.completed[i], owner }
+    setOvertaken(false)
+    intend(mine)
     show()
-    save(owner)
+    save(owner, mine)
   }
 
   const doneCount = completed.filter(Boolean).length
@@ -163,6 +180,11 @@ export default function DailyObjectivesCard(
 
       {/* 'saving' shows in the header, beside the count: a line appearing here
           would move the objectives under the next tap. */}
+      {overtaken && (
+        <p className="text-[11px] text-muted-foreground mb-2 relative z-10" role="status">
+          {'today\u2019s objectives were set somewhere else first — these are the ones your record has'}
+        </p>
+      )}
       {(sync === 'unsaved' || sync === 'unreached') && (
         <p className="text-[11px] text-muted-foreground mb-2 relative z-10" role="status">
           {sync === 'unsaved'

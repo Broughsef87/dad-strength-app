@@ -44,9 +44,24 @@ export function paintMind(day: string, ms: unknown) {
   } catch { /* paint only */ }
 }
 
+// ── who is showing it ────────────────────────────────────────────────────────
+// Two screens show the day's objectives and both change them, so what either
+// shows has to be what the outbox holds — not a copy taken when it last
+// rendered. A tick is applied to the objective the athlete is looking at, and
+// with a stale copy that was a different objective (Codex r8).
+const readers = new Set<() => void>()
+/** Called whenever the objectives here change, for as long as you keep it. */
+export function onObjectives(fn: () => void): () => void {
+  readers.add(fn)
+  return () => { readers.delete(fn) }
+}
+
 // ── changes on their way to the row ──────────────────────────────────────────
 let writing = 0
-const mark = () => setUnloadGuard('objectives', writing > 0 || book().pending().length > 0)
+const mark = () => {
+  setUnloadGuard('objectives', writing > 0 || book().pending().length > 0)
+  for (const fn of [...readers]) fn()
+}
 /** Is a save on its way? Nothing is "saved" while one is. */
 export const savingObjectives = () => writing > 0
 /** The account making a change, fixed AT the change; `known` is never written to. */
@@ -60,6 +75,8 @@ export function intend(c: Change) {
 }
 
 export type Landed = { day: string; ms: MindRow | null; seq: number }
+/** What a save did: whether the row has it, what landed, and what it DROPPED. */
+export type Saved = { ok: boolean; landed: Landed[]; dropped: Change[] }
 
 /**
  * Every change the row does not have yet — the one just made AND any that
@@ -67,21 +84,22 @@ export type Landed = { day: string; ms: MindRow | null; seq: number }
  * inside the one queue. A failed change stays: the next change saves it, and so
  * does Retry, and opening a screen that shows objectives saves it.
  */
-export async function flushObjectives(owner: Promise<string | null>): Promise<{ ok: boolean; landed: Landed[] }> {
+export async function flushObjectives(owner: Promise<string | null>): Promise<Saved> {
   writing++
   mark()
   const supabase = createClient()
+  const dropped: Change[] = []
   const res = await runAs(supabase, owner, async (me) => {
     // A change made under another account is not this one's to save. One made
     // while no account was known is saved by the account that saves it — and
     // only onto a record holding the objectives it was made on.
-    for (const c of book().pending()) { const who = await c.owner; if (who && who !== me) book().settle([c]) }
+    for (const c of book().pending()) { const who = await c.owner; if (who && who !== me) { book().settle([c]); dropped.push(c) } }
     const landed: Landed[] = []
     for (const day of book().days()) {
       const { data, error } = await supabase.from('daily_checkins').select('mind_state').eq('user_id', me).eq('date', day).maybeSingle()
       if (error) return { ok: false, landed }
       const seq = book().nextRead()
-      const { write, settles } = book().plan(day, data?.mind_state ?? null)
+      const { write, settles, dead } = book().plan(day, data?.mind_state ?? null)
       let ms = (data?.mind_state ?? null) as MindRow | null
       if (write) {
         const row = toRow(day, write)
@@ -93,6 +111,10 @@ export async function flushObjectives(owner: Promise<string | null>): Promise<{ 
         ms = row
       }
       book().settle(settles)
+      // A change the record overtook — the objectives it was made against are
+      // gone, replaced here or on another device. It is not saved, and saying
+      // "saved" is the one answer that cannot be true (Codex r8).
+      dropped.push(...dead)
       landed.push({ day, ms, seq })
     }
     return { ok: true, landed }
@@ -102,7 +124,7 @@ export async function flushObjectives(owner: Promise<string | null>): Promise<{ 
   const out = 'ok' in res ? res : { ok: false, landed: [] as Landed[] }
   for (const l of out.landed) if (book().adopt(l.day, l.ms, l.seq)) paintMind(l.day, l.ms)
   mark()
-  return out
+  return { ...out, dropped }
 }
 
 /** A row read landed: it becomes the record unless a later read already has. */

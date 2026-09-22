@@ -121,12 +121,14 @@ export function objectivesBook<I extends Intent>(day: string) {
     },
     /**
      * Inside the queue, having just read day `d`'s row: that row with the day's
-     * changes applied — what to write, if any applied — and the changes that
-     * writing it settles, dead ones included.
+     * changes applied — what to write, if any applied — the changes that
+     * writing it settles, dead ones included, and which of those were DEAD.
+     * A dead change is not saved and never will be: what it was made against
+     * is gone, and whoever made it has to be told, not told "saved" (Codex r8).
      */
-    plan(d: string, ms: unknown): { write: Mind | null; settles: I[] } {
+    plan(d: string, ms: unknown): { write: Mind | null; settles: I[]; dead: I[] } {
       const { state, applied, dead } = applyIntents(fromRow(ms), onDay(d))
-      return { write: applied.length ? state : null, settles: [...applied, ...dead] }
+      return { write: applied.length ? state : null, settles: [...applied, ...dead], dead }
     },
     /** The row has these now — written, or dead against it. They are no longer pending. */
     settle,

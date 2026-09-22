@@ -80,17 +80,32 @@ const toggleFn = fnBody(obj, 'const toggle = ')
 const flushFn = topFn(out, 'export async function flushObjectives')
 const draftFn = fnBody(obj, 'const saveDraft = ')
 assert(toggleFn.length > 0 && !/localStorage/.test(toggleFn) && /const now = book\(\)\.shown\(\)/.test(toggleFn)
-  && /intend\(\{ kind: 'tick', day: book\(\)\.day\(\), basis: now\.objectives, index: i, done: !now\.completed\[i\], owner \}\)/.test(toggleFn),
+  && /const mine: Change = \{ kind: 'tick', day: book\(\)\.day\(\), basis: now\.objectives, index: i, done: !now\.completed\[i\], owner \}\s*setOvertaken\(false\)\s*intend\(mine\)/.test(toggleFn),
   'a tick is an intent against the objectives ON SCREEN — the record plus every pending change — never built from the paint, which wrote a row with no objectives when it was empty')
 assert(/runAs\(supabase, owner, async \(me\) => \{[\s\S]{0,900}\.select\('mind_state'\)\.eq\('user_id', me\)\.eq\('date', day\)\.maybeSingle\(\)[\s\S]{0,200}book\(\)\.plan\(day, data\?\.mind_state \?\? null\)[\s\S]{0,400}\.upsert\(\s*\{ user_id: me, date: day, mind_state: row,/.test(flushFn),
   'and it is saved as a read-modify-write of the RECORD inside the one queue — the row read, the changes applied to it, the result written back')
-assert(/intend\(\{ kind: 'set', day: book\(\)\.day\(\), basis: book\(\)\.shown\(\)\.objectives, objectives: dense, owner \}\)/.test(draftFn) && /save\(owner\)/.test(draftFn) && /save\(owner\)/.test(toggleFn),
+assert(/const mine: Change = \{ kind: 'set', day: book\(\)\.day\(\), basis: book\(\)\.shown\(\)\.objectives, objectives: dense, owner \}/.test(draftFn) && /save\(owner, mine\)/.test(draftFn) && /save\(owner, mine\)/.test(toggleFn),
   'a lock-in is an intent too, and both go through the same save')
+// Codex r8: the Goals step changes the same objectives on the same screen, so a
+// tick worked out from a copy this card took when it last rendered could land
+// on an objective the athlete never saw.
+assert(/useEffect\(\(\) => onObjectives\(show\), \[\]\)/.test(obj)
+  && /export function onObjectives\(fn: \(\) => void\): \(\) => void \{\s*readers\.add\(fn\)\s*return \(\) => \{ readers\.delete\(fn\) \}/.test(out)
+  && /for \(const fn of \[\.\.\.readers\]\) fn\(\)/.test(out),
+  'what a screen shows is what the outbox holds — a tick lands on the objective the athlete is looking at')
+// Codex r8: a change the record overtook was reported as saved — the Goals step
+// said "Saved" and hid its button over objectives that were never written.
+assert(/dropped\.push\(\.\.\.dead\)/.test(flushFn) && /export type Saved = \{ ok: boolean; landed: Landed\[\]; dropped: Change\[\] \}/.test(out)
+  && /if \(res\.dropped\.includes\(mine\)\) \{ setMindError\(/.test(mindFn2Early())
+  && /if \(mine && res\.dropped\.includes\(mine\)\) setOvertaken\(true\)/.test(fnBody(obj, 'const save = '))
+  && /\{overtaken && \(\s*<p[^>]*role="status">/.test(obj),
+  'a change the record overtook is not "saved": both screens say so, and neither hides what was typed behind a confirmation it cannot make (Codex r8)')
+function mindFn2Early() { return fnBody(mp, 'const saveMindState = ') }
 // Codex r7: the Goals step wrote the row itself, so a save that failed there was
 // remembered by nothing — its objectives lived in the paint until the card
 // replaced it with the row, and there was nothing to retry.
 const mindFn2 = fnBody(mp, 'const saveMindState = ')
-assert(/book\(\)\.turn\(localDay\(\)\)\s*const owner = changedBy\(ownerRef\.current\)\s*intend\(\{ kind: 'set', day: book\(\)\.day\(\), basis: book\(\)\.shown\(\)\.objectives, objectives: dense, owner \}\)/.test(mindFn2)
+assert(/book\(\)\.turn\(localDay\(\)\)\s*const owner = changedBy\(ownerRef\.current\)\s*const mine: Change = \{ kind: 'set', day: book\(\)\.day\(\), basis: book\(\)\.shown\(\)\.objectives, objectives: dense, owner \}\s*intend\(mine\)/.test(mindFn2)
   && /const res = await flushObjectives\(owner\)/.test(mindFn2) && !/upsert/.test(mindFn2) && !/mind_state/.test(code(mp)),
   "the protocol's Goals step makes the same kind of change, in the same outbox — one writer of the day's objectives, not two (Codex r7)")
 assert(flushFn.indexOf('book().settle(settles)') > flushFn.indexOf('if (w.error) return { ok: false, landed }') && flushFn.indexOf('if (w.error) return { ok: false, landed }') > 0 && flushFn.indexOf('if (error) return { ok: false, landed }') > 0,
@@ -107,8 +122,8 @@ assert(flushFn.indexOf('book().settle(settles)') > flushFn.indexOf('if (w.error)
   let b = objectivesBook(D)
   b.intend(tick(['A', 'B'], 0, true))
   let pl = b.plan(D, row(['X', 'Y'], [false, false]))
-  assert(pl.write === null && pl.settles.length === 1,
-    'a tick made against an objective set the record no longer holds is dropped — never written over the objectives that replaced it')
+  assert(pl.write === null && pl.settles.length === 1 && pl.dead.length === 1,
+    'a tick made against an objective set the record no longer holds is dropped — never written over the objectives that replaced it, and named as dropped (Codex r8)')
   // Only its own flag.
   b = objectivesBook(D)
   b.intend(tick(['A', 'B', 'C'], 1, true))
@@ -204,7 +219,7 @@ assert(/for \(const day of book\(\)\.days\(\)\)/.test(flushFn) && /date: day, mi
 // Codex r4: a card left open across midnight locked new objectives into
 // yesterday's row. A lock-in is for the day it is typed on; a tick stays with
 // the objectives it was made on.
-assert(draftFn.indexOf('book().turn(localDay())') > 0 && draftFn.indexOf('book().turn(localDay())') < draftFn.indexOf("intend({ kind: 'set'"),
+assert(draftFn.indexOf('book().turn(localDay())') > 0 && draftFn.indexOf('book().turn(localDay())') < draftFn.indexOf("const mine: Change = { kind: 'set'"),
   'a lock-in is made for the day it is typed on — the card turns to today first, when the change is made (Codex r4)')
 {
   const b = objectivesBook('2026-09-21')
@@ -261,7 +276,7 @@ assert(/runAs\(supabase, owner, async \(\) => \{[\s\S]{0,700}from\('daily_checki
 assert(/runAs\(supabase, owner, async \(me\) =>/.test(flushFn) && /const owner = changedBy\(ownerRef\.current\)/.test(toggleFn) && /const owner = changedBy\(ownerRef\.current\)/.test(draftFn)
   && /export const changedBy = \(known: string \| null\): Promise<string \| null> =>\s*accountAtChange\(createClient\(\), \{ current: known \}\)/.test(out),
   'objectives writes too — each bound to the account that made the change, fixed at the change')
-assert(/for \(const c of book\(\)\.pending\(\)\) \{ const who = await c\.owner; if \(who && who !== me\) book\(\)\.settle\(\[c\]\) \}/.test(flushFn),
+assert(/for \(const c of book\(\)\.pending\(\)\) \{ const who = await c\.owner; if \(who && who !== me\) \{ book\(\)\.settle\(\[c\]\); dropped\.push\(c\) \} \}/.test(flushFn),
   'a pending change made under another account is dropped, never saved under this one')
 assert(/const settleSync = \(failed: boolean, unreached = false\) =>\s*setSync\(savingObjectives\(\) \? 'saving' : failed \|\| book\(\)\.pending\(\)\.length \? 'unsaved' : unreached \? 'unreached' : 'synced'\)/.test(obj)
   && /export const savingObjectives = \(\) => writing > 0/.test(out)
@@ -279,7 +294,7 @@ assert(/const warn = \(e: BeforeUnloadEvent\) => \{ e\.preventDefault\(\); e\.re
   && /if \(has\) window\.addEventListener\('beforeunload', warn\)\s*else window\.removeEventListener\('beforeunload', warn\)/.test(guard)
   && !/beforeunload/.test(code(mp)) && !/beforeunload/.test(code(obj)),
   'closing the tab on a change the row does not have asks first — and the warning is not a component\'s to lose (Codex r7)')
-assert(/setUnloadGuard\('protocol', s !== 'synced'\)/.test(mp) && /const mark = \(\) => setUnloadGuard\('objectives', writing > 0 \|\| book\(\)\.pending\(\)\.length > 0\)/.test(out),
+assert(/setUnloadGuard\('protocol', s !== 'synced'\)/.test(mp) && /const mark = \(\) => \{\s*setUnloadGuard\('objectives', writing > 0 \|\| book\(\)\.pending\(\)\.length > 0\)/.test(out),
   'both stores raise it while they hold one: the protocol as it says where it stands, the outbox as changes are made and settled')
 assert(/\{sync === 'saving' && 'saving · '\}\{doneCount\}/.test(obj) && /\{sync === 'saving' && <span[^>]*role="status">saving<\/span>\}/.test(mp),
   'and the screen says it is saving, in the header, where it moves nothing under the next tap')

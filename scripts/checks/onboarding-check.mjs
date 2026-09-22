@@ -132,7 +132,7 @@ for (const field of ['objectives', 'completedObjectives', 'lockedIn']) {
     'the stored shape lost a field')
 }
 ok('both screens write the objectives through that one outbox',
-  /intend\(\{ kind: 'set'/.test(objCard) && /intend\(\{ kind: 'set'/.test(mp) && !/mind_state:/.test(mp),
+  /const mine: Change = \{ kind: 'set'/.test(objCard) && /const mine: Change = \{ kind: 'set'/.test(mp) && /intend\(mine\)/.test(mp) && !/mind_state:/.test(mp),
   'the protocol Goals step writes the row itself again — a failed save there is remembered by nothing')
 
 // Objectives render filtered and toggle by the FILTERED index, which writes
