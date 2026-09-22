@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
-import { serialWriter } from '../lib/serialWriter'
+import { ACCOUNT_CHANGED, runAs } from '../lib/checkinQueue'
 import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
@@ -28,9 +28,9 @@ export default function DailyObjectivesCard(
   // could not be read, so the card shows only what this device last saw.
   const [sync, setSync] = useState<'synced' | 'unsaved' | 'unreached'>('synced')
   const supabase = createClient()
-  // Writes to the row, one at a time — two taps in quick succession must land in
-  // the order they were made, or the record keeps the first.
-  const [queue] = useState(() => serialWriter())
+  // Every read and write of the row goes through the ONE check-in queue it
+  // shares with MorningProtocol (src/lib/checkinQueue.ts, Codex r2), bound to
+  // the account that made the change.
   // Bumped by every change made here; a row read that started before one is
   // older than it, and is not applied over it.
   const localEdits = useRef(0)
@@ -44,7 +44,7 @@ export default function DailyObjectivesCard(
   const writeRecord = async (state: { date: string } & Record<string, unknown>): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSync('unsaved'); return false }
-    const res = await queue(async () => supabase.from('daily_checkins').upsert(
+    const res = await runAs(supabase, user.id, async () => supabase.from('daily_checkins').upsert(
       { user_id: user.id, date: state.date, mind_state: state, updated_at: new Date().toISOString() },
       { onConflict: 'user_id,date' },
     )).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
@@ -127,14 +127,15 @@ export default function DailyObjectivesCard(
       // asked for while a write is pending then runs after it lands and reads
       // it back, instead of reverting it on screen; and reads run one at a
       // time, in order.
-      const { data, error } = await queue(async () => supabase
+      const read = await runAs(supabase, user.id, async () => supabase
         .from('daily_checkins')
         .select('mind_state')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle())
       if (cancelled || mine !== loadSeq.current) return
-      if (error) { setSync('unreached'); setLoading(false); return }
+      if (read === ACCOUNT_CHANGED || read.error) { setSync('unreached'); setLoading(false); return }
+      const data = 'data' in read ? read.data : null
       // A change made here while the read was in flight is newer than it.
       if (localEdits.current !== editsAtOpen) { setLoading(false); return }
       const ms = data?.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean } | null | undefined
@@ -158,18 +159,51 @@ export default function DailyObjectivesCard(
 
   const toggle = async (i: number) => {
     if (!locked) return
-    const newCompleted = [...completed]
-    newCompleted[i] = !newCompleted[i]
-    setCompleted(newCompleted)
+    // The objective set this tick was made against, the day it was made on,
+    // and the state the athlete chose for this one objective.
+    const basis = objectives
+    const day = localDay()
+    const done = !completed[i]
+    setCompleted((c) => c.map((v, j) => (j === i ? done : v)))
     localEdits.current++
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSync('unsaved'); return }
 
-    // Built from what the RECORD said — the objectives on screen came from the
-    // row — never from the paint. Read-modify-write against the cache wrote a
-    // row with no objectives at all whenever the cache was empty or another
-    // day's, and the tick then erased the day's objectives from the record.
-    const updated = { date: localDay(), objectives, completedObjectives: newCompleted, lockedIn: locked }
-    try { localStorage.setItem(MIND_KEY, JSON.stringify(updated)) } catch { /* paint only */ }
-    await writeRecord(updated)
+    // A tick is a read-modify-write of the RECORD, inside the one queue — never
+    // of the paint, which wrote a row with no objectives at all whenever it was
+    // empty or another day's, and never of this card's copy alone. Every write
+    // asked for before this one has landed by the time it reads, so if the
+    // Goals step has replaced the objectives meanwhile, this tick was made
+    // against a set that no longer exists: it is dropped, and the card shows
+    // the record (Codex r2). Otherwise only THIS objective's flag changes;
+    // every other flag stays what the row says.
+    type Mind = { date: string; objectives: string[]; completedObjectives: boolean[]; lockedIn: boolean }
+    type Tick = { kind: 'failed' } | { kind: 'stale'; now: { objectives: string[]; completed: boolean[] }; lockedIn: boolean } | { kind: 'saved'; updated: Mind }
+    const res = await runAs(supabase, user.id, async (): Promise<Tick> => {
+      const { data, error } = await supabase.from('daily_checkins').select('mind_state').eq('user_id', user.id).eq('date', day).maybeSingle()
+      if (error) return { kind: 'failed' }
+      const ms = data?.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean } | null | undefined
+      const now = normalise(ms?.objectives, ms?.completedObjectives)
+      if (JSON.stringify(now.objectives) !== JSON.stringify(basis)) return { kind: 'stale', now, lockedIn: !!ms?.lockedIn }
+      const updated: Mind = { date: day, objectives: now.objectives, completedObjectives: now.completed.map((v, j) => (j === i ? done : v)), lockedIn: !!ms?.lockedIn }
+      const w = await supabase.from('daily_checkins').upsert(
+        { user_id: user.id, date: day, mind_state: updated, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,date' },
+      )
+      return w.error ? { kind: 'failed' } : { kind: 'saved', updated }
+    }).catch((): Tick => ({ kind: 'failed' }))
+    // No tag: the account that made the tick is no longer signed in (ACCOUNT_CHANGED).
+    if (!('kind' in res) || res.kind === 'failed') { setSync('unsaved'); return }
+    if (res.kind === 'stale') {
+      setObjectives(res.now.objectives)
+      setCompleted(res.now.completed)
+      setLocked(res.lockedIn)
+      setSync('synced')
+      return
+    }
+    setCompleted(res.updated.completedObjectives)
+    try { localStorage.setItem(MIND_KEY, JSON.stringify(res.updated)) } catch { /* paint only */ }
+    setSync('synced')
   }
 
   const syncNote = sync === 'unsaved'

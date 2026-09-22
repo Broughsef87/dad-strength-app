@@ -31,7 +31,7 @@ assert(localDayWithCutoff(4, new Date(2026, 8, 13, 23, 59)) === '2026-09-13', 'l
 // The key is captured ONCE, when the change is made (FOR-231, Codex r1: read
 // inside the queued write it could fall after 4am), and that one value is both
 // the row's date and the entry's.
-assert(/const saveCache = [\s\S]{0,400}const day = todayKey\(\)/.test(mp) && /user_id: user\.id,\s*date: day,\s*spirit_state: \{ morning: \{ date: day, protocol: p, completed: c, gratitude: g \} \}/.test(mp),
+assert(/const saveCache = \(p: Protocol, c: boolean\[\], g: string\[\], day: string = todayKey\(\)\)/.test(mp) && /user_id: owner,\s*date: day,\s*spirit_state: \{ morning: \{ date: day, protocol: p, completed: c, gratitude: g \} \}/.test(mp),
   'the mirror row is keyed on todayKey() — the same value the entry carries, captured when the change was made')
 assert(!/date: localDay\(\),\s*spirit_state:/.test(mp), 'the mirror row is not keyed on the calendar day')
 assert(/onConflict: 'user_id,date'/.test(mp), 'the upsert conflicts on (user_id, date) — one row per protocol day')

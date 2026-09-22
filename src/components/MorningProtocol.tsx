@@ -8,7 +8,7 @@ import { createClient } from '../utils/supabase/client'
 import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import UpgradeModal from './UpgradeModal'
-import { serialWriter } from '../lib/serialWriter'
+import { ACCOUNT_CHANGED, runAs } from '../lib/checkinQueue'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -108,15 +108,20 @@ export default function MorningProtocol(
   // 'unreached': the row could not be read, so what is on screen is only what
   // this device last saw.
   const [sync, setSync] = useState<'synced' | 'unsaved' | 'unreached'>('synced')
-  // Writes to the row, one at a time: gratitude saves on every keystroke, and
-  // an earlier keystroke landing last would leave the record holding it.
-  const [queue] = useState(() => serialWriter())
+  // Every write of the row goes through the ONE check-in queue shared with the
+  // objectives card (src/lib/checkinQueue.ts, Codex r2): gratitude saves on
+  // every keystroke, and an earlier keystroke landing last would leave the
+  // record holding it. Each write is bound to the account that made it — the
+  // queue outlives this component, and a write queued before a sign-out must
+  // not run under whoever signs in next.
+  const ownerRef = useRef<string | null>(null)
   // Bumped by every change made here. The row read on open is applied only if
   // nothing has been changed since — a change made after the read started is
   // newer than what the read will return, and is already on its way to the row.
   const localEdits = useRef(0)
-  // The latest protocol state made here, for Retry.
-  const latest = useRef<{ p: Protocol; c: boolean[]; g: string[] } | null>(null)
+  // The latest protocol state made here, and the protocol day it belongs to —
+  // for Retry, which must retry THAT day's record, not today's (Codex r2).
+  const latest = useRef<{ p: Protocol; c: boolean[]; g: string[]; day: string } | null>(null)
 
   const saveMindState = async () => {
     const supabase = createClient()
@@ -136,7 +141,7 @@ export default function MorningProtocol(
     // The record. "Saved" means the row has it — nothing earlier.
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setMindError('sign in to save your objectives'); return }
-    const res = await queue(async () => supabase.from('daily_checkins').upsert(
+    const res = await runAs(supabase, user.id, async () => supabase.from('daily_checkins').upsert(
       { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
       { onConflict: 'user_id,date' }
     )).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
@@ -176,15 +181,17 @@ export default function MorningProtocol(
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
+        ownerRef.current = user.id
         // The row keyed on the protocol's OWN day — where every protocol write
         // has landed since the row-key fix (FOR-228, ruling 2).
-        const { data: row, error } = await supabase
+        const read = await runAs(supabase, user.id, async () => supabase
           .from('daily_checkins')
           .select('spirit_state')
           .eq('user_id', user.id)
           .eq('date', todayKey())
-          .maybeSingle()
-        if (error) throw error
+          .maybeSingle())
+        if (read === ACCOUNT_CHANGED || read.error) throw new Error('unreached')
+        const row = 'data' in read ? read.data : null
         if (localEdits.current !== editsAtOpen) return
         const m = (row?.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
         if (m?.protocol && m.date === todayKey()) {
@@ -212,21 +219,25 @@ export default function MorningProtocol(
     })()
   }, [])
 
-  const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
+  const saveCache = (p: Protocol, c: boolean[], g: string[], day: string = todayKey()) => {
     localEdits.current++
-    latest.current = { p, c, g }
-    // The protocol day the change was MADE on, captured now. Evaluated inside
-    // the queued write it could fall after 4am and file this protocol into the
-    // next day's row (Codex r1).
-    const day = todayKey()
+    // `day`: the protocol day the change was MADE on, captured now — or, for a
+    // Retry, the day of the change being retried. Evaluated inside the queued
+    // write it could fall after 4am and file this protocol into the next day's
+    // row (Codex r1, r2).
+    latest.current = { p, c, g, day }
+    // The account that made the change, captured now. Before the open-time
+    // read has told us who is signed in there is no owner to bind to, and the
+    // change is a render until the next change or Retry — never a write under
+    // an account nobody checked.
+    const owner = ownerRef.current
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
     // The record. Upsert names only its own column, so mind_state is untouched.
     void (async () => {
-      const res = await queue(async () => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return { error: { message: 'signed out' } }
+      if (!owner) { setSync('unsaved'); return }
+      const supabase = createClient()
+      const res = await runAs(supabase, owner, async () => {
         // The row is keyed on the protocol's OWN day — the same 4am-cutoff
         // key the entry carries — not the calendar day. Keyed on the calendar
         // day, a protocol finished at 1am landed in the next day's row, and
@@ -234,7 +245,7 @@ export default function MorningProtocol(
         // protocol gone (FOR-228, ruling 2).
         return supabase.from('daily_checkins').upsert(
           {
-            user_id: user.id,
+            user_id: owner,
             date: day,
             spirit_state: { morning: { date: day, protocol: p, completed: c, gratitude: g } },
             updated_at: new Date().toISOString(),
@@ -251,7 +262,7 @@ export default function MorningProtocol(
       onSaved?.()
     })()
   }
-  const retrySave = () => { const l = latest.current; if (l) saveCache(l.p, l.c, l.g) }
+  const retrySave = () => { const l = latest.current; if (l) saveCache(l.p, l.c, l.g, l.day) }
 
   const generate = async () => {
     setLoading(true)

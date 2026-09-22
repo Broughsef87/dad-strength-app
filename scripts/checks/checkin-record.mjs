@@ -25,6 +25,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join, relative } from 'node:path'
+import { ACCOUNT_CHANGED, runAs } from '../../src/lib/checkinQueue.ts'
 
 let failures = 0, passes = 0
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
@@ -69,8 +70,15 @@ const objLoad = obj.slice(obj.indexOf('    const load = async () => {'), obj.ind
 assert(objGets === 1 && /localStorage\.getItem\(MIND_KEY\)/.test(objLoad),
   `the objectives card reads its paint in ONE place — the first-frame paint on load — found ${objGets} reads`)
 const toggleFn = fnBody(obj, 'const toggle = async')
-assert(toggleFn.length > 0 && !/localStorage\.getItem/.test(toggleFn) && /const updated = \{ date: localDay\(\), objectives, completedObjectives: newCompleted, lockedIn: locked \}/.test(toggleFn),
-  'a tick is built from what the RECORD said, never read-modify-written from the paint — which wrote a row with no objectives when the paint was empty')
+assert(toggleFn.length > 0 && !/localStorage\.getItem/.test(toggleFn)
+  && /await runAs\(supabase, user\.id, async \(\): Promise<Tick> => \{\s*const \{ data, error \} = await supabase\.from\('daily_checkins'\)\.select\('mind_state'\)/.test(toggleFn),
+  'a tick is a read-modify-write of the RECORD inside the one queue — never of the paint, which wrote a row with no objectives when it was empty')
+// Codex r2: a tick built on objectives the Goals step was replacing landed after
+// the replacement and put the old objectives back.
+assert(/if \(JSON\.stringify\(now\.objectives\) !== JSON\.stringify\(basis\)\) return \{ kind: 'stale', now/.test(toggleFn) && /if \(res\.kind === 'stale'\) \{\s*setObjectives\(res\.now\.objectives\)/.test(toggleFn),
+  'a tick made against an objective set the record no longer holds is dropped, and the card shows the record instead')
+assert(/completedObjectives: now\.completed\.map\(\(v, j\) => \(j === i \? done : v\)\)/.test(toggleFn),
+  "a tick changes only its own objective's flag — every other flag stays what the row says")
 
 // ── 2. every reader reads the row, and the row wins ───────────────────────
 assert(/\.from\('daily_checkins'\)\s*\.select\('spirit_state'\)\s*\.eq\('user_id', user\.id\)\s*\.eq\('date', todayKey\(\)\)/.test(mpLoader),
@@ -96,7 +104,7 @@ assert(/localEdits\.current\+\+/.test(fnBody(mp, 'const saveCache = ')) && /loca
 // Reads and writes, in order (Codex r1). A read asked for while a tick's write
 // is pending would return the row from before it and revert the tick on screen;
 // two refreshes in flight could answer out of order.
-assert(/await queue\(async \(\) => supabase\s*\.from\('daily_checkins'\)\s*\.select\('mind_state'\)/.test(objLoad),
+assert(/await runAs\(supabase, user\.id, async \(\) => supabase\s*\.from\('daily_checkins'\)\s*\.select\('mind_state'\)/.test(objLoad),
   "the card's row read goes through the SAME queue as its writes — it runs after any pending write lands, and reads it back")
 assert(/const mine = \+\+loadSeq\.current/.test(obj) && /if \(cancelled \|\| mine !== loadSeq\.current\) return/.test(objLoad) && /return \(\) => \{ cancelled = true \}/.test(obj),
   'only the newest load paints what it read — an older answer landing last is dropped, and so is one for an unmounted card')
@@ -104,8 +112,12 @@ assert(/const mine = \+\+loadSeq\.current/.test(obj) && /if \(cancelled \|\| min
 // queued write runs (Codex r1: across midnight, or 4am, that is the next day).
 assert(/date: state\.date, mind_state: state/.test(fnBody(obj, 'const writeRecord = async')) && !/localDay\(\)/.test(fnBody(obj, 'const writeRecord = async')),
   "an objectives write goes to the day the change was made — carried on the state — never a day read inside the queue")
-assert(/const day = todayKey\(\)/.test(fnBody(mp, 'const saveCache = ')) && !/todayKey\(\)/.test(fnBody(mp, 'const saveCache = ').slice(fnBody(mp, 'const saveCache = ').indexOf('queue(async')))
+assert(/const saveCache = \(p: Protocol, c: boolean\[\], g: string\[\], day: string = todayKey\(\)\) => \{/.test(mp) && !/todayKey\(\)/.test(fnBody(mp, 'const saveCache = ').slice(fnBody(mp, 'const saveCache = ').indexOf('runAs(')))
   , 'a protocol write goes to the protocol day the change was made on — captured before it queues, never read inside the queue')
+// Codex r2: Retry recomputed the day, so a change that failed before 4am was
+// retried after it — into the NEXT day's row.
+assert(/latest\.current = \{ p, c, g, day \}/.test(mp) && /const retrySave = \(\) => \{ const l = latest\.current; if \(l\) saveCache\(l\.p, l\.c, l\.g, l\.day\) \}/.test(mp),
+  'a Retry retries the change on the day it was made — not today')
 
 // ── 3. the signal fires once the row has the change ───────────────────────
 const saveFn = fnBody(mp, 'const saveCache = ')
@@ -118,10 +130,29 @@ assert(mFail > 0 && mSignal > mFail && mindFn.indexOf("from('daily_checkins').up
   'an objectives save does the same — "Saved" and the signal both wait for the row')
 assert(!/onProtocolSaved/.test(code(mp)) && !/onProtocolSaved/.test(code(dash)),
   'one signal, because there is one record — the protocol-only signal existed to protect a cache no reader consults')
-assert(/queue\(async \(\) => \{[\s\S]{0,700}from\('daily_checkins'\)\.upsert\(/.test(saveFn) && /queue\(async \(\) => supabase\.from\('daily_checkins'\)\.upsert\(/.test(mindFn) && /const \[queue\] = useState\(\(\) => serialWriter\(\)\)/.test(mp),
-  'protocol writes go through one queue — gratitude saves per keystroke, and an earlier keystroke landing last would be the record')
-assert(/queue\(async \(\) => supabase\.from\('daily_checkins'\)\.upsert\(/.test(fnBody(obj, 'const writeRecord = async')) && /const \[queue\] = useState\(\(\) => serialWriter\(\)\)/.test(obj),
+// ONE queue for both components, bound to the account (Codex r2).
+assert(/runAs\(supabase, owner, async \(\) => \{[\s\S]{0,700}from\('daily_checkins'\)\.upsert\(/.test(saveFn) && /runAs\(supabase, user\.id, async \(\) => supabase\.from\('daily_checkins'\)\.upsert\(/.test(mindFn),
+  'protocol writes go through the one check-in queue — gratitude saves per keystroke, and an earlier keystroke landing last would be the record')
+assert(/runAs\(supabase, user\.id, async \(\) => supabase\.from\('daily_checkins'\)\.upsert\(/.test(fnBody(obj, 'const writeRecord = async')),
   'objectives writes too')
+assert(!/serialWriter/.test(code(mp)) && !/serialWriter/.test(code(obj)) && /export const checkinQueue = serialWriter\(\)/.test(readLF('src/lib/checkinQueue.ts')),
+  'neither component keeps a queue of its own — with one each, a tick on the card could land after the Goals step replaced the objectives it was made against')
+assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: owner,/.test(saveFn) && /if \(!owner\) \{ setSync\('unsaved'\); return \}/.test(saveFn) && /ownerRef\.current = user\.id/.test(mpLoader),
+  'a protocol write is bound to the account that made it, captured when it was made — and with no known account it is a render, never a write under an account nobody checked')
+// runAs, as behaviour: a job queued under one account never runs under another.
+{
+  let signedIn = 'user-a'
+  const db = { auth: { getUser: async () => ({ data: { user: signedIn ? { id: signedIn } : null } }) } }
+  let ran = 0
+  const job = async () => { ran++; return { error: null } }
+  const first = await runAs(db, 'user-a', job)
+  signedIn = 'user-b'
+  const second = await runAs(db, 'user-a', job)
+  signedIn = null
+  const third = await runAs(db, 'user-a', job)
+  assert(first !== ACCOUNT_CHANGED && second === ACCOUNT_CHANGED && third === ACCOUNT_CHANGED && ran === 1,
+    `a write queued for one account does not run once another is signed in, or none is — ran ${ran} of 3 (Codex r2, P1)`)
+}
 
 // ── 4. the negotiation is gone, everywhere ────────────────────────────────
 const NEGOTIATION = ['reconcileLocal', 'localMatchesMirror', 'pendingLocalSave', 'PROTOCOL_CACHE_KEY', 'protocolSaveTick', 'onProtocolSaved', 'sameProtocol']
