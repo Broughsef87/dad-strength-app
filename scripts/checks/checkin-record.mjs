@@ -273,7 +273,7 @@ assert(/kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,/.test(mp)
 // the row does not have yet is kept per TAB, and the next open saves it — and
 // it is never touched while rendering, where a server render would hand one
 // visitor's changes to the next.
-assert(/^const kept: \{[\s\S]{0,160}\} = \{ latest: null, unsent: new Map\(\), generated: null \}/m.test(mp) && !/useRef<Latest \| null>/.test(mp),
+assert(/^const kept: \{[\s\S]{0,160}\} = \{ latest: null, unsent: new Map\(\) \}/m.test(mp) && !/useRef<Latest \| null>/.test(mp),
   'a protocol change the row does not have outlives this component — one tab, not one mount')
 assert(/^const makeBook = \(\) => objectivesBook<Change>\(localDay\(\)\)\nlet theBook: ReturnType<typeof makeBook> \| null = null\nexport const book = \(\) => \{ watchSession\(\); return \(theBook \?\?= makeBook\(\)\) \}/m.test(out)
   && !/useState\(\(\) => objectivesBook/.test(obj) && !/\bbook\(\)/.test(obj.slice(obj.lastIndexOf('  return ('))),
@@ -358,7 +358,7 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: me,/.test(sav
 // the account signed in, the protocol last generated — so a change account A
 // made could be written under B, and an older day's generated protocol lost
 // the only thing that could vouch for it.
-assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /fresh: again \? again\.fresh : \(kept\.generated !== null/.test(mp)
+assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /was: again \? again\.was : recordP\.current/.test(mp)
   && /checked: again \? again\.checked : ownerRef\.current !== null/.test(mp)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}/.test(openFn),
@@ -366,10 +366,11 @@ assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /fresh: again \? again\
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
   "the protocol's account is confirmed only by its row answering — until then the screen is a paint nobody checked, possibly another account's")
-assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)\s*vouched = its !== null\s*\? sameJson\(its, u\.p\)\s*: u\.fresh !== null && \(await u\.fresh\) === user\.id/.test(openFn)
-  && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn) && /kept\.generated = \{ p: fresh, by: madeBy\(\) \}/.test(mp)
-  && /fresh: again \? again\.fresh : \(kept\.generated !== null && kept\.generated\.p === p \? kept\.generated\.by : null\)/.test(mp),
-  'a change made before then is saved once the record vouches for it — what the row holds decides, and only an empty row lets "this screen generated it" vouch, or a protocol saved here and since replaced elsewhere would be put back over the replacement (Codex r18)')
+assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)\s*vouched = sameJson\(its, u\.was\)/.test(openFn)
+  && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
+  && /const recordP = useRef<Protocol \| null>\(null\)/.test(mp) && /recordP\.current = data\.protocol/.test(mpLoader) && /recordP\.current = held/.test(openFn)
+  && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = p/.test(saveFn) && /was: again \? again\.was : recordP\.current/.test(mp) && !/generated/.test(code(mp)),
+  'a change made before then is saved once the record vouches for it — the row still holds what the change was made against, which is the rule the objectives keep too: a rebuild whose save failed is recoverable because the row still holds what it replaced, and a protocol replaced elsewhere is never put back (Codex r18, r19)')
 assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.set\(day, mine\.n\)/.test(saveFn)
   && /if \(\(queuedFor\.get\(day\) \?\? 0\) > mine\.n\) return \{ error: null, stale: true \}/.test(saveFn)
   && /if \('stale' in res && res\.stale\) \{ showStatus\(\); return \}/.test(saveFn),
@@ -385,7 +386,7 @@ assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayK
   "the kept change is vouched against the row of the day it was made on, stays kept until that row has answered, and an earlier day's change recovered does not stop today's record being applied (Codex r5, r6)")
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
 // never be saved under account B — its protocol, and its gratitude, are A's.
-assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}fresh: Promise<string \| null> \| null[\s\S]{0,400}checked: boolean\s*\}/.test(mp)
+assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}was: Protocol \| null[\s\S]{0,400}checked: boolean\s*\}/.test(mp)
   && /kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,[\s\S]{0,300}checked: again \? again\.checked : ownerRef\.current !== null,\s*\}/.test(mp)
   && /const madeBy = \(\): Promise<string \| null> => accountAtChange\(createClient\(\), \{ current: ownerRef\.current \}\)/.test(mp),
   'every change kept carries the account that made it, fixed at the change, and a change-time lookup never becomes the confirmed account')

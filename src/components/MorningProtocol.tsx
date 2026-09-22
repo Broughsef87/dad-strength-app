@@ -71,10 +71,14 @@ type Latest = {
   day: string
   by: Promise<string | null>
   n: number
-  /** The account that generated this protocol ON THIS SCREEN, if it was. Carried
-   * by the snapshot, not by one "the last thing generated" slot: generating
-   * another day's protocol must not take an earlier day's way home (Codex r15). */
-  fresh: Promise<string | null> | null
+  /** What the RECORD held for that day when this change was made — as this
+   * screen knew it: the row it read, the row it last wrote, or the paint it
+   * opened on. The change belongs on top of that and nothing else, which is
+   * the same rule the objectives keep (basis). It is what makes a rebuild of
+   * an existing protocol recoverable — the row still holds the protocol it
+   * replaced — and what stops a protocol replaced elsewhere being put back
+   * (Codex r18, r19). */
+  was: Protocol | null
   /** Made under a confirmed account, or vouched for by a read that answered.
    * An unchecked snapshot is not written without one (Codex r15). */
   checked: boolean
@@ -93,8 +97,7 @@ type Latest = {
 const kept: {
   latest: Latest | null
   unsent: Map<string, Latest>
-  generated: { p: Protocol; by: Promise<string | null> } | null
-} = { latest: null, unsent: new Map(), generated: null }
+} = { latest: null, unsent: new Map() }
 let stamp = 0
 let writing = 0
 // The newest change queued for a day. Gratitude saves on every keystroke, and
@@ -198,9 +201,12 @@ export default function MorningProtocol(
   const localEdits = useRef(0)
   // kept.latest: the latest protocol state made here, and the protocol day it
   // belongs to — for Retry, which must retry THAT day's record, not today's
-  // (Codex r2). kept.unsent: a change the row does not have. kept.generated: a
-  // protocol generated on this screen, by the signed-in account's own request,
-  // so it is that account's whatever the paint was.
+  // (Codex r2). kept.unsent: a change the row does not have, one per day.
+  //
+  // What this screen believes today's row holds: read on open, written by a
+  // save that landed, or painted from what this device last saw. Every change
+  // made here is made ON TOP of it, and carries it (Codex r19).
+  const recordP = useRef<Protocol | null>(null)
   // The account a change is made by, fixed AT the change: the account this
   // screen was confirmed for, or — before that — whoever is signed in now.
   // Never written to ownerRef: that says an account's ROW answered, which is
@@ -252,6 +258,8 @@ export default function MorningProtocol(
       if (saved) {
         const data = JSON.parse(saved)
         if (data.date === todayKey() && data.protocol) {
+          // The paint IS what the row said, when this device last saw it.
+          recordP.current = data.protocol
           setProtocol(data.protocol)
           setCompleted(data.completed || new Array(data.protocol.steps.length).fill(false))
           setGratitude(data.gratitude || ['', '', ''])
@@ -331,14 +339,13 @@ export default function MorningProtocol(
           if (by !== null && by !== user.id) {
             if (kept.latest && kept.latest.n <= u.n) kept.latest = null
           } else {
-            // What the row holds decides, always. Only when it holds NOTHING
-            // for that day does "this screen generated it" vouch for the change
-            // — otherwise a protocol generated here, saved, and since replaced
-            // on another device would be put back over it (Codex r18).
+            // The row still holds what the change was made against: then the
+            // change belongs on top of it, whether it ticks that protocol,
+            // rebuilds it, or is the first one of the day. If the row holds
+            // something else, the record moved on — here or on another device
+            // — and the change is not this one's to land (Codex r18, r19).
             const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
-            vouched = its !== null
-              ? sameJson(its, u.p)
-              : u.fresh !== null && (await u.fresh) === user.id
+            vouched = sameJson(its, u.was)
           }
           settled(u)
           // Deciding that took an await, or two. The account was confirmed before
@@ -378,6 +385,7 @@ export default function MorningProtocol(
       // No change to save, but the screen changed while the read was in flight
       // (Rebuild): that is newer than the read, which does not put it back.
       if (!hadKept && localEdits.current !== editsAtOpen) { showStatus(); return }
+      recordP.current = held
       if (held) {
         const c = m?.completed ?? new Array(held.steps.length).fill(false)
         const g = m?.gratitude ?? ['', '', '']
@@ -419,7 +427,7 @@ export default function MorningProtocol(
     kept.latest = {
       p, c, g, day, n: ++stamp,
       by: again ? again.by : madeBy(),
-      fresh: again ? again.fresh : (kept.generated !== null && kept.generated.p === p ? kept.generated.by : null),
+      was: again ? again.was : recordP.current,
       checked: again ? again.checked : ownerRef.current !== null,
     }
     // The account that made the change, captured now. Before the open-time
@@ -439,6 +447,9 @@ export default function MorningProtocol(
     // Saving from the moment the change is made, not from its turn in the
     // queue (Codex r4).
     queuedFor.set(day, mine.n)
+    // Whether this change is today's, decided NOW like its day: read after the
+    // write it could fall the other side of 4am (Codex r1).
+    const isToday = day === todayKey()
     writing++
     showStatus()
     // The record. Upsert names only its own column, so mind_state is untouched.
@@ -481,6 +492,8 @@ export default function MorningProtocol(
       // (Codex r6).
       if (res.error) { keep(mine); showStatus(); return }
       settled(mine)
+      // The row holds it now, so that is what the next change is made against.
+      if (isToday) recordP.current = p
       showStatus()
       // The row has it now. Only now are the readers told (FOR-231): the
       // daily number, the checklist and the objectives card re-read the row
@@ -543,7 +556,6 @@ export default function MorningProtocol(
       setGratitude(freshGratitude)
       setExpanded(0)
       setConfigured(true)
-      kept.generated = { p: fresh, by: madeBy() }
       saveCache(fresh, freshCompleted, freshGratitude)
     } catch {
       setError('Failed to generate. Try again.')
