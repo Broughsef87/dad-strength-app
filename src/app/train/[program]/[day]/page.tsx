@@ -27,6 +27,7 @@ import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
+import { isTrained, sessionPlan } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
 import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
   from '../../../../lib/programs/schedule'
@@ -1138,6 +1139,10 @@ export default function TrainingDayPage() {
   const workoutDataRef = useRef<Record<string, unknown>>({})
 
   const workoutIdRef = useRef<string | null>(null)
+  // Has this session been trained — is its stored plan the record of what it
+  // was trained under (FOR-248)? True once any log lands on it; from then on
+  // the plan it is drawn from is written back whenever it changes.
+  const recordedRef = useRef(false)
   const weekRef = useRef<number>(1)
   const logErrTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const subsRef = useRef<SubsMap>({})
@@ -1252,10 +1257,29 @@ export default function TrainingDayPage() {
       basePlanRef.current = built
       setPlan(built)
       setOverrides({})
+      recordedRef.current = false
       // `adjustments` rides along on the row: next week's autoreg needs to know
       // what this card actually SHOWED, not just what the table said, or it
       // re-counts its own advice as freelancing and ratchets the load up.
       workoutDataRef.current = { plan: built, adjustments }
+      // What the cards are drawn from — `built` unless this session has been
+      // trained (FOR-248). Its logs are read with the row, not after it: the
+      // rule needs them to decide.
+      let drawn = built
+      let logs: SessionLogRow[] = []
+      // Adopt a row that already exists: its session overrides, its logs, and —
+      // once it has been trained — the plan it was trained under. One path for
+      // every way a row is found, so none of them draws a session differently.
+      const adopt = async (id: string, wd: Record<string, unknown>) => {
+        workoutDataRef.current = wd
+        logs = await fetchSessionLogs(supabase, id)
+        drawn = sessionPlan(built, wd.plan, logs).plan
+        recordedRef.current = isTrained(logs)
+        basePlanRef.current = drawn
+        const ovr = (wd.overrides ?? {}) as SessionOverrides
+        setOverrides(ovr)
+        setPlan(applyOverrides(drawn, ovr))
+      }
 
       // Find-or-create the generated_workouts row for log linkage.
       const { data: rows } = await supabase
@@ -1270,7 +1294,6 @@ export default function TrainingDayPage() {
       if (workoutId) {
         // Session overrides (added/removed sets + exercises) live on the row.
         const wd = (rows?.[0]?.workout_data ?? {}) as Record<string, unknown>
-        workoutDataRef.current = wd
         // Rows written before adjustments were stored get backfilled once, so
         // next week's autoreg has a truthful reference instead of the raw table.
         if (wd.adjustments == null) {
@@ -1278,9 +1301,12 @@ export default function TrainingDayPage() {
           await supabase.from('generated_workouts')
             .update({ workout_data: wd }).eq('id', workoutId)
         }
-        const ovr = (wd.overrides ?? {}) as SessionOverrides
-        setOverrides(ovr)
-        setPlan(applyOverrides(built, ovr))
+        // A TRAINED session is drawn from what it was trained under, not from
+        // whatever buildDay returns today — a program change must not rewrite
+        // what a past session prescribed, nor strand the sets logged against
+        // it. An untrained one is built fresh and keeps taking corrections
+        // (FOR-248, src/lib/programs/sessionPlan.ts).
+        await adopt(workoutId, wd)
       }
       if (!workoutId) {
         const { data: saved, error: insertError } = await supabase
@@ -1303,21 +1329,22 @@ export default function TrainingDayPage() {
           // option — scoping would return nothing and break log linkage.
           // The macrocycle programs have no such index and never reach here.
           const { data: again } = await supabase
-            .from('generated_workouts').select('id')
+            .from('generated_workouts').select('id, workout_data')
             .eq('user_id', user.id).eq('program_slug', slug)
             .eq('week_number', weekNumber).eq('day_number', dayNumber)
             .order('id', { ascending: true }).limit(1)
           workoutId = again?.[0]?.id ?? null
+          if (workoutId) await adopt(workoutId, (again?.[0]?.workout_data ?? {}) as Record<string, unknown>)
         } else if (insertError) {
           throw new Error(`Could not persist workout: ${insertError.message}`)
         }
       }
       workoutIdRef.current = workoutId
-      if (workoutId) setSessionLogs(await fetchSessionLogs(supabase, workoutId))
+      setSessionLogs(logs)
       setLiftHistory(await fetchLiftHistory(supabase, user.id, slug, weekNumber, program.macroWeeks))
 
       // All-time bests for today's lifts — powers live PR detection.
-      const liftNames = [...new Set(built.items.filter(i => i.kind === 'lift').map(i => i.name))]
+      const liftNames = [...new Set(drawn.items.filter(i => i.kind === 'lift').map(i => i.name))]
       if (liftNames.length) {
         const { data: prRows } = await supabase
           .from('ares_session_logs')
@@ -1363,6 +1390,26 @@ export default function TrainingDayPage() {
     day_number: dayNumber,
   })
 
+  // ── What this session was trained under (FOR-248) ─────────────────────────
+  // Recorded the moment the FIRST log lands, from the plan the cards are drawn
+  // from — not at first open: a day opened on Monday, corrected on Tuesday and
+  // trained on Wednesday was trained under Wednesday's plan, and freezing
+  // Monday's would strand Wednesday's sets on a reopen. Written again only when
+  // that plan changes under a trained session (a swap). A failed write leaves
+  // the session unrecorded, so the next log tries again.
+  const writePlan = async (): Promise<SbRes | null> => {
+    if (!workoutIdRef.current || !basePlanRef.current) return null
+    workoutDataRef.current = { ...workoutDataRef.current, plan: basePlanRef.current }
+    return supabase.from('generated_workouts').update({ workout_data: workoutDataRef.current }).eq('id', workoutIdRef.current)
+  }
+  const recordPlan = async () => {
+    if (recordedRef.current) return
+    recordedRef.current = true
+    const res = await writePlan()
+    if (!res || res.error) recordedRef.current = false
+    if (res) report('session record', res)
+  }
+
   const logLiftSets = async (item: LiftPrescription, sets: SetEntry[]) => {
     if (!user || !workoutIdRef.current) return
     const now = new Date().toISOString()
@@ -1378,7 +1425,9 @@ export default function TrainingDayPage() {
       completed: s.done,
       completed_at: s.done ? now : null,
     }))
-    report(item.name, await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT }))
+    const res = await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
+    report(item.name, res)
+    if (!res?.error) void recordPlan()
   }
 
   // PR check on set completion: beats your best weight at >= that rep count.
@@ -1417,12 +1466,14 @@ export default function TrainingDayPage() {
       completed_at: s.done ? now : null,
       notes: s.setIndex === 0 ? notes || null : null, // card-level notes ride on set 1
     }))
-    report(item.name, await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT }))
+    const res = await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT })
+    report(item.name, res)
+    if (!res?.error) void recordPlan()
   }
 
   const logSimple = async (blockName: string, logType: string, notes: string, extra?: Record<string, unknown>) => {
     if (!user || !workoutIdRef.current) return
-    report(blockName, await supabase.from('ares_session_logs').upsert({
+    const res = await supabase.from('ares_session_logs').upsert({
       ...baseRow(),
       log_type: logType,
       block_name: blockName,
@@ -1431,7 +1482,9 @@ export default function TrainingDayPage() {
       completed: true,
       completed_at: new Date().toISOString(),
       ...extra,
-    }, { onConflict: UPSERT_CONFLICT }))
+    }, { onConflict: UPSERT_CONFLICT })
+    report(blockName, res)
+    if (!res?.error) void recordPlan()
   }
 
   const completeSession = async () => {
@@ -1443,7 +1496,7 @@ export default function TrainingDayPage() {
     // rest day is listed anywhere any more, but /train/<slug>/<a rest day> is still
     // a URL anyone can type.
     if (plan && !isCompletable(plan)) return
-    await supabase.from('ares_session_logs').upsert({
+    const done = await supabase.from('ares_session_logs').upsert({
       ...baseRow(),
       log_type: 'session_complete',
       block_name: '__session_complete__',
@@ -1451,6 +1504,9 @@ export default function TrainingDayPage() {
       completed: true,
       completed_at: new Date().toISOString(),
     }, { onConflict: UPSERT_CONFLICT })
+    // The sentinel is a log like any other: a session finished without a
+    // single set logged is still trained, and is recorded here (FOR-248).
+    if (!done?.error) await recordPlan()
     await advanceWeekIfDone(supabase, user.id, slug, program)
     // Streak shim so dashboard streak sees this session.
     await supabase.from('workout_logs').upsert({
@@ -1539,6 +1595,9 @@ export default function TrainingDayPage() {
     if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)
     setPlan(p => p && patchItems(p))
     setSwapTarget(null)
+    // A trained session's record follows the swap: sets logged from here on
+    // carry the new name, and a reopen must draw the card they belong to.
+    if (recordedRef.current) report('session record', await writePlan())
   }
 
   // ── Session overrides: add/remove sets + exercises (this week+day only) ─────
