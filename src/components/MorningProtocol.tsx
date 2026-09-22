@@ -9,7 +9,7 @@ import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import UpgradeModal from './UpgradeModal'
 import { ACCOUNT_CHANGED, accountAtChange, runAs } from '../lib/checkinQueue'
-import { accountIs, book, changedBy, flushObjectives, intend, wasDropped, type Change } from '../lib/objectivesOutbox'
+import { accountIs, book, changedBy, currentRun, flushObjectives, intend, wasDropped, type Change } from '../lib/objectivesOutbox'
 import { setUnloadGuard } from '../lib/unloadGuard'
 import { sameJson } from '../lib/canonical'
 
@@ -82,6 +82,12 @@ type Latest = {
   /** Made under a confirmed account, or vouched for by a read that answered.
    * An unchecked snapshot is not written without one (Codex r15). */
   checked: boolean
+  /** Which run of this tab it was made in — the outbox's own count, so the
+   * protocol and the objectives mean the same thing by it. A change nobody
+   * could name an account for belongs to the run it was made in and to no
+   * other: after a sign-out, it is not the next account's to save, whatever
+   * their row happens to hold (Codex r20, P1). */
+  run: number
 }
 
 // Kept per TAB, not per mount (Codex r5). Moving to another tab in the app
@@ -331,12 +337,16 @@ export default function MorningProtocol(
       // goes on the screen (Codex r17).
       try {
         for (const u of [...kept.unsent.values()]) {
-          // Whose change it is decides first. Kept state outlives a sign-out, and
-          // a change account A made is never saved under account B — it would put
-          // A's protocol, and A's gratitude, in B's record (Codex r6, P1).
+          // Whose change it is decides first. Kept state outlives a sign-out,
+          // and a change account A made is never saved under account B — it
+          // would put A's protocol, and A's gratitude, in B's record (Codex r6,
+          // P1). One nobody could name an account for belongs to the run of
+          // this tab it was made in: after a sign-out it is not the next
+          // account's, and an empty row of theirs is no kind of ownership
+          // (Codex r20, P1).
           const by = await u.by
           let vouched = false
-          if (by !== null && by !== user.id) {
+          if (by !== null ? by !== user.id : u.run !== currentRun()) {
             if (kept.latest && kept.latest.n <= u.n) kept.latest = null
           } else {
             // The row still holds what the change was made against: then the
@@ -427,6 +437,7 @@ export default function MorningProtocol(
     kept.latest = {
       p, c, g, day, n: ++stamp,
       by: again ? again.by : madeBy(),
+      run: again ? again.run : currentRun(),
       was: again ? again.was : recordP.current,
       checked: again ? again.checked : ownerRef.current !== null,
     }
@@ -492,6 +503,13 @@ export default function MorningProtocol(
       // (Codex r6).
       if (res.error) { keep(mine); showStatus(); return }
       settled(mine)
+      // Anything still kept for this day was made on top of what this write
+      // has just put in the row — a gratitude line typed while the protocol it
+      // belongs to was still saving. That is what it is made against now, and
+      // comparing it with what the row held BEFORE would throw it away on the
+      // next open (Codex r20).
+      const later = kept.unsent.get(day)
+      if (later && later.n > mine.n) later.was = p
       // The row holds it now, so that is what the next change is made against.
       if (isToday) recordP.current = p
       showStatus()

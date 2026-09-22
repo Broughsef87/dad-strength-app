@@ -358,7 +358,7 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: me,/.test(sav
 // the account signed in, the protocol last generated — so a change account A
 // made could be written under B, and an older day's generated protocol lost
 // the only thing that could vouch for it.
-assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /was: again \? again\.was : recordP\.current/.test(mp)
+assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.run : currentRun\(\)/.test(mp) && /was: again \? again\.was : recordP\.current/.test(mp)
   && /checked: again \? again\.checked : ownerRef\.current !== null/.test(mp)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}/.test(openFn),
@@ -386,12 +386,16 @@ assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayK
   "the kept change is vouched against the row of the day it was made on, stays kept until that row has answered, and an earlier day's change recovered does not stop today's record being applied (Codex r5, r6)")
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
 // never be saved under account B — its protocol, and its gratitude, are A's.
-assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}was: Protocol \| null[\s\S]{0,400}checked: boolean\s*\}/.test(mp)
+assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}was: Protocol \| null[\s\S]{0,600}checked: boolean[\s\S]{0,600}run: number\s*\}/.test(mp)
   && /kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,[\s\S]{0,300}checked: again \? again\.checked : ownerRef\.current !== null,\s*\}/.test(mp)
   && /const madeBy = \(\): Promise<string \| null> => accountAtChange\(createClient\(\), \{ current: ownerRef\.current \}\)/.test(mp),
   'every change kept carries the account that made it, fixed at the change, and a change-time lookup never becomes the confirmed account')
-assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null && by !== user\.id\) \{\s*if \(kept\.latest && kept\.latest\.n <= u\.n\) kept\.latest = null\s*\} else \{/.test(openFn),
-  'and a change made by another account is dropped, never saved under this one (Codex r6, P1)')
+assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null \? by !== user\.id : u\.run !== currentRun\(\)\) \{\s*if \(kept\.latest && kept\.latest\.n <= u\.n\) kept\.latest = null\s*\} else \{/.test(openFn),
+  'and a change made by another account is dropped, never saved under this one — and one nobody could name an account for belongs to the run of this tab it was made in, because an empty row of the next account is no kind of ownership (Codex r6, r20, P1)')
+// Codex r20: a gratitude line typed while the protocol it belongs to was
+// still saving was made against what the row held BEFORE that save landed.
+assert(/const later = kept\.unsent\.get\(day\)\s*if \(later && later\.n > mine\.n\) later\.was = p/.test(saveFn),
+  'a write that landed advances what anything still kept for its day was made against — it was made on top of this, and comparing it with what the row held before would throw it away (Codex r20)')
 // Codex r10: deciding a kept change takes an await or two, and the account is
 // confirmed before them — so a change made meanwhile is written on its own, and
 // this older snapshot must not land on top of it.
