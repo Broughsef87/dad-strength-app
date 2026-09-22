@@ -8,7 +8,7 @@ import { createClient } from '../utils/supabase/client'
 import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import UpgradeModal from './UpgradeModal'
-import { ACCOUNT_CHANGED, runAs } from '../lib/checkinQueue'
+import { ACCOUNT_CHANGED, accountAtChange, runAs } from '../lib/checkinQueue'
 import { sameJson } from '../lib/canonical'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
@@ -59,15 +59,34 @@ type Protocol = {
   closingWord: string
 }
 
-type Latest = { p: Protocol; c: boolean[]; g: string[]; day: string }
+// A change made here: the protocol state, the protocol day it belongs to, the
+// account that made it — fixed AT the change — and where it falls in the order
+// they were made.
+type Latest = { p: Protocol; c: boolean[]; g: string[]; day: string; by: Promise<string | null>; n: number }
 
 // Kept per TAB, not per mount (Codex r5). Moving to another tab in the app
 // unmounts this component, and a change that has not reached the row must not
 // go with it: the next open reads the row and saves it if the record vouches
 // for it. Touched only by a click or an effect — never while rendering, so a
 // server render cannot make one visitor's change another's.
-const kept: { latest: Latest | null; unsent: Latest | null; generated: Protocol | null } =
-  { latest: null, unsent: null, generated: null }
+//
+// Which means it outlives a SIGN-OUT too: everything kept here carries the
+// account that made it, and nothing made by one account is ever saved under
+// another (Codex r6, P1). `writing` is here for the same reason — a write
+// started before this mount is still a write this screen is waiting for.
+const kept: {
+  latest: Latest | null
+  unsent: Latest | null
+  generated: { p: Protocol; by: Promise<string | null> } | null
+} = { latest: null, unsent: null, generated: null }
+let stamp = 0
+let writing = 0
+/** Where this device stands against the record, as everything kept says. */
+const statusNow = (): 'synced' | 'saving' | 'unsaved' => writing ? 'saving' : kept.unsent ? 'unsaved' : 'synced'
+/** `u` has reached the row, or has been decided against: it and everything older stop being kept. */
+const settled = (u: Latest) => {
+  if (kept.unsent && kept.unsent.n <= u.n) kept.unsent = null
+}
 
 // ── THE RECORD IS THE ROW (FOR-231) ──────────────────────────────────────────
 // daily_checkins is the record of the morning protocol (spirit_state.morning,
@@ -143,11 +162,19 @@ export default function MorningProtocol(
   // (Codex r2). kept.unsent: a change the row does not have. kept.generated: a
   // protocol generated on this screen, by the signed-in account's own request,
   // so it is that account's whatever the paint was.
-  // Protocol writes queued and not yet answered.
-  const inFlight = useRef(0)
+  // The account a change is made by, fixed AT the change: the account this
+  // screen was confirmed for, or — before that — whoever is signed in now.
+  // Never written to ownerRef: that says an account's ROW answered, which is
+  // what makes it safe to write what is on screen.
+  // The one implementation of "who is making this change" (checkinQueue); the
+  // object it is handed is a copy, so a change-time lookup never becomes the
+  // confirmed account.
+  const madeBy = (): Promise<string | null> => accountAtChange(createClient(), { current: ownerRef.current })
   // The open-time read is running. A change made meanwhile is saving — the
   // read saves it when it answers — not unsaved.
   const opening = useRef(false)
+
+  const showStatus = () => setSync(statusNow())
 
   const saveMindState = async () => {
     const supabase = createClient()
@@ -251,17 +278,34 @@ export default function MorningProtocol(
       // Until it is decided it stays kept, so a read that fails here retries.
       const u = kept.unsent
       if (u) {
-        let vouched = u.p === kept.generated
-        if (!vouched) {
-          const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
-          vouched = its !== null && sameJson(its, u.p)
+        // Whose change it is decides first. Kept state outlives a sign-out, and
+        // a change account A made is never saved under account B — it would put
+        // A's protocol, and A's gratitude, in B's record (Codex r6, P1).
+        const by = await u.by
+        if (by !== null && by !== user.id) {
+          settled(u)
+          if (kept.latest && kept.latest.n <= u.n) kept.latest = null
+        } else {
+          let vouched = kept.generated !== null && u.p === kept.generated.p && (await kept.generated.by) === user.id
+          if (!vouched) {
+            const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
+            vouched = its !== null && sameJson(its, u.p)
+          }
+          settled(u)
+          if (vouched) {
+            saveCache(u.p, u.c, u.g, u.day)
+            // A change for TODAY is what the screen shows, and the row does not
+            // have it yet — the record must not be applied over it. A change
+            // for an earlier day is not what the screen shows: today's record
+            // still applies, or the screen would sit on the config step with a
+            // protocol already in the row (Codex r6).
+            if (u.day === todayKey()) return
+          }
         }
-        kept.unsent = null
-        if (vouched) { saveCache(u.p, u.c, u.g, u.day); return }
       }
       // No change to save, but the screen changed while the read was in flight
       // (Rebuild): that is newer than the read, which does not put it back.
-      if (!u && localEdits.current !== editsAtOpen) { setSync(kept.unsent ? 'unsaved' : 'synced'); return }
+      if (!u && localEdits.current !== editsAtOpen) { showStatus(); return }
       if (held) {
         const c = m?.completed ?? new Array(held.steps.length).fill(false)
         const g = m?.gratitude ?? ['', '', '']
@@ -280,7 +324,7 @@ export default function MorningProtocol(
         setConfigured(false)
         try { localStorage.removeItem(STORAGE_KEY) } catch { /* paint only */ }
       }
-      setSync(kept.unsent ? 'unsaved' : 'synced')
+      showStatus()
     } catch {
       setSync(kept.unsent ? 'unsaved' : 'unreached')
     } finally {
@@ -294,7 +338,7 @@ export default function MorningProtocol(
     // Retry, the day of the change being retried. Evaluated inside the queued
     // write it could fall after 4am and file this protocol into the next day's
     // row (Codex r1, r2).
-    kept.latest = { p, c, g, day }
+    kept.latest = { p, c, g, day, by: madeBy(), n: ++stamp }
     // The account that made the change, captured now. Before the open-time
     // read has answered there is no owner to bind to, and the change is kept
     // as unsent — never a write under an account nobody checked. The read
@@ -302,10 +346,11 @@ export default function MorningProtocol(
     const owner = ownerRef.current
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
-    if (!owner) { kept.unsent = kept.latest; setSync(opening.current ? 'saving' : 'unsaved'); return }
+    const mine = kept.latest
+    if (!owner) { kept.unsent = mine; setSync(opening.current ? 'saving' : 'unsaved'); return }
     // Saving from the moment the change is made, not from its turn in the
     // queue (Codex r4).
-    inFlight.current++
+    writing++
     setSync('saving')
     // The record. Upsert names only its own column, so mind_state is untouched.
     void (async () => {
@@ -328,11 +373,15 @@ export default function MorningProtocol(
       }).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
       // Every write carries the whole protocol, so the LAST one answered says
       // whether the row holds the latest change; until then it is saving.
-      inFlight.current--
+      writing--
       // A write that failed leaves the change kept, for the next open or Retry
-      // to save — it is not in the row, and nothing else remembers it (Codex r5).
-      if (res.error) { kept.unsent = kept.latest; if (!inFlight.current) setSync('unsaved'); return }
-      if (!inFlight.current) { kept.unsent = null; setSync('synced') }
+      // to save — it is not in the row, and nothing else remembers it (Codex
+      // r5). A write that landed settles ITS OWN change and every older one,
+      // never a newer change made meanwhile — on this mount or the next
+      // (Codex r6).
+      if (res.error) { if (!kept.unsent || kept.unsent.n <= mine.n) kept.unsent = mine; showStatus(); return }
+      settled(mine)
+      showStatus()
       // The row has it now. Only now are the readers told (FOR-231): the
       // daily number, the checklist and the objectives card re-read the row
       // on this, and a signal sent before the write landed sent them to read
@@ -390,7 +439,7 @@ export default function MorningProtocol(
       setGratitude(freshGratitude)
       setExpanded(0)
       setConfigured(true)
-      kept.generated = fresh
+      kept.generated = { p: fresh, by: madeBy() }
       saveCache(fresh, freshCompleted, freshGratitude)
     } catch {
       setError('Failed to generate. Try again.')
