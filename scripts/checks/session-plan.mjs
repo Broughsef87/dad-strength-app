@@ -92,15 +92,17 @@ const MAXES = { back_squat: 315, bench: 225, deadlift: 405, ohp: 135, clean: 205
     'a recorded plan is drawn as recorded — a swap persisted after sets were logged is not undone by them')
   assert(sessionPlan(built, swapped, preSwap, false).plan.items[1].name === 'Back Squat',
     'an UNRECORDED plan (a row from before the record) is the one reconciled against its logs')
-  // The swap's substitution saved and its sets saved, but its RECORD did not:
-  // the row still says Back Squat. The logs and the build agree on Front Squat,
-  // and together they outvote a record that failed to update (Codex r4).
-  const staleRecord = clone(built)
-  const drawnStale = sessionPlan(buildSwapped, staleRecord, [{ block_name: 'Front Squat', slot: 'squat' }], true).plan.items[1]
-  assert(drawnStale.name === 'Front Squat' && drawnStale.subbedFrom === 'Back Squat',
-    `a recorded plan whose swap record failed reopens as the swap — where its logs and the build agree against it (got ${drawnStale.name} / ${drawnStale.subbedFrom})`)
-  assert(sessionPlan(built, staleRecord, [{ block_name: 'Front Squat', slot: 'squat' }], true).plan.items[1].name === 'Back Squat',
-    'but over a record, logs the build does NOT agree with move nothing — logs alone never overrule it')
+  // Nothing outside the session second-guesses its record (Codex r5). Log Back
+  // Squat, swap this session to Front Squat (recorded), then change the
+  // recurring substitution in another week so today's build says Back Squat
+  // again: the recorded swap stands.
+  assert(sessionPlan(built, swapped, preSwap, true).plan.items[1].name === 'Front Squat',
+    'a recorded swap stands even when a LATER substitution change makes today\'s build agree with the older logs')
+  // And neither do logs and build together: that state (a record behind the
+  // card) is made unreachable at the swap — the record is written first — so
+  // the reopen never has to infer staleness (Codex r4).
+  assert(sessionPlan(buildSwapped, clone(built), [{ block_name: 'Front Squat', slot: 'squat' }], true).plan.items[1].name === 'Back Squat',
+    'a recorded plan is drawn exactly as recorded — logs and the build together still never move it')
   assert(isRecorded({ [RECORDED]: true }) && !isRecorded({ [RECORDED]: 'yes' }) && !isRecorded({}) && !isRecorded(null),
     'recorded means the marker the page writes, exactly — nothing else on a row passes for it')
   assert(samePlan({ a: 1, b: { c: [1, 2], d: 'x' } }, { b: { d: 'x', c: [1, 2] }, a: 1 }) && !samePlan({ a: 1 }, { a: 2 }) && !samePlan({ items: [1, 2] }, { items: [2, 1] }),
@@ -265,9 +267,11 @@ const asTrained = (v, key) => {
   const sendFn = (() => { const at = pg.indexOf('const sendRow = (): Promise<SbRes | null> => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
   assert(/const id = workoutIdRef\.current/.test(sendFn) && /const payload = workoutDataRef\.current/.test(sendFn) && /return queueRow\(async \(\) => supabase\.from\('generated_workouts'\)\.update\(\{ workout_data: payload \}\)\.eq\('id', id\)\)/.test(sendFn),
     'a row write captures its session and the row as it stands when the change is made, then queues — it can never land on another session\'s row')
-  const writeFn = (() => { const at = pg.indexOf('const writePlan = (): Promise<SbRes | null> => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
-  assert(/workoutDataRef\.current = \{ \.\.\.workoutDataRef\.current, plan: basePlanRef\.current, \[RECORDED\]: true \}/.test(writeFn) && /return sendRow\(\)/.test(writeFn),
-    'the plan recorded is the one the cards are drawn from, marked as the record, through the one queue')
+  const writeFn = (() => { const at = pg.indexOf('const writePlan = async (next: DayPlan): Promise<SbRes | null> => {'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
+  assert(/workoutDataRef\.current = \{ \.\.\.before, plan: next, \[RECORDED\]: true \}/.test(writeFn) && /const res = await sendRow\(\)/.test(writeFn),
+    'the plan recorded is the one about to be shown, marked as the record, through the one queue')
+  assert(/if \(res\?\.error && workoutDataRef\.current\.plan === next\) workoutDataRef\.current = \{ \.\.\.workoutDataRef\.current, plan: before\.plan, \[RECORDED\]: before\[RECORDED\] \}/.test(writeFn),
+    'a record that did not land is taken back off the row copy — so no later row write can carry a swap the screen never made')
   const overridesFn = (() => { const at = pg.indexOf('const updateOverrides = async'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
   assert(/report\('session edit', await sendRow\(\)\)/.test(overridesFn) && !/\.update\(/.test(overridesFn),
     'session edits go through the same queue — an exercise added while a swap is being recorded is not put back by it')
@@ -275,8 +279,18 @@ const asTrained = (v, key) => {
   assert(rowWrites === 3,
     `the row's workout_data is written in exactly three places — the load-time adjustments backfill, the load-time record, and sendRow — found ${rowWrites}`)
   const swap = (() => { const at = pg.indexOf('if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
-  assert(/\n    report\('session record', await writePlan\(\)\)/.test(swap) && !/if \([^)]*\) report\('session record'/.test(swap),
-    'every swap rewrites the record, trained or not — nothing it depends on can still be in flight (Codex r3)')
+  // The swap, in order (Codex r4, r5): the record, then the substitution, then
+  // the screen — and a record that fails stops it before either.
+  const swapFn = (() => { const at = pg.indexOf('const applySwap = async'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
+  const rec = swapFn.indexOf('const recorded = await writePlan(patchItems(basePlanRef.current))')
+  const stop = swapFn.indexOf('if (recorded?.error) return')
+  const sub = swapFn.indexOf("from('user_exercise_subs')")
+  const screen = swapFn.indexOf('setPlan(p => p && patchItems(p))')
+  const closed = swapFn.indexOf('setSwapTarget(null)')
+  assert(rec > 0 && stop > rec && sub > stop && screen > sub && closed > screen,
+    'every swap writes the record FIRST, stops if it fails, and only then saves the substitution and changes the card — the record is never behind what the athlete saw')
+  assert(!/report\('session record', await writePlan\(\)\)/.test(swapFn) && (swapFn.match(/writePlan\(/g) ?? []).length === 1,
+    'and it records exactly once, before — not again after the card has already changed')
 
   assert((pg.match(/await adopt\(/g) ?? []).length === 2 && /select\('id, workout_data'\)\s*\.eq\('user_id', userId\)\.eq\('program_slug', slug\)\s*\.eq\('week_number', weekNumber\)\.eq\('day_number', dayNumber\)\s*\.order\('id'/.test(pg),
     'BOTH ways a row is found — the run-scoped lookup and the unique-index fallback — draw through the same path')

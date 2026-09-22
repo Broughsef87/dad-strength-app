@@ -1441,12 +1441,16 @@ export default function TrainingDayPage() {
     const payload = workoutDataRef.current
     return queueRow(async () => supabase.from('generated_workouts').update({ workout_data: payload }).eq('id', id))
   }
-  // The record follows the plan the cards are drawn from whenever it changes
-  // under the session — a swap — trained or not.
-  const writePlan = (): Promise<SbRes | null> => {
-    if (!basePlanRef.current) return Promise.resolve(null)
-    workoutDataRef.current = { ...workoutDataRef.current, plan: basePlanRef.current, [RECORDED]: true }
-    return sendRow()
+  // The record, rewritten for a plan about to be shown — a swap. Put on the row
+  // copy first so an edit queued after it carries it; taken back if it did not
+  // land (the plan and its mark only, and only if nothing replaced them since),
+  // so no later row write can carry a swap the screen never made.
+  const writePlan = async (next: DayPlan): Promise<SbRes | null> => {
+    const before = workoutDataRef.current
+    workoutDataRef.current = { ...before, plan: next, [RECORDED]: true }
+    const res = await sendRow()
+    if (res?.error && workoutDataRef.current.plan === next) workoutDataRef.current = { ...workoutDataRef.current, plan: before.plan, [RECORDED]: before[RECORDED] }
+    return res
   }
 
   const logLiftSets = async (item: LiftPrescription, sets: SetEntry[]) => {
@@ -1586,6 +1590,28 @@ export default function TrainingDayPage() {
   const applySwap = async (subName: string | null, repeatMeso = true) => {
     if (!user || !swapTarget) return
     const { slot, originalName } = swapTarget
+    const patchItems = (p: DayPlan): DayPlan => ({
+      ...p,
+      items: p.items.map(i => {
+        if ((i.kind !== 'lift' && i.kind !== 'plyo') || i.slot !== slot) return i
+        if ((i.subbedFrom ?? i.name) !== originalName) return i
+        return subName == null || subName === originalName
+          ? { ...i, name: originalName, subbedFrom: undefined }
+          : { ...i, name: subName, subbedFrom: originalName }
+      }),
+    })
+    // 1. THE RECORD FIRST (FOR-248, Codex r4, r5). The card changes only once
+    //    this session's record says it has — so the record is never behind what
+    //    the athlete saw, and a reopen never has to guess from logs or from
+    //    today's substitutions whether a record is stale. If it cannot be
+    //    written, nothing changes, not the substitution and not the card, and
+    //    the sheet stays open to try again.
+    if (basePlanRef.current && workoutIdRef.current) {
+      const recorded = await writePlan(patchItems(basePlanRef.current))
+      report('session record', recorded)
+      if (recorded?.error) return
+    }
+    // 2. The substitution.
     if (subName == null || subName === originalName) {
       const res = await supabase.from('user_exercise_subs').delete()
         .eq('user_id', user.id).eq('program_slug', slug)
@@ -1612,22 +1638,10 @@ export default function TrainingDayPage() {
       report('swap', res)
       subsRef.current[`${slot}::${originalName}`] = subName
     }
-    const patchItems = (p: DayPlan): DayPlan => ({
-      ...p,
-      items: p.items.map(i => {
-        if ((i.kind !== 'lift' && i.kind !== 'plyo') || i.slot !== slot) return i
-        if ((i.subbedFrom ?? i.name) !== originalName) return i
-        return subName == null || subName === originalName
-          ? { ...i, name: originalName, subbedFrom: undefined }
-          : { ...i, name: subName, subbedFrom: originalName }
-      }),
-    })
+    // 3. The screen — last, once the record already says so.
     if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)
     setPlan(p => p && patchItems(p))
     setSwapTarget(null)
-    // The record follows the swap, trained or not: sets logged from here on
-    // carry the new name, and a reopen must draw the card they belong to.
-    report('session record', await writePlan())
   }
 
   // ── Session overrides: add/remove sets + exercises (this week+day only) ─────
