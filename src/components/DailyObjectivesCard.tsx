@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { runAs } from '../lib/checkinQueue'
-import { adoptRead, book, changedBy, flushObjectives, intend, onObjectives, paintedMind, savingObjectives, wasDropped, type Change } from '../lib/objectivesOutbox'
+import { accountIs, adoptRead, book, changedBy, flushObjectives, intend, onObjectives, paintedMind, savingObjectives, wasDropped, type Change } from '../lib/objectivesOutbox'
 import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
@@ -115,6 +115,7 @@ export default function DailyObjectivesCard(
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       ownerRef.current = user.id
+      accountIs(user.id)
       // The read goes through the SAME queue as the writes (Codex r1), and takes
       // its place in queue order there: a read landing after a later one is
       // older than it, and does not become the record.

@@ -9,7 +9,7 @@ import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import UpgradeModal from './UpgradeModal'
 import { ACCOUNT_CHANGED, accountAtChange, runAs } from '../lib/checkinQueue'
-import { book, changedBy, flushObjectives, intend, wasDropped, type Change } from '../lib/objectivesOutbox'
+import { accountIs, book, changedBy, flushObjectives, intend, wasDropped, type Change } from '../lib/objectivesOutbox'
 import { setUnloadGuard } from '../lib/unloadGuard'
 import { sameJson } from '../lib/canonical'
 
@@ -273,6 +273,7 @@ export default function MorningProtocol(
       // has landed since the row-key fix (FOR-228, ruling 2).
       const row = await readSpirit(supabase, user.id, todayKey())
       ownerRef.current = user.id
+      accountIs(user.id)
       const m = morningIn(row)
       const held = protocolOn(row, todayKey())
       // A change made before the account was confirmed is saved only if the
@@ -290,33 +291,38 @@ export default function MorningProtocol(
         // a change account A made is never saved under account B — it would put
         // A's protocol, and A's gratitude, in B's record (Codex r6, P1).
         const by = await u.by
+        let vouched = false
         if (by !== null && by !== user.id) {
-          settled(u)
           if (kept.latest && kept.latest.n <= u.n) kept.latest = null
         } else {
-          let vouched = kept.generated !== null && u.p === kept.generated.p && (await kept.generated.by) === user.id
+          vouched = kept.generated !== null && u.p === kept.generated.p && (await kept.generated.by) === user.id
           if (!vouched) {
             const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
             vouched = its !== null && sameJson(its, u.p)
           }
-          settled(u)
-          if (vouched) {
-            saveCache(u.p, u.c, u.g, u.day)
-            // A change for TODAY is what the screen shows, and the row does not
-            // have it yet — the record must not be applied over it. A change
-            // for an earlier day is not what the screen shows: today's record
-            // still applies, or the screen would sit on the config step with a
-            // protocol already in the row (Codex r6).
-            if (u.day === todayKey()) {
-              // On screen, not left to the paint: localStorage may be
-              // unavailable, or its last write may have failed, and then
-              // nothing would show what was just recovered (Codex r7).
-              setProtocol(u.p)
-              setCompleted(u.c)
-              setGratitude(u.g)
-              setConfigured(true)
-              return
-            }
+        }
+        settled(u)
+        // Deciding that took an await, or two. The account was confirmed before
+        // them, so a change made meanwhile has been written on its own — and
+        // this older snapshot must not land on top of it, nor the record be
+        // applied over it (Codex r10).
+        if (kept.latest !== null && kept.latest.n > u.n) { showStatus(); return }
+        if (vouched) {
+          saveCache(u.p, u.c, u.g, u.day)
+          // A change for TODAY is what the screen shows, and the row does not
+          // have it yet — the record must not be applied over it. A change
+          // for an earlier day is not what the screen shows: today's record
+          // still applies, or the screen would sit on the config step with a
+          // protocol already in the row (Codex r6).
+          if (u.day === todayKey()) {
+            // On screen, not left to the paint: localStorage may be
+            // unavailable, or its last write may have failed, and then
+            // nothing would show what was just recovered (Codex r7).
+            setProtocol(u.p)
+            setCompleted(u.c)
+            setGratitude(u.g)
+            setConfigured(true)
+            return
           }
         }
       }

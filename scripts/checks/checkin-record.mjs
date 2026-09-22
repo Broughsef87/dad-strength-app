@@ -292,8 +292,11 @@ assert(/runAs\(supabase, owner, async \(\) => \{[\s\S]{0,700}from\('daily_checki
 assert(/runAs\(supabase, owner, async \(me\) =>/.test(flushFn) && /const owner = changedBy\(ownerRef\.current\)/.test(toggleFn) && /const owner = changedBy\(ownerRef\.current\)/.test(draftFn)
   && /export const changedBy = \(known: string \| null\): Promise<string \| null> =>\s*accountAtChange\(createClient\(\), \{ current: known \}\)/.test(out),
   'objectives writes too — each bound to the account that made the change, fixed at the change')
-assert(/for \(const c of book\(\)\.pending\(\)\) \{ const who = await c\.owner; if \(who && who !== me\) book\(\)\.settle\(\[c\], 'dropped'\) \}/.test(flushFn),
-  'a pending change made under another account is dropped, never saved under this one')
+assert(/const who = await c\.owner\s*if \(who === null \? c\.run !== run : who !== me\) book\(\)\.settle\(\[c\], 'dropped'\)/.test(flushFn)
+  && /export function accountIs\(me: string\) \{\s*if \(account !== null && account !== me\) run\+\+\s*account = me\s*\}/.test(out)
+  && /accountIs\(me\)/.test(flushFn) && /accountIs\(user\.id\)/.test(objLoad) && /accountIs\(user\.id\)/.test(mpLoader)
+  && /c\.run = run/.test(topFn(out, 'export function intend')),
+  'a pending change made under another account is dropped, never saved under this one — and one nobody could name an account for belongs to the run it was made in, because objectives are private and matching text is no kind of ownership (Codex r10, P1)')
 assert(/const settleSync = \(failed: boolean, unreached = false\) =>\s*setSync\(savingObjectives\(\) \? 'saving' : failed \|\| book\(\)\.pending\(\)\.length \? 'unsaved' : unreached \? 'unreached' : 'synced'\)/.test(obj)
   && /export const savingObjectives = \(\) => writing > 0/.test(out)
   && /settleSync\(!res\.ok\)/.test(fnBody(obj, 'const save = ')) && /settleSync\(false\)/.test(objLoad) && !/setSync\('synced'\)/.test(code(obj))
@@ -322,7 +325,7 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: owner,/.test(
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
   "the protocol's account is confirmed only by its row answering — until then the screen is a paint nobody checked, possibly another account's")
-assert(/let vouched = kept\.generated !== null && u\.p === kept\.generated\.p && \(await kept\.generated\.by\) === user\.id/.test(openFn)
+assert(/vouched = kept\.generated !== null && u\.p === kept\.generated\.p && \(await kept\.generated\.by\) === user\.id/.test(openFn)
   && /const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)/.test(openFn)
   && /vouched = its !== null && sameJson\(its, u\.p\)/.test(openFn)
   && /if \(vouched\) \{\s*saveCache\(u\.p, u\.c, u\.g, u\.day\)/.test(openFn) && /kept\.generated = \{ p: fresh, by: madeBy\(\) \}/.test(mp),
@@ -340,8 +343,14 @@ assert(/type Latest = \{ p: Protocol; c: boolean\[\]; g: string\[\]; day: string
   && /kept\.latest = \{ p, c, g, day, by: madeBy\(\), n: \+\+stamp \}/.test(mp)
   && /const madeBy = \(\): Promise<string \| null> => accountAtChange\(createClient\(\), \{ current: ownerRef\.current \}\)/.test(mp),
   'every change kept carries the account that made it, fixed at the change, and a change-time lookup never becomes the confirmed account')
-assert(/const by = await u\.by\s*if \(by !== null && by !== user\.id\) \{\s*settled\(u\)\s*if \(kept\.latest && kept\.latest\.n <= u\.n\) kept\.latest = null\s*\} else \{/.test(openFn),
+assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null && by !== user\.id\) \{\s*if \(kept\.latest && kept\.latest\.n <= u\.n\) kept\.latest = null\s*\} else \{/.test(openFn),
   'and a change made by another account is dropped, never saved under this one (Codex r6, P1)')
+// Codex r10: deciding a kept change takes an await or two, and the account is
+// confirmed before them — so a change made meanwhile is written on its own, and
+// this older snapshot must not land on top of it.
+assert(/settled\(u\)\s*\/\/[\s\S]{0,400}if \(kept\.latest !== null && kept\.latest\.n > u\.n\) \{ showStatus\(\); return \}/.test(openFn)
+  && openFn.indexOf('if (kept.latest !== null && kept.latest.n > u.n)') < openFn.indexOf('if (vouched) {'),
+  'a kept change superseded while it was being decided is not saved, and the record is not applied over the change that superseded it (Codex r10)')
 assert(/const protocolOn = \(row: \{ spirit_state\?: unknown \} \| null, day: string\) => \{[\s\S]{0,200}n\?\.protocol && n\.date === day \? n\.protocol : null/.test(mp)
   && (code(mp).match(/n\.date === day|m\.date === todayKey\(\)/g) ?? []).length === 1,
   'which day a row holds a protocol for is decided in one place, for any day')

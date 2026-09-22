@@ -16,8 +16,14 @@ import { fromRow, objectivesBook, toRow, type Intent, type MindRow } from './obj
 import { localDay } from '../utils/day'
 import { setUnloadGuard } from './unloadGuard'
 
-/** A change, and the account it was made by — fixed at the change. */
-export type Change = Intent & { owner: Promise<string | null> }
+/**
+ * A change, the account it was made by — fixed at the change — and which run of
+ * this tab it was made in. `owner` can resolve to null: the change was made
+ * while nothing could reach the server to say who was signed in. Such a change
+ * is this run's, and only this run's — after another account signs in it is
+ * NOT theirs to save, whatever their row happens to hold (Codex r10, P1).
+ */
+export type Change = Intent & { owner: Promise<string | null>; run?: number }
 
 const makeBook = () => objectivesBook<Change>(localDay())
 let theBook: ReturnType<typeof makeBook> | null = null
@@ -56,6 +62,16 @@ export function onObjectives(fn: () => void): () => void {
   return () => { readers.delete(fn) }
 }
 
+// ── whose tab this is ────────────────────────────────────────────────────────
+// The account a screen has confirmed here. A different one signing in starts a
+// new run: nothing made in the old one is the new account's to save.
+let account: string | null = null
+let run = 0
+export function accountIs(me: string) {
+  if (account !== null && account !== me) run++
+  account = me
+}
+
 // ── changes on their way to the row ──────────────────────────────────────────
 let writing = 0
 const mark = () => {
@@ -70,6 +86,7 @@ export const changedBy = (known: string | null): Promise<string | null> =>
 
 /** A change made on any screen, against the objectives that screen showed. */
 export function intend(c: Change) {
+  c.run = run
   book().intend(c)
   mark()
 }
@@ -96,10 +113,16 @@ export async function flushObjectives(owner: Promise<string | null>): Promise<Sa
   mark()
   const supabase = createClient()
   const res = await runAs(supabase, owner, async (me) => {
-    // A change made under another account is not this one's to save. One made
-    // while no account was known is saved by the account that saves it — and
-    // only onto a record holding the objectives it was made on.
-    for (const c of book().pending()) { const who = await c.owner; if (who && who !== me) book().settle([c], 'dropped') }
+    accountIs(me)
+    // A change made under another account is not this one's to save — and one
+    // nobody could name an account for belongs to the run it was made in, not
+    // to whoever signs in next (Codex r10, P1). Objectives are private: a
+    // `set` made in one run fits any account whose row is empty, so text
+    // matching is no kind of ownership.
+    for (const c of book().pending()) {
+      const who = await c.owner
+      if (who === null ? c.run !== run : who !== me) book().settle([c], 'dropped')
+    }
     const landed: Landed[] = []
     for (const day of book().days()) {
       const { data, error } = await supabase.from('daily_checkins').select('mind_state').eq('user_id', me).eq('date', day).maybeSingle()
