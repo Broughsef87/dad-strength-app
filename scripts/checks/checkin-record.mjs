@@ -28,6 +28,7 @@ import { join, relative } from 'node:path'
 import { ACCOUNT_CHANGED, accountAtChange, runAs } from '../../src/lib/checkinQueue.ts'
 import { EMPTY, normalise, objectivesBook } from '../../src/lib/objectivesRecord.ts'
 import { sameJson } from '../../src/lib/canonical.ts'
+import { currentRun, sessionIs } from '../../src/lib/objectivesOutbox.ts'
 
 let failures = 0, passes = 0
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
@@ -262,7 +263,7 @@ assert(/kept\.latest = \{ p, c, g, day, by: madeBy\(\), n: \+\+stamp \}/.test(mp
 // visitor's changes to the next.
 assert(/^const kept: \{[\s\S]{0,160}\} = \{ latest: null, unsent: null, generated: null \}/m.test(mp) && !/useRef<Latest \| null>/.test(mp),
   'a protocol change the row does not have outlives this component — one tab, not one mount')
-assert(/^const makeBook = \(\) => objectivesBook<Change>\(localDay\(\)\)\nlet theBook: ReturnType<typeof makeBook> \| null = null\nexport const book = \(\) => \(theBook \?\?= makeBook\(\)\)/m.test(out)
+assert(/^const makeBook = \(\) => objectivesBook<Change>\(localDay\(\)\)\nlet theBook: ReturnType<typeof makeBook> \| null = null\nexport const book = \(\) => \{ watchSession\(\); return \(theBook \?\?= makeBook\(\)\) \}/m.test(out)
   && !/useState\(\(\) => objectivesBook/.test(obj) && !/\bbook\(\)/.test(obj.slice(obj.lastIndexOf('  return ('))),
   'the objectives outbox too — and its book is made on a click or an effect, never while rendering')
 assert(/if \(book\(\)\.pending\(\)\.length\) save\(changedBy\(ownerRef\.current\)\)/.test(objLoad),
@@ -293,10 +294,28 @@ assert(/runAs\(supabase, owner, async \(me\) =>/.test(flushFn) && /const owner =
   && /export const changedBy = \(known: string \| null\): Promise<string \| null> =>\s*accountAtChange\(createClient\(\), \{ current: known \}\)/.test(out),
   'objectives writes too — each bound to the account that made the change, fixed at the change')
 assert(/const who = await c\.owner\s*if \(who === null \? c\.run !== run : who !== me\) book\(\)\.settle\(\[c\], 'dropped'\)/.test(flushFn)
-  && /export function accountIs\(me: string\) \{\s*if \(account !== null && account !== me\) run\+\+\s*account = me\s*\}/.test(out)
+  && /function sessionIs\(id: string \| null, ended = false\) \{\s*if \(ended \|\| \(id !== null && account !== null && id !== account\)\) run\+\+\s*account = id\s*\}/.test(out)
+  && /export function accountIs\(me: string\) \{ sessionIs\(me\) \}/.test(out)
   && /accountIs\(me\)/.test(flushFn) && /accountIs\(user\.id\)/.test(objLoad) && /accountIs\(user\.id\)/.test(mpLoader)
   && /c\.run = run/.test(topFn(out, 'export function intend')),
   'a pending change made under another account is dropped, never saved under this one — and one nobody could name an account for belongs to the run it was made in, because objectives are private and matching text is no kind of ownership (Codex r10, P1)')
+// Codex r11: with no account ever confirmed, a sign-out started no new run at
+// all, and the next account's empty row took the objectives of the one before.
+assert(/createClient\(\)\.auth\.onAuthStateChange\(\(event: string, session: Session\) => \{\s*sessionIs\(session\?\.user\?\.id \?\? null, event === 'SIGNED_OUT'\)/.test(out)
+  && /export const book = \(\) => \{ watchSession\(\); return/.test(out),
+  'and the run is watched at the SESSION, not at what a screen managed to load — the case that matters is the one where no screen ever confirmed an account (Codex r11, P1)')
+// The rule itself, as behaviour — the outbox's own, not a copy of it here.
+{
+  const seen = []
+  sessionIs('user-a'); seen.push(currentRun())         // told for the first time: the same run
+  sessionIs('user-a'); seen.push(currentRun())         // a token refresh: the same run
+  sessionIs(null, true); seen.push(currentRun())       // signed out: a new run
+  sessionIs('user-b'); seen.push(currentRun())         // b signs in: still that new run
+  sessionIs('user-c'); seen.push(currentRun())         // another account again: another run
+  const moved = seen.map((r) => r - seen[0])
+  assert(JSON.stringify(moved) === JSON.stringify([0, 0, 1, 1, 2]),
+    'a change made before the tab knew who was signed in survives being told, and never survives a sign-out — moved ' + moved.join(','))
+}
 assert(/const settleSync = \(failed: boolean, unreached = false\) =>\s*setSync\(savingObjectives\(\) \? 'saving' : failed \|\| book\(\)\.pending\(\)\.length \? 'unsaved' : unreached \? 'unreached' : 'synced'\)/.test(obj)
   && /export const savingObjectives = \(\) => writing > 0/.test(out)
   && /settleSync\(!res\.ok\)/.test(fnBody(obj, 'const save = ')) && /settleSync\(false\)/.test(objLoad) && !/setSync\('synced'\)/.test(code(obj))

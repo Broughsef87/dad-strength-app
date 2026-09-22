@@ -27,7 +27,7 @@ export type Change = Intent & { owner: Promise<string | null>; run?: number }
 
 const makeBook = () => objectivesBook<Change>(localDay())
 let theBook: ReturnType<typeof makeBook> | null = null
-export const book = () => (theBook ??= makeBook())
+export const book = () => { watchSession(); return (theBook ??= makeBook()) }
 
 // ── the paint ────────────────────────────────────────────────────────────────
 // What this device last saw, for an instant first frame. Never read by anything
@@ -63,14 +63,34 @@ export function onObjectives(fn: () => void): () => void {
 }
 
 // ── whose tab this is ────────────────────────────────────────────────────────
-// The account a screen has confirmed here. A different one signing in starts a
-// new run: nothing made in the old one is the new account's to save.
+// Which run of this tab we are in. A DIFFERENT account, or a sign-out, starts a
+// new one: nothing made in an older run is the new account's to save — and a
+// change nobody could name an account for is exactly what must not cross.
+//
+// Watched at the SESSION, not at what a screen managed to load (Codex r11): the
+// case that matters is the one where the account lookups failed, and then no
+// screen ever confirms an account to compare against. Learning for the first
+// time who the tab is signed in as is not a change of account; signing out is,
+// and it takes every unowned change with it.
 let account: string | null = null
 let run = 0
-export function accountIs(me: string) {
-  if (account !== null && account !== me) run++
-  account = me
+export function sessionIs(id: string | null, ended = false) {
+  if (ended || (id !== null && account !== null && id !== account)) run++
+  account = id
 }
+/** The account a screen has verified — the same fact, from the other direction. */
+export function accountIs(me: string) { sessionIs(me) }
+let watching = false
+function watchSession() {
+  if (watching || typeof window === 'undefined') return
+  watching = true
+  type Session = { user?: { id?: string | null } | null } | null
+  createClient().auth.onAuthStateChange((event: string, session: Session) => {
+    sessionIs(session?.user?.id ?? null, event === 'SIGNED_OUT')
+  })
+}
+/** Only for checks: the run a change made now would belong to. */
+export const currentRun = () => run
 
 // ── changes on their way to the row ──────────────────────────────────────────
 let writing = 0
