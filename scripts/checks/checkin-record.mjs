@@ -85,7 +85,7 @@ assert(toggleFn.length > 0 && !/localStorage/.test(toggleFn) && /const now = boo
   'a tick is an intent against the objectives ON SCREEN — the record plus every pending change — never built from the paint, which wrote a row with no objectives when it was empty')
 assert(/runAs\(supabase, owner, async \(me\) => \{[\s\S]{0,900}\.select\('mind_state'\)\.eq\('user_id', me\)\.eq\('date', day\)\.maybeSingle\(\)[\s\S]{0,200}book\(\)\.plan\(day, data\?\.mind_state \?\? null\)[\s\S]{0,400}\.upsert\(\s*\{ user_id: me, date: day, mind_state: row,/.test(flushFn),
   'and it is saved as a read-modify-write of the RECORD inside the one queue — the row read, the changes applied to it, the result written back')
-assert(/const mine: Change = \{ kind: 'set', day: book\(\)\.day\(\), basis: book\(\)\.shown\(\)\.objectives, objectives: dense, owner \}/.test(draftFn) && /save\(owner, mine\)/.test(draftFn) && /save\(owner, mine\)/.test(toggleFn),
+assert(/const mine: Change = \{ kind: 'set', day: book\(\)\.day\(\), basis: book\(\)\.shown\(\)\.objectives, objectives: dense, owner \}/.test(draftFn) && /intend\(mine\)/.test(draftFn) && /save\(owner\)/.test(draftFn) && /save\(owner\)/.test(toggleFn),
   'a lock-in is an intent too, and both go through the same save')
 // Codex r8: the Goals step changes the same objectives on the same screen, so a
 // tick worked out from a copy this card took when it last rendered could land
@@ -100,7 +100,8 @@ assert(/settle\(applyIntents\(record\.mind, onDay\(d\)\)\.dead, 'dropped'\)/.tes
 // said "Saved" and hid its button over objectives that were never written.
 assert(/book\(\)\.settle\(applied, 'saved'\)\s*book\(\)\.settle\(dead, 'dropped'\)/.test(flushFn) && /export const wasDropped = \(c: Change\) => book\(\)\.discarded\(c\)/.test(out)
   && /if \(wasDropped\(mine\)\) \{ setMindError\(/.test(mindFn2Early())
-  && /if \(mine && wasDropped\(mine\)\) setOvertaken\(true\)/.test(fnBody(obj, 'const save = '))
+  && /if \(res\.dropped\.length\) setOvertaken\(true\)/.test(fnBody(obj, 'const save = '))
+  && /const before = \[\.\.\.book\(\)\.pending\(\)\]/.test(flushFn) && /return \{ \.\.\.out, dropped: before\.filter\(\(c\) => book\(\)\.discarded\(c\)\) \}/.test(flushFn)
   && /\{overtaken && \(\s*<p[^>]*role="status">/.test(obj),
   'a change the record overtook is not "saved": both screens say so, and neither hides what was typed behind a confirmation it cannot make (Codex r8)')
 // Codex r14: a refresh can overtake a pending change when no save is watching
@@ -264,8 +265,8 @@ assert(/const saveCache = \(p: Protocol, c: boolean\[\], g: string\[\], day: str
   , 'a protocol write goes to the protocol day the change was made on — captured before it queues, never read inside the queue')
 // Codex r2: Retry recomputed the day, so a change that failed before 4am was
 // retried after it — into the NEXT day's row.
-assert(/kept\.latest = \{ p, c, g, day, by: madeBy\(\), n: \+\+stamp \}/.test(mp)
-  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) saveCache\(u\.p, u\.c, u\.g, u\.day\)/.test(fnBody(mp, 'const retrySave = '))
+assert(/kept\.latest = \{\s*p, c, g, day, by: madeBy\(\), n: \+\+stamp,/.test(mp)
+  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) \{\s*if \(u\.checked\) saveCache\(u\.p, u\.c, u\.g, u\.day\)\s*else unchecked = true\s*\}\s*if \(unchecked\) void open\(\)/.test(fnBody(mp, 'const retrySave = '))
   && !/kept\.latest/.test(fnBody(mp, 'const retrySave = ')),
   'a Retry retries every change the row does not have, each on the day it was made — not the latest snapshot, which after one day saved and another failed is the one already in the row (Codex r2, r13)')
 // Codex r5: moving to another tab in the app unmounts these components. What
@@ -356,10 +357,11 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: owner,/.test(
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
   "the protocol's account is confirmed only by its row answering — until then the screen is a paint nobody checked, possibly another account's")
-assert(/vouched = kept\.generated !== null && u\.p === kept\.generated\.p && \(await kept\.generated\.by\) === user\.id/.test(openFn)
+assert(/vouched = u\.fresh !== null && \(await u\.fresh\) === user\.id/.test(openFn)
   && /const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)/.test(openFn)
   && /vouched = its !== null && sameJson\(its, u\.p\)/.test(openFn)
-  && /if \(vouched\) \{\s*saveCache\(u\.p, u\.c, u\.g, u\.day\)/.test(openFn) && /kept\.generated = \{ p: fresh, by: madeBy\(\) \}/.test(mp),
+  && /if \(vouched\) \{\s*saveCache\(u\.p, u\.c, u\.g, u\.day\)/.test(openFn) && /kept\.generated = \{ p: fresh, by: madeBy\(\) \}/.test(mp)
+  && /fresh: kept\.generated !== null && kept\.generated\.p === p \? kept\.generated\.by : null/.test(mp),
   'a change made before then is saved once the record vouches for it — the row holds its protocol, or it was generated here — and otherwise the record replaces it')
 // Codex r5: retried after 4am, it was compared with the NEW day's row, which
 // cannot hold yesterday's protocol — and was dropped as if the record had
@@ -372,8 +374,8 @@ assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayK
   "the kept change is vouched against the row of the day it was made on, stays kept until that row has answered, and an earlier day's change recovered does not stop today's record being applied (Codex r5, r6)")
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
 // never be saved under account B — its protocol, and its gratitude, are A's.
-assert(/type Latest = \{ p: Protocol; c: boolean\[\]; g: string\[\]; day: string; by: Promise<string \| null>; n: number \}/.test(mp)
-  && /kept\.latest = \{ p, c, g, day, by: madeBy\(\), n: \+\+stamp \}/.test(mp)
+assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}fresh: Promise<string \| null> \| null[\s\S]{0,400}checked: boolean\s*\}/.test(mp)
+  && /kept\.latest = \{\s*p, c, g, day, by: madeBy\(\), n: \+\+stamp,[\s\S]{0,300}checked: ownerRef\.current !== null,\s*\}/.test(mp)
   && /const madeBy = \(\): Promise<string \| null> => accountAtChange\(createClient\(\), \{ current: ownerRef\.current \}\)/.test(mp),
   'every change kept carries the account that made it, fixed at the change, and a change-time lookup never becomes the confirmed account')
 assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null && by !== user\.id\) \{\s*if \(kept\.latest && kept\.latest\.n <= u\.n\) kept\.latest = null\s*\} else \{/.test(openFn),

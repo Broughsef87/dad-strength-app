@@ -112,8 +112,8 @@ export function intend(c: Change) {
 }
 
 export type Landed = { day: string; ms: MindRow | null; seq: number }
-/** What a save did: whether the row has what it carried, and what landed. */
-export type Saved = { ok: boolean; landed: Landed[] }
+/** What a save did: whether the row has what it carried, what landed, and every change it DISCARDED. */
+export type Saved = { ok: boolean; landed: Landed[]; dropped: Change[] }
 /**
  * Was this change discarded — the objectives it was made against replaced, here
  * or on another device? Asked of the BOOK, not of one save's report: a change
@@ -131,6 +131,11 @@ export const wasDropped = (c: Change) => book().discarded(c)
 export async function flushObjectives(owner: Promise<string | null>): Promise<Saved> {
   writing++
   mark()
+  // Everything this save might discard — by the account that made it, by the
+  // run, by the record overtaking it, or by a row read landing in between.
+  // A Retry asks for no change of its own, and a discarded retry reported as
+  // synchronized is the one answer that cannot be true (Codex r8, r15).
+  const before = [...book().pending()]
   const supabase = createClient()
   const res = await runAs(supabase, owner, async (me) => {
     accountIs(me)
@@ -173,7 +178,7 @@ export async function flushObjectives(owner: Promise<string | null>): Promise<Sa
   const out = 'ok' in res ? res : { ok: false, landed: [] as Landed[] }
   for (const l of out.landed) if (book().adopt(l.day, l.ms, l.seq)) paintMind(l.day, l.ms)
   mark()
-  return out
+  return { ...out, dropped: before.filter((c) => book().discarded(c)) }
 }
 
 /**

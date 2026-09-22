@@ -64,7 +64,21 @@ type Protocol = {
 // A change made here: the protocol state, the protocol day it belongs to, the
 // account that made it — fixed AT the change — and where it falls in the order
 // they were made.
-type Latest = { p: Protocol; c: boolean[]; g: string[]; day: string; by: Promise<string | null>; n: number }
+type Latest = {
+  p: Protocol
+  c: boolean[]
+  g: string[]
+  day: string
+  by: Promise<string | null>
+  n: number
+  /** The account that generated this protocol ON THIS SCREEN, if it was. Carried
+   * by the snapshot, not by one "the last thing generated" slot: generating
+   * another day's protocol must not take an earlier day's way home (Codex r15). */
+  fresh: Promise<string | null> | null
+  /** Made under a confirmed account, or vouched for by a read that answered.
+   * An unchecked snapshot is not written without one (Codex r15). */
+  checked: boolean
+}
 
 // Kept per TAB, not per mount (Codex r5). Moving to another tab in the app
 // unmounts this component, and a change that has not reached the row must not
@@ -307,7 +321,7 @@ export default function MorningProtocol(
         if (by !== null && by !== user.id) {
           if (kept.latest && kept.latest.n <= u.n) kept.latest = null
         } else {
-          vouched = kept.generated !== null && u.p === kept.generated.p && (await kept.generated.by) === user.id
+          vouched = u.fresh !== null && (await u.fresh) === user.id
           if (!vouched) {
             const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
             vouched = its !== null && sameJson(its, u.p)
@@ -378,7 +392,11 @@ export default function MorningProtocol(
     // Retry, the day of the change being retried. Evaluated inside the queued
     // write it could fall after 4am and file this protocol into the next day's
     // row (Codex r1, r2).
-    kept.latest = { p, c, g, day, by: madeBy(), n: ++stamp }
+    kept.latest = {
+      p, c, g, day, by: madeBy(), n: ++stamp,
+      fresh: kept.generated !== null && kept.generated.p === p ? kept.generated.by : null,
+      checked: ownerRef.current !== null,
+    }
     // The account that made the change, captured now. Before the open-time
     // read has answered there is no owner to bind to, and the change is kept
     // as unsent — never a write under an account nobody checked. The read
@@ -442,7 +460,18 @@ export default function MorningProtocol(
     // snapshot: after yesterday's save failed and today's landed, that is
     // today's — already in the row — and Retry would say it had done something
     // while yesterday stayed unsaved for as long as the tab was open (Codex r13).
-    for (const u of [...kept.unsent.values()]) saveCache(u.p, u.c, u.g, u.day)
+    //
+    // A snapshot nobody has checked — made before an account was confirmed, or
+    // left over from an open that failed partway through its days — is not
+    // written on a Retry: the open-time read is what decides whether the record
+    // vouches for it, and without that this would overwrite whatever another
+    // device put in that row (Codex r15).
+    let unchecked = false
+    for (const u of [...kept.unsent.values()]) {
+      if (u.checked) saveCache(u.p, u.c, u.g, u.day)
+      else unchecked = true
+    }
+    if (unchecked) void open()
   }
 
   const generate = async () => {

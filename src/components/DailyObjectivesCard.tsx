@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { runAs } from '../lib/checkinQueue'
-import { accountIs, adoptRead, book, changedBy, flushObjectives, intend, onObjectives, paintedMind, savingObjectives, wasDropped, type Change } from '../lib/objectivesOutbox'
+import { accountIs, adoptRead, book, changedBy, flushObjectives, intend, onObjectives, paintedMind, savingObjectives, type Change } from '../lib/objectivesOutbox'
 import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
@@ -52,14 +52,15 @@ export default function DailyObjectivesCard(
   }
 
   // Saving from the moment the change is made — not from when its turn in the
-  // queue comes, behind whatever else is writing (Codex r4). `mine` is the
-  // change just made, if any: it is the one whose answer this screen owes.
-  const save = (owner: Promise<string | null>, mine?: Change) => {
+  // queue comes, behind whatever else is writing (Codex r4).
+  const save = (owner: Promise<string | null>) => {
     setSync('saving')
     void flushObjectives(owner).then((res) => {
       show()
       settleSync(!res.ok)
-      if (mine && wasDropped(mine)) setOvertaken(true)
+      // Whatever it discarded — the change just made, or one a Retry was
+      // carrying for a save that has long since answered (Codex r15).
+      if (res.dropped.length) setOvertaken(true)
     })
   }
   const retry = () => save(changedBy(ownerRef.current))
@@ -84,7 +85,7 @@ export default function DailyObjectivesCard(
     setOvertaken(false)
     intend(mine)
     show()
-    save(owner, mine)
+    save(owner)
   }
 
   // What this card shows is what the outbox holds — the Goals step changes the
@@ -158,7 +159,7 @@ export default function DailyObjectivesCard(
     setOvertaken(false)
     intend(mine)
     show()
-    save(owner, mine)
+    save(owner)
   }
 
   const doneCount = completed.filter(Boolean).length
