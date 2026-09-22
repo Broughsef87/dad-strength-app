@@ -1153,8 +1153,12 @@ export default function TrainingDayPage() {
   const subsRef = useRef<SubsMap>({})
   const [swapTarget, setSwapTarget] = useState<{ slot: string; originalName: string; currentName: string } | null>(null)
 
+  // Keyed on the user's ID, not the user object: the auth context replaces the
+  // object on every token refresh, and each replacement re-ran this whole load
+  // on a live, interactive page (Codex r4).
+  const userId = user?.id ?? null
   const loadDay = useCallback(async () => {
-    if (!user || !program) return
+    if (!userId || !program) return
     try {
       // ?week=N override lets the schedule open any week of the macro —
       // prescriptions are deterministic so every week is trainable.
@@ -1166,11 +1170,11 @@ export default function TrainingDayPage() {
       } catch { /* SSR-safe no-op */ }
 
       const [progState, userMaxes, subRes] = await Promise.all([
-        fetchProgramState(supabase, user.id, slug),
-        fetchMaxes(supabase, user.id),
+        fetchProgramState(supabase, userId, slug),
+        fetchMaxes(supabase, userId),
         supabase.from('user_exercise_subs')
           .select('slot, original_name, sub_name, created_week, created_day, repeat_meso')
-          .eq('user_id', user.id).eq('program_slug', slug),
+          .eq('user_id', userId).eq('program_slug', slug),
       ])
       const weekNumber = weekOverride ?? progState.week
       weekRef.current = weekNumber
@@ -1184,7 +1188,7 @@ export default function TrainingDayPage() {
         // (swaps then apply as always-on until the migration runs).
         const legacy = await supabase.from('user_exercise_subs')
           .select('slot, original_name, sub_name')
-          .eq('user_id', user.id).eq('program_slug', slug)
+          .eq('user_id', userId).eq('program_slug', slug)
         subRows = (legacy.data ?? null) as SubRow[] | null
       }
       const subs: SubsMap = {}
@@ -1196,8 +1200,8 @@ export default function TrainingDayPage() {
       // When this run of the program began. Everything below that asks 'how far
       // along am I' is scoped to it — a find-or-create that ignores it adopts the
       // previous attempt's row, and its completion sentinel with it.
-      const runStart = await runStartedAt(supabase, user.id, slug)
-      const doneDays = await fetchDoneDays(supabase, user.id, slug, weekNumber)
+      const runStart = await runStartedAt(supabase, userId, slug)
+      const doneDays = await fetchDoneDays(supabase, userId, slug, weekNumber)
       if (doneDays.includes(dayNumber)) setSessionComplete(true)
 
       // Autoregulation: bounded % deltas from last week's actual weights + RPE.
@@ -1205,7 +1209,7 @@ export default function TrainingDayPage() {
       // RPEs would read as "way under target" and wrongly drag this week down.
       const adjustments = progState.deloadWeeks.includes(weekNumber - 1)
         ? {}
-        : await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber, runStart, userMaxes)
+        : await computeAdjustments(supabase, userId, program, weekNumber, dayNumber, runStart, userMaxes)
 
       // ── Double progression for range-based accessory slots ─────────────
       // The percent engine handles the main lifts; accessories have no 1RM to
@@ -1233,7 +1237,7 @@ export default function TrainingDayPage() {
         const { data: histRows } = await supabase
           .from('ares_session_logs')
           .select('slot, block_name, weight_lbs, reps, completed, week_number, day_number, log_type')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .eq('log_type', 'strength_set')
           .eq('completed', true)
           .in('slot', Object.keys(ranges))
@@ -1259,13 +1263,17 @@ export default function TrainingDayPage() {
         program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) }),
         subs,
       )
-      basePlanRef.current = built
-      setPlan(built)
-      setOverrides({})
+      // Nothing is shown — no plan, no overrides, no row state — until this
+      // session is decided below. Publishing the build first put a trained
+      // session's card on screen as TODAY's movement for the length of two
+      // queries, and on a re-run that card was live: a set logged on it hid the
+      // moment the recorded plan replaced it (Codex r4). `placed` says whether
+      // a path below has decided it.
+      let placed = false
       // `adjustments` rides along on the row: next week's autoreg needs to know
       // what this card actually SHOWED, not just what the table said, or it
       // re-counts its own advice as freelancing and ratchets the load up.
-      workoutDataRef.current = { plan: built, adjustments, [RECORDED]: true }
+      const fresh = { plan: built, adjustments, [RECORDED]: true }
       // What the cards are drawn from — `built` unless this session has been
       // trained (FOR-248). Its logs are read with the row, not after it: the
       // rule needs them to decide.
@@ -1302,13 +1310,14 @@ export default function TrainingDayPage() {
         const ovr = (wd.overrides ?? {}) as SessionOverrides
         setOverrides(ovr)
         setPlan(applyOverrides(drawn, ovr))
+        placed = true
       }
 
       // Find-or-create the generated_workouts row for log linkage.
       const { data: rows } = await supabase
         .from('generated_workouts')
         .select('id, workout_data')
-        .eq('user_id', user.id).eq('program_slug', slug)
+        .eq('user_id', userId).eq('program_slug', slug)
         .eq('week_number', weekNumber).eq('day_number', dayNumber)
         .gte('created_at', runStart)
         .order('created_at', { ascending: true }).limit(1)
@@ -1335,11 +1344,11 @@ export default function TrainingDayPage() {
         const { data: saved, error: insertError } = await supabase
           .from('generated_workouts')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             program_slug: slug,
             week_number: weekNumber,
             day_number: dayNumber,
-            workout_data: { plan: built, adjustments, [RECORDED]: true },
+            workout_data: fresh,
             exercises: [],
           })
           .select('id').single()
@@ -1353,7 +1362,7 @@ export default function TrainingDayPage() {
           // The macrocycle programs have no such index and never reach here.
           const { data: again } = await supabase
             .from('generated_workouts').select('id, workout_data')
-            .eq('user_id', user.id).eq('program_slug', slug)
+            .eq('user_id', userId).eq('program_slug', slug)
             .eq('week_number', weekNumber).eq('day_number', dayNumber)
             .order('id', { ascending: true }).limit(1)
           workoutId = again?.[0]?.id ?? null
@@ -1362,9 +1371,17 @@ export default function TrainingDayPage() {
           throw new Error(`Could not persist workout: ${insertError.message}`)
         }
       }
+      // No existing row adopted: a new one (born recorded, with the plan it
+      // shows), or none at all — drawn from the build either way.
+      if (!placed) {
+        workoutDataRef.current = fresh
+        basePlanRef.current = built
+        setOverrides({})
+        setPlan(built)
+      }
       workoutIdRef.current = workoutId
       setSessionLogs(logs)
-      setLiftHistory(await fetchLiftHistory(supabase, user.id, slug, weekNumber, program.macroWeeks))
+      setLiftHistory(await fetchLiftHistory(supabase, userId, slug, weekNumber, program.macroWeeks))
 
       // All-time bests for today's lifts — powers live PR detection.
       const liftNames = [...new Set(drawn.items.filter(i => i.kind === 'lift').map(i => i.name))]
@@ -1372,7 +1389,7 @@ export default function TrainingDayPage() {
         const { data: prRows } = await supabase
           .from('ares_session_logs')
           .select('block_name, weight_lbs, reps')
-          .eq('user_id', user.id).eq('log_type', 'strength_set').eq('completed', true)
+          .eq('user_id', userId).eq('log_type', 'strength_set').eq('completed', true)
           .in('block_name', liftNames)
           .not('weight_lbs', 'is', null).gt('weight_lbs', 0)
           .limit(4000)
@@ -1389,7 +1406,7 @@ export default function TrainingDayPage() {
     } finally {
       setLoading(false)
     }
-  }, [user, program, slug, dayNumber, supabase, queueRow])
+  }, [userId, program, slug, dayNumber, supabase, queueRow])
 
   useEffect(() => { loadDay() }, [loadDay])
 

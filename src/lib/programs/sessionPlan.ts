@@ -58,7 +58,7 @@ export function isTrained(logs: readonly LoggedRow[]): boolean {
  * Never a guess: two different names at one slot, none of them the card's,
  * and the card is left exactly as it was.
  */
-export function reattachLogged(plan: DayPlan, logs: readonly LoggedRow[], built?: DayPlan): DayPlan {
+export function reattachLogged(plan: DayPlan, logs: readonly LoggedRow[], built?: DayPlan, onlyWhereBuildAgrees = false): DayPlan {
   let changed = false
   const items = plan.items.map((i) => {
     if (i.kind !== 'lift' && i.kind !== 'plyo') return i
@@ -66,12 +66,18 @@ export function reattachLogged(plan: DayPlan, logs: readonly LoggedRow[], built?
     // Exactly one name at the slot, and not the card's own. No logs, the
     // card's own name, or a mix — the card stays as it is.
     if (names.length !== 1 || names[0] === i.name) return i
+    const b = built?.items.find((x) => (x.kind === 'lift' || x.kind === 'plyo') && x.slot === i.slot && x.name === names[0])
+    // Over a RECORD, logs alone never move a card: only where the build — today's
+    // program with the athlete's saved swaps applied — carries the same name. That
+    // is a swap whose record failed to save while its sets did (Codex r4); a swap
+    // the record DID save is never undone by sets logged before it, because the
+    // build does not carry the movement swapped away from.
+    if (onlyWhereBuildAgrees && !b) return i
     changed = true
     // A logged name the BUILD also carries at this slot is a swap the athlete
     // saved: take its identity with it, or the swap picker reads the swapped
     // movement as the original — nothing to revert, and the next swap filed
     // under the wrong original (Codex r3).
-    const b = built?.items.find((x) => (x.kind === 'lift' || x.kind === 'plyo') && x.slot === i.slot && x.name === names[0])
     return b && (b.kind === 'lift' || b.kind === 'plyo') ? { ...i, name: names[0], subbedFrom: b.subbedFrom } : { ...i, name: names[0] }
   })
   return changed ? { ...plan, items } : plan
@@ -89,13 +95,14 @@ export function isRecorded(workoutData: Record<string, unknown> | null | undefin
  * The plan this session's cards are drawn from, before its session overrides.
  *
  * Not trained → `built`, untouched, so a day not yet started still picks up a
- * correction. Trained → what it was trained under: a RECORDED plan exactly as
- * recorded; an unrecorded one (a row from before the record) reconciled against
- * its logs; no stored plan at all, the build reconciled against its logs.
+ * correction. Trained → what it was trained under: a RECORDED plan as recorded,
+ * moved only where its logs and the build agree against it; an unrecorded one (a
+ * row from before the record) reconciled against its logs; no stored plan at
+ * all, the build reconciled against its logs.
  */
 export function sessionPlan(built: DayPlan, stored: unknown, logs: readonly LoggedRow[], recorded = false): { plan: DayPlan; source: 'stored' | 'built' } {
   if (!isTrained(logs)) return { plan: built, source: 'built' }
-  if (isStoredPlan(stored)) return { plan: recorded ? stored : reattachLogged(stored, logs, built), source: 'stored' }
+  if (isStoredPlan(stored)) return { plan: recorded ? reattachLogged(stored, logs, built, true) : reattachLogged(stored, logs, built), source: 'stored' }
   return { plan: reattachLogged(built, logs, built), source: 'built' }
 }
 
