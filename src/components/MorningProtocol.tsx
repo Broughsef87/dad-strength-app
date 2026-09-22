@@ -9,7 +9,7 @@ import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import UpgradeModal from './UpgradeModal'
 import { ACCOUNT_CHANGED, accountAtChange, runAs } from '../lib/checkinQueue'
-import { book, changedBy, flushObjectives, intend, type Change } from '../lib/objectivesOutbox'
+import { book, changedBy, flushObjectives, intend, wasDropped, type Change } from '../lib/objectivesOutbox'
 import { setUnloadGuard } from '../lib/unloadGuard'
 import { sameJson } from '../lib/canonical'
 
@@ -206,7 +206,7 @@ export default function MorningProtocol(
     // Overtaken: the objectives these replaced are gone — set here on another
     // device, or on the card — so these were not saved and never will be.
     // "Saved" is the one answer that cannot be true (Codex r8).
-    if (res.dropped.includes(mine)) { setMindError('today\u2019s objectives were set somewhere else first — they\u2019re on the card below; set these again if you still want them'); return }
+    if (wasDropped(mine)) { setMindError('today\u2019s objectives were set somewhere else first — they\u2019re on the card below; set these again if you still want them'); return }
     if (!res.ok) { setMindError('not saved yet — it saves with your next change, or on the objectives card'); return }
     setMindSaved(true)
     // Objectives are written HERE, not in save() — a separate path, so it

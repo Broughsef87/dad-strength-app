@@ -75,8 +75,15 @@ export function intend(c: Change) {
 }
 
 export type Landed = { day: string; ms: MindRow | null; seq: number }
-/** What a save did: whether the row has it, what landed, and what it DROPPED. */
-export type Saved = { ok: boolean; landed: Landed[]; dropped: Change[] }
+/** What a save did: whether the row has what it carried, and what landed. */
+export type Saved = { ok: boolean; landed: Landed[] }
+/**
+ * Was this change discarded — the objectives it was made against replaced, here
+ * or on another device? Asked of the BOOK, not of one save's report: a change
+ * can be overtaken by a row read that lands while its save is still queued, and
+ * then no save reports it at all (Codex r9).
+ */
+export const wasDropped = (c: Change) => book().discarded(c)
 
 /**
  * Every change the row does not have yet — the one just made AND any that
@@ -88,18 +95,17 @@ export async function flushObjectives(owner: Promise<string | null>): Promise<Sa
   writing++
   mark()
   const supabase = createClient()
-  const dropped: Change[] = []
   const res = await runAs(supabase, owner, async (me) => {
     // A change made under another account is not this one's to save. One made
     // while no account was known is saved by the account that saves it — and
     // only onto a record holding the objectives it was made on.
-    for (const c of book().pending()) { const who = await c.owner; if (who && who !== me) { book().settle([c]); dropped.push(c) } }
+    for (const c of book().pending()) { const who = await c.owner; if (who && who !== me) book().settle([c], 'dropped') }
     const landed: Landed[] = []
     for (const day of book().days()) {
       const { data, error } = await supabase.from('daily_checkins').select('mind_state').eq('user_id', me).eq('date', day).maybeSingle()
       if (error) return { ok: false, landed }
       const seq = book().nextRead()
-      const { write, settles, dead } = book().plan(day, data?.mind_state ?? null)
+      const { write, applied, dead } = book().plan(day, data?.mind_state ?? null)
       let ms = (data?.mind_state ?? null) as MindRow | null
       if (write) {
         const row = toRow(day, write)
@@ -110,11 +116,11 @@ export async function flushObjectives(owner: Promise<string | null>): Promise<Sa
         if (w.error) return { ok: false, landed }
         ms = row
       }
-      book().settle(settles)
       // A change the record overtook — the objectives it was made against are
       // gone, replaced here or on another device. It is not saved, and saying
       // "saved" is the one answer that cannot be true (Codex r8).
-      dropped.push(...dead)
+      book().settle(applied, 'saved')
+      book().settle(dead, 'dropped')
       landed.push({ day, ms, seq })
     }
     return { ok: true, landed }
@@ -124,7 +130,7 @@ export async function flushObjectives(owner: Promise<string | null>): Promise<Sa
   const out = 'ok' in res ? res : { ok: false, landed: [] as Landed[] }
   for (const l of out.landed) if (book().adopt(l.day, l.ms, l.seq)) paintMind(l.day, l.ms)
   mark()
-  return { ...out, dropped }
+  return out
 }
 
 /** A row read landed: it becomes the record unless a later read already has. */

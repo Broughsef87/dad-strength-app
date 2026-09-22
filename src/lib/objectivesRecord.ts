@@ -83,7 +83,15 @@ export function objectivesBook<I extends Intent>(day: string) {
   let pending: I[] = []
   let reads = 0
   const onDay = (d: string) => pending.filter((p) => p.day === d)
-  const settle = (done: readonly I[]) => { const s = new Set(done); pending = pending.filter((p) => !s.has(p)) }
+  // What became of a change that is no longer pending. Whoever made it is
+  // waiting to be told, and "dropped" is not "saved": the book discards changes
+  // in more than one place, and each of them is somebody's answer (Codex r9).
+  const discarded = new WeakSet<object>()
+  const settle = (done: readonly I[], fate: 'saved' | 'dropped' = 'saved') => {
+    const s = new Set(done)
+    if (fate === 'dropped') for (const d of done) discarded.add(d)
+    pending = pending.filter((p) => !s.has(p))
+  }
   return {
     /** The day on screen. Every change made on the card belongs to it. */
     day: () => record.day,
@@ -116,21 +124,23 @@ export function objectivesBook<I extends Intent>(day: string) {
       if (seq <= record.seq || d < record.day) return false
       if (!load && d !== record.day) return false
       record = { day: d, mind: fromRow(ms), seq }
-      settle(applyIntents(record.mind, onDay(d)).dead)
+      settle(applyIntents(record.mind, onDay(d)).dead, 'dropped')
       return true
     },
     /**
      * Inside the queue, having just read day `d`'s row: that row with the day's
-     * changes applied — what to write, if any applied — the changes that
-     * writing it settles, dead ones included, and which of those were DEAD.
-     * A dead change is not saved and never will be: what it was made against
-     * is gone, and whoever made it has to be told, not told "saved" (Codex r8).
+     * changes applied — what to write, if any applied — which changes writing
+     * it saves, and which are DEAD. A dead change is not saved and never will
+     * be: what it was made against is gone, and whoever made it has to be told,
+     * not told "saved" (Codex r8).
      */
-    plan(d: string, ms: unknown): { write: Mind | null; settles: I[]; dead: I[] } {
+    plan(d: string, ms: unknown): { write: Mind | null; applied: I[]; dead: I[] } {
       const { state, applied, dead } = applyIntents(fromRow(ms), onDay(d))
-      return { write: applied.length ? state : null, settles: [...applied, ...dead], dead }
+      return { write: applied.length ? state : null, applied, dead }
     },
-    /** The row has these now — written, or dead against it. They are no longer pending. */
+    /** The row has these now ('saved'), or the record overtook them ('dropped'). Either way they stop being pending. */
     settle,
+    /** Was this change discarded? Its answer, for whoever is still waiting on it. */
+    discarded: (i: I) => discarded.has(i),
   }
 }

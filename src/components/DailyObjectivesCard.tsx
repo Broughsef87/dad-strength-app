@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '../utils/supabase/client'
 import { runAs } from '../lib/checkinQueue'
-import { adoptRead, book, changedBy, flushObjectives, intend, onObjectives, paintedMind, savingObjectives, type Change } from '../lib/objectivesOutbox'
+import { adoptRead, book, changedBy, flushObjectives, intend, onObjectives, paintedMind, savingObjectives, wasDropped, type Change } from '../lib/objectivesOutbox'
 import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
@@ -59,7 +59,7 @@ export default function DailyObjectivesCard(
     void flushObjectives(owner).then((res) => {
       show()
       settleSync(!res.ok)
-      if (mine && res.dropped.includes(mine)) setOvertaken(true)
+      if (mine && wasDropped(mine)) setOvertaken(true)
     })
   }
   const retry = () => save(changedBy(ownerRef.current))
@@ -90,7 +90,11 @@ export default function DailyObjectivesCard(
   // What this card shows is what the outbox holds — the Goals step changes the
   // same objectives on the same screen, and a tick applied to a copy taken when
   // this card last rendered would land on a different objective (Codex r8).
-  useEffect(() => onObjectives(show), [])
+  // Contents AND status: a change made on the Goals step is this card's to
+  // show — and if its save failed, this is where the Retry is (Codex r9).
+  const syncRef = useRef(sync)
+  syncRef.current = sync
+  useEffect(() => onObjectives(() => { show(); settleSync(false, syncRef.current === 'unreached') }), [])
 
   useEffect(() => {
     let cancelled = false

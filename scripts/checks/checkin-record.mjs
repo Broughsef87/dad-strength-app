@@ -89,15 +89,17 @@ assert(/const mine: Change = \{ kind: 'set', day: book\(\)\.day\(\), basis: book
 // Codex r8: the Goals step changes the same objectives on the same screen, so a
 // tick worked out from a copy this card took when it last rendered could land
 // on an objective the athlete never saw.
-assert(/useEffect\(\(\) => onObjectives\(show\), \[\]\)/.test(obj)
+assert(/useEffect\(\(\) => onObjectives\(\(\) => \{ show\(\); settleSync\(false, syncRef\.current === 'unreached'\) \}\), \[\]\)/.test(obj)
   && /export function onObjectives\(fn: \(\) => void\): \(\) => void \{\s*readers\.add\(fn\)\s*return \(\) => \{ readers\.delete\(fn\) \}/.test(out)
   && /for \(const fn of \[\.\.\.readers\]\) fn\(\)/.test(out),
-  'what a screen shows is what the outbox holds — a tick lands on the objective the athlete is looking at')
+  'what a screen shows is what the outbox holds, contents and status both — a tick lands on the objective the athlete is looking at, and a change made on the other screen that failed has its Retry here (Codex r8, r9)')
+assert(/settle\(applyIntents\(record\.mind, onDay\(d\)\)\.dead, 'dropped'\)/.test(readLF('src/lib/objectivesRecord.ts')),
+  'a change a row read overtakes is dropped with an answer, not quietly forgotten (Codex r9)')
 // Codex r8: a change the record overtook was reported as saved — the Goals step
 // said "Saved" and hid its button over objectives that were never written.
-assert(/dropped\.push\(\.\.\.dead\)/.test(flushFn) && /export type Saved = \{ ok: boolean; landed: Landed\[\]; dropped: Change\[\] \}/.test(out)
-  && /if \(res\.dropped\.includes\(mine\)\) \{ setMindError\(/.test(mindFn2Early())
-  && /if \(mine && res\.dropped\.includes\(mine\)\) setOvertaken\(true\)/.test(fnBody(obj, 'const save = '))
+assert(/book\(\)\.settle\(applied, 'saved'\)\s*book\(\)\.settle\(dead, 'dropped'\)/.test(flushFn) && /export const wasDropped = \(c: Change\) => book\(\)\.discarded\(c\)/.test(out)
+  && /if \(wasDropped\(mine\)\) \{ setMindError\(/.test(mindFn2Early())
+  && /if \(mine && wasDropped\(mine\)\) setOvertaken\(true\)/.test(fnBody(obj, 'const save = '))
   && /\{overtaken && \(\s*<p[^>]*role="status">/.test(obj),
   'a change the record overtook is not "saved": both screens say so, and neither hides what was typed behind a confirmation it cannot make (Codex r8)')
 function mindFn2Early() { return fnBody(mp, 'const saveMindState = ') }
@@ -108,7 +110,7 @@ const mindFn2 = fnBody(mp, 'const saveMindState = ')
 assert(/book\(\)\.turn\(localDay\(\)\)\s*const owner = changedBy\(ownerRef\.current\)\s*const mine: Change = \{ kind: 'set', day: book\(\)\.day\(\), basis: book\(\)\.shown\(\)\.objectives, objectives: dense, owner \}\s*intend\(mine\)/.test(mindFn2)
   && /const res = await flushObjectives\(owner\)/.test(mindFn2) && !/upsert/.test(mindFn2) && !/mind_state/.test(code(mp)),
   "the protocol's Goals step makes the same kind of change, in the same outbox — one writer of the day's objectives, not two (Codex r7)")
-assert(flushFn.indexOf('book().settle(settles)') > flushFn.indexOf('if (w.error) return { ok: false, landed }') && flushFn.indexOf('if (w.error) return { ok: false, landed }') > 0 && flushFn.indexOf('if (error) return { ok: false, landed }') > 0,
+assert(flushFn.indexOf("book().settle(applied, 'saved')") > flushFn.indexOf('if (w.error) return { ok: false, landed }') && flushFn.indexOf('if (w.error) return { ok: false, landed }') > 0 && flushFn.indexOf('if (error) return { ok: false, landed }') > 0,
   'a change stops being pending only once the row has it — a failed read or write leaves it pending, for the next change or Retry to save (Codex r3)')
 
 // The book, as behaviour. Each case is a defect Codex found or the one FOR-231 fixed.
@@ -122,7 +124,7 @@ assert(flushFn.indexOf('book().settle(settles)') > flushFn.indexOf('if (w.error)
   let b = objectivesBook(D)
   b.intend(tick(['A', 'B'], 0, true))
   let pl = b.plan(D, row(['X', 'Y'], [false, false]))
-  assert(pl.write === null && pl.settles.length === 1 && pl.dead.length === 1,
+  assert(pl.write === null && pl.applied.length === 0 && pl.dead.length === 1,
     'a tick made against an objective set the record no longer holds is dropped — never written over the objectives that replaced it, and named as dropped (Codex r8)')
   // Only its own flag.
   b = objectivesBook(D)
@@ -136,7 +138,7 @@ assert(flushFn.indexOf('book().settle(settles)') > flushFn.indexOf('if (w.error)
   b.intend(a)                                      // its write fails: nothing settles
   b.intend(tick(['A', 'B'], 1, true))
   pl = b.plan(D, row(['A', 'B'], [false, false]))
-  assert(pl.write && eq(pl.write.completed, [true, true]) && pl.settles.length === 2,
+  assert(pl.write && eq(pl.write.completed, [true, true]) && pl.applied.length === 2 && pl.dead.length === 0,
     'a change that failed to save is saved by the next one — not overwritten by the flag the row still holds (Codex r3)')
   // Codex r3 #1b: a failed lock-in is carried too — a tick on it does not find it "stale".
   b = objectivesBook(D)
@@ -152,7 +154,7 @@ assert(flushFn.indexOf('book().settle(settles)') > flushFn.indexOf('if (w.error)
   b.adopt(D, row(['A', 'B'], [false, false]), b.nextRead(), true)
   const inA = b.plan(D, row(['A', 'B'], [false, false]))              // A's job plans before B exists
   b.intend(tick(['A', 'B'], 1, true))                                  // B, made while A saves
-  b.settle(inA.settles)
+  b.settle(inA.applied, 'saved')
   b.adopt(D, { date: D, objectives: inA.write.objectives, completedObjectives: inA.write.completed, lockedIn: true }, b.nextRead())
   assert(eq(b.shown().completed, [true, true]) && b.pending().length === 1,
     "an older write's answer landing does not take back a tick made after it — the tick stays on top until its own write lands (Codex r3)")
@@ -170,10 +172,24 @@ assert(flushFn.indexOf('book().settle(settles)') > flushFn.indexOf('if (w.error)
   assert(eq(b.shown(), EMPTY), 'the paint never outranks a row read — including a read that found nothing today')
   // A change dead against a fresh read stops counting as unsaved.
   b = objectivesBook(D)
-  b.intend(tick(['A'], 0, true))
+  const overtaken = tick(['A'], 0, true)
+  b.intend(overtaken)
   b.adopt(D, row(['G'], [false]), b.nextRead(), true)
-  assert(b.pending().length === 0 && eq(b.shown().objectives, ['G']),
+  assert(b.pending().length === 0 && eq(b.shown().objectives, ['G']) && b.discarded(overtaken),
     'a change the record has overtaken — the Goals step replaced its objectives — is dropped, not left saying "not saved"')
+  // Codex r9: a read landing while a save is still queued dropped the change
+  // that save was carrying, and the save then reported success — over
+  // objectives that were never written. What became of a change is the book's
+  // to answer, whichever path discarded it.
+  {
+    const c = objectivesBook(D)
+    const mine = { kind: 'set', day: D, basis: ['A'], objectives: ['B'] }
+    c.intend(mine)
+    c.adopt(D, row(['somebody', 'else'], [false, false]), c.nextRead(), true)
+    const late = c.plan(D, row(['somebody', 'else'], [false, false]))
+    assert(c.discarded(mine) && late.write === null && late.applied.length === 0 && c.pending().length === 0,
+      'a change dropped by a read that landed while its save was queued is still answered — its save writes nothing, and cannot say "saved" (Codex r9)')
+  }
   // Sparse legacy rows pair each flag with its objective before compacting.
   const n = normalise(['', 'A', 'B'], [false, true, false])
   assert(eq(n, { objectives: ['A', 'B'], completed: [true, false] }), 'a legacy sparse row keeps each flag on its own objective')
@@ -276,7 +292,7 @@ assert(/runAs\(supabase, owner, async \(\) => \{[\s\S]{0,700}from\('daily_checki
 assert(/runAs\(supabase, owner, async \(me\) =>/.test(flushFn) && /const owner = changedBy\(ownerRef\.current\)/.test(toggleFn) && /const owner = changedBy\(ownerRef\.current\)/.test(draftFn)
   && /export const changedBy = \(known: string \| null\): Promise<string \| null> =>\s*accountAtChange\(createClient\(\), \{ current: known \}\)/.test(out),
   'objectives writes too — each bound to the account that made the change, fixed at the change')
-assert(/for \(const c of book\(\)\.pending\(\)\) \{ const who = await c\.owner; if \(who && who !== me\) \{ book\(\)\.settle\(\[c\]\); dropped\.push\(c\) \} \}/.test(flushFn),
+assert(/for \(const c of book\(\)\.pending\(\)\) \{ const who = await c\.owner; if \(who && who !== me\) book\(\)\.settle\(\[c\], 'dropped'\) \}/.test(flushFn),
   'a pending change made under another account is dropped, never saved under this one')
 assert(/const settleSync = \(failed: boolean, unreached = false\) =>\s*setSync\(savingObjectives\(\) \? 'saving' : failed \|\| book\(\)\.pending\(\)\.length \? 'unsaved' : unreached \? 'unreached' : 'synced'\)/.test(obj)
   && /export const savingObjectives = \(\) => writing > 0/.test(out)
