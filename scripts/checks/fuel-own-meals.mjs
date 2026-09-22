@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { OTHER_CUT, OWN_MEAL_DEFAULTS, OWN_PREFIX_LENGTH, RULE_CUTS, cutOptions, isOwn, isOwnSlug, mintOwnSlug, ownMealFields, ownMealIssues, ownNamespace, ownedBy, slugifyName } from '../../src/lib/fuel/ownMeal.ts'
 import { isKnownWarning } from '../../src/lib/fuel/planner.ts'
+import { STEAK_CUT } from '../../src/lib/fuel/record.ts'
 
 let failures = 0, passes = 0
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
@@ -155,7 +156,12 @@ assert(cutOptions([]).at(-1) === OTHER_CUT && !RULE_CUTS.includes(OTHER_CUT),
 // RULE_CUTS repeats two cut names that validatePlan spells inline. Pinned to the
 // source so the form cannot stop offering a cut that still carries a rule.
 const solveSrc = readFileSync(join(ROOT, 'src/lib/fuel/solve.ts'), 'utf8')
-for (const cut of RULE_CUTS) assert(solveSrc.includes(`'${cut}'`), `solve.ts still keys a rule on ${cut} — RULE_CUTS has not drifted from it`)
+// The steak cut is no longer spelled inline: solve.ts and RULE_CUTS both take it
+// from record.ts's STEAK_CUT (FOR-247), so that one cannot drift at all — pinned
+// as the shared constant being what solve.ts keys the rule on, not as a literal.
+const keysSteak = /import \{[^}]*\bSTEAK_CUT\b[^}]*\} from '\.\/record'/.test(solveSrc) && /protein_cut === STEAK_CUT/.test(solveSrc)
+const keyed =(cut) => solveSrc.includes(`'${cut}'`) || (cut === STEAK_CUT && keysSteak)
+for (const cut of RULE_CUTS) assert(keyed(cut), `solve.ts still keys a rule on ${cut} — RULE_CUTS has not drifted from it`)
 assert(ownMealIssues(draft({ ingredients: [ing({ qty_per_person: 0 })] })).some((i) => /quantity/.test(i)), 'a quantity of zero is refused')
 assert(ownMealIssues(draft({ ingredients: [ing({ store_section: '' })] })).some((i) => /aisle/.test(i)), 'an ingredient with no aisle is refused')
 assert(ownMealIssues(draft({ ingredients: [ing(), ing()] })).some((i) => /twice/.test(i)), 'the same item twice in one unit is refused')

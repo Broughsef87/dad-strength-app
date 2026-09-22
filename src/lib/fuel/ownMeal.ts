@@ -12,6 +12,7 @@
 // 20260920_fuel_own_meals.sql checks left(slug, 34) = 'u' || <32 hex> || '~'.
 import type { MealIngredient, MealRow } from './types'
 import { FRESH_ONLY_CUTS } from './solve'
+import { STEAK_CUT } from './record'
 
 /**
  * The cuts validatePlan and the second-trip rule key on. Taken from the
@@ -20,7 +21,7 @@ import { FRESH_ONLY_CUTS } from './solve'
  * rather than in a list, so they are repeated here — the fuel-own-meals suite
  * pins them against solve.ts so this copy cannot drift.
  */
-export const RULE_CUTS: readonly string[] = [...FRESH_ONLY_CUTS, 'ground_turkey', 'ribeye']
+export const RULE_CUTS: readonly string[] = [...FRESH_ONLY_CUTS, 'ground_turkey', STEAK_CUT]
 
 /** 'u' + the owner's uuid with its dashes removed + '~'. 34 characters, always. */
 export const OWN_PREFIX_LENGTH = 34

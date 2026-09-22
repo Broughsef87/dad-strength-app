@@ -45,7 +45,7 @@ import AddItem from '../../components/fuel/AddItem'
 import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import {
   DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createOwnMeal, createVersion, isMissingColumn, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
-  readItems, removeCustomItem, saveHousehold, setItemChecked, stopStaple, updateOwnMeal, type ListRow, type PlanRow,
+  readItems, removeCustomItem, saveHousehold, setItemChecked, retireOwnMeal, stopStaple, updateOwnMeal, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { customKey, isCustom, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
 import type { OwnMealDraft } from '../../lib/fuel/ownMeal'
@@ -308,6 +308,33 @@ export default function FuelPage() {
     }
   }
 
+  // Retire one of the athlete's own meals (FOR-242 AC6, FOR-247). The same
+  // shape as a save: the one field is written, then the library is RE-READ —
+  // row security and `active` decide what the library holds, so the meal is
+  // never spliced out by hand. A plan rebuilt with it drops that night and
+  // says so; lists already built are untouched.
+  const onRetireMeal = async (slug: string): Promise<string | null> => {
+    if (!userId) return 'sign in to retire a meal'
+    setMealSaving(true)
+    try {
+      const res = await retireOwnMeal(supabase, slug)
+      if (res.error) return isMissingColumn(res.error) ? 'your own meals are not switched on yet' : (res.error.message ?? 'could not retire the meal')
+      const m = await loadMeals(supabase)
+      if (m.error) {
+        setLibraryStale(true)
+        // The retire LANDED — the meal is gone from the database's library even
+        // though it is still on screen. Same rule as a save (Codex r2).
+        setError('your meal was retired, but the library could not be re-read — reload the page before building a list')
+        return null
+      }
+      setMeals(m.meals)
+      setLibraryStale(false)
+      return null
+    } finally {
+      setMealSaving(false)
+    }
+  }
+
   const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
     if (!userId || !household) return
     // A meal write is in flight: its ingredients are not on screen yet, so a
@@ -557,7 +584,7 @@ export default function FuelPage() {
               {step === 'plan' && household && (
                 <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}-${rotations.length}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
                   initial={startEntries(buildTarget(new Date()), household)} rotations={rotations} members={members}
-                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} libraryStale={libraryStale} savingMeal={mealSaving} />
+                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} onRetireMeal={onRetireMeal} libraryStale={libraryStale} savingMeal={mealSaving} />
               )}
               {step === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">

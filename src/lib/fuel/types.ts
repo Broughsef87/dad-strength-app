@@ -99,6 +99,14 @@ export interface PlanEntry {
   week: 1 | 2
   /** Defaults to the meal's own servings; the planner may override per night. */
   servings: number
+  /** What this night's meal WAS when the plan was stored — written by the database at the write, never by this client (FOR-247, record.ts). Absent on a night built before the record existed. */
+  as_planned?: AsPlanned
+}
+
+/** A stored night's record of its meal, as it stood when the plan was written (FOR-247). */
+export interface AsPlanned {
+  protein_cut: string | null
+  name: string | null
 }
 
 export interface Plan {

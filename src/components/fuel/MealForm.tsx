@@ -43,18 +43,27 @@ function draftFrom(meal: MealRow | null, sectionOrder: string[]): OwnMealDraft {
   }
 }
 
-export default function MealForm({ meal, meals, sectionOrder, busy, cutLocked = false, onSave, onCancel }: {
+export default function MealForm({ meal, meals, sectionOrder, busy, cutLocked = false, onSave, onCancel, onRetire }: {
   /** The meal being edited, or null to add one. */
   meal: MealRow | null
   /** The library as it stands — the item and unit vocabulary comes from it (FOR-239). */
   meals: MealRow[]
   sectionOrder: string[]
   busy: boolean
-  /** This meal is already in a plan that has been built, so its CUT is frozen: steakWindowWarnings counts a past night by resolving its slug against the library as it stands now, so changing the cut rewrites history (Codex r5). */
+  /**
+   * A stored night WITHOUT A RECORD stands on this meal, so its cut and its
+   * retirement are both frozen: that night is still counted by resolving its
+   * slug against the library as it stands now, so changing the cut — or
+   * retiring the meal out of the library read — rewrites history (Codex r5, r8).
+   * A night with a record freezes nothing (FOR-247). The same predicate the
+   * database refuses on, so the control and the refusal agree.
+   */
   cutLocked?: boolean
   /** Returns what went wrong, in words, or null when it landed. */
   onSave: (draft: OwnMealDraft) => Promise<string | null>
   onCancel: () => void
+  /** Retire this meal: it leaves the library and cannot be picked again. Returns what went wrong, in words, or null when it landed. Absent: no retire control (FOR-242 AC6, FOR-247). */
+  onRetire?: () => Promise<string | null>
 }) {
   const [draft, setDraft] = useState<OwnMealDraft>(() => draftFrom(meal, sectionOrder))
   const [error, setError] = useState<string | null>(null)
@@ -76,6 +85,17 @@ export default function MealForm({ meal, meals, sectionOrder, busy, cutLocked = 
     if (issues.length || busy) return
     const e = await onSave(draft)
     setError(e)
+  }
+
+  // Two taps, not one. Nothing un-retires a meal, and this is a phone in a
+  // kitchen: the first tap asks, the second does it.
+  const [confirmRetire, setConfirmRetire] = useState(false)
+  const [retireError, setRetireError] = useState<string | null>(null)
+  const retire = async () => {
+    if (!onRetire || busy || cutLocked) return
+    const e = await onRetire()
+    setRetireError(e)
+    if (e) setConfirmRetire(false)
   }
 
   return (
@@ -175,6 +195,33 @@ export default function MealForm({ meal, meals, sectionOrder, busy, cutLocked = 
           <button type="button" disabled={busy} onClick={onCancel} className="pill-quiet px-4 py-2 text-[12px] lowercase">cancel</button>
         </div>
       </form>
+
+      {meal && onRetire && (
+        <div className="space-y-2" aria-label="retire this meal">
+          {cutLocked ? (
+            <p className="text-[11px] text-muted-foreground px-1">
+              you have already shopped this meal, so it cannot be retired yet — a past night is counted on it
+            </p>
+          ) : confirmRetire ? (
+            <>
+              <p className="text-[12px] lowercase px-1">
+                retire {meal.name.toLowerCase()}? it leaves your library and cannot be picked again. lists you have already built keep it.
+              </p>
+              <div className="flex gap-2">
+                <button type="button" disabled={busy} onClick={() => void retire()} className="pill-quiet px-4 py-2 text-[12px] lowercase font-semibold">
+                  {busy ? 'retiring…' : 'yes, retire it'}
+                </button>
+                <button type="button" disabled={busy} onClick={() => setConfirmRetire(false)} className="pill-quiet px-4 py-2 text-[12px] lowercase">keep it</button>
+              </div>
+            </>
+          ) : (
+            <button type="button" disabled={busy} onClick={() => setConfirmRetire(true)} className="pill-quiet px-4 py-2 text-[12px] lowercase text-muted-foreground">
+              retire this meal
+            </button>
+          )}
+          {retireError && <p className="status-msg danger text-[12px]" role="status">{retireError}</p>}
+        </div>
+      )}
     </section>
   )
 }

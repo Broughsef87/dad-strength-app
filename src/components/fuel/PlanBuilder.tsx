@@ -15,6 +15,7 @@ import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../
 import { rotationEntries, rotationOf, sortedRotations } from '../../lib/fuel/rotation'
 import { addNight, nightLine, nightSource, planIssues, removeNight, setServings, swapNight, withinCap } from '../../lib/fuel/planner'
 import { isOwn, type OwnMealDraft } from '../../lib/fuel/ownMeal'
+import { isRecorded, unrecordedSlugs } from '../../lib/fuel/record'
 import MealForm from './MealForm'
 
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
@@ -22,6 +23,23 @@ export const maxServings = (household: Pick<Household, 'people_count'>) => Math.
 
 const NO_ROTATIONS: RotationRow[] = []
 const NO_MEMBERS: RotationMealRow[] = []
+
+/**
+ * Nights dropped because their meal left the library, said in words. A meal
+ * the record names is named; a night built before records existed can only be
+ * counted, in the words it always had (FOR-247).
+ */
+export function droppedMessage(names: Array<string | null>): string {
+  const named = names.filter((n): n is string => !!n).map((n) => n.toLowerCase())
+  const unnamed = names.length - named.length
+  const parts: string[] = []
+  if (named.length) {
+    const list = named.length === 1 ? named[0] : `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}`
+    parts.push(`${list} ${named.length === 1 ? 'is' : 'are'} no longer in your library, so ${named.length === 1 ? 'its night was' : 'their nights were'} dropped`)
+  }
+  if (unnamed) parts.push(`${unnamed === 1 ? 'a night whose meal is' : `${unnamed} nights whose meals are`} no longer in the library ${unnamed === 1 ? 'was' : 'were'} dropped`)
+  return `${parts.join('; ')} — pick again`
+}
 
 /** What the library drawer is open for: swapping one night, or adding a night to a week. Closed otherwise. */
 type Drawer = { swap: number } | { add: 1 | 2 } | null
@@ -82,7 +100,7 @@ export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAd
   )
 }
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal, libraryStale = false, savingMeal = false }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal, onRetireMeal, libraryStale = false, savingMeal = false }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
   /** `countInventory`: whether what is on hand is counted against this plan — asked only when it was not (a NEXT cycle, or a rebuild of a plan built without it), otherwise always (Codex, rounds 15 and 16). */
   onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
@@ -97,6 +115,8 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   members?: RotationMealRow[]
   /** Save a meal of the athlete's own: a new one when slug is null, otherwise an edit. Returns what went wrong, in words, or null. Absent when the page cannot write meals, and then the library offers no add or edit. */
   onSaveMeal?: (slug: string | null, draft: OwnMealDraft) => Promise<string | null>
+  /** Retire one of the athlete's own meals (FOR-242 AC6, FOR-247). Returns what went wrong, in words, or null when it landed. */
+  onRetireMeal?: (slug: string) => Promise<string | null>
   /** The library on screen is known to be out of date — a meal write landed but the re-read failed. A list built from it would use the old ingredients, so no list is built until it is reloaded (Codex r3). */
   libraryStale?: boolean
   /** A meal write, or its library re-read, is in flight. Owned by the PAGE: this component remounts when the step changes, and a guard that a remount clears is not a guard (Codex r4). */
@@ -116,17 +136,39 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   const [entries, setEntries] = useState<PlanEntry[]>(() => (initial?.entries ?? [])
     .filter((e) => e.week <= weeks && bySlug.has(e.slug))
     .map((e) => { const m = bySlug.get(e.slug); return m && e.servings < household.people_count ? { ...e, servings: defaultServings(m, household) } : e }))
-  const retired = useMemo(() => [...new Set((initial?.entries ?? []).filter((e) => !bySlug.has(e.slug)).map((e) => e.slug))], [initial, bySlug])
+  // Named where the night says what it was (FOR-247): a retired meal has left
+  // every library read, so its name survives only on a stored night's record.
+  // A night built before records existed can only be counted, as before.
+  const retiredSaved = useMemo(() => {
+    const names = new Map<string, string | null>()
+    for (const e of initial?.entries ?? []) if (!bySlug.has(e.slug)) names.set(e.slug, names.get(e.slug) ?? (isRecorded(e) ? e.as_planned.name : null))
+    return names
+  }, [initial, bySlug])
+  // A meal retired from THIS screen while nights on it are drafted. The draft
+  // is set once, when the builder opens, so those nights would stay in it —
+  // and a night whose meal is not in the library is never drawn, so it could
+  // not be removed while its warning held the build down for good (Codex r7).
+  // Dropped the moment the retire lands, and named: the name is still known.
+  const [droppedNow, setDroppedNow] = useState<Array<{ slug: string; name: string }>>([])
+  // One name per MEAL, not per source: a saved night on a meal just retired
+  // is in both, and is one meal gone.
+  const retired = useMemo(() => {
+    const names = new Map(retiredSaved)
+    for (const d of droppedNow) names.set(d.slug, names.get(d.slug) ?? d.name)
+    return [...names.values()]
+  }, [retiredSaved, droppedNow])
   const [drawer, setDrawer] = useState<Drawer>(null)
   // The meal form takes over the drawer rather than opening beside it: one
   // thing on screen at a time, on a phone, in a kitchen (FOR-242).
   const [mealForm, setMealForm] = useState<{ meal: MealRow | null } | null>(null)
-  // Every slug any stored cycle has already picked. A meal in here has been
-  // SHOPPED, and steakWindowWarnings counts those past nights by resolving the
-  // slug against the library as it stands now — so changing its cut would
-  // rewrite what last month allowed (Codex r5). The cut freezes; everything
-  // else about the meal stays editable, and retiring it is always available.
-  const plannedSlugs = useMemo(() => new Set((cycles?.history ?? []).flatMap((h) => h.meal_ids.map((e) => e.slug))), [cycles])
+  // Every slug a stored night stands on WITHOUT A RECORD. Such a night has been
+  // SHOPPED, and steakWindowWarnings still counts it by resolving the slug
+  // against the library as it stands now — so changing its meal's cut, or
+  // retiring the meal out of the library read, would rewrite what last month
+  // allowed (Codex r5, r8). Both freeze; everything else stays editable. A
+  // night WITH a record is counted on the record and freezes nothing, and this
+  // is the predicate the database refuses on (FOR-247).
+  const frozenSlugs = useMemo(() => unrecordedSlugs(cycles?.history ?? []), [cycles])
   const drawerRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (drawer) drawerRef.current?.scrollIntoView({ block: 'start' }) }, [drawer])
   const [countInventory, setCountInventory] = useState(countByDefault)
@@ -178,9 +220,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
       </section>
 
       {retired.length > 0 && (
-        <p className="status-msg text-[12px]" role="status">
-          {retired.length === 1 ? 'a night whose meal is' : `${retired.length} nights whose meals are`} no longer in the library {retired.length === 1 ? 'was' : 'were'} dropped — pick again
-        </p>
+        <p className="status-msg text-[12px]" role="status">{droppedMessage(retired)}</p>
       )}
 
       {weekList.map((w) => (
@@ -235,7 +275,19 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
         <div ref={drawerRef}>
           {mealForm ? (
             <MealForm meal={mealForm.meal} meals={meals} sectionOrder={household.store_section_order} busy={savingMeal}
-              cutLocked={!!mealForm.meal && plannedSlugs.has(mealForm.meal.slug)}
+              cutLocked={!!mealForm.meal && frozenSlugs.has(mealForm.meal.slug)}
+              onRetire={onRetireMeal && mealForm.meal ? async () => {
+                const m = mealForm.meal
+                if (!m) return 'nothing to retire'
+                const e = await onRetireMeal(m.slug)
+                if (e) return e
+                if (entries.some((x) => x.slug === m.slug)) {
+                  setEntries((es) => es.filter((x) => x.slug !== m.slug))
+                  setDroppedNow((d) => [...d, { slug: m.slug, name: m.name }])
+                }
+                setMealForm(null)
+                return null
+              } : undefined}
               onSave={async (draft) => {
                 if (!onSaveMeal) return 'meals cannot be saved from here'
                 const e = await onSaveMeal(mealForm.meal?.slug ?? null, draft)

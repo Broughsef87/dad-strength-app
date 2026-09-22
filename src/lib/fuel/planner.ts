@@ -8,6 +8,7 @@
 // No I/O, no clock.
 import type { Household, MealRow, PlanEntry, RotationMealRow, RotationRow } from './types'
 import { FRESH_ONLY_CUTS, defaultServings } from './solve'
+import { STEAK_CUT } from './record'
 
 // ── words ────────────────────────────────────────────────────────────────────
 
@@ -72,8 +73,8 @@ const FAMILIES: Array<{ re: RegExp; place: (m: RegExpMatchArray) => Placement }>
   { re: /^([a-z0-9~-]+): no protein figure, so the (\d+) g floor cannot be applied to it$/, place: (m) => ({ nights: (e) => e.slug === m[1], text: `no protein figure, so your ${m[2]} g floor cannot be applied to it` }) },
   { re: /^([a-z0-9~-]+): cooks (\d+) for (\d+) people$/, place: (m) => ({ nights: (e) => e.slug === m[1] && e.servings === Number(m[2]), text: `cooks ${m[2]}, and ${m[3]} are eating` }) },
   { re: /^(\d+) nights? planned for week 2 on a weekly shop$/, place: () => ({ nights: (e) => e.week === 2, text: 'a weekly shop has no week 2 — remove this night' }) },
-  { re: /^(\d+) steak nights? in the cycle, rule is (\d+) a month$/, place: (m) => ({ nights: (_e, meal) => meal?.protein_cut === 'ribeye', text: `${m[1]} steak nights this cycle — the rule is ${m[2]} a month` }) },
-  { re: /^(\d+) steak nights in the four weeks ending in (.+), rule is (\d+) a month$/, place: (m) => ({ nights: (_e, meal) => meal?.protein_cut === 'ribeye', text: `${m[1]} steak nights in the four weeks ending in ${m[2]} — the rule is ${m[3]} a month` }) },
+  { re: /^(\d+) steak nights? in the cycle, rule is (\d+) a month$/, place: (m) => ({ nights: (_e, meal) => meal?.protein_cut === STEAK_CUT, text: `${m[1]} steak nights this cycle — the rule is ${m[2]} a month` }) },
+  { re: /^(\d+) steak nights in the four weeks ending in (.+), rule is (\d+) a month$/, place: (m) => ({ nights: (_e, meal) => meal?.protein_cut === STEAK_CUT, text: `${m[1]} steak nights in the four weeks ending in ${m[2]} — the rule is ${m[3]} a month` }) },
   { re: /^the cycle starting \d{4}-\d{2}-\d{2} is already planned and sits inside this fortnight/, place: (m) => ({ text: m.input ?? '' }) },
   { re: /^([a-z0-9~-]+): not in the library$/, place: () => ({ text: 'a night whose meal is no longer in the library — remove it and pick again' }) },
 ]

@@ -11,6 +11,7 @@ import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow }
 import { buildShoppingList, householdFor } from './solve'
 import { ownMealFields, ownMealRow, type OwnMealDraft } from './ownMeal'
 import { snapshot, type RulesSnapshot } from './version'
+import { withoutRecord } from './record'
 import type { StapleRow } from './custom'
 import { activeCycle, historyFloor, upcomingCycle, type CycleRow } from './cycle'
 
@@ -110,15 +111,36 @@ export async function createOwnMeal(db: Db, userId: string, draft: OwnMealDraft)
  * the athlete has already shopped. Row security does the ownership check — a
  * seeded row is not visible to an UPDATE at all.
  *
- * THE CUT is refused by the database once a stored plan references the meal:
- * a past night's steak is counted by resolving the slug against the library as
- * it stands now, so the edit would rewrite what last month allowed. The form
- * disables the control, and this is the boundary that actually holds it —
- * a stale second tab and a direct API call both come through here (Codex r7).
+ * THE CUT is refused by the database while a stored night WITHOUT A RECORD
+ * stands on the meal: that night is still counted by resolving its slug against
+ * the library as it stands now, so the edit would rewrite what last month
+ * allowed. A night with a record is counted on the record, and does not freeze
+ * anything (FOR-247). The form locks on the same predicate, and this is the
+ * boundary that actually holds it — a stale second tab and a direct API call
+ * both come through here (Codex r7).
  */
 export async function updateOwnMeal(db: Db, slug: string, draft: OwnMealDraft): Promise<{ meal: MealRow | null; error: { code?: string; message?: string } | null }> {
   const { data, error } = await db.from('fuel_meals').update(ownMealFields(draft)).eq('slug', slug).select(`${MEAL_COLUMNS}, user_id`).single()
   return { meal: (data as MealRow) ?? null, error }
+}
+
+/**
+ * Retire one of the athlete's own meals (FOR-242 AC6, FOR-247). RETIRE, NOT
+ * DELETE — `active` flips and the row stays, because stored plans and lists
+ * carry its slug. It then leaves every library read, so it cannot be picked,
+ * and a plan rebuilt with it drops that night by name.
+ *
+ * Nothing else is written: this is the one field that changes, sent alone, so a
+ * retire can never carry a stale copy of the rest of the meal with it. Row
+ * security decides whose meal it is — a seeded row, or someone else's, is
+ * invisible to an UPDATE and comes back as no row. The database refuses a meal
+ * a night without a record still stands on, and says why in words.
+ */
+export async function retireOwnMeal(db: Db, slug: string): Promise<{ error: { code?: string; message?: string } | null }> {
+  const { data, error } = await db.from('fuel_meals').update({ active: false }).eq('slug', slug).select('slug').maybeSingle()
+  if (error) return { error }
+  if (!data) return { error: { message: 'that meal is not one of yours to retire' } }
+  return { error: null }
 }
 
 /**
@@ -241,16 +263,42 @@ export async function loadVersions(db: Db, userId: string, weekStart: string): P
 export async function createVersion(db: Db, weekStart: string, household: Household, meals: MealRow[], plan: Plan, inventoryCounted = true): Promise<{ plan: PlanRow | null; list: ListRow | null; error: { code?: string; message?: string } | null }> {
   if (typeof db.rpc !== 'function') return { plan: null, list: null, error: { message: 'no client' } }
   const list = buildShoppingList(householdFor(household, inventoryCounted), meals, plan)
-  const args = { p_week_start: weekStart, p_meal_ids: plan.entries, p_rules_snapshot: snapshot(household, plan, inventoryCounted), p_items: list.items }
+  // The record of what each night WAS is the database's to write (FOR-247): a
+  // night carried over from a stored plan arrives holding the record of THAT
+  // build, and sending it would be this client asserting history.
+  const sent = plan.entries.map(withoutRecord)
+  const args = { p_week_start: weekStart, p_meal_ids: sent, p_rules_snapshot: snapshot(household, plan, inventoryCounted), p_items: list.items }
   let { data, error } = await db.rpc('fuel_create_version_with_staples', args)
   if (error && isMissingTable(error)) ({ data, error } = await db.rpc('fuel_create_version', args))
   if (error || !data) return { plan: null, list: null, error }
   const row = data as { plan_id: string; list_id: string; version: number; updated_at: string; items?: ListItem[] }
   const stored = Array.isArray(row.items) ? row.items : list.items
+  // The nights as the database STORED them, records included — the page keeps
+  // this row in its history, and a history row missing its records would lock
+  // meals the database no longer freezes until the next reload. If the read
+  // fails the nights sent stand in: unrecorded, so they lock more than they
+  // need to, never less.
+  const mealIds = (await storedNights(db, row.plan_id)) ?? sent
   return {
-    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: plan.entries, rules_snapshot: snapshot(household, plan, inventoryCounted), created_at: row.updated_at },
+    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: mealIds, rules_snapshot: snapshot(household, plan, inventoryCounted), created_at: row.updated_at },
     list: { id: row.list_id, plan_id: row.plan_id, version: row.version, items: stored, updated_at: row.updated_at },
     error: null,
+  }
+}
+
+/**
+ * A stored plan's nights, read back after the write (FOR-247). It CANNOT throw
+ * and cannot fail the build: the version has already been written by the time
+ * this runs, so any failure here — an error, no row, no client able to read —
+ * returns null and the caller keeps what it sent. Reporting a landed write as a
+ * failure would invite a second build of the same version.
+ */
+async function storedNights(db: Db, planId: string): Promise<Plan['entries'] | null> {
+  try {
+    const { data } = await db.from('fuel_plans').select('meal_ids').eq('id', planId).maybeSingle()
+    return Array.isArray(data?.meal_ids) ? (data.meal_ids as Plan['entries']) : null
+  } catch {
+    return null
   }
 }
 
