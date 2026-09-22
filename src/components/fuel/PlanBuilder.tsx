@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Household, MealRow, Plan, PlanEntry, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../../lib/fuel/solve'
 import { rotationEntries, rotationOf, sortedRotations } from '../../lib/fuel/rotation'
-import { addNight, nightLine, nightSource, planIssues, removeNight, setServings, swapNight, withinCap } from '../../lib/fuel/planner'
+import { addNight, nightLine, nightSource, planIssues, reconcileDraft, removeNight, setServings, swapNight, withinCap } from '../../lib/fuel/planner'
 import { isOwn, type OwnMealDraft } from '../../lib/fuel/ownMeal'
 import { isRecorded, unrecordedSlugs } from '../../lib/fuel/record'
 import MealForm from './MealForm'
@@ -144,12 +144,9 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     for (const e of initial?.entries ?? []) if (!bySlug.has(e.slug)) names.set(e.slug, names.get(e.slug) ?? (isRecorded(e) ? e.as_planned.name : null))
     return names
   }, [initial, bySlug])
-  // A meal retired from THIS screen while nights on it are drafted. The draft
-  // is set once, when the builder opens, so those nights would stay in it —
-  // and a night whose meal is not in the library is never drawn, so it could
-  // not be removed while its warning held the build down for good (Codex r7).
-  // Dropped the moment the retire lands, and named: the name is still known.
-  const [droppedNow, setDroppedNow] = useState<Array<{ slug: string; name: string }>>([])
+  // Nights dropped since the builder opened, because their meal left the
+  // library under a draft that was set once, when it opened (FOR-247).
+  const [droppedNow, setDroppedNow] = useState<Array<{ slug: string; name: string | null }>>([])
   // One name per MEAL, not per source: a saved night on a meal just retired
   // is in both, and is one meal gone.
   const retired = useMemo(() => {
@@ -158,6 +155,22 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     return [...names.values()]
   }, [retiredSaved, droppedNow])
   const [drawer, setDrawer] = useState<Drawer>(null)
+  // The library this draft was last reconciled against. When a re-read loses a
+  // meal — retired here, or in another tab and picked up by any later re-read —
+  // its drafted nights are dropped and named from the library they left, and
+  // the drawer closes: it may be open to swap a night BY INDEX, and the nights
+  // just moved under it (Codex r1, r2). Adjusted during render, the way React
+  // documents state from a previous render, so a dropped night never paints.
+  const [reconciledFor, setReconciledFor] = useState(bySlug)
+  if (reconciledFor !== bySlug) {
+    setReconciledFor(bySlug)
+    const r = reconcileDraft(entries, reconciledFor, bySlug)
+    if (r.dropped.length) {
+      setEntries(r.entries)
+      setDroppedNow((d) => [...d, ...r.dropped])
+      setDrawer(null)
+    }
+  }
   // The meal form takes over the drawer rather than opening beside it: one
   // thing on screen at a time, on a phone, in a kitchen (FOR-242).
   const [mealForm, setMealForm] = useState<{ meal: MealRow | null } | null>(null)
@@ -279,19 +292,11 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
               onRetire={onRetireMeal && mealForm.meal ? async () => {
                 const m = mealForm.meal
                 if (!m) return 'nothing to retire'
+                // The drafted nights on it are the library's business, not
+                // this callback's: the re-read that follows drops them.
                 const e = await onRetireMeal(m.slug)
-                if (e) return e
-                if (entries.some((x) => x.slug === m.slug)) {
-                  setEntries((es) => es.filter((x) => x.slug !== m.slug))
-                  setDroppedNow((d) => [...d, { slug: m.slug, name: m.name }])
-                  // The drawer may be open to swap a night BY INDEX, and the
-                  // nights just moved under it: a pick would land on the wrong
-                  // night, or on none. Closed, as removing a night closes it
-                  // (Codex r1).
-                  setDrawer(null)
-                }
-                setMealForm(null)
-                return null
+                if (!e) setMealForm(null)
+                return e
               } : undefined}
               onSave={async (draft) => {
                 if (!onSaveMeal) return 'meals cannot be saved from here'

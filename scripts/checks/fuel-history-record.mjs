@@ -30,6 +30,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { STEAK_CUT, isRecorded, pastCut, unrecordedSlugs, withoutRecord } from '../../src/lib/fuel/record.ts'
 import { steakWindowWarnings } from '../../src/lib/fuel/solve.ts'
+import { reconcileDraft } from '../../src/lib/fuel/planner.ts'
 import { changed, snapshot, snapshotKey } from '../../src/lib/fuel/version.ts'
 import { createVersion, retireOwnMeal } from '../../src/lib/fuel/store.ts'
 import * as planBuilderModule from '../../src/components/fuel/PlanBuilder.tsx'
@@ -200,13 +201,29 @@ const REC_CHICKEN = { protein_cut: 'chicken_thigh', name: 'Sunday Steak' }
     'a saved night whose meal was retired is dropped and NAMED — from its record, because the library no longer has the name')
   assert(/a night whose meal is no longer in the library was dropped/.test(builder({ entries: [night(OWN_SLUG), night('chili-lime-thighs')] }).text),
     'a saved night with no record is dropped and counted')
+  // A meal leaving the library under a draft — retired here, or in another
+  // tab and picked up by any later re-read (Codex r2). The rule is behaviour,
+  // asserted as behaviour on the function that holds it.
+  const lib = (...slugs) => new Map(slugs.map((s) => [s, { name: s === OWN_SLUG ? 'Sunday Steak' : s }]))
+  const draft = [night(OWN_SLUG, 1), night('chili-lime-thighs', 1), night(OWN_SLUG, 2)]
+  const lost = reconcileDraft(draft, lib(OWN_SLUG, 'chili-lime-thighs'), lib('chili-lime-thighs'))
+  assert(lost.entries.length === 1 && lost.entries[0].slug === 'chili-lime-thighs',
+    'a re-read that loses a meal takes its drafted nights out of the draft — a night whose meal is not drawn could never be removed (Codex r7)')
+  assert(JSON.stringify(lost.dropped) === JSON.stringify([{ slug: OWN_SLUG, name: 'Sunday Steak' }]),
+    `each meal lost is named ONCE, from the library it left — got ${JSON.stringify(lost.dropped)}`)
+  assert(reconcileDraft(draft, new Map(), lib('chili-lime-thighs')).dropped[0]?.name === null, 'a meal the previous library did not know is dropped unnamed, never guessed')
+  const same = reconcileDraft(draft, lib(OWN_SLUG, 'chili-lime-thighs'), lib(OWN_SLUG, 'chili-lime-thighs', 'extra'))
+  assert(same.entries === draft && same.dropped.length === 0, 'a re-read that loses nothing hands the SAME draft back, so nothing is set')
+  // And the builder runs it wherever the library changes — not in the one
+  // callback that retires.
   const pb = readLF('src/components/fuel/PlanBuilder.tsx')
-  assert(/if \(entries\.some\(\(x\) => x\.slug === m\.slug\)\) \{\s*setEntries\(\(es\) => es\.filter\(\(x\) => x\.slug !== m\.slug\)\)\s*setDroppedNow/.test(pb),
-    'a meal retired from this screen takes its drafted nights with it — a night whose meal is not drawn could never be removed (Codex r7)')
-  // The drawer swaps a night BY INDEX; the nights just moved under it.
-  const retireBranch = (() => { const at = pb.indexOf('if (entries.some((x) => x.slug === m.slug)) {'); return at < 0 ? '' : pb.slice(at, pb.indexOf('\n                }', at)) })()
-  assert(/setDrawer\(null\)/.test(retireBranch),
-    'dropping those nights closes the drawer — it may be open to swap a night by index, and a pick would land on the wrong one (Codex r1)')
+  assert(/if \(reconciledFor !== bySlug\) \{\s*setReconciledFor\(bySlug\)\s*const r = reconcileDraft\(entries, reconciledFor, bySlug\)/.test(pb),
+    'the builder reconciles its draft against EVERY new library — a retire in another tab is caught by the next re-read (Codex r2)')
+  const reconcileBlock = (() => { const at = pb.indexOf('if (r.dropped.length) {'); return at < 0 ? '' : pb.slice(at, pb.indexOf('\n    }', at)) })()
+  assert(/setEntries\(r\.entries\)/.test(reconcileBlock) && /setDroppedNow\(\(d\) => \[\.\.\.d, \.\.\.r\.dropped\]\)/.test(reconcileBlock),
+    'what it drops leaves the draft and is named in the banner')
+  assert(/setDrawer\(null\)/.test(reconcileBlock),
+    'and dropping closes the drawer — it may be open to swap a night by index, and a pick would land on the wrong one (Codex r1)')
   assert(/for \(const d of droppedNow\) names\.set\(d\.slug, names\.get\(d\.slug\) \?\? d\.name\)/.test(pb),
     'a meal retired while a saved night stands on it is named once — one meal, whatever the sources')
   const pg = readLF('src/app/fuel/page.tsx')

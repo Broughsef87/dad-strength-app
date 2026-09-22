@@ -153,5 +153,23 @@ export function swapNight(entries: PlanEntry[], index: number, meal: MealRow, ho
 /** A night removed. Always allowed: a meal that fell outside a lowered cap must be removable, or the plan can never be made compliant (Codex, round 1). */
 export const removeNight = (entries: PlanEntry[], index: number): PlanEntry[] => entries.filter((_, i) => i !== index)
 
+/**
+ * The draft against a library that has just changed (FOR-247). A night whose
+ * meal has left the library is never drawn, so it could not be removed while
+ * its warning held the build down for good (Codex r7) — and a meal leaves the
+ * library whichever way it is retired: from this screen, or in another tab and
+ * picked up by any later re-read (Codex r2). So the rule lives where the
+ * library changes, not in the one callback that retires: such nights are
+ * dropped, and each meal is named from the library it was in.
+ *
+ * Nothing lost, the SAME array back, so a caller can tell there is nothing to do.
+ */
+export function reconcileDraft(entries: PlanEntry[], before: Map<string, Pick<MealRow, 'name'>>, after: Map<string, unknown>): { entries: PlanEntry[]; dropped: Array<{ slug: string; name: string | null }> } {
+  const kept = entries.filter((e) => after.has(e.slug))
+  if (kept.length === entries.length) return { entries, dropped: [] }
+  const gone = [...new Set(entries.filter((e) => !after.has(e.slug)).map((e) => e.slug))]
+  return { entries: kept, dropped: gone.map((slug) => ({ slug, name: before.get(slug)?.name ?? null })) }
+}
+
 /** Every night of a recipe in a week shares one servings figure; the control moves them together, and no other week's (Codex, round 8). */
 export const setServings = (entries: PlanEntry[], slug: string, week: number, servings: number): PlanEntry[] => entries.map((e) => (e.slug === slug && e.week === week ? { ...e, servings } : e))
