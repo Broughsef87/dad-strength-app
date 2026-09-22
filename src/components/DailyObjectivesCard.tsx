@@ -127,8 +127,9 @@ export default function DailyObjectivesCard(
       if (cancelled) return
       if (!('seq' in read) || read.error) { settleSync(false, true); setLoading(false); return }
       // The row replaces the paint; changes made here that it does not have yet
-      // stay on top of it.
-      adoptRead(today, read.ms, read.seq, true)
+      // stay on top of it — and any it overtook are said out loud, not dropped
+      // where no save is left watching for them (Codex r14).
+      if (adoptRead(today, read.ms, read.seq, true).length) setOvertaken(true)
       show()
       settleSync(false)
       setLoading(false)

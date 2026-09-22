@@ -176,8 +176,15 @@ export async function flushObjectives(owner: Promise<string | null>): Promise<Sa
   return out
 }
 
-/** A row read landed: it becomes the record unless a later read already has. */
-export function adoptRead(day: string, ms: unknown, seq: number, load = false) {
+/**
+ * A row read landed: it becomes the record unless a later read already has.
+ * Returns the changes it DISCARDED — the record overtook them while nobody's
+ * save was watching, and the screen has to say so rather than let them vanish
+ * (Codex r14).
+ */
+export function adoptRead(day: string, ms: unknown, seq: number, load = false): Change[] {
+  const before = [...book().pending()]
   if (book().adopt(day, ms, seq, load)) paintMind(day, ms)
   mark()
+  return before.filter((c) => book().discarded(c))
 }

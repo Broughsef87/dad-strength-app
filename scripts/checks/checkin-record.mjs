@@ -103,6 +103,12 @@ assert(/book\(\)\.settle\(applied, 'saved'\)\s*book\(\)\.settle\(dead, 'dropped'
   && /if \(mine && wasDropped\(mine\)\) setOvertaken\(true\)/.test(fnBody(obj, 'const save = '))
   && /\{overtaken && \(\s*<p[^>]*role="status">/.test(obj),
   'a change the record overtook is not "saved": both screens say so, and neither hides what was typed behind a confirmation it cannot make (Codex r8)')
+// Codex r14: a refresh can overtake a pending change when no save is watching
+// for it — the card's own save has already answered, or belongs to a card that
+// is gone — and it vanished without the notice.
+assert(/export function adoptRead\(day: string, ms: unknown, seq: number, load = false\): Change\[\] \{\s*const before = \[\.\.\.book\(\)\.pending\(\)\][\s\S]{0,200}return before\.filter\(\(c\) => book\(\)\.discarded\(c\)\)/.test(out)
+  && /if \(adoptRead\(today, read\.ms, read\.seq, true\)\.length\) setOvertaken\(true\)/.test(objLoad),
+  'a change a refresh overtakes is said out loud too, not dropped where no save is left watching for it (Codex r14)')
 function mindFn2Early() { return fnBody(mp, 'const saveMindState = ') }
 // Codex r7: the Goals step wrote the row itself, so a save that failed there was
 // remembered by nothing — its objectives lived in the paint until the card
@@ -446,9 +452,10 @@ assert(JSON.stringify(canon) === JSON.stringify(['src/lib/canonical.ts']),
 // Rendered on the sync state — not merely present in the file, where a dead
 // branch would keep the words and show nothing.
 const UNREACHED = 'couldn' + String.fromCharCode(92) + 'u2019t reach your record'
-assert(/\{\(sync === 'unsaved' \|\| sync === 'unreached'\) && \(\s*<p[^>]*role="status">\s*\{sync === 'unsaved'[\s\S]{0,200}not saved yet[\s\S]{0,200}onClick=\{retrySave\}/.test(mp)
-  && mp.includes(UNREACHED) && /reach your record[^<]*<button onClick=\{retrySave\}/.test(mp),
-  'the protocol says when a change has not reached the record, and when the record could not be read — and offers Retry for both')
+assert(/const syncNotice = \(sync === 'unsaved' \|\| sync === 'unreached'\) && \(\s*<p[^>]*role="status">\s*\{sync === 'unsaved'[\s\S]{0,200}not saved yet[\s\S]{0,200}onClick=\{retrySave\}/.test(mp)
+  && mp.includes(UNREACHED) && /reach your record[^<]*<button onClick=\{retrySave\}/.test(mp)
+  && (code(mp).match(/\{syncNotice\}/g) ?? []).length === 2,
+  'the protocol says when a change has not reached the record, and when the record could not be read — and offers Retry for both, on the config screen as well as the protocol, because a change kept from an earlier day leaves the config screen showing (Codex r14)')
 assert(/mindError && <p/.test(mp) && /setMindError\('not saved/.test(mp), 'an objectives save that did not land says so, instead of "Saved"')
 assert(/\{\(sync === 'unsaved' \|\| sync === 'unreached'\) && \(\s*<p[^>]*role="status">\s*\{sync === 'unsaved'[\s\S]{0,200}not saved yet[\s\S]{0,200}onClick=\{retry\}/.test(obj) && obj.includes(UNREACHED)
   && /const retry = \(\) => save\(changedBy\(ownerRef\.current\)\)/.test(obj),

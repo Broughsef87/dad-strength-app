@@ -507,10 +507,25 @@ export default function MorningProtocol(
   const totalSteps = protocol?.steps.length || 0
   const allDone = doneCount === totalSteps && totalSteps > 0
 
+  // Where this device stands, on whichever screen is up. A change kept from an
+  // earlier day leaves the config screen showing — today's row has no protocol
+  // — and with the notice only on the active one, its Retry was unreachable
+  // without generating another protocol (Codex r14). 'saving' shows in the
+  // header instead: a line appearing here on every keystroke would move the
+  // gratitude field being typed in.
+  const syncNotice = (sync === 'unsaved' || sync === 'unreached') && (
+    <p className="text-[11px] text-muted-foreground" role="status">
+      {sync === 'unsaved'
+        ? <>not saved yet — this device has your changes, your record doesn&apos;t. <button onClick={retrySave} className="underline">retry</button></>
+        : <>{'couldn\u2019t reach your record — showing what this device last saw. '}<button onClick={retrySave} className="underline">retry</button></>}
+    </p>
+  )
+
   // ── Config screen ──────────────────────────────────────────────────────────
   if (!configured) {
     return (
       <div className="space-y-5">
+        {syncNotice}
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sun size={14} className="text-brand" />
@@ -632,15 +647,7 @@ export default function MorningProtocol(
         </div>
       </div>
 
-      {/* 'saving' shows in the header: a line appearing here on every
-          keystroke would move the gratitude field being typed in. */}
-      {(sync === 'unsaved' || sync === 'unreached') && (
-        <p className="text-[11px] text-muted-foreground" role="status">
-          {sync === 'unsaved'
-            ? <>not saved yet — this device has your changes, your record doesn&apos;t. <button onClick={retrySave} className="underline">retry</button></>
-            : <>{'couldn\u2019t reach your record — showing what this device last saw. '}<button onClick={retrySave} className="underline">retry</button></>}
-        </p>
-      )}
+      {syncNotice}
 
       {allDone && !reviewOpen ? (
         /* ── Collapsed — every check done. Volt marks what's earned. ── */
