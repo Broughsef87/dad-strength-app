@@ -110,6 +110,11 @@ ok('dashboard feeds the tick to the objectives card',
 // state at it dead-ended anyone with no protocol yet, out of free AI quota, or
 // already past that step — on a feature that needs no AI at all.
 const objCard = read('../../src/components/DailyObjectivesCard.tsx')
+// The card's record logic — the stored shape, the sparse-row repair — lives in
+// src/lib/objectivesRecord.ts since FOR-231; the card writes through it.
+const objRecord = read('../../src/lib/objectivesRecord.ts')
+const toRowFn = objRecord.slice(objRecord.indexOf('export function toRow('), objRecord.indexOf('\n}\n', objRecord.indexOf('export function toRow(')))
+const fromRowFn = objRecord.slice(objRecord.indexOf('export function fromRow('), objRecord.indexOf('\n}\n', objRecord.indexOf('export function fromRow(')))
 ok('the objectives card can set objectives itself',
   /saveDraft/.test(objCard) && /mind_state/.test(objCard),
   'no inline editor — the empty state depends on an AI-gated surface')
@@ -120,7 +125,7 @@ ok('the objectives empty state does not navigate away',
 // overwrites the other.
 for (const field of ['objectives', 'completedObjectives', 'lockedIn']) {
   ok(`both objective writers persist ${field}`,
-    new RegExp(field).test(objCard) && new RegExp(field).test(mp),
+    new RegExp(`\\b${field}: `).test(toRowFn) && /toRow\(day, write\)/.test(objCard) && new RegExp(field).test(mp),
     'shapes diverge between the card and the protocol Goals step')
 }
 
@@ -136,7 +141,7 @@ for (const [label, src] of [['card', objCard], ['protocol', mp]]) {
     'saves a sparse array; completion flags will misalign')
 }
 ok('the card realigns legacy sparse rows on read',
-  /normalise/.test(objCard) && /\[String\(o \?\? ''\), Boolean\(\(done \?\? \[\]\)\[i\]\)\]/.test(objCard),
+  /fromRow\(/.test(objCard) && /const n = normalise\(/.test(fromRowFn) && /\[String\(o \?\? ''\), Boolean\(\(done \?\? \[\]\)\[i\]\)\]/.test(objRecord),
   'old rows keep their misalignment forever')
 
 // -- 2c. the scroll must survive the loading branch -------------------------

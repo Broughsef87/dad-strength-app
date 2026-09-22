@@ -106,6 +106,7 @@ export function sessionPlan(built: DayPlan, stored: unknown, logs: readonly Logg
 // the WHOLE object, so they go through one queue (Codex r3). The queue itself
 // lives in src/lib/serialWriter.ts, shared with the check-in writers (FOR-231).
 export { serialWriter } from '../serialWriter'
+import { canonical } from '../canonical'
 
 /**
  * The same plan, whatever order its keys arrived in. Postgres jsonb reorders
@@ -115,12 +116,4 @@ export { serialWriter } from '../serialWriter'
  */
 export function samePlan(a: unknown, b: unknown): boolean {
   return canonical(a) === canonical(b)
-}
-function canonical(v: unknown): string {
-  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']'
-  if (v && typeof v === 'object') {
-    const o = v as Record<string, unknown>
-    return '{' + Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canonical(o[k])).join(',') + '}'
-  }
-  return JSON.stringify(v)
 }

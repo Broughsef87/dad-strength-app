@@ -9,6 +9,7 @@ import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import UpgradeModal from './UpgradeModal'
 import { ACCOUNT_CHANGED, runAs } from '../lib/checkinQueue'
+import { sameJson } from '../lib/canonical'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
 
@@ -114,14 +115,27 @@ export default function MorningProtocol(
   // record holding it. Each write is bound to the account that made it — the
   // queue outlives this component, and a write queued before a sign-out must
   // not run under whoever signs in next.
+  //
+  // ownerRef is that account, and it is set only once the open-time read has
+  // ANSWERED: it names an account and says that account's row was read. Until
+  // then what is on screen is a paint nobody has checked — it may be another
+  // account's — and a write of it would file it under whoever is signed in. A
+  // change made before then is kept as `unsent`; the read, when it answers,
+  // saves it if the record vouches for it (Codex r3).
   const ownerRef = useRef<string | null>(null)
   // Bumped by every change made here. The row read on open is applied only if
   // nothing has been changed since — a change made after the read started is
-  // newer than what the read will return, and is already on its way to the row.
+  // newer than what the read will return.
   const localEdits = useRef(0)
+  type Latest = { p: Protocol; c: boolean[]; g: string[]; day: string }
   // The latest protocol state made here, and the protocol day it belongs to —
   // for Retry, which must retry THAT day's record, not today's (Codex r2).
-  const latest = useRef<{ p: Protocol; c: boolean[]; g: string[]; day: string } | null>(null)
+  const latest = useRef<Latest | null>(null)
+  // The latest change made while no account was confirmed, not yet written.
+  const unsent = useRef<Latest | null>(null)
+  // A protocol generated on this screen — by the signed-in account's own
+  // request, so it is that account's whatever the paint was.
+  const generatedHere = useRef<Protocol | null>(null)
 
   const saveMindState = async () => {
     const supabase = createClient()
@@ -170,54 +184,75 @@ export default function MorningProtocol(
       }
     } catch { /* no paint — the row will answer */ }
 
-    // …then the RECORD answers, and what it says replaces the paint entirely:
-    // more done, less done, a different protocol, or none at all. Nothing is
-    // compared. The one exception is a change made here while the read was in
-    // flight — that change is newer than the read, and already on its way to
-    // the row, so the read is not allowed to put the screen back behind it.
-    const editsAtOpen = localEdits.current
-    void (async () => {
-      try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        ownerRef.current = user.id
-        // The row keyed on the protocol's OWN day — where every protocol write
-        // has landed since the row-key fix (FOR-228, ruling 2).
-        const read = await runAs(supabase, user.id, async () => supabase
-          .from('daily_checkins')
-          .select('spirit_state')
-          .eq('user_id', user.id)
-          .eq('date', todayKey())
-          .maybeSingle())
-        if (read === ACCOUNT_CHANGED || read.error) throw new Error('unreached')
-        const row = 'data' in read ? read.data : null
-        if (localEdits.current !== editsAtOpen) return
-        const m = (row?.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
-        if (m?.protocol && m.date === todayKey()) {
-          const c = m.completed ?? new Array(m.protocol.steps.length).fill(false)
-          const g = m.gratitude ?? ['', '', '']
-          setProtocol(m.protocol)
-          setCompleted(c)
-          setGratitude(g)
-          setConfigured(true)
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: m.protocol, completed: c, gratitude: g })) } catch { /* paint only */ }
-        } else {
-          // The record holds no protocol for today. Whatever this device had
-          // painted — another account's, or one that never reached the row —
-          // is not a protocol, and goes.
-          setProtocol(null)
-          setCompleted([])
-          setGratitude(['', '', ''])
-          setConfigured(false)
-          try { localStorage.removeItem(STORAGE_KEY) } catch { /* paint only */ }
-        }
-        setSync('synced')
-      } catch {
-        setSync('unreached')
-      }
-    })()
+    // …then the RECORD answers.
+    void open()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // The open-time read: who is signed in, and what their row holds. What it
+  // says replaces the paint entirely — more done, less done, a different
+  // protocol, or none at all. Nothing is compared. Run on open, and again by
+  // Retry while it has never answered — so a failed open is recovered, not a
+  // screen that refuses every change until a reload (Codex r3).
+  const open = async () => {
+    const editsAtOpen = localEdits.current
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      // The row keyed on the protocol's OWN day — where every protocol write
+      // has landed since the row-key fix (FOR-228, ruling 2).
+      const read = await runAs(supabase, user.id, async () => supabase
+        .from('daily_checkins')
+        .select('spirit_state')
+        .eq('user_id', user.id)
+        .eq('date', todayKey())
+        .maybeSingle())
+      if (read === ACCOUNT_CHANGED || read.error) throw new Error('unreached')
+      const row = 'data' in read ? read.data : null
+      ownerRef.current = user.id
+      const m = (row?.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
+      // Today's protocol, if the row holds one — an entry stamped with another
+      // day is not today's, whatever row it sits in.
+      const held = m?.protocol && m.date === todayKey() ? m.protocol : null
+      // A change made before the account was confirmed is saved only if the
+      // record vouches for it: the row holds the protocol it was made on, or
+      // that protocol was generated here. Otherwise it was made on a paint that
+      // is not this account's record, and the record replaces it. Compared as
+      // JSON values, not strings: jsonb reorders keys, so the row's copy of a
+      // protocol generated here never matches the paint's by string.
+      const u = unsent.current
+      unsent.current = null
+      if (u && (u.p === generatedHere.current || (held !== null && sameJson(held, u.p)))) {
+        saveCache(u.p, u.c, u.g, u.day)
+        return
+      }
+      // No change to save, but the screen changed while the read was in flight
+      // (Rebuild): that is newer than the read, which does not put it back.
+      if (!u && localEdits.current !== editsAtOpen) { setSync('synced'); return }
+      if (held) {
+        const c = m?.completed ?? new Array(held.steps.length).fill(false)
+        const g = m?.gratitude ?? ['', '', '']
+        setProtocol(held)
+        setCompleted(c)
+        setGratitude(g)
+        setConfigured(true)
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: held, completed: c, gratitude: g })) } catch { /* paint only */ }
+      } else {
+        // The record holds no protocol for today. Whatever this device had
+        // painted — another account's, or one that never reached the row —
+        // is not a protocol, and goes.
+        setProtocol(null)
+        setCompleted([])
+        setGratitude(['', '', ''])
+        setConfigured(false)
+        try { localStorage.removeItem(STORAGE_KEY) } catch { /* paint only */ }
+      }
+      setSync('synced')
+    } catch {
+      setSync(unsent.current ? 'unsaved' : 'unreached')
+    }
+  }
 
   const saveCache = (p: Protocol, c: boolean[], g: string[], day: string = todayKey()) => {
     localEdits.current++
@@ -227,15 +262,15 @@ export default function MorningProtocol(
     // row (Codex r1, r2).
     latest.current = { p, c, g, day }
     // The account that made the change, captured now. Before the open-time
-    // read has told us who is signed in there is no owner to bind to, and the
-    // change is a render until the next change or Retry — never a write under
-    // an account nobody checked.
+    // read has answered there is no owner to bind to, and the change is kept
+    // as unsent — never a write under an account nobody checked. The read
+    // saves it when it answers; Retry runs the read again if it failed.
     const owner = ownerRef.current
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
+    if (!owner) { unsent.current = latest.current; setSync('unsaved'); return }
     // The record. Upsert names only its own column, so mind_state is untouched.
     void (async () => {
-      if (!owner) { setSync('unsaved'); return }
       const supabase = createClient()
       const res = await runAs(supabase, owner, async () => {
         // The row is keyed on the protocol's OWN day — the same 4am-cutoff
@@ -262,7 +297,13 @@ export default function MorningProtocol(
       onSaved?.()
     })()
   }
-  const retrySave = () => { const l = latest.current; if (l) saveCache(l.p, l.c, l.g, l.day) }
+  const retrySave = () => {
+    // No account confirmed: the open-time read never answered. Run it again —
+    // it saves the unsent change if the record vouches for it (Codex r3).
+    if (!ownerRef.current) { void open(); return }
+    const l = latest.current
+    if (l) saveCache(l.p, l.c, l.g, l.day)
+  }
 
   const generate = async () => {
     setLoading(true)
@@ -296,6 +337,7 @@ export default function MorningProtocol(
       setGratitude(freshGratitude)
       setExpanded(0)
       setConfigured(true)
+      generatedHere.current = fresh
       saveCache(fresh, freshCompleted, freshGratitude)
     } catch {
       setError('Failed to generate. Try again.')
@@ -451,7 +493,7 @@ export default function MorningProtocol(
         <p className="text-[11px] text-muted-foreground" role="status">
           {sync === 'unsaved'
             ? <>not saved yet — this device has your changes, your record doesn&apos;t. <button onClick={retrySave} className="underline">retry</button></>
-            : 'couldn\u2019t reach your record — showing what this device last saw'}
+            : <>{'couldn\u2019t reach your record — showing what this device last saw. '}<button onClick={retrySave} className="underline">retry</button></>}
         </p>
       )}
 
