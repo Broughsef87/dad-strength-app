@@ -48,7 +48,9 @@ assert(/n\?\.protocol && n\.date === day \? n\.protocol : null/.test(mp) && /con
   'the loader takes the entry only when it is stamped with the day it read — decided once, for any day, and what it shows is that decision')
 
 // ── 4. mind_state keeps its own path, and the mirror names only its columns ─
-assert(/const today = localDay\(\)[\s\S]{0,1500}date: today, mind_state: state/.test(mp), 'objectives still write mind_state under the calendar day, on their own path')
+const outbox = readLF('../../src/lib/objectivesOutbox.ts')
+assert(/book\(\)\.turn\(localDay\(\)\)/.test(mp) && /date: day, mind_state: row/.test(outbox) && !/mind_state:/.test(mp),
+  'objectives still write mind_state under the calendar day, on their own path — the outbox both writers share (FOR-231, Codex r7)')
 assert(!/spirit_state: \{ morning[\s\S]{0,300}mind_state/.test(mp), 'the mirror upsert names only its own columns — mind_state is never in its payload')
 
 // ── verdict ─────────────────────────────────────────────────────────────────

@@ -123,11 +123,17 @@ ok('the objectives empty state does not navigate away',
   'still links out instead of editing in place')
 // Both editors write the same shape to the same place, or one silently
 // overwrites the other.
+// One writer now (FOR-231, Codex r7): both screens make the same kind of change
+// in the same outbox, which writes the one shape.
+const outbox = read('../../src/lib/objectivesOutbox.ts')
 for (const field of ['objectives', 'completedObjectives', 'lockedIn']) {
-  ok(`both objective writers persist ${field}`,
-    new RegExp(`\\b${field}: `).test(toRowFn) && /toRow\(day, write\)/.test(objCard) && new RegExp(field).test(mp),
-    'shapes diverge between the card and the protocol Goals step')
+  ok(`the day's objectives persist ${field}`,
+    new RegExp(`\\b${field}: `).test(toRowFn) && /toRow\(day, write\)/.test(outbox),
+    'the stored shape lost a field')
 }
+ok('both screens write the objectives through that one outbox',
+  /intend\(\{ kind: 'set'/.test(objCard) && /intend\(\{ kind: 'set'/.test(mp) && !/mind_state:/.test(mp),
+  'the protocol Goals step writes the row itself again — a failed save there is remembered by nothing')
 
 // Objectives render filtered and toggle by the FILTERED index, which writes
 // completedObjectives at that index. A sparse array therefore lands a
@@ -141,7 +147,7 @@ for (const [label, src] of [['card', objCard], ['protocol', mp]]) {
     'saves a sparse array; completion flags will misalign')
 }
 ok('the card realigns legacy sparse rows on read',
-  /fromRow\(/.test(objCard) && /const n = normalise\(/.test(fromRowFn) && /\[String\(o \?\? ''\), Boolean\(\(done \?\? \[\]\)\[i\]\)\]/.test(objRecord),
+  /fromRow\(/.test(outbox) && /const n = normalise\(/.test(fromRowFn) && /\[String\(o \?\? ''\), Boolean\(\(done \?\? \[\]\)\[i\]\)\]/.test(objRecord),
   'old rows keep their misalignment forever')
 
 // -- 2c. the scroll must survive the loading branch -------------------------

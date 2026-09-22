@@ -9,6 +9,8 @@ import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import UpgradeModal from './UpgradeModal'
 import { ACCOUNT_CHANGED, accountAtChange, runAs } from '../lib/checkinQueue'
+import { book, changedBy, flushObjectives, intend } from '../lib/objectivesOutbox'
+import { setUnloadGuard } from '../lib/unloadGuard'
 import { sameJson } from '../lib/canonical'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
@@ -81,8 +83,16 @@ const kept: {
 } = { latest: null, unsent: null, generated: null }
 let stamp = 0
 let writing = 0
-/** Where this device stands against the record, as everything kept says. */
-const statusNow = (): 'synced' | 'saving' | 'unsaved' => writing ? 'saving' : kept.unsent ? 'unsaved' : 'synced'
+/**
+ * Where this device stands against the record, as everything kept says — and
+ * the closing-the-tab warning with it: what is kept lives in the tab, not in
+ * this component, so the warning must not go when the component does (Codex r7).
+ */
+const statusNow = (): 'synced' | 'saving' | 'unsaved' => {
+  const s = writing ? 'saving' : kept.unsent ? 'unsaved' : 'synced'
+  setUnloadGuard('protocol', s !== 'synced')
+  return s
+}
 /** `u` has reached the row, or has been decided against: it and everything older stop being kept. */
 const settled = (u: Latest) => {
   if (kept.unsent && kept.unsent.n <= u.n) kept.unsent = null
@@ -177,29 +187,22 @@ export default function MorningProtocol(
   const showStatus = () => setSync(statusNow())
 
   const saveMindState = async () => {
-    const supabase = createClient()
-    const today = localDay()
-    // Dense, for the same reason DailyObjectivesCard stores dense: its render
+    // Dense, for the same reason the objectives card stores dense: the render
     // path filters blanks and toggles by the FILTERED index, so a sparse array
-    // misaligns completion flags against objectives. Both writers must agree.
+    // misaligns completion flags against objectives.
     const dense = mindObjectives.map(o => o.trim()).filter(Boolean)
-    const state = {
-      date: localDay(),
-      objectives: dense,
-      completedObjectives: dense.map(() => false),
-      lockedIn: true,
-    }
-    // Paint only: the objectives card renders it instantly on its next open.
-    try { localStorage.setItem('dad-strength-mind-state', JSON.stringify(state)) } catch { /* paint only */ }
-    // The record. "Saved" means the row has it — nothing earlier.
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setMindError('sign in to save your objectives'); return }
-    const res = await runAs(supabase, user.id, async () => supabase.from('daily_checkins').upsert(
-      { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id,date' }
-    )).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
-    if (res.error) { setMindError('not saved — check your connection and try again'); return }
+    // The day's objectives have ONE outbox, shared with the objectives card
+    // (Codex r7). Written here directly, a save that failed was remembered by
+    // nothing: the objectives lived in the paint until the card replaced it
+    // with the row, and there was nothing to retry. As a change in the outbox
+    // it is kept until the row has it, whatever this screen does next.
+    book().turn(localDay())
+    const owner = changedBy(ownerRef.current)
+    intend({ kind: 'set', day: book().day(), basis: book().shown().objectives, objectives: dense, owner })
     setMindError('')
+    // The record. "Saved" means the row has it — nothing earlier.
+    const res = await flushObjectives(owner)
+    if (!res.ok) { setMindError('not saved yet — it saves with your next change, or on the objectives card'); return }
     setMindSaved(true)
     // Objectives are written HERE, not in save() — a separate path, so it
     // needs the signal separately. DailyObjectivesCard renders directly below
@@ -299,7 +302,16 @@ export default function MorningProtocol(
             // for an earlier day is not what the screen shows: today's record
             // still applies, or the screen would sit on the config step with a
             // protocol already in the row (Codex r6).
-            if (u.day === todayKey()) return
+            if (u.day === todayKey()) {
+              // On screen, not left to the paint: localStorage may be
+              // unavailable, or its last write may have failed, and then
+              // nothing would show what was just recovered (Codex r7).
+              setProtocol(u.p)
+              setCompleted(u.c)
+              setGratitude(u.g)
+              setConfigured(true)
+              return
+            }
           }
         }
       }
@@ -347,11 +359,16 @@ export default function MorningProtocol(
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
     const mine = kept.latest
-    if (!owner) { kept.unsent = mine; setSync(opening.current ? 'saving' : 'unsaved'); return }
+    if (!owner) {
+      kept.unsent = mine
+      const s = statusNow()
+      setSync(opening.current ? 'saving' : s)
+      return
+    }
     // Saving from the moment the change is made, not from its turn in the
     // queue (Codex r4).
     writing++
-    setSync('saving')
+    showStatus()
     // The record. Upsert names only its own column, so mind_state is untouched.
     void (async () => {
       const supabase = createClient()
@@ -389,16 +406,6 @@ export default function MorningProtocol(
       onSaved?.()
     })()
   }
-  // A change on its way to the row, or one that did not get there, is lost if
-  // the tab closes now — so closing it asks first (Codex r4). Moving elsewhere
-  // in the app is safe: the queue outlives this component.
-  useEffect(() => {
-    if (sync !== 'saving' && sync !== 'unsaved') return
-    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [sync])
-
   const retrySave = () => {
     // No account confirmed: the open-time read never answered. Run it again —
     // it saves the unsent change if the record vouches for it (Codex r3).
