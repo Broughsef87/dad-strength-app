@@ -337,7 +337,7 @@ export default function MorningProtocol(
           continue
         }
         if (vouched) {
-          saveCache(u.p, u.c, u.g, u.day)
+          saveCache(u.p, u.c, u.g, u.day, u)
           // A change for TODAY is what the screen shows, and the row does not
           // have it yet — the record must not be applied over it. A change
           // for an earlier day is not what the screen shows: today's record
@@ -386,16 +386,23 @@ export default function MorningProtocol(
     }
   }
 
-  const saveCache = (p: Protocol, c: boolean[], g: string[], day: string = todayKey()) => {
+  // `again`: a snapshot being sent a second time — a Retry, or the open-time
+  // read recovering one it vouched for. It keeps everything that was fixed when
+  // it was MADE: the account that made it, whether this screen generated its
+  // protocol, and whether anything has checked it. Re-stamping those from what
+  // is true now put one account's protocol and gratitude under another, and
+  // took an older day's generated protocol its only way home (Codex r16).
+  const saveCache = (p: Protocol, c: boolean[], g: string[], day: string = todayKey(), again?: Latest) => {
     localEdits.current++
     // `day`: the protocol day the change was MADE on, captured now — or, for a
     // Retry, the day of the change being retried. Evaluated inside the queued
     // write it could fall after 4am and file this protocol into the next day's
     // row (Codex r1, r2).
     kept.latest = {
-      p, c, g, day, by: madeBy(), n: ++stamp,
-      fresh: kept.generated !== null && kept.generated.p === p ? kept.generated.by : null,
-      checked: ownerRef.current !== null,
+      p, c, g, day, n: ++stamp,
+      by: again ? again.by : madeBy(),
+      fresh: again ? again.fresh : (kept.generated !== null && kept.generated.p === p ? kept.generated.by : null),
+      checked: again ? again.checked : ownerRef.current !== null,
     }
     // The account that made the change, captured now. Before the open-time
     // read has answered there is no owner to bind to, and the change is kept
@@ -418,7 +425,11 @@ export default function MorningProtocol(
     // The record. Upsert names only its own column, so mind_state is untouched.
     void (async () => {
       const supabase = createClient()
-      const res = await runAs(supabase, owner, async () => {
+      // Written under the account that MADE it, never under whoever is signed
+      // in when it is sent: having been checked under one account is no
+      // authorization under the next (Codex r16, P1). runAs hands the job the
+      // account it verified, and that is what the row is filed under.
+      const res = await runAs(supabase, mine.by, async (me) => {
         // The row is keyed on the protocol's OWN day — the same 4am-cutoff
         // key the entry carries — not the calendar day. Keyed on the calendar
         // day, a protocol finished at 1am landed in the next day's row, and
@@ -426,7 +437,7 @@ export default function MorningProtocol(
         // protocol gone (FOR-228, ruling 2).
         return supabase.from('daily_checkins').upsert(
           {
-            user_id: owner,
+            user_id: me,
             date: day,
             spirit_state: { morning: { date: day, protocol: p, completed: c, gratitude: g } },
             updated_at: new Date().toISOString(),
@@ -468,7 +479,7 @@ export default function MorningProtocol(
     // device put in that row (Codex r15).
     let unchecked = false
     for (const u of [...kept.unsent.values()]) {
-      if (u.checked) saveCache(u.p, u.c, u.g, u.day)
+      if (u.checked) saveCache(u.p, u.c, u.g, u.day, u)
       else unchecked = true
     }
     if (unchecked) void open()
