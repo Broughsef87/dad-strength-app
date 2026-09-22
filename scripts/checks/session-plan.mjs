@@ -281,7 +281,7 @@ const asTrained = (v, key) => {
   const swap = (() => { const at = pg.indexOf('if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
   // The swap, in order (Codex r4, r5): the record, then the substitution, then
   // the screen — and a record that fails stops it before either.
-  const swapFn = (() => { const at = pg.indexOf('const applySwap = async'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
+  const swapFn = (() => { const at = pg.indexOf('const swapNow = async'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
   const rec = swapFn.indexOf('const recorded = await writePlan(patchItems(basePlanRef.current))')
   const stop = swapFn.indexOf('if (recorded?.error) return')
   const sub = swapFn.indexOf("from('user_exercise_subs')")
@@ -291,6 +291,17 @@ const asTrained = (v, key) => {
     'every swap writes the record FIRST, stops if it fails, and only then saves the substitution and changes the card — the record is never behind what the athlete saw')
   assert(!/report\('session record', await writePlan\(\)\)/.test(swapFn) && (swapFn.match(/writePlan\(/g) ?? []).length === 1,
     'and it records exactly once, before — not again after the card has already changed')
+  // A swap is EXCLUSIVE (Codex r6): two at once built both records on the same
+  // plan, so the second erased the first; an edit queued during one captured a
+  // swap that then failed.
+  const guardFn = (() => { const at = pg.indexOf('const applySwap = async'); return at < 0 ? '' : pg.slice(at, pg.indexOf('\n  }\n', at)) })()
+  assert(/if \(!user \|\| !swapTarget \|\| swapInFlight\.current\) return/.test(guardFn) && /swapInFlight\.current = run\s*setSwapping\(true\)/.test(guardFn) && /finally \{ swapInFlight\.current = null; setSwapping\(false\) \}/.test(guardFn),
+    'a second swap cannot start while one is saving, and the lock is released however the first ends')
+  assert(/if \(swapInFlight\.current\) await swapInFlight\.current\s*setOverrides\(next\)/.test(overridesFn),
+    'a session edit made while a swap saves waits for it before reading the row — it never carries a swap that then fails')
+  assert(/onClose=\{\(\) => \{ if \(!swapping\) setSwapTarget\(null\) \}\}\s*busy=\{swapping\}/.test(pg)
+    && /onClick=\{busy \? undefined : onClose\}/.test(pg) && /<fieldset disabled=\{busy\} className="contents">/.test(pg),
+    'and the sheet cannot be dismissed or picked from while its swap saves — the way a second swap got started')
 
   assert((pg.match(/await adopt\(/g) ?? []).length === 2 && /select\('id, workout_data'\)\s*\.eq\('user_id', userId\)\.eq\('program_slug', slug\)\s*\.eq\('week_number', weekNumber\)\.eq\('day_number', dayNumber\)\s*\.order\('id'/.test(pg),
     'BOTH ways a row is found — the run-scoped lookup and the unique-index fallback — draw through the same path')

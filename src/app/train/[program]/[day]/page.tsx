@@ -932,11 +932,13 @@ function OutsideCard({ item, initialLog, onLog }: {
 
 // ── Swap modal — searchable exercise library ───────────────────────────────────
 
-function SwapModal({ target, onPick, onRevert, onClose }: {
+function SwapModal({ target, onPick, onRevert, onClose, busy = false }: {
   target: { slot: string; originalName: string; currentName: string }
   onPick: (name: string, repeatMeso: boolean) => void
   onRevert: () => void
   onClose: () => void
+  /** A swap is saving: the sheet cannot be dismissed or picked from until it lands or fails (FOR-248, Codex r6). */
+  busy?: boolean
 }) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<ExerciseCategory | null>(null)
@@ -951,16 +953,21 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
   const isSubbed = target.currentName !== target.originalName
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={busy ? undefined : onClose}>
       <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60" />
-      <div onClick={e => e.stopPropagation()}
+      <div onClick={e => e.stopPropagation()} aria-busy={busy}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
         <div className="mb-3">
           <p className="eyebrow-mono mb-1">SUBSTITUTE EXERCISE</p>
           <p className="font-display text-base lowercase text-foreground">{target.currentName}</p>
           {isSubbed && <p className="eyebrow-mono mt-0.5">ORIGINAL // {target.originalName.toUpperCase()}</p>}
+          {busy && <p className="eyebrow-mono mt-1" role="status">SAVING THE SWAP…</p>}
         </div>
+
+        {/* Every control below is disabled while a swap saves — a second pick
+            would build on a plan the first has not finished deciding. */}
+        <fieldset disabled={busy} className="contents">
 
         <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 mb-2">
           <Search size={13} className="text-muted-foreground shrink-0" />
@@ -1023,6 +1030,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
             Cancel
           </button>
         </div>
+        </fieldset>
       </div>
     </div>
   )
@@ -1148,6 +1156,12 @@ export default function TrainingDayPage() {
   // whole object, so two in flight at once could land out of order and put back
   // what the newer one removed.
   const [queueRow] = useState(() => serialWriter())
+  // A swap is EXCLUSIVE (Codex r6). While one is saving, the sheet cannot be
+  // dismissed or picked from, a second swap cannot start, and a session edit
+  // waits for it before reading the row — so nothing builds on a plan the swap
+  // is still deciding, and nothing captures a swap that then fails.
+  const [swapping, setSwapping] = useState(false)
+  const swapInFlight = useRef<Promise<void> | null>(null)
   const weekRef = useRef<number>(1)
   const logErrTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const subsRef = useRef<SubsMap>({})
@@ -1588,8 +1602,14 @@ export default function TrainingDayPage() {
   // Swap an exercise (subName) or revert to the original (null). Persists to
   // user_exercise_subs and patches the in-memory plan without a reload.
   const applySwap = async (subName: string | null, repeatMeso = true) => {
-    if (!user || !swapTarget) return
-    const { slot, originalName } = swapTarget
+    if (!user || !swapTarget || swapInFlight.current) return
+    const run = swapNow(user.id, swapTarget, subName, repeatMeso)
+    swapInFlight.current = run
+    setSwapping(true)
+    try { await run } finally { swapInFlight.current = null; setSwapping(false) }
+  }
+  const swapNow = async (uid: string, target: { slot: string; originalName: string }, subName: string | null, repeatMeso: boolean) => {
+    const { slot, originalName } = target
     const patchItems = (p: DayPlan): DayPlan => ({
       ...p,
       items: p.items.map(i => {
@@ -1614,13 +1634,13 @@ export default function TrainingDayPage() {
     // 2. The substitution.
     if (subName == null || subName === originalName) {
       const res = await supabase.from('user_exercise_subs').delete()
-        .eq('user_id', user.id).eq('program_slug', slug)
+        .eq('user_id', uid).eq('program_slug', slug)
         .eq('slot', slot).eq('original_name', originalName)
       report('swap', res)
       delete subsRef.current[`${slot}::${originalName}`]
     } else {
       const scoped = {
-        user_id: user.id, program_slug: slug, slot,
+        user_id: uid, program_slug: slug, slot,
         original_name: originalName, sub_name: subName,
         created_week: weekRef.current, created_day: dayNumber, repeat_meso: repeatMeso,
         updated_at: new Date().toISOString(),
@@ -1646,6 +1666,10 @@ export default function TrainingDayPage() {
 
   // ── Session overrides: add/remove sets + exercises (this week+day only) ─────
   const updateOverrides = async (next: SessionOverrides) => {
+    // An edit made while a swap is saving waits for it, so the row it sends is
+    // built on the swap's outcome — kept or taken back — and never carries a
+    // swap that then fails (Codex r6).
+    if (swapInFlight.current) await swapInFlight.current
     setOverrides(next)
     if (basePlanRef.current) setPlan(applyOverrides(basePlanRef.current, next))
     if (!workoutIdRef.current) return
@@ -1997,7 +2021,8 @@ export default function TrainingDayPage() {
           target={swapTarget}
           onPick={(name, repeatMeso) => void applySwap(name, repeatMeso)}
           onRevert={() => void applySwap(null)}
-          onClose={() => setSwapTarget(null)}
+          onClose={() => { if (!swapping) setSwapTarget(null) }}
+          busy={swapping}
         />
       )}
 
