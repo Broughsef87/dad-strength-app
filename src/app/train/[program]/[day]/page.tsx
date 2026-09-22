@@ -27,6 +27,7 @@ import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
+import { RECORDED, isRecorded, isTrained, samePlan, serialWriter, sessionPlan } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
 import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
   from '../../../../lib/programs/schedule'
@@ -254,15 +255,19 @@ async function fetchMaxes(
   return out
 }
 
+// The error is RETURNED, not swallowed. Whether a session has been trained is
+// read off these rows (FOR-248), and a failed read that came back as "no logs"
+// would draw a trained session from today's build — and the next log would then
+// record that build over what it was actually trained under (Codex r1).
 async function fetchSessionLogs(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, generatedWorkoutId: string,
-): Promise<SessionLogRow[]> {
-  const { data } = await supabase
+): Promise<{ logs: SessionLogRow[]; error: { code?: string; message?: string } | null }> {
+  const { data, error } = await supabase
     .from('ares_session_logs')
     .select('block_name, log_type, set_number, weight_lbs, reps, rpe, slot, completed, completed_at, notes, metcon_time_seconds, metcon_rounds')
     .eq('generated_workout_id', generatedWorkoutId)
-  return (data ?? []) as SessionLogRow[]
+  return { logs: (data ?? []) as SessionLogRow[], error: error ?? null }
 }
 
 // Per-lift history: the top logged set for each slot in the EARLIER weeks of the
@@ -927,11 +932,13 @@ function OutsideCard({ item, initialLog, onLog }: {
 
 // ── Swap modal — searchable exercise library ───────────────────────────────────
 
-function SwapModal({ target, onPick, onRevert, onClose }: {
+function SwapModal({ target, onPick, onRevert, onClose, busy = false }: {
   target: { slot: string; originalName: string; currentName: string }
   onPick: (name: string, repeatMeso: boolean) => void
   onRevert: () => void
   onClose: () => void
+  /** A swap is saving: the sheet cannot be dismissed or picked from until it lands or fails (FOR-248, Codex r6). */
+  busy?: boolean
 }) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<ExerciseCategory | null>(null)
@@ -946,16 +953,21 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
   const isSubbed = target.currentName !== target.originalName
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={busy ? undefined : onClose}>
       <div className="absolute inset-0 bg-[hsl(var(--scrim))]/60" />
-      <div onClick={e => e.stopPropagation()}
+      <div onClick={e => e.stopPropagation()} aria-busy={busy}
         className="relative bg-card border border-border w-full sm:max-w-md max-h-[82vh] flex flex-col p-4 pt-8 sm:m-6">
 
         <div className="mb-3">
           <p className="eyebrow-mono mb-1">SUBSTITUTE EXERCISE</p>
           <p className="font-display text-base lowercase text-foreground">{target.currentName}</p>
           {isSubbed && <p className="eyebrow-mono mt-0.5">ORIGINAL // {target.originalName.toUpperCase()}</p>}
+          {busy && <p className="eyebrow-mono mt-1" role="status">SAVING THE SWAP…</p>}
         </div>
+
+        {/* Every control below is disabled while a swap saves — a second pick
+            would build on a plan the first has not finished deciding. */}
+        <fieldset disabled={busy} className="contents">
 
         <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 mb-2">
           <Search size={13} className="text-muted-foreground shrink-0" />
@@ -1018,6 +1030,7 @@ function SwapModal({ target, onPick, onRevert, onClose }: {
             Cancel
           </button>
         </div>
+        </fieldset>
       </div>
     </div>
   )
@@ -1138,13 +1151,28 @@ export default function TrainingDayPage() {
   const workoutDataRef = useRef<Record<string, unknown>>({})
 
   const workoutIdRef = useRef<string | null>(null)
+  // Every write of a session's workout_data — its record, its overrides — goes
+  // through ONE queue, strictly in order (FOR-248, Codex r3). Each sends the
+  // whole object, so two in flight at once could land out of order and put back
+  // what the newer one removed.
+  const [queueRow] = useState(() => serialWriter())
+  // A swap is EXCLUSIVE (Codex r6). While one is saving, the sheet cannot be
+  // dismissed or picked from, a second swap cannot start, and a session edit
+  // waits for it before reading the row — so nothing builds on a plan the swap
+  // is still deciding, and nothing captures a swap that then fails.
+  const [swapping, setSwapping] = useState(false)
+  const swapInFlight = useRef<Promise<void> | null>(null)
   const weekRef = useRef<number>(1)
   const logErrTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const subsRef = useRef<SubsMap>({})
   const [swapTarget, setSwapTarget] = useState<{ slot: string; originalName: string; currentName: string } | null>(null)
 
+  // Keyed on the user's ID, not the user object: the auth context replaces the
+  // object on every token refresh, and each replacement re-ran this whole load
+  // on a live, interactive page (Codex r4).
+  const userId = user?.id ?? null
   const loadDay = useCallback(async () => {
-    if (!user || !program) return
+    if (!userId || !program) return
     try {
       // ?week=N override lets the schedule open any week of the macro —
       // prescriptions are deterministic so every week is trainable.
@@ -1156,11 +1184,11 @@ export default function TrainingDayPage() {
       } catch { /* SSR-safe no-op */ }
 
       const [progState, userMaxes, subRes] = await Promise.all([
-        fetchProgramState(supabase, user.id, slug),
-        fetchMaxes(supabase, user.id),
+        fetchProgramState(supabase, userId, slug),
+        fetchMaxes(supabase, userId),
         supabase.from('user_exercise_subs')
           .select('slot, original_name, sub_name, created_week, created_day, repeat_meso')
-          .eq('user_id', user.id).eq('program_slug', slug),
+          .eq('user_id', userId).eq('program_slug', slug),
       ])
       const weekNumber = weekOverride ?? progState.week
       weekRef.current = weekNumber
@@ -1174,7 +1202,7 @@ export default function TrainingDayPage() {
         // (swaps then apply as always-on until the migration runs).
         const legacy = await supabase.from('user_exercise_subs')
           .select('slot, original_name, sub_name')
-          .eq('user_id', user.id).eq('program_slug', slug)
+          .eq('user_id', userId).eq('program_slug', slug)
         subRows = (legacy.data ?? null) as SubRow[] | null
       }
       const subs: SubsMap = {}
@@ -1186,8 +1214,8 @@ export default function TrainingDayPage() {
       // When this run of the program began. Everything below that asks 'how far
       // along am I' is scoped to it — a find-or-create that ignores it adopts the
       // previous attempt's row, and its completion sentinel with it.
-      const runStart = await runStartedAt(supabase, user.id, slug)
-      const doneDays = await fetchDoneDays(supabase, user.id, slug, weekNumber)
+      const runStart = await runStartedAt(supabase, userId, slug)
+      const doneDays = await fetchDoneDays(supabase, userId, slug, weekNumber)
       if (doneDays.includes(dayNumber)) setSessionComplete(true)
 
       // Autoregulation: bounded % deltas from last week's actual weights + RPE.
@@ -1195,7 +1223,7 @@ export default function TrainingDayPage() {
       // RPEs would read as "way under target" and wrongly drag this week down.
       const adjustments = progState.deloadWeeks.includes(weekNumber - 1)
         ? {}
-        : await computeAdjustments(supabase, user.id, program, weekNumber, dayNumber, runStart, userMaxes)
+        : await computeAdjustments(supabase, userId, program, weekNumber, dayNumber, runStart, userMaxes)
 
       // ── Double progression for range-based accessory slots ─────────────
       // The percent engine handles the main lifts; accessories have no 1RM to
@@ -1223,7 +1251,7 @@ export default function TrainingDayPage() {
         const { data: histRows } = await supabase
           .from('ares_session_logs')
           .select('slot, block_name, weight_lbs, reps, completed, week_number, day_number, log_type')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .eq('log_type', 'strength_set')
           .eq('completed', true)
           .in('slot', Object.keys(ranges))
@@ -1249,19 +1277,61 @@ export default function TrainingDayPage() {
         program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) }),
         subs,
       )
-      basePlanRef.current = built
-      setPlan(built)
-      setOverrides({})
+      // Nothing is shown — no plan, no overrides, no row state — until this
+      // session is decided below. Publishing the build first put a trained
+      // session's card on screen as TODAY's movement for the length of two
+      // queries, and on a re-run that card was live: a set logged on it hid the
+      // moment the recorded plan replaced it (Codex r4). `placed` says whether
+      // a path below has decided it.
+      let placed = false
       // `adjustments` rides along on the row: next week's autoreg needs to know
       // what this card actually SHOWED, not just what the table said, or it
       // re-counts its own advice as freelancing and ratchets the load up.
-      workoutDataRef.current = { plan: built, adjustments }
+      const fresh = { plan: built, adjustments, [RECORDED]: true }
+      // What the cards are drawn from — `built` unless this session has been
+      // trained (FOR-248). Its logs are read with the row, not after it: the
+      // rule needs them to decide.
+      let drawn = built
+      let logs: SessionLogRow[] = []
+      // Adopt a row that already exists: its session overrides, its logs, and —
+      // once it has been trained — the plan it was trained under. One path for
+      // every way a row is found, so none of them draws a session differently.
+      const adopt = async (id: string, wd: Record<string, unknown>) => {
+        workoutDataRef.current = wd
+        const read = await fetchSessionLogs(supabase, id)
+        // Not knowing is not "untrained". Nothing is drawn, recorded or
+        // written until this session's logs can be read (Codex r1).
+        if (read.error) throw new Error(`Could not read this session's logs (${read.error.message ?? read.error.code ?? 'unknown error'}) — nothing was changed. Try again.`)
+        logs = read.logs
+        const trained = isTrained(logs)
+        drawn = sessionPlan(built, wd.plan, logs, isRecorded(wd)).plan
+        // THE RECORD. An untrained session's stored plan is written to what its
+        // cards will show, marked as the record — here, while the page is still
+        // loading, so no card exists yet to log against and nothing can race it.
+        // The first set logged is then trained under exactly this plan. Never
+        // written around a log: doing that raced the per-keystroke set saves and
+        // lost what was typed (Codex r2, r3). If it cannot be written, the
+        // session does not open — a row that cannot be written is a row whose
+        // logs would not save either, and training against a record that
+        // disagrees with the screen is the defect itself.
+        if (!trained && (!samePlan(wd.plan, built) || !isRecorded(wd))) {
+          workoutDataRef.current = { ...wd, plan: built, [RECORDED]: true }
+          const payload = workoutDataRef.current
+          const synced = await queueRow(async () => supabase.from('generated_workouts').update({ workout_data: payload }).eq('id', id))
+          if (synced.error) throw new Error(`Could not save this session's plan (${synced.error.message ?? synced.error.code ?? 'unknown error'}) — nothing was trained against it. Try again.`)
+        }
+        basePlanRef.current = drawn
+        const ovr = (wd.overrides ?? {}) as SessionOverrides
+        setOverrides(ovr)
+        setPlan(applyOverrides(drawn, ovr))
+        placed = true
+      }
 
       // Find-or-create the generated_workouts row for log linkage.
       const { data: rows } = await supabase
         .from('generated_workouts')
         .select('id, workout_data')
-        .eq('user_id', user.id).eq('program_slug', slug)
+        .eq('user_id', userId).eq('program_slug', slug)
         .eq('week_number', weekNumber).eq('day_number', dayNumber)
         .gte('created_at', runStart)
         .order('created_at', { ascending: true }).limit(1)
@@ -1270,7 +1340,6 @@ export default function TrainingDayPage() {
       if (workoutId) {
         // Session overrides (added/removed sets + exercises) live on the row.
         const wd = (rows?.[0]?.workout_data ?? {}) as Record<string, unknown>
-        workoutDataRef.current = wd
         // Rows written before adjustments were stored get backfilled once, so
         // next week's autoreg has a truthful reference instead of the raw table.
         if (wd.adjustments == null) {
@@ -1278,19 +1347,22 @@ export default function TrainingDayPage() {
           await supabase.from('generated_workouts')
             .update({ workout_data: wd }).eq('id', workoutId)
         }
-        const ovr = (wd.overrides ?? {}) as SessionOverrides
-        setOverrides(ovr)
-        setPlan(applyOverrides(built, ovr))
+        // A TRAINED session is drawn from what it was trained under, not from
+        // whatever buildDay returns today — a program change must not rewrite
+        // what a past session prescribed, nor strand the sets logged against
+        // it. An untrained one is built fresh and keeps taking corrections
+        // (FOR-248, src/lib/programs/sessionPlan.ts).
+        await adopt(workoutId, wd)
       }
       if (!workoutId) {
         const { data: saved, error: insertError } = await supabase
           .from('generated_workouts')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             program_slug: slug,
             week_number: weekNumber,
             day_number: dayNumber,
-            workout_data: { plan: built, adjustments },
+            workout_data: fresh,
             exercises: [],
           })
           .select('id').single()
@@ -1303,26 +1375,35 @@ export default function TrainingDayPage() {
           // option — scoping would return nothing and break log linkage.
           // The macrocycle programs have no such index and never reach here.
           const { data: again } = await supabase
-            .from('generated_workouts').select('id')
-            .eq('user_id', user.id).eq('program_slug', slug)
+            .from('generated_workouts').select('id, workout_data')
+            .eq('user_id', userId).eq('program_slug', slug)
             .eq('week_number', weekNumber).eq('day_number', dayNumber)
             .order('id', { ascending: true }).limit(1)
           workoutId = again?.[0]?.id ?? null
+          if (workoutId) await adopt(workoutId, (again?.[0]?.workout_data ?? {}) as Record<string, unknown>)
         } else if (insertError) {
           throw new Error(`Could not persist workout: ${insertError.message}`)
         }
       }
+      // No existing row adopted: a new one (born recorded, with the plan it
+      // shows), or none at all — drawn from the build either way.
+      if (!placed) {
+        workoutDataRef.current = fresh
+        basePlanRef.current = built
+        setOverrides({})
+        setPlan(built)
+      }
       workoutIdRef.current = workoutId
-      if (workoutId) setSessionLogs(await fetchSessionLogs(supabase, workoutId))
-      setLiftHistory(await fetchLiftHistory(supabase, user.id, slug, weekNumber, program.macroWeeks))
+      setSessionLogs(logs)
+      setLiftHistory(await fetchLiftHistory(supabase, userId, slug, weekNumber, program.macroWeeks))
 
       // All-time bests for today's lifts — powers live PR detection.
-      const liftNames = [...new Set(built.items.filter(i => i.kind === 'lift').map(i => i.name))]
+      const liftNames = [...new Set(drawn.items.filter(i => i.kind === 'lift').map(i => i.name))]
       if (liftNames.length) {
         const { data: prRows } = await supabase
           .from('ares_session_logs')
           .select('block_name, weight_lbs, reps')
-          .eq('user_id', user.id).eq('log_type', 'strength_set').eq('completed', true)
+          .eq('user_id', userId).eq('log_type', 'strength_set').eq('completed', true)
           .in('block_name', liftNames)
           .not('weight_lbs', 'is', null).gt('weight_lbs', 0)
           .limit(4000)
@@ -1339,7 +1420,7 @@ export default function TrainingDayPage() {
     } finally {
       setLoading(false)
     }
-  }, [user, program, slug, dayNumber, supabase])
+  }, [userId, program, slug, dayNumber, supabase, queueRow])
 
   useEffect(() => { loadDay() }, [loadDay])
 
@@ -1362,6 +1443,29 @@ export default function TrainingDayPage() {
     week_number: weekRef.current,
     day_number: dayNumber,
   })
+
+  // ── The row, written one change at a time (FOR-248) ───────────────────────
+  // A change updates workoutDataRef FIRST, then queues a write of the row as it
+  // now stands, for the session it was made in. Strictly in order, so the last
+  // write queued carries every change before it — and a write queued for one
+  // session can never land on the next one's row after a navigation.
+  const sendRow = (): Promise<SbRes | null> => {
+    const id = workoutIdRef.current
+    if (!id) return Promise.resolve(null)
+    const payload = workoutDataRef.current
+    return queueRow(async () => supabase.from('generated_workouts').update({ workout_data: payload }).eq('id', id))
+  }
+  // The record, rewritten for a plan about to be shown — a swap. Put on the row
+  // copy first so an edit queued after it carries it; taken back if it did not
+  // land (the plan and its mark only, and only if nothing replaced them since),
+  // so no later row write can carry a swap the screen never made.
+  const writePlan = async (next: DayPlan): Promise<SbRes | null> => {
+    const before = workoutDataRef.current
+    workoutDataRef.current = { ...before, plan: next, [RECORDED]: true }
+    const res = await sendRow()
+    if (res?.error && workoutDataRef.current.plan === next) workoutDataRef.current = { ...workoutDataRef.current, plan: before.plan, [RECORDED]: before[RECORDED] }
+    return res
+  }
 
   const logLiftSets = async (item: LiftPrescription, sets: SetEntry[]) => {
     if (!user || !workoutIdRef.current) return
@@ -1498,17 +1602,45 @@ export default function TrainingDayPage() {
   // Swap an exercise (subName) or revert to the original (null). Persists to
   // user_exercise_subs and patches the in-memory plan without a reload.
   const applySwap = async (subName: string | null, repeatMeso = true) => {
-    if (!user || !swapTarget) return
-    const { slot, originalName } = swapTarget
+    if (!user || !swapTarget || swapInFlight.current) return
+    const run = swapNow(user.id, swapTarget, subName, repeatMeso)
+    swapInFlight.current = run
+    setSwapping(true)
+    try { await run } finally { swapInFlight.current = null; setSwapping(false) }
+  }
+  const swapNow = async (uid: string, target: { slot: string; originalName: string }, subName: string | null, repeatMeso: boolean) => {
+    const { slot, originalName } = target
+    const patchItems = (p: DayPlan): DayPlan => ({
+      ...p,
+      items: p.items.map(i => {
+        if ((i.kind !== 'lift' && i.kind !== 'plyo') || i.slot !== slot) return i
+        if ((i.subbedFrom ?? i.name) !== originalName) return i
+        return subName == null || subName === originalName
+          ? { ...i, name: originalName, subbedFrom: undefined }
+          : { ...i, name: subName, subbedFrom: originalName }
+      }),
+    })
+    // 1. THE RECORD FIRST (FOR-248, Codex r4, r5). The card changes only once
+    //    this session's record says it has — so the record is never behind what
+    //    the athlete saw, and a reopen never has to guess from logs or from
+    //    today's substitutions whether a record is stale. If it cannot be
+    //    written, nothing changes, not the substitution and not the card, and
+    //    the sheet stays open to try again.
+    if (basePlanRef.current && workoutIdRef.current) {
+      const recorded = await writePlan(patchItems(basePlanRef.current))
+      report('session record', recorded)
+      if (recorded?.error) return
+    }
+    // 2. The substitution.
     if (subName == null || subName === originalName) {
       const res = await supabase.from('user_exercise_subs').delete()
-        .eq('user_id', user.id).eq('program_slug', slug)
+        .eq('user_id', uid).eq('program_slug', slug)
         .eq('slot', slot).eq('original_name', originalName)
       report('swap', res)
       delete subsRef.current[`${slot}::${originalName}`]
     } else {
       const scoped = {
-        user_id: user.id, program_slug: slug, slot,
+        user_id: uid, program_slug: slug, slot,
         original_name: originalName, sub_name: subName,
         created_week: weekRef.current, created_day: dayNumber, repeat_meso: repeatMeso,
         updated_at: new Date().toISOString(),
@@ -1526,16 +1658,7 @@ export default function TrainingDayPage() {
       report('swap', res)
       subsRef.current[`${slot}::${originalName}`] = subName
     }
-    const patchItems = (p: DayPlan): DayPlan => ({
-      ...p,
-      items: p.items.map(i => {
-        if ((i.kind !== 'lift' && i.kind !== 'plyo') || i.slot !== slot) return i
-        if ((i.subbedFrom ?? i.name) !== originalName) return i
-        return subName == null || subName === originalName
-          ? { ...i, name: originalName, subbedFrom: undefined }
-          : { ...i, name: subName, subbedFrom: originalName }
-      }),
-    })
+    // 3. The screen — last, once the record already says so.
     if (basePlanRef.current) basePlanRef.current = patchItems(basePlanRef.current)
     setPlan(p => p && patchItems(p))
     setSwapTarget(null)
@@ -1543,13 +1666,15 @@ export default function TrainingDayPage() {
 
   // ── Session overrides: add/remove sets + exercises (this week+day only) ─────
   const updateOverrides = async (next: SessionOverrides) => {
+    // An edit made while a swap is saving waits for it, so the row it sends is
+    // built on the swap's outcome — kept or taken back — and never carries a
+    // swap that then fails (Codex r6).
+    if (swapInFlight.current) await swapInFlight.current
     setOverrides(next)
     if (basePlanRef.current) setPlan(applyOverrides(basePlanRef.current, next))
     if (!workoutIdRef.current) return
     workoutDataRef.current = { ...workoutDataRef.current, overrides: next }
-    report('session edit', await supabase.from('generated_workouts')
-      .update({ workout_data: workoutDataRef.current })
-      .eq('id', workoutIdRef.current))
+    report('session edit', await sendRow())
   }
 
   const changeSetCount = async (item: LiftPrescription | PlyoPrescription, newCount: number) => {
@@ -1896,7 +2021,8 @@ export default function TrainingDayPage() {
           target={swapTarget}
           onPick={(name, repeatMeso) => void applySwap(name, repeatMeso)}
           onRevert={() => void applySwap(null)}
-          onClose={() => setSwapTarget(null)}
+          onClose={() => { if (!swapping) setSwapTarget(null) }}
+          busy={swapping}
         />
       )}
 

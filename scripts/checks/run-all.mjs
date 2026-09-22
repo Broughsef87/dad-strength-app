@@ -41,6 +41,9 @@ const SUITES = [
   // The prep slot, the jump ramp and the ground-contact ceiling — its own suite,
   // so a revert of the prep cannot take the check that would catch it (FOR-244).
   ['ballistic load (FOR-244)', 'ballistic-load.mjs'],
+  // A trained session shows what it was trained under, whatever buildDay now
+  // returns — its own suite, so a revert of the rule cannot take its check (FOR-248).
+  ['session plan (FOR-248)', 'session-plan.mjs'],
   // A dead hook and an empty queue used to look identical — its own suite, so a
   // revert of the logging cannot take the check that would catch it (FOR-246).
   ['bus observability (FOR-246)', 'bus-observability.mjs'],
