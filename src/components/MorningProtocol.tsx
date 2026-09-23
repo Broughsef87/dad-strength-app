@@ -329,6 +329,11 @@ export default function MorningProtocol(
       accountIs(user.id)
       const m = morningIn(row)
       const held = protocolOn(row, todayKey())
+      // What the row holds is what every change made from here is made against
+      // — set before any recovery, because recovery can return without ever
+      // reaching the apply below, and a change made meanwhile would carry the
+      // paint as its basis and be thrown away on the next open (Codex r22).
+      recordP.current = held
       // A change made before the account was confirmed is saved only if the
       // record vouches for it: the row holds the protocol it was made on, or
       // that protocol was generated here. Otherwise it was made on a paint that
@@ -338,7 +343,7 @@ export default function MorningProtocol(
       // The kept change belongs to the day it was MADE on: after 4am that is
       // no longer today's row, and today's row cannot vouch for it (Codex r5).
       // Until it is decided it stays kept, so a read that fails here retries.
-      const hadKept = kept.unsent.size > 0
+      let ownEdits = 0
       let recovered: Latest | null = null
       let keepScreen = false
       // Recovering the kept days reads their rows, and one of those reads can
@@ -381,6 +386,7 @@ export default function MorningProtocol(
             // change was made on, or this screen generated it for this account.
             // A change made while nobody could say who was signed in would
             // otherwise be refused by the queue for ever (Codex r17).
+            ownEdits++
             saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })
             // A change for TODAY is what the screen shows, and the row does not
             // have it yet — the record must not be applied over it. A change
@@ -401,11 +407,12 @@ export default function MorningProtocol(
         setConfigured(true)
         return
       }
-      if (keepScreen) { showStatus(); return }
-      // No change to save, but the screen changed while the read was in flight
-      // (Rebuild): that is newer than the read, which does not put it back.
-      if (!hadKept && localEdits.current !== editsAtOpen) { showStatus(); return }
-      recordP.current = held
+      // The screen changed while the read was in flight — a change made here,
+      // or a Rebuild — and that is newer than the read, which does not put it
+      // back. Our own recovery writes are not that: they are this read's doing.
+      // Counting only whether anything was KEPT missed an edit made to today
+      // while an older day's row was being read (Codex r22).
+      if (keepScreen || localEdits.current !== editsAtOpen + ownEdits) { showStatus(); return }
       if (held) {
         const c = m?.completed ?? new Array(held.steps.length).fill(false)
         const g = m?.gratitude ?? ['', '', '']
