@@ -98,9 +98,13 @@ type Latest = {
 // another (Codex r6, P1). `writing` is here for the same reason — a write
 // started before this mount is still a write this screen is waiting for.
 const kept: {
-  latest: Latest | null
   unsent: Map<string, Latest>
-} = { latest: null, unsent: new Map() }
+} = { unsent: new Map() }
+// The newest change made here for each day. Per DAY, because recovering one
+// day makes a change of its own, and a single "the latest change" marker then
+// hid a newer edit made to another day and let its older snapshot be replayed
+// over it (Codex r33).
+const newestFor = new Map<string, number>()
 let stamp = 0
 let writing = 0
 // The newest change queued for a day. Gratitude saves on every keystroke, and
@@ -218,9 +222,7 @@ export default function MorningProtocol(
   // nothing has been changed since — a change made after the read started is
   // newer than what the read will return.
   const localEdits = useRef(0)
-  // kept.latest: the latest protocol state made here, and the protocol day it
-  // belongs to — for Retry, which must retry THAT day's record, not today's
-  // (Codex r2). kept.unsent: a change the row does not have, one per day.
+  // kept.unsent: a change the row does not have, one per day (Codex r12).
   //
   // What this screen believes today's row holds: read on open, written by a
   // save that landed, or painted from what this device last saw. Every change
@@ -404,7 +406,6 @@ export default function MorningProtocol(
           const by = await u.by
           let vouched = false
           if (by !== null ? by !== user.id : u.run !== currentRun()) {
-            if (kept.latest && kept.latest.n <= u.n) kept.latest = null
           } else {
             // The row still holds what the change was made against: then the
             // change belongs on top of it, whether it ticks that protocol,
@@ -431,7 +432,7 @@ export default function MorningProtocol(
           // them, so a change made to THE SAME DAY meanwhile has been written on
           // its own — and this older snapshot must not land on top of it, nor the
           // record be applied over it (Codex r10, r12).
-          if (kept.latest !== null && kept.latest.day === u.day && kept.latest.n > u.n) {
+          if ((newestFor.get(u.day) ?? 0) > u.n) {
             if (u.day === todayKey()) keepScreen = true
             continue
           }
@@ -502,7 +503,7 @@ export default function MorningProtocol(
     // Retry, the day of the change being retried. Evaluated inside the queued
     // write it could fall after 4am and file this protocol into the next day's
     // row (Codex r1, r2).
-    kept.latest = {
+    const mine: Latest = {
       p, c, g, day, n: ++stamp,
       by: again ? again.by : madeBy(),
       run: again ? again.run : currentRun(),
@@ -515,6 +516,8 @@ export default function MorningProtocol(
       // yesterday's protocol is no basis for a change made today (Codex r31).
       was: again ? again.was : (onTop ? onTop.was : (recordP.current?.day === day ? recordP.current.p : null)),
     }
+    // Made, whether or not it is ever queued: what is kept counts too.
+    newestFor.set(day, mine.n)
     // The account that made the change, captured now. Before the open-time
     // read has answered there is no owner to bind to, and the change is kept
     // as unsent — never a write under an account nobody checked. The read
@@ -522,7 +525,6 @@ export default function MorningProtocol(
     const owner = ownerRef.current
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
-    const mine = kept.latest
     if (!owner) {
       keep(mine)
       const s = statusNow()

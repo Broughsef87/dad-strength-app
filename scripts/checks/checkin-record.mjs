@@ -279,14 +279,14 @@ assert(/const saveCache = \(p: Protocol, c: boolean\[\], g: string\[\], day: str
   , 'a protocol write goes to the protocol day the change was made on — captured before it queues, never read inside the queue')
 // Codex r2: Retry recomputed the day, so a change that failed before 4am was
 // retried after it — into the NEXT day's row.
-assert(/kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,/.test(mp)
+assert(/const mine: Latest = \{\s*p, c, g, day, n: \+\+stamp,/.test(mp) && /newestFor\.set\(day, mine\.n\)/.test(fnBody(mp, 'const saveCache = '))
   && /const retrySave = \(\) => \{ void open\(\) \}/.test(mp),
   "a Retry IS the open-time read: it reads each kept day's row and saves the change only if that row still holds what the change was made against — every day the row does not have, never the latest snapshot, and never over a protocol another device has put there since (Codex r2, r13, r15, r26)")
 // Codex r5: moving to another tab in the app unmounts these components. What
 // the row does not have yet is kept per TAB, and the next open saves it — and
 // it is never touched while rendering, where a server render would hand one
 // visitor's changes to the next.
-assert(/^const kept: \{[\s\S]{0,160}\} = \{ latest: null, unsent: new Map\(\) \}/m.test(mp) && !/useRef<Latest \| null>/.test(mp),
+assert(/^const kept: \{[\s\S]{0,160}\} = \{ unsent: new Map\(\) \}/m.test(mp) && /^const newestFor = new Map<string, number>\(\)/m.test(mp) && !/useRef<Latest \| null>/.test(mp),
   'a protocol change the row does not have outlives this component — one tab, not one mount')
 assert(/^const makeBook = \(\) => objectivesBook<Change>\(localDay\(\)\)\nlet theBook: ReturnType<typeof makeBook> \| null = null\nexport const book = \(\) => \{ watchSession\(\); return \(theBook \?\?= makeBook\(\)\) \}/m.test(out)
   && !/useState\(\(\) => objectivesBook/.test(obj) && !/\bbook\(\)/.test(obj.slice(obj.lastIndexOf('  return ('))),
@@ -408,10 +408,10 @@ assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayK
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
 // never be saved under account B — its protocol, and its gratitude, are A's.
 assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}was: Protocol \| null[\s\S]{0,900}run: number\s*\}/.test(mp)
-  && /kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,[\s\S]{0,900}was: again \? again\.was :[\s\S]{0,200}\}/.test(mp)
+  && /const mine: Latest = \{\s*p, c, g, day, n: \+\+stamp,[\s\S]{0,900}was: again \? again\.was :[\s\S]{0,300}\}/.test(mp)
   && /const madeBy = \(\): Promise<string \| null> => accountAtChange\(createClient\(\), \{ current: ownerRef\.current \}\)/.test(mp),
   'every change kept carries the account that made it, fixed at the change, and a change-time lookup never becomes the confirmed account')
-assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null \? by !== user\.id : u\.run !== currentRun\(\)\) \{\s*if \(kept\.latest && kept\.latest\.n <= u\.n\) kept\.latest = null\s*\} else \{/.test(openFn),
+assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null \? by !== user\.id : u\.run !== currentRun\(\)\) \{\s*\} else \{/.test(openFn),
   'and a change made by another account is dropped, never saved under this one — and one nobody could name an account for belongs to the run of this tab it was made in, because an empty row of the next account is no kind of ownership (Codex r6, r20, P1)')
 // Codex r20: a gratitude line typed while the protocol it belongs to was
 // still saving was made against what the row held BEFORE that save landed.
@@ -421,8 +421,8 @@ assert(/const movedOn = \(day: string, p: Protocol, after: number\) => \{\s*cons
 // Codex r10: deciding a kept change takes an await or two, and the account is
 // confirmed before them — so a change made meanwhile is written on its own, and
 // this older snapshot must not land on top of it.
-assert(/settled\(u\)\s*\/\/[\s\S]{0,900}if \(kept\.latest !== null && kept\.latest\.day === u\.day && kept\.latest\.n > u\.n\) \{\s*if \(u\.day === todayKey\(\)\) keepScreen = true\s*continue\s*\}/.test(openFn)
-  && openFn.indexOf('if (kept.latest !== null && kept.latest.day === u.day && kept.latest.n > u.n)') < openFn.indexOf('if (vouched) {')
+assert(/settled\(u\)\s*\/\/[\s\S]{0,900}if \(\(newestFor\.get\(u\.day\) \?\? 0\) > u\.n\) \{\s*if \(u\.day === todayKey\(\)\) keepScreen = true\s*continue\s*\}/.test(openFn)
+  && openFn.indexOf('if ((newestFor.get(u.day) ?? 0) > u.n)') < openFn.indexOf('if (vouched) {')
   && /const newerOnScreen = keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)/.test(openFn)
   && /if \(recovered && !newerOnScreen\) \{/.test(openFn),
   'a kept change superseded while it was being decided is not saved, and the record is not applied over the change that superseded it (Codex r10)')
