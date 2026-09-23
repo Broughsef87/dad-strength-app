@@ -65,7 +65,15 @@ export function applyIntents<I extends Intent>(record: Mind, intents: readonly I
   let state = record
   const applied: I[] = [], dead: I[] = []
   for (const it of intents) {
-    if (!sameSet(state.objectives, it.basis)) { dead.push(it); continue }
+    if (!sameSet(state.objectives, it.basis)) {
+      // A set whose objectives the record ALREADY holds is its own write: it
+      // reached the row and the answer was lost on the way back. That is
+      // acknowledged, not overtaken — and the flags it finds there stay as
+      // they are, because they were ticked after it landed (Codex r34).
+      if (it.kind === 'set' && sameSet(state.objectives, it.objectives)) { applied.push(it); continue }
+      dead.push(it)
+      continue
+    }
     state = it.kind === 'set'
       ? { objectives: [...it.objectives], completed: it.objectives.map(() => false), lockedIn: true }
       : { ...state, completed: state.completed.map((v, j) => (j === it.index ? it.done : v)) }

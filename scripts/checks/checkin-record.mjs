@@ -198,6 +198,16 @@ assert(flushFn.indexOf("book().settle(applied, 'saved')") > flushFn.indexOf('if 
     assert(c.discarded(mine) && late.write === null && late.applied.length === 0 && c.pending().length === 0,
       'a change dropped by a read that landed while its save was queued is still answered — its save writes nothing, and cannot say "saved" (Codex r9)')
   }
+  // Codex r34: a lock-in whose write reached the row but lost its answer found
+  // its own objectives there and called them somebody else's replacement.
+  {
+    const c = objectivesBook(D)
+    const mine = { kind: 'set', day: D, basis: [], objectives: ['A', 'B'] }
+    c.intend(mine)
+    const pl2 = c.plan(D, row(['A', 'B'], [true, false]))
+    assert(pl2.dead.length === 0 && pl2.applied.length === 1 && pl2.write !== null && eq(pl2.write.completed, [true, false]),
+      'a lock-in the row already holds is its own write, landed with its answer lost — acknowledged, not overtaken, and the flags ticked since stay as they are (Codex r34)')
+  }
   // Sparse legacy rows pair each flag with its objective before compacting.
   const n = normalise(['', 'A', 'B'], [false, true, false])
   assert(eq(n, { objectives: ['A', 'B'], completed: [true, false] }), 'a legacy sparse row keeps each flag on its own objective')
