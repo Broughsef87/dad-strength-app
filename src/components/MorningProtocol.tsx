@@ -369,7 +369,11 @@ export default function MorningProtocol(
       // is being read must be made on the record, not on a cache the row has
       // already replaced (Codex r24). Unless something changed here since the
       // read started — that is newer than the read, and it keeps the screen.
-      if (localEdits.current === editsAtOpen) applyRecord()
+      // …and unless TODAY itself has a change the row does not have: the screen
+      // is showing that change, recovery decides it in a moment, and rolling
+      // the screen back to the record first made the next keystroke a snapshot
+      // of the rolled-back state — which then saved over it (Codex r35).
+      if (localEdits.current === editsAtOpen && !kept.unsent.has(todayKey())) applyRecord()
       // Only now are writes this screen's to make: what is on it is the
       // record, or a change newer than the read (Codex r24).
       ownerRef.current = user.id

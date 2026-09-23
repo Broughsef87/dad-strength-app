@@ -394,8 +394,8 @@ assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpir
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /const recordP = useRef<\{ day: string; p: Protocol \| null \} \| null>\(null\)/.test(mp) && /recordP\.current = \{ day: todayKey\(\), p: data\.protocol \}/.test(mpLoader)
   && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') > 0 && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') < openFn.indexOf('for (const u of [...kept.unsent.values()])')
-  && /if \(localEdits\.current === editsAtOpen\) applyRecord\(\)/.test(openFn)
-  && openFn.indexOf('if (localEdits.current === editsAtOpen) applyRecord()') < openFn.indexOf('ownerRef.current = user.id')
+  && /if \(localEdits\.current === editsAtOpen && !kept\.unsent\.has\(todayKey\(\)\)\) applyRecord\(\)/.test(openFn)
+  && openFn.indexOf('if (localEdits.current === editsAtOpen && !kept.unsent.has(todayKey())) applyRecord()') < openFn.indexOf('ownerRef.current = user.id')
   && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = \{ day, p \}/.test(saveFn) && /const onTop = \[\.\.\.sending, \.\.\.\(kept\.unsent\.get\(day\) \? \[kept\.unsent\.get\(day\) as Latest\] : \[\]\)\]/.test(mp)
   && /\.reduce<Latest \| null>\(\(newest, u\) => \(newest === null \|\| u\.n > newest\.n \? u : newest\), null\)/.test(mp)
   && /was: again \? again\.was : \(onTop \? onTop\.was : \(recordP\.current\?\.day === day \? recordP\.current\.p : null\)\)/.test(mp) && !/generated/.test(code(mp)),
