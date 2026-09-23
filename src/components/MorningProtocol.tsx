@@ -480,9 +480,14 @@ export default function MorningProtocol(
   const saveCache = (p: Protocol, c: boolean[], g: string[], day: string = todayKey(), again?: Latest) => {
     localEdits.current++
     // The change this one is made on top of, if this day's row does not have
-    // it yet. Its basis can itself be null — the row held nothing — and that
-    // is not the same as there being no change to stack on (Codex r24).
-    const onTop = kept.unsent.get(day)
+    // it yet — kept, or still on its way there. Its basis can itself be null
+    // — the row held nothing — and that is not the same as there being no
+    // change to stack on (Codex r24). A rebuild still saving when the screen
+    // was left is in `sending` and nowhere else, and taking the paint instead
+    // of its basis threw it away on the next open (Codex r27).
+    const onTop = [...sending, ...(kept.unsent.get(day) ? [kept.unsent.get(day) as Latest] : [])]
+      .filter((u) => u.day === day)
+      .reduce<Latest | null>((newest, u) => (newest === null || u.n > newest.n ? u : newest), null)
     // `day`: the protocol day the change was MADE on, captured now — or, for a
     // Retry, the day of the change being retried. Evaluated inside the queued
     // write it could fall after 4am and file this protocol into the next day's
