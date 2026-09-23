@@ -557,7 +557,12 @@ export default function MorningProtocol(
     // read has answered there is no owner to bind to, and the change is kept
     // as unsent — never a write under an account nobody checked. The read
     // saves it when it answers; Retry runs the read again if it failed.
-    const owner = deciding.current ? null : ownerRef.current
+    // …and while an open has not yet decided what today holds, a change made
+    // HERE is kept rather than written (Codex r37). Not a snapshot being sent
+    // again: that is the recovery's own write, the one that decision just
+    // authorised — holding it back left every failed save unrecoverable, by
+    // Retry or by reopening (Codex r39).
+    const owner = deciding.current && !again ? null : ownerRef.current
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
     if (!owner) {

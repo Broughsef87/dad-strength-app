@@ -375,7 +375,7 @@ assert(/\{sync === 'saving' && 'saving · '\}\{doneCount\}/.test(obj) && /\{sync
 assert(!/serialWriter/.test(code(mp)) && !/serialWriter/.test(code(obj)) && /export const checkinQueue = serialWriter\(\)/.test(readLF('src/lib/checkinQueue.ts')),
   'neither component keeps a queue of its own — with one each, a tick on the card could land after the Goals step replaced the objectives it was made against')
 const openFn = fnBody(mp, 'const open = ')
-assert(/const owner = deciding\.current \? null : ownerRef\.current/.test(saveFn) && /user_id: me,/.test(saveFn) && !/user_id: owner/.test(saveFn) && /if \(!owner\) \{\s*keep\(mine\)\s*const s = statusNow\(\)/.test(saveFn),
+assert(/const owner = deciding\.current && !again \? null : ownerRef\.current/.test(saveFn) && /user_id: me,/.test(saveFn) && !/user_id: owner/.test(saveFn) && /if \(!owner\) \{\s*keep\(mine\)\s*const s = statusNow\(\)/.test(saveFn),
   'a protocol write is bound to the account that made it, captured when it was made — and with no confirmed account it is kept, never a write under an account nobody checked')
 // Codex r16, P1: a snapshot sent again was re-stamped from what was true NOW —
 // the account signed in, the protocol last generated — so a change account A
