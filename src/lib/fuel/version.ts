@@ -6,7 +6,6 @@
 import type { DietaryRules, Household, ListItem, Plan } from './types'
 import { solverLines } from './custom'
 import { withoutRecord } from './record'
-import { canonical } from '../canonical'
 
 export interface RulesSnapshot {
   people_count: number
@@ -53,10 +52,18 @@ export function snapshotKey(s: RulesSnapshot): string {
   return canonical(s)
 }
 
-// canonical (src/lib/canonical.ts): a key whose value is undefined is omitted,
-// as JSON omits it — a list or a snapshot read back from jsonb must compare
-// equal to one built fresh, or every rebuild after a reload would be
-// "different" and reset its ticks (Codex, round 12).
+// A key whose value is undefined is omitted, as JSON omits it: a list or a
+// snapshot read back from jsonb must compare equal to one built fresh, or
+// every rebuild after a reload would be "different" and reset its ticks
+// (Codex, round 12).
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']'
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>
+    return '{' + Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canonical(o[k])).join(',') + '}'
+  }
+  return JSON.stringify(v)
+}
 
 /** Does this household + plan differ from the version already stored? Compared the way that version was built: with what is on hand counted, or not. */
 export function changed(previous: RulesSnapshot | null | undefined, household: Household, plan: Plan): boolean {

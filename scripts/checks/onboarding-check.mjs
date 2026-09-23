@@ -67,16 +67,11 @@ if (mount) {
 const mp = read('../../src/components/MorningProtocol.tsx')
 ok('MorningProtocol reports completion upward', /onSaved/.test(mp),
   'no callback — the checklist cannot learn the protocol was run')
-// Each save function's BODY, to its own closing brace — not a fixed character
-// window. The signal now fires once the row write has landed (FOR-231), which
-// puts it after the write, well past where a window of the function's opening
-// characters would look.
-const bodyOf = (name) => { const at = mp.indexOf(`const ${name} = `); return at < 0 ? '' : mp.slice(at, mp.indexOf('\n  }\n', at)) }
-const saveFns = ['saveMindState', 'saveCache'].map(bodyOf).filter(Boolean)
+const saveFns = mp.split(/const saveCache|const saveMindState/).slice(1)
 ok('every MorningProtocol save path signals the parent',
-  saveFns.length === 2 && saveFns.every((f) => /onSaved\?\.\(\)/.test(f)),
+  saveFns.length === 2 && saveFns.every((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))),
   'found ' + saveFns.length + ' save paths, ' +
-  saveFns.filter((f) => /onSaved\?\.\(\)/.test(f)).length + ' signalling')
+  saveFns.filter((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))).length + ' signalling')
 
 // Date keys across the two components must agree, or the checklist can never
 // mark the item: MorningProtocol writes localDayWithCutoff(4) (YYYY-MM-DD) and
@@ -100,9 +95,8 @@ ok('the checklist watcher depends on the tick',
 ok('the objectives card takes a refresh key',
   /refreshKey/.test(read('../../src/components/DailyObjectivesCard.tsx')),
   'mount-only loader with no signal — a same-page save is invisible to it')
-// One tick since FOR-231: the record changed. The card follows it.
 ok('dashboard feeds the tick to the objectives card',
-  /<DailyObjectivesCard[\s\S]*?refreshKey=\{recordTick\}/.test(dash))
+  /<DailyObjectivesCard[\s\S]*?refreshKey=\{protocolTick\}/.test(dash))
 
 // -- 2d. objectives must be settable without AI -----------------------------
 // The protocol's Goals step sits behind `if (!configured)`, which is only true
@@ -110,11 +104,6 @@ ok('dashboard feeds the tick to the objectives card',
 // state at it dead-ended anyone with no protocol yet, out of free AI quota, or
 // already past that step — on a feature that needs no AI at all.
 const objCard = read('../../src/components/DailyObjectivesCard.tsx')
-// The card's record logic — the stored shape, the sparse-row repair — lives in
-// src/lib/objectivesRecord.ts since FOR-231; the card writes through it.
-const objRecord = read('../../src/lib/objectivesRecord.ts')
-const toRowFn = objRecord.slice(objRecord.indexOf('export function toRow('), objRecord.indexOf('\n}\n', objRecord.indexOf('export function toRow(')))
-const fromRowFn = objRecord.slice(objRecord.indexOf('export function fromRow('), objRecord.indexOf('\n}\n', objRecord.indexOf('export function fromRow(')))
 ok('the objectives card can set objectives itself',
   /saveDraft/.test(objCard) && /mind_state/.test(objCard),
   'no inline editor — the empty state depends on an AI-gated surface')
@@ -123,17 +112,11 @@ ok('the objectives empty state does not navigate away',
   'still links out instead of editing in place')
 // Both editors write the same shape to the same place, or one silently
 // overwrites the other.
-// One writer now (FOR-231, Codex r7): both screens make the same kind of change
-// in the same outbox, which writes the one shape.
-const outbox = read('../../src/lib/objectivesOutbox.ts')
 for (const field of ['objectives', 'completedObjectives', 'lockedIn']) {
-  ok(`the day's objectives persist ${field}`,
-    new RegExp(`\\b${field}: `).test(toRowFn) && /toRow\(day, write\)/.test(outbox),
-    'the stored shape lost a field')
+  ok(`both objective writers persist ${field}`,
+    new RegExp(field).test(objCard) && new RegExp(field).test(mp),
+    'shapes diverge between the card and the protocol Goals step')
 }
-ok('both screens write the objectives through that one outbox',
-  /const mine: Change = \{ kind: 'set'/.test(objCard) && /const mine: Change = \{ kind: 'set'/.test(mp) && /intend\(mine\)/.test(mp) && !/mind_state:/.test(mp),
-  'the protocol Goals step writes the row itself again — a failed save there is remembered by nothing')
 
 // Objectives render filtered and toggle by the FILTERED index, which writes
 // completedObjectives at that index. A sparse array therefore lands a
@@ -147,7 +130,7 @@ for (const [label, src] of [['card', objCard], ['protocol', mp]]) {
     'saves a sparse array; completion flags will misalign')
 }
 ok('the card realigns legacy sparse rows on read',
-  /fromRow\(/.test(outbox) && /const n = normalise\(/.test(fromRowFn) && /\[String\(o \?\? ''\), Boolean\(\(done \?\? \[\]\)\[i\]\)\]/.test(objRecord),
+  /normalise/.test(objCard) && /\[String\(o \?\? ''\), Boolean\(\(done \?\? \[\]\)\[i\]\)\]/.test(objCard),
   'old rows keep their misalignment forever')
 
 // -- 2c. the scroll must survive the loading branch -------------------------

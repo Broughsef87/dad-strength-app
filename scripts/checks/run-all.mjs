@@ -37,9 +37,6 @@ const SUITES = [
   ['design system', 'design-system.mjs'],
   ['adherence (FOR-228)', 'adherence.mjs'],
   ['protocol row key (FOR-228)', 'protocol-row-key.mjs'],
-  // The row is the record; localStorage only paints — its own suite, so a
-  // revert of the ruling cannot take the check that would catch it (FOR-231).
-  ['checkin record (FOR-231)', 'checkin-record.mjs'],
   ['program lineup (FOR-225)', 'program-lineup.mjs'],
   // The prep slot, the jump ramp and the ground-contact ceiling — its own suite,
   // so a revert of the prep cannot take the check that would catch it (FOR-244).

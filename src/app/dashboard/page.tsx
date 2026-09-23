@@ -26,8 +26,8 @@ import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
 import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../../lib/programs/schedule'
 import {
-  rollingDays, protocolCompleteDays, trainingAdherence,
-  type RollingDays, type MorningState,
+  rollingDays, protocolCompleteDays, reconcileLocal, localMatchesMirror, trainingAdherence,
+  type RollingDays, type MorningState, type MorningEntry,
 } from '../../lib/adherence'
 import { localDay, localDayWithCutoff } from '../../utils/day'
 
@@ -51,26 +51,56 @@ interface WorkoutData {
 }
 
 // ── The daily number ─────────────────────────────────────────────────────────
-// Morning protocols completed in the last 20 days (FOR-228), read from
-// daily_checkins and NOTHING ELSE. The row is the record (FOR-231): the local
-// cache MorningProtocol paints from is never read here, never matched against
-// a row, never allowed to stand in for one. MorningProtocol tells this page a
-// protocol changed only once the row has it, so one read after that signal is
-// the new number — no re-read loop, no "settled", no negotiation. Each entry
-// carries the protocol's own 4am-cutoff date, so a pre-dawn finish counts for
-// the morning it belonged to; a couple of extra rows on the query keep it
-// inside the window. Which row is a day's record is protocolCompleteDays's one
-// rule (src/lib/adherence.ts).
-async function fetchProtocolDays(supabase: ReturnType<typeof createClient>, userId: string): Promise<RollingDays> {
+// Morning protocols completed in the last 20 days (FOR-228). History comes
+// from daily_checkins.spirit_state, the mirror MorningProtocol writes on every
+// save; TODAY's latest state comes from the local cache it writes first,
+// because onSaved fires before the mirror lands and a protocol finished
+// seconds ago has to count now, not after a remount. The cache has no owner,
+// so reconcileLocal trusts it only against a mirror entry this user's own
+// rows already hold, and then lets it replace that entry. Every entry carries
+// the protocol's own 4am-cutoff date, so a pre-dawn finish counts for the
+// morning it belonged to; a couple of extra rows on the query keep it inside
+// the window.
+//
+// The cache is consulted ONLY on the heels of a local save (Codex, round 3).
+// On a plain load it is not the newest state: a protocol opened here and
+// finished on the phone leaves this device's cache stale, and it would have
+// replaced the mirror's completed entry with its own unfinished one. On load
+// the mirror is the truth — MorningProtocol re-syncs the cache from it and
+// fires no tick for that, which is fine, because the mirror already counts.
+const PROTOCOL_CACHE_KEY = 'dad-strength-morning-protocol'
+async function fetchProtocolDays(
+  supabase: ReturnType<typeof createClient>, userId: string, { pendingLocalSave }: { pendingLocalSave: boolean },
+): Promise<{ days: RollingDays; settled: boolean }> {
+  // One protocol day can be mirrored in two rows during the row-key
+  // transition — a legacy row keyed on the calendar day and the canonical row
+  // keyed on the protocol's own day — and only one snapshot of a day is
+  // judged. The row's date says which kind it is; the canonical row wins
+  // outright. updated_at breaks ties only within a kind, because it also
+  // moves when objectives are saved into the row.
   const { data: checkins } = await supabase
     .from('daily_checkins')
-    .select('spirit_state, date')
+    .select('spirit_state, updated_at, date')
     .eq('user_id', userId)
     .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
-  const states: MorningState[] = (checkins ?? []).map(
-    (r: { spirit_state: { morning?: MorningState['morning'] } | null; date: string }) => ({ morning: r.spirit_state?.morning, row: r.date }),
+  let states: (MorningState | null | undefined)[] = (checkins ?? []).map(
+    (r: { spirit_state: MorningState | null; updated_at: string | null; date: string }) =>
+      ({ morning: r.spirit_state?.morning, at: r.updated_at, row: r.date }),
   )
-  return rollingDays(protocolCompleteDays(states), localDayWithCutoff(4), 20)
+  // settled: the mirror already holds what the cache holds, so nothing is
+  // still in flight and no further read is needed.
+  let settled = true
+  if (pendingLocalSave) {
+    try {
+      const cached = localStorage.getItem(PROTOCOL_CACHE_KEY)
+      if (cached) {
+        const local = JSON.parse(cached) as MorningEntry
+        settled = localMatchesMirror(states, local)
+        states = reconcileLocal(states, local)
+      }
+    } catch { /* no cache, or malformed — the mirror still counts */ }
+  }
+  return { days: rollingDays(protocolCompleteDays(states), localDayWithCutoff(4), 20), settled }
 }
 
 export default function Dashboard() {
@@ -94,12 +124,16 @@ export default function Dashboard() {
   const [checklistDone, setChecklistDone] = useState(false)
   const [firstName, setFirstName] = useState('')
 
-  // Bumped when MorningProtocol's RECORD has changed — the row write landed,
-  // protocol or objectives (FOR-231). Every reader on this page re-reads the
-  // row on it: the daily number, the checklist, the objectives card. One
-  // signal, because there is one record; the protocol-only signal that sat
-  // beside it existed to protect a cache no reader consults any more.
-  const [recordTick, setRecordTick] = useState(0)
+  // Bumped whenever a protocol pillar is completed, and passed to the checklist
+  // so its "did they run the protocol yet" effect re-runs. That effect reads
+  // localStorage, and a sibling component writing localStorage fires nothing a
+  // component in the same tab can observe — the storage event is cross-tab
+  // only. Without this the item stays unchecked for the whole session.
+  const [protocolTick, setProtocolTick] = useState(0)
+  // Protocol-cache saves only (Codex, round 6). onSaved also fires for an
+  // objectives-only save, which writes nothing to the protocol cache; the
+  // adherence count must not take that as "the cache is fresh".
+  const [protocolSaveTick, setProtocolSaveTick] = useState(0)
 
   // ?protocol=1 no longer gates whether the protocol renders — it always does.
   // What it still has to do is FOCUS it. Arrivals from the /mind and /spirit
@@ -270,26 +304,39 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      setProtocolDays(await fetchProtocolDays(supabase, user.id))
+      setProtocolDays((await fetchProtocolDays(supabase, user.id, { pendingLocalSave: false })).days)
       setLoading(false)
     }
     loadDashboard()
   }, [router])
 
-  // The daily number re-reads the record whenever it changes. Tick 0 is the
-  // mount, and the load above already covered it. One read: the signal fires
-  // only once the row holds the change.
+  // The daily number recomputes whenever the PROTOCOL cache saves — not the
+  // general tick the checklist and the objectives card listen to, which also
+  // fires for an objectives-only save that leaves the cache untouched and
+  // possibly stale. Tick 0 is the mount, and the load above already covered
+  // it. It reads at once, for the cache, and then again until the mirror
+  // holds what the cache holds: a rebuild replaces the protocol, the cache
+  // cannot be matched until the mirror carries the new one, and that upsert
+  // takes as long as it takes. Bounded, so a write that never lands cannot
+  // keep this polling.
   useEffect(() => {
-    if (recordTick === 0) return
+    if (protocolSaveTick === 0) return
     let cancelled = false
-    void (async () => {
+    const run = async (): Promise<boolean> => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user || cancelled) return
-      const days = await fetchProtocolDays(supabase, user.id)
+      if (!user || cancelled) return true
+      const { days, settled } = await fetchProtocolDays(supabase, user.id, { pendingLocalSave: true })
       if (!cancelled) setProtocolDays(days)
+      return settled
+    }
+    void (async () => {
+      for (let attempt = 0; attempt < 6 && !cancelled; attempt++) {
+        if (await run()) break
+        await new Promise((r) => setTimeout(r, 1500))
+      }
     })()
     return () => { cancelled = true }
-  }, [recordTick, supabase])
+  }, [protocolSaveTick, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -403,17 +450,20 @@ export default function Dashboard() {
               <FirstWeekChecklist
                 onComplete={() => setChecklistDone(true)}
                 onOpenProtocol={() => setForceProtocol(true)}
-                protocolTick={recordTick}
+                protocolTick={protocolTick}
               />
               <div ref={protocolRef}>
-                <MorningProtocol onSaved={() => setRecordTick(t => t + 1)} />
+                <MorningProtocol
+                  onSaved={() => setProtocolTick(t => t + 1)}
+                  onProtocolSaved={() => setProtocolSaveTick(t => t + 1)}
+                />
               </div>
               {/* Objectives are SET in the protocol's Goals step, which writes
                   mind_state; this card is the only thing that reads them back
                   and lets you tick them off. Unmounting it while the protocol
                   still saves objectives left users with a "Saved" confirmation
                   and nowhere to see what they saved. */}
-              <DailyObjectivesCard refreshKey={recordTick} />
+              <DailyObjectivesCard refreshKey={protocolTick} />
             </div>
           </motion.div>
 
