@@ -410,7 +410,11 @@ export default function MorningProtocol(
             // something else, the record moved on — here or on another device
             // — and the change is not this one's to land (Codex r18, r19).
             const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
-            vouched = sameJson(its, u.was)
+            // …or the row already holds this change's OWN protocol: its write
+            // reached the row and the answer was lost on the way back, and the
+            // ticks and gratitude made after it are still this screen's to save
+            // (Codex r29).
+            vouched = sameJson(its, u.was) || sameJson(its, u.p)
           }
           // The awaits above take time — the account, sometimes another day's
           // row — and this open may have been ended while they ran. Nothing of
