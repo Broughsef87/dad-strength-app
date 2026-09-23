@@ -204,6 +204,10 @@ export default function MorningProtocol(
   // 'unreached': the row could not be read, so what is on screen is only what
   // this device last saw.
   const [sync, setSync] = useState<'synced' | 'saving' | 'unsaved' | 'unreached'>('synced')
+  // Has the record answered? Building a protocol before it has spends the AI
+  // on one the record then rejects — the row already held today's, and an
+  // unread row is not an empty one (Codex r36).
+  const [recordKnown, setRecordKnown] = useState(false)
   // Every write of the row goes through the ONE check-in queue shared with the
   // objectives card (src/lib/checkinQueue.ts, Codex r2): gratitude saves on
   // every keystroke, and an earlier keystroke landing last would leave the
@@ -344,6 +348,7 @@ export default function MorningProtocol(
       // reaching the apply below, and a change made meanwhile would carry the
       // paint as its basis and be thrown away on the next open (Codex r22).
       recordP.current = { day: todayKey(), p: held }
+      setRecordKnown(true)
       const applyRecord = () => {
         if (held) {
           const c = m?.completed ?? new Array(held.steps.length).fill(false)
@@ -765,12 +770,14 @@ export default function MorningProtocol(
 
         <button
           onClick={() => generate()}
-          disabled={loading}
+          disabled={loading || !recordKnown}
           className="w-full flex items-center justify-center gap-2 bg-foreground disabled:bg-surface-2 disabled:text-muted-foreground text-background font-medium py-4 rounded-lg text-sm lowercase transition-all"
         >
           {loading
             ? <><Loader2 size={16} className="animate-spin" /> Building...</>
-            : <><Sun size={16} /> Build My Morning</>
+            : !recordKnown
+              ? <><Loader2 size={16} className="animate-spin" /> Reading your record...</>
+              : <><Sun size={16} /> Build My Morning</>
           }
         </button>
 

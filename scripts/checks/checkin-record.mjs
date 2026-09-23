@@ -458,6 +458,12 @@ assert(/^let opens = 0/m.test(mp) && /const mine = \+\+opens\s*const live = \(\)
 // with a protocol already in the row — and generating again would overwrite it.
 assert(/setProtocol\(recovered\.p\)\s*setCompleted\(recovered\.c\)\s*setGratitude\(recovered\.g\)\s*setConfigured\(true\)/.test(openFn),
   "a protocol recovered from what was kept is put on screen, not left to a paint that may not be there (Codex r7)")
+// Codex r36: building a protocol before the record had answered spent the AI on
+// one the record then rejected — the row already held today's, and an unread
+// row is not an empty one.
+assert(/const \[recordKnown, setRecordKnown\] = useState\(false\)/.test(mp) && /setRecordKnown\(true\)/.test(openFn)
+  && /disabled=\{loading \|\| !recordKnown\}/.test(mp) && /Reading your record/.test(mp),
+  'nothing is built until the record has answered — an unread row is not an empty one (Codex r36)')
 assert(/const retrySave = \(\) => \{ void open\(\) \}/.test(mp),
   'Retry recovers a failed open — it runs the read again — instead of refusing every change until a reload (Codex r3)')
 // runAs, as behaviour: a job queued under one account never runs under another.
