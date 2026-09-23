@@ -452,7 +452,16 @@ export default function MorningProtocol(
         } catch { /* that day's row did not answer; it stays kept */ }
       }
       if (!live()) return
-      if (recovered) {
+      // The screen changed while the read was in flight — a change made here,
+      // or a Rebuild — and that is newer than the read, which does not put it
+      // back. Our own recovery writes are not that: they are this read's doing.
+      // Counting only whether anything was KEPT missed an edit made to today
+      // while an older day's row was being read (Codex r22). It holds for what
+      // was RECOVERED too: recovering today's change and then reading an older
+      // day's row leaves time for another tick, and painting the recovered
+      // snapshot over it would put that tick back on the next save (Codex r32).
+      const newerOnScreen = keepScreen || (!rejected && localEdits.current !== editsAtOpen + ownEdits)
+      if (recovered && !newerOnScreen) {
         // On screen, not left to the paint: localStorage may be unavailable,
         // or its last write may have failed, and then nothing would show what
         // was just recovered (Codex r7).
@@ -462,12 +471,7 @@ export default function MorningProtocol(
         setConfigured(true)
         return
       }
-      // The screen changed while the read was in flight — a change made here,
-      // or a Rebuild — and that is newer than the read, which does not put it
-      // back. Our own recovery writes are not that: they are this read's doing.
-      // Counting only whether anything was KEPT missed an edit made to today
-      // while an older day's row was being read (Codex r22).
-      if (keepScreen || (!rejected && localEdits.current !== editsAtOpen + ownEdits)) { showStatus(); return }
+      if (recovered || newerOnScreen) { showStatus(); return }
       applyRecord()
       showStatus()
     } catch {

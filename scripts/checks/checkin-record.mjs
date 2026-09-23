@@ -238,7 +238,7 @@ assert(/adoptRead\(today, read\.ms, read\.seq, true\)/.test(objLoad)
   && /if \(ms\) localStorage\.setItem\(MIND_KEY[\s\S]{0,120}else localStorage\.removeItem\(MIND_KEY\)/.test(topFn(out, 'export function paintMind')),
   'and what its row says replaces the paint, including that there is nothing today')
 // A change made while the read was in flight is newer than the read.
-assert(/const editsAtOpen = localEdits\.current/.test(mpLoader) && /if \(keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)\) \{ showStatus\(\); return \}/.test(mpLoader) && /ownEdits\+\+/.test(mpLoader) && /if \(!vouched && u\.day === todayKey\(\)\) rejected = true/.test(mpLoader)
+assert(/const editsAtOpen = localEdits\.current/.test(mpLoader) && /const newerOnScreen = keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)/.test(mpLoader) && /if \(recovered \|\| newerOnScreen\) \{ showStatus\(\); return \}/.test(mpLoader) && /ownEdits\+\+/.test(mpLoader) && /if \(!vouched && u\.day === todayKey\(\)\) rejected = true/.test(mpLoader)
   && /localEdits\.current\+\+/.test(fnBody(mp, 'const saveCache = ')),
   'a row read that started before a change made here does not put the protocol back behind it')
 // The card needs no such guard: a read becomes the record, and every change the
@@ -402,7 +402,7 @@ assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.s
 assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayKey()')) > openFn.indexOf('const its = u.day === todayKey()')
   && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\)/.test(openFn)
   && /if \(u\.day === todayKey\(\)\) recovered = u/.test(openFn)
-  && /if \(recovered\) \{[\s\S]{0,400}setProtocol\(recovered\.p\)\s*setCompleted\(recovered\.c\)\s*setGratitude\(recovered\.g\)\s*setConfigured\(true\)\s*return\s*\}/.test(openFn)
+  && /if \(recovered && !newerOnScreen\) \{[\s\S]{0,400}setProtocol\(recovered\.p\)\s*setCompleted\(recovered\.c\)\s*setGratitude\(recovered\.g\)\s*setConfigured\(true\)\s*return\s*\}/.test(openFn)
   && openFn.indexOf('if (u.day === todayKey()) recovered = u') > openFn.indexOf('saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })'),
   "the kept change is vouched against the row of the day it was made on, stays kept until that row has answered, and an earlier day's change recovered does not stop today's record being applied (Codex r5, r6)")
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
@@ -423,7 +423,8 @@ assert(/const movedOn = \(day: string, p: Protocol, after: number\) => \{\s*cons
 // this older snapshot must not land on top of it.
 assert(/settled\(u\)\s*\/\/[\s\S]{0,900}if \(kept\.latest !== null && kept\.latest\.day === u\.day && kept\.latest\.n > u\.n\) \{\s*if \(u\.day === todayKey\(\)\) keepScreen = true\s*continue\s*\}/.test(openFn)
   && openFn.indexOf('if (kept.latest !== null && kept.latest.day === u.day && kept.latest.n > u.n)') < openFn.indexOf('if (vouched) {')
-  && /if \(keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)\) \{ showStatus\(\); return \}/.test(openFn),
+  && /const newerOnScreen = keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)/.test(openFn)
+  && /if \(recovered && !newerOnScreen\) \{/.test(openFn),
   'a kept change superseded while it was being decided is not saved, and the record is not applied over the change that superseded it (Codex r10)')
 assert(/const protocolOn = \(row: \{ spirit_state\?: unknown \} \| null, day: string\) => \{[\s\S]{0,200}n\?\.protocol && n\.date === day \? n\.protocol : null/.test(mp)
   && (code(mp).match(/n\.date === day|m\.date === todayKey\(\)/g) ?? []).length === 1,
@@ -440,7 +441,7 @@ assert(/^let opens = 0/m.test(mp) && /const mine = \+\+opens\s*const live = \(\)
   && /return \(\) => \{ opens\+\+ \}/.test(mpLoader)
   && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) \{\s*if \(!live\(\)\) return/.test(openFn)
   && /if \(!live\(\)\) return\s*const held = protocolOn\(row, todayKey\(\)\)/.test(openFn)
-  && /if \(!live\(\)\) return\s*if \(recovered\) \{/.test(openFn)
+  && /if \(!live\(\)\) return\s*\/\//.test(openFn)
   && /const by = await u\.by[\s\S]{0,2000}if \(!live\(\)\) return\s*settled\(u\)/.test(openFn),
   "only this tab's newest open reads, settles and recovers — a newer one, or leaving the screen, ends the one before (Codex r25)")
 // Codex r7: recovered without being rendered, the screen sat on the config step
