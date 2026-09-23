@@ -111,6 +111,16 @@ let writing = 0
 // past writes nothing, instead of spending its turn in the shared queue on a
 // row state two keystrokes old and holding up everything behind it (Codex r18).
 const queuedFor = new Map<string, number>()
+// Snapshots queued and not yet answered. A change made while one of them is in
+// flight is made on top of it, so when it lands that is what the change is
+// measured against — and it is not kept yet, so looking only at what is kept
+// misses exactly the change that is still on its way (Codex r20, r21).
+const sending = new Set<Latest>()
+/** The row holds `p` for `day` now: everything made after `after` was made on top of it. */
+const movedOn = (day: string, p: Protocol, after: number) => {
+  const held = kept.unsent.get(day)
+  for (const s of held ? [...sending, held] : [...sending]) if (s.day === day && s.n > after) s.was = p
+}
 /**
  * Where this device stands against the record, as everything kept says — and
  * the closing-the-tab warning with it: what is kept lives in the tab, not in
@@ -458,6 +468,7 @@ export default function MorningProtocol(
     // Saving from the moment the change is made, not from its turn in the
     // queue (Codex r4).
     queuedFor.set(day, mine.n)
+    sending.add(mine)
     // Whether this change is today's, decided NOW like its day: read after the
     // write it could fall the other side of 4am (Codex r1).
     const isToday = day === todayKey()
@@ -493,6 +504,7 @@ export default function MorningProtocol(
       // Every write carries the whole protocol, so the LAST one answered says
       // whether the row holds the latest change; until then it is saving.
       writing--
+      sending.delete(mine)
       // Nothing was written and nothing is wrong: the newer change for this day
       // is still to come, and it will settle this one with itself (Codex r18).
       if ('stale' in res && res.stale) { showStatus(); return }
@@ -508,8 +520,7 @@ export default function MorningProtocol(
       // belongs to was still saving. That is what it is made against now, and
       // comparing it with what the row held BEFORE would throw it away on the
       // next open (Codex r20).
-      const later = kept.unsent.get(day)
-      if (later && later.n > mine.n) later.was = p
+      movedOn(day, p, mine.n)
       // The row holds it now, so that is what the next change is made against.
       if (isToday) recordP.current = p
       showStatus()

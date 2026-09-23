@@ -394,8 +394,9 @@ assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null \? by !=
   'and a change made by another account is dropped, never saved under this one — and one nobody could name an account for belongs to the run of this tab it was made in, because an empty row of the next account is no kind of ownership (Codex r6, r20, P1)')
 // Codex r20: a gratitude line typed while the protocol it belongs to was
 // still saving was made against what the row held BEFORE that save landed.
-assert(/const later = kept\.unsent\.get\(day\)\s*if \(later && later\.n > mine\.n\) later\.was = p/.test(saveFn),
-  'a write that landed advances what anything still kept for its day was made against — it was made on top of this, and comparing it with what the row held before would throw it away (Codex r20)')
+assert(/const movedOn = \(day: string, p: Protocol, after: number\) => \{\s*const held = kept\.unsent\.get\(day\)\s*for \(const s of held \? \[\.\.\.sending, held\] : \[\.\.\.sending\]\) if \(s\.day === day && s\.n > after\) s\.was = p/.test(mp)
+  && /movedOn\(day, p, mine\.n\)/.test(saveFn) && /sending\.add\(mine\)/.test(saveFn) && /sending\.delete\(mine\)/.test(saveFn),
+  'a write that landed advances what anything still on its way to that day was made against — kept OR in flight, because a change made while a save is running is made on top of it, and comparing it with what the row held before would throw it away (Codex r20, r21)')
 // Codex r10: deciding a kept change takes an await or two, and the account is
 // confirmed before them — so a change made meanwhile is written on its own, and
 // this older snapshot must not land on top of it.
