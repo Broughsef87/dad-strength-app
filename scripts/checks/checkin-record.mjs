@@ -391,9 +391,11 @@ assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpir
   && /was: again \? again\.was : \(onTop \? onTop\.was : recordP\.current\)/.test(mp) && !/generated/.test(code(mp)),
   "a change made before then is saved once the record vouches for it — the row still holds what the change was made against, or already holds the change's own protocol, which is a write that landed without saying so (Codex r29); which is the rule the objectives keep too: a rebuild whose save failed is recoverable because the row still holds what it replaced, and a protocol replaced elsewhere is never put back (Codex r18, r19)")
 assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.set\(day, mine\.n\)/.test(saveFn)
-  && /if \(\(queuedFor\.get\(day\) \?\? 0\) > mine\.n\) return \{ error: null, stale: true \}/.test(saveFn)
-  && /if \('stale' in res && res\.stale\) \{ showStatus\(\); return \}/.test(saveFn),
-  'a queued write the day has moved past writes nothing — gratitude saves on every keystroke, each carries the whole protocol, and the newest one is all of them (Codex r18)')
+  && /\}, \(\) => \(queuedFor\.get\(day\) \?\? 0\) > mine\.n\)\.catch/.test(saveFn)
+  && /if \('stale' in res && res\.stale\) \{ showStatus\(\); return \}/.test(saveFn)
+  && /if \(unless\?\.\(\)\) return SUPERSEDED\s*const me = await owner/.test(readLF('src/lib/checkinQueue.ts'))
+  && /export const SUPERSEDED = \{ error: null, stale: true \} as const/.test(readLF('src/lib/checkinQueue.ts')),
+  'a queued write the day has moved past writes nothing, and is asked BEFORE anything is spent on it — gratitude saves on every keystroke, each carries the whole protocol, the newest one is all of them, and a hundred superseded ones must not each cost a round trip to ask who is signed in while the objectives wait behind them (Codex r18, r30)')
 // Codex r5: retried after 4am, it was compared with the NEW day's row, which
 // cannot hold yesterday's protocol — and was dropped as if the record had
 // replaced it.

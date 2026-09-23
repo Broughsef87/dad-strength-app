@@ -537,9 +537,6 @@ export default function MorningProtocol(
       // authorization under the next (Codex r16, P1). runAs hands the job the
       // account it verified, and that is what the row is filed under.
       const res = await runAs(supabase, mine.by, async (me): Promise<{ error: { message: string } | null; stale?: true }> => {
-        // Overtaken in the queue by a newer change for this day: that one
-        // carries this one too.
-        if ((queuedFor.get(day) ?? 0) > mine.n) return { error: null, stale: true }
         // The row is keyed on the protocol's OWN day — the same 4am-cutoff
         // key the entry carries — not the calendar day. Keyed on the calendar
         // day, a protocol finished at 1am landed in the next day's row, and
@@ -555,7 +552,7 @@ export default function MorningProtocol(
           { onConflict: 'user_id,date' },
         )
         return { error: w.error }
-      }).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
+      }, () => (queuedFor.get(day) ?? 0) > mine.n).catch((e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } }))
       // Every write carries the whole protocol, so the LAST one answered says
       // whether the row holds the latest change; until then it is saving.
       writing--

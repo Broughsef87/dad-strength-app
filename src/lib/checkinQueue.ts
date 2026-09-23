@@ -19,6 +19,9 @@ export const checkinQueue = serialWriter()
 /** A write that did not run: the account that made it is not the one signed in, or none was known. */
 export const ACCOUNT_CHANGED = { error: { message: 'the account that made this change is no longer signed in' } }
 
+/** A write the caller had already moved past by the time its turn came. Nothing was spent on it, and nothing is wrong. */
+export const SUPERSEDED = { error: null, stale: true } as const
+
 type Auth = { auth: { getUser: () => Promise<{ data: { user: { id: string } | null } }> } }
 
 /**
@@ -31,8 +34,15 @@ export function runAs<T>(
   db: Auth,
   owner: string | Promise<string | null>,
   job: (me: string) => Promise<T>,
-): Promise<T | typeof ACCOUNT_CHANGED> {
+  /** Asked when this job's turn comes: has the caller moved past it? */
+  unless?: () => boolean,
+): Promise<T | typeof ACCOUNT_CHANGED | typeof SUPERSEDED> {
   return checkinQueue(async () => {
+    // Asked BEFORE anything is spent: gratitude saves on every keystroke, and
+    // a job the caller has moved past should cost neither a round trip to ask
+    // who is signed in nor the queue's time while everything else waits
+    // (Codex r30). What does run is still checked, every time.
+    if (unless?.()) return SUPERSEDED
     const me = await owner
     if (!me) return ACCOUNT_CHANGED
     const { data: { user } } = await db.auth.getUser()
