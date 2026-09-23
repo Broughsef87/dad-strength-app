@@ -214,7 +214,7 @@ assert(flushFn.indexOf("book().settle(applied, 'saved')") > flushFn.indexOf('if 
 }
 
 // ── 2. every reader reads the row, and the row wins ───────────────────────
-assert(/\.from\('daily_checkins'\)\s*\.select\('spirit_state'\)\s*\.eq\('user_id', who\)\s*\.eq\('date', day\)/.test(mpLoader) && /const row = await readSpirit\(supabase, user\.id, todayKey\(\)\)/.test(mpLoader),
+assert(/\.from\('daily_checkins'\)\s*\.select\('spirit_state'\)\s*\.eq\('user_id', who\)\s*\.eq\('date', day\)/.test(mpLoader) && /const day = todayKey\(\)\s*const row = await readSpirit\(supabase, user\.id, day\)/.test(mpLoader) && /if \(day !== todayKey\(\)\) \{ void open\(\); return \}/.test(mpLoader),
   'the protocol reads its row on every open — the one keyed on its own 4am-cutoff day')
 assert(!/remoteDone > localDone|remoteDone|localDone/.test(code(mp)),
   'the row is not compared with the paint — "the remote wins only if more is done" is gone')
@@ -248,7 +248,7 @@ assert(/adoptRead\(today, read\.ms, read\.seq, true\)/.test(objLoad)
   && /if \(ms\) localStorage\.setItem\(MIND_KEY[\s\S]{0,120}else localStorage\.removeItem\(MIND_KEY\)/.test(topFn(out, 'export function paintMind')),
   'and what its row says replaces the paint, including that there is nothing today')
 // A change made while the read was in flight is newer than the read.
-assert(/const editsAtOpen = localEdits\.current/.test(mpLoader) && /const newerOnScreen = keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)/.test(mpLoader) && /if \(recovered \|\| newerOnScreen\) \{ showStatus\(\); return \}/.test(mpLoader) && /ownEdits\+\+/.test(mpLoader) && /if \(!vouched && u\.day === todayKey\(\)\) rejected = true/.test(mpLoader)
+assert(/const editsAtOpen = localEdits\.current/.test(mpLoader) && /const newerOnScreen = keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)/.test(mpLoader) && /if \(recovered \|\| newerOnScreen\) \{ showStatus\(\); return \}/.test(mpLoader) && /ownEdits\+\+/.test(mpLoader) && /if \(!vouched && u\.day === day\) rejected = true/.test(mpLoader)
   && /localEdits\.current\+\+/.test(fnBody(mp, 'const saveCache = ')),
   'a row read that started before a change made here does not put the protocol back behind it')
 // The card needs no such guard: a read becomes the record, and every change the
@@ -387,15 +387,15 @@ assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.r
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /for \(const u of todo\) \{\s*decided\.add\(u\)\s*if \(!live\(\)\) return[\s\S]{0,300}try \{/.test(openFn) && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}\s*\}\s*\}/.test(openFn),
   'a snapshot sent again keeps what was fixed when it was MADE — the account that made it, the run it was made in, and what it was made against — because having been sent under one account is no authorization under the next (Codex r16, r19)')
-assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
+assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, day)') && openFn.indexOf('const row = await readSpirit(supabase, user.id, day)') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
   "the protocol's account is confirmed only by its row answering — until then the screen is a paint nobody checked, possibly another account's")
-assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)[\s\S]{0,500}vouched = sameJson\(its, u\.was\) \|\| sameJson\(its, u\.p\)/.test(openFn)
+assert(/const its = u\.day === day \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)[\s\S]{0,500}vouched = sameJson\(its, u\.was\) \|\| sameJson\(its, u\.p\)/.test(openFn)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /const recordP = useRef<\{ day: string; p: Protocol \| null \} \| null>\(null\)/.test(mp) && /recordP\.current = \{ day: todayKey\(\), p: data\.protocol \}/.test(mpLoader)
-  && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') > 0 && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') < openFn.indexOf('for (let pass = 0; pass < 4; pass++)')
-  && /if \(localEdits\.current === editsAtOpen && !kept\.unsent\.has\(todayKey\(\)\)\) applyRecord\(\)/.test(openFn)
-  && openFn.indexOf('if (localEdits.current === editsAtOpen && !kept.unsent.has(todayKey())) applyRecord()') < openFn.indexOf('ownerRef.current = user.id')
+  && openFn.indexOf('recordP.current = { day, p: held }') > 0 && openFn.indexOf('recordP.current = { day, p: held }') < openFn.indexOf('for (let pass = 0; pass < 4; pass++)')
+  && /if \(localEdits\.current === editsAtOpen && !kept\.unsent\.has\(day\)\) applyRecord\(\)/.test(openFn)
+  && openFn.indexOf('if (localEdits.current === editsAtOpen && !kept.unsent.has(day)) applyRecord()') < openFn.indexOf('ownerRef.current = user.id')
   && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = \{ day, p \}/.test(saveFn) && /const onTop = \[\.\.\.sending, \.\.\.\(kept\.unsent\.get\(day\) \? \[kept\.unsent\.get\(day\) as Latest\] : \[\]\)\]/.test(mp)
   && /\.reduce<Latest \| null>\(\(newest, u\) => \(newest === null \|\| u\.n > newest\.n \? u : newest\), null\)/.test(mp)
   && /was: again \? again\.was : \(onTop \? onTop\.was : \(recordP\.current\?\.day === day \? recordP\.current\.p : null\)\)/.test(mp) && !/generated/.test(code(mp)),
@@ -409,11 +409,11 @@ assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.s
 // Codex r5: retried after 4am, it was compared with the NEW day's row, which
 // cannot hold yesterday's protocol — and was dropped as if the record had
 // replaced it.
-assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayKey()')) > openFn.indexOf('const its = u.day === todayKey()')
+assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === day ?')) > openFn.indexOf('const its = u.day === day ?')
   && /for \(const u of todo\) \{\s*decided\.add\(u\)/.test(openFn) && /const todo = \[\.\.\.kept\.unsent\.values\(\)\]\.filter\(\(u\) => !decided\.has\(u\)\)/.test(openFn) && /for \(let pass = 0; pass < 4; pass\+\+\)/.test(openFn)
-  && /if \(u\.day === todayKey\(\)\) recovered = u/.test(openFn)
+  && /if \(u\.day === day\) recovered = u/.test(openFn)
   && /if \(recovered && !newerOnScreen\) \{[\s\S]{0,400}setProtocol\(recovered\.p\)\s*setCompleted\(recovered\.c\)\s*setGratitude\(recovered\.g\)\s*setConfigured\(true\)\s*return\s*\}/.test(openFn)
-  && openFn.indexOf('if (u.day === todayKey()) recovered = u') > openFn.indexOf('saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })'),
+  && openFn.indexOf('if (u.day === day) recovered = u') > openFn.indexOf('saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })'),
   "the kept change is vouched against the row of the day it was made on, stays kept until that row has answered, and an earlier day's change recovered does not stop today's record being applied (Codex r5, r6)")
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
 // never be saved under account B — its protocol, and its gratitude, are A's.
@@ -431,7 +431,7 @@ assert(/const movedOn = \(day: string, p: Protocol, after: number\) => \{\s*cons
 // Codex r10: deciding a kept change takes an await or two, and the account is
 // confirmed before them — so a change made meanwhile is written on its own, and
 // this older snapshot must not land on top of it.
-assert(/settled\(u\)\s*\/\/[\s\S]{0,900}if \(\(newestFor\.get\(u\.day\) \?\? 0\) > u\.n\) \{\s*if \(u\.day === todayKey\(\)\) keepScreen = true\s*continue\s*\}/.test(openFn)
+assert(/settled\(u\)\s*\/\/[\s\S]{0,900}if \(\(newestFor\.get\(u\.day\) \?\? 0\) > u\.n\) \{\s*if \(u\.day === day\) keepScreen = true\s*continue\s*\}/.test(openFn)
   && openFn.indexOf('if ((newestFor.get(u.day) ?? 0) > u.n)') < openFn.indexOf('if (vouched) {')
   && /const newerOnScreen = keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)/.test(openFn)
   && /if \(recovered && !newerOnScreen\) \{/.test(openFn),
@@ -443,10 +443,10 @@ assert(/const protocolOn = \(row: \{ spirit_state\?: unknown \} \| null, day: st
 // it — and unsaved the moment that read ends without an account or a row.
 assert(/setSync\(opening\.current \? 'saving' : s\)/.test(saveFn) && /opening\.current = true/.test(openFn) 
   && /if \(!user\) \{ setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\); return \}/.test(openFn) && /if \(live\(\)\) setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\)/.test(openFn)
-  && /deciding\.current = true/.test(openFn) && /if \(!kept\.unsent\.has\(todayKey\(\)\)\) deciding\.current = false/.test(openFn)
+  && /deciding\.current = true/.test(openFn) && /if \(!kept\.unsent\.has\(day\)\) deciding\.current = false/.test(openFn)
   && /\/\/ Everything kept has been decided, or has been left kept: writes again\.\s*deciding\.current = false/.test(openFn)
   && /\} finally \{\s*if \(live\(\)\) \{\s*opening\.current = false\s*deciding\.current = false\s*\}\s*\}/.test(openFn)
-  && /keepScreen = keepScreen && kept\.unsent\.has\(todayKey\(\)\)/.test(openFn),
+  && /keepScreen = keepScreen && kept\.unsent\.has\(day\)/.test(openFn),
   'a change kept while the open-time read runs says "saving" — and "not saved" once the read ends without saving it; and a change made while that read has not yet decided what TODAY holds is kept, not written, because the screen may be showing one the record is about to reject (Codex r37)')
 // Codex r25: a screen left while its open was reading went on settling and
 // writing behind the screen that replaced it — which then showed one protocol
@@ -454,7 +454,7 @@ assert(/setSync\(opening\.current \? 'saving' : s\)/.test(saveFn) && /opening\.c
 assert(/^let opens = 0/m.test(mp) && /const mine = \+\+opens\s*const live = \(\) => mine === opens/.test(openFn)
   && /return \(\) => \{ opens\+\+ \}/.test(mpLoader)
   && /for \(const u of todo\) \{\s*decided\.add\(u\)\s*if \(!live\(\)\) return/.test(openFn)
-  && /if \(!live\(\)\) return\s*const held = protocolOn\(row, todayKey\(\)\)/.test(openFn)
+  && /const held = protocolOn\(row, day\)/.test(openFn)
   && /if \(!live\(\)\) return\s*\/\//.test(openFn)
   && /const by = await u\.by[\s\S]{0,2000}if \(!live\(\)\) return\s*settled\(u\)/.test(openFn),
   "only this tab's newest open reads, settles and recovers — a newer one, or leaving the screen, ends the one before (Codex r25)")

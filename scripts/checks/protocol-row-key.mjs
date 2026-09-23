@@ -42,9 +42,9 @@ assert(/onConflict: 'user_id,date'/.test(mp), 'the upsert conflicts on (user_id,
 // reading the row keyed todayKey() is that pre-dawn row exactly, and the only
 // row a protocol for today has been written to since the fix (FOR-231: the
 // loader reads the record, not a pair of calendar rows to choose between).
-assert(/\.from\('daily_checkins'\)\s*\.select\('spirit_state'\)\s*\.eq\('user_id', who\)\s*\.eq\('date', day\)/.test(mp) && /const row = await readSpirit\(supabase, user\.id, todayKey\(\)\)/.test(mp),
+assert(/\.from\('daily_checkins'\)\s*\.select\('spirit_state'\)\s*\.eq\('user_id', who\)\s*\.eq\('date', day\)/.test(mp) && /const day = todayKey\(\)\s*const row = await readSpirit\(supabase, user\.id, day\)/.test(mp) && /if \(day !== todayKey\(\)\) \{ void open\(\); return \}/.test(mp),
   'the loader reads the row keyed on todayKey() — the pre-dawn row, before 4am')
-assert(/n\?\.protocol && n\.date === day \? n\.protocol : null/.test(mp) && /const held = protocolOn\(row, todayKey\(\)\)/.test(mp) && /if \(held\) \{[\s\S]{0,200}setProtocol\(held\)/.test(mp),
+assert(/n\?\.protocol && n\.date === day \? n\.protocol : null/.test(mp) && /const held = protocolOn\(row, day\)/.test(mp) && /if \(held\) \{[\s\S]{0,200}setProtocol\(held\)/.test(mp),
   'the loader takes the entry only when it is stamped with the day it read — decided once, for any day, and what it shows is that decision')
 
 // ── 4. mind_state keeps its own path, and the mirror names only its columns ─

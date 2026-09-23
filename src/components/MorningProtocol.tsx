@@ -347,15 +347,22 @@ export default function MorningProtocol(
       if (!user) { setSync(kept.unsent.size ? 'unsaved' : 'unreached'); return }
       // The row keyed on the protocol's OWN day — where every protocol write
       // has landed since the row-key fix (FOR-228, ruling 2).
-      const row = await readSpirit(supabase, user.id, todayKey())
+      // The day this read is FOR, captured before it goes.
+      const day = todayKey()
+      const row = await readSpirit(supabase, user.id, day)
       const m = morningIn(row)
       if (!live()) return
-      const held = protocolOn(row, todayKey())
+      // It can wait across 4am, and what came back is THAT day's row: applying
+      // it to the new day would call the new day's record empty without ever
+      // having read it, and let a protocol be built over one already there
+      // (Codex r41). The new day gets its own read.
+      if (day !== todayKey()) { void open(); return }
+      const held = protocolOn(row, day)
       // What the row holds is what every change made from here is made against
       // — set before any recovery, because recovery can return without ever
       // reaching the apply below, and a change made meanwhile would carry the
       // paint as its basis and be thrown away on the next open (Codex r22).
-      recordP.current = { day: todayKey(), p: held }
+      recordP.current = { day, p: held }
       setRecordKnown(true)
       const applyRecord = () => {
         if (held) {
@@ -365,7 +372,7 @@ export default function MorningProtocol(
           setCompleted(c)
           setGratitude(g)
           setConfigured(true)
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: held, completed: c, gratitude: g })) } catch { /* paint only */ }
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: held, completed: c, gratitude: g })) } catch { /* paint only */ }
         } else {
           // The record holds no protocol for today. Whatever this device had
           // painted — another account's, or one that never reached the row —
@@ -386,9 +393,9 @@ export default function MorningProtocol(
       // is showing that change, recovery decides it in a moment, and rolling
       // the screen back to the record first made the next keystroke a snapshot
       // of the rolled-back state — which then saved over it (Codex r35).
-      if (localEdits.current === editsAtOpen && !kept.unsent.has(todayKey())) applyRecord()
+      if (localEdits.current === editsAtOpen && !kept.unsent.has(day)) applyRecord()
       // Nothing of today's is waiting to be decided: writes are this screen's.
-      if (!kept.unsent.has(todayKey())) deciding.current = false
+      if (!kept.unsent.has(day)) deciding.current = false
       // Only now are writes this screen's to make: what is on it is the
       // record, or a change newer than the read (Codex r24).
       ownerRef.current = user.id
@@ -441,7 +448,7 @@ export default function MorningProtocol(
               // rebuilds it, or is the first one of the day. If the row holds
               // something else, the record moved on — here or on another device
               // — and the change is not this one's to land (Codex r18, r19).
-              const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
+              const its = u.day === day ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
               // …or the row already holds this change's OWN protocol: its write
               // reached the row and the answer was lost on the way back, and the
               // ticks and gratitude made after it are still this screen's to save
@@ -456,7 +463,7 @@ export default function MorningProtocol(
             // Not vouched: the change is gone, and what it put on the screen goes
             // with it. It must not keep the record off the screen as if it were
             // still a change waiting to be saved (Codex r23).
-            if (!vouched && u.day === todayKey()) rejected = true
+            if (!vouched && u.day === day) rejected = true
             // Today's is decided either way: writes are this screen's again.
             // (today is released once the passes are done, below)
             // Deciding that took an await, or two. The account was confirmed before
@@ -464,7 +471,7 @@ export default function MorningProtocol(
             // its own — and this older snapshot must not land on top of it, nor the
             // record be applied over it (Codex r10, r12).
             if ((newestFor.get(u.day) ?? 0) > u.n) {
-              if (u.day === todayKey()) keepScreen = true
+              if (u.day === day) keepScreen = true
               continue
             }
             if (vouched) {
@@ -479,7 +486,7 @@ export default function MorningProtocol(
               // for an earlier day is not what the screen shows: today's record
               // still applies, or the screen would sit on the config step with a
               // protocol already in the row (Codex r6).
-              if (u.day === todayKey()) recovered = u
+              if (u.day === day) recovered = u
             }
           } catch { /* that day's row did not answer; it stays kept */ }
         }
@@ -489,7 +496,7 @@ export default function MorningProtocol(
       // …and the screen is preserved only by a change that SURVIVED. One
       // rejected in a later pass leaves nothing to preserve, and keeping the
       // screen for it showed a rejected protocol as saved (Codex r40).
-      keepScreen = keepScreen && kept.unsent.has(todayKey())
+      keepScreen = keepScreen && kept.unsent.has(day)
       if (!live()) return
       // The screen changed while the read was in flight — a change made here,
       // or a Rebuild — and that is newer than the read, which does not put it
