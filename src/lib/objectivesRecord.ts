@@ -107,7 +107,7 @@ export function objectivesBook<I extends Intent>(day: string) {
      * (Codex r4). Nothing is known of `d` until its row is read, so its record
      * is empty until then; changes pending for earlier days keep their days.
      */
-    turn(d: string) { if (d > record.day) record = { day: d, mind: EMPTY, seq: record.seq } },
+    turn(d: string) { if (d > record.day) record = { day: d, mind: EMPTY, seq: 0 } },
     /** The first-frame paint. Only until a row has been read; it never outranks one. */
     paint(d: string, ms: unknown) { if (record.seq === 0) record = { day: d, mind: fromRow(ms), seq: 0 } },
     intend(i: I) { pending = [...pending, i] },

@@ -219,6 +219,20 @@ assert(paintAt > 0 && objLoad.includes(".from('daily_checkins')") && !/\breturn\
 assert(/const painted = paintedMind\(today\)\s*if \(painted\) book\(\)\.paint\(today, painted\)[\s\S]{0,400}show\(\)\s*if \(painted \|\| book\(\)\.pending\(\)\.length\) setLoading\(false\)/.test(objLoad)
   && /if \(!user\) \{ settleSync\(false\); setLoading\(false\); return \}/.test(objLoad),
   'the card shows what this tab holds before any read answers — a first lock-in that failed is kept there and nowhere else, and coming back to an empty editor is losing it (Codex r12)')
+// Codex r28: the tab may have been open since yesterday, and the book is the
+// tab's — it would have shown, and taken ticks on, yesterday's objectives.
+assert(objLoad.indexOf('book().turn(today)') > 0 && objLoad.indexOf('book().turn(today)') < objLoad.indexOf('const painted = paintedMind(today)')
+  && /turn\(d: string\) \{ if \(d > record\.day\) record = \{ day: d, mind: EMPTY, seq: 0 \} \}/.test(readLF('src/lib/objectivesRecord.ts')),
+  'the day on screen is TODAY from the moment the card opens, and a day it has never read is a day nothing has been read for (Codex r28)')
+{
+  const b = objectivesBook('2026-09-21')
+  b.adopt('2026-09-21', { objectives: ['yesterday'], completedObjectives: [true], lockedIn: true }, b.nextRead(), true)
+  b.turn('2026-09-22')
+  const shown = b.shown()
+  b.paint('2026-09-22', { objectives: ['painted'], completedObjectives: [false], lockedIn: true })
+  assert(b.day() === '2026-09-22' && shown.objectives.length === 0 && b.shown().objectives[0] === 'painted',
+    "a new day starts with nothing on it — yesterday's objectives are not today's — and this device's paint for today may show until the row answers (Codex r28)")
+}
 assert(/adoptRead\(today, read\.ms, read\.seq, true\)/.test(objLoad)
   && /if \(book\(\)\.adopt\(day, ms, seq, load\)\) paintMind\(day, ms\)/.test(out)
   && /if \(ms\) localStorage\.setItem\(MIND_KEY[\s\S]{0,120}else localStorage\.removeItem\(MIND_KEY\)/.test(topFn(out, 'export function paintMind')),

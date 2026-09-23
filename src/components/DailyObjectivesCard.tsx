@@ -101,6 +101,11 @@ export default function DailyObjectivesCard(
     let cancelled = false
     const load = async () => {
       const today = localDay()
+      // The tab may have been open since yesterday: the day on screen is TODAY
+      // from the moment this card opens, or it would show — and take ticks on —
+      // yesterday's objectives (Codex r28). Changes still kept for earlier days
+      // keep their days, and are saved on their own rows.
+      book().turn(today)
       // PAINT from this device's copy, for the first frame…
       const painted = paintedMind(today)
       if (painted) book().paint(today, painted)
