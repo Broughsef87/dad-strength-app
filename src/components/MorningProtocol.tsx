@@ -325,8 +325,6 @@ export default function MorningProtocol(
       // The row keyed on the protocol's OWN day — where every protocol write
       // has landed since the row-key fix (FOR-228, ruling 2).
       const row = await readSpirit(supabase, user.id, todayKey())
-      ownerRef.current = user.id
-      accountIs(user.id)
       const m = morningIn(row)
       const held = protocolOn(row, todayKey())
       // What the row holds is what every change made from here is made against
@@ -334,6 +332,36 @@ export default function MorningProtocol(
       // reaching the apply below, and a change made meanwhile would carry the
       // paint as its basis and be thrown away on the next open (Codex r22).
       recordP.current = held
+      const applyRecord = () => {
+        if (held) {
+          const c = m?.completed ?? new Array(held.steps.length).fill(false)
+          const g = m?.gratitude ?? ['', '', '']
+          setProtocol(held)
+          setCompleted(c)
+          setGratitude(g)
+          setConfigured(true)
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: held, completed: c, gratitude: g })) } catch { /* paint only */ }
+        } else {
+          // The record holds no protocol for today. Whatever this device had
+          // painted — another account's, or one that never reached the row —
+          // is not a protocol, and goes.
+          setProtocol(null)
+          setCompleted([])
+          setGratitude(['', '', ''])
+          setConfigured(false)
+          try { localStorage.removeItem(STORAGE_KEY) } catch { /* paint only */ }
+        }
+      }
+      // Today's record goes on the screen NOW, before anything is awaited:
+      // writes are enabled from here, and a tick made while an older day's row
+      // is being read must be made on the record, not on a cache the row has
+      // already replaced (Codex r24). Unless something changed here since the
+      // read started — that is newer than the read, and it keeps the screen.
+      if (localEdits.current === editsAtOpen) applyRecord()
+      // Only now are writes this screen's to make: what is on it is the
+      // record, or a change newer than the read (Codex r24).
+      ownerRef.current = user.id
+      accountIs(user.id)
       // A change made before the account was confirmed is saved only if the
       // record vouches for it: the row holds the protocol it was made on, or
       // that protocol was generated here. Otherwise it was made on a paint that
@@ -418,24 +446,7 @@ export default function MorningProtocol(
       // Counting only whether anything was KEPT missed an edit made to today
       // while an older day's row was being read (Codex r22).
       if (keepScreen || (!rejected && localEdits.current !== editsAtOpen + ownEdits)) { showStatus(); return }
-      if (held) {
-        const c = m?.completed ?? new Array(held.steps.length).fill(false)
-        const g = m?.gratitude ?? ['', '', '']
-        setProtocol(held)
-        setCompleted(c)
-        setGratitude(g)
-        setConfigured(true)
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: held, completed: c, gratitude: g })) } catch { /* paint only */ }
-      } else {
-        // The record holds no protocol for today. Whatever this device had
-        // painted — another account's, or one that never reached the row —
-        // is not a protocol, and goes.
-        setProtocol(null)
-        setCompleted([])
-        setGratitude(['', '', ''])
-        setConfigured(false)
-        try { localStorage.removeItem(STORAGE_KEY) } catch { /* paint only */ }
-      }
+      applyRecord()
       showStatus()
     } catch {
       setSync(kept.unsent.size ? 'unsaved' : 'unreached')
@@ -452,6 +463,10 @@ export default function MorningProtocol(
   // took an older day's generated protocol its only way home (Codex r16).
   const saveCache = (p: Protocol, c: boolean[], g: string[], day: string = todayKey(), again?: Latest) => {
     localEdits.current++
+    // The change this one is made on top of, if this day's row does not have
+    // it yet. Its basis can itself be null — the row held nothing — and that
+    // is not the same as there being no change to stack on (Codex r24).
+    const onTop = kept.unsent.get(day)
     // `day`: the protocol day the change was MADE on, captured now — or, for a
     // Retry, the day of the change being retried. Evaluated inside the queued
     // write it could fall after 4am and file this protocol into the next day's
@@ -464,7 +479,7 @@ export default function MorningProtocol(
       // still holds what THAT was made against, and this one is made against
       // the same thing. Taking the paint here threw away a rebuild whose save
       // failed, the moment anything was typed after a remount (Codex r23).
-      was: again ? again.was : (kept.unsent.get(day)?.was ?? recordP.current),
+      was: again ? again.was : (onTop ? onTop.was : recordP.current),
       checked: again ? again.checked : ownerRef.current !== null,
     }
     // The account that made the change, captured now. Before the open-time

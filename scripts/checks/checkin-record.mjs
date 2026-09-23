@@ -358,7 +358,7 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: me,/.test(sav
 // the account signed in, the protocol last generated — so a change account A
 // made could be written under B, and an older day's generated protocol lost
 // the only thing that could vouch for it.
-assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.run : currentRun\(\)/.test(mp) && /was: again \? again\.was : \(kept\.unsent\.get\(day\)\?\.was \?\? recordP\.current\)/.test(mp)
+assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.run : currentRun\(\)/.test(mp) && /const onTop = kept\.unsent\.get\(day\)/.test(mp) && /was: again \? again\.was : \(onTop \? onTop\.was : recordP\.current\)/.test(mp)
   && /checked: again \? again\.checked : ownerRef\.current !== null/.test(mp)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}/.test(openFn),
@@ -370,7 +370,9 @@ assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpir
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /const recordP = useRef<Protocol \| null>\(null\)/.test(mp) && /recordP\.current = data\.protocol/.test(mpLoader)
   && openFn.indexOf('recordP.current = held') > 0 && openFn.indexOf('recordP.current = held') < openFn.indexOf('for (const u of [...kept.unsent.values()])')
-  && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = p/.test(saveFn) && /was: again \? again\.was : \(kept\.unsent\.get\(day\)\?\.was \?\? recordP\.current\)/.test(mp) && !/generated/.test(code(mp)),
+  && /if \(localEdits\.current === editsAtOpen\) applyRecord\(\)/.test(openFn)
+  && openFn.indexOf('if (localEdits.current === editsAtOpen) applyRecord()') < openFn.indexOf('ownerRef.current = user.id')
+  && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = p/.test(saveFn) && /const onTop = kept\.unsent\.get\(day\)/.test(mp) && /was: again \? again\.was : \(onTop \? onTop\.was : recordP\.current\)/.test(mp) && !/generated/.test(code(mp)),
   'a change made before then is saved once the record vouches for it — the row still holds what the change was made against, which is the rule the objectives keep too: a rebuild whose save failed is recoverable because the row still holds what it replaced, and a protocol replaced elsewhere is never put back (Codex r18, r19)')
 assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.set\(day, mine\.n\)/.test(saveFn)
   && /if \(\(queuedFor\.get\(day\) \?\? 0\) > mine\.n\) return \{ error: null, stale: true \}/.test(saveFn)
