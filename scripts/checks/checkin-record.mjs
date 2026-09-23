@@ -373,22 +373,22 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: me,/.test(sav
 // the only thing that could vouch for it.
 assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.run : currentRun\(\)/.test(mp) && /const onTop = \[\.\.\.sending, \.\.\.\(kept\.unsent\.get\(day\) \? \[kept\.unsent\.get\(day\) as Latest\] : \[\]\)\]/.test(mp)
   && /\.reduce<Latest \| null>\(\(newest, u\) => \(newest === null \|\| u\.n > newest\.n \? u : newest\), null\)/.test(mp)
-  && /was: again \? again\.was : \(onTop \? onTop\.was : recordP\.current\)/.test(mp)
+  && /was: again \? again\.was : \(onTop \? onTop\.was : \(recordP\.current\?\.day === day \? recordP\.current\.p : null\)\)/.test(mp)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
-  && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}/.test(openFn),
+  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) \{\s*if \(!live\(\)\) return[\s\S]{0,300}try \{/.test(openFn) && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}\s*\}/.test(openFn),
   'a snapshot sent again keeps what was fixed when it was MADE — the account that made it, the run it was made in, and what it was made against — because having been sent under one account is no authorization under the next (Codex r16, r19)')
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
   "the protocol's account is confirmed only by its row answering — until then the screen is a paint nobody checked, possibly another account's")
 assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)[\s\S]{0,500}vouched = sameJson\(its, u\.was\) \|\| sameJson\(its, u\.p\)/.test(openFn)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
-  && /const recordP = useRef<Protocol \| null>\(null\)/.test(mp) && /recordP\.current = data\.protocol/.test(mpLoader)
-  && openFn.indexOf('recordP.current = held') > 0 && openFn.indexOf('recordP.current = held') < openFn.indexOf('for (const u of [...kept.unsent.values()])')
+  && /const recordP = useRef<\{ day: string; p: Protocol \| null \} \| null>\(null\)/.test(mp) && /recordP\.current = \{ day: todayKey\(\), p: data\.protocol \}/.test(mpLoader)
+  && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') > 0 && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') < openFn.indexOf('for (const u of [...kept.unsent.values()])')
   && /if \(localEdits\.current === editsAtOpen\) applyRecord\(\)/.test(openFn)
   && openFn.indexOf('if (localEdits.current === editsAtOpen) applyRecord()') < openFn.indexOf('ownerRef.current = user.id')
-  && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = p/.test(saveFn) && /const onTop = \[\.\.\.sending, \.\.\.\(kept\.unsent\.get\(day\) \? \[kept\.unsent\.get\(day\) as Latest\] : \[\]\)\]/.test(mp)
+  && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = \{ day, p \}/.test(saveFn) && /const onTop = \[\.\.\.sending, \.\.\.\(kept\.unsent\.get\(day\) \? \[kept\.unsent\.get\(day\) as Latest\] : \[\]\)\]/.test(mp)
   && /\.reduce<Latest \| null>\(\(newest, u\) => \(newest === null \|\| u\.n > newest\.n \? u : newest\), null\)/.test(mp)
-  && /was: again \? again\.was : \(onTop \? onTop\.was : recordP\.current\)/.test(mp) && !/generated/.test(code(mp)),
+  && /was: again \? again\.was : \(onTop \? onTop\.was : \(recordP\.current\?\.day === day \? recordP\.current\.p : null\)\)/.test(mp) && !/generated/.test(code(mp)),
   "a change made before then is saved once the record vouches for it — the row still holds what the change was made against, or already holds the change's own protocol, which is a write that landed without saying so (Codex r29); which is the rule the objectives keep too: a rebuild whose save failed is recoverable because the row still holds what it replaced, and a protocol replaced elsewhere is never put back (Codex r18, r19)")
 assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.set\(day, mine\.n\)/.test(saveFn)
   && /\}, \(\) => \(queuedFor\.get\(day\) \?\? 0\) > mine\.n\)\.catch/.test(saveFn)

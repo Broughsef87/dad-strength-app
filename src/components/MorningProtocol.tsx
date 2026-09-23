@@ -225,7 +225,7 @@ export default function MorningProtocol(
   // What this screen believes today's row holds: read on open, written by a
   // save that landed, or painted from what this device last saw. Every change
   // made here is made ON TOP of it, and carries it (Codex r19).
-  const recordP = useRef<Protocol | null>(null)
+  const recordP = useRef<{ day: string; p: Protocol | null } | null>(null)
   // The account a change is made by, fixed AT the change: the account this
   // screen was confirmed for, or — before that — whoever is signed in now.
   // Never written to ownerRef: that says an account's ROW answered, which is
@@ -278,7 +278,7 @@ export default function MorningProtocol(
         const data = JSON.parse(saved)
         if (data.date === todayKey() && data.protocol) {
           // The paint IS what the row said, when this device last saw it.
-          recordP.current = data.protocol
+          recordP.current = { day: todayKey(), p: data.protocol }
           setProtocol(data.protocol)
           setCompleted(data.completed || new Array(data.protocol.steps.length).fill(false))
           setGratitude(data.gratitude || ['', '', ''])
@@ -341,7 +341,7 @@ export default function MorningProtocol(
       // — set before any recovery, because recovery can return without ever
       // reaching the apply below, and a change made meanwhile would carry the
       // paint as its basis and be thrown away on the next open (Codex r22).
-      recordP.current = held
+      recordP.current = { day: todayKey(), p: held }
       const applyRecord = () => {
         if (held) {
           const c = m?.completed ?? new Array(held.steps.length).fill(false)
@@ -389,9 +389,11 @@ export default function MorningProtocol(
       // fail on its own. That is that day's answer, not today's: it stays kept
       // and today's record — already read, right here — still goes on the
       // screen (Codex r17).
-      try {
-        for (const u of [...kept.unsent.values()]) {
-          if (!live()) return
+      for (const u of [...kept.unsent.values()]) {
+        if (!live()) return
+        // One day's row failing to answer is THAT day's answer: it stays
+        // kept, and the days after it are still recovered (Codex r17, r31).
+        try {
           // Whose change it is decides first. Kept state outlives a sign-out,
           // and a change account A made is never saved under account B — it
           // would put A's protocol, and A's gratitude, in B's record (Codex r6,
@@ -447,8 +449,8 @@ export default function MorningProtocol(
             // protocol already in the row (Codex r6).
             if (u.day === todayKey()) recovered = u
           }
-        }
-      } catch { /* that day's row did not answer; it stays kept */ }
+        } catch { /* that day's row did not answer; it stays kept */ }
+      }
       if (!live()) return
       if (recovered) {
         // On screen, not left to the paint: localStorage may be unavailable,
@@ -504,7 +506,10 @@ export default function MorningProtocol(
       // still holds what THAT was made against, and this one is made against
       // the same thing. Taking the paint here threw away a rebuild whose save
       // failed, the moment anything was typed after a remount (Codex r23).
-      was: again ? again.was : (onTop ? onTop.was : recordP.current),
+      // …and what the record holds is only ever what it holds for THAT DAY:
+      // across 4am the screen's last read describes yesterday's row, and
+      // yesterday's protocol is no basis for a change made today (Codex r31).
+      was: again ? again.was : (onTop ? onTop.was : (recordP.current?.day === day ? recordP.current.p : null)),
     }
     // The account that made the change, captured now. Before the open-time
     // read has answered there is no owner to bind to, and the change is kept
@@ -574,7 +579,7 @@ export default function MorningProtocol(
       // next open (Codex r20).
       movedOn(day, p, mine.n)
       // The row holds it now, so that is what the next change is made against.
-      if (isToday) recordP.current = p
+      if (isToday) recordP.current = { day, p }
       showStatus()
       // The row has it now. Only now are the readers told (FOR-231): the
       // daily number, the checklist and the objectives card re-read the row
