@@ -81,6 +81,27 @@ Do not route any of this to Andrew.
 Andrew enters every credential value himself. Reference env var names, never values. Never echo
 one into a log, a commit, or a report. **Quarantine over delete.**
 
+## Re-read the bus mid-flight. A stop signal you never look at is not a stop signal.
+
+`.claude/bus/HALT` and any termination trigger on a ticket are written **while you are working.**
+The Stop hook only fires between turns, so on a long turn a HALT can sit on disk for hours unread.
+That happened on 2026-09-23: a trigger was filed at 03:12Z, fired three times, and was not seen
+until after the merge and the production deploy.
+
+**So, inside a turn, re-read before you commit to more work:**
+
+* **Before every Codex round**, and **always before a merge**: check `.claude/bus/HALT` and re-read
+  the ticket's comments in Linear. Both are cheap. Neither is optional.
+* **HALT present** → stop at the current round, write the report, do not merge.
+* **A termination trigger on the ticket governs you from the moment it is written**, not from the
+  moment you happen to notice it. If you find one that has already fired, **stop and report the
+  fact that it fired** — do not keep going because the work looks nearly done.
+* Blaine cannot interrupt you any other way. This re-read *is* the interrupt.
+
+**Rounds are a smell, not just a cost.** If a ticket passes **12 Codex rounds** with no trigger set,
+stop and say so before round 13. Ask for one. Every ticket this repo has shipped landed in 8 or
+fewer; past that, the design is usually wrong rather than the implementation.
+
 ## The bus
 
 `.claude/bus/` is how Blaine hands you work without Andrew pasting it. See `.claude/bus/README.md`.
