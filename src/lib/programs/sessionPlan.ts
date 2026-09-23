@@ -103,21 +103,10 @@ export function sessionPlan(built: DayPlan, stored: unknown, logs: readonly Logg
 
 // ── One writer for the row ──────────────────────────────────────────────────
 // Every write of a session's workout_data — its record, its overrides — sends
-// the WHOLE object. Two in flight at once, and the older can land last and put
-// back what the newer removed: an exercise added while a swap's record was
-// being written, gone (Codex r3). So they queue: each starts only when the one
-// before it has finished, and each reads the state it sends when it STARTS, so
-// whatever is sent last carries every change made before it.
-
-/** A queue of writes that run strictly one at a time, in the order asked for. A failed write does not stop the queue. */
-export function serialWriter(): <T>(write: () => Promise<T>) => Promise<T> {
-  let tail: Promise<unknown> = Promise.resolve()
-  return <T>(write: () => Promise<T>): Promise<T> => {
-    const run = tail.then(() => write(), () => write())
-    tail = run.then(() => undefined, () => undefined)
-    return run
-  }
-}
+// the WHOLE object, so they go through one queue (Codex r3). The queue itself
+// lives in src/lib/serialWriter.ts, shared with the check-in writers (FOR-231).
+export { serialWriter } from '../serialWriter'
+import { canonical } from '../canonical'
 
 /**
  * The same plan, whatever order its keys arrived in. Postgres jsonb reorders
@@ -127,12 +116,4 @@ export function serialWriter(): <T>(write: () => Promise<T>) => Promise<T> {
  */
 export function samePlan(a: unknown, b: unknown): boolean {
   return canonical(a) === canonical(b)
-}
-function canonical(v: unknown): string {
-  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']'
-  if (v && typeof v === 'object') {
-    const o = v as Record<string, unknown>
-    return '{' + Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + canonical(o[k])).join(',') + '}'
-  }
-  return JSON.stringify(v)
 }

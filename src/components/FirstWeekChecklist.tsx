@@ -132,28 +132,35 @@ export default function FirstWeekChecklist(
     check()
   }, [userId])
 
-  // Auto-check morning_protocol if they've completed at least one pillar today
+  // Auto-check morning_protocol if they've completed at least one pillar today.
+  // Read from the RECORD — the daily_checkins row keyed on the protocol's own
+  // 4am-cutoff day — never from MorningProtocol's local paint (FOR-231). The
+  // paint is one browser-wide key with no owner: a previous account's pillar,
+  // or one that never reached the row, would have ticked this for whoever is
+  // signed in now.
   useEffect(() => {
     if (!userId || state.morning_protocol) return
-    try {
-      const raw = localStorage.getItem('dad-strength-morning-protocol')
-      if (!raw) return
-      const saved = JSON.parse(raw)
-      // MUST match how MorningProtocol writes the cache: localDayWithCutoff(4),
-      // i.e. YYYY-MM-DD on a 4am boundary. This compared against
+    let cancelled = false
+    void (async () => {
+      // MUST match how MorningProtocol keys the row: localDayWithCutoff(4),
+      // i.e. YYYY-MM-DD on a 4am boundary. This once compared against
       // toLocaleDateString() — '2026-08-26' vs '8/26/2026' — so it was never
       // equal in any normal locale, and this item could never auto-complete.
-      // day.ts documents the same mismatch being fixed elsewhere; this file
-      // was missed. Pre-existing, surfaced by wiring protocolTick in.
       const today = localDayWithCutoff(4)
-      if (saved.date === today && Array.isArray(saved.completed) && saved.completed.some(Boolean)) {
+      const { data: row } = await supabase
+        .from('daily_checkins')
+        .select('spirit_state')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .maybeSingle()
+      const m = (row?.spirit_state as { morning?: { date?: string; completed?: boolean[] } } | null)?.morning
+      if (!cancelled && m?.date === today && Array.isArray(m.completed) && m.completed.some(Boolean)) {
         updateItem('morning_protocol', true)
       }
-    } catch { /* ignore */ }
-    // protocolTick is bumped by the dashboard when MorningProtocol saves a
-    // completed pillar. It is the only reason this effect re-runs mid-session:
-    // the check reads localStorage, and a sibling writing localStorage fires
-    // no event a component in the same tab can hear.
+    })()
+    return () => { cancelled = true }
+    // protocolTick is bumped by the dashboard once MorningProtocol's record has
+    // changed — the row write has landed — so this re-read reads the change.
   }, [userId, state.morning_protocol, protocolTick])
 
   const updateItem = async (key: keyof ChecklistState, value: boolean) => {
