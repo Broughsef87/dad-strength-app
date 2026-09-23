@@ -79,9 +79,6 @@ type Latest = {
    * replaced — and what stops a protocol replaced elsewhere being put back
    * (Codex r18, r19). */
   was: Protocol | null
-  /** Made under a confirmed account, or vouched for by a read that answered.
-   * An unchecked snapshot is not written without one (Codex r15). */
-  checked: boolean
   /** Which run of this tab it was made in — the outbox's own count, so the
    * protocol and the objectives mean the same thing by it. A change nobody
    * could name an account for belongs to the run it was made in and to no
@@ -390,8 +387,8 @@ export default function MorningProtocol(
       let keepScreen = false
       // Recovering the kept days reads their rows, and one of those reads can
       // fail on its own. That is that day's answer, not today's: it stays kept
-      // and unchecked, and today's record — already read, right here — still
-      // goes on the screen (Codex r17).
+      // and today's record — already read, right here — still goes on the
+      // screen (Codex r17).
       try {
         for (const u of [...kept.unsent.values()]) {
           if (!live()) return
@@ -415,6 +412,10 @@ export default function MorningProtocol(
             const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
             vouched = sameJson(its, u.was)
           }
+          // The awaits above take time — the account, sometimes another day's
+          // row — and this open may have been ended while they ran. Nothing of
+          // this tab's is its to settle or send any more (Codex r26).
+          if (!live()) return
           settled(u)
           // Not vouched: the change is gone, and what it put on the screen goes
           // with it. It must not keep the record off the screen as if it were
@@ -473,9 +474,9 @@ export default function MorningProtocol(
   // `again`: a snapshot being sent a second time — a Retry, or the open-time
   // read recovering one it vouched for. It keeps everything that was fixed when
   // it was MADE: the account that made it, whether this screen generated its
-  // protocol, and whether anything has checked it. Re-stamping those from what
-  // is true now put one account's protocol and gratitude under another, and
-  // took an older day's generated protocol its only way home (Codex r16).
+  // protocol, and what it was made against. Re-stamping those from what is
+  // true now put one account's protocol and gratitude under another, and took
+  // an older day's protocol its only way home (Codex r16, r19).
   const saveCache = (p: Protocol, c: boolean[], g: string[], day: string = todayKey(), again?: Latest) => {
     localEdits.current++
     // The change this one is made on top of, if this day's row does not have
@@ -495,7 +496,6 @@ export default function MorningProtocol(
       // the same thing. Taking the paint here threw away a rebuild whose save
       // failed, the moment anything was typed after a remount (Codex r23).
       was: again ? again.was : (onTop ? onTop.was : recordP.current),
-      checked: again ? again.checked : ownerRef.current !== null,
     }
     // The account that made the change, captured now. Before the open-time
     // read has answered there is no owner to bind to, and the change is kept
@@ -577,27 +577,13 @@ export default function MorningProtocol(
       onSaved?.()
     })()
   }
-  const retrySave = () => {
-    // No account confirmed: the open-time read never answered. Run it again —
-    // it saves the kept changes if the record vouches for them (Codex r3).
-    if (!ownerRef.current) { void open(); return }
-    // Every change the row does not have, each to ITS OWN day. Not the latest
-    // snapshot: after yesterday's save failed and today's landed, that is
-    // today's — already in the row — and Retry would say it had done something
-    // while yesterday stayed unsaved for as long as the tab was open (Codex r13).
-    //
-    // A snapshot nobody has checked — made before an account was confirmed, or
-    // left over from an open that failed partway through its days — is not
-    // written on a Retry: the open-time read is what decides whether the record
-    // vouches for it, and without that this would overwrite whatever another
-    // device put in that row (Codex r15).
-    let unchecked = false
-    for (const u of [...kept.unsent.values()]) {
-      if (u.checked) saveCache(u.p, u.c, u.g, u.day, u)
-      else unchecked = true
-    }
-    if (unchecked) void open()
-  }
+  // Retry IS the open-time read. It reads each kept day's row and saves the
+  // change only if that row still holds what the change was made against —
+  // every change the row does not have, each to its own day (Codex r13), and
+  // none of them over a protocol another device has put there since (Codex
+  // r15, r26). Writing a snapshot straight out because some earlier screen had
+  // read the row is not the same thing: the row moves.
+  const retrySave = () => { void open() }
 
   const generate = async () => {
     setLoading(true)

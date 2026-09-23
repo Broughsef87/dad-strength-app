@@ -266,9 +266,8 @@ assert(/const saveCache = \(p: Protocol, c: boolean\[\], g: string\[\], day: str
 // Codex r2: Retry recomputed the day, so a change that failed before 4am was
 // retried after it — into the NEXT day's row.
 assert(/kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,/.test(mp)
-  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) \{\s*if \(u\.checked\) saveCache\(u\.p, u\.c, u\.g, u\.day, u\)\s*else unchecked = true\s*\}\s*if \(unchecked\) void open\(\)/.test(fnBody(mp, 'const retrySave = '))
-  && !/kept\.latest/.test(fnBody(mp, 'const retrySave = ')),
-  'a Retry retries every change the row does not have, each on the day it was made — not the latest snapshot, which after one day saved and another failed is the one already in the row (Codex r2, r13)')
+  && /const retrySave = \(\) => \{ void open\(\) \}/.test(mp),
+  "a Retry IS the open-time read: it reads each kept day's row and saves the change only if that row still holds what the change was made against — every day the row does not have, never the latest snapshot, and never over a protocol another device has put there since (Codex r2, r13, r15, r26)")
 // Codex r5: moving to another tab in the app unmounts these components. What
 // the row does not have yet is kept per TAB, and the next open saves it — and
 // it is never touched while rendering, where a server render would hand one
@@ -359,10 +358,9 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: me,/.test(sav
 // made could be written under B, and an older day's generated protocol lost
 // the only thing that could vouch for it.
 assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.run : currentRun\(\)/.test(mp) && /const onTop = kept\.unsent\.get\(day\)/.test(mp) && /was: again \? again\.was : \(onTop \? onTop\.was : recordP\.current\)/.test(mp)
-  && /checked: again \? again\.checked : ownerRef\.current !== null/.test(mp)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}/.test(openFn),
-  'a snapshot sent again keeps what was fixed when it was MADE — the account that made it, whether this screen generated its protocol, whether anything has checked it — because having been checked under one account is no authorization under the next (Codex r16)')
+  'a snapshot sent again keeps what was fixed when it was MADE — the account that made it, the run it was made in, and what it was made against — because having been sent under one account is no authorization under the next (Codex r16, r19)')
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
   "the protocol's account is confirmed only by its row answering — until then the screen is a paint nobody checked, possibly another account's")
@@ -389,8 +387,8 @@ assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayK
   "the kept change is vouched against the row of the day it was made on, stays kept until that row has answered, and an earlier day's change recovered does not stop today's record being applied (Codex r5, r6)")
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
 // never be saved under account B — its protocol, and its gratitude, are A's.
-assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}was: Protocol \| null[\s\S]{0,600}checked: boolean[\s\S]{0,600}run: number\s*\}/.test(mp)
-  && /kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,[\s\S]{0,900}checked: again \? again\.checked : ownerRef\.current !== null,\s*\}/.test(mp)
+assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}was: Protocol \| null[\s\S]{0,900}run: number\s*\}/.test(mp)
+  && /kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,[\s\S]{0,900}was: again \? again\.was :[\s\S]{0,200}\}/.test(mp)
   && /const madeBy = \(\): Promise<string \| null> => accountAtChange\(createClient\(\), \{ current: ownerRef\.current \}\)/.test(mp),
   'every change kept carries the account that made it, fixed at the change, and a change-time lookup never becomes the confirmed account')
 assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null \? by !== user\.id : u\.run !== currentRun\(\)\) \{\s*if \(kept\.latest && kept\.latest\.n <= u\.n\) kept\.latest = null\s*\} else \{/.test(openFn),
@@ -419,13 +417,17 @@ assert(/setSync\(opening\.current \? 'saving' : s\)/.test(saveFn) && /opening\.c
 // writing behind the screen that replaced it — which then showed one protocol
 // while another was being saved.
 assert(/^let opens = 0/m.test(mp) && /const mine = \+\+opens\s*const live = \(\) => mine === opens/.test(openFn)
-  && (openFn.match(/if \(!live\(\)\) return/g) ?? []).length >= 3 && /return \(\) => \{ opens\+\+ \}/.test(mpLoader),
+  && /return \(\) => \{ opens\+\+ \}/.test(mpLoader)
+  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) \{\s*if \(!live\(\)\) return/.test(openFn)
+  && /if \(!live\(\)\) return\s*const held = protocolOn\(row, todayKey\(\)\)/.test(openFn)
+  && /if \(!live\(\)\) return\s*if \(recovered\) \{/.test(openFn)
+  && /const by = await u\.by[\s\S]{0,1200}if \(!live\(\)\) return\s*settled\(u\)/.test(openFn),
   "only this tab's newest open reads, settles and recovers — a newer one, or leaving the screen, ends the one before (Codex r25)")
 // Codex r7: recovered without being rendered, the screen sat on the config step
 // with a protocol already in the row — and generating again would overwrite it.
 assert(/setProtocol\(recovered\.p\)\s*setCompleted\(recovered\.c\)\s*setGratitude\(recovered\.g\)\s*setConfigured\(true\)/.test(openFn),
   "a protocol recovered from what was kept is put on screen, not left to a paint that may not be there (Codex r7)")
-assert(/if \(!ownerRef\.current\) \{ void open\(\); return \}/.test(fnBody(mp, 'const retrySave = ')),
+assert(/const retrySave = \(\) => \{ void open\(\) \}/.test(mp),
   'Retry recovers a failed open — it runs the read again — instead of refusing every change until a reload (Codex r3)')
 // runAs, as behaviour: a job queued under one account never runs under another.
 {
