@@ -415,6 +415,12 @@ assert(/const protocolOn = \(row: \{ spirit_state\?: unknown \} \| null, day: st
 assert(/setSync\(opening\.current \? 'saving' : s\)/.test(saveFn) && /opening\.current = true/.test(openFn) && /\} finally \{\s*opening\.current = false\s*\}/.test(openFn)
   && /if \(!user\) \{ if \(kept\.unsent\.size\) setSync\('unsaved'\); return \}/.test(openFn) && /setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\)/.test(openFn),
   'a change kept while the open-time read runs says "saving" — and "not saved" once the read ends without saving it')
+// Codex r25: a screen left while its open was reading went on settling and
+// writing behind the screen that replaced it — which then showed one protocol
+// while another was being saved.
+assert(/^let opens = 0/m.test(mp) && /const mine = \+\+opens\s*const live = \(\) => mine === opens/.test(openFn)
+  && (openFn.match(/if \(!live\(\)\) return/g) ?? []).length >= 3 && /return \(\) => \{ opens\+\+ \}/.test(mpLoader),
+  "only this tab's newest open reads, settles and recovers — a newer one, or leaving the screen, ends the one before (Codex r25)")
 // Codex r7: recovered without being rendered, the screen sat on the config step
 // with a protocol already in the row — and generating again would overwrite it.
 assert(/setProtocol\(recovered\.p\)\s*setCompleted\(recovered\.c\)\s*setGratitude\(recovered\.g\)\s*setConfigured\(true\)/.test(openFn),

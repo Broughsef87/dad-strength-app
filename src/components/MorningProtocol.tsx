@@ -116,6 +116,12 @@ const queuedFor = new Map<string, number>()
 // measured against — and it is not kept yet, so looking only at what is kept
 // misses exactly the change that is still on its way (Codex r20, r21).
 const sending = new Set<Latest>()
+// Opens, counted per TAB. What an open reads and recovers is this tab's, not
+// one component's: a screen left while it was reading would otherwise go on
+// settling and writing behind the screen that replaced it, which then showed
+// one protocol while another was being saved (Codex r25). A newer open, and
+// leaving the screen, both end the one before.
+let opens = 0
 /** The row holds `p` for `day` now: everything made after `after` was made on top of it. */
 const movedOn = (day: string, p: Protocol, after: number) => {
   const held = kept.unsent.get(day)
@@ -286,6 +292,9 @@ export default function MorningProtocol(
 
     // …then the RECORD answers.
     void open()
+    // Leaving the screen ends it: what it has not decided yet is left kept,
+    // for the next open to decide (Codex r25).
+    return () => { opens++ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -317,6 +326,9 @@ export default function MorningProtocol(
   // screen that refuses every change until a reload (Codex r3).
   const open = async () => {
     const editsAtOpen = localEdits.current
+    // This open, until another starts or this screen goes.
+    const mine = ++opens
+    const live = () => mine === opens
     opening.current = true
     try {
       const supabase = createClient()
@@ -326,6 +338,7 @@ export default function MorningProtocol(
       // has landed since the row-key fix (FOR-228, ruling 2).
       const row = await readSpirit(supabase, user.id, todayKey())
       const m = morningIn(row)
+      if (!live()) return
       const held = protocolOn(row, todayKey())
       // What the row holds is what every change made from here is made against
       // — set before any recovery, because recovery can return without ever
@@ -381,6 +394,7 @@ export default function MorningProtocol(
       // goes on the screen (Codex r17).
       try {
         for (const u of [...kept.unsent.values()]) {
+          if (!live()) return
           // Whose change it is decides first. Kept state outlives a sign-out,
           // and a change account A made is never saved under account B — it
           // would put A's protocol, and A's gratitude, in B's record (Codex r6,
@@ -430,6 +444,7 @@ export default function MorningProtocol(
           }
         }
       } catch { /* that day's row did not answer; it stays kept */ }
+      if (!live()) return
       if (recovered) {
         // On screen, not left to the paint: localStorage may be unavailable,
         // or its last write may have failed, and then nothing would show what
