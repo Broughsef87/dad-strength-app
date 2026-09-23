@@ -385,7 +385,7 @@ assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.r
   && /\.reduce<Latest \| null>\(\(newest, u\) => \(newest === null \|\| u\.n > newest\.n \? u : newest\), null\)/.test(mp)
   && /was: again \? again\.was : \(onTop \? onTop\.was : \(recordP\.current\?\.day === day \? recordP\.current\.p : null\)\)/.test(mp)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
-  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) \{\s*if \(!live\(\)\) return[\s\S]{0,300}try \{/.test(openFn) && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}\s*\}/.test(openFn),
+  && /for \(const u of todo\) \{\s*decided\.add\(u\)\s*if \(!live\(\)\) return[\s\S]{0,300}try \{/.test(openFn) && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}\s*\}\s*\}/.test(openFn),
   'a snapshot sent again keeps what was fixed when it was MADE — the account that made it, the run it was made in, and what it was made against — because having been sent under one account is no authorization under the next (Codex r16, r19)')
 assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') && openFn.indexOf('const row = await readSpirit(supabase, user.id, todayKey())') > 0
   && /if \(read === ACCOUNT_CHANGED \|\| read\.error\) throw new Error\('unreached'\)/.test(fnBody(mp, 'const readSpirit = ')) && (code(mp).match(/ownerRef\.current = /g) ?? []).length === 1,
@@ -393,7 +393,7 @@ assert(openFn.indexOf('ownerRef.current = user.id') > openFn.indexOf('const row 
 assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpirit\(supabase, user\.id, u\.day\), u\.day\)[\s\S]{0,500}vouched = sameJson\(its, u\.was\) \|\| sameJson\(its, u\.p\)/.test(openFn)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /const recordP = useRef<\{ day: string; p: Protocol \| null \} \| null>\(null\)/.test(mp) && /recordP\.current = \{ day: todayKey\(\), p: data\.protocol \}/.test(mpLoader)
-  && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') > 0 && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') < openFn.indexOf('for (const u of [...kept.unsent.values()])')
+  && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') > 0 && openFn.indexOf('recordP.current = { day: todayKey(), p: held }') < openFn.indexOf('for (let pass = 0; pass < 4; pass++)')
   && /if \(localEdits\.current === editsAtOpen && !kept\.unsent\.has\(todayKey\(\)\)\) applyRecord\(\)/.test(openFn)
   && openFn.indexOf('if (localEdits.current === editsAtOpen && !kept.unsent.has(todayKey())) applyRecord()') < openFn.indexOf('ownerRef.current = user.id')
   && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = \{ day, p \}/.test(saveFn) && /const onTop = \[\.\.\.sending, \.\.\.\(kept\.unsent\.get\(day\) \? \[kept\.unsent\.get\(day\) as Latest\] : \[\]\)\]/.test(mp)
@@ -410,7 +410,7 @@ assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.s
 // cannot hold yesterday's protocol — and was dropped as if the record had
 // replaced it.
 assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayKey()')) > openFn.indexOf('const its = u.day === todayKey()')
-  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\)/.test(openFn)
+  && /for \(const u of todo\) \{\s*decided\.add\(u\)/.test(openFn) && /const todo = \[\.\.\.kept\.unsent\.values\(\)\]\.filter\(\(u\) => !decided\.has\(u\)\)/.test(openFn) && /for \(let pass = 0; pass < 4; pass\+\+\)/.test(openFn)
   && /if \(u\.day === todayKey\(\)\) recovered = u/.test(openFn)
   && /if \(recovered && !newerOnScreen\) \{[\s\S]{0,400}setProtocol\(recovered\.p\)\s*setCompleted\(recovered\.c\)\s*setGratitude\(recovered\.g\)\s*setConfigured\(true\)\s*return\s*\}/.test(openFn)
   && openFn.indexOf('if (u.day === todayKey()) recovered = u') > openFn.indexOf('saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })'),
@@ -444,14 +444,15 @@ assert(/const protocolOn = \(row: \{ spirit_state\?: unknown \} \| null, day: st
 assert(/setSync\(opening\.current \? 'saving' : s\)/.test(saveFn) && /opening\.current = true/.test(openFn) 
   && /if \(!user\) \{ setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\); return \}/.test(openFn) && /setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\)/.test(openFn)
   && /deciding\.current = true/.test(openFn) && /if \(!kept\.unsent\.has\(todayKey\(\)\)\) deciding\.current = false/.test(openFn)
-  && /if \(u\.day === todayKey\(\)\) deciding\.current = false/.test(openFn) && /\} finally \{\s*opening\.current = false\s*deciding\.current = false\s*\}/.test(openFn),
+  && /\/\/ Everything kept has been decided, or has been left kept: writes again\.\s*deciding\.current = false/.test(openFn)
+  && /\} finally \{\s*opening\.current = false\s*deciding\.current = false\s*\}/.test(openFn),
   'a change kept while the open-time read runs says "saving" — and "not saved" once the read ends without saving it; and a change made while that read has not yet decided what TODAY holds is kept, not written, because the screen may be showing one the record is about to reject (Codex r37)')
 // Codex r25: a screen left while its open was reading went on settling and
 // writing behind the screen that replaced it — which then showed one protocol
 // while another was being saved.
 assert(/^let opens = 0/m.test(mp) && /const mine = \+\+opens\s*const live = \(\) => mine === opens/.test(openFn)
   && /return \(\) => \{ opens\+\+ \}/.test(mpLoader)
-  && /for \(const u of \[\.\.\.kept\.unsent\.values\(\)\]\) \{\s*if \(!live\(\)\) return/.test(openFn)
+  && /for \(const u of todo\) \{\s*decided\.add\(u\)\s*if \(!live\(\)\) return/.test(openFn)
   && /if \(!live\(\)\) return\s*const held = protocolOn\(row, todayKey\(\)\)/.test(openFn)
   && /if \(!live\(\)\) return\s*\/\//.test(openFn)
   && /const by = await u\.by[\s\S]{0,2000}if \(!live\(\)\) return\s*settled\(u\)/.test(openFn),

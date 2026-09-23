@@ -410,69 +410,82 @@ export default function MorningProtocol(
       // fail on its own. That is that day's answer, not today's: it stays kept
       // and today's record — already read, right here — still goes on the
       // screen (Codex r17).
-      for (const u of [...kept.unsent.values()]) {
-        if (!live()) return
-        // One day's row failing to answer is THAT day's answer: it stays
-        // kept, and the days after it are still recovered (Codex r17, r31).
-        try {
-          // Whose change it is decides first. Kept state outlives a sign-out,
-          // and a change account A made is never saved under account B — it
-          // would put A's protocol, and A's gratitude, in B's record (Codex r6,
-          // P1). One nobody could name an account for belongs to the run of
-          // this tab it was made in: after a sign-out it is not the next
-          // account's, and an empty row of theirs is no kind of ownership
-          // (Codex r20, P1).
-          const by = await u.by
-          let vouched = false
-          if (by !== null ? by !== user.id : u.run !== currentRun()) {
-          } else {
-            // The row still holds what the change was made against: then the
-            // change belongs on top of it, whether it ticks that protocol,
-            // rebuilds it, or is the first one of the day. If the row holds
-            // something else, the record moved on — here or on another device
-            // — and the change is not this one's to land (Codex r18, r19).
-            const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
-            // …or the row already holds this change's OWN protocol: its write
-            // reached the row and the answer was lost on the way back, and the
-            // ticks and gratitude made after it are still this screen's to save
-            // (Codex r29).
-            vouched = sameJson(its, u.was) || sameJson(its, u.p)
-          }
-          // The awaits above take time — the account, sometimes another day's
-          // row — and this open may have been ended while they ran. Nothing of
-          // this tab's is its to settle or send any more (Codex r26).
+      // Passes, not one sweep: a change made here WHILE a row was being read is
+      // newer than the one this pass decided, and releasing the screen and the
+      // writes without deciding it let the next keystroke write a protocol the
+      // record had just rejected over whatever replaced it (Codex r38). Bounded:
+      // what is still undecided after them stays kept, for the next open.
+      const decided = new Set<Latest>()
+      for (let pass = 0; pass < 4; pass++) {
+        const todo = [...kept.unsent.values()].filter((u) => !decided.has(u))
+        if (todo.length === 0) break
+        for (const u of todo) {
+          decided.add(u)
           if (!live()) return
-          settled(u)
-          // Not vouched: the change is gone, and what it put on the screen goes
-          // with it. It must not keep the record off the screen as if it were
-          // still a change waiting to be saved (Codex r23).
-          if (!vouched && u.day === todayKey()) rejected = true
-          // Today's is decided either way: writes are this screen's again.
-          if (u.day === todayKey()) deciding.current = false
-          // Deciding that took an await, or two. The account was confirmed before
-          // them, so a change made to THE SAME DAY meanwhile has been written on
-          // its own — and this older snapshot must not land on top of it, nor the
-          // record be applied over it (Codex r10, r12).
-          if ((newestFor.get(u.day) ?? 0) > u.n) {
-            if (u.day === todayKey()) keepScreen = true
-            continue
-          }
-          if (vouched) {
-            // The vouch IS the account: this account's row holds the protocol the
-            // change was made on, or this screen generated it for this account.
-            // A change made while nobody could say who was signed in would
-            // otherwise be refused by the queue for ever (Codex r17).
-            ownEdits++
-            saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })
-            // A change for TODAY is what the screen shows, and the row does not
-            // have it yet — the record must not be applied over it. A change
-            // for an earlier day is not what the screen shows: today's record
-            // still applies, or the screen would sit on the config step with a
-            // protocol already in the row (Codex r6).
-            if (u.day === todayKey()) recovered = u
-          }
-        } catch { /* that day's row did not answer; it stays kept */ }
+          // One day's row failing to answer is THAT day's answer: it stays
+          // kept, and the days after it are still recovered (Codex r17, r31).
+          try {
+            // Whose change it is decides first. Kept state outlives a sign-out,
+            // and a change account A made is never saved under account B — it
+            // would put A's protocol, and A's gratitude, in B's record (Codex r6,
+            // P1). One nobody could name an account for belongs to the run of
+            // this tab it was made in: after a sign-out it is not the next
+            // account's, and an empty row of theirs is no kind of ownership
+            // (Codex r20, P1).
+            const by = await u.by
+            let vouched = false
+            if (by !== null ? by !== user.id : u.run !== currentRun()) {
+            } else {
+              // The row still holds what the change was made against: then the
+              // change belongs on top of it, whether it ticks that protocol,
+              // rebuilds it, or is the first one of the day. If the row holds
+              // something else, the record moved on — here or on another device
+              // — and the change is not this one's to land (Codex r18, r19).
+              const its = u.day === todayKey() ? held : protocolOn(await readSpirit(supabase, user.id, u.day), u.day)
+              // …or the row already holds this change's OWN protocol: its write
+              // reached the row and the answer was lost on the way back, and the
+              // ticks and gratitude made after it are still this screen's to save
+              // (Codex r29).
+              vouched = sameJson(its, u.was) || sameJson(its, u.p)
+            }
+            // The awaits above take time — the account, sometimes another day's
+            // row — and this open may have been ended while they ran. Nothing of
+            // this tab's is its to settle or send any more (Codex r26).
+            if (!live()) return
+            settled(u)
+            // Not vouched: the change is gone, and what it put on the screen goes
+            // with it. It must not keep the record off the screen as if it were
+            // still a change waiting to be saved (Codex r23).
+            if (!vouched && u.day === todayKey()) rejected = true
+            // Today's is decided either way: writes are this screen's again.
+            // (today is released once the passes are done, below)
+            // Deciding that took an await, or two. The account was confirmed before
+            // them, so a change made to THE SAME DAY meanwhile has been written on
+            // its own — and this older snapshot must not land on top of it, nor the
+            // record be applied over it (Codex r10, r12).
+            if ((newestFor.get(u.day) ?? 0) > u.n) {
+              if (u.day === todayKey()) keepScreen = true
+              continue
+            }
+            if (vouched) {
+              // The vouch IS the account: this account's row holds the protocol the
+              // change was made on, or this screen generated it for this account.
+              // A change made while nobody could say who was signed in would
+              // otherwise be refused by the queue for ever (Codex r17).
+              ownEdits++
+              saveCache(u.p, u.c, u.g, u.day, { ...u, by: Promise.resolve(user.id) })
+              // A change for TODAY is what the screen shows, and the row does not
+              // have it yet — the record must not be applied over it. A change
+              // for an earlier day is not what the screen shows: today's record
+              // still applies, or the screen would sit on the config step with a
+              // protocol already in the row (Codex r6).
+              if (u.day === todayKey()) recovered = u
+            }
+          } catch { /* that day's row did not answer; it stays kept */ }
+        }
       }
+      // Everything kept has been decided, or has been left kept: writes again.
+      deciding.current = false
       if (!live()) return
       // The screen changed while the read was in flight — a change made here,
       // or a Rebuild — and that is newer than the read, which does not put it
