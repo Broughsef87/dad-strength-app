@@ -243,6 +243,11 @@ export default function MorningProtocol(
   // The open-time read is running. A change made meanwhile is saving — the
   // read saves it when it answers — not unsaved.
   const opening = useRef(false)
+  // An open has not yet decided what TODAY's screen holds. A change made while
+  // that is open is kept, not written: the screen may be showing a change the
+  // record is about to reject, and writing it would put it over whatever
+  // replaced it (Codex r37).
+  const deciding = useRef(false)
 
   const showStatus = () => setSync(statusNow())
 
@@ -333,10 +338,13 @@ export default function MorningProtocol(
     const mine = ++opens
     const live = () => mine === opens
     opening.current = true
+    deciding.current = true
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { if (kept.unsent.size) setSync('unsaved'); return }
+      // No account to read a record for: this screen says so and offers to
+      // try again, or it would sit for ever saying it was reading (Codex r37).
+      if (!user) { setSync(kept.unsent.size ? 'unsaved' : 'unreached'); return }
       // The row keyed on the protocol's OWN day — where every protocol write
       // has landed since the row-key fix (FOR-228, ruling 2).
       const row = await readSpirit(supabase, user.id, todayKey())
@@ -379,6 +387,8 @@ export default function MorningProtocol(
       // the screen back to the record first made the next keystroke a snapshot
       // of the rolled-back state — which then saved over it (Codex r35).
       if (localEdits.current === editsAtOpen && !kept.unsent.has(todayKey())) applyRecord()
+      // Nothing of today's is waiting to be decided: writes are this screen's.
+      if (!kept.unsent.has(todayKey())) deciding.current = false
       // Only now are writes this screen's to make: what is on it is the
       // record, or a change newer than the read (Codex r24).
       ownerRef.current = user.id
@@ -437,6 +447,8 @@ export default function MorningProtocol(
           // with it. It must not keep the record off the screen as if it were
           // still a change waiting to be saved (Codex r23).
           if (!vouched && u.day === todayKey()) rejected = true
+          // Today's is decided either way: writes are this screen's again.
+          if (u.day === todayKey()) deciding.current = false
           // Deciding that took an await, or two. The account was confirmed before
           // them, so a change made to THE SAME DAY meanwhile has been written on
           // its own — and this older snapshot must not land on top of it, nor the
@@ -488,6 +500,7 @@ export default function MorningProtocol(
       setSync(kept.unsent.size ? 'unsaved' : 'unreached')
     } finally {
       opening.current = false
+      deciding.current = false
     }
   }
 
@@ -531,7 +544,7 @@ export default function MorningProtocol(
     // read has answered there is no owner to bind to, and the change is kept
     // as unsent — never a write under an account nobody checked. The read
     // saves it when it answers; Retry runs the read again if it failed.
-    const owner = ownerRef.current
+    const owner = deciding.current ? null : ownerRef.current
     // Paint, for the next open's first frame.
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: day, protocol: p, completed: c, gratitude: g })) } catch { /* paint only */ }
     if (!owner) {

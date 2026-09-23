@@ -375,7 +375,7 @@ assert(/\{sync === 'saving' && 'saving · '\}\{doneCount\}/.test(obj) && /\{sync
 assert(!/serialWriter/.test(code(mp)) && !/serialWriter/.test(code(obj)) && /export const checkinQueue = serialWriter\(\)/.test(readLF('src/lib/checkinQueue.ts')),
   'neither component keeps a queue of its own — with one each, a tick on the card could land after the Goals step replaced the objectives it was made against')
 const openFn = fnBody(mp, 'const open = ')
-assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: me,/.test(saveFn) && !/user_id: owner/.test(saveFn) && /if \(!owner\) \{\s*keep\(mine\)\s*const s = statusNow\(\)/.test(saveFn),
+assert(/const owner = deciding\.current \? null : ownerRef\.current/.test(saveFn) && /user_id: me,/.test(saveFn) && !/user_id: owner/.test(saveFn) && /if \(!owner\) \{\s*keep\(mine\)\s*const s = statusNow\(\)/.test(saveFn),
   'a protocol write is bound to the account that made it, captured when it was made — and with no confirmed account it is kept, never a write under an account nobody checked')
 // Codex r16, P1: a snapshot sent again was re-stamped from what was true NOW —
 // the account signed in, the protocol last generated — so a change account A
@@ -441,9 +441,11 @@ assert(/const protocolOn = \(row: \{ spirit_state\?: unknown \} \| null, day: st
   'which day a row holds a protocol for is decided in one place, for any day')
 // Kept while the open-time read runs is saving, not unsaved — the read saves
 // it — and unsaved the moment that read ends without an account or a row.
-assert(/setSync\(opening\.current \? 'saving' : s\)/.test(saveFn) && /opening\.current = true/.test(openFn) && /\} finally \{\s*opening\.current = false\s*\}/.test(openFn)
-  && /if \(!user\) \{ if \(kept\.unsent\.size\) setSync\('unsaved'\); return \}/.test(openFn) && /setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\)/.test(openFn),
-  'a change kept while the open-time read runs says "saving" — and "not saved" once the read ends without saving it')
+assert(/setSync\(opening\.current \? 'saving' : s\)/.test(saveFn) && /opening\.current = true/.test(openFn) 
+  && /if \(!user\) \{ setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\); return \}/.test(openFn) && /setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\)/.test(openFn)
+  && /deciding\.current = true/.test(openFn) && /if \(!kept\.unsent\.has\(todayKey\(\)\)\) deciding\.current = false/.test(openFn)
+  && /if \(u\.day === todayKey\(\)\) deciding\.current = false/.test(openFn) && /\} finally \{\s*opening\.current = false\s*deciding\.current = false\s*\}/.test(openFn),
+  'a change kept while the open-time read runs says "saving" — and "not saved" once the read ends without saving it; and a change made while that read has not yet decided what TODAY holds is kept, not written, because the screen may be showing one the record is about to reject (Codex r37)')
 // Codex r25: a screen left while its open was reading went on settling and
 // writing behind the screen that replaced it — which then showed one protocol
 // while another was being saved.
