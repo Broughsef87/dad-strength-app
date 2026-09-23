@@ -224,7 +224,7 @@ assert(/adoptRead\(today, read\.ms, read\.seq, true\)/.test(objLoad)
   && /if \(ms\) localStorage\.setItem\(MIND_KEY[\s\S]{0,120}else localStorage\.removeItem\(MIND_KEY\)/.test(topFn(out, 'export function paintMind')),
   'and what its row says replaces the paint, including that there is nothing today')
 // A change made while the read was in flight is newer than the read.
-assert(/const editsAtOpen = localEdits\.current/.test(mpLoader) && /if \(keepScreen \|\| localEdits\.current !== editsAtOpen \+ ownEdits\) \{ showStatus\(\); return \}/.test(mpLoader) && /ownEdits\+\+/.test(mpLoader)
+assert(/const editsAtOpen = localEdits\.current/.test(mpLoader) && /if \(keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)\) \{ showStatus\(\); return \}/.test(mpLoader) && /ownEdits\+\+/.test(mpLoader) && /if \(!vouched && u\.day === todayKey\(\)\) rejected = true/.test(mpLoader)
   && /localEdits\.current\+\+/.test(fnBody(mp, 'const saveCache = ')),
   'a row read that started before a change made here does not put the protocol back behind it')
 // The card needs no such guard: a read becomes the record, and every change the
@@ -358,7 +358,7 @@ assert(/const owner = ownerRef\.current/.test(saveFn) && /user_id: me,/.test(sav
 // the account signed in, the protocol last generated — so a change account A
 // made could be written under B, and an older day's generated protocol lost
 // the only thing that could vouch for it.
-assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.run : currentRun\(\)/.test(mp) && /was: again \? again\.was : recordP\.current/.test(mp)
+assert(/by: again \? again\.by : madeBy\(\)/.test(mp) && /run: again \? again\.run : currentRun\(\)/.test(mp) && /was: again \? again\.was : \(kept\.unsent\.get\(day\)\?\.was \?\? recordP\.current\)/.test(mp)
   && /checked: again \? again\.checked : ownerRef\.current !== null/.test(mp)
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /\} catch \{ \/\* that day's row did not answer; it stays kept \*\/ \}/.test(openFn),
@@ -370,7 +370,7 @@ assert(/const its = u\.day === todayKey\(\) \? held : protocolOn\(await readSpir
   && /if \(vouched\) \{[\s\S]{0,400}saveCache\(u\.p, u\.c, u\.g, u\.day, \{ \.\.\.u, by: Promise\.resolve\(user\.id\) \}\)/.test(openFn)
   && /const recordP = useRef<Protocol \| null>\(null\)/.test(mp) && /recordP\.current = data\.protocol/.test(mpLoader)
   && openFn.indexOf('recordP.current = held') > 0 && openFn.indexOf('recordP.current = held') < openFn.indexOf('for (const u of [...kept.unsent.values()])')
-  && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = p/.test(saveFn) && /was: again \? again\.was : recordP\.current/.test(mp) && !/generated/.test(code(mp)),
+  && /const isToday = day === todayKey\(\)/.test(saveFn) && /if \(isToday\) recordP\.current = p/.test(saveFn) && /was: again \? again\.was : \(kept\.unsent\.get\(day\)\?\.was \?\? recordP\.current\)/.test(mp) && !/generated/.test(code(mp)),
   'a change made before then is saved once the record vouches for it — the row still holds what the change was made against, which is the rule the objectives keep too: a rebuild whose save failed is recoverable because the row still holds what it replaced, and a protocol replaced elsewhere is never put back (Codex r18, r19)')
 assert(/const queuedFor = new Map<string, number>\(\)/.test(mp) && /queuedFor\.set\(day, mine\.n\)/.test(saveFn)
   && /if \(\(queuedFor\.get\(day\) \?\? 0\) > mine\.n\) return \{ error: null, stale: true \}/.test(saveFn)
@@ -388,7 +388,7 @@ assert(openFn.indexOf('settled(u)', openFn.indexOf('const its = u.day === todayK
 // Codex r6, P1: kept state outlives a sign-out. A change account A made must
 // never be saved under account B — its protocol, and its gratitude, are A's.
 assert(/type Latest = \{[\s\S]{0,900}by: Promise<string \| null>[\s\S]{0,900}was: Protocol \| null[\s\S]{0,600}checked: boolean[\s\S]{0,600}run: number\s*\}/.test(mp)
-  && /kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,[\s\S]{0,300}checked: again \? again\.checked : ownerRef\.current !== null,\s*\}/.test(mp)
+  && /kept\.latest = \{\s*p, c, g, day, n: \+\+stamp,[\s\S]{0,900}checked: again \? again\.checked : ownerRef\.current !== null,\s*\}/.test(mp)
   && /const madeBy = \(\): Promise<string \| null> => accountAtChange\(createClient\(\), \{ current: ownerRef\.current \}\)/.test(mp),
   'every change kept carries the account that made it, fixed at the change, and a change-time lookup never becomes the confirmed account')
 assert(/const by = await u\.by\s*let vouched = false\s*if \(by !== null \? by !== user\.id : u\.run !== currentRun\(\)\) \{\s*if \(kept\.latest && kept\.latest\.n <= u\.n\) kept\.latest = null\s*\} else \{/.test(openFn),
@@ -401,9 +401,9 @@ assert(/const movedOn = \(day: string, p: Protocol, after: number\) => \{\s*cons
 // Codex r10: deciding a kept change takes an await or two, and the account is
 // confirmed before them — so a change made meanwhile is written on its own, and
 // this older snapshot must not land on top of it.
-assert(/settled\(u\)\s*\/\/[\s\S]{0,400}if \(kept\.latest !== null && kept\.latest\.day === u\.day && kept\.latest\.n > u\.n\) \{\s*if \(u\.day === todayKey\(\)\) keepScreen = true\s*continue\s*\}/.test(openFn)
+assert(/settled\(u\)\s*\/\/[\s\S]{0,900}if \(kept\.latest !== null && kept\.latest\.day === u\.day && kept\.latest\.n > u\.n\) \{\s*if \(u\.day === todayKey\(\)\) keepScreen = true\s*continue\s*\}/.test(openFn)
   && openFn.indexOf('if (kept.latest !== null && kept.latest.day === u.day && kept.latest.n > u.n)') < openFn.indexOf('if (vouched) {')
-  && /if \(keepScreen \|\| localEdits\.current !== editsAtOpen \+ ownEdits\) \{ showStatus\(\); return \}/.test(openFn),
+  && /if \(keepScreen \|\| \(!rejected && localEdits\.current !== editsAtOpen \+ ownEdits\)\) \{ showStatus\(\); return \}/.test(openFn),
   'a kept change superseded while it was being decided is not saved, and the record is not applied over the change that superseded it (Codex r10)')
 assert(/const protocolOn = \(row: \{ spirit_state\?: unknown \} \| null, day: string\) => \{[\s\S]{0,200}n\?\.protocol && n\.date === day \? n\.protocol : null/.test(mp)
   && (code(mp).match(/n\.date === day|m\.date === todayKey\(\)/g) ?? []).length === 1,

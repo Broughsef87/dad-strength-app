@@ -344,6 +344,7 @@ export default function MorningProtocol(
       // no longer today's row, and today's row cannot vouch for it (Codex r5).
       // Until it is decided it stays kept, so a read that fails here retries.
       let ownEdits = 0
+      let rejected = false
       let recovered: Latest | null = null
       let keepScreen = false
       // Recovering the kept days reads their rows, and one of those reads can
@@ -373,6 +374,10 @@ export default function MorningProtocol(
             vouched = sameJson(its, u.was)
           }
           settled(u)
+          // Not vouched: the change is gone, and what it put on the screen goes
+          // with it. It must not keep the record off the screen as if it were
+          // still a change waiting to be saved (Codex r23).
+          if (!vouched && u.day === todayKey()) rejected = true
           // Deciding that took an await, or two. The account was confirmed before
           // them, so a change made to THE SAME DAY meanwhile has been written on
           // its own — and this older snapshot must not land on top of it, nor the
@@ -412,7 +417,7 @@ export default function MorningProtocol(
       // back. Our own recovery writes are not that: they are this read's doing.
       // Counting only whether anything was KEPT missed an edit made to today
       // while an older day's row was being read (Codex r22).
-      if (keepScreen || localEdits.current !== editsAtOpen + ownEdits) { showStatus(); return }
+      if (keepScreen || (!rejected && localEdits.current !== editsAtOpen + ownEdits)) { showStatus(); return }
       if (held) {
         const c = m?.completed ?? new Array(held.steps.length).fill(false)
         const g = m?.gratitude ?? ['', '', '']
@@ -455,7 +460,11 @@ export default function MorningProtocol(
       p, c, g, day, n: ++stamp,
       by: again ? again.by : madeBy(),
       run: again ? again.run : currentRun(),
-      was: again ? again.was : recordP.current,
+      // On top of a change this day's row does not have yet: then the row
+      // still holds what THAT was made against, and this one is made against
+      // the same thing. Taking the paint here threw away a rebuild whose save
+      // failed, the moment anything was typed after a remount (Codex r23).
+      was: again ? again.was : (kept.unsent.get(day)?.was ?? recordP.current),
       checked: again ? again.checked : ownerRef.current !== null,
     }
     // The account that made the change, captured now. Before the open-time
