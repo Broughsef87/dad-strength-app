@@ -486,6 +486,10 @@ export default function MorningProtocol(
       }
       // Everything kept has been decided, or has been left kept: writes again.
       deciding.current = false
+      // …and the screen is preserved only by a change that SURVIVED. One
+      // rejected in a later pass leaves nothing to preserve, and keeping the
+      // screen for it showed a rejected protocol as saved (Codex r40).
+      keepScreen = keepScreen && kept.unsent.has(todayKey())
       if (!live()) return
       // The screen changed while the read was in flight — a change made here,
       // or a Rebuild — and that is newer than the read, which does not put it
@@ -510,10 +514,14 @@ export default function MorningProtocol(
       applyRecord()
       showStatus()
     } catch {
-      setSync(kept.unsent.size ? 'unsaved' : 'unreached')
+      // A read this screen has moved past says nothing, and clears nothing:
+      // the open that replaced it is still reading (Codex r40).
+      if (live()) setSync(kept.unsent.size ? 'unsaved' : 'unreached')
     } finally {
-      opening.current = false
-      deciding.current = false
+      if (live()) {
+        opening.current = false
+        deciding.current = false
+      }
     }
   }
 

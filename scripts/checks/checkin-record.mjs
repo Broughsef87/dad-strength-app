@@ -442,10 +442,11 @@ assert(/const protocolOn = \(row: \{ spirit_state\?: unknown \} \| null, day: st
 // Kept while the open-time read runs is saving, not unsaved — the read saves
 // it — and unsaved the moment that read ends without an account or a row.
 assert(/setSync\(opening\.current \? 'saving' : s\)/.test(saveFn) && /opening\.current = true/.test(openFn) 
-  && /if \(!user\) \{ setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\); return \}/.test(openFn) && /setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\)/.test(openFn)
+  && /if \(!user\) \{ setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\); return \}/.test(openFn) && /if \(live\(\)\) setSync\(kept\.unsent\.size \? 'unsaved' : 'unreached'\)/.test(openFn)
   && /deciding\.current = true/.test(openFn) && /if \(!kept\.unsent\.has\(todayKey\(\)\)\) deciding\.current = false/.test(openFn)
   && /\/\/ Everything kept has been decided, or has been left kept: writes again\.\s*deciding\.current = false/.test(openFn)
-  && /\} finally \{\s*opening\.current = false\s*deciding\.current = false\s*\}/.test(openFn),
+  && /\} finally \{\s*if \(live\(\)\) \{\s*opening\.current = false\s*deciding\.current = false\s*\}\s*\}/.test(openFn)
+  && /keepScreen = keepScreen && kept\.unsent\.has\(todayKey\(\)\)/.test(openFn),
   'a change kept while the open-time read runs says "saving" — and "not saved" once the read ends without saving it; and a change made while that read has not yet decided what TODAY holds is kept, not written, because the screen may be showing one the record is about to reject (Codex r37)')
 // Codex r25: a screen left while its open was reading went on settling and
 // writing behind the screen that replaced it — which then showed one protocol
