@@ -19,7 +19,7 @@ Write a report to `.claude/bus/reports/` and stop if the work needs any of:
 Schema shape, merge points, counting rules, check design, priority inside the backlog, whether a
 finding blocks a merge or gets filed as a follow-up, whether to ship a feature partially — **these
 are not Andrew's and you must not ask him.** You cannot reach Blaine mid-run, so "Blaine rules these"
-in practice means **you rule them, record the decision and your reasoning in your report, and carry
+in practice means **you rule them, record the decision and what it rested on in your report, and carry
 on.** Blaine reviews it on the next wake and reverses it if it was wrong.
 
 **The test is reversibility, not risk.** A merge reverts in five minutes. A migration applied to
