@@ -57,24 +57,26 @@ type Protocol = {
   closingWord: string
 }
 
-const STORAGE_KEY = 'dad-strength-morning-protocol'
+// THE RECORD IS THE ROW (FOR-231 v2).
+// daily_checkins is the morning protocol. Nothing about a check-in is kept in
+// localStorage: no cache, no mirror, no optimistic layer, so there is never a
+// second copy to decide between. A save is a write to the row: it lands, or it
+// fails and says so, and Retry writes what is on the screen now.
+//
 // The morning routine's "day" runs 4am → 3:59am, so a late-night or pre-dawn
 // check-in doesn't wipe a routine completed that morning.
 const todayKey = () => localDayWithCutoff(4)
 
 export default function MorningProtocol(
-  { objectives = [], onSaved, onProtocolSaved }:
+  { objectives = [], onSaved }:
   {
     objectives?: string[]
-    /** Something was written — protocol OR objectives. Siblings that read either listen here. */
-    onSaved?: () => void
     /**
-     * The PROTOCOL cache was just written (saveCache only, never the
-     * objectives path). The adherence count trusts the local cache only on
-     * the heels of this signal; an objectives-only save must not trip it,
-     * because then a stale cache would override a completion made elsewhere.
+     * A write LANDED in the row — protocol or objectives. Siblings that read
+     * either re-read the row here. One signal, because there is only one thing
+     * it can mean now: the record changed.
      */
-    onProtocolSaved?: () => void
+    onSaved?: () => void
   } = {},
 ) {
   const [minutes, setMinutes] = useState(20)
@@ -87,6 +89,12 @@ export default function MorningProtocol(
   const [expanded, setExpanded] = useState<number | null>(0)
   const [error, setError] = useState('')
   const [configured, setConfigured] = useState(false)
+  // Reading the record. Nothing is rendered from anywhere else, so until the
+  // row answers there is nothing honest to show.
+  const [reading, setReading] = useState(true)
+  // A write that did not land. Retry re-sends what is on the screen at that
+  // moment, against the row as it is then.
+  const [unsaved, setUnsaved] = useState<'protocol' | 'objectives' | null>(null)
   // Completed protocols collapse to a "systems green" stamp; review re-expands.
   const [reviewOpen, setReviewOpen] = useState(false)
   // Gratitude entries: 3 text inputs
@@ -99,6 +107,7 @@ export default function MorningProtocol(
   const saveMindState = async () => {
     const supabase = createClient()
     const today = localDay()
+    setUnsaved(null)
     // Dense, for the same reason DailyObjectivesCard stores dense: its render
     // path filters blanks and toggles by the FILTERED index, so a sparse array
     // misaligns completion flags against objectives. Both writers must agree.
@@ -109,103 +118,77 @@ export default function MorningProtocol(
       completedObjectives: dense.map(() => false),
       lockedIn: true,
     }
-    // Write to localStorage so DailyObjectivesCard picks it up instantly
-    localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
-    // Persist to DB
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase.from('daily_checkins').upsert(
-        { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id,date' }
-      )
-    }
+    // The row, and only the row. "Saved" means the row has it.
+    let landed = false
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const res = await supabase.from('daily_checkins').upsert(
+          { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,date' }
+        )
+        landed = !res.error
+      }
+    } catch { landed = false }
+    if (!landed) { setUnsaved('objectives'); return }
     setMindSaved(true)
-    // Objectives are written HERE, not in saveCache — a separate path, so it
-    // needs the signal separately. DailyObjectivesCard renders directly below
-    // this component and reads mind_state; without this it keeps showing "no
-    // objectives set" beside the Saved confirmation until a reload.
+    // DailyObjectivesCard renders directly below this component and reads
+    // mind_state; without this it keeps showing "no objectives set" beside the
+    // Saved confirmation until a reload. Fired only now the row holds them.
     onSaved?.()
   }
 
   useEffect(() => {
-    // Local first (instant paint)…
-    let localDone = -1
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const data = JSON.parse(saved)
-        if (data.date === todayKey()) {
-          setProtocol(data.protocol)
-          setCompleted(data.completed || new Array(data.protocol.steps.length).fill(false))
-          setGratitude(data.gratitude || ['', '', ''])
-          setConfigured(true)
-          localDone = (data.completed ?? []).filter(Boolean).length
-        }
-      }
-    } catch {}
-
-    // …then the DB copy, so completion made on another device wins. The 4am-
-    // cutoff day can span two calendar rows, so check today and yesterday.
+    // The row decides what is on this screen. The 4am-cutoff day can span two
+    // calendar rows, so read today and yesterday and take the entry stamped
+    // with today's protocol day.
+    let cancelled = false
     void (async () => {
       try {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        if (!user || cancelled) return
         const yesterday = localDay(new Date(Date.now() - 86_400_000))
         const { data: rows } = await supabase
           .from('daily_checkins')
           .select('spirit_state')
           .eq('user_id', user.id)
           .in('date', [localDay(), yesterday])
+        if (cancelled) return
         for (const r of rows ?? []) {
           const m = (r.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
           if (!m?.protocol || m.date !== todayKey()) continue
-          const remoteDone = (m.completed ?? []).filter(Boolean).length
-          if (remoteDone > localDone) {
-            const c = m.completed ?? new Array(m.protocol.steps.length).fill(false)
-            const g = m.gratitude ?? ['', '', '']
-            setProtocol(m.protocol)
-            setCompleted(c)
-            setGratitude(g)
-            setConfigured(true)
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: m.protocol, completed: c, gratitude: g }))
-          }
+          setProtocol(m.protocol)
+          setCompleted(m.completed ?? new Array(m.protocol.steps.length).fill(false))
+          setGratitude(m.gratitude ?? ['', '', ''])
+          setConfigured(true)
           break
         }
-      } catch { /* offline — localStorage still works */ }
+      } catch { /* the row could not be read; the screen says nothing is set */ }
+      finally { if (!cancelled) setReading(false) }
     })()
+    return () => { cancelled = true }
   }, [])
 
-  const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g }))
-    // Tell the parent this component just persisted state. Siblings on the
-    // dashboard — the first-week checklist and the objectives card — read that
-    // state back, and a same-tab localStorage write fires no event they can
-    // hear; the storage event is cross-tab only. So this is the notification.
-    //
-    // It fires on EVERY save, not only when a pillar is completed. Gating it on
-    // completion meant saving objectives from the Goals step, without having
-    // ticked a pillar yet, left the objectives card showing "no objectives set"
-    // right beside the Saved confirmation. Consumers decide what a save means
-    // to them; this signal only says that something was written.
-    onSaved?.()
-    // ...and this one says the protocol cache specifically was written. Only
-    // here — saveMindState writes objectives, not the cache.
-    onProtocolSaved?.()
-    // Mirror to daily_checkins.spirit_state so state follows the user across
-    // devices. Upsert touches only the provided columns — mind_state is safe.
-    void (async () => {
-      try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        // The row is keyed on the protocol's OWN day — the same 4am-cutoff
-        // key the entry carries — not the calendar day. Keyed on the calendar
-        // day, a protocol finished at 1am landed in the next day's row, and
-        // generating that day's protocol after 4am overwrote it: a completed
-        // protocol gone (FOR-228, ruling 2). The loader below reads today and
-        // yesterday, so a pre-dawn row is still found.
-        await supabase.from('daily_checkins').upsert(
+  /**
+   * Write the protocol to its row. It lands or it does not, and the screen says
+   * which. No queue, no retry-on-reconnect, no unload guard: a save made with
+   * no network is lost, and `unsaved` is how the user is told, so they can press
+   * Retry, which writes whatever is on the screen at that moment.
+   *
+   * The row is keyed on the protocol's OWN day, the same 4am-cutoff key the
+   * entry carries, never the calendar day. Keyed on the calendar day, a
+   * protocol finished at 1am landed in the next day's row, and generating that
+   * day's protocol after 4am overwrote it (FOR-228, ruling 2).
+   */
+  const saveProtocol = async (p: Protocol, c: boolean[], g: string[]) => {
+    setUnsaved(null)
+    let landed = false
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const res = await supabase.from('daily_checkins').upsert(
           {
             user_id: user.id,
             date: todayKey(),
@@ -214,8 +197,13 @@ export default function MorningProtocol(
           },
           { onConflict: 'user_id,date' },
         )
-      } catch { /* offline — will re-sync on next save */ }
-    })()
+        landed = !res.error
+      }
+    } catch { landed = false }
+    if (!landed) { setUnsaved('protocol'); return }
+    // The row holds it, so siblings that read the row can read it now. A
+    // same-tab write notifies nobody on its own; this is the notification.
+    onSaved?.()
   }
 
   const generate = async () => {
@@ -250,7 +238,7 @@ export default function MorningProtocol(
       setGratitude(freshGratitude)
       setExpanded(0)
       setConfigured(true)
-      saveCache(fresh, freshCompleted, freshGratitude)
+      await saveProtocol(fresh, freshCompleted, freshGratitude)
     } catch {
       setError('Failed to generate. Try again.')
     } finally {
@@ -262,7 +250,7 @@ export default function MorningProtocol(
     const next = [...completed]
     next[i] = !next[i]
     setCompleted(next)
-    if (protocol) saveCache(protocol, next, gratitude)
+    if (protocol) void saveProtocol(protocol, next, gratitude)
     if (next[i] && i < (protocol?.steps.length || 0) - 1) {
       setExpanded(i + 1)
     }
@@ -272,12 +260,17 @@ export default function MorningProtocol(
     const next = [...gratitude]
     next[i] = val
     setGratitude(next)
-    if (protocol) saveCache(protocol, completed, next)
+    if (protocol) void saveProtocol(protocol, completed, next)
   }
 
   const doneCount = completed.filter(Boolean).length
   const totalSteps = protocol?.steps.length || 0
   const allDone = doneCount === totalSteps && totalSteps > 0
+
+  // Reading the record. Not a paint of a remembered protocol: there is none.
+  if (reading) {
+    return <div className="tile h-48" aria-busy="true" />
+  }
 
   // ── Config screen ──────────────────────────────────────────────────────────
   if (!configured) {
@@ -353,6 +346,20 @@ export default function MorningProtocol(
           </div>
         </div>
 
+        {unsaved && (
+          <div className="mt-3 rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
+            <p className="text-status-danger-ink text-xs">
+              {unsaved === 'protocol' ? 'Not saved' : 'Objectives not saved'} - the record did not take it. It is lost unless you retry.
+            </p>
+            <button
+              type="button"
+              onClick={() => { if (unsaved === 'objectives') void saveMindState(); else if (protocol) void saveProtocol(protocol, completed, gratitude) }}
+              className="btn-ghost text-xs shrink-0"
+            >
+              Retry
+            </button>
+          </div>
+        )}
         {error && (
           <div className="flex items-center justify-center gap-2">
             <p className="text-status-danger-ink text-xs">{error}</p>

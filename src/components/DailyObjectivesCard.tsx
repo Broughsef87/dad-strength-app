@@ -6,6 +6,10 @@ import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
 
+// THE RECORD IS THE ROW (FOR-231 v2).
+// daily_checkins.mind_state holds the day's objectives. Nothing is kept in
+// localStorage, so the card never has a second copy to reconcile against the
+// row. A save is a write to the row: it lands, or it fails and says so.
 export default function DailyObjectivesCard(
   { refreshKey = 0 }: { refreshKey?: number } = {},
 ) {
@@ -15,6 +19,8 @@ export default function DailyObjectivesCard(
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
   const [saving, setSaving] = useState(false)
+  // A write that did not land. Retry re-sends what is on the screen now.
+  const [unsaved, setUnsaved] = useState<null | (() => void)>(null)
   const supabase = createClient()
 
   // Rows written before objectives were stored dense can still be sparse, and
@@ -30,12 +36,26 @@ export default function DailyObjectivesCard(
       .filter(([o]) => o.trim().length > 0)
     return { objectives: pairs.map(p => p[0]), completed: pairs.map(p => p[1]) }
   }
+  /** Write the row. It lands, or the screen says it did not. */
+  const write = async (state: Record<string, unknown>, day: string): Promise<boolean> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return false
+      const res = await supabase.from('daily_checkins').upsert(
+        { user_id: user.id, date: day, mind_state: state, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,date' },
+      )
+      return !res.error
+    } catch { return false }
+  }
+
   // Writes the same shape MorningProtocol's Goals step writes, to the same
-  // localStorage key and the same daily_checkins column, so the two are
-  // interchangeable and whichever the user reaches first works.
+  // daily_checkins column, so the two are interchangeable and whichever the
+  // user reaches first works.
   const saveDraft = async () => {
     if (saving || !draft.some(o => o.trim())) return
     setSaving(true)
+    setUnsaved(null)
     const today = localDay()
     // Store DENSE. The render path filters blanks and hands toggle() the
     // filtered index, which then writes completedObjectives at that index — so
@@ -50,13 +70,11 @@ export default function DailyObjectivesCard(
       lockedIn: true,
     }
     try {
-      localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase.from('daily_checkins').upsert(
-          { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id,date' },
-        )
+      if (!await write(state, today)) {
+        // Nothing local remembers this, so the screen has to. Retry writes the
+        // same objectives against the row as it is then.
+        setUnsaved(() => () => { void saveDraft() })
+        return
       }
       setObjectives(dense)
       setCompleted(dense.map(() => false))
@@ -69,21 +87,7 @@ export default function DailyObjectivesCard(
   useEffect(() => {
     const load = async () => {
       const today = localDay()
-
-      // Try localStorage first for instant load
-      const cached = localStorage.getItem('dad-strength-mind-state')
-      if (cached) {
-        const data = JSON.parse(cached)
-        if (data.date === localDay()) {
-          const n = normalise(data.objectives, data.completedObjectives)
-          setObjectives(n.objectives)
-          setCompleted(n.completed)
-          setLocked(data.lockedIn || false)
-          setLoading(false)
-          return
-        }
-      }
-
+      // The row, and nothing before it. There is no cache to paint from.
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
 
@@ -112,23 +116,28 @@ export default function DailyObjectivesCard(
 
   const toggle = async (i: number) => {
     if (!locked) return
+    const before = completed
     const newCompleted = [...completed]
     newCompleted[i] = !newCompleted[i]
     setCompleted(newCompleted)
+    setUnsaved(null)
 
-    // Persist
+    // The state written is built from what is on the screen, never read back
+    // out of a cache: the objectives shown ARE the objectives the row holds,
+    // because the row is the only thing this card has ever rendered from.
     const today = localDay()
-    const cached = localStorage.getItem('dad-strength-mind-state')
-    const data = cached ? JSON.parse(cached) : {}
-    const updated = { ...data, completedObjectives: newCompleted, date: localDay() }
-    localStorage.setItem('dad-strength-mind-state', JSON.stringify(updated))
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('daily_checkins').upsert(
-      { user_id: user.id, date: today, mind_state: updated, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id,date' }
-    )
+    const updated = {
+      date: today,
+      objectives,
+      completedObjectives: newCompleted,
+      lockedIn: locked,
+    }
+    if (!await write(updated, today)) {
+      // The tick did not reach the record, so it does not stand on screen
+      // either. Back to what the row holds, and say so.
+      setCompleted(before)
+      setUnsaved(() => () => { void toggle(i) })
+    }
   }
 
   const doneCount = completed.filter(Boolean).length
@@ -138,6 +147,13 @@ export default function DailyObjectivesCard(
   if (loading) {
     return <div className="tile h-32" />
   }
+
+  const unsavedBanner = unsaved ? (
+    <div className="mt-3 rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
+      <p className="text-status-danger-ink text-xs">Not saved - the record did not take it. It is lost unless you retry.</p>
+      <button type="button" onClick={() => unsaved()} className="btn-ghost text-xs shrink-0">Retry</button>
+    </div>
+  ) : null
 
   return (
     <div className="tile p-5 relative overflow-hidden">
@@ -211,6 +227,8 @@ export default function DailyObjectivesCard(
           )}
         </div>
       )}
+
+      {unsavedBanner}
     </div>
   )
 }

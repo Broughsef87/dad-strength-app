@@ -58,16 +58,17 @@ if (mount) {
 }
 
 // -- 2b. completing a pillar must reach the checklist in the same session ---
-// The checklist ticks morning_protocol by READING localStorage. A sibling
-// writing localStorage fires no same-tab event, so without an explicit signal
-// the item stays unchecked no matter how long the component stays mounted.
-// Both write paths must signal. saveCache persists pillar completion;
-// saveMindState persists objectives. They are separate functions, and wiring
-// only the first left objectives saves invisible to the card below them.
+// The checklist ticks morning_protocol by READING THE ROW (FOR-231 v2). A
+// sibling writing the row fires no same-tab event, so without an explicit
+// signal the item stays unchecked no matter how long the component stays
+// mounted. Both write paths must signal. saveProtocol persists pillar
+// completion; saveMindState persists objectives. They are separate functions,
+// and wiring only the first left objectives saves invisible to the card below
+// them. Each signals only once its write has LANDED in the row.
 const mp = read('../../src/components/MorningProtocol.tsx')
 ok('MorningProtocol reports completion upward', /onSaved/.test(mp),
   'no callback — the checklist cannot learn the protocol was run')
-const saveFns = mp.split(/const saveCache|const saveMindState/).slice(1)
+const saveFns = mp.split(/const saveProtocol|const saveMindState/).slice(1)
 ok('every MorningProtocol save path signals the parent',
   saveFns.length === 2 && saveFns.every((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))),
   'found ' + saveFns.length + ' save paths, ' +

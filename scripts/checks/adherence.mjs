@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url'
 import { join, relative } from 'node:path'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import { scheduledDayNumbers, sessionsThisWeek, scheduledDoneDays } from '../../src/lib/programs/schedule.ts'
-import { rollingDays, protocolCompleteDays, reconcileLocal, localMatchesMirror, trainingAdherence, daysBetween } from '../../src/lib/adherence.ts'
+import { rollingDays, protocolCompleteDays, trainingAdherence, daysBetween } from '../../src/lib/adherence.ts'
 
 let checks = 0
 const fails = []
@@ -132,73 +132,26 @@ assert(daysBetween('2026-03-07', '2026-03-09') === 2, 'daysBetween crosses the D
 // Morning-protocol completion is every step ticked — the state the component
 // itself stamps "morning done" — keyed on the protocol's 4am-cutoff date.
 const three = { steps: [{}, {}, {}] }
+// Each is the row keyed on its own protocol day — the record (FOR-231 v2).
 const states = [
-  { morning: { date: '2026-09-13', protocol: three, completed: [true, true, true] } },   // done
-  { morning: { date: '2026-09-12', protocol: three, completed: [true, true, false] } },  // opened, not done
-  { morning: { date: '2026-09-11', protocol: three, completed: [true, true] } },         // short array: not done
-  { morning: { date: '2026-09-10', completed: [true] } },                                // no protocol shape: done
-  { morning: { protocol: three, completed: [true, true, true] } },                       // no date: skipped
+  { morning: { date: '2026-09-13', protocol: three, completed: [true, true, true] }, row: '2026-09-13' },   // done
+  { morning: { date: '2026-09-12', protocol: three, completed: [true, true, false] }, row: '2026-09-12' },  // opened, not done
+  { morning: { date: '2026-09-11', protocol: three, completed: [true, true] }, row: '2026-09-11' },         // short array: not done
+  { morning: { date: '2026-09-10', completed: [true] }, row: '2026-09-10' },                                // no protocol shape: done
+  { morning: { protocol: three, completed: [true, true, true] } },                                          // no date: skipped
   { morning: null }, null, undefined, {},
 ]
 const doneKeys = protocolCompleteDays(states)
 assert(doneKeys.join(',') === '2026-09-13,2026-09-10',
   `only fully completed protocols count, keyed on their own date — got [${doneKeys.join(',')}]`)
-// One protocol day, two calendar rows (Codex, round 5): finished before
-// midnight, a step unticked at 1am. The LATEST snapshot is the one judged,
-// whichever order the rows arrive in; an unstamped snapshot — a local save —
-// is newest of all.
-const doneLate = { morning: { date: '2026-09-12', protocol: three, completed: [true, true, true] }, at: '2026-09-12T23:50:00.000Z' }
-const undoneEarly = { morning: { date: '2026-09-12', protocol: three, completed: [true, true, false] }, at: '2026-09-13T01:10:00.000Z' }
-assert(protocolCompleteDays([doneLate, undoneEarly]).length === 0, 'a completion undone at 1am is not a completion')
-assert(protocolCompleteDays([undoneEarly, doneLate]).length === 0, 'the latest snapshot wins regardless of row order')
-assert(protocolCompleteDays([undoneEarly, { ...doneLate, at: '2026-09-13T02:00:00.000Z' }]).join(',') === '2026-09-12',
-  'a completion re-ticked later counts again')
-assert(protocolCompleteDays([doneLate, { ...undoneEarly, at: undefined }]).length === 0, 'an unstamped (local) snapshot is the newest')
-assert(protocolCompleteDays([{ ...undoneEarly, at: 'garbage' }, doneLate]).join(',') === '2026-09-12', 'an unparsable stamp is the oldest')
-// Legacy row vs canonical row (Codex, round 6). Before the row-key fix a
-// pre-dawn completion for 09-12 sat in the 09-13 calendar row; after it, an
-// untick of that protocol lands in the 09-12 row. Saving objectives into the
-// 09-13 row then moves ITS updated_at — and the canonical row must still win.
-const legacyDone = { morning: { date: '2026-09-12', protocol: three, completed: [true, true, true] }, at: '2026-09-13T09:00:00.000Z', row: '2026-09-13' }
-const canonicalUndone = { morning: { date: '2026-09-12', protocol: three, completed: [true, true, false] }, at: '2026-09-13T01:10:00.000Z', row: '2026-09-12' }
-assert(protocolCompleteDays([legacyDone, canonicalUndone]).length === 0, 'a canonical row outranks a legacy row whatever their timestamps say')
-assert(protocolCompleteDays([canonicalUndone, legacyDone]).length === 0, 'a canonical row outranks a legacy row in either order')
-const canonicalDone = { ...canonicalUndone, morning: { ...canonicalUndone.morning, completed: [true, true, true] } }
-const legacyUndone = { ...legacyDone, morning: { ...legacyDone.morning, completed: [true, false, false] } }
-assert(protocolCompleteDays([legacyUndone, canonicalDone]).join(',') === '2026-09-12', 'a canonical completion is not undone by a legacy row')
-assert(protocolCompleteDays([legacyDone]).join(',') === '2026-09-12', 'a legacy row alone still counts — history from before the fix is not thrown away')
-assert(protocolCompleteDays([canonicalUndone, { ...canonicalDone, at: '2026-09-13T02:00:00.000Z' }]).join(',') === '2026-09-12', 'within one kind of row the later stamp still wins')
-assert(protocolCompleteDays([canonicalDone, { morning: canonicalUndone.morning }]).length === 0, 'a local save outranks even the canonical row')
 
-// The local cache against the mirror (Codex, round 2). The cache is newer but
-// has no owner: it counts only against a mirror entry this user's rows hold
-// for the same protocol and day, and then it REPLACES that entry.
-const themed = { theme: 'quiet strength', steps: [{}, {}, {}] }
-const mirrorDone = { morning: { date: '2026-09-13', protocol: themed, completed: [true, true, true] } }
-const mirrorOpen = { morning: { date: '2026-09-13', protocol: themed, completed: [true, false, false] } }
-const history = { morning: { date: '2026-09-12', protocol: themed, completed: [true, true, true] } }
-const localOpen = { date: '2026-09-13', protocol: themed, completed: [true, true, false] }
-const localDone = { date: '2026-09-13', protocol: themed, completed: [true, true, true] }
-const unticked = protocolCompleteDays(reconcileLocal([history, mirrorDone], localOpen))
-assert(unticked.join(',') === '2026-09-12', `a step unticked locally is unticked — the mirror's done snapshot does not survive: [${unticked.join(',')}]`)
-const ticked = protocolCompleteDays(reconcileLocal([history, mirrorOpen], localDone))
-assert(ticked.join(',') === '2026-09-12,2026-09-13', `a protocol finished locally counts before the mirror lands: [${ticked.join(',')}]`)
-const replaced = reconcileLocal([history, mirrorOpen], localDone)
-assert(replaced.length === 2 && replaced[1].morning === localDone && replaced[1].at == null,
-  'the cache replaces its mirror entry, it does not join it — and it carries no stamp, so it is the newest snapshot')
-const strangers = protocolCompleteDays(reconcileLocal([history], localDone))
-assert(strangers.join(',') === '2026-09-12', `a cache with no matching mirror entry — another account's, or not landed — is ignored: [${strangers.join(',')}]`)
-const rebuilt = protocolCompleteDays(reconcileLocal([history, mirrorDone], { ...localDone, protocol: { theme: 'other', steps: [{}, {}, {}] } }))
-assert(rebuilt.join(',') === '2026-09-12,2026-09-13', `a cache holding a different protocol is not matched to the mirror's: [${rebuilt.join(',')}]`)
-assert(reconcileLocal([history], null).length === 1 && reconcileLocal([history], {}).length === 1, 'no cache, no change')
-// Whether the mirror has caught up with the cache is what tells the dashboard
-// to stop reading again (Codex, round 4: a fixed delay assumed the upsert).
-assert(localMatchesMirror([history, mirrorOpen], localDone) === true, 'the mirror holding the cache\'s protocol is settled')
-assert(localMatchesMirror([history], localDone) === false, 'a cache the mirror does not hold yet is not settled')
-assert(localMatchesMirror([history, mirrorDone], { ...localDone, protocol: { theme: 'other', steps: [{}, {}, {}] } }) === false,
-  'a rebuilt protocol is not settled until the mirror carries it')
-assert(localMatchesMirror([history], null) === false && localMatchesMirror([history], {}) === false, 'no cache is never a match')
-
+// The rest of what used to sit here pinned a NEGOTIATION between the local
+// cache and the mirror — reconcileLocal, localMatchesMirror, the updated_at
+// ranking and the canonical-row tier. FOR-231 v2 deleted the second copy, so
+// there is nothing left to adjudicate. The single rule that replaced it (the
+// record for a protocol day is the row keyed on that day) is asserted in its
+// own suite, scripts/checks/checkin-record.mjs, and is deliberately NOT
+// asserted a second time here.
 // ── 3. the dashboard is wired, and the old loop is gone ─────────────────────
 const dash = readLF('../../src/app/dashboard/page.tsx')
 assert(!dash.includes('(i === 0 && diff <= 1)'), 'the consecutive-day loop is gone from the dashboard')
@@ -206,48 +159,29 @@ assert(!dash.includes("from('workout_logs')"), 'the dashboard no longer reads wo
 assert(!/setStreak\(|const \[streak\b|\{streak\}/.test(dash), 'no streak state survives on the dashboard')
 assert(dash.includes("from('daily_checkins')") && dash.includes('protocolCompleteDays('),
   'the daily number reads morning-protocol completion out of daily_checkins')
-assert(/\.select\('spirit_state, updated_at, date'\)/.test(dash) && /\{ morning: r\.spirit_state\?\.morning, at: r\.updated_at, row: r\.date \}/.test(dash),
-  'each mirror row carries its updated_at and its date, so a protocol day resolves to its latest snapshot with the canonical row first')
+assert(/\.select\('spirit_state, date'\)/.test(dash) && /\{ morning: r\.spirit_state\?\.morning, row: r\.date \}/.test(dash),
+  'each row carries its date, so the record row for a protocol day can be told from any other')
 assert(dash.includes('rollingDays('), 'the dashboard computes the rolling number')
 assert(/localDayWithCutoff\(4\)/.test(dash), 'the rolling window uses the protocol\'s 4am-cutoff day key')
-// Codex, round 1: the number was computed once, in the load effect, and a
-// protocol finished on the same page stayed uncounted until a remount. It
-// recomputes on the protocol's save tick, and today comes from the local
-// cache MorningProtocol writes BEFORE its mirror lands.
+// Codex, round 1 (FOR-228): the number was computed once, in the load effect,
+// and a protocol finished on the same page stayed uncounted until a remount. It
+// recomputes on the save signal — which now fires only once the row HOLDS the
+// change, so one read answers and there is nothing to wait for.
 assert((dash.match(/fetchProtocolDays\(/g) || []).length >= 3, 'one fetch function serves the load and the refresh')
-assert(/if \(protocolSaveTick === 0\) return[\s\S]{0,500}fetchProtocolDays\([\s\S]{0,500}\}, \[protocolSaveTick, supabase\]\)/.test(dash),
-  'the daily number recomputes on the protocol save tick')
-// Codex, round 6: onSaved also fires for an objectives-only save, which
-// leaves the protocol cache untouched — and possibly stale against a
-// completion made on another device. The count listens to a signal the
-// component fires ONLY when the protocol cache is written.
+assert(/if \(protocolTick === 0\) return[\s\S]{0,500}fetchProtocolDays\([\s\S]{0,500}\}, \[protocolTick, supabase\]\)/.test(dash),
+  'the daily number recomputes on the save signal')
+// FOR-231 v2: ONE signal. It used to be two, because the count trusted a
+// local cache and had to know the cache specifically had been written. With
+// no cache, a save that has landed in the row is the only thing to announce.
 const mp = readLF('../../src/components/MorningProtocol.tsx')
-const protoSignal = (mp.match(/onProtocolSaved\?\.\(\)/g) || []).length
-assert(protoSignal === 1 && mp.indexOf('onProtocolSaved?.()') > mp.indexOf('const saveCache = ')
-  && !(mp.slice(mp.indexOf('const saveMindState = '), mp.indexOf('const saveCache = ')).includes('onProtocolSaved')),
-  'MorningProtocol fires onProtocolSaved exactly once, from saveCache, and never from the objectives path')
-assert(/onProtocolSaved=\{\(\) => setProtocolSaveTick\(t => t \+ 1\)\}/.test(dash) && /onSaved=\{\(\) => setProtocolTick\(t => t \+ 1\)\}/.test(dash),
-  'the dashboard wires the protocol-only signal to its own tick and keeps the general tick for the siblings')
+assert(!mp.includes('onProtocolSaved') && !dash.includes('onProtocolSaved'),
+  'the protocol-only signal is gone — it existed to time a cache read')
+assert((mp.match(/onSaved\?\.\(\)/g) || []).length === 2,
+  'MorningProtocol announces a landed write from both of its two write paths')
+assert(/onSaved=\{\(\) => setProtocolTick\(t => t \+ 1\)\}/.test(dash),
+  'the dashboard wires that one signal to its one tick')
 assert(/<DailyObjectivesCard refreshKey=\{protocolTick\}/.test(dash) && /protocolTick=\{protocolTick\}/.test(dash),
-  'the objectives card and the checklist still follow the general tick')
-assert(dash.includes("'dad-strength-morning-protocol'") && /localStorage\.getItem\(PROTOCOL_CACHE_KEY\)[\s\S]{0,300}states = reconcileLocal\(states, local\)/.test(dash),
-  'today\'s completion is read from the protocol\'s local cache, reconciled against the mirror — never unioned, never unowned')
-assert(!/states\.push\(\{ morning/.test(dash), 'the cache is not appended raw')
-// Codex, round 3: on a plain load the cache can be STALE — opened here,
-// finished on another device — so it is consulted only after a local save.
-assert(/if \(pendingLocalSave\) \{[\s\S]{0,200}localStorage\.getItem\(PROTOCOL_CACHE_KEY\)/.test(dash),
-  'the cache is read only on the heels of a local save')
-assert(/setProtocolDays\(\(await fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: false \}\)\)\.days\)/.test(dash),
-  'the load path trusts the mirror alone')
-assert(/if \(protocolSaveTick === 0\) return[\s\S]{0,600}fetchProtocolDays\(supabase, user\.id, \{ pendingLocalSave: true \}\)/.test(dash),
-  'the save-tick path is the one that consults the cache')
-// ...and reads again until the mirror has caught up, bounded — not once after
-// a fixed delay the upsert may outlast (Codex, round 4).
-const retry = dash.match(/for \(let attempt = 0; attempt < (\d+) && !cancelled; attempt\+\+\) \{\s*if \(await run\(\)\) break/)
-assert(!!retry && +retry[1] >= 3, 'each save reads again until the mirror holds what the cache holds, a bounded number of times')
-assert(/settled = localMatchesMirror\(states, local\)/.test(dash) && /return settled/.test(dash),
-  'the read reports whether the mirror has caught up with the cache')
-assert(!/const settle = setTimeout/.test(dash), 'no single fixed settle delay remains')
+  'the objectives card and the checklist follow the same signal')
 assert(dash.includes('trainingAdherence('), 'the dashboard computes the weekly training number')
 assert(/training\.done\}\/\{training\.prescribed\}/.test(dash), 'the weekly number renders done/prescribed')
 assert(/protocolDays\.done\}\/\{protocolDays\.window\}/.test(dash), 'the daily number renders done/window')
