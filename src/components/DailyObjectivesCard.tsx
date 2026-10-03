@@ -19,8 +19,11 @@ export default function DailyObjectivesCard(
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
   const [saving, setSaving] = useState(false)
-  // A write that did not land. Retry re-sends what is on the screen now.
-  const [unsaved, setUnsaved] = useState<null | (() => void)>(null)
+  // Which write did not land — a tag, never a closure and never a payload.
+  // A captured closure holds the draft it was made with, which is a queued
+  // intention; the re-spec forbids one and Codex found it writing stale
+  // objectives over newer edits (FOR-231 v2, Blaine's ruling 2026-10-01).
+  const [unsaved, setUnsaved] = useState<'draft' | 'tick' | null>(null)
   const supabase = createClient()
 
   // Rows written before objectives were stored dense can still be sparse, and
@@ -71,9 +74,10 @@ export default function DailyObjectivesCard(
     }
     try {
       if (!await write(state, today)) {
-        // Nothing local remembers this, so the screen has to. Retry writes the
-        // same objectives against the row as it is then.
-        setUnsaved(() => () => { void saveDraft() })
+        // Nothing local remembers this, so the screen has to. Retry re-runs
+        // this function, which reads `draft` at that moment — so an edit made
+        // after the failure is what gets written.
+        setUnsaved('draft')
         return
       }
       setObjectives(dense)
@@ -114,30 +118,32 @@ export default function DailyObjectivesCard(
     // saying "no objectives set" next to the ones just entered.
   }, [refreshKey])
 
+  /**
+   * THE ROW FIRST. A tick that did not reach the record was never on the
+   * screen (Blaine's ruling, 2026-10-01).
+   *
+   * There is no optimistic paint, so there is nothing to roll back, no
+   * snapshot of what the screen held before, and no ordering question between
+   * a write that failed and a newer one that did not — `saving` keeps a second
+   * tick from starting while the first is in flight, rather than deciding
+   * which of two in-flight writes should win.
+   */
   const toggle = async (i: number) => {
-    if (!locked) return
-    const before = completed
-    const newCompleted = [...completed]
-    newCompleted[i] = !newCompleted[i]
-    setCompleted(newCompleted)
+    if (!locked || saving) return
+    const next = [...completed]
+    next[i] = !next[i]
     setUnsaved(null)
-
-    // The state written is built from what is on the screen, never read back
-    // out of a cache: the objectives shown ARE the objectives the row holds,
-    // because the row is the only thing this card has ever rendered from.
+    setSaving(true)
     const today = localDay()
-    const updated = {
-      date: today,
-      objectives,
-      completedObjectives: newCompleted,
-      lockedIn: locked,
-    }
-    if (!await write(updated, today)) {
-      // The tick did not reach the record, so it does not stand on screen
-      // either. Back to what the row holds, and say so.
-      setCompleted(before)
-      setUnsaved(() => () => { void toggle(i) })
-    }
+    // Built from what is on the screen, which IS what the row holds: the row
+    // is the only thing this card has ever rendered from.
+    const landed = await write(
+      { date: today, objectives, completedObjectives: next, lockedIn: locked },
+      today,
+    )
+    setSaving(false)
+    if (!landed) { setUnsaved('tick'); return }
+    setCompleted(next)
   }
 
   const doneCount = completed.filter(Boolean).length
@@ -148,10 +154,20 @@ export default function DailyObjectivesCard(
     return <div className="tile h-32" />
   }
 
+  // A failed draft can be retried: the objectives are still in the inputs, so
+  // Retry reads them as they are then. A failed TICK has nothing to retry —
+  // the screen never moved, so the objective is still untick­ed and tapping it
+  // again is the retry.
   const unsavedBanner = unsaved ? (
     <div className="mt-3 rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
-      <p className="text-status-danger-ink text-xs">Not saved - the record did not take it. It is lost unless you retry.</p>
-      <button type="button" onClick={() => unsaved()} className="btn-ghost text-xs shrink-0">Retry</button>
+      <p className="text-status-danger-ink text-xs">
+        {unsaved === 'draft'
+          ? 'Not saved — the record did not take it. It is lost unless you retry.'
+          : 'That tick did not save — tap it again.'}
+      </p>
+      {unsaved === 'draft' && (
+        <button type="button" onClick={() => { void saveDraft() }} className="btn-ghost text-xs shrink-0">Retry</button>
+      )}
     </div>
   ) : null
 
@@ -207,8 +223,9 @@ export default function DailyObjectivesCard(
             <motion.button
               key={i}
               onClick={() => toggle(i)}
+              disabled={saving}
               whileTap={{ scale: 0.98 }}
-              className="w-full flex items-center gap-3 text-left group"
+              className="w-full flex items-center gap-3 text-left group disabled:saturate-[.15]"
             >
               {completed[i]
                 ? <CheckCircle2 size={16} className="text-brand shrink-0" />

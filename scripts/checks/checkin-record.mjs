@@ -184,23 +184,85 @@ if (record !== null && typeof record.isRecordRow === 'function') {
 const mp = ALL.get('src/components/MorningProtocol.tsx')
 const card = ALL.get('src/components/DailyObjectivesCard.tsx')
 
+/** One function's body, by its opening line — so order inside it can be asserted. */
+function body(src, header) {
+  const i = src.indexOf(header)
+  if (i < 0) return ''
+  const j = src.indexOf('\n  }', i)
+  return j < 0 ? src.slice(i) : src.slice(i, j + 4)
+}
+/** Does `first` appear before `second` inside `fn`, with `second` present? */
+function before(fn, first, second) {
+  const a = fn.indexOf(first), b = fn.indexOf(second)
+  return a >= 0 && b >= 0 && a < b
+}
+
 assert((mp.match(/\.upsert\(/g) ?? []).length === 2,
   'MorningProtocol writes the row in exactly two places — the protocol and the objectives')
 assert((mp.match(/landed = !res\.error/g) ?? []).length === 2,
   'both MorningProtocol writes read the upsert result rather than dropping it')
-assert((mp.match(/if \(!landed\) \{ setUnsaved\('(?:protocol|objectives)'\); return \}/g) ?? []).length === 2,
-  'a write that did not land sets unsaved and returns — it never reports success')
+assert(/if \(!landed\) \{ setUnsaved\('protocol'\); return false \}/.test(mp),
+  'a protocol write that did not land answers false, so the caller cannot tick the screen')
+assert(/if \(!landed\) \{ setUnsaved\('objectives'\); return \}/.test(mp),
+  'an objectives write that did not land says so and stops')
 assert(/if \(!landed\)[\s\S]{0,80}return \}\n    setMindSaved\(true\)/.test(mp),
   'the objectives Saved confirmation is only reached once the row has them')
 assert(!/onSaved\?\.\(\)[\s\S]{0,400}\.upsert\(/.test(mp), 'the save signal is never fired before the write')
 
 assert((card.match(/\.upsert\(/g) ?? []).length === 1, 'the objectives card has ONE writer of the row')
 assert(/return !res\.error/.test(card), "the card's writer answers on the upsert result")
-assert(/setCompleted\(before\)/.test(card), 'a tick that did not reach the row is taken back off the screen')
-assert(/setUnsaved\(\(\) => \(\) =>/.test(card), 'the card holds a Retry that re-runs the same write')
-for (const [name, body] of [['MorningProtocol', mp], ['the objectives card', card]]) {
-  assert(/>Retry</.test(body) || /\n\s*Retry\n/.test(body), `${name} offers Retry on screen`)
+// THE ROW FIRST. The previous version of this suite asserted
+// /setCompleted\(before\)/ to prove "a failed tick comes off the screen" — which
+// REQUIRED the stale-snapshot rollback Codex flagged as a P2, so it would have
+// failed on the correct fix. It encoded the defect as the spec. What the
+// re-spec actually asks for is that the tick was never on the screen at all
+// (Blaine's ruling, 2026-10-01).
+const toggleFn = body(card, '  const toggle = async (i: number) => {')
+const stepFn = body(mp, '  const toggleStep = async (i: number) => {')
+assert(toggleFn.length > 0 && stepFn.length > 0, 'both tick handlers are found by name')
+assert(before(toggleFn, 'await write(', 'setCompleted('),
+  'the objectives card writes the row BEFORE the tick reaches the screen')
+assert(before(stepFn, 'await saveProtocol(', 'setCompleted('),
+  'the protocol writes the row BEFORE the step is ticked on the screen')
+assert(!/const before = completed/.test(card),
+  'no snapshot of what the screen held — there is no paint to roll back to')
+assert(!/setCompleted\(before\)/.test(card), 'nothing rolls a paint back')
+assert(/if \(!locked \|\| saving\) return/.test(toggleFn) && /if \(!protocol \|\| writing\) return/.test(stepFn),
+  'a write in flight stops a second one starting, so two writes of this row never race')
+
+// A retry carries a TAG, never a payload. A captured closure holds the draft it
+// was made with, which is a queued intention the re-spec forbids — and Codex
+// caught one writing stale objectives over newer edits.
+for (const [name, src] of [['the objectives card', card], ['MorningProtocol', mp]]) {
+  assert(!/setUnsaved\(\(\)\s*=>/.test(src), `${name} stores no closure in its unsaved state`)
 }
+// The TYPE is the guard a regex cannot be: a union of string literals and null
+// cannot hold a function, so tsc refuses a captured closure outright.
+assert(/useState<'draft' \| 'tick' \| null>\(null\)/.test(card),
+  'the card names which write failed and its type cannot hold a closure')
+assert(/useState<'protocol' \| 'objectives' \| null>\(null\)/.test(mp),
+  'the protocol names which write failed and its type cannot hold a closure')
+assert(/onClick=\{\(\) => \{ void saveDraft\(\) \}\}/.test(card),
+  "the card's Retry re-runs the draft save, which reads the inputs as they are then")
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(/>Retry</.test(src) || /\n\s*Retry\n/.test(src), `${name} offers Retry on screen`)
+}
+
+// The banner is built ONCE, above every early return, and rendered in every
+// view. It used to sit inside the setup branch only, and generation sets
+// `configured` before saving — so after the first save no failure showed a
+// warning or a Retry anywhere (Codex r1, P1).
+const bannerDecl = mp.indexOf('const unsavedBanner = unsaved ?')
+const firstReturn = mp.indexOf('  if (reading) {')
+assert(bannerDecl >= 0 && firstReturn >= 0 && bannerDecl < firstReturn,
+  'the protocol builds its unsaved banner before the first early return')
+assert((mp.match(/\{unsavedBanner[\s&}]/g) ?? []).length >= 2,
+  'the protocol renders that banner in more than one view')
+const activeView = mp.slice(mp.indexOf('  // ── Active protocol'))
+assert(activeView.includes('{unsavedBanner}'),
+  'the ACTIVE protocol view renders it — a failed save after generation is where it was invisible')
+assert(activeView.indexOf('{unsavedBanner}') < activeView.indexOf('allDone && !reviewOpen'),
+  'it renders above the done/expanded split, so the collapsed "morning done" state carries it too')
 
 // ── verdict ─────────────────────────────────────────────────────────────────
 if (fails.length) {

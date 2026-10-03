@@ -92,9 +92,13 @@ export default function MorningProtocol(
   // Reading the record. Nothing is rendered from anywhere else, so until the
   // row answers there is nothing honest to show.
   const [reading, setReading] = useState(true)
-  // A write that did not land. Retry re-sends what is on the screen at that
-  // moment, against the row as it is then.
+  // A write that did not land — a tag. Retry re-reads what is on the screen at
+  // that moment; nothing here captures a payload.
   const [unsaved, setUnsaved] = useState<'protocol' | 'objectives' | null>(null)
+  // A write is in flight. It keeps a second one from starting, so there are
+  // never two writes of this row racing and nothing has to decide between
+  // them (Blaine's ruling, 2026-10-01).
+  const [writing, setWriting] = useState(false)
   // Completed protocols collapse to a "systems green" stamp; review re-expands.
   const [reviewOpen, setReviewOpen] = useState(false)
   // Gratitude entries: 3 text inputs
@@ -181,8 +185,9 @@ export default function MorningProtocol(
    * protocol finished at 1am landed in the next day's row, and generating that
    * day's protocol after 4am overwrote it (FOR-228, ruling 2).
    */
-  const saveProtocol = async (p: Protocol, c: boolean[], g: string[]) => {
+  const saveProtocol = async (p: Protocol, c: boolean[], g: string[]): Promise<boolean> => {
     setUnsaved(null)
+    setWriting(true)
     let landed = false
     try {
       const supabase = createClient()
@@ -200,10 +205,12 @@ export default function MorningProtocol(
         landed = !res.error
       }
     } catch { landed = false }
-    if (!landed) { setUnsaved('protocol'); return }
+    setWriting(false)
+    if (!landed) { setUnsaved('protocol'); return false }
     // The row holds it, so siblings that read the row can read it now. A
     // same-tab write notifies nobody on its own; this is the notification.
     onSaved?.()
+    return true
   }
 
   const generate = async () => {
@@ -246,26 +253,65 @@ export default function MorningProtocol(
     }
   }
 
-  const toggleStep = (i: number) => {
+  /**
+   * THE ROW FIRST. A step that did not reach the record was never ticked on the
+   * screen, so there is no paint to roll back and no snapshot to roll back to
+   * (Blaine's ruling, 2026-10-01).
+   */
+  const toggleStep = async (i: number) => {
+    if (!protocol || writing) return
     const next = [...completed]
     next[i] = !next[i]
+    if (!await saveProtocol(protocol, next, gratitude)) return
     setCompleted(next)
-    if (protocol) void saveProtocol(protocol, next, gratitude)
-    if (next[i] && i < (protocol?.steps.length || 0) - 1) {
+    if (next[i] && i < protocol.steps.length - 1) {
       setExpanded(i + 1)
     }
   }
 
+  /**
+   * Typing is local. A text field's value is the athlete's input until it is
+   * submitted, which is not a second copy of the record to reconcile — but
+   * writing it on every keystroke put many writes of one row in flight at
+   * once, and choosing between them is the ordering question this ticket
+   * exists to delete. So it is written ONCE, when the field is left.
+   */
   const updateGratitude = (i: number, val: string) => {
     const next = [...gratitude]
     next[i] = val
     setGratitude(next)
-    if (protocol) void saveProtocol(protocol, completed, next)
   }
+  const commitGratitude = () => { if (protocol) void saveProtocol(protocol, completed, gratitude) }
 
   const doneCount = completed.filter(Boolean).length
   const totalSteps = protocol?.steps.length || 0
   const allDone = doneCount === totalSteps && totalSteps > 0
+
+  /**
+   * A write that did not land, said once and rendered in EVERY view.
+   *
+   * It used to live inside the setup branch only, and generation sets
+   * `configured` before saving — so every failure after the first save showed
+   * no warning and no Retry at all, and an unsaved completion read "morning
+   * done" until a reload took it away (Codex r1, P1). Defined here, above the
+   * early returns, it cannot be stranded in one branch again.
+   *
+   * Retry carries nothing: it re-reads what is on the screen at that moment.
+   */
+  const unsavedBanner = unsaved ? (
+    <div className="rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
+      <p className="text-status-danger-ink text-xs">
+        {unsaved === 'protocol' ? 'Not saved' : 'Objectives not saved'} — the record did not take it. It is lost unless you retry.
+      </p>
+      <button
+        type="button"
+        onClick={() => { if (unsaved === 'objectives') void saveMindState(); else if (protocol) void saveProtocol(protocol, completed, gratitude) }}
+        className="btn-ghost text-xs shrink-0"
+      >
+        Retry
+      </button>
+    </div>
+  ) : null
 
   // Reading the record. Not a paint of a remembered protocol: there is none.
   if (reading) {
@@ -346,20 +392,7 @@ export default function MorningProtocol(
           </div>
         </div>
 
-        {unsaved && (
-          <div className="mt-3 rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
-            <p className="text-status-danger-ink text-xs">
-              {unsaved === 'protocol' ? 'Not saved' : 'Objectives not saved'} - the record did not take it. It is lost unless you retry.
-            </p>
-            <button
-              type="button"
-              onClick={() => { if (unsaved === 'objectives') void saveMindState(); else if (protocol) void saveProtocol(protocol, completed, gratitude) }}
-              className="btn-ghost text-xs shrink-0"
-            >
-              Retry
-            </button>
-          </div>
-        )}
+        {unsavedBanner && <div className="mt-3">{unsavedBanner}</div>}
         {error && (
           <div className="flex items-center justify-center gap-2">
             <p className="text-status-danger-ink text-xs">{error}</p>
@@ -407,6 +440,8 @@ export default function MorningProtocol(
           <RefreshCw size={13} />
         </button>
       </div>
+
+      {unsavedBanner}
 
       {allDone && !reviewOpen ? (
         /* ── Collapsed — every check done. Volt marks what's earned. ── */
@@ -463,8 +498,9 @@ export default function MorningProtocol(
                 className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-muted/50 transition-colors"
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); toggleStep(i) }}
-                  className="flex-shrink-0 transition-all"
+                  onClick={(e) => { e.stopPropagation(); void toggleStep(i) }}
+                  disabled={writing}
+                  className="flex-shrink-0 transition-all disabled:saturate-[.15]"
                 >
                   {isDone
                     ? <CheckCircle2 size={18} className="text-brand" />
@@ -506,6 +542,7 @@ export default function MorningProtocol(
                             type="text"
                             value={gratitude[j]}
                             onChange={e => updateGratitude(j, e.target.value)}
+                            onBlur={commitGratitude}
                             placeholder={
                               j === 0 ? 'My family...' :
                               j === 1 ? 'My health...' :
@@ -571,8 +608,9 @@ export default function MorningProtocol(
                   )}
 
                   <button
-                    onClick={() => toggleStep(i)}
-                    className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all"
+                    onClick={() => { void toggleStep(i) }}
+                    disabled={writing}
+                    className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:saturate-[.15]"
                   >
                     Mark Complete ✓
                   </button>
