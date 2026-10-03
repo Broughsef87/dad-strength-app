@@ -201,7 +201,7 @@ assert((mp.match(/\.upsert\(/g) ?? []).length === 2,
   'MorningProtocol writes the row in exactly two places — the protocol and the objectives')
 assert((mp.match(/landed = !res\.error/g) ?? []).length === 2,
   'both MorningProtocol writes read the upsert result rather than dropping it')
-assert(/if \(!landed\) \{ setUnsaved\('protocol'\); return false \}/.test(mp),
+assert(/if \(!landed\) \{ setUnsaved\(as\); return false \}/.test(mp),
   'a protocol write that did not land answers false, so the caller cannot tick the screen')
 assert(/if \(!landed\) \{ setUnsaved\('objectives'\); return \}/.test(mp),
   'an objectives write that did not land says so and stops')
@@ -240,8 +240,14 @@ for (const [name, src] of [['the objectives card', card], ['MorningProtocol', mp
 // cannot hold a function, so tsc refuses a captured closure outright.
 assert(/useState<'draft' \| 'tick' \| null>\(null\)/.test(card),
   'the card names which write failed and its type cannot hold a closure')
-assert(/useState<'protocol' \| 'objectives' \| null>\(null\)/.test(mp),
+assert(/useState<'protocol' \| 'objectives' \| 'tick' \| null>\(null\)/.test(mp),
   'the protocol names which write failed and its type cannot hold a closure')
+// A failed tick has nothing to retry: the screen never moved, so the step is
+// still as the row has it and tapping it again IS the retry. Offering Retry
+// there saved the unchanged array and cleared the warning (Codex r2).
+assert(/\{unsaved !== 'tick' && \(/.test(mp), 'a failed tick is offered no Retry, in the protocol as in the card')
+assert(/'That step did not save/.test(mp), 'a failed tick says to tap it again')
+assert(/saveProtocol\(protocol, next, gratitude, 'tick'\)/.test(mp), 'a tick tells the writer it was a tick')
 assert(/onClick=\{\(\) => \{ void saveDraft\(\) \}\}/.test(card),
   "the card's Retry re-runs the draft save, which reads the inputs as they are then")
 for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {

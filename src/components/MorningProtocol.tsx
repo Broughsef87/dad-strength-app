@@ -94,7 +94,7 @@ export default function MorningProtocol(
   const [reading, setReading] = useState(true)
   // A write that did not land — a tag. Retry re-reads what is on the screen at
   // that moment; nothing here captures a payload.
-  const [unsaved, setUnsaved] = useState<'protocol' | 'objectives' | null>(null)
+  const [unsaved, setUnsaved] = useState<'protocol' | 'objectives' | 'tick' | null>(null)
   // A write is in flight. It keeps a second one from starting, so there are
   // never two writes of this row racing and nothing has to decide between
   // them (Blaine's ruling, 2026-10-01).
@@ -185,7 +185,7 @@ export default function MorningProtocol(
    * protocol finished at 1am landed in the next day's row, and generating that
    * day's protocol after 4am overwrote it (FOR-228, ruling 2).
    */
-  const saveProtocol = async (p: Protocol, c: boolean[], g: string[]): Promise<boolean> => {
+  const saveProtocol = async (p: Protocol, c: boolean[], g: string[], as: 'protocol' | 'tick' = 'protocol'): Promise<boolean> => {
     setUnsaved(null)
     setWriting(true)
     let landed = false
@@ -206,7 +206,7 @@ export default function MorningProtocol(
       }
     } catch { landed = false }
     setWriting(false)
-    if (!landed) { setUnsaved('protocol'); return false }
+    if (!landed) { setUnsaved(as); return false }
     // The row holds it, so siblings that read the row can read it now. A
     // same-tab write notifies nobody on its own; this is the notification.
     onSaved?.()
@@ -262,7 +262,7 @@ export default function MorningProtocol(
     if (!protocol || writing) return
     const next = [...completed]
     next[i] = !next[i]
-    if (!await saveProtocol(protocol, next, gratitude)) return
+    if (!await saveProtocol(protocol, next, gratitude, 'tick')) return
     setCompleted(next)
     if (next[i] && i < protocol.steps.length - 1) {
       setExpanded(i + 1)
@@ -301,15 +301,19 @@ export default function MorningProtocol(
   const unsavedBanner = unsaved ? (
     <div className="rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
       <p className="text-status-danger-ink text-xs">
-        {unsaved === 'protocol' ? 'Not saved' : 'Objectives not saved'} — the record did not take it. It is lost unless you retry.
+        {unsaved === 'tick'
+          ? 'That step did not save — tap it again.'
+          : `${unsaved === 'protocol' ? 'Not saved' : 'Objectives not saved'} — the record did not take it. It is lost unless you retry.`}
       </p>
-      <button
-        type="button"
-        onClick={() => { if (unsaved === 'objectives') void saveMindState(); else if (protocol) void saveProtocol(protocol, completed, gratitude) }}
-        className="btn-ghost text-xs shrink-0"
-      >
-        Retry
-      </button>
+      {unsaved !== 'tick' && (
+        <button
+          type="button"
+          onClick={() => { if (unsaved === 'objectives') void saveMindState(); else if (protocol) void saveProtocol(protocol, completed, gratitude) }}
+          className="btn-ghost text-xs shrink-0"
+        >
+          Retry
+        </button>
+      )}
     </div>
   ) : null
 
