@@ -35,3 +35,11 @@ fi
 [ "$QUEUED" -eq 0 ] && exit 0
 echo "Bus: $QUEUED ticket(s) queued by Blaine - $(ls -1 "$BUS/queue" | grep -oE 'FOR-[0-9]+' | tr '\n' ' ')"
 echo "Each is specced in Linear. Finish the current turn and the Stop hook will hand you the first one."
+
+# Name the ruling for any queued ticket that has one. PATH ONLY, built from the
+# ticket id the filename yields — this hook never reads a ruling's body either.
+for Q in $(ls -1 "$BUS/queue" 2>/dev/null | grep -E '^[0-9]{3}-FOR-[0-9]+\.json$' | sort); do
+  T=$(printf '%s' "$Q" | sed -E 's/^[0-9]{3}-(FOR-[0-9]+)\.json$/\1/')
+  printf '%s' "$T" | grep -qE '^FOR-[0-9]+$' || continue
+  [ -f "$BUS/rulings/$T.md" ] && echo "$T has a ruling: .claude/bus/rulings/$T.md - it governs where it and the ticket differ."
+done

@@ -12,14 +12,23 @@ Write a report to `.claude/bus/reports/` and stop if the work needs any of:
 * **A production deploy.** Andrew's explicit go, every time.
 * **Program or training content.** What Andrew does with his body is his call.
 * **A second reversal of the same decision.** Flip-flopped once already means the spec is
-  unstable — that is Andrew's, not a tiebreak for you or Blaine.
+  unstable — that one is Andrew's. A tiebreak will not settle an unstable spec.
+* **A destructive change to user data.** Deleting or rewriting rows an athlete put there,
+  whatever the migration looks like.
+* **A published API or data contract.** Anything another system already reads: a response
+  shape, a webhook payload, a column another repo selects.
+* **The bus modifying itself** — its hooks, `CLAUDE.md`, or this gate list. A process that can
+  quietly widen its own authority is not a process.
+
+Those eight are the gate list. The Stop hook names the same eight, and
+`scripts/checks/bus-v2.mjs` fails if the two lists drift apart.
 
 ## Everything else is YOURS. Decide it and keep going.
 
 Schema shape, merge points, counting rules, check design, priority inside the backlog, whether a
 finding blocks a merge or gets filed as a follow-up, whether to ship a feature partially — **these
 are not Andrew's and you must not ask him.** You cannot reach Blaine mid-run, so "Blaine rules these"
-in practice means **you rule them, record the decision and your reasoning in your report, and carry
+in practice means **you rule them, record the decision and your rationale in your report, and carry
 on.** Blaine reviews it on the next wake and reverses it if it was wrong.
 
 **The test is reversibility, not risk.** A merge reverts in five minutes. A migration applied to
@@ -98,9 +107,14 @@ until after the merge and the production deploy.
   fact that it fired** — do not keep going because the work looks nearly done.
 * Blaine cannot interrupt you any other way. This re-read *is* the interrupt.
 
-**Rounds are a smell, not just a cost.** If a ticket passes **12 Codex rounds** with no trigger set,
-stop and say so before round 13. Ask for one. Every ticket this repo has shipped landed in 8 or
-fewer; past that, the design is usually wrong rather than the implementation.
+**Rounds are a smell.** Cost is the smaller half of it.
+
+**A ticket that sets no round cap has one anyway: 8 Codex rounds.** At the cap, stop and write
+the report. Do not merge. A ticket's own termination trigger replaces this default, in either
+direction — FOR-260's cap is 6, and that is the number that governs it.
+
+Every ticket this repo has shipped landed in 8 or fewer; past that the design is usually wrong
+rather than the implementation.
 
 ## The bus
 
@@ -114,4 +128,32 @@ fewer; past that, the design is usually wrong rather than the implementation.
 * Your report should carry **what the repo cannot show** — what you decided that the ticket did
   not specify, what you could not verify, what you think is wrong with the spec. Blaine checks
   the commits for the rest.
-* `touch .claude/bus/HALT` stops all auto-continuation. Andrew or you, any time, no explanation.
+* **`.claude/bus/HALT` stops all auto-continuation.** Andrew or you, any time, no explanation
+  needed — but say who and why, because a HALT nobody can attribute is a HALT nobody dares
+  lift. One line, exactly these three fields:
+
+  ```
+  set_by=<cc|blaine|andrew> reason=<gate|ruling-needed|manual> ticket=<FOR-x|none>
+  ```
+
+  An **empty HALT still halts** and reads as `manual`. The hooks treat any HALT as a halt and
+  never read its body into a prompt.
+
+  **Who may lift which.** Blaine may lift only a HALT that reads `set_by=cc reason=ruling-needed`,
+  and only after writing that ticket's ruling. Every other HALT is Andrew's to lift, or yours.
+
+* **A ruling reaches you through `.claude/bus/rulings/`.** The current ruling for a ticket is
+  always `rulings/<TICKET>.md`; superseded ones keep a dated name,
+  `rulings/<TICKET>.<YYYY-MM-DD>.md`. Both hooks point at that path when it exists, and
+  **neither ever reads its body** — the path is built from the ticket id alone. Where a ruling
+  and its Linear ticket differ, the ruling governs. To hand one back, Blaine moves
+  `claimed/NNN-FOR-x.json` to `queue/000-FOR-x.json`, which sorts first.
+
+* **Every hand-written `bus.log` line goes through `.claude/hooks/bus-log.sh`:**
+
+  ```bash
+  .claude/hooks/bus-log.sh cc "ticket=FOR-x outcome=... what happened"
+  ```
+
+  It stamps from the clock. Typing a stamp by hand gets it wrong: on 2026-10-03 mine read
+  00:00–01:38Z sitting between hook stamps of 17:25 and 17:51Z.

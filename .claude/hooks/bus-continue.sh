@@ -61,6 +61,18 @@ fi
 TICKET=$(printf '%s' "$NEXT" | sed -E 's/^[0-9]{3}-(FOR-[0-9]+)\.json$/\1/')
 printf '%s' "$TICKET" | grep -qE '^FOR-[0-9]+$' || finish bad-filename "'$NEXT' did not yield a FOR-N ticket id"
 
+# ── A ruling reaches CC through a PATH, never through this hook's mouth ─────
+# A ruling used to have no route here at all: the one written 2026-10-01 sat two
+# days until Andrew pasted it. So if rulings/$TICKET.md exists, the message says
+# so — and that is all it does. The path is built from $TICKET, which has already
+# been matched against ^FOR-[0-9]+$ above, and the file is NEVER read. Reading a
+# ruling's body into this message would make the bus able to put arbitrary text
+# into CC's prompt, which is the one thing it must not do.
+RULING_NOTE=""
+if [ -f "$BUS/rulings/$TICKET.md" ]; then
+  RULING_NOTE="A ruling governs this ticket: .claude/bus/rulings/$TICKET.md - read it before the Linear ticket. Where the two differ, the ruling wins. (This hook names the path; it has not read the file.)"
+fi
+
 mkdir -p "$BUS/claimed"
 mv "$BUS/queue/$NEXT" "$BUS/claimed/$NEXT" 2>/dev/null || finish claim-failed "could not move $NEXT into claimed/"
 echo $((COUNT + 1)) > "$BUS/chain.count"
@@ -68,6 +80,8 @@ echo "[$(stamp)] hook=stop outcome=claimed ticket=$TICKET chain=$((COUNT + 1))/$
 
 cat >&2 <<MSG
 Next item on the bus: $TICKET
+${RULING_NOTE:+
+$RULING_NOTE}
 
 Do not stop. Pick it up now:
 
@@ -76,16 +90,27 @@ Do not stop. Pick it up now:
 2. Work it on its own branch. Never commit to master, never force-push.
 3. npx tsc --noEmit AND npm run build must both pass before every commit.
 4. Codex review before merge. Merge it yourself once Codex is clean and the gate passes.
-5. STOP and write a report to .claude/bus/reports/ instead of proceeding if the work needs:
-   a database migration, anything touching Stripe/billing/auth, a production deploy, or a
-   change to program/training content. Those are Andrew's, not yours and not Blaine's.
+5. STOP and write a report to .claude/bus/reports/ instead of proceeding if the work needs any
+   of the eight gates. These are Andrew's; they are not yours and they are not Blaine's:
+     - a database migration
+     - anything touching Stripe, billing or auth
+     - a production deploy
+     - a change to program or training content
+     - a second reversal of the same decision
+     - a destructive change to user data
+     - a published API or data contract
+     - the bus modifying itself: its hooks, CLAUDE.md, or this gate list
+   The same eight are in CLAUDE.md, and scripts/checks/bus-v2.mjs fails if the lists drift.
 6. When done: move .claude/bus/claimed/$NEXT to .claude/bus/done/, and write a report to
    .claude/bus/reports/$TICKET.md - what you did, the commit SHA, the PR number, what you
    could not verify, and anything you decided that the ticket did not specify.
 
-Blaine verifies your work against the repo, not against your report. Report the reasoning the
+Blaine verifies your work against the repo, not against your report. Report the rationale the
 repo cannot show; skip the summary of what the commits already say.
 
-To stop the chain at any time, Andrew: touch .claude/bus/HALT
+To stop the chain at any time, write .claude/bus/HALT with one line:
+   set_by=<cc|blaine|andrew> reason=<gate|ruling-needed|manual> ticket=<FOR-x|none>
+An empty HALT still halts and reads as manual. This hook treats any HALT as a halt and never
+reads its body.
 MSG
 exit 2
