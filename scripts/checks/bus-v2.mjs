@@ -17,7 +17,7 @@
 //
 //   node scripts/checks/bus-v2.mjs            (run-all does this)
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, readdirSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
+import { execSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -273,6 +273,20 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
       const got = createHash('sha256').update(readFileSync(p).toString('utf8').replace(/\r\n/g, '\n')).digest('hex').slice(0, 16)
       assert(got === hash, `${file} has drifted from the vendored copy — upstream is ${got}, the header says ${hash}`)
     }
+  }
+}
+
+// ── 10. every hook is executable in the index ──────────────────────────────
+// CLAUDE.md tells CC to run bus-log.sh directly, and it went in at 100644, so
+// following the instruction would have failed. Same class as FOR-246's
+// exec-form defect: a hook that silently could not run.
+{
+  const listed = execSync('git ls-files -s .claude/hooks', { cwd: ROOT, encoding: 'utf8' }).trim().split(/\r?\n/)
+  assert(listed.length >= 3, `the hooks are tracked — found ${listed.length}`)
+  for (const row of listed) {
+    const mode = row.trim().split(/\s+/)[0]
+    const name = row.trim().split(/\s+/).pop()
+    assert(mode === '100755', `${name} is executable in the index — it is ${mode}`)
   }
 }
 
