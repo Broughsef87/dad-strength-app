@@ -114,6 +114,17 @@
 --      the first key and patched the wrong place. The path is re-indexed from
 --      1 before use.
 --
+--   CODEX PASS 2 — the SQL came back clean on all four: security, jsonb
+--   correctness, concurrency on disjoint paths, additive and revert. Its
+--   remaining findings were about the PROOF, and one of them found a real
+--   grant defect when the proof was extended to check it:
+--   5. REVOKE ... FROM PUBLIC did not remove Supabase's DEFAULT PRIVILEGES,
+--      which grant EXECUTE on new public functions to anon, authenticated and
+--      service_role as ROLE grants. anon could execute all four. It would have
+--      been refused at auth.uid() IS NULL with nothing written, so no data was
+--      reachable — but the grant did not say what it meant. anon is now named
+--      and revoked; service_role is granted on purpose.
+--
 --   Codex also noted, correctly, that an ancestor path still replaces its
 --   descendants — writing {morning} replaces {morning,completed}. That is
 --   generation's job and is the intended behaviour, not a defect.
@@ -327,13 +338,25 @@ BEGIN
 END;
 $fn$;
 
--- Only a signed-in athlete calls these. An anonymous caller would raise 28000
--- on auth.uid() anyway; this keeps the grant honest about who it is for.
-REVOKE ALL ON FUNCTION public.checkin_jsonb_set_deep(jsonb, text[], jsonb) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.checkin_jsonb_apply(jsonb, jsonb) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.checkin_patch(date, text, jsonb) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.checkin_set_path(date, text, text[], jsonb) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.checkin_jsonb_set_deep(jsonb, text[], jsonb) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.checkin_jsonb_apply(jsonb, jsonb) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.checkin_patch(date, text, jsonb) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.checkin_set_path(date, text, text[], jsonb) TO authenticated;
+-- WHO MAY CALL THESE. A signed-in athlete, and the trusted backend role.
+--
+-- `REVOKE ... FROM PUBLIC` is NOT enough on Supabase and the first draft stopped
+-- there (Codex pass 2, confirmed by the proof: anon came back EXECUTE = true).
+-- The image ships ALTER DEFAULT PRIVILEGES granting EXECUTE on new functions in
+-- `public` to anon, authenticated and service_role, and those are role grants
+-- rather than the PUBLIC grant, so revoking PUBLIC leaves them standing. anon
+-- would have been refused at auth.uid() IS NULL with nothing written, so this
+-- was never a data leak — but a grant that does not say what it means is the
+-- kind of thing that becomes one. anon is named and revoked.
+--
+-- service_role keeps EXECUTE on purpose: it is Supabase's trusted backend role,
+-- it bypasses RLS regardless, and removing it would surprise a future
+-- server-side caller for no gain.
+REVOKE ALL ON FUNCTION public.checkin_jsonb_set_deep(jsonb, text[], jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.checkin_jsonb_apply(jsonb, jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.checkin_patch(date, text, jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.checkin_set_path(date, text, text[], jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.checkin_jsonb_set_deep(jsonb, text[], jsonb) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.checkin_jsonb_apply(jsonb, jsonb) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.checkin_patch(date, text, jsonb) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.checkin_set_path(date, text, text[], jsonb) TO authenticated, service_role;

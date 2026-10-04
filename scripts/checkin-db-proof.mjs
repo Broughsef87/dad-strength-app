@@ -67,9 +67,24 @@ try {
   apply(`INSERT INTO public.daily_checkins (user_id, date, mind_state, spirit_state)
          VALUES ('${C}','2026-09-01','{"objectives":["untouched"],"completedObjectives":[true]}','{"morning":{"date":"2026-09-01","completed":[true]}}');`,
     'the bystander row')
-  const schemaBefore = q(`select md5(string_agg(column_name || ':' || data_type, ',' order by column_name)) from information_schema.columns where table_name = 'daily_checkins'`)
-  const bystanderBefore = q(`select md5(mind_state::text || spirit_state::text) from public.daily_checkins where user_id='${C}'`)
-  const policiesBefore = q("select md5(string_agg(policyname || ':' || cmd || ':' || coalesce(qual,''), ',' order by policyname)) from pg_policies where tablename='daily_checkins'")
+  // Fingerprints wide enough to mean what they say (Codex pass 2): the column
+  // list alone omitted defaults, nullability, constraints and indexes, and the
+  // policy hash omitted roles and WITH CHECK. The bystander hash covered two
+  // columns out of six.
+  const SCHEMA_Q = `select md5(string_agg(column_name||':'||data_type||':'||is_nullable||':'||coalesce(column_default,'-'), ',' order by column_name)) from information_schema.columns where table_name='daily_checkins'`
+  const CONSTR_Q = `select md5(coalesce(string_agg(conname||':'||pg_get_constraintdef(oid), ',' order by conname),'-')) from pg_constraint where conrelid='public.daily_checkins'::regclass`
+  const INDEX_Q = `select md5(coalesce(string_agg(indexname||':'||indexdef, ',' order by indexname),'-')) from pg_indexes where tablename='daily_checkins'`
+  const POLICY_Q = "select md5(string_agg(policyname||':'||cmd||':'||coalesce(qual,'-')||':'||coalesce(with_check,'-')||':'||coalesce(array_to_string(roles,'+'),'-'), ',' order by policyname)) from pg_policies where tablename='daily_checkins'"
+  const ROW_Q = `select md5(user_id::text||date::text||coalesce(mind_state::text,'-')||coalesce(spirit_state::text,'-')||coalesce(id::text,'-')) from public.daily_checkins where user_id='${C}'`
+  const schemaBefore = q(SCHEMA_Q)
+  const constraintsBefore = q(CONSTR_Q)
+  const indexesBefore = q(INDEX_Q)
+  const policiesBefore = q(POLICY_Q)
+  const bystanderBefore = q(ROW_Q)
+  // Freshness, measured BEFORE the migration. The old assertion claimed "none
+  // of these names existed before" while only counting them afterwards, which
+  // established nothing — a false claim in the evidence, found by Codex pass 2.
+  const checkinFnsBefore = q("select coalesce(string_agg(proname,',' order by proname),'') from pg_proc where proname like 'checkin%'")
 
   // the migration under proof, twice — a second apply must be harmless
   const MIG = 'supabase/migrations/20261003_checkin_set_path.sql'
@@ -225,8 +240,13 @@ try {
   // Observe the contention rather than inferring it from elapsed time alone
   // (Codex pass 1): while session 2 waits, a tuple lock is ungranted.
   const t0 = Date.now()
+  // Scoped to daily_checkins rather than counting every ungranted lock in the
+  // database (Codex pass 2), so the wait observed is the wait claimed.
   const contention = spawn('docker', ['exec', NAME, 'psql', '-U', 'postgres', '-d', 'postgres', '-tAc',
-    "select pg_sleep(1.2); select count(*) from pg_locks where not granted"], { stdio: ['ignore', 'pipe', 'pipe'] })
+    `select pg_sleep(1.2); select count(*) from pg_locks l where not l.granted
+       and (l.relation = 'public.daily_checkins'::regclass
+            or exists (select 1 from pg_locks t where t.locktype='transactionid'
+                       and t.transactionid = l.transactionid and not l.granted))`], { stdio: ['ignore', 'pipe', 'pipe'] })
   let contOut = ''
   contention.stdout.on('data', (d) => { contOut += d })
   const second = await runBg(A, `select public.checkin_set_path('2026-10-07','spirit_state','{morning,gratitude}','["g"]'::jsonb);`)
@@ -235,7 +255,9 @@ try {
   ok('the holding session itself succeeded', heldRes.code === 0, `exit ${heldRes.code} ${heldRes.e.slice(0, 80)}`)
   const bothLive = q(`select (spirit_state #>> '{morning,completed}') || ' | ' || (spirit_state #>> '{morning,gratitude}') from public.daily_checkins where user_id='${A}' and date='2026-10-07'`)
   ok('the second writer BLOCKED on the row lock rather than racing', waited > 1000, `waited ${waited}ms`)
-  ok('and an ungranted lock was observed while it waited', contOut.trim().split(/\s+/).filter(Boolean).some((n) => Number(n) > 0), `pg_locks ungranted: ${contOut.trim() || 'none seen'}`)
+  ok('and an ungranted lock ON daily_checkins was observed while it waited',
+    contOut.trim().split(/\s+/).filter((t) => /^\d+$/.test(t)).some((n) => Number(n) > 0),
+    `ungranted locks on the table: ${contOut.trim() || 'none seen'}`)
   ok('both interleaved writers survive, each at its own path', bothLive === '[true, true] | ["g"]', bothLive)
   ok('neither interleaved write errored', second.code === 0, `second exit ${second.code} ${second.e.slice(0, 80)}`)
 
@@ -253,6 +275,25 @@ try {
   ok("B's direct UPDATE of A's row touches nothing", /UPDATE 0/.test(bWritesA.out) || bWritesA.out.includes('0'), bWritesA.out.trim() || bWritesA.err.slice(0, 80))
   ok("and A's row is unharmed", !q(`select spirit_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-03'`).includes('hacked'),
     q(`select spirit_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-03'`))
+
+  // 8d-ii. THE ANON ROLE IS DENIED, and no direct grant survived the REVOKE
+  //         (Codex pass 2). The earlier case ran as `authenticated` with no
+  //         subject, which proves auth.uid() is NULL and nothing about anon.
+  for (const fn of ['public.checkin_patch(date,text,jsonb)', 'public.checkin_set_path(date,text,text[],jsonb)',
+                    'public.checkin_jsonb_apply(jsonb,jsonb)', 'public.checkin_jsonb_set_deep(jsonb,text[],jsonb)']) {
+    ok(`anon cannot execute ${fn.split('(')[0].replace('public.', '')}`,
+      q(`select has_function_privilege('anon', '${fn}', 'EXECUTE')`) === 'f',
+      q(`select has_function_privilege('anon', '${fn}', 'EXECUTE')`))
+  }
+  const GRANTEES_Q = `select coalesce(string_agg(distinct grantee, ',' order by grantee), '') from information_schema.role_routine_grants
+        where routine_schema='public' and routine_name like 'checkin%' and privilege_type='EXECUTE' and grantee <> 'postgres'`
+  ok('the EXECUTE grants are exactly authenticated and service_role — anon is gone',
+    q(GRANTEES_Q) === 'authenticated,service_role', q(GRANTEES_Q))
+  const anonCall = docker(['exec', '-i', NAME, 'psql', '-U', 'postgres', '-d', 'postgres', '-tA'], {
+    input: `begin; set local role anon;\nselect public.checkin_set_path('2026-10-03','spirit_state','{morning,completed}','[true]'::jsonb);\ncommit;`,
+  })
+  ok('an anon caller is refused outright', /permission denied|no authenticated user/.test(String(anonCall.stderr)),
+    String(anonCall.stderr).slice(0, 100) || 'no error')
 
   // 8e. A VALID PATCH BEFORE A MALFORMED ONE MUST NOT LAND (Codex pass 1).
   //     The earlier malformed cases were single-element lists, which say
@@ -288,21 +329,17 @@ try {
 
   // 11. additive: an existing unrelated row is untouched by applying the migration
   // 11. ADDITIVE, against the fingerprints taken before the migration ran
-  ok('the table definition is byte-identical to before the migration',
-    q(`select md5(string_agg(column_name || ':' || data_type, ',' order by column_name)) from information_schema.columns where table_name = 'daily_checkins'`) === schemaBefore,
-    'schema hash moved')
-  ok('the policies are byte-identical to before',
-    q("select md5(string_agg(policyname || ':' || cmd || ':' || coalesce(qual,''), ',' order by policyname)) from pg_policies where tablename='daily_checkins'") === policiesBefore,
-    'policy hash moved')
-  ok("the bystander row that never called the function is byte-identical",
-    q(`select md5(mind_state::text || spirit_state::text) from public.daily_checkins where user_id='${C}'`) === bystanderBefore,
-    'bystander row changed')
+  ok('the table definition, defaults and nullability are unchanged', q(SCHEMA_Q) === schemaBefore, 'schema hash moved')
+  ok('the constraints are unchanged', q(CONSTR_Q) === constraintsBefore, 'constraint hash moved')
+  ok('the indexes are unchanged', q(INDEX_Q) === indexesBefore, 'index hash moved')
+  ok('the policies, their roles and their WITH CHECK are unchanged', q(POLICY_Q) === policiesBefore, 'policy hash moved')
+  ok('every column of the bystander row that never called the function is unchanged',
+    q(ROW_Q) === bystanderBefore, 'bystander row changed')
   ok('the four functions are the only ones it added',
     q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'") === 'checkin_jsonb_apply,checkin_jsonb_set_deep,checkin_patch,checkin_set_path',
     q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'"))
-  ok('none of those four names existed before it (so CREATE OR REPLACE replaced nothing)',
-    read(MIG).includes('CREATE OR REPLACE FUNCTION public.checkin_set_path') && q("select count(*) from pg_proc where proname like 'checkin%'") === '4',
-    q("select count(*) from pg_proc where proname like 'checkin%'"))
+  ok('and NONE of those names existed beforehand, measured before it ran — so CREATE OR REPLACE replaced nothing',
+    checkinFnsBefore === '', `before: ${checkinFnsBefore || '(none)'}`)
 
   // 12. THE REVERT IN THE HEADER IS COMPLETE (Codex pass 1). Run exactly the
   //     four DROP lines the header gives and check nothing else moved. Last,
@@ -314,11 +351,14 @@ try {
   ok("the header's revert removes every function it added",
     q("select count(*) from pg_proc where proname like 'checkin%'") === '0',
     q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'"))
-  ok('and the revert leaves the table, its policy and its data alone',
-    q(`select md5(string_agg(column_name || ':' || data_type, ',' order by column_name)) from information_schema.columns where table_name = 'daily_checkins'`) === schemaBefore
-    && q("select md5(string_agg(policyname || ':' || cmd || ':' || coalesce(qual,''), ',' order by policyname)) from pg_policies where tablename='daily_checkins'") === policiesBefore
-    && q(`select md5(mind_state::text || spirit_state::text) from public.daily_checkins where user_id='${C}'`) === bystanderBefore,
-    'something moved across the revert')
+  // Against the SAME wide fingerprints taken before the migration — the first
+  // version of this line still used the old narrow queries and compared them to
+  // the new hashes, so it failed for a reason that had nothing to do with the
+  // revert.
+  ok('and the revert leaves the schema, constraints, indexes, policy and data alone',
+    q(SCHEMA_Q) === schemaBefore && q(CONSTR_Q) === constraintsBefore && q(INDEX_Q) === indexesBefore
+    && q(POLICY_Q) === policiesBefore && q(ROW_Q) === bystanderBefore,
+    `schema=${q(SCHEMA_Q) === schemaBefore} constraints=${q(CONSTR_Q) === constraintsBefore} indexes=${q(INDEX_Q) === indexesBefore} policy=${q(POLICY_Q) === policiesBefore} row=${q(ROW_Q) === bystanderBefore}`)
 
   console.log(`\n${pass} passed, ${fails.length} failed`)
   if (fails.length) { for (const f of fails) console.log(`  ✗ ${f}`); process.exitCode = 1 }
