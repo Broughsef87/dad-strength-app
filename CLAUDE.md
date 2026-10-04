@@ -149,24 +149,42 @@ rather than the implementation.
   the commits for the rest.
 * **`.claude/bus/HALT` stops all auto-continuation.** Andrew or you, any time, no explanation
   needed — but say who and why, because a HALT nobody can attribute is a HALT nobody dares
-  lift. One line, exactly these three fields:
+  lift.
+
+  **One line per hold**, each with exactly these three fields:
 
   ```
   set_by=<cc|blaine|andrew> reason=<gate|ruling-needed|manual> ticket=<FOR-x|none>
   ```
 
-  An **empty HALT still halts** and reads as `manual`. The hooks treat any HALT as a halt and
-  never read its body into a prompt.
+  A file can hold several. An **empty file is one manual hold**. Any HALT, whatever it
+  contains, halts — and nothing reads it into a prompt.
 
-  **Who may lift which.** Blaine may lift only a HALT that reads `set_by=cc reason=ruling-needed`,
-  and only after writing that ticket's ruling. Every other HALT is Andrew's to lift, or yours.
+  **Each holder removes only its own line.** Blaine may remove only a line reading
+  `set_by=cc reason=ruling-needed`, and only after writing that ticket's ruling. Every other
+  line is Andrew's to remove, or yours. **When the last line goes, move the file to
+  `.claude/bus/_trash/`** rather than deleting it, so what was holding the bus stays readable.
 
-* **A ruling reaches you through `.claude/bus/rulings/`.** The current ruling for a ticket is
-  always `rulings/<TICKET>.md`; superseded ones keep a dated name,
-  `rulings/<TICKET>.<YYYY-MM-DD>.md`. Both hooks point at that path when it exists, and
-  **neither ever reads its body** — the path is built from the ticket id alone. Where a ruling
-  and its Linear ticket differ, the ruling governs. To hand one back, Blaine moves
-  `claimed/NNN-FOR-x.json` to `queue/000-FOR-x.json`, which sorts first.
+  One line per hold because one line could not carry two: on 2026-10-04 HALT held FOR-231's
+  migration gate, which only Andrew may lift, and FOR-260 needed a ruling, which Blaine may
+  lift. A single `reason` field had to pick one, and picking the weaker would have let Blaine
+  release Andrew's gate.
+
+* **A ruling is a comment on the Linear ticket**, and its first line begins `## Ruling`. The
+  newest such comment is part of the spec and governs where it and the description differ.
+  Read a ticket's comments, not only its description.
+
+  **Nothing on disk carries authority.** An earlier design put the current ruling in
+  `.claude/bus/rulings/<TICKET>.md` and had the hooks say it governed. The hooks never read
+  it — but telling you to obey a file's contents hands authority to disk content as surely as
+  quoting it would, and `.claude/bus/` is git-ignored, so that was the one authority-carrying
+  channel here with no diff behind it. `rulings/` survives as Blaine's working archive and
+  means nothing on its own.
+
+  To hand a ruling back on a ticket already claimed, Blaine writes the comment and moves
+  `claimed/NNN-FOR-x.json` to `queue/000-FOR-x.json`, which sorts first. The doorbell rings;
+  the authority stays in Linear. If Linear is unreachable, the ruling waits or comes through
+  Andrew.
 
 * **Every hand-written `bus.log` line goes through `.claude/hooks/bus-log.sh`:**
 
