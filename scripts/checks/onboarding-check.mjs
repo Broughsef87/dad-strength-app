@@ -61,17 +61,29 @@ if (mount) {
 // The checklist ticks morning_protocol by READING THE ROW (FOR-231 v2). A
 // sibling writing the row fires no same-tab event, so without an explicit
 // signal the item stays unchecked no matter how long the component stays
-// mounted. Both write paths must signal. saveProtocol persists pillar
+// mounted. Both write paths must signal. patchSpirit persists pillar
 // completion; saveMindState persists objectives. They are separate functions,
 // and wiring only the first left objectives saves invisible to the card below
 // them. Each signals only once its write has LANDED in the row.
 const mp = read('../../src/components/MorningProtocol.tsx')
 ok('MorningProtocol reports completion upward', /onSaved/.test(mp),
   'no callback — the checklist cannot learn the protocol was run')
-const saveFns = mp.split(/const saveProtocol|const saveMindState/).slice(1)
+// Bounded by each function's own body, not by a character count. The window
+// used to be 1400 characters from the declaration, which is a number with
+// nothing behind it: a save path that signals correctly fails the moment a
+// comment pushes the call past it, and the temptation is then to raise the
+// number instead of reading the code. The closing brace is the real boundary.
+const bodyOf = (src, decl) => {
+  const i = src.indexOf(decl)
+  if (i < 0) return ''
+  const j = src.indexOf('\n  }', i)
+  return j < 0 ? src.slice(i) : src.slice(i, j + 4)
+}
+const saveFns = ['  const patchSpirit = async (', '  const saveMindState = async () => {']
+  .map((d) => bodyOf(mp, d))
 ok('every MorningProtocol save path signals the parent',
-  saveFns.length === 2 && saveFns.every((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))),
-  'found ' + saveFns.length + ' save paths, ' +
+  saveFns.length === 2 && saveFns.every((f) => f.length > 0 && /onSaved\?\.\(\)/.test(f)),
+  'found ' + saveFns.filter((f) => f.length > 0).length + ' save paths, ' +
   saveFns.filter((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))).length + ' signalling')
 
 // Date keys across the two components must agree, or the checklist can never

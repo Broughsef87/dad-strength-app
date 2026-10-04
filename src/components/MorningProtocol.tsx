@@ -7,6 +7,15 @@ import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
 import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
+import { patchCheckin, usePaintGate, type CheckinPatch } from '../lib/checkins'
+
+// What each failed write is called on screen. A tag names the path its writer
+// owns, so this table has to cover every tag the writers can set.
+const UNSAVED_LABEL: Record<'protocol' | 'objectives' | 'gratitude', string> = {
+  protocol: 'Not saved',
+  objectives: 'Objectives not saved',
+  gratitude: 'Gratitude not saved',
+}
 import UpgradeModal from './UpgradeModal'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
@@ -94,11 +103,18 @@ export default function MorningProtocol(
   const [reading, setReading] = useState(true)
   // A write that did not land — a tag. Retry re-reads what is on the screen at
   // that moment; nothing here captures a payload.
-  const [unsaved, setUnsaved] = useState<'protocol' | 'objectives' | 'tick' | null>(null)
+  // `gratitude` is its own tag because each writer now owns its own path: a
+  // gratitude failure has to be retried as a gratitude write, or the Retry
+  // button becomes the whole-entry writer this round exists to remove.
+  const [unsaved, setUnsaved] = useState<'protocol' | 'objectives' | 'tick' | 'gratitude' | null>(null)
   // A write is in flight. It keeps a second one from starting, so there are
   // never two writes of this row racing and nothing has to decide between
   // them (Blaine's ruling, 2026-10-01).
   const [writing, setWriting] = useState(false)
+  // Only the newest operation paints. The mount read and a write race on first
+  // load: generation can finish before the read does, and the read would then
+  // paint the old row over the protocol just generated (FOR-231 v2, r3).
+  const gate = usePaintGate()
   // Completed protocols collapse to a "systems green" stamp; review re-expands.
   const [reviewOpen, setReviewOpen] = useState(false)
   // Gratitude entries: 3 text inputs
@@ -109,31 +125,26 @@ export default function MorningProtocol(
   const [mindSaved, setMindSaved] = useState(false)
 
   const saveMindState = async () => {
-    const supabase = createClient()
     const today = localDay()
     setUnsaved(null)
     // Dense, for the same reason DailyObjectivesCard stores dense: its render
     // path filters blanks and toggles by the FILTERED index, so a sparse array
     // misaligns completion flags against objectives. Both writers must agree.
     const dense = mindObjectives.map(o => o.trim()).filter(Boolean)
-    const state = {
-      date: localDay(),
-      objectives: dense,
-      completedObjectives: dense.map(() => false),
-      lockedIn: true,
-    }
-    // The row, and only the row. "Saved" means the row has it.
-    let landed = false
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const res = await supabase.from('daily_checkins').upsert(
-          { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id,date' }
-        )
-        landed = !res.error
-      }
-    } catch { landed = false }
+    // ITS OWN FOUR KEYS, IN ONE CALL - the same four the card's Goals write
+    // names, because whichever one the athlete reaches first has to do the
+    // same thing. This used to write mind_state WHOLE, defended as the write
+    // that creates the record; Rebuild runs the Goals step again on a row that
+    // already exists, so it wiped ticked objectives, and after FOR-229 it
+    // would wipe the spiritual rating and any carried-over item too (Blaine's
+    // draft review, 2026-10-04). Keys this step does not name survive it now.
+    gate.claim()
+    const landed = await patchCheckin('mind_state', today, [
+      { path: ['date'], value: today },
+      { path: ['objectives'], value: dense },
+      { path: ['completedObjectives'], value: dense.map(() => false) },
+      { path: ['lockedIn'], value: true },
+    ])
     if (!landed) { setUnsaved('objectives'); return }
     setMindSaved(true)
     // DailyObjectivesCard renders directly below this component and reads
@@ -149,6 +160,7 @@ export default function MorningProtocol(
     let cancelled = false
     void (async () => {
       try {
+        const claim = gate.claim()
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user || cancelled) return
@@ -158,7 +170,12 @@ export default function MorningProtocol(
           .select('spirit_state')
           .eq('user_id', user.id)
           .in('date', [localDay(), yesterday])
-        if (cancelled) return
+        // A read that started before a write paints nothing. Generation paints
+        // first and then saves, so on a slow first load this read can land
+        // AFTER it, and it would otherwise put the old row back over the
+        // protocol the athlete just paid for. It is discarded, never queued:
+        // whatever claimed after it already describes the screen (r3).
+        if (cancelled || !gate.mayPaint(claim)) return
         for (const r of rows ?? []) {
           const m = (r.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
           if (!m?.protocol || m.date !== todayKey()) continue
@@ -175,36 +192,40 @@ export default function MorningProtocol(
   }, [])
 
   /**
-   * Write the protocol to its row. It lands or it does not, and the screen says
-   * which. No queue, no retry-on-reconnect, no unload guard: a save made with
-   * no network is lost, and `unsaved` is how the user is told, so they can press
-   * Retry, which writes whatever is on the screen at that moment.
+   * The whole morning entry, as generation and Rebuild write it. `{morning}` is
+   * a path, so it replaces what lives under it and nothing beside it - and a
+   * new protocol SHOULD reset its own completion and gratitude, which is the
+   * one case where replacing a subtree is the intent rather than a defect.
+   */
+  const morningEntry = (p: Protocol, c: boolean[], g: string[]) =>
+    ({ date: todayKey(), protocol: p, completed: c, gratitude: g })
+
+  /**
+   * Write some fields of this day's spirit_state. They land or they do not, and
+   * the screen says which. No queue, no retry-on-reconnect, no unload guard: a
+   * save made with no network is lost, and `unsaved` is how the user is told,
+   * so they can press Retry, which writes whatever is on the screen then.
+   *
+   * EACH CALLER NAMES THE PATHS IT OWNS, and the merge happens in the database
+   * (supabase/migrations/20261003_checkin_set_path.sql). While all four writers
+   * here sent the whole entry, a gratitude blur carried the completion flags it
+   * had read before a tick, and the tick came back off the row while the screen
+   * still showed it ticked. Nothing about that was a cache or a queue; it was
+   * four whole-entry writers on one jsonb column.
    *
    * The row is keyed on the protocol's OWN day, the same 4am-cutoff key the
    * entry carries, never the calendar day. Keyed on the calendar day, a
    * protocol finished at 1am landed in the next day's row, and generating that
    * day's protocol after 4am overwrote it (FOR-228, ruling 2).
    */
-  const saveProtocol = async (p: Protocol, c: boolean[], g: string[], as: 'protocol' | 'tick' = 'protocol'): Promise<boolean> => {
+  const patchSpirit = async (
+    patches: CheckinPatch[],
+    as: 'protocol' | 'tick' | 'gratitude' = 'protocol',
+  ): Promise<boolean> => {
     setUnsaved(null)
     setWriting(true)
-    let landed = false
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const res = await supabase.from('daily_checkins').upsert(
-          {
-            user_id: user.id,
-            date: todayKey(),
-            spirit_state: { morning: { date: todayKey(), protocol: p, completed: c, gratitude: g } },
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id,date' },
-        )
-        landed = !res.error
-      }
-    } catch { landed = false }
+    gate.claim()
+    const landed = await patchCheckin('spirit_state', todayKey(), patches)
     setWriting(false)
     if (!landed) { setUnsaved(as); return false }
     // The row holds it, so siblings that read the row can read it now. A
@@ -241,7 +262,7 @@ export default function MorningProtocol(
       const freshCompleted = new Array(fresh.steps.length).fill(false)
       const freshGratitude = ['', '', '']
       // Generation paints BEFORE its save lands, unlike every other write here.
-      // What makes that order safe is the `writing` guard: saveProtocol raises
+      // What makes that order safe is the `writing` guard: patchSpirit raises
       // it and the step buttons are disabled={writing}, so no tick can start
       // against this protocol until the row holds it. Write-first here would
       // throw away a paid AI result on a network blip instead.
@@ -250,7 +271,7 @@ export default function MorningProtocol(
       setGratitude(freshGratitude)
       setExpanded(0)
       setConfigured(true)
-      await saveProtocol(fresh, freshCompleted, freshGratitude)
+      await patchSpirit([{ path: ['morning'], value: morningEntry(fresh, freshCompleted, freshGratitude) }])
     } catch {
       setError('Failed to generate. Try again.')
     } finally {
@@ -267,7 +288,9 @@ export default function MorningProtocol(
     if (!protocol || writing) return
     const next = [...completed]
     next[i] = !next[i]
-    if (!await saveProtocol(protocol, next, gratitude, 'tick')) return
+    // ONE FIELD. A tick owns {morning,completed}; the protocol and the
+    // gratitude are not in this call, so a tick cannot carry either of them.
+    if (!await patchSpirit([{ path: ['morning', 'completed'], value: next }], 'tick')) return
     setCompleted(next)
     if (next[i] && i < protocol.steps.length - 1) {
       setExpanded(i + 1)
@@ -286,7 +309,12 @@ export default function MorningProtocol(
     next[i] = val
     setGratitude(next)
   }
-  const commitGratitude = () => { if (protocol) void saveProtocol(protocol, completed, gratitude) }
+  // ONE FIELD. Gratitude owns {morning,gratitude}. This is the write that used
+  // to undo a tick: it carried `completed` as it stood when the field was
+  // focused, which is before the tick made while typing.
+  const commitGratitude = () => {
+    if (protocol) void patchSpirit([{ path: ['morning', 'gratitude'], value: gratitude }], 'gratitude')
+  }
 
   const doneCount = completed.filter(Boolean).length
   const totalSteps = protocol?.steps.length || 0
@@ -294,6 +322,8 @@ export default function MorningProtocol(
 
   /**
    * A write that did not land, said once and rendered in EVERY view.
+   *
+   * One tag per owned path, so the Retry below can re-send exactly what failed.
    *
    * It used to live inside the setup branch only, and generation sets
    * `configured` before saving — so every failure after the first save showed
@@ -308,12 +338,20 @@ export default function MorningProtocol(
       <p className="text-status-danger-ink text-xs">
         {unsaved === 'tick'
           ? 'That step did not save — tap it again.'
-          : `${unsaved === 'protocol' ? 'Not saved' : 'Objectives not saved'} — the record did not take it. It is lost unless you retry.`}
+          : `${UNSAVED_LABEL[unsaved]} — the record did not take it. It is lost unless you retry.`}
       </p>
       {unsaved !== 'tick' && (
         <button
           type="button"
-          onClick={() => { if (unsaved === 'objectives') void saveMindState(); else if (protocol) void saveProtocol(protocol, completed, gratitude) }}
+          onClick={() => {
+            // RETRY WRITES THE SAME PATH THAT FAILED, read off the screen at
+            // the moment it is pressed. One Retry that rewrote the whole entry
+            // would hand every failure the clobbering it is here to prevent.
+            if (unsaved === 'objectives') void saveMindState()
+            else if (!protocol) return
+            else if (unsaved === 'gratitude') void patchSpirit([{ path: ['morning', 'gratitude'], value: gratitude }], 'gratitude')
+            else void patchSpirit([{ path: ['morning'], value: morningEntry(protocol, completed, gratitude) }])
+          }}
           className="btn-ghost text-xs shrink-0"
         >
           Retry

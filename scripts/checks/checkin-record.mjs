@@ -23,6 +23,10 @@ const assert = (cond, msg) => { checks++; if (!cond) fails.push(msg) }
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const readLF = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+// A file this suite reads can be ABSENT — that is what a revert of the writer
+// looks like — and the suite then has to FAIL with a message rather than crash
+// before a single assertion has run. Red with no message proves nothing.
+const readSoft = (p) => (existsSync(join(root, p)) ? readLF(p) : '')
 
 // Imported for its behaviour, and imported LOUDLY. A tree where the record rule
 // is not exported yet is a tree this check must FAIL on, with a message, rather
@@ -33,6 +37,15 @@ try {
   record = await import('../../src/lib/adherence.ts')
 } catch (e) {
   recordError = e
+}
+
+// The paint rule, imported for its BEHAVIOUR rather than read as text.
+let gateFactory = null
+let gateError = null
+try {
+  gateFactory = (await import('../../src/lib/checkins.ts')).paintGate
+} catch (e) {
+  gateError = e
 }
 
 /** Every .ts/.tsx file under src/, so a new one cannot quietly reintroduce a copy. */
@@ -197,20 +210,81 @@ function before(fn, first, second) {
   return a >= 0 && b >= 0 && a < b
 }
 
-assert((mp.match(/\.upsert\(/g) ?? []).length === 2,
-  'MorningProtocol writes the row in exactly two places — the protocol and the objectives')
-assert((mp.match(/landed = !res\.error/g) ?? []).length === 2,
-  'both MorningProtocol writes read the upsert result rather than dropping it')
+// ── EACH WRITER NAMES THE PATHS IT OWNS (r3) ───────────────────────────────
+// Deleting localStorage did not cure the clobbering and was never going to:
+// `spirit_state` had four writers and every one of them sent the WHOLE entry,
+// so a gratitude blur carried the completion flags it had read before a tick
+// and the tick came back off the row. The cure is that each writer names its
+// own fields and the database merges them (20261003_checkin_set_path.sql).
+//
+// This table is the spec. A writer that gains a path it does not own, or loses
+// one it does, fails here. The DB proof (`npm run proof:checkins`) is what
+// shows two of these paths surviving each other on one row; what this check
+// adds is that the CLIENT names those same paths.
+const WRITERS = [
+  ['MorningProtocol generation', mp, '  const generate = async () => {', [['morning']]],
+  ['MorningProtocol step tick', mp, '  const toggleStep = async (i: number) => {', [['morning', 'completed']]],
+  ['MorningProtocol gratitude', mp, '  const commitGratitude = () => {', [['morning', 'gratitude']]],
+  ['MorningProtocol Goals step', mp, '  const saveMindState = async () => {',
+    [['date'], ['objectives'], ['completedObjectives'], ['lockedIn']]],
+  ["the card's Goals write", card, '  const saveDraft = async () => {',
+    [['date'], ['objectives'], ['completedObjectives'], ['lockedIn']]],
+  ["the card's objective tick", card, '  const toggle = async (i: number) => {', [['completedObjectives']]],
+]
+for (const [label, src, decl, want] of WRITERS) {
+  const fn = body(src, decl)
+  assert(fn.length > 0, `${label} is found by name`)
+  const got = [...fn.matchAll(/path:\s*\[([^\]]*)\]/g)]
+    .map(m => m[1].split(',').map(k => k.trim().replace(/^'|'$/g, '')).join('.'))
+  assert(got.join(' + ') === want.map(w => w.join('.')).join(' + '),
+    `${label} patches exactly ${want.map(w => w.join('.')).join(' + ')} — got ${got.join(' + ') || 'no path at all'}`)
+}
+// The four mind_state keys are ONE call, because objectives and
+// completedObjectives are paired by index: as two calls the row holds a new
+// list against the old list's flags between them.
+for (const [label, src, decl] of [['MorningProtocol', mp, '  const saveMindState = async () => {'],
+                                  ['the card', card, '  const saveDraft = async () => {']]) {
+  assert((body(src, decl).match(/patchCheckin\(/g) ?? []).length === 1,
+    `${label}'s Goals write sends its four keys in one call`)
+}
+// A whole-column write is refused by the function itself (a path must name a
+// key), so this says the client does not even try.
+assert(!/path:\s*\[\s*\]/.test(mp + card), 'no writer names an empty path')
+
+// AND THE DB PROOF EXERCISES THE PATHS THE CLIENT NAMES. The survival of two
+// writers on one row is proven in SQL against a throwaway Postgres
+// (`npm run proof:checkins`), never here — nothing in this process touches a
+// database. What this guards is the two drifting apart: a client renaming a
+// path while the proof keeps contending the old one would leave the collision
+// proven for a path nobody writes.
+const proof = readSoft('scripts/checkin-db-proof.mjs')
+assert(proof.length > 0, 'the DB proof exists — a path merge nobody proved against a database is a claim')
+for (const path of ['{morning,completed}', '{morning,gratitude}', '{completedObjectives}']) {
+  assert(proof.includes(path), `the DB proof contends ${path}, which a writer above names`)
+}
+
+// ── AND NOTHING WRITES THE COLUMN WHOLE ANY MORE ───────────────────────────
+const lib = readSoft('src/lib/checkins.ts')
+assert(lib.length > 0, 'src/lib/checkins.ts exists — it is the only place a check-in is written')
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(!/\.upsert\(/.test(src), `${name} no longer upserts the check-in row`)
+  assert(!/\.rpc\(/.test(src), `${name} reaches the database through the one writer, not directly`)
+}
+assert((lib.match(/supabase\.rpc\('checkin_patch'/g) ?? []).length === 1,
+  'there is exactly ONE call site for the merge function, and it is in src/lib/checkins.ts')
+assert(/if \(patches\.length === 0\) return false/.test(lib),
+  'a write with no patches is a failed write, not a silent success')
+
 assert(/if \(!landed\) \{ setUnsaved\(as\); return false \}/.test(mp),
-  'a protocol write that did not land answers false, so the caller cannot tick the screen')
+  'a spirit write that did not land answers false, so the caller cannot tick the screen')
 assert(/if \(!landed\) \{ setUnsaved\('objectives'\); return \}/.test(mp),
   'an objectives write that did not land says so and stops')
 assert(/if \(!landed\)[\s\S]{0,80}return \}\n    setMindSaved\(true\)/.test(mp),
   'the objectives Saved confirmation is only reached once the row has them')
-assert(!/onSaved\?\.\(\)[\s\S]{0,400}\.upsert\(/.test(mp), 'the save signal is never fired before the write')
+assert(!/onSaved\?\.\(\)[\s\S]{0,400}await patchCheckin\(/.test(mp),
+  'the save signal is never fired before the write')
 
-assert((card.match(/\.upsert\(/g) ?? []).length === 1, 'the objectives card has ONE writer of the row')
-assert(/return !res\.error/.test(card), "the card's writer answers on the upsert result")
+assert(/return !error/.test(lib), "the one writer answers on the function's own result")
 // THE ROW FIRST. The previous version of this suite asserted
 // /setCompleted\(before\)/ to prove "a failed tick comes off the screen" — which
 // REQUIRED the stale-snapshot rollback Codex flagged as a P2, so it would have
@@ -220,9 +294,9 @@ assert(/return !res\.error/.test(card), "the card's writer answers on the upsert
 const toggleFn = body(card, '  const toggle = async (i: number) => {')
 const stepFn = body(mp, '  const toggleStep = async (i: number) => {')
 assert(toggleFn.length > 0 && stepFn.length > 0, 'both tick handlers are found by name')
-assert(before(toggleFn, 'await write(', 'setCompleted('),
+assert(before(toggleFn, 'await patchCheckin(', 'setCompleted('),
   'the objectives card writes the row BEFORE the tick reaches the screen')
-assert(before(stepFn, 'await saveProtocol(', 'setCompleted('),
+assert(before(stepFn, 'await patchSpirit(', 'setCompleted('),
   'the protocol writes the row BEFORE the step is ticked on the screen')
 assert(!/const before = completed/.test(card),
   'no snapshot of what the screen held — there is no paint to roll back to')
@@ -240,14 +314,30 @@ for (const [name, src] of [['the objectives card', card], ['MorningProtocol', mp
 // cannot hold a function, so tsc refuses a captured closure outright.
 assert(/useState<'draft' \| 'tick' \| null>\(null\)/.test(card),
   'the card names which write failed and its type cannot hold a closure')
-assert(/useState<'protocol' \| 'objectives' \| 'tick' \| null>\(null\)/.test(mp),
+assert(/useState<'protocol' \| 'objectives' \| 'tick' \| 'gratitude' \| null>\(null\)/.test(mp),
   'the protocol names which write failed and its type cannot hold a closure')
 // A failed tick has nothing to retry: the screen never moved, so the step is
 // still as the row has it and tapping it again IS the retry. Offering Retry
 // there saved the unchanged array and cleared the warning (Codex r2).
 assert(/\{unsaved !== 'tick' && \(/.test(mp), 'a failed tick is offered no Retry, in the protocol as in the card')
 assert(/'That step did not save/.test(mp), 'a failed tick says to tap it again')
-assert(/saveProtocol\(protocol, next, gratitude, 'tick'\)/.test(mp), 'a tick tells the writer it was a tick')
+assert(/patchSpirit\(\[\{ path: \['morning', 'completed'\], value: next \}\], 'tick'\)/.test(mp),
+  'a tick tells the writer it was a tick, and sends only the completion flags')
+
+// ── A RETRY RE-SENDS THE PATH THAT FAILED (r3) ─────────────────────────────
+// One Retry that rewrote the whole entry would hand every failure back the
+// clobbering this round removes — the button would be the fourth whole-entry
+// writer. So there is a tag per owned path, and the Record type makes tsc
+// refuse a tag with no label rather than rendering `undefined`.
+const retry = mp.slice(mp.indexOf('          onClick={() => {'), mp.indexOf('          >\n          Retry'))
+assert(/unsaved === 'objectives'[\s\S]{0,120}saveMindState\(\)/.test(retry),
+  'a failed objectives write is retried as an objectives write')
+assert(/unsaved === 'gratitude'[\s\S]{0,160}path: \['morning', 'gratitude'\]/.test(retry),
+  'a failed gratitude write is retried as a gratitude write, not as the whole entry')
+assert(/morningEntry\(protocol, completed, gratitude\)/.test(retry),
+  'and only the protocol tag retries the whole morning entry, which is what it owns')
+assert(/const UNSAVED_LABEL: Record<'protocol' \| 'objectives' \| 'gratitude', string>/.test(mp),
+  'every tag that shows a label has one, enforced by the type rather than by a regex')
 assert(/onClick=\{\(\) => \{ void saveDraft\(\) \}\}/.test(card),
   "the card's Retry re-runs the draft save, which reads the inputs as they are then")
 for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
@@ -269,6 +359,80 @@ assert(activeView.includes('{unsavedBanner}'),
   'the ACTIVE protocol view renders it — a failed save after generation is where it was invisible')
 assert(activeView.indexOf('{unsavedBanner}') < activeView.indexOf('allDone && !reviewOpen'),
   'it renders above the done/expanded split, so the collapsed "morning done" state carries it too')
+
+// ── ONLY THE NEWEST OPERATION PAINTS (r3) ──────────────────────────────────
+// The last ordering question this ticket had left: a refresh that started
+// before a write landing after it, and painting the row as it was. Blaine left
+// it to me. The answer never compares the two operations' contents — it asks
+// only which one is newer — so there is nothing to vouch for, nothing to
+// negotiate, and the loser is DISCARDED rather than queued.
+//
+// RUN, not read. `paintGate` is a plain factory in src/lib/checkins.ts for
+// exactly this reason: an ordering rule written inside a component could only
+// be asserted as text here, and text is satisfied by code wired up wrong.
+assert(gateError === null, `src/lib/checkins.ts imports cleanly — ${gateError?.message ?? ''}`)
+if (gateFactory) {
+  const g = gateFactory()
+  const first = g.claim()
+  assert(g.mayPaint(first), 'a claim with nothing after it may paint')
+  const second = g.claim()
+  assert(!g.mayPaint(first), 'a read that claimed BEFORE a later operation may not paint')
+  assert(g.mayPaint(second), 'and the later one may')
+  assert(!g.mayPaint(first), 'the older claim stays refused — it is discarded, never queued')
+  const third = g.claim()
+  assert(!g.mayPaint(second) && g.mayPaint(third), 'only ever the newest claim, however many there are')
+  assert(first !== second && second !== third, 'claims are distinct, so two cannot be confused for each other')
+  const h = gateFactory()
+  assert(h.mayPaint(h.claim()), 'each component gets its own gate')
+  assert(!h.mayPaint(third), "and one component's claim means nothing to another's gate")
+}
+
+// ONE GATE PER COMPONENT, NOT ONE PER RENDER. A gate rebuilt on every render
+// forgets every claim, so every read would believe itself the newest and the
+// rule would be inert while reading exactly right. Only the hook can say this,
+// and running the factory cannot see it — so it is read, and listed in the
+// report as read rather than proven.
+assert(/if \(gate\.current === null\) gate\.current = paintGate\(\)/.test(lib),
+  'the hook builds its gate once and keeps it across renders')
+
+// The rest of the WIRING is also only readable as source, the gap FOR-256 names.
+// What can be asserted: both components hold a gate, every read claims before
+// it awaits anything and checks before it paints the row, and the claim in a
+// read is a captured value rather than a fresh call at the end.
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(/const gate = usePaintGate\(\)/.test(src), `${name} holds one paint gate`)
+}
+const cardLoad = card.slice(card.indexOf('    const load = async () => {'), card.indexOf('    load()'))
+assert(cardLoad.length > 0, "the card's read is found by name")
+assert(before(cardLoad, 'const claim = gate.claim()', 'await'),
+  "the card's read claims before it awaits anything, or a write could start inside the gap")
+assert(before(cardLoad, 'gate.mayPaint(claim)', 'setObjectives('),
+  "the card's read checks its claim before it paints the row")
+// Six spaces puts it OUTSIDE the gated block, whose body is at eight — a
+// discarded first read that left the skeleton up would leave the card blank
+// for the rest of the session.
+assert(/\n      setLoading\(false\)\n/.test(cardLoad.slice(cardLoad.indexOf('gate.mayPaint(claim)'))),
+  'and the loading skeleton comes down outside the gate, so a discarded read still ends the skeleton')
+
+const mpRead = mp.slice(mp.indexOf('    let cancelled = false'), mp.indexOf('    return () => { cancelled = true }'))
+assert(mpRead.length > 0, "the protocol's read is found by name")
+assert(before(mpRead, 'const claim = gate.claim()', 'await'),
+  "the protocol's read claims before it awaits anything")
+assert(before(mpRead, 'gate.mayPaint(claim)', 'setProtocol('),
+  "the protocol's read checks its claim before it paints — generation paints first, so this read can land after it")
+
+// Every write claims. A write never CHECKS: it paints what it just put in the
+// row, so there is no older value it could be painting over.
+for (const [label, src, decl] of [
+  ['the spirit writer', mp, '  const patchSpirit = async ('],
+  ['the Goals step', mp, '  const saveMindState = async () => {'],
+  ["the card's Goals write", card, '  const saveDraft = async () => {'],
+  ["the card's objective tick", card, '  const toggle = async (i: number) => {'],
+]) {
+  const fn = body(src, decl)
+  assert(before(fn, 'gate.claim()', 'await'), `${label} claims before it awaits the row`)
+  assert(!/gate\.mayPaint/.test(fn), `${label} does not check a claim — a write paints what it wrote`)
+}
 
 // ── verdict ─────────────────────────────────────────────────────────────────
 if (fails.length) {

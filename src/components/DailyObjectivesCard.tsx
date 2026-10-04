@@ -5,6 +5,7 @@ import { createClient } from '../utils/supabase/client'
 import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
+import { patchCheckin, usePaintGate } from '../lib/checkins'
 
 // THE RECORD IS THE ROW (FOR-231 v2).
 // daily_checkins.mind_state holds the day's objectives. Nothing is kept in
@@ -25,6 +26,9 @@ export default function DailyObjectivesCard(
   // objectives over newer edits (FOR-231 v2, Blaine's ruling 2026-10-01).
   const [unsaved, setUnsaved] = useState<'draft' | 'tick' | null>(null)
   const supabase = createClient()
+  // Only the newest operation paints. A refresh that started before a tick
+  // must not paint the row as it was before it (FOR-231 v2, r3).
+  const gate = usePaintGate()
 
   // Rows written before objectives were stored dense can still be sparse, and
   // the render path pairs objective i with completed i. Compact them TOGETHER
@@ -39,19 +43,6 @@ export default function DailyObjectivesCard(
       .filter(([o]) => o.trim().length > 0)
     return { objectives: pairs.map(p => p[0]), completed: pairs.map(p => p[1]) }
   }
-  /** Write the row. It lands, or the screen says it did not. */
-  const write = async (state: Record<string, unknown>, day: string): Promise<boolean> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return false
-      const res = await supabase.from('daily_checkins').upsert(
-        { user_id: user.id, date: day, mind_state: state, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id,date' },
-      )
-      return !res.error
-    } catch { return false }
-  }
-
   // Writes the same shape MorningProtocol's Goals step writes, to the same
   // daily_checkins column, so the two are interchangeable and whichever the
   // user reaches first works.
@@ -66,14 +57,19 @@ export default function DailyObjectivesCard(
     // lives at slot 1. Compacting here keeps stored order and rendered order
     // identical, which is the only thing making those indices interchangeable.
     const dense = draft.map(o => o.trim()).filter(Boolean)
-    const state = {
-      date: today,
-      objectives: dense,
-      completedObjectives: dense.map(() => false),
-      lockedIn: true,
-    }
     try {
-      if (!await write(state, today)) {
+      // ITS OWN FOUR KEYS, IN ONE CALL. `objectives` and `completedObjectives`
+      // are paired by index, so they have to land in the same statement; `date`
+      // and `lockedIn` ride along because this is the write that sets the list.
+      // Anything else under mind_state is not named here and survives it —
+      // which is what the old whole-column write could not promise.
+      gate.claim()
+      if (!await patchCheckin('mind_state', today, [
+        { path: ['date'], value: today },
+        { path: ['objectives'], value: dense },
+        { path: ['completedObjectives'], value: dense.map(() => false) },
+        { path: ['lockedIn'], value: true },
+      ])) {
         // Nothing local remembers this, so the screen has to. Retry re-runs
         // this function, which reads `draft` at that moment — so an edit made
         // after the failure is what gets written.
@@ -91,6 +87,7 @@ export default function DailyObjectivesCard(
   useEffect(() => {
     const load = async () => {
       const today = localDay()
+      const claim = gate.claim()
       // The row, and nothing before it. There is no cache to paint from.
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
@@ -102,7 +99,11 @@ export default function DailyObjectivesCard(
         .eq('date', today)
         .single()
 
-      if (data?.mind_state) {
+      // A refresh that started before a write must not paint the row as it was
+      // (FOR-231 v2, r3). It is DISCARDED, never queued: the write it lost to
+      // already put the newer value on the screen. The skeleton comes down
+      // either way, or a discarded first load would leave the card blank.
+      if (data?.mind_state && gate.mayPaint(claim)) {
         const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean }
         const n = normalise(ms.objectives, ms.completedObjectives)
         setObjectives(n.objectives)
@@ -135,12 +136,13 @@ export default function DailyObjectivesCard(
     setUnsaved(null)
     setSaving(true)
     const today = localDay()
-    // Built from what is on the screen, which IS what the row holds: the row
-    // is the only thing this card has ever rendered from.
-    const landed = await write(
-      { date: today, objectives, completedObjectives: next, lockedIn: locked },
-      today,
-    )
+    // ONE FIELD. A tick owns `completedObjectives`; the objective text, the
+    // lock and the date are not in this call, so a tick can no longer carry
+    // the copy of the list it happened to be read against.
+    gate.claim()
+    const landed = await patchCheckin('mind_state', today, [
+      { path: ['completedObjectives'], value: next },
+    ])
     setSaving(false)
     if (!landed) { setUnsaved('tick'); return }
     setCompleted(next)

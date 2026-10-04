@@ -1,5 +1,5 @@
 // ── protocol row key (FOR-228, ruling 2) ─────────────────────────────────────
-// MorningProtocol mirrors each save into daily_checkins.spirit_state. The row
+// MorningProtocol writes each save into daily_checkins.spirit_state. The row
 // must be keyed on the protocol's OWN day — the 4am-cutoff key the entry
 // carries — never the calendar day. Keyed on the calendar day, a protocol
 // finished at 1am landed in the next day's row, and generating that day's
@@ -27,11 +27,22 @@ assert(localDayWithCutoff(4, preDawn) === '2026-09-12' && localDay(preDawn) === 
 assert(localDayWithCutoff(4, new Date(2026, 8, 13, 4, 0)) === '2026-09-13', 'at 4:00am the cutoff day rolls over')
 assert(localDayWithCutoff(4, new Date(2026, 8, 13, 23, 59)) === '2026-09-13', 'late evening is still today')
 
-// ── 2. the mirror row is keyed on the same day the entry carries ────────────
-assert(/user_id: user\.id,\s*date: todayKey\(\),\s*spirit_state: \{ morning: \{ date: todayKey\(\), protocol: p, completed: c, gratitude: g \} \}/.test(mp),
-  'the mirror row is keyed on todayKey() — the same expression the entry carries')
-assert(!/date: localDay\(\),\s*spirit_state:/.test(mp), 'the mirror row is not keyed on the calendar day')
-assert(/onConflict: 'user_id,date'/.test(mp), 'the upsert conflicts on (user_id, date) — one row per protocol day')
+// ── 2. the row is keyed on the same day the entry carries ──────────────────
+// FOR-231 v2 r3 moved the write from an upsert of the whole column to
+// `checkin_patch`, which merges by path. The KEY is unchanged and it is the
+// thing this file exists for, so these assertions follow it to its new home
+// rather than being struck: the date the client passes, the date the entry
+// carries, and the one-row-per-day conflict target — now in the function.
+assert(/await patchCheckin\('spirit_state', todayKey\(\), patches\)/.test(mp),
+  'the spirit write is keyed on todayKey()')
+assert(/const morningEntry = \(p: Protocol, c: boolean\[\], g: string\[\]\) =>\s*\(\{ date: todayKey\(\),/.test(mp),
+  'and the entry it writes carries todayKey() — the same expression as the row')
+assert(!/patchCheckin\('spirit_state', localDay\(\)/.test(mp), 'the spirit row is not keyed on the calendar day')
+const fn = readLF('../../supabase/migrations/20261003_checkin_set_path.sql')
+assert(/ON CONFLICT \(user_id, date\) DO UPDATE/.test(fn),
+  'the merge function conflicts on (user_id, date) — one row per protocol day')
+assert(/INSERT INTO public\.daily_checkins \(user_id, date, %1\$I, updated_at\)/.test(fn),
+  'and it is ONE statement, so the date it inserts is the date it conflicts on')
 
 // ── 3. the loader still finds a pre-dawn row ───────────────────────────────
 // Before 4am the protocol's row is yesterday's calendar row; the loader
@@ -39,9 +50,19 @@ assert(/onConflict: 'user_id,date'/.test(mp), 'the upsert conflicts on (user_id,
 assert(/\.in\('date', \[localDay\(\), yesterday\]\)/.test(mp), 'the loader reads both today\'s and yesterday\'s rows')
 assert(/m\.date !== todayKey\(\)\) continue/.test(mp), 'the loader picks the entry stamped with todayKey()')
 
-// ── 4. mind_state keeps its own path, and the mirror names only its columns ─
-assert(/const today = localDay\(\)[\s\S]{0,1500}date: today, mind_state: state/.test(mp), 'objectives still write mind_state under the calendar day, on their own path')
-assert(!/spirit_state: \{ morning[\s\S]{0,300}mind_state/.test(mp), 'the mirror upsert names only its own columns — mind_state is never in its payload')
+// ── 4. mind_state keeps its own day, and neither write reaches the other ───
+// The objectives are NOT a morning-routine entry and are not subject to the
+// 4am cutoff: they are keyed on the calendar day, and were before this ticket.
+assert(/const today = localDay\(\)[\s\S]{0,1800}patchCheckin\('mind_state', today,/.test(mp),
+  'objectives still write mind_state under the calendar day')
+// Not vacuous: one call names one column, and the column is an argument now,
+// so a writer reaching into the other one would read as plainly as this does.
+const spiritFn = mp.slice(mp.indexOf('  const patchSpirit = async ('), mp.indexOf('  const generate = async () => {'))
+assert(spiritFn.length > 0 && /'spirit_state'/.test(spiritFn) && !/mind_state/.test(spiritFn),
+  'the spirit writer names spirit_state and never mind_state')
+const goalsFn = mp.slice(mp.indexOf('  const saveMindState = async () => {'), mp.indexOf('  useEffect(() => {'))
+assert(goalsFn.length > 0 && /'mind_state'/.test(goalsFn) && !/spirit_state/.test(goalsFn),
+  'the Goals step names mind_state and never spirit_state')
 
 // ── verdict ─────────────────────────────────────────────────────────────────
 if (fails.length) {
