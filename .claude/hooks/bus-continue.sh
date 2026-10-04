@@ -107,9 +107,12 @@ Do not stop. Pick it up now:
 Blaine verifies your work against the repo, not against your report. Report the rationale the
 repo cannot show; skip the summary of what the commits already say.
 
-To stop the chain at any time, write .claude/bus/HALT with one line:
+To stop the chain at any time, APPEND one line to .claude/bus/HALT - never overwrite it:
    set_by=<cc|blaine|andrew> reason=<gate|ruling-needed|manual> ticket=<FOR-x|none>
-An empty HALT still halts and reads as manual. This hook treats any HALT as a halt and never
-reads its body.
+It holds one line per hold and may already hold someone else's. Overwriting could drop a
+migration gate only Andrew may lift and leave a ruling-needed line Blaine may lift, which would
+resume the bus past that gate. Remove only your own line; when the last line goes, move the file
+to .claude/bus/_trash/. An empty file is one manual hold. This hook treats any HALT as a halt,
+whatever it contains, and never reads its body.
 MSG
 exit 2

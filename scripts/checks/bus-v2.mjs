@@ -228,6 +228,21 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   }
 }
 
+// ── 4a. the hook tells CC to APPEND a hold, never to overwrite ─────────────
+// It still said "write HALT with one line" after HALT became one line per hold.
+// Following that would drop someone else's hold — and the concrete failure is
+// the one this ticket already raised: replacing a migration gate only Andrew
+// may lift with a ruling-needed line Blaine may lift resumes the bus past that
+// gate (Codex r6).
+{
+  const hook = readLF('.claude/hooks/bus-continue.sh')
+  assert(/APPEND one line/.test(hook), 'the Stop hook says APPEND a hold')
+  assert(/never overwrite/i.test(hook), 'and says never overwrite')
+  assert(!/write \.claude\/bus\/HALT with one line/.test(hook), 'and no longer says to write it with one line')
+  assert(/Remove only your own line/i.test(hook), 'and that only your own line comes out')
+  assert(/_trash/.test(hook), 'and where the file goes when the last line goes')
+}
+
 // ── 4b. the written rules say one line per hold, and where the file goes ───
 {
   const claude = readLF('CLAUDE.md')
