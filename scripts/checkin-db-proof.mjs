@@ -50,6 +50,27 @@ try {
     .replace(/CREATE TABLE IF NOT EXISTS daily_checkins \(/, 'CREATE TABLE IF NOT EXISTS daily_checkins ('), 'daily_checkins')
   apply("GRANT SELECT, INSERT, UPDATE, DELETE ON public.daily_checkins TO authenticated;", 'grants')
 
+  const A = '11111111-1111-1111-1111-111111111111'
+  const B = '22222222-2222-2222-2222-222222222222'
+  const C = '33333333-3333-3333-3333-333333333333'
+  // daily_checkins.user_id references auth.users(id), so the athletes have to
+  // exist. In production they do; here they are seeded.
+  apply(`INSERT INTO auth.users (id, instance_id, aud, role, email) VALUES
+           ('${A}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','a@example.test'),
+           ('${B}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','b@example.test'),
+           ('${C}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','c@example.test')
+         ON CONFLICT (id) DO NOTHING;`, 'the athletes')
+
+  // 5b (Codex pass 1): "additive" was asserted from policy and function COUNTS,
+  // which proves nothing about data. A bystander row is written and fingerprinted
+  // BEFORE the migration, and compared after. C never calls the function.
+  apply(`INSERT INTO public.daily_checkins (user_id, date, mind_state, spirit_state)
+         VALUES ('${C}','2026-09-01','{"objectives":["untouched"],"completedObjectives":[true]}','{"morning":{"date":"2026-09-01","completed":[true]}}');`,
+    'the bystander row')
+  const schemaBefore = q(`select md5(string_agg(column_name || ':' || data_type, ',' order by column_name)) from information_schema.columns where table_name = 'daily_checkins'`)
+  const bystanderBefore = q(`select md5(mind_state::text || spirit_state::text) from public.daily_checkins where user_id='${C}'`)
+  const policiesBefore = q("select md5(string_agg(policyname || ':' || cmd || ':' || coalesce(qual,''), ',' order by policyname)) from pg_policies where tablename='daily_checkins'")
+
   // the migration under proof, twice — a second apply must be harmless
   const MIG = 'supabase/migrations/20261003_checkin_set_path.sql'
   apply(read(MIG), MIG)
@@ -67,14 +88,6 @@ try {
     q("select has_function_privilege('authenticated', 'public.checkin_set_path(date,text,text[],jsonb)', 'EXECUTE')") === 't',
     q("select has_function_privilege('authenticated', 'public.checkin_set_path(date,text,text[],jsonb)', 'EXECUTE')"))
 
-  const A = '11111111-1111-1111-1111-111111111111'
-  const B = '22222222-2222-2222-2222-222222222222'
-  // daily_checkins.user_id references auth.users(id), so the two athletes have
-  // to exist. In production they do; here they are seeded.
-  apply(`INSERT INTO auth.users (id, instance_id, aud, role, email)
-         VALUES ('${A}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','a@example.test'),
-                ('${B}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','b@example.test')
-         ON CONFLICT (id) DO NOTHING;`, 'the two athletes')
   // run as the athlete: the authenticated role with a jwt sub, so RLS is live
   const asUser = (uid, sql) => {
     const r = docker(['exec', '-i', NAME, 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-tA'], {
@@ -84,6 +97,9 @@ try {
     })
     return { out: (r.stdout || '').trim(), err: (r.stderr || '').trim(), status: r.status }
   }
+  // psql echoes BEGIN, SET, SET, the rows, then COMMIT — so a scalar result is
+  // the numeric line, never the last token.
+  const num = (r) => (r.out.split(/\r?\n/).map((l) => l.trim()).filter((l) => /^\d+$/.test(l)).pop() ?? null)
   const spirit = (uid, d) => q(`select coalesce(spirit_state::text,'null') from public.daily_checkins where user_id='${uid}' and date='${d}'`)
 
   // 1. a patch on a MISSING row inserts it, and builds the ancestor
@@ -206,19 +222,64 @@ try {
   asUser(A, `select public.checkin_set_path('2026-10-07','spirit_state','{morning,completed}','[true]'::jsonb);`)
   const held = runBg(A, `select public.checkin_set_path('2026-10-07','spirit_state','{morning,completed}','[true,true]'::jsonb);\nselect pg_sleep(3);`)
   sleep(700)   // session 1 has written and is sitting on the row lock
+  // Observe the contention rather than inferring it from elapsed time alone
+  // (Codex pass 1): while session 2 waits, a tuple lock is ungranted.
   const t0 = Date.now()
+  const contention = spawn('docker', ['exec', NAME, 'psql', '-U', 'postgres', '-d', 'postgres', '-tAc',
+    "select pg_sleep(1.2); select count(*) from pg_locks where not granted"], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let contOut = ''
+  contention.stdout.on('data', (d) => { contOut += d })
   const second = await runBg(A, `select public.checkin_set_path('2026-10-07','spirit_state','{morning,gratitude}','["g"]'::jsonb);`)
   const waited = Date.now() - t0
-  await held
+  const heldRes = await held
+  ok('the holding session itself succeeded', heldRes.code === 0, `exit ${heldRes.code} ${heldRes.e.slice(0, 80)}`)
   const bothLive = q(`select (spirit_state #>> '{morning,completed}') || ' | ' || (spirit_state #>> '{morning,gratitude}') from public.daily_checkins where user_id='${A}' and date='2026-10-07'`)
   ok('the second writer BLOCKED on the row lock rather than racing', waited > 1000, `waited ${waited}ms`)
+  ok('and an ungranted lock was observed while it waited', contOut.trim().split(/\s+/).filter(Boolean).some((n) => Number(n) > 0), `pg_locks ungranted: ${contOut.trim() || 'none seen'}`)
   ok('both interleaved writers survive, each at its own path', bothLive === '[true, true] | ["g"]', bothLive)
   ok('neither interleaved write errored', second.code === 0, `second exit ${second.code} ${second.e.slice(0, 80)}`)
 
+  // 8d. RLS IS ENFORCED (Codex pass 1). Every assertion above reads back as
+  //      the postgres superuser, which BYPASSES row-level security — so they
+  //      prove the function routes by auth.uid() and prove nothing about RLS.
+  //      These read and write as the athlete instead.
+  ok('row-level security is actually on', q("select relrowsecurity from pg_class where oid='public.daily_checkins'::regclass") === 't',
+    q("select relrowsecurity from pg_class where oid='public.daily_checkins'::regclass"))
+  const bSeesA = asUser(B, `select count(*) from public.daily_checkins where user_id='${A}';`)
+  ok("B cannot SEE A's rows", num(bSeesA) === '0', `rows=${num(bSeesA)}`)
+  const bSeesOwn = asUser(B, `select count(*) from public.daily_checkins where user_id='${B}';`)
+  ok('B can see their own', Number(num(bSeesOwn)) >= 1, `rows=${num(bSeesOwn)}`)
+  const bWritesA = asUser(B, `update public.daily_checkins set spirit_state='{"hacked":true}' where user_id='${A}';`)
+  ok("B's direct UPDATE of A's row touches nothing", /UPDATE 0/.test(bWritesA.out) || bWritesA.out.includes('0'), bWritesA.out.trim() || bWritesA.err.slice(0, 80))
+  ok("and A's row is unharmed", !q(`select spirit_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-03'`).includes('hacked'),
+    q(`select spirit_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-03'`))
+
+  // 8e. A VALID PATCH BEFORE A MALFORMED ONE MUST NOT LAND (Codex pass 1).
+  //     The earlier malformed cases were single-element lists, which say
+  //     nothing about a rollback after a prefix has already been applied.
+  asUser(A, `select public.checkin_set_path('2026-10-08','mind_state','{keep}','"before"'::jsonb);`)
+  const prefix = asUser(A, `select public.checkin_patch('2026-10-08','mind_state','[{"path":["keep"],"value":"after"},{"path":[1],"value":2}]'::jsonb);`)
+  ok('a malformed patch after a valid one is refused', prefix.status !== 0, prefix.err.slice(0, 80) || 'no error')
+  ok('and the valid patch in front of it did NOT land',
+    q(`select mind_state #>> '{keep}' from public.daily_checkins where user_id='${A}' and date='2026-10-08'`) === 'before',
+    q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-08'`))
+
   // 9. the helper is pure and does not mangle a non-object column
-  ok('a non-object column is treated as absent rather than erroring',
-    q(`select public.checkin_jsonb_set_deep('5'::jsonb,'{morning,completed}','[true]'::jsonb)::text`) === '{"morning": {"completed": [true]}}',
-    q(`select public.checkin_jsonb_set_deep('5'::jsonb,'{morning,completed}','[true]'::jsonb)::text`))
+  // Codex pass 1, finding 3: this used to EMPTY a non-object column, which
+  // destroyed whatever it held. It refuses now.
+  const scalarCol = docker(['exec', NAME, 'psql', '-U', 'postgres', '-d', 'postgres', '-tAc',
+    `select public.checkin_jsonb_set_deep('[true,false]'::jsonb,'{a}','1'::jsonb)::text`])
+  ok('a column holding an array is refused, not emptied', /not a record to patch/.test(String(scalarCol.stderr)), String(scalarCol.stderr).slice(0, 90) || String(scalarCol.stdout).trim())
+  ok('a NULL column is still the normal empty case',
+    q(`select public.checkin_jsonb_set_deep(NULL,'{morning,completed}','[true]'::jsonb)::text`) === '{"morning": {"completed": [true]}}',
+    q(`select public.checkin_jsonb_set_deep(NULL,'{morning,completed}','[true]'::jsonb)::text`))
+  ok('a column holding JSON null is still the normal empty case',
+    q(`select public.checkin_jsonb_set_deep('null'::jsonb,'{morning,completed}','[true]'::jsonb)::text`) === '{"morning": {"completed": [true]}}',
+    q(`select public.checkin_jsonb_set_deep('null'::jsonb,'{morning,completed}','[true]'::jsonb)::text`))
+  // Codex pass 1, finding 4: a path array whose lower bound is not 1
+  ok('a path array with a lower bound of 0 still patches every key',
+    q(`select public.checkin_jsonb_set_deep('{}'::jsonb,'[0:1]={a,b}'::text[],'1'::jsonb)::text`) === '{"a": {"b": 1}}',
+    q(`select public.checkin_jsonb_set_deep('{}'::jsonb,'[0:1]={a,b}'::text[],'1'::jsonb)::text`))
 
   // 10. a deep path builds every missing ancestor
   ok('a three-deep path builds every ancestor',
@@ -226,10 +287,38 @@ try {
     q(`select public.checkin_jsonb_set_deep('{}'::jsonb,'{a,b,c}','1'::jsonb)::text`))
 
   // 11. additive: an existing unrelated row is untouched by applying the migration
-  ok('the migration added only functions — no table, policy or data change',
-    q("select count(*) from pg_policies where tablename='daily_checkins'") === '1'
-    && q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'") === 'checkin_jsonb_apply,checkin_jsonb_set_deep,checkin_patch,checkin_set_path',
-    `policies=${q("select count(*) from pg_policies where tablename='daily_checkins'")} funcs=${q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'")}`)
+  // 11. ADDITIVE, against the fingerprints taken before the migration ran
+  ok('the table definition is byte-identical to before the migration',
+    q(`select md5(string_agg(column_name || ':' || data_type, ',' order by column_name)) from information_schema.columns where table_name = 'daily_checkins'`) === schemaBefore,
+    'schema hash moved')
+  ok('the policies are byte-identical to before',
+    q("select md5(string_agg(policyname || ':' || cmd || ':' || coalesce(qual,''), ',' order by policyname)) from pg_policies where tablename='daily_checkins'") === policiesBefore,
+    'policy hash moved')
+  ok("the bystander row that never called the function is byte-identical",
+    q(`select md5(mind_state::text || spirit_state::text) from public.daily_checkins where user_id='${C}'`) === bystanderBefore,
+    'bystander row changed')
+  ok('the four functions are the only ones it added',
+    q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'") === 'checkin_jsonb_apply,checkin_jsonb_set_deep,checkin_patch,checkin_set_path',
+    q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'"))
+  ok('none of those four names existed before it (so CREATE OR REPLACE replaced nothing)',
+    read(MIG).includes('CREATE OR REPLACE FUNCTION public.checkin_set_path') && q("select count(*) from pg_proc where proname like 'checkin%'") === '4',
+    q("select count(*) from pg_proc where proname like 'checkin%'"))
+
+  // 12. THE REVERT IN THE HEADER IS COMPLETE (Codex pass 1). Run exactly the
+  //     four DROP lines the header gives and check nothing else moved. Last,
+  //     because it removes the functions.
+  apply(`DROP FUNCTION IF EXISTS public.checkin_set_path(date, text, text[], jsonb);
+         DROP FUNCTION IF EXISTS public.checkin_patch(date, text, jsonb);
+         DROP FUNCTION IF EXISTS public.checkin_jsonb_apply(jsonb, jsonb);
+         DROP FUNCTION IF EXISTS public.checkin_jsonb_set_deep(jsonb, text[], jsonb);`, 'the revert from the header')
+  ok("the header's revert removes every function it added",
+    q("select count(*) from pg_proc where proname like 'checkin%'") === '0',
+    q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'"))
+  ok('and the revert leaves the table, its policy and its data alone',
+    q(`select md5(string_agg(column_name || ':' || data_type, ',' order by column_name)) from information_schema.columns where table_name = 'daily_checkins'`) === schemaBefore
+    && q("select md5(string_agg(policyname || ':' || cmd || ':' || coalesce(qual,''), ',' order by policyname)) from pg_policies where tablename='daily_checkins'") === policiesBefore
+    && q(`select md5(mind_state::text || spirit_state::text) from public.daily_checkins where user_id='${C}'`) === bystanderBefore,
+    'something moved across the revert')
 
   console.log(`\n${pass} passed, ${fails.length} failed`)
   if (fails.length) { for (const f of fails) console.log(`  ✗ ${f}`); process.exitCode = 1 }

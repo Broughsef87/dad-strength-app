@@ -91,19 +91,32 @@
 --
 -- PROVEN BEFORE IT IS APPLIED: `npm run proof:checkins`.
 --
--- NOT INDEPENDENTLY REVIEWED. The ruling asked for two Codex passes on this
--- draft before it is applied. Codex is refusing every model for this account
--- ("The 'gpt-6.1-sol' model is not supported when using Codex with a ChatGPT
--- account"), after working earlier the same day, so those passes did not run.
--- What follows is my own review against the same five criteria, which is not a
--- substitute for an independent one. It found two defects, both fixed above:
+-- REVIEWED. Two Codex passes on the draft, as the ruling required, plus my own
+-- read before them. Findings and what each one changed:
 --
+--   MINE, before the passes:
 --   1. A path THROUGH a non-object destroyed it. {morning,completed,0} on
 --      {"morning":{"completed":[true,false]}} replaced the array with {} and
 --      set "0". A missing ancestor is still created; one that exists and is
 --      not an object now raises.
 --   2. search_path was pinned on the two writers and not on the two helpers.
 --      Now pinned on all four.
+--
+--   CODEX PASS 1 — security: none. Concurrency on disjoint paths: none.
+--   Additive and revert: none.
+--   3. (medium) The COLUMN itself, when it held an array or a scalar, was
+--      silently replaced with {}. Patching {a} into [true,false] returned
+--      {"a":...} and the array was gone. Now refused: no writer can produce a
+--      non-object column, so one is a corrupt row that wants looking at. NULL
+--      and JSON null are still the normal empty cases.
+--   4. (low) A text[] may carry a lower bound other than 1 —
+--      '[0:1]={a,b}'::text[] is legal — and the path[1:i] slice then skipped
+--      the first key and patched the wrong place. The path is re-indexed from
+--      1 before use.
+--
+--   Codex also noted, correctly, that an ancestor path still replaces its
+--   descendants — writing {morning} replaces {morning,completed}. That is
+--   generation's job and is the intended behaviour, not a defect.
 --
 -- CONCURRENCY IS DEMONSTRATED, not just argued. The sibling cases run two
 -- writes sequentially, which proves the merge keeps siblings and says nothing
@@ -140,6 +153,7 @@ SET search_path = public, pg_temp
 AS $fn$
 DECLARE
   out_doc jsonb := COALESCE(doc, '{}'::jsonb);
+  keys    text[];
   i       int;
 BEGIN
   -- A path must name at least one key. Replacing a whole column is not a thing
@@ -149,11 +163,24 @@ BEGIN
       USING ERRCODE = '22023';
   END IF;
 
-  -- A column holding a scalar or an array cannot be patched by path. Treat it
-  -- as absent rather than raising: the record is the row, and a row whose
-  -- column is not an object holds no record to preserve.
-  IF jsonb_typeof(out_doc) IS DISTINCT FROM 'object' THEN
+  -- Re-index the path from 1 (Codex pass 1). A text[] can carry any lower
+  -- bound — '[0:1]={a,b}'::text[] is legal — and the slice path[1:i] below
+  -- would then skip the first key and patch the wrong place silently. unnest
+  -- WITH ORDINALITY always yields a 1-based array.
+  SELECT array_agg(k ORDER BY ord) INTO keys FROM unnest(path) WITH ORDINALITY AS t(k, ord);
+
+  -- A column that holds something other than an object is REFUSED, not
+  -- emptied (Codex pass 1). The first draft replaced it with {}, which quietly
+  -- destroyed whatever was there — patching {a} into [true,false] returned
+  -- {"a":...} and the array was gone. No writer can produce a non-object
+  -- column, so one is a corrupt row that wants looking at rather than
+  -- overwriting. A NULL column, and a column holding JSON null, are the normal
+  -- empty cases and still become {}.
+  IF jsonb_typeof(out_doc) = 'null' THEN
     out_doc := '{}'::jsonb;
+  ELSIF jsonb_typeof(out_doc) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION 'checkin: this check-in column holds a %, so it is not a record to patch', jsonb_typeof(out_doc)
+      USING ERRCODE = '22023';
   END IF;
 
   -- An ancestor that is MISSING gets created. An ancestor that exists and is
@@ -161,17 +188,17 @@ BEGIN
   -- otherwise destroy it. {morning,completed,0} on
   -- {"morning":{"completed":[true,false]}} replaced the array with {} and set
   -- "0", turning two flags into {"0": true}. Silent loss, so it raises.
-  FOR i IN 1 .. array_length(path, 1) - 1 LOOP
-    IF out_doc #> path[1:i] IS NULL THEN
-      out_doc := jsonb_set(out_doc, path[1:i], '{}'::jsonb, true);
-    ELSIF jsonb_typeof(out_doc #> path[1:i]) IS DISTINCT FROM 'object' THEN
+  FOR i IN 1 .. array_length(keys, 1) - 1 LOOP
+    IF out_doc #> keys[1:i] IS NULL THEN
+      out_doc := jsonb_set(out_doc, keys[1:i], '{}'::jsonb, true);
+    ELSIF jsonb_typeof(out_doc #> keys[1:i]) IS DISTINCT FROM 'object' THEN
       RAISE EXCEPTION 'checkin: % is a %, so nothing can be patched beneath it',
-        array_to_string(path[1:i], '.'), jsonb_typeof(out_doc #> path[1:i])
+        array_to_string(keys[1:i], '.'), jsonb_typeof(out_doc #> keys[1:i])
         USING ERRCODE = '22023';
     END IF;
   END LOOP;
 
-  RETURN jsonb_set(out_doc, path, COALESCE(val, 'null'::jsonb), true);
+  RETURN jsonb_set(out_doc, keys, COALESCE(val, 'null'::jsonb), true);
 END;
 $fn$;
 
