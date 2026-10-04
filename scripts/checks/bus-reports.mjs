@@ -125,12 +125,27 @@ const verbose = process.argv.includes('--verbose')
 // overwrite a real report that happened to share the name (Codex r1). Upstream
 // bus-report-validate.js takes the same flag.
 const dirIdx = process.argv.indexOf('--dir')
-const DIR = dirIdx !== -1 && process.argv[dirIdx + 1]
-  ? process.argv[dirIdx + 1]
-  : join(ROOT, '.claude', 'bus', 'reports')
+const EXPLICIT = dirIdx !== -1
+// An explicitly requested target must exist and must be named. `--dir` with no
+// argument silently fell back to the live bus, and `--dir /typo` exited 0
+// without validating anything — a mistyped command reporting success, which is
+// the one answer a validator must never give (Codex r5).
+if (EXPLICIT) {
+  const given = process.argv[dirIdx + 1]
+  if (!given || given.startsWith('--')) {
+    console.log('bus reports: --dir needs a directory')
+    process.exit(2)
+  }
+  if (!existsSync(given)) {
+    console.log(`bus reports: --dir ${given} does not exist`)
+    process.exit(2)
+  }
+}
+const DIR = EXPLICIT ? process.argv[dirIdx + 1] : join(ROOT, '.claude', 'bus', 'reports')
 
-// The bus is git-ignored, so a fresh clone has no reports to check. That is not
-// a failure: there is nothing to be wrong about.
+// The DEFAULT bus directory is git-ignored, so a fresh clone has no reports to
+// check and there is nothing to be wrong about. That exemption is for the
+// default only — an explicit --dir has already been required to exist above.
 if (!existsSync(DIR)) {
   console.log('bus reports: no .claude/bus/reports on disk — nothing to check')
   process.exit(0)

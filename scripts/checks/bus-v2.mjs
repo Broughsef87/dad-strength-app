@@ -337,6 +337,15 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
       rmSync(probe2, { force: true })
       assert(bad.status === 1, `a report with ${name} is rejected`)
     }
+    // A mistyped validation command must not report success (Codex r5).
+    for (const [name, args] of [
+      ['--dir with no argument', ['--dir']],
+      ['--dir followed by another flag', ['--dir', '--verbose']],
+      ['--dir naming a directory that does not exist', ['--dir', join(REPORTS, 'does-not-exist')]],
+    ]) {
+      const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs'), ...args], { encoding: 'utf8' })
+      assert(r.status === 2, `${name} is a usage error, not a pass — exit ${r.status}`)
+    }
     rmSync(REPORTS, { recursive: true, force: true })
     // The LIVE bus is checked once, read-only, and was never written to.
     const live = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs')], { encoding: 'utf8' })
