@@ -91,6 +91,30 @@
 --
 -- PROVEN BEFORE IT IS APPLIED: `npm run proof:checkins`.
 --
+-- NOT INDEPENDENTLY REVIEWED. The ruling asked for two Codex passes on this
+-- draft before it is applied. Codex is refusing every model for this account
+-- ("The 'gpt-6.1-sol' model is not supported when using Codex with a ChatGPT
+-- account"), after working earlier the same day, so those passes did not run.
+-- What follows is my own review against the same five criteria, which is not a
+-- substitute for an independent one. It found two defects, both fixed above:
+--
+--   1. A path THROUGH a non-object destroyed it. {morning,completed,0} on
+--      {"morning":{"completed":[true,false]}} replaced the array with {} and
+--      set "0". A missing ancestor is still created; one that exists and is
+--      not an object now raises.
+--   2. search_path was pinned on the two writers and not on the two helpers.
+--      Now pinned on all four.
+--
+-- CONCURRENCY IS DEMONSTRATED, not just argued. The sibling cases run two
+-- writes sequentially, which proves the merge keeps siblings and says nothing
+-- about interleaving. So the proof also opens two sessions: the first writes
+-- and then HOLDS the row lock, the second writes a different path, blocks for
+-- over a second, and applies to the first's result. Both values survive.
+--
+-- A numeric path key is still an array index to jsonb_set, which is Postgres
+-- behaviour rather than a defect here: no writer uses one, and a path through
+-- an array now raises before it can reach that.
+--
 -- REVERT:
 --   DROP FUNCTION IF EXISTS public.checkin_set_path(date, text, text[], jsonb);
 --   DROP FUNCTION IF EXISTS public.checkin_patch(date, text, jsonb);
@@ -112,6 +136,7 @@ CREATE OR REPLACE FUNCTION public.checkin_jsonb_set_deep(
 RETURNS jsonb
 LANGUAGE plpgsql
 IMMUTABLE
+SET search_path = public, pg_temp
 AS $fn$
 DECLARE
   out_doc jsonb := COALESCE(doc, '{}'::jsonb);
@@ -131,9 +156,18 @@ BEGIN
     out_doc := '{}'::jsonb;
   END IF;
 
+  -- An ancestor that is MISSING gets created. An ancestor that exists and is
+  -- not an object is refused, never replaced: a path through an array would
+  -- otherwise destroy it. {morning,completed,0} on
+  -- {"morning":{"completed":[true,false]}} replaced the array with {} and set
+  -- "0", turning two flags into {"0": true}. Silent loss, so it raises.
   FOR i IN 1 .. array_length(path, 1) - 1 LOOP
-    IF jsonb_typeof(out_doc #> path[1:i]) IS DISTINCT FROM 'object' THEN
+    IF out_doc #> path[1:i] IS NULL THEN
       out_doc := jsonb_set(out_doc, path[1:i], '{}'::jsonb, true);
+    ELSIF jsonb_typeof(out_doc #> path[1:i]) IS DISTINCT FROM 'object' THEN
+      RAISE EXCEPTION 'checkin: % is a %, so nothing can be patched beneath it',
+        array_to_string(path[1:i], '.'), jsonb_typeof(out_doc #> path[1:i])
+        USING ERRCODE = '22023';
     END IF;
   END LOOP;
 
@@ -152,6 +186,7 @@ CREATE OR REPLACE FUNCTION public.checkin_jsonb_apply(
 RETURNS jsonb
 LANGUAGE plpgsql
 IMMUTABLE
+SET search_path = public, pg_temp
 AS $fn$
 DECLARE
   out_doc jsonb := COALESCE(doc, '{}'::jsonb);

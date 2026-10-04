@@ -12,7 +12,7 @@
 //   npm run proof:checkins        (needs Docker)
 //
 // The ROOT constant below is resolved from this file, so it runs from anywhere.
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
@@ -174,6 +174,46 @@ try {
     q(`select count(*) from public.daily_checkins where date='2026-10-03'`) === '2'
     && q(`select spirit_state #>> '{morning,completed}' from public.daily_checkins where user_id='${A}' and date='2026-10-03'`) === '[true, true]',
     `rows=${q(`select count(*) from public.daily_checkins where date='2026-10-03'`)} A=${spirit(A, '2026-10-03')}`)
+
+  // 8b. A PATH THROUGH A NON-OBJECT IS REFUSED, never replaced. Before this was
+  //     fixed, {morning,completed,0} on {"morning":{"completed":[true,false]}}
+  //     replaced the array with {} and set "0" — two flags became {"0":true}.
+  //     Silent loss, found by reviewing the draft rather than by a test.
+  asUser(A, `select public.checkin_set_path('2026-10-06','spirit_state','{morning,completed}','[true,false]'::jsonb);`)
+  const thru = asUser(A, `select public.checkin_set_path('2026-10-06','spirit_state','{morning,completed,0}','false'::jsonb);`)
+  ok('a path through an array is refused', /nothing can be patched beneath it/.test(thru.err), thru.err.slice(0, 100) || 'no error')
+  ok('and the array it would have destroyed is intact',
+    q(`select spirit_state #>> '{morning,completed}' from public.daily_checkins where user_id='${A}' and date='2026-10-06'`) === '[true, false]',
+    q(`select spirit_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-06'`))
+  // a MISSING ancestor is still created — the refusal must not have broken that
+  asUser(A, `select public.checkin_set_path('2026-10-06','spirit_state','{morning,nested,deep}','1'::jsonb);`)
+  ok('a missing ancestor is still created',
+    q(`select spirit_state #>> '{morning,nested,deep}' from public.daily_checkins where user_id='${A}' and date='2026-10-06'`) === '1',
+    q(`select spirit_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-06'`))
+
+  // 8c. CONCURRENCY UNDER REAL CONTENTION. The sibling cases above run two
+  //     writes one after the other, which proves the merge keeps siblings and
+  //     says nothing about interleaving. Here session 1 writes and then HOLDS
+  //     the row lock while session 2 writes a different path. Session 2 must
+  //     block, then apply to session 1's result, and both must survive.
+  const bg = (sql) => spawn('docker', ['exec', '-i', NAME, 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-tA'],
+    { stdio: ['pipe', 'pipe', 'pipe'] })
+  const runBg = (uid, sql) => {
+    const c = bg()
+    c.stdin.end(`begin; set local role authenticated; set local "request.jwt.claim.sub" = '${uid}';\n${sql}\ncommit;`)
+    return new Promise((res) => { let e = ''; c.stderr.on('data', (d) => { e += d }); c.on('close', (code) => res({ code, e })) })
+  }
+  asUser(A, `select public.checkin_set_path('2026-10-07','spirit_state','{morning,completed}','[true]'::jsonb);`)
+  const held = runBg(A, `select public.checkin_set_path('2026-10-07','spirit_state','{morning,completed}','[true,true]'::jsonb);\nselect pg_sleep(3);`)
+  sleep(700)   // session 1 has written and is sitting on the row lock
+  const t0 = Date.now()
+  const second = await runBg(A, `select public.checkin_set_path('2026-10-07','spirit_state','{morning,gratitude}','["g"]'::jsonb);`)
+  const waited = Date.now() - t0
+  await held
+  const bothLive = q(`select (spirit_state #>> '{morning,completed}') || ' | ' || (spirit_state #>> '{morning,gratitude}') from public.daily_checkins where user_id='${A}' and date='2026-10-07'`)
+  ok('the second writer BLOCKED on the row lock rather than racing', waited > 1000, `waited ${waited}ms`)
+  ok('both interleaved writers survive, each at its own path', bothLive === '[true, true] | ["g"]', bothLive)
+  ok('neither interleaved write errored', second.code === 0, `second exit ${second.code} ${second.e.slice(0, 80)}`)
 
   // 9. the helper is pure and does not mangle a non-object column
   ok('a non-object column is treated as absent rather than erroring',
