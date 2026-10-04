@@ -102,6 +102,35 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   drop(bdir)
 }
 
+// ── 2b. the boot hook succeeds on an ORDINARY queue ───────────────────────
+// `[ -f ... ] && echo` left its own status as the loop's, so the last queued
+// ticket having no ruling made this SessionStart hook exit 1 — a hook that
+// reports failure while working perfectly, which is the FOR-246 confusion in a
+// new costume (Codex r1).
+{
+  for (const [name, build] of [
+    ['a queue with no rulings at all', ({ bus }) => {
+      writeFileSync(join(bus, 'queue', '001-FOR-20.json'), '{}')
+      writeFileSync(join(bus, 'queue', '002-FOR-21.json'), '{}')
+    }],
+    ['a queue whose LAST ticket has no ruling', ({ bus }) => {
+      writeFileSync(join(bus, 'queue', '001-FOR-22.json'), '{}')
+      writeFileSync(join(bus, 'queue', '002-FOR-23.json'), '{}')
+      writeFileSync(join(bus, 'rulings', 'FOR-22.md'), '# r\n')
+    }],
+    ['a queue whose only ticket has a ruling', ({ bus }) => {
+      writeFileSync(join(bus, 'queue', '001-FOR-24.json'), '{}')
+      writeFileSync(join(bus, 'rulings', 'FOR-24.md'), '# r\n')
+    }],
+    ['an empty queue', () => {}],
+  ]) {
+    const dir = sandbox(build)
+    const r = runHook(BOOT, dir)
+    assert(r.code === 0, `the boot hook exits 0 on ${name} — got ${r.code}`)
+    drop(dir)
+  }
+}
+
 // ── 3. 000- sorts first, which is how a ruling is handed back ───────────────
 {
   const dir = sandbox(({ bus }) => {
@@ -186,16 +215,20 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs')], { encoding: 'utf8' })
   assert(r.status === 0, `every report in this repo carries its frontmatter — ${(r.stdout || '').slice(-300)}`)
 
-  // and it must actually reject one. A temp report, in place, then removed.
-  const REPORTS = join(ROOT, '.claude', 'bus', 'reports')
-  if (existsSync(REPORTS)) {
+  // The probes go in a THROWAWAY directory. They used to be written into the
+  // live .claude/bus/reports/ under fixed names, which raced a concurrent run
+  // and would overwrite a real report that happened to share a name (Codex r1).
+  const REPORTS = join(tmpdir(), `bus-v2-reports-${process.pid}`)
+  mkdirSync(REPORTS, { recursive: true })
+  const onDir = (d) => spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs'), '--dir', d], { encoding: 'utf8' })
+  {
     const probe = join(REPORTS, 'FOR-999999.md')
     writeFileSync(probe, '# untagged\n\nno frontmatter here\n')
-    const red = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs')], { encoding: 'utf8' })
+    const red = onDir(REPORTS)
     rmSync(probe, { force: true })
     assert(red.status === 1 && /FOR-999999\.md/.test(red.stdout || ''),
-      'an untagged report in reports/ fails bus-reports.mjs')
-    const after = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs')], { encoding: 'utf8' })
+      'an untagged report fails bus-reports.mjs')
+    const after = onDir(REPORTS)
     assert(after.status === 0, 'and removing it leaves the check green again')
 
     // The contract is more than "has a block". Each of these must be rejected
@@ -215,12 +248,14 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     ]) {
       const probe2 = join(REPORTS, 'FOR-999998.md')
       writeFileSync(probe2, text)
-      const bad = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs')], { encoding: 'utf8' })
+      const bad = onDir(REPORTS)
       rmSync(probe2, { force: true })
       assert(bad.status === 1, `a report with ${name} is rejected`)
     }
-    const final = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs')], { encoding: 'utf8' })
-    assert(final.status === 0, 'and the real reports are still green after every probe')
+    rmSync(REPORTS, { recursive: true, force: true })
+    // The LIVE bus is checked once, read-only, and was never written to.
+    const live = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs')], { encoding: 'utf8' })
+    assert(live.status === 0, 'and the real reports are green, having never been touched')
   }
 }
 
@@ -241,11 +276,20 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   const claude = readLF('CLAUDE.md')
   const hook = readLF('.claude/hooks/bus-continue.sh')
   const gatesSection = claude.slice(claude.indexOf('## Gates'), claude.indexOf('## Everything else'))
+  // The hook's list is the block of `     - ` lines under item 5.
+  const hookList = hook.slice(hook.indexOf('of the eight gates'), hook.indexOf('The same eight are in CLAUDE.md'))
   for (const [re, name] of GATES) {
     assert(re.test(gatesSection), `CLAUDE.md's gate list names ${name}`)
-    assert(re.test(hook), `the Stop hook's gate list names ${name}`)
+    assert(re.test(hookList), `the Stop hook's gate list names ${name}`)
   }
-  assert((gatesSection.match(/^\* \*\*/gm) ?? []).length === 8, "CLAUDE.md's gate list is exactly eight items")
+  // BOTH counts, not just one. Naming eight phrases says nothing about a NINTH
+  // being added to one list only — which passed every assertion here before
+  // (Codex r1), while CLAUDE.md promises the two lists cannot drift.
+  const claudeCount = (gatesSection.match(/^\* \*\*/gm) ?? []).length
+  const hookCount = (hookList.match(/^ {5}- /gm) ?? []).length
+  assert(claudeCount === 8, `CLAUDE.md's gate list is exactly eight items — it is ${claudeCount}`)
+  assert(hookCount === 8, `the Stop hook's gate list is exactly eight items — it is ${hookCount}`)
+  assert(claudeCount === hookCount, `the two gate lists are the same length — ${claudeCount} vs ${hookCount}`)
 }
 
 // ── 8. FOR-255: the word is gone from the hooks and from CLAUDE.md ─────────

@@ -118,8 +118,16 @@ export function parse(text) {
 
 // ── the run ─────────────────────────────────────────────────────────────────
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
-const DIR = join(ROOT, '.claude', 'bus', 'reports')
 const verbose = process.argv.includes('--verbose')
+// `--dir` so a caller can validate a throwaway directory instead of the live
+// bus. bus-v2.mjs needs it: probing malformed reports by writing them into
+// .claude/bus/reports/ under fixed names raced a concurrent run and could
+// overwrite a real report that happened to share the name (Codex r1). Upstream
+// bus-report-validate.js takes the same flag.
+const dirIdx = process.argv.indexOf('--dir')
+const DIR = dirIdx !== -1 && process.argv[dirIdx + 1]
+  ? process.argv[dirIdx + 1]
+  : join(ROOT, '.claude', 'bus', 'reports')
 
 // The bus is git-ignored, so a fresh clone has no reports to check. That is not
 // a failure: there is nothing to be wrong about.

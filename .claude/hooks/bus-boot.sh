@@ -41,5 +41,12 @@ echo "Each is specced in Linear. Finish the current turn and the Stop hook will 
 for Q in $(ls -1 "$BUS/queue" 2>/dev/null | grep -E '^[0-9]{3}-FOR-[0-9]+\.json$' | sort); do
   T=$(printf '%s' "$Q" | sed -E 's/^[0-9]{3}-(FOR-[0-9]+)\.json$/\1/')
   printf '%s' "$T" | grep -qE '^FOR-[0-9]+$' || continue
-  [ -f "$BUS/rulings/$T.md" ] && echo "$T has a ruling: .claude/bus/rulings/$T.md - it governs where it and the ticket differ."
+  if [ -f "$BUS/rulings/$T.md" ]; then
+    echo "$T has a ruling: .claude/bus/rulings/$T.md - it governs where it and the ticket differ."
+  fi
 done
+
+# An ordinary queue must not look like a failed hook. `[ -f ... ] && echo` left
+# its own exit status as the loop's, so the last ticket having no ruling made
+# this SessionStart hook report failure (Codex r1).
+exit 0
