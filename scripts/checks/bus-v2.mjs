@@ -314,7 +314,10 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     // (Codex r2).
     [/Stripe/i, 'Stripe'],
     [/billing/i, 'billing'],
-    [/auth/i, 'auth'],
+    // \b, because /auth/i matched "authority" in the self-modification gate's
+    // own explanation — so dropping auth from the billing gate passed every
+    // assertion here (Codex r3).
+    [/\bauth\b/i, 'auth'],
     [/production deploy/i, 'a production deploy'],
     [/program (or|\/) ?training content/i, 'program or training content'],
     [/second reversal/i, 'a second reversal'],
@@ -367,6 +370,24 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
       assert(got === hash, `${file} has drifted from the vendored copy — upstream is ${got}, the header says ${hash}`)
     }
   }
+}
+
+// ── 9b. the schema is TAUGHT where reports are written, not only enforced ──
+// bus-reports.mjs made the frontmatter mandatory while no authoring instruction
+// said what to write, so the next report written would have failed the build
+// (Codex r3). Enforcement and instruction have to move together.
+{
+  const claude = readLF('CLAUDE.md')
+  const hook = readLF('.claude/hooks/bus-continue.sh')
+  for (const f of ['ticket:', 'repo:', 'written:', 'outcome:', 'codex_rounds:', 'blocked_minutes:', 'gate_hit:']) {
+    assert(claude.includes(f), `CLAUDE.md's report template names ${f}`)
+  }
+  for (const tag of ['DONE', 'GATE', 'SPEC_WRONG', 'SPEC_INCOMPLETE', 'SPEC_IMPOSSIBLE', 'SPEC_UNVERIFIABLE', 'EMERGENT']) {
+    assert(claude.includes(tag), `CLAUDE.md's template names the ${tag} outcome`)
+  }
+  assert(/gate_hit[\s\S]{0,200}only when[\s\S]{0,80}GATE/i.test(claude),
+    "CLAUDE.md says gate_hit belongs only to a GATE outcome")
+  assert(/frontmatter/i.test(hook), "the Stop hook's item 6 names the frontmatter requirement")
 }
 
 // ── 10. every hook is executable in the index ──────────────────────────────

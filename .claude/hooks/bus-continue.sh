@@ -103,7 +103,9 @@ Do not stop. Pick it up now:
    The same eight are in CLAUDE.md, and scripts/checks/bus-v2.mjs fails if the lists drift.
 6. When done: move .claude/bus/claimed/$NEXT to .claude/bus/done/, and write a report to
    .claude/bus/reports/$TICKET.md - what you did, the commit SHA, the PR number, what you
-   could not verify, and anything you decided that the ticket did not specify.
+   could not verify, and anything you decided that the ticket did not specify. It MUST open
+   with the seven-field frontmatter block; CLAUDE.md ("The bus") has the template, and
+   npm run checks rejects a report without it.
 
 Blaine verifies your work against the repo, not against your report. Report the rationale the
 repo cannot show; skip the summary of what the commits already say.
