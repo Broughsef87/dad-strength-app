@@ -104,17 +104,59 @@ try {
     q(`select spirit_state #>> '{morning,completed}' from public.daily_checkins where user_id='${A}' and date='2026-10-03'`) === '[true, true]',
     spirit(A, '2026-10-03'))
 
-  // 4. a root path replaces the whole column — the record-creating write
-  asUser(A, `select public.checkin_set_path('2026-10-04','mind_state',NULL,'{"objectives":["x"],"lockedIn":true}'::jsonb);`)
-  ok('a root path writes the whole column',
-    q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-04'`) === '{"lockedIn": true, "objectives": ["x"]}',
+  // 4. THE ROOT WRITE IS REFUSED (Blaine's draft review). Replacing a whole
+  //    column was guarded only by convention, and Rebuild broke the convention.
+  const rootSet = asUser(A, `select public.checkin_set_path('2026-10-04','mind_state',NULL,'{"objectives":["x"]}'::jsonb);`)
+  ok('an empty path is refused by checkin_set_path', /must name at least one key/.test(rootSet.err), rootSet.err.slice(0, 90) || 'no error')
+  const rootPatch = asUser(A, `select public.checkin_patch('2026-10-04','mind_state','[{"path":[],"value":{"a":1}}]'::jsonb);`)
+  ok('an empty path is refused by checkin_patch', /must name at least one key/.test(rootPatch.err), rootPatch.err.slice(0, 90) || 'no error')
+  ok('neither attempt created a row', q(`select count(*) from public.daily_checkins where user_id='${A}' and date='2026-10-04'`) === '0',
+    q(`select count(*) from public.daily_checkins where user_id='${A}' and date='2026-10-04'`))
+
+  // 5. the Goals step: its four keys in ONE call, so objectives and their flags
+  //    can never be seen misaligned
+  asUser(A, `select public.checkin_patch('2026-10-04','mind_state','[
+      {"path":["date"],"value":"2026-10-04"},
+      {"path":["objectives"],"value":["x","y"]},
+      {"path":["completedObjectives"],"value":[false,false]},
+      {"path":["lockedIn"],"value":true}]'::jsonb);`)
+  const goals = q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-04'`)
+  ok('one call applies every patch in it',
+    goals.includes('"objectives": ["x", "y"]') && goals.includes('"lockedIn": true') && goals.includes('"completedObjectives": [false, false]'),
+    goals)
+
+  // 6. a field patch leaves its siblings alone
+  asUser(A, `select public.checkin_set_path('2026-10-04','mind_state','{completedObjectives}','[true,false]'::jsonb);`)
+  ok('a field patch leaves its siblings alone',
+    q(`select mind_state #>> '{objectives}' from public.daily_checkins where user_id='${A}' and date='2026-10-04'`) === '["x", "y"]',
     q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-04'`))
 
-  // 5. a patch beside it leaves the rest of the column alone
-  asUser(A, `select public.checkin_set_path('2026-10-04','mind_state','{completedObjectives}','[true]'::jsonb);`)
-  ok('a field patch leaves its siblings alone',
-    q(`select mind_state #>> '{objectives}' from public.daily_checkins where user_id='${A}' and date='2026-10-04'`) === '["x"]',
-    q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-04'`))
+  // 7. BLAINE'S REQUIRED CASE: a rebuild's Goals write leaves an unrelated
+  //    mind_state key intact. {spiritual} is FOR-229's 1-5 rating.
+  asUser(A, `select public.checkin_set_path('2026-10-04','mind_state','{spiritual}','4'::jsonb);`)
+  asUser(A, `select public.checkin_patch('2026-10-04','mind_state','[
+      {"path":["objectives"],"value":["fresh"]},
+      {"path":["completedObjectives"],"value":[false]},
+      {"path":["lockedIn"],"value":true}]'::jsonb);`)
+  const afterRebuild = q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-04'`)
+  ok("a rebuild's Goals write leaves an unrelated key intact",
+    afterRebuild.includes('"spiritual": 4') && afterRebuild.includes('"objectives": ["fresh"]'), afterRebuild)
+  ok('and it resets completion for the new list, which is the chosen rule',
+    afterRebuild.includes('"completedObjectives": [false]'), afterRebuild)
+
+  // 8. a malformed patch is refused rather than half-applied
+  for (const [name, patch] of [
+    ['a patch that is not an object', '[1]'],
+    ['a patch with no value key', '[{"path":["a"]}]'],
+    ['a path key that is not a string', '[{"path":[1],"value":2}]'],
+    ['patches that are not an array', '{"path":["a"],"value":1}'],
+    ['an empty patch list', '[]'],
+  ]) {
+    const bad = asUser(A, `select public.checkin_patch('2026-10-05','mind_state','${patch}'::jsonb);`)
+    ok(`${name} is refused`, bad.status !== 0 && bad.err.includes('checkin:'), bad.err.slice(0, 80) || 'no error')
+  }
+  ok('no malformed call created a row', q(`select count(*) from public.daily_checkins where user_id='${A}' and date='2026-10-05'`) === '0',
+    q(`select count(*) from public.daily_checkins where user_id='${A}' and date='2026-10-05'`))
 
   // 6. only the two check-in columns are patchable
   const badCol = asUser(A, `select public.checkin_set_path('2026-10-03','updated_at','{x}','1'::jsonb);`)
@@ -146,7 +188,7 @@ try {
   // 11. additive: an existing unrelated row is untouched by applying the migration
   ok('the migration added only functions — no table, policy or data change',
     q("select count(*) from pg_policies where tablename='daily_checkins'") === '1'
-    && q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'") === 'checkin_jsonb_set_deep,checkin_set_path',
+    && q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'") === 'checkin_jsonb_apply,checkin_jsonb_set_deep,checkin_patch,checkin_set_path',
     `policies=${q("select count(*) from pg_policies where tablename='daily_checkins'")} funcs=${q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'")}`)
 
   console.log(`\n${pass} passed, ${fails.length} failed`)

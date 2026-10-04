@@ -240,6 +240,11 @@ export default function MorningProtocol(
       const fresh = data.protocol as Protocol
       const freshCompleted = new Array(fresh.steps.length).fill(false)
       const freshGratitude = ['', '', '']
+      // Generation paints BEFORE its save lands, unlike every other write here.
+      // What makes that order safe is the `writing` guard: saveProtocol raises
+      // it and the step buttons are disabled={writing}, so no tick can start
+      // against this protocol until the row holds it. Write-first here would
+      // throw away a paid AI result on a network blip instead.
       setProtocol(fresh)
       setCompleted(freshCompleted)
       setGratitude(freshGratitude)

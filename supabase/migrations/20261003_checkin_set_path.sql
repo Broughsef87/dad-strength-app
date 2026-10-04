@@ -1,8 +1,9 @@
--- ── Check-ins: write one field, not the whole entry (FOR-231 v2) ────────────
--- Andrew's ruling, 2026-10-03, on the round-2 trigger: field-level writes
--- through a jsonb-merge function. Accepting last-write-wins was rejected (one
--- user, one tab, and a tick undone in the database). Serializing the writers is
--- a queue and stays out.
+-- ── Check-ins: write your own fields, not the whole entry (FOR-231 v2) ──────
+-- Andrew's ruling, 2026-10-03: field-level writes through a jsonb-merge
+-- function. Accepting last-write-wins was rejected (one user, one tab, and a
+-- tick undone in the database). Serializing the writers is a queue and stays
+-- out. Revised 2026-10-04 on Blaine's review of the draft — see THE ROOT WRITE
+-- IS GONE below.
 --
 -- THE DEFECT THIS EXISTS FOR. `daily_checkins.spirit_state` has four writers —
 -- generation, a step tick, gratitude leaving its field, and the Goals step —
@@ -10,9 +11,9 @@
 -- other's fields: tick a step, then leave a gratitude input before that write
 -- lands, and the gratitude write carries the completion flags it read before
 -- the tick. The tick is undone in the row while the screen still shows it
--- ticked. Deleting localStorage did not cause this and did not cure it; there is
--- no cache, no queue, no outbox and no retained state anywhere near it. It is
--- four whole-entry writers on one jsonb column.
+-- ticked. Deleting localStorage did not cause this and did not cure it; there
+-- is no cache, no queue, no outbox and no retained state anywhere near it. It
+-- is four whole-entry writers on one jsonb column.
 --
 -- THE MERGE HAS TO HAPPEN AT THE CONTENDED PATH. All four writers live under
 -- `spirit_state.morning`, so a top-level `spirit_state || $new` still replaces
@@ -26,18 +27,52 @@
 -- applies to the first's result, which is the whole point: neither needs to
 -- know the other exists, and nothing has to decide which of them wins.
 --
--- THE PATHS, so a reviewer can see they do not overlap:
+-- SEVERAL PATHS IN ONE CALL, for the same reason. `mind_state.objectives` and
+-- `mind_state.completedObjectives` are paired BY INDEX — the render path and
+-- normalise() both assume objective i owns flag i. Written as two calls they
+-- are two statements, and between them the row holds a new objective list
+-- against the old list's flags: three flags for two objectives, or a completion
+-- sitting on the wrong line. So `checkin_patch` takes a LIST of patches and
+-- applies them inside one statement. `checkin_set_path` is the single-patch
+-- case, and is a wrapper over it.
 --
---   generation / rebuild   spirit_state  {morning}                  whole entry
+-- THE ROOT WRITE IS GONE (Blaine's draft review, 2026-10-04). The first draft
+-- let an empty path replace a whole column, and justified it as the write that
+-- creates the record, where there is nothing yet to clobber. **That is false on
+-- Rebuild.** `MorningProtocol.tsx` Rebuild clears `configured`, the Goals step
+-- runs again on a row that already exists, and it wrote `mind_state` whole with
+-- every completion flag false — wiping ticked objectives today, and after
+-- FOR-229 wiping the 1–5 spiritual rating and any carried-over item too, since
+-- both live in `mind_state`. A guard that holds only until someone presses
+-- Rebuild is a convention rather than a guard, so the capability is removed:
+-- **a path must name at least one key, and replacing a whole column is now
+-- unrepresentable.** Nothing needs it — generation writes `{morning}`, which is
+-- a path, and the Goals step writes its own four keys.
+--
+-- THE PATHS, so a reviewer can see what each writer owns and what it cannot
+-- reach:
+--
+--   generation / rebuild   spirit_state  {morning}
 --   a step tick            spirit_state  {morning,completed}
 --   gratitude on blur      spirit_state  {morning,gratitude}
---   the Goals step         mind_state    (root)                     whole entry
+--   the Goals step         mind_state    {objectives} {completedObjectives}
+--                                        {lockedIn} {date}   — ONE atomic call
 --   an objective tick      mind_state    {completedObjectives}
+--   FOR-229's rating       mind_state    {spiritual}         — survives all of
+--   FOR-229's carry-over   mind_state    on TOMORROW's row     the above
 --
--- The two whole-entry writes are the ones that CREATE the record, which is the
--- one time writing everything is right — there is nothing yet to clobber. Every
--- write that changes an existing record touches one field. A root write is why
--- `p_path` may be empty, and it is the only reason.
+-- `spirit_state {morning}` whole on generation and rebuild stays: a new
+-- protocol resets its own completion and gratitude, and nothing else lives
+-- under `morning`.
+--
+-- A REBUILD DOES NOT KEEP TICKS, and that one was left to me. The Goals step
+-- rewrites `{objectives}` and `{completedObjectives}` together, so completion
+-- resets for the new list. Keeping a tick across a rewrite means matching
+-- objective TEXT to decide which flag survives, and FOR-243 is the standing
+-- evidence for where that goes: a tick carried to the wrong line is the
+-- dangerous failure, because unticked costs one tap and wrongly ticked is a
+-- lie. Resetting is the safe direction. Keys the Goals step does not own are
+-- untouched, which is what the ruling actually required.
 --
 -- SECURITY. SECURITY INVOKER, so row-level security applies to the caller and
 -- the existing `auth.uid() = user_id` policy on daily_checkins decides every
@@ -49,13 +84,17 @@
 -- format(%I), so the dynamic identifier cannot become some other column.
 -- search_path is pinned.
 --
--- ADDITIVE. Two CREATE OR REPLACE FUNCTION statements and their grants. No
+-- ADDITIVE. Four CREATE OR REPLACE FUNCTION statements and their grants. No
 -- table, column, policy, index or data change, and no existing row is touched.
 -- Nothing calls it yet: the client converts to it in a follow-up commit, after
 -- Andrew has applied this.
 --
+-- PROVEN BEFORE IT IS APPLIED: `npm run proof:checkins`.
+--
 -- REVERT:
 --   DROP FUNCTION IF EXISTS public.checkin_set_path(date, text, text[], jsonb);
+--   DROP FUNCTION IF EXISTS public.checkin_patch(date, text, jsonb);
+--   DROP FUNCTION IF EXISTS public.checkin_jsonb_apply(jsonb, jsonb);
 --   DROP FUNCTION IF EXISTS public.checkin_jsonb_set_deep(jsonb, text[], jsonb);
 --
 -- Dated after 20260920_fuel_own_meals.sql, the last migration in this tree.
@@ -78,16 +117,18 @@ DECLARE
   out_doc jsonb := COALESCE(doc, '{}'::jsonb);
   i       int;
 BEGIN
+  -- A path must name at least one key. Replacing a whole column is not a thing
+  -- this function can do (see THE ROOT WRITE IS GONE).
+  IF path IS NULL OR array_length(path, 1) IS NULL THEN
+    RAISE EXCEPTION 'checkin: a path must name at least one key'
+      USING ERRCODE = '22023';
+  END IF;
+
   -- A column holding a scalar or an array cannot be patched by path. Treat it
   -- as absent rather than raising: the record is the row, and a row whose
   -- column is not an object holds no record to preserve.
   IF jsonb_typeof(out_doc) IS DISTINCT FROM 'object' THEN
     out_doc := '{}'::jsonb;
-  END IF;
-
-  -- An empty path means the whole column, which is the record-creating write.
-  IF path IS NULL OR array_length(path, 1) IS NULL THEN
-    RETURN COALESCE(val, '{}'::jsonb);
   END IF;
 
   FOR i IN 1 .. array_length(path, 1) - 1 LOOP
@@ -100,7 +141,106 @@ BEGIN
 END;
 $fn$;
 
--- ── 2. write one field of one check-in, as the caller, atomically ───────────
+-- ── 2. fold a list of patches over one document ─────────────────────────────
+-- `patches` is a jsonb array of {"path": ["a","b"], "value": <any>}, applied
+-- left to right. Called once inside the write statement, so every patch in a
+-- call lands together or none of them does.
+CREATE OR REPLACE FUNCTION public.checkin_jsonb_apply(
+  doc     jsonb,
+  patches jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+AS $fn$
+DECLARE
+  out_doc jsonb := COALESCE(doc, '{}'::jsonb);
+  patch   jsonb;
+  path    text[];
+BEGIN
+  IF patches IS NULL OR jsonb_typeof(patches) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'checkin: patches must be a jsonb array'
+      USING ERRCODE = '22023';
+  END IF;
+  IF jsonb_array_length(patches) = 0 THEN
+    RAISE EXCEPTION 'checkin: at least one patch is required'
+      USING ERRCODE = '22023';
+  END IF;
+
+  FOR patch IN SELECT * FROM jsonb_array_elements(patches) LOOP
+    IF jsonb_typeof(patch) IS DISTINCT FROM 'object'
+       OR jsonb_typeof(patch -> 'path') IS DISTINCT FROM 'array'
+       OR NOT (patch ? 'value') THEN
+      RAISE EXCEPTION 'checkin: each patch needs an array path and a value, got %', patch
+        USING ERRCODE = '22023';
+    END IF;
+    -- Every element of the path must be a string, or #> would address an array
+    -- index and a typo could write into the wrong place silently.
+    IF EXISTS (
+      SELECT 1 FROM jsonb_array_elements(patch -> 'path') AS k
+      WHERE jsonb_typeof(k.value) IS DISTINCT FROM 'string'
+    ) THEN
+      RAISE EXCEPTION 'checkin: every key in a path must be a string, got %', patch -> 'path'
+        USING ERRCODE = '22023';
+    END IF;
+
+    SELECT array_agg(k.value #>> '{}' ORDER BY k.ord)
+      INTO path
+      FROM jsonb_array_elements(patch -> 'path') WITH ORDINALITY AS k(value, ord);
+
+    out_doc := public.checkin_jsonb_set_deep(out_doc, path, patch -> 'value');
+  END LOOP;
+
+  RETURN out_doc;
+END;
+$fn$;
+
+-- ── 3. write those patches into one check-in, as the caller, atomically ─────
+CREATE OR REPLACE FUNCTION public.checkin_patch(
+  p_date    date,
+  p_column  text,
+  p_patches jsonb
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public, pg_temp
+AS $fn$
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'checkin_patch: no authenticated user'
+      USING ERRCODE = '28000';
+  END IF;
+
+  -- Allowlisted BEFORE it reaches format(%I). %I makes injection impossible,
+  -- but without this a caller could patch any jsonb column on the table.
+  IF p_column IS NULL OR p_column NOT IN ('spirit_state', 'mind_state') THEN
+    RAISE EXCEPTION 'checkin_patch: % is not a check-in column', p_column
+      USING ERRCODE = '22023';
+  END IF;
+
+  IF p_date IS NULL THEN
+    RAISE EXCEPTION 'checkin_patch: date is required'
+      USING ERRCODE = '22023';
+  END IF;
+
+  -- One statement. The right-hand side of DO UPDATE reads the row as it is now,
+  -- inside the statement that writes it, so a concurrent call to a different
+  -- path cannot be lost and cannot carry this call's values.
+  EXECUTE format($q$
+    INSERT INTO public.daily_checkins (user_id, date, %1$I, updated_at)
+    VALUES ($1, $2, public.checkin_jsonb_apply('{}'::jsonb, $3), now())
+    ON CONFLICT (user_id, date) DO UPDATE
+       SET %1$I = public.checkin_jsonb_apply(daily_checkins.%1$I, $3),
+           updated_at = now()
+  $q$, p_column)
+  USING v_uid, p_date, p_patches;
+END;
+$fn$;
+
+-- ── 4. the single-patch case ────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.checkin_set_path(
   p_date   date,
   p_column text,
@@ -112,43 +252,26 @@ LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $fn$
-DECLARE
-  v_uid uuid := auth.uid();
 BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'checkin_set_path: no authenticated user'
-      USING ERRCODE = '28000';
-  END IF;
-
-  -- Allowlisted BEFORE it reaches format(%I). %I makes injection impossible,
-  -- but without this a caller could patch any jsonb column on the table.
-  IF p_column IS NULL OR p_column NOT IN ('spirit_state', 'mind_state') THEN
-    RAISE EXCEPTION 'checkin_set_path: % is not a check-in column', p_column
+  IF p_path IS NULL OR array_length(p_path, 1) IS NULL THEN
+    RAISE EXCEPTION 'checkin_set_path: a path must name at least one key'
       USING ERRCODE = '22023';
   END IF;
-
-  IF p_date IS NULL THEN
-    RAISE EXCEPTION 'checkin_set_path: date is required'
-      USING ERRCODE = '22023';
-  END IF;
-
-  -- One statement. The right-hand side of DO UPDATE reads the row as it is now,
-  -- inside the statement that writes it, so a concurrent call to a different
-  -- path cannot be lost and cannot carry this call's values.
-  EXECUTE format($q$
-    INSERT INTO public.daily_checkins (user_id, date, %1$I, updated_at)
-    VALUES ($1, $2, public.checkin_jsonb_set_deep('{}'::jsonb, $3, $4), now())
-    ON CONFLICT (user_id, date) DO UPDATE
-       SET %1$I = public.checkin_jsonb_set_deep(daily_checkins.%1$I, $3, $4),
-           updated_at = now()
-  $q$, p_column)
-  USING v_uid, p_date, p_path, p_value;
+  PERFORM public.checkin_patch(
+    p_date,
+    p_column,
+    jsonb_build_array(jsonb_build_object('path', to_jsonb(p_path), 'value', COALESCE(p_value, 'null'::jsonb)))
+  );
 END;
 $fn$;
 
 -- Only a signed-in athlete calls these. An anonymous caller would raise 28000
 -- on auth.uid() anyway; this keeps the grant honest about who it is for.
 REVOKE ALL ON FUNCTION public.checkin_jsonb_set_deep(jsonb, text[], jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.checkin_jsonb_apply(jsonb, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.checkin_patch(date, text, jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.checkin_set_path(date, text, text[], jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.checkin_jsonb_set_deep(jsonb, text[], jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.checkin_jsonb_apply(jsonb, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.checkin_patch(date, text, jsonb) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.checkin_set_path(date, text, text[], jsonb) TO authenticated;
