@@ -229,7 +229,12 @@ const WRITERS = [
     [['date'], ['objectives'], ['completedObjectives'], ['lockedIn']]],
   ["the card's Goals write", card, '  const saveDraft = async () => {',
     [['date'], ['objectives'], ['completedObjectives'], ['lockedIn']]],
-  ["the card's objective tick", card, '  const toggle = async (i: number) => {', [['completedObjectives']]],
+  // The PAIR, not one half of it: objectives and completedObjectives are
+  // paired by index, so a writer of either writes both, or a flag can land on
+  // a list it was not read against. `lockedIn` and `date` stay the Goals
+  // step's — a tick naming either would be reaching outside what it owns.
+  ["the card's objective tick", card, '  const toggle = async (i: number) => {',
+    [['objectives'], ['completedObjectives']]],
 ]
 for (const [label, src, decl, want] of WRITERS) {
   const fn = body(src, decl)
@@ -259,7 +264,7 @@ assert(!/path:\s*\[\s*\]/.test(mp + card), 'no writer names an empty path')
 // proven for a path nobody writes.
 const proof = readSoft('scripts/checkin-db-proof.mjs')
 assert(proof.length > 0, 'the DB proof exists — a path merge nobody proved against a database is a claim')
-for (const path of ['{morning,completed}', '{morning,gratitude}', '{completedObjectives}']) {
+for (const path of ['{morning,completed}', '{morning,gratitude}', '{completedObjectives}', '{objectives}']) {
   assert(proof.includes(path), `the DB proof contends ${path}, which a writer above names`)
 }
 

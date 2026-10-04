@@ -175,6 +175,31 @@ try {
   ok('and it resets completion for the new list, which is the chosen rule',
     afterRebuild.includes('"completedObjectives": [false]'), afterRebuild)
 
+  // 7b. WHY A TICK WRITES THE PAIR (FOR-231 v2, r3). The database does not and
+  //     cannot know that objectives and completedObjectives are paired by
+  //     index, so a flags-only write lands on whatever list is there when it
+  //     arrives. Here the list changes between the tick being read and the
+  //     tick landing, and the row ends with two objectives and three flags —
+  //     a tick sitting on a line nobody ticked. Nothing refuses it. That is
+  //     the reason the client writes both halves together, and this case is
+  //     what makes that a measured decision rather than a preference.
+  asUser(A, `select public.checkin_patch('2026-10-09','mind_state','[
+      {"path":["objectives"],"value":["a","b","c"]},
+      {"path":["completedObjectives"],"value":[false,false,false]}]'::jsonb);`)
+  asUser(A, `select public.checkin_set_path('2026-10-09','mind_state','{objectives}','["a","b"]'::jsonb);`)
+  const flagsOnly = asUser(A, `select public.checkin_set_path('2026-10-09','mind_state','{completedObjectives}','[false,false,true]'::jsonb);`)
+  const misaligned = q(`select (mind_state #>> '{objectives}') || ' | ' || (mind_state #>> '{completedObjectives}') from public.daily_checkins where user_id='${A}' and date='2026-10-09'`)
+  ok('a flags-only write onto a changed list is NOT refused by the database',
+    flagsOnly.err === '' && misaligned === '["a", "b"] | [false, false, true]', `${flagsOnly.err.slice(0, 60)} ${misaligned}`)
+  // And the pair, written together, cannot produce it.
+  asUser(A, `select public.checkin_patch('2026-10-09','mind_state','[
+      {"path":["objectives"],"value":["a","b"]},
+      {"path":["completedObjectives"],"value":[false,true]}]'::jsonb);`)
+  ok('the pair written together always leaves the row self-consistent',
+    q(`select (mind_state #>> '{objectives}') || ' | ' || (mind_state #>> '{completedObjectives}') from public.daily_checkins where user_id='${A}' and date='2026-10-09'`)
+      === '["a", "b"] | [false, true]',
+    q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-09'`))
+
   // 8. a malformed patch is refused rather than half-applied
   for (const [name, patch] of [
     ['a patch that is not an object', '[1]'],

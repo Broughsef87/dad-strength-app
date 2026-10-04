@@ -136,11 +136,21 @@ export default function DailyObjectivesCard(
     setUnsaved(null)
     setSaving(true)
     const today = localDay()
-    // ONE FIELD. A tick owns `completedObjectives`; the objective text, the
-    // lock and the date are not in this call, so a tick can no longer carry
-    // the copy of the list it happened to be read against.
+    // THE PAIR, because the pair is ONE FACT. objectives and
+    // completedObjectives are paired by index: the render path filters blanks
+    // and hands toggle() the filtered index, and normalise() pairs objective i
+    // with flag i. A tick that wrote the flags ALONE could land them on a
+    // different list — the Goals step above writes both together, so between
+    // this tick being read and landing the list can have changed under it, and
+    // the result is a tick on the wrong objective. FOR-243 is the standing
+    // evidence for which direction is dangerous: unticked costs one tap, and
+    // wrongly ticked is a lie. So both halves go, and the row is self
+    // consistent whichever write lands last.
+    //
+    // `lockedIn` and `date` are the Goals step's and are NOT in this call.
     gate.claim()
     const landed = await patchCheckin('mind_state', today, [
+      { path: ['objectives'], value: objectives },
       { path: ['completedObjectives'], value: next },
     ])
     setSaving(false)
