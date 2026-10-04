@@ -33,6 +33,35 @@ const CONTINUE = join(ROOT, '.claude', 'hooks', 'bus-continue.sh')
 const BOOT = join(ROOT, '.claude', 'hooks', 'bus-boot.sh')
 const LOG = join(ROOT, '.claude', 'hooks', 'bus-log.sh')
 
+/**
+ * The interpreter, resolved rather than looked up on PATH.
+ *
+ * Spawning a bare `bash` is the FOR-246 defect verbatim: on this host
+ * C:\Windows\System32 can precede Git's bin, `bash` resolves to WSL's
+ * bash.exe, and it dies without doing the work. bus-observability.mjs FORBIDS
+ * the hooks being registered that way — and this suite was doing it to run
+ * them (Codex r2). So: an explicit path, verified by asking it for its version,
+ * and a hard failure if none of the candidates is a working Git Bash.
+ */
+const BASH = (() => {
+  const seen = []
+  for (const c of [
+    'C:/Program Files/Git/bin/bash.exe',
+    'C:/Program Files (x86)/Git/bin/bash.exe',
+    process.env.CC_BASH,
+    'bash',
+  ]) {
+    if (!c) continue
+    if (c !== 'bash' && !existsSync(c)) { seen.push(`${c} (absent)`); continue }
+    const v = spawnSync(c, ['--version'], { encoding: 'utf8' })
+    if (v.status !== 0) { seen.push(`${c} (--version exit ${v.status})`); continue }
+    if (/microsoft|wsl|ubuntu/i.test(v.stdout || '')) { seen.push(`${c} (WSL)`); continue }
+    return c
+  }
+  console.log(`\nbus v2: no working Git Bash found — tried ${seen.join(', ')}`)
+  process.exit(1)
+})()
+
 /** A throwaway bus. The hooks read $CLAUDE_PROJECT_DIR/.claude/bus, so they can be aimed at it. */
 let seq = 0
 function sandbox(build) {
@@ -42,7 +71,7 @@ function sandbox(build) {
   return dir
 }
 const runHook = (hook, dir) => {
-  const r = spawnSync('bash', [hook], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
+  const r = spawnSync(BASH, [hook], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
   return { out: r.stdout || '', err: r.stderr || '', code: r.status }
 }
 const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } catch { /* temp */ } }
@@ -175,7 +204,7 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
 {
   const dir = sandbox(() => {})
   const before = Date.now()
-  const r = spawnSync('bash', [LOG, 'cc', 'ticket=FOR-9 outcome=test'], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
+  const r = spawnSync(BASH, [LOG, 'cc', 'ticket=FOR-9 outcome=test'], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
   assert(r.status === 0, `bus-log.sh succeeds — exit ${r.status} ${r.stderr}`)
   const line = readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8').trim()
   const m = /^\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)\] agent=cc ticket=FOR-9 outcome=test$/.exec(line)
@@ -192,7 +221,7 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     ['a missing message', ['cc']],
     ['an agent that is not a short token', ['Not An Agent', 'x']],
   ]) {
-    const bad = spawnSync('bash', [LOG, ...args], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
+    const bad = spawnSync(BASH, [LOG, ...args], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
     assert(bad.status === 2, `bus-log.sh refuses ${name} — exit ${bad.status}`)
   }
   drop(dir)
@@ -203,7 +232,7 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   // loosening an unrelated guard broke this assertion and removing the collapse
   // did not.
   const nlDir = sandbox(() => {})
-  spawnSync('bash', [LOG, 'cc', 'first\nsecond'], { env: { ...process.env, CLAUDE_PROJECT_DIR: nlDir }, encoding: 'utf8' })
+  spawnSync(BASH, [LOG, 'cc', 'first\nsecond'], { env: { ...process.env, CLAUDE_PROJECT_DIR: nlDir }, encoding: 'utf8' })
   const nlLines = readFileSync(join(nlDir, '.claude', 'bus', 'bus.log'), 'utf8').trim().split('\n')
   assert(nlLines.length === 1, `a multi-line message is collapsed into one line — got ${nlLines.length}`)
   assert(/first second/.test(nlLines[0]), 'and both halves survive on that line')
@@ -245,6 +274,21 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
       ['a non-integer round count', FM({ extra: [] }).replace('codex_rounds: 1', 'codex_rounds: several')],
       ['a date that is not a real day', FM({}).replace('written: 2026-10-04', 'written: 2026-02-30')],
       ['a ticket id in the wrong shape', FM({}).replace('ticket: FOR-999998', 'ticket: 999998')],
+      // The vendored RULES, probed one at a time. The upstream fingerprints
+      // below say the ORIGINAL has not moved; they say nothing about this copy.
+      // Codex r2 disabled the local repo-path rule and both fingerprint
+      // assertions stayed green, so the copy was pinned by nothing at all.
+      ['a repo that is a path, not a directory name', FM({}).replace('repo: dad-strength-app', 'repo: ../wrong-repo')],
+      ['a repo with a forward slash', FM({}).replace('repo: dad-strength-app', 'repo: a/b')],
+      ['a repo with a backslash', FM({}).replace('repo: dad-strength-app', 'repo: a\\b')],
+      ['an empty repo', FM({}).replace('repo: dad-strength-app', 'repo:')],
+      ['a duplicated key', FM({ extra: ['repo: dad-strength-app'] })],
+      ['a key that is not lowercase', FM({}).replace('ticket: FOR-999998', 'Ticket: FOR-999998')],
+      ['a block that never closes', FM({}).replace('---\n\n# probe', '\n# probe')],
+      ['a block that does not start at byte 0', '\n' + FM({})],
+      ['a negative round count', FM({}).replace('codex_rounds: 1', 'codex_rounds: -1')],
+      ['a round count with a leading zero', FM({}).replace('codex_rounds: 1', 'codex_rounds: 01')],
+      ['a written date that is not a date', FM({}).replace('written: 2026-10-04', 'written: last Tuesday')],
     ]) {
       const probe2 = join(REPORTS, 'FOR-999998.md')
       writeFileSync(probe2, text)
@@ -265,7 +309,12 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
 {
   const GATES = [
     [/database migration/i, 'a database migration'],
-    [/Stripe/i, 'Stripe, billing or auth'],
+    // Three separate words. `/Stripe/i` alone passed while billing or auth was
+    // dropped from a list, so Stripe was acting as a proxy for the whole gate
+    // (Codex r2).
+    [/Stripe/i, 'Stripe'],
+    [/billing/i, 'billing'],
+    [/auth/i, 'auth'],
     [/production deploy/i, 'a production deploy'],
     [/program (or|\/) ?training content/i, 'program or training content'],
     [/second reversal/i, 'a second reversal'],
