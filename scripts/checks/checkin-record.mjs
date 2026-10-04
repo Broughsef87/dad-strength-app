@@ -385,6 +385,14 @@ if (gateFactory) {
   const h = gateFactory()
   assert(h.mayPaint(h.claim()), 'each component gets its own gate')
   assert(!h.mayPaint(third), "and one component's claim means nothing to another's gate")
+  // The over-discarding direction, which a counter shared between components
+  // produces: the protocol writing would throw away the card's in-flight read
+  // and the card would hold a loading skeleton it never comes out of.
+  const g1 = gateFactory(), g2 = gateFactory()
+  const reading = g1.claim()
+  g2.claim()
+  assert(g1.mayPaint(reading),
+    "one component's write does not discard another component's read")
 }
 
 // ONE GATE PER COMPONENT, NOT ONE PER RENDER. A gate rebuilt on every render
