@@ -48,6 +48,73 @@ try {
   for (const m of fp.migrations) apply(readLF(m.file), `${m.file}, a second time`)
   console.log(`applied all ${fp.migrations.length} Fuel migrations a second time, in order: idempotent`)
 
+  // ── THE LIBRARY IN THE DATABASE IS EXACTLY WHAT THE FIXTURES SAY ─────────
+  // Four rounds of FOR-257 went on a regex hunting for a stray write to
+  // fuel_meals in a migration no pair generated. Codex beat that regex every
+  // round — `UPDATE ONLY(public.fuel_meals)`, a MERGE, a comment between the
+  // keyword and the table, a quoted upper-case name — and it also made the
+  // check fire on a commented-out example. Matching SQL text with a regular
+  // expression is the wrong instrument, and this harness already holds the
+  // right one: every Fuel migration has just been applied to a real Postgres,
+  // twice.
+  //
+  // So the question stops being "does any file look like a write" and becomes
+  // "after every migration, is the library what the fixtures declare". A stray
+  // write cannot spell its way past this: it changes a row, and the row is
+  // compared field by field.
+  {
+    const fixtures = [
+      ['fixtures/fuel-seed.json', (j) => j.fuel_meals],
+      ['fixtures/fuel-seed-rotation-b.json', (j) => j.fuel_meals_new],
+      ['fixtures/fuel-seed-library-expansion.json', (j) => j.fuel_meals_new],
+    ]
+    const want = new Map()
+    for (const [file, pick] of fixtures) {
+      for (const m of pick(JSON.parse(readLF(file)))) want.set(m.slug, { ...m, _from: file })
+    }
+    const rows = q(`select jsonb_agg(to_jsonb(t) order by t.slug) from (
+      select slug, name, protein_cut, spice_profile, format, active_cook_minutes,
+             total_minutes, servings, protein_g_per_person, perishable_within_days,
+             rotation_note, ingredients
+      from public.fuel_meals) t`)
+    const got = new Map((JSON.parse(rows || '[]')).map((r) => [r.slug, r]))
+
+    const missing = [...want.keys()].filter((k) => !got.has(k))
+    const extra = [...got.keys()].filter((k) => !want.has(k))
+    if (missing.length || extra.length) {
+      throw new Error(`fuel_meals is not the fixtures' library — missing: ${missing.join(', ') || 'none'}; unexpected: ${extra.join(', ') || 'none'}`)
+    }
+
+    const SCALARS = ['name', 'protein_cut', 'spice_profile', 'format', 'active_cook_minutes',
+      'total_minutes', 'servings', 'protein_g_per_person', 'perishable_within_days', 'rotation_note']
+    const diffs = []
+    for (const [slug, w] of want) {
+      const r = got.get(slug)
+      for (const k of SCALARS) {
+        const a = w[k] === undefined ? null : w[k]
+        const b = r[k] === undefined ? null : r[k]
+        if (JSON.stringify(a) !== JSON.stringify(b)) diffs.push(`${slug}.${k}: fixture ${JSON.stringify(a)} vs row ${JSON.stringify(b)}`)
+      }
+      // CANONICAL, because jsonb does not keep an object's key order and
+      // normalises its numbers: a straight stringify compared the storage
+      // format rather than the content, and every one of the 37 "differed"
+      // with the same ingredient count on both sides.
+      const canon = (list) => JSON.stringify((list ?? []).map((i) => [
+        String(i.item), Number(i.qty_per_person), String(i.unit), String(i.store_section), Boolean(i.inferred),
+      ]))
+      if (canon(w.ingredients) !== canon(r.ingredients)) {
+        diffs.push(`${slug}.ingredients differ — fixture ${canon(w.ingredients).slice(0, 120)} vs row ${canon(r.ingredients).slice(0, 120)}`)
+      }
+      // No seed migration carries macros (FOR-234), so the columns stay null
+      // whatever a fixture says — and a fixture may only say null.
+      for (const k of ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']) {
+        if (w[k] !== null && w[k] !== undefined) diffs.push(`${slug}.${k} is ${JSON.stringify(w[k])} in ${w._from} — no seed migration carries macros`)
+      }
+    }
+    if (diffs.length) throw new Error(`fuel_meals rows disagree with their fixtures:\n  ${diffs.slice(0, 8).join('\n  ')}${diffs.length > 8 ? `\n  ... and ${diffs.length - 8} more` : ''}`)
+    console.log(`  PASS 30 (FOR-257) the library in the database is exactly the ${want.size} meals the fixtures declare, field by field — a stray write to fuel_meals cannot spell its way past a row comparison`)
+  }
+
   const rls = q("select relrowsecurity from pg_class where oid = 'public.fuel_staples'::regclass")
   const policies = q("select string_agg(cmd, ',' order by cmd) from pg_policies where tablename = 'fuel_staples'")
   const triggers = q("select string_agg(tgname, ',' order by tgname) from pg_trigger where tgrelid = 'public.fuel_lists'::regclass and not tgisinternal")

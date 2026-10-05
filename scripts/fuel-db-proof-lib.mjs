@@ -18,8 +18,23 @@ export const readLF = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(/\r
 export const sha256 = (text) => createHash('sha256').update(text).digest('hex')
 
 /** Every Fuel migration, in the order they apply. */
+/**
+ * Every migration this proof applies: one whose NAME says fuel, or whose TEXT
+ * touches a fuel_ table.
+ *
+ * It selected on the filename alone, and a migration named anything else could
+ * write fuel_meals without the proof ever applying it — so the row comparison
+ * that proves the library is what the fixtures say had a hole exactly the
+ * shape of a file called something else. Found by planting one: a stray
+ * `UPDATE ONLY(public.fuel_meals)` in 20261007_zzqx_stray.sql passed the whole
+ * proof (FOR-257 r4). Content, not naming.
+ */
 export const fuelMigrations = () =>
-  readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => /fuel/.test(f) && f.endsWith('.sql')).sort().map((f) => `supabase/migrations/${f}`)
+  readdirSync(join(ROOT, 'supabase/migrations'))
+    .filter((f) => f.endsWith('.sql'))
+    .filter((f) => /fuel/i.test(f) || /fuel_[a-z_]+/i.test(readLF(`supabase/migrations/${f}`)))
+    .sort()
+    .map((f) => `supabase/migrations/${f}`)
 
 /** How many cases the proof holds: one PASS notice each. */
 export const proofCases = (proofText) => (proofText.match(/RAISE NOTICE 'PASS /g) || []).length

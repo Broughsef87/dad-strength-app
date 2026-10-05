@@ -175,8 +175,13 @@ assert(!/CREATE TABLE|ALTER TABLE|CREATE POLICY|CREATE INDEX|DROP |CREATE OR REP
   // SQL keywords was wrong twice over: the header's own note reads "delete the
   // plan first", so prose tripped it, and prose is not what matters. What
   // matters is that the header documents one statement and no more.
+  // Block comments stripped first: `DELETE/* extra */FROM` slipped past a
+  // counter that wanted whitespace between the two words, and adding that
+  // line to the RENDERER rather than the file shows as no drift at all
+  // (Codex r4 P3).
+  const revertBare = revertSql.replace(/\/\*[\s\S]*?\*\//g, ' ')
   for (const kw of ['DELETE FROM', 'UPDATE ', 'INSERT INTO', 'DROP ', 'ALTER ', 'TRUNCATE ']) {
-    const n = (revertSql.match(new RegExp(kw.replace(/ /g, '\\s+'), 'gi')) ?? []).length
+    const n = (revertBare.match(new RegExp(kw.replace(/ /g, '\\s+'), 'gi')) ?? []).length
     assert(n === (kw === 'DELETE FROM' ? 1 : 0), `the header documents ${kw === 'DELETE FROM' ? 'one DELETE' : `no ${kw.trim()}`} — it has ${n}`)
   }
 }
@@ -185,9 +190,18 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
 // (the revert is compared as a set above — a per-slug `includes` could not see
 // an EXTRA slug, which is the shape that breaks the DELETE)
 
-// ── 7. no migration other than this pair's writes fuel_meals rows ─────────
-// A second file inserting the same slugs would make the fixture stop being the
-// source: --check would pass while the database held something else.
+// ── 7. a CHEAP EARLY WARNING about a stray write — and not the proof ──────
+// What proves the library is what the fixtures say is `npm run proof:db`:
+// every migration that touches a fuel_ table is applied to a real Postgres and
+// the 37 rows are then compared field by field. A stray write changes a row
+// and fails there, whatever it is spelled like.
+//
+// This regex stays as the fast signal, and its claim is now that size. Four
+// rounds of widening it taught the lesson: Codex beat it with
+// `UPDATE ONLY(public.fuel_meals)`, a MERGE, a comment between the keyword and
+// the table, and a quoted upper-case name, and it also fired on a commented-out
+// example. Matching SQL with a regular expression is the wrong instrument for
+// a proof; it is a fine instrument for a hint.
 {
   const dir = join(ROOT, 'supabase', 'migrations')
   const generated = new Set(PAIRS.map((p) => p.migration.split('/').pop()))
@@ -206,14 +220,33 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
   // group LAZY rather than optional, so it still demands a character — and
   // `public.fuel_meals`, which has none around its dot, matched nothing.
   const OPT = `(?:${GAP})?`
+  // `merge${GAP}into` and `only` with parentheses are both Postgres, and both
+  // walked past the earlier version (Codex r4 P3).
   const WRITES = new RegExp(
-    `\\b(insert${GAP}into|update|delete${GAP}from)${GAP}(only${GAP})?("?public"?${OPT}\\.${OPT})?"?fuel_meals"?(?![_a-z0-9"])`,
+    `\\b(insert${GAP}into|merge${GAP}into|update|delete${GAP}from)${GAP}(only${OPT}\\(?${OPT})?("?public"?${OPT}\\.${OPT})?"?fuel_meals"?(?![_a-z0-9"])`,
     'i',
   )
+  // COMMENTS AND STRING LITERALS ARE NOT STATEMENTS. A migration holding
+  // `-- UPDATE public.fuel_meals SET name = 'Example';` failed this, which is
+  // a build broken over documentation (Codex r4 P3).
+  const executableOnly = (sql) => sql
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/--[^\n]*/g, ' ')
+    .replace(/'(?:[^']|'')*'/g, "''")
   const strays = readdirSync(dir)
     .filter((n) => n.endsWith('.sql') && !generated.has(n))
-    .filter((n) => WRITES.test(readLF(`supabase/migrations/${n}`)))
-  assert(strays.length === 0, `only a pair's own migration writes fuel_meals rows — also written by ${strays.join(', ')}`)
+    .filter((n) => WRITES.test(executableOnly(readLF(`supabase/migrations/${n}`))))
+  assert(strays.length === 0, `no migration outside a pair looks like it writes fuel_meals rows — ${strays.join(', ')}`)
+  // And the thing that actually proves it is wired in and ran.
+  {
+    const lock = JSON.parse(readLF('scripts/checks/fuel-db-proof.lock.json'))
+    const applied = (lock.migrations ?? []).map((m) => m.file)
+    for (const g of generated) {
+      assert(applied.includes(`supabase/migrations/${g}`), `the database proof applied ${g}, so its rows were compared`)
+    }
+    assert(/every Fuel migration in order/.test(lock.provenAgainst ?? ''),
+      'and it applied them in order, against a throwaway Postgres')
+  }
   // And the search BITES on every spelling it claims to cover, so the loop
   // above is not vacuous. The old positive probe only tried the unquoted
   // INSERT that happens to be in our own migration.
@@ -228,6 +261,8 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     ['a line comment between the keyword and the table', 'UPDATE -- sneaky\npublic.fuel_meals SET name = \'x\';'],
     ['a block comment between them', 'UPDATE /* sneaky */ public.fuel_meals SET name = \'x\';'],
     ['a newline between INSERT and INTO', 'INSERT\n  INTO public.fuel_meals (slug) VALUES (\'z\');'],
+    ['UPDATE ONLY with parentheses', "UPDATE ONLY(public.fuel_meals) SET name = 'x';"],
+    ['a MERGE', 'MERGE INTO public.fuel_meals t USING x ON true WHEN MATCHED THEN UPDATE SET name = \'x\';'],
   ]) {
     assert(WRITES.test(sql), `the search recognises ${label}`)
   }
@@ -236,6 +271,8 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
   // check would have failed the build over a file it has no business in
   // (Codex r3 P3).
   for (const [label, sql] of [
+    ['a commented-out example', executableOnly("-- UPDATE public.fuel_meals SET name = 'Example';\nSELECT 1;")],
+    ['a write inside a string literal', executableOnly("INSERT INTO public.fuel_audit (note) VALUES ('UPDATE public.fuel_meals SET name = x');")],
     ['a different table', "INSERT INTO public.fuel_rotation_meals (rotation_slug) VALUES ('c');"],
     ['a table whose name STARTS with it', "UPDATE public.fuel_meals_archive SET name = 'x';"],
     ['a quoted table whose name starts with it', 'UPDATE public."fuel_meals_history" SET name = \'x\';'],
@@ -330,6 +367,41 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     assert(t !== null, `rendering the expansion's seed as ${claimed} refuses its own slugs — they are seeded by the expansion`)
     assert(t === null || /already a seeded meal/.test(t.message), `and says why — ${t?.message?.slice(0, 80) ?? ''}`)
   }
+  // THE DISCRIMINATING PAIR. Every probe above renders the EXPANSION's seed,
+  // so excluding a fixture only when it happens to be EXPANSION_FIXTURE passed
+  // all of them — the expansion's slugs stay in the inventory either way
+  // (Codex r4 P3). These two use a seed of otherwise-unseeded slugs and differ
+  // only in WHICH fixture is claimed, so they can only both hold if the
+  // exclusion follows the argument.
+  {
+    const other = PAIRS.find((x) => x.fixture === 'fixtures/fuel-seed.json')
+    const phase1 = other.meals(read(other.fixture)).map((m) => m.slug)
+    const rotB = PAIRS.find((x) => x.fixture === 'fixtures/fuel-seed-rotation-b.json')
+    const rotBSlugs = rotB.meals(read(rotB.fixture)).map((m) => m.slug)
+    const template = good8b.fuel_meals_new[0]
+    const disjoint = (extra) => ({
+      ...good8b,
+      fuel_meals_new: [{ ...template, slug: 'zzqx-probe-dinner' }, { ...template, slug: extra }],
+    })
+    // Claiming phase 1: a phase-1 slug is EXCLUDED, so it must be accepted.
+    let t1 = null
+    try { renderLibraryExpansion(disjoint(phase1[0]), { fixture: 'fixtures/fuel-seed.json' }) } catch (e) { t1 = e }
+    assert(t1 === null, `claiming fixtures/fuel-seed.json, a phase-1 slug is its OWN and is accepted — ${t1?.message?.slice(0, 90) ?? ''}`)
+    // The same seed claiming phase 1, but reusing a ROTATION B slug: that one
+    // is not excluded, so it must be refused.
+    let t2 = null
+    try { renderLibraryExpansion(disjoint(rotBSlugs[0]), { fixture: 'fixtures/fuel-seed.json' }) } catch (e) { t2 = e }
+    assert(t2 !== null, 'and a rotation-B slug in that same seed is refused, because only the claimed fixture is excluded')
+    assert(t2 === null || /already a seeded meal/.test(t2.message), `with the reason — ${t2?.message?.slice(0, 80) ?? ''}`)
+    // And the mirror image, so neither direction is an accident.
+    let t3 = null
+    try { renderLibraryExpansion(disjoint(rotBSlugs[0]), { fixture: 'fixtures/fuel-seed-rotation-b.json' }) } catch (e) { t3 = e }
+    assert(t3 === null, `claiming rotation B, a rotation-B slug is its OWN and is accepted — ${t3?.message?.slice(0, 90) ?? ''}`)
+    let t4 = null
+    try { renderLibraryExpansion(disjoint(phase1[0]), { fixture: 'fixtures/fuel-seed-rotation-b.json' }) } catch (e) { t4 = e }
+    assert(t4 !== null, 'and a phase-1 slug in that seed is refused')
+  }
+
   // AND IT REFUSES TO GUESS. One argument used to mean "assume the expansion",
   // which is where the whole defect lived.
   for (const [label, call] of [
@@ -396,6 +468,10 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     // could have been `if (m[k])` and nothing would have noticed — and a
     // fixture carrying `calories_per_person: 0` would render (Codex r3 P3).
     runGuard(`a ${k} of zero`, (j) => { j.fuel_meals_new[2][k] = 0 }, new RegExp(`${k} = 0`))
+    // `false` is non-null and falsy and is not 0, so it survives both
+    // `if (m[k])` and `if (m[k] || m[k] === 0)` (Codex r4 P3). The guard says
+    // present-and-NULL, and this is what holds it to the word.
+    runGuard(`a ${k} of false`, (j) => { j.fuel_meals_new[3][k] = false }, new RegExp(`${k} = false`))
   }
   // And it accepts the fixture as authored, through the same route.
   writeFileSync(probePath, JSON.stringify(probeSeed(), null, 2))
@@ -514,6 +590,22 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     const loose = { ...household, dietary_rules: { ...household.dietary_rules, fish_per_week: 3 } }
     assert(!fishy(validatePlan({ entries: [{ slug: 'lemon-crumb-haddock', week: 2, servings: 0 }, { slug: 'honey-soy-mahi', week: 2, servings: 0 }] }, library, loose)),
       'and two do not warn when the household allows three')
+    // WHERE THE THRESHOLD IS, not merely that one exists. Two against an
+    // allowance of three cannot tell `> rules.fish_per_week` from
+    // `> Math.min(2, rules.fish_per_week)` (Codex r4 P3).
+    const three = ['lemon-crumb-haddock', 'honey-soy-mahi', 'garlic-shrimp-skillet'].map((slug) => ({ slug, week: 2, servings: 0 }))
+    assert(!fishy(validatePlan({ entries: three }, library, loose)),
+      'three fish nights do not warn at an allowance of three — the threshold is the rule, exactly')
+    const four = [...three, { slug: 'shrimp-fajitas', week: 2, servings: 0 }]
+    assert(fishy(validatePlan({ entries: four }, library, loose)),
+      'and four do')
+    // WEEK 1 TOO. Every call above used week 2, so excluding the new cuts from
+    // the count in week 1 would have passed (Codex r4 P3).
+    for (const pair1 of [['lemon-crumb-haddock', 'honey-soy-mahi'], ['garlic-shrimp-skillet', 'shrimp-fajitas']]) {
+      const w1 = { entries: pair1.map((slug) => ({ slug, week: 1, servings: 0 })) }
+      assert(fishy(validatePlan(w1, library, household)),
+        `two week-1 seafood nights warn as well — ${pair1.join(' + ')}`)
+    }
   }
   // A week-2 cut that freezes stays on the first trip, so the trip rule is
   // about the list and not about week 2.
