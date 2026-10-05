@@ -1,0 +1,1592 @@
+{
+  "_provenance": {
+    "authored_by": "Blaine, 2026-10-01",
+    "approved_by": "PENDING \u2014 Andrew and Lisa choose keepers over time",
+    "why": "Andrew, 2026-10-01: 'we need to expand the menu significantly. Items are already getting very old.' The seeded library was 13 meals across two fortnightly rotations, so every dish recurred roughly twice a month. Lisa, 2026-09-21, asked for soup and stew options for fall/winter. This file is LIBRARY ONLY \u2014 24 new meals, no fuel_rotations and no fuel_rotation_meals. Curation into rotations is a separate, trivial fixture once the family has eaten some of these and said which ones stay.",
+    "SOURCED": "Nothing here is measured from a live source. Every quantity, time and protein figure is Blaine's estimate from standard home-cook practice. They are PLAUSIBLE, NOT MEASURED. The first cook of each meal is the measurement.",
+    "INFERRED": "Every ingredient except the protein carries inferred=true. The protein row is inferred=false because the cut is the one deliberate choice in each dish.",
+    "design_note": "8 soups/stews (Lisa's ask, all low-ACTIVE / long-TOTAL), 4 beef, 3 pork, 2 shrimp, 3 chicken, 2 fish, 2 fast weeknight.",
+    "macros": "carbs_g_per_person, fat_g_per_person and calories_per_person are present and NULL on all 24, per FOR-234 SS4. scripts/fuel-seed-sql.mjs throws on a missing macro key AND on a non-null value."
+  },
+  "fuel_meals_new": [
+    {
+      "slug": "beef-barley-stew",
+      "name": "Beef and barley stew, carrots and thyme",
+      "protein_cut": "chuck",
+      "spice_profile": "thyme-bay",
+      "format": "braise",
+      "active_cook_minutes": 25,
+      "total_minutes": 150,
+      "servings": 8,
+      "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 4,
+      "rotation_note": "STEW. 25 minutes of hands-on at the front, then it is the oven's problem for two hours. Feeds 8 \u2014 plan it for a night you want tomorrow's lunch too.",
+      "ingredients": [
+        {
+          "item": "beef chuck",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "pearl barley",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "carrot",
+          "qty_per_person": 1.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "yellow onion",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "beef stock",
+          "qty_per_person": 1.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "tomato paste",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "dried thyme",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "chicken-tortilla-soup",
+      "name": "Chicken tortilla soup, lime and avocado",
+      "protein_cut": "chicken_thigh",
+      "spice_profile": "cumin-chili",
+      "format": "soup",
+      "active_cook_minutes": 20,
+      "total_minutes": 45,
+      "servings": 6,
+      "protein_g_per_person": 42,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "SOUP. Thighs poach in the broth and shred straight into it, so no separate cook step. Avocado and tortilla strips go on at the table.",
+      "ingredients": [
+        {
+          "item": "chicken thigh, boneless skinless",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "fire-roasted diced tomatoes",
+          "qty_per_person": 0.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "black beans",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 1.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "avocado",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "lime",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "ground cumin",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "corn tortilla",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "white-chicken-chili",
+      "name": "White chicken chili, green chile and lime",
+      "protein_cut": "chicken_breast",
+      "spice_profile": "green-chile-cumin",
+      "format": "soup",
+      "active_cook_minutes": 20,
+      "total_minutes": 45,
+      "servings": 6,
+      "protein_g_per_person": 45,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "SOUP. Thickens on white beans rather than cream. Keeps four days and tastes better on day two.",
+      "ingredients": [
+        {
+          "item": "chicken breast",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "cannellini beans",
+          "qty_per_person": 0.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "diced green chiles",
+          "qty_per_person": 0.25,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 1.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "yellow onion",
+          "qty_per_person": 0.4,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "lime",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "ground cumin",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "italian-wedding-soup",
+      "name": "Italian wedding soup, turkey meatballs and greens",
+      "protein_cut": "ground_turkey",
+      "spice_profile": "garlic-herb-italian",
+      "format": "soup",
+      "active_cook_minutes": 25,
+      "total_minutes": 45,
+      "servings": 6,
+      "protein_g_per_person": 41,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "SOUP. Meatballs are rolled small and poached in the broth \u2014 no browning step. Uses the same 93/7 as the other turkey nights.",
+      "ingredients": [
+        {
+          "item": "ground turkey 93/7",
+          "qty_per_person": 6.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "escarole or spinach",
+          "qty_per_person": 3,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "acini di pepe or orzo",
+          "qty_per_person": 0.25,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 1.75,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "parmesan",
+          "qty_per_person": 0.5,
+          "unit": "oz",
+          "store_section": "Dairy",
+          "inferred": true
+        },
+        {
+          "item": "egg",
+          "qty_per_person": 0.25,
+          "unit": "each",
+          "store_section": "Dairy",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 1,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "pork-green-chili",
+      "name": "Pork green chili, tomatillo and potato",
+      "protein_cut": "pork_shoulder",
+      "spice_profile": "tomatillo-green-chile",
+      "format": "braise",
+      "active_cook_minutes": 25,
+      "total_minutes": 180,
+      "servings": 8,
+      "protein_g_per_person": 46,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 4,
+      "rotation_note": "STEW. Three hours, nearly all unattended. Freezes well \u2014 this is the one to make double of.",
+      "ingredients": [
+        {
+          "item": "pork shoulder",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "tomatillo",
+          "qty_per_person": 3,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "poblano pepper",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "russet potato",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 1,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "yellow onion",
+          "qty_per_person": 0.4,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "ground cumin",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "lime",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "lentil-sausage-soup",
+      "name": "Lentil soup with chicken sausage and kale",
+      "protein_cut": "chicken_sausage",
+      "spice_profile": "smoked-paprika",
+      "format": "soup",
+      "active_cook_minutes": 15,
+      "total_minutes": 40,
+      "servings": 6,
+      "protein_g_per_person": 40,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 4,
+      "rotation_note": "SOUP. Cheapest night in the book and still clears the protein floor. Lentils need no soaking.",
+      "ingredients": [
+        {
+          "item": "chicken sausage",
+          "qty_per_person": 5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "brown lentils",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "kale",
+          "qty_per_person": 2.5,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "carrot",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 1.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "smoked paprika",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 1,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "turkey-chili",
+      "name": "Turkey chili, three beans and cocoa",
+      "protein_cut": "ground_turkey",
+      "spice_profile": "chili-cocoa",
+      "format": "soup",
+      "active_cook_minutes": 20,
+      "total_minutes": 50,
+      "servings": 8,
+      "protein_g_per_person": 43,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 4,
+      "rotation_note": "CHILI. The cocoa is a teaspoon and nobody tastes chocolate \u2014 it just makes it read as having simmered all day. Feeds 8.",
+      "ingredients": [
+        {
+          "item": "ground turkey 93/7",
+          "qty_per_person": 6.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "kidney beans",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "black beans",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "crushed tomatoes",
+          "qty_per_person": 0.75,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "yellow onion",
+          "qty_per_person": 0.4,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "chili powder",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "unsweetened cocoa powder",
+          "qty_per_person": 0.25,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "zuppa-toscana",
+      "name": "Zuppa toscana \u2014 sausage, potato and kale",
+      "protein_cut": "chicken_sausage",
+      "spice_profile": "fennel-chili-flake",
+      "format": "soup",
+      "active_cook_minutes": 20,
+      "total_minutes": 40,
+      "servings": 6,
+      "protein_g_per_person": 41,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "SOUP. Chicken sausage instead of pork keeps the fat sane without losing the fennel. Half-and-half at the end, off the heat.",
+      "ingredients": [
+        {
+          "item": "chicken sausage",
+          "qty_per_person": 5.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "russet potato",
+          "qty_per_person": 0.75,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "kale",
+          "qty_per_person": 2.5,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 1.5,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "half-and-half",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Dairy",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 1,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "red pepper flakes",
+          "qty_per_person": 0.25,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "flank-chimichurri",
+      "name": "Flank steak with chimichurri, blistered peppers",
+      "protein_cut": "flank",
+      "spice_profile": "chimichurri",
+      "format": "grill-or-sear",
+      "active_cook_minutes": 15,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 46,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "STEAK. Counts against the monthly steak cap alongside the ribeye. Chimichurri is a blender job and keeps a week.",
+      "ingredients": [
+        {
+          "item": "flank steak",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "mini sweet peppers",
+          "qty_per_person": 4,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "flat-leaf parsley",
+          "qty_per_person": 0.5,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 1,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "red wine vinegar",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "olive oil",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "smash-burgers",
+      "name": "Smash burgers, griddled onion, side salad",
+      "protein_cut": "ground_beef",
+      "spice_profile": "salt-and-pepper",
+      "format": "patty",
+      "active_cook_minutes": 15,
+      "total_minutes": 20,
+      "servings": 4,
+      "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "FAST. Twenty minutes start to plate. The kids will eat this one without negotiation.",
+      "ingredients": [
+        {
+          "item": "ground beef 90/10",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "brioche bun",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "yellow onion",
+          "qty_per_person": 0.3,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "romaine",
+          "qty_per_person": 2,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "cheddar",
+          "qty_per_person": 0.75,
+          "unit": "oz",
+          "store_section": "Dairy",
+          "inferred": true
+        },
+        {
+          "item": "dill pickle",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "korean-beef-bowl",
+      "name": "Korean beef bowl, cucumber and sesame rice",
+      "protein_cut": "ground_beef",
+      "spice_profile": "soy-sesame-gochujang",
+      "format": "bowl",
+      "active_cook_minutes": 15,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 42,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "BOWL. Gochujang is the only new jar and it lasts months in the fridge. Cucumber goes on raw for crunch.",
+      "ingredients": [
+        {
+          "item": "ground beef 90/10",
+          "qty_per_person": 6.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "jasmine rice",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "english cucumber",
+          "qty_per_person": 0.4,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "gochujang",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "soy sauce",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "toasted sesame oil",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "scallion",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "beef-and-broccoli",
+      "name": "Beef and broccoli, garlic ginger sauce",
+      "protein_cut": "flank",
+      "spice_profile": "soy-ginger-garlic",
+      "format": "stir-fry",
+      "active_cook_minutes": 20,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "STIR-FRY. Slice the flank against the grain while the rice cooks. Shares its sauce base with the soy-ginger stir-fry already in rotation A.",
+      "ingredients": [
+        {
+          "item": "flank steak",
+          "qty_per_person": 6.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "broccoli",
+          "qty_per_person": 5,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "jasmine rice",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "soy sauce",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "fresh ginger",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 1,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "cornstarch",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "pork-tenderloin-apple",
+      "name": "Pork tenderloin, apple and sage, roasted sprouts",
+      "protein_cut": "pork_tenderloin",
+      "spice_profile": "sage-apple",
+      "format": "oven-roast",
+      "active_cook_minutes": 15,
+      "total_minutes": 35,
+      "servings": 4,
+      "protein_g_per_person": 46,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "ROAST. Tenderloin is the leanest cut in the book and cooks in 20 minutes. Pull it at 145F and let it rest.",
+      "ingredients": [
+        {
+          "item": "pork tenderloin",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "brussels sprouts",
+          "qty_per_person": 5,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "apple",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "dried sage",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "dijon mustard",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "olive oil",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "mustard-pork-chops",
+      "name": "Pork chops, mustard pan sauce, green beans",
+      "protein_cut": "pork_chop",
+      "spice_profile": "dijon-thyme",
+      "format": "pan-seared",
+      "active_cook_minutes": 15,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 45,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "FAST. Sear, rest, build the sauce in the same pan. Bone-in chops are more forgiving than boneless.",
+      "ingredients": [
+        {
+          "item": "bone-in pork chop",
+          "qty_per_person": 8,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "green beans",
+          "qty_per_person": 5,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "dijon mustard",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 0.25,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "dried thyme",
+          "qty_per_person": 0.25,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "butter",
+          "qty_per_person": 0.5,
+          "unit": "tbsp",
+          "store_section": "Dairy",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "carnitas-bowls",
+      "name": "Carnitas bowls, pickled onion and cilantro",
+      "protein_cut": "pork_shoulder",
+      "spice_profile": "orange-cumin-oregano",
+      "format": "braise",
+      "active_cook_minutes": 20,
+      "total_minutes": 210,
+      "servings": 8,
+      "protein_g_per_person": 44,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 4,
+      "rotation_note": "BRAISE. Three and a half hours, twenty minutes of work. Crisp it under the broiler at the end \u2014 that step is the whole dish.",
+      "ingredients": [
+        {
+          "item": "pork shoulder",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "jasmine rice",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "red onion",
+          "qty_per_person": 0.3,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "orange",
+          "qty_per_person": 0.25,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "cilantro",
+          "qty_per_person": 0.25,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "ground cumin",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "dried oregano",
+          "qty_per_person": 0.25,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "garlic-shrimp-skillet",
+      "name": "Garlic shrimp, charred corn, lemon rice",
+      "protein_cut": "shrimp",
+      "spice_profile": "garlic-lemon-chili",
+      "format": "skillet",
+      "active_cook_minutes": 15,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 41,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 2,
+      "rotation_note": "FAST. Shrimp cook in four minutes \u2014 have everything else done first. Frozen raw shrimp from the bag is the right buy here.",
+      "ingredients": [
+        {
+          "item": "raw shrimp, peeled",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "corn",
+          "qty_per_person": 3,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "jasmine rice",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 2,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "lemon",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "red pepper flakes",
+          "qty_per_person": 0.25,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "butter",
+          "qty_per_person": 0.5,
+          "unit": "tbsp",
+          "store_section": "Dairy",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "shrimp-fajitas",
+      "name": "Shrimp fajitas, peppers and onion",
+      "protein_cut": "shrimp",
+      "spice_profile": "fajita-chili-lime",
+      "format": "sheet-pan",
+      "active_cook_minutes": 20,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 40,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 2,
+      "rotation_note": "SHEET-PAN. Everything on one tray. Shrimp go in for the last six minutes only, after the peppers have had a head start.",
+      "ingredients": [
+        {
+          "item": "raw shrimp, peeled",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "bell pepper",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "yellow onion",
+          "qty_per_person": 0.4,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "flour tortilla",
+          "qty_per_person": 1.5,
+          "unit": "each",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "chili powder",
+          "qty_per_person": 0.75,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "lime",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "chicken-shawarma-bowl",
+      "name": "Chicken shawarma bowl, cucumber salad, garlic sauce",
+      "protein_cut": "chicken_thigh",
+      "spice_profile": "shawarma",
+      "format": "marinate-and-roast",
+      "active_cook_minutes": 20,
+      "total_minutes": 40,
+      "servings": 4,
+      "protein_g_per_person": 45,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "BOWL. Marinade is pantry spices and yogurt \u2014 build it in the morning and it is a 20-minute night.",
+      "ingredients": [
+        {
+          "item": "chicken thigh, boneless skinless",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "english cucumber",
+          "qty_per_person": 0.4,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "cherry tomato",
+          "qty_per_person": 3,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "greek yogurt",
+          "qty_per_person": 2,
+          "unit": "oz",
+          "store_section": "Dairy",
+          "inferred": true
+        },
+        {
+          "item": "jasmine rice",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "ground cumin",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "ground coriander",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "garlic",
+          "qty_per_person": 1,
+          "unit": "clove",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "chicken-piccata",
+      "name": "Chicken piccata, capers and lemon, asparagus",
+      "protein_cut": "chicken_breast",
+      "spice_profile": "lemon-caper",
+      "format": "pan-seared",
+      "active_cook_minutes": 20,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 47,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "FAST. Pound the breasts thin and they cook in six minutes. Capers are the only unusual jar and they keep forever.",
+      "ingredients": [
+        {
+          "item": "chicken breast",
+          "qty_per_person": 7.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "asparagus",
+          "qty_per_person": 5,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "capers",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "lemon",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 0.25,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "butter",
+          "qty_per_person": 0.5,
+          "unit": "tbsp",
+          "store_section": "Dairy",
+          "inferred": true
+        },
+        {
+          "item": "all-purpose flour",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "arroz-con-pollo",
+      "name": "Arroz con pollo, peas and peppers",
+      "protein_cut": "chicken_thigh",
+      "spice_profile": "sofrito-paprika",
+      "format": "one-pot",
+      "active_cook_minutes": 20,
+      "total_minutes": 45,
+      "servings": 6,
+      "protein_g_per_person": 43,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "ONE-POT. Rice cooks in the same pan under the chicken. One pot to wash, which on a Wednesday is the point.",
+      "ingredients": [
+        {
+          "item": "chicken thigh, boneless skinless",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "jasmine rice",
+          "qty_per_person": 0.4,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "bell pepper",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "frozen peas",
+          "qty_per_person": 2,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "chicken stock",
+          "qty_per_person": 0.75,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "smoked paprika",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "yellow onion",
+          "qty_per_person": 0.3,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "honey-soy-mahi",
+      "name": "Honey-soy mahi, snap peas, rice",
+      "protein_cut": "mahi",
+      "spice_profile": "honey-soy",
+      "format": "pan-seared",
+      "active_cook_minutes": 15,
+      "total_minutes": 20,
+      "servings": 4,
+      "protein_g_per_person": 43,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 2,
+      "rotation_note": "FISH \u2014 fast. Twenty minutes and the glaze is three pantry items. Mahi holds together better than cod in a hot pan.",
+      "ingredients": [
+        {
+          "item": "mahi mahi",
+          "qty_per_person": 7,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "sugar snap peas",
+          "qty_per_person": 4,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "jasmine rice",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "soy sauce",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "honey",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "fresh ginger",
+          "qty_per_person": 0.5,
+          "unit": "tsp",
+          "store_section": "Produce",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "lemon-crumb-haddock",
+      "name": "Lemon-crumb haddock, roasted carrots",
+      "protein_cut": "haddock",
+      "spice_profile": "lemon-herb-crumb",
+      "format": "oven-roast",
+      "active_cook_minutes": 15,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 41,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 2,
+      "rotation_note": "FISH \u2014 oven. The crumb goes on dry and crisps without frying. A white-fish night that is not the cod tacos.",
+      "ingredients": [
+        {
+          "item": "haddock",
+          "qty_per_person": 7.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "carrot",
+          "qty_per_person": 1.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "panko breadcrumbs",
+          "qty_per_person": 2,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "lemon",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "dried parsley",
+          "qty_per_person": 0.25,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "olive oil",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "sheet-pan-sausage-peppers",
+      "name": "Sheet-pan chicken sausage, peppers and potatoes",
+      "protein_cut": "chicken_sausage",
+      "spice_profile": "italian-fennel",
+      "format": "sheet-pan",
+      "active_cook_minutes": 10,
+      "total_minutes": 35,
+      "servings": 4,
+      "protein_g_per_person": 40,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 4,
+      "rotation_note": "SHEET-PAN. Ten minutes of knife work and the oven does the rest. The lowest-effort night in the book.",
+      "ingredients": [
+        {
+          "item": "chicken sausage",
+          "qty_per_person": 6,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "bell pepper",
+          "qty_per_person": 1,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "baby potatoes",
+          "qty_per_person": 5,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "yellow onion",
+          "qty_per_person": 0.4,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "italian seasoning",
+          "qty_per_person": 0.75,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "olive oil",
+          "qty_per_person": 1,
+          "unit": "tbsp",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    },
+    {
+      "slug": "turkey-taco-skillet",
+      "name": "Turkey taco skillet, black beans and lime slaw",
+      "protein_cut": "ground_turkey",
+      "spice_profile": "taco-chili-lime",
+      "format": "skillet",
+      "active_cook_minutes": 15,
+      "total_minutes": 25,
+      "servings": 4,
+      "protein_g_per_person": 42,
+      "carbs_g_per_person": null,
+      "fat_g_per_person": null,
+      "calories_per_person": null,
+      "perishable_within_days": 3,
+      "rotation_note": "FAST. One skillet, 25 minutes, and the slaw is bagged cabbage with lime on it. Uses the 93/7 already on the list.",
+      "ingredients": [
+        {
+          "item": "ground turkey 93/7",
+          "qty_per_person": 6.5,
+          "unit": "oz",
+          "store_section": "Meat & Seafood",
+          "inferred": false
+        },
+        {
+          "item": "black beans",
+          "qty_per_person": 0.33,
+          "unit": "cup dry",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "shredded cabbage",
+          "qty_per_person": 3,
+          "unit": "oz",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "lime",
+          "qty_per_person": 0.5,
+          "unit": "each",
+          "store_section": "Produce",
+          "inferred": true
+        },
+        {
+          "item": "chili powder",
+          "qty_per_person": 1,
+          "unit": "tsp",
+          "store_section": "Pantry",
+          "inferred": true
+        },
+        {
+          "item": "corn tortilla",
+          "qty_per_person": 2,
+          "unit": "each",
+          "store_section": "Pantry",
+          "inferred": true
+        }
+      ]
+    }
+  ],
+  "_rule_check": {
+    "_comment": "Checked against fuel_household.dietary_rules. Counts computed from this file, not asserted.",
+    "meals_added": 24,
+    "protein_floor_g_per_person": "min 40, max 47. Floor is 40. PASS.",
+    "cook_cap_minutes": "max ACTIVE is 25. Cap is 25. PASS. Stews run long on TOTAL only \u2014 that is the point of a stew.",
+    "vegetable_every_night": "24 of 24. PASS.",
+    "no_tilapia": "PASS.",
+    "wheelhouse_cuts_only": "DELIBERATELY WIDENED on Andrew's 2026-10-01 instruction to generate new dinners. New cuts: chuck, flank, ground beef 90/10, pork shoulder, pork tenderloin, bone-in pork chop, shrimp, chicken sausage, mahi mahi, haddock. A 13-meal library cannot stop feeling old without new proteins.",
+    "steak_per_month": "flank-chimichurri is the only steak added and counts against the monthly cap with the ribeye. Whoever assembles a rotation must not put both in the same fortnight.",
+    "frugal_reuse_L5": "Held. New pantry items are gochujang, capers, barley, lentils, panko, cocoa, dried sage/oregano/coriander \u2014 all shelf-stable and all outliving a fortnight. Half-and-half and butter are the only short-life additions.",
+    "prep_diversion_pct": "UNCHANGED at 50. Every meat quantity here is PER PERSON PER MEAL and is still doubled at the shopping-list layer. This file does not apply the diversion.",
+    "servings": "Stews and braises carry servings of 6-8 on purpose \u2014 leftovers are the reason to cook them."
+  }
+}
