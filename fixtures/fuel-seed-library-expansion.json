@@ -1,8 +1,8 @@
 {
   "_provenance": {
     "authored_by": "Blaine, 2026-10-01",
-    "approved_by": "PENDING \u2014 Andrew and Lisa choose keepers over time",
-    "why": "Andrew, 2026-10-01: 'we need to expand the menu significantly. Items are already getting very old.' The seeded library was 13 meals across two fortnightly rotations, so every dish recurred roughly twice a month. Lisa, 2026-09-21, asked for soup and stew options for fall/winter. This file is LIBRARY ONLY \u2014 24 new meals, no fuel_rotations and no fuel_rotation_meals. Curation into rotations is a separate, trivial fixture once the family has eaten some of these and said which ones stay.",
+    "approved_by": "PENDING — Andrew and Lisa choose keepers over time",
+    "why": "Andrew, 2026-10-01: 'we need to expand the menu significantly. Items are already getting very old.' The seeded library was 13 meals across two fortnightly rotations, so every dish recurred roughly twice a month. Lisa, 2026-09-21, asked for soup and stew options for fall/winter. This file is LIBRARY ONLY — 24 new meals, no fuel_rotations and no fuel_rotation_meals. Curation into rotations is a separate, trivial fixture once the family has eaten some of these and said which ones stay.",
     "SOURCED": "Nothing here is measured from a live source. Every quantity, time and protein figure is Blaine's estimate from standard home-cook practice. They are PLAUSIBLE, NOT MEASURED. The first cook of each meal is the measurement.",
     "INFERRED": "Every ingredient except the protein carries inferred=true. The protein row is inferred=false because the cut is the one deliberate choice in each dish.",
     "design_note": "8 soups/stews (Lisa's ask, all low-ACTIVE / long-TOTAL), 4 beef, 3 pork, 2 shrimp, 3 chicken, 2 fish, 2 fast weeknight.",
@@ -23,14 +23,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 4,
-      "rotation_note": "STEW. 25 minutes of hands-on at the front, then it is the oven's problem for two hours. Feeds 8 \u2014 plan it for a night you want tomorrow's lunch too.",
+      "rotation_note": "STEW. 25 minutes of hands-on at the front, then it is the oven's problem for two hours. Feeds 8 — plan it for a night you want tomorrow's lunch too.",
       "ingredients": [
         {
           "item": "beef chuck",
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "pearl barley",
@@ -97,7 +97,7 @@
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "fire-roasted diced tomatoes",
@@ -171,7 +171,7 @@
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "cannellini beans",
@@ -231,14 +231,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 3,
-      "rotation_note": "SOUP. Meatballs are rolled small and poached in the broth \u2014 no browning step. Uses the same 93/7 as the other turkey nights.",
+      "rotation_note": "SOUP. Meatballs are rolled small and poached in the broth — no browning step. Uses the same 93/7 as the other turkey nights.",
       "ingredients": [
         {
           "item": "ground turkey 93/7",
           "qty_per_person": 6.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "escarole or spinach",
@@ -298,14 +298,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 4,
-      "rotation_note": "STEW. Three hours, nearly all unattended. Freezes well \u2014 this is the one to make double of.",
+      "rotation_note": "STEW. Three hours, nearly all unattended. Freezes well — this is the one to make double of.",
       "ingredients": [
         {
           "item": "pork shoulder",
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "tomatillo",
@@ -379,7 +379,7 @@
           "qty_per_person": 5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "brown lentils",
@@ -439,14 +439,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 4,
-      "rotation_note": "CHILI. The cocoa is a teaspoon and nobody tastes chocolate \u2014 it just makes it read as having simmered all day. Feeds 8.",
+      "rotation_note": "CHILI. The cocoa is a teaspoon and nobody tastes chocolate — it just makes it read as having simmered all day. Feeds 8.",
       "ingredients": [
         {
           "item": "ground turkey 93/7",
           "qty_per_person": 6.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "kidney beans",
@@ -494,7 +494,7 @@
     },
     {
       "slug": "zuppa-toscana",
-      "name": "Zuppa toscana \u2014 sausage, potato and kale",
+      "name": "Zuppa toscana — sausage, potato and kale",
       "protein_cut": "chicken_sausage",
       "spice_profile": "fennel-chili-flake",
       "format": "soup",
@@ -513,7 +513,7 @@
           "qty_per_person": 5.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "russet potato",
@@ -580,7 +580,7 @@
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "mini sweet peppers",
@@ -640,7 +640,7 @@
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "brioche bun",
@@ -700,7 +700,7 @@
           "qty_per_person": 6.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "jasmine rice",
@@ -767,7 +767,7 @@
           "qty_per_person": 6.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "broccoli",
@@ -834,7 +834,7 @@
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "brussels sprouts",
@@ -894,7 +894,7 @@
           "qty_per_person": 8,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "green beans",
@@ -947,14 +947,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 4,
-      "rotation_note": "BRAISE. Three and a half hours, twenty minutes of work. Crisp it under the broiler at the end \u2014 that step is the whole dish.",
+      "rotation_note": "BRAISE. Three and a half hours, twenty minutes of work. Crisp it under the broiler at the end — that step is the whole dish.",
       "ingredients": [
         {
           "item": "pork shoulder",
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "jasmine rice",
@@ -1014,14 +1014,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 2,
-      "rotation_note": "FAST. Shrimp cook in four minutes \u2014 have everything else done first. Frozen raw shrimp from the bag is the right buy here.",
+      "rotation_note": "FAST. Shrimp cook in four minutes — have everything else done first. Frozen raw shrimp from the bag is the right buy here.",
       "ingredients": [
         {
           "item": "raw shrimp, peeled",
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "corn",
@@ -1088,7 +1088,7 @@
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "bell pepper",
@@ -1141,14 +1141,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 3,
-      "rotation_note": "BOWL. Marinade is pantry spices and yogurt \u2014 build it in the morning and it is a 20-minute night.",
+      "rotation_note": "BOWL. Marinade is pantry spices and yogurt — build it in the morning and it is a 20-minute night.",
       "ingredients": [
         {
           "item": "chicken thigh, boneless skinless",
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "english cucumber",
@@ -1222,7 +1222,7 @@
           "qty_per_person": 7.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "asparagus",
@@ -1289,7 +1289,7 @@
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "jasmine rice",
@@ -1309,7 +1309,7 @@
           "item": "frozen peas",
           "qty_per_person": 2,
           "unit": "oz",
-          "store_section": "Produce",
+          "store_section": "Frozen",
           "inferred": true
         },
         {
@@ -1349,14 +1349,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 2,
-      "rotation_note": "FISH \u2014 fast. Twenty minutes and the glaze is three pantry items. Mahi holds together better than cod in a hot pan.",
+      "rotation_note": "FISH — fast. Twenty minutes and the glaze is three pantry items. Mahi holds together better than cod in a hot pan.",
       "ingredients": [
         {
           "item": "mahi mahi",
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "sugar snap peas",
@@ -1409,14 +1409,14 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 2,
-      "rotation_note": "FISH \u2014 oven. The crumb goes on dry and crisps without frying. A white-fish night that is not the cod tacos.",
+      "rotation_note": "FISH — oven. The crumb goes on dry and crisps without frying. A white-fish night that is not the cod tacos.",
       "ingredients": [
         {
           "item": "haddock",
           "qty_per_person": 7.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "carrot",
@@ -1476,7 +1476,7 @@
           "qty_per_person": 6,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "bell pepper",
@@ -1536,7 +1536,7 @@
           "qty_per_person": 6.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",
-          "inferred": false
+          "inferred": true
         },
         {
           "item": "black beans",
@@ -1580,13 +1580,13 @@
     "_comment": "Checked against fuel_household.dietary_rules. Counts computed from this file, not asserted.",
     "meals_added": 24,
     "protein_floor_g_per_person": "min 40, max 47. Floor is 40. PASS.",
-    "cook_cap_minutes": "max ACTIVE is 25. Cap is 25. PASS. Stews run long on TOTAL only \u2014 that is the point of a stew.",
+    "cook_cap_minutes": "max ACTIVE is 25. Cap is 25. PASS. Stews run long on TOTAL only — that is the point of a stew.",
     "vegetable_every_night": "24 of 24. PASS.",
     "no_tilapia": "PASS.",
     "wheelhouse_cuts_only": "DELIBERATELY WIDENED on Andrew's 2026-10-01 instruction to generate new dinners. New cuts: chuck, flank, ground beef 90/10, pork shoulder, pork tenderloin, bone-in pork chop, shrimp, chicken sausage, mahi mahi, haddock. A 13-meal library cannot stop feeling old without new proteins.",
     "steak_per_month": "flank-chimichurri is the only steak added and counts against the monthly cap with the ribeye. Whoever assembles a rotation must not put both in the same fortnight.",
-    "frugal_reuse_L5": "Held. New pantry items are gochujang, capers, barley, lentils, panko, cocoa, dried sage/oregano/coriander \u2014 all shelf-stable and all outliving a fortnight. Half-and-half and butter are the only short-life additions.",
+    "frugal_reuse_L5": "Held. New pantry items are gochujang, capers, barley, lentils, panko, cocoa, dried sage/oregano/coriander — all shelf-stable and all outliving a fortnight. Half-and-half and butter are the only short-life additions.",
     "prep_diversion_pct": "UNCHANGED at 50. Every meat quantity here is PER PERSON PER MEAL and is still doubled at the shopping-list layer. This file does not apply the diversion.",
-    "servings": "Stews and braises carry servings of 6-8 on purpose \u2014 leftovers are the reason to cook them."
+    "servings": "Stews and braises carry servings of 6-8 on purpose — leftovers are the reason to cook them."
   }
 }

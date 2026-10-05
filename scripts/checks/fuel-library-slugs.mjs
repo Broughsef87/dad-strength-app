@@ -18,10 +18,10 @@
 // alone, whatever feature changes next.
 //
 //   node --import tsx scripts/checks/fuel-library-slugs.mjs   (run-all does this)
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { PAIRS, seededSlugs, renderLibraryExpansion } from '../fuel-seed-sql.mjs'
+import { PAIRS, seededSlugs, renderLibraryExpansion, renderPair, EXPANSION_FIXTURE } from '../fuel-seed-sql.mjs'
 import { FRESH_ONLY_CUTS } from '../../src/lib/fuel/solve.ts'
 import { STEAK_CUT } from '../../src/lib/fuel/record.ts'
 
@@ -118,12 +118,37 @@ for (const s of expansion.fuel_meals_new.map((m) => m.slug)) {
 }
 assert(!/CREATE TABLE|ALTER TABLE|CREATE POLICY|CREATE INDEX|DROP |CREATE OR REPLACE/.test(mig),
   'the expansion migration creates, alters and drops nothing — it is meal rows only')
+// EXACTLY the 24, and nothing beside them. Naming each slug once left room for
+// a 25th tuple and for an appended statement: both passed every check (Codex
+// r1 P3). So the tuples are counted, the statements are counted, and the
+// revert's slug list is compared as a SET rather than searched for members.
+{
+  const expected = expansion.fuel_meals_new.map((m) => m.slug)
+  const tuples = (body.match(/^  \('/gm) ?? []).length
+  assert(tuples === expected.length, `the migration holds exactly ${expected.length} meal tuples — it holds ${tuples}`)
+  const statements = (mig.match(/\bINSERT INTO\b/gi) ?? []).length
+  assert(statements === 1, `and exactly one INSERT statement — it has ${statements}`)
+  // Counted in the SQL BODY, never in the header: the header legitimately
+  // holds semicolons, in prose and in the revert it quotes.
+  const terminators = (body.match(/;/g) ?? []).length
+  assert(terminators === 1, `and the body ends in exactly one statement terminator — it has ${terminators}`)
+  // Every slug quoted in the INSERT, as a set: an extra one fails here even
+  // though every expected slug is still present.
+  const inserted = [...body.matchAll(/^  \('([^']+)'/gm)].map((m) => m[1])
+  assert(inserted.join('|') === expected.join('|'),
+    `the inserted slugs are exactly the fixture's, in order — extra: ${inserted.filter((x) => !expected.includes(x)).join(', ') || 'none'}; missing: ${expected.filter((x) => !inserted.includes(x)).join(', ') || 'none'}`)
+  // The revert too. An extra slug there is worse than a missing one: adding
+  // `cast-iron-ribeye` makes the DELETE fail on its membership foreign key, so
+  // the revert does nothing at all and the expansion stays installed.
+  const header = mig.slice(0, mig.indexOf('INSERT INTO public.fuel_meals'))
+  const reverted = [...header.matchAll(/^--\s+'([^']+)',?$/gm)].map((m) => m[1])
+  assert(reverted.join('|') === expected.join('|'),
+    `the revert names exactly the 24 — extra: ${reverted.filter((x) => !expected.includes(x)).join(', ') || 'none'}; missing: ${expected.filter((x) => !reverted.includes(x)).join(', ') || 'none'}`)
+}
 assert(/INSERT INTO public\.fuel_rotation/.test(mig) === false, 'and it writes no rotation or membership row')
 assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header carries the exact revert')
-for (const s of expansion.fuel_meals_new.map((m) => m.slug)) {
-  assert(mig.slice(0, mig.indexOf('INSERT INTO public.fuel_meals')).includes(`'${s}'`),
-    `and the revert names "${s}" — a revert that misses a slug leaves a meal behind`)
-}
+// (the revert is compared as a set above — a per-slug `includes` could not see
+// an EXTRA slug, which is the shape that breaks the DELETE)
 
 // ── 7. no migration other than this pair's writes fuel_meals rows ─────────
 // A second file inserting the same slugs would make the fixture stop being the
@@ -131,10 +156,19 @@ for (const s of expansion.fuel_meals_new.map((m) => m.slug)) {
 {
   const dir = join(ROOT, 'supabase', 'migrations')
   const generated = new Set(PAIRS.map((p) => p.migration.split('/').pop()))
+  // ANY statement that writes the table, however it is spelled. The search
+  // was the exact text `INSERT INTO public.fuel_meals`, so an UPDATE, a
+  // DELETE, an unqualified name or a lowercase keyword all slipped past it
+  // (Codex r1 P3) — and a stray UPDATE is the worst of them, because it
+  // rewrites a meal while --check stays green.
+  const WRITES = /\b(insert\s+into|update|delete\s+from)\s+(public\s*\.\s*)?fuel_meals\b/i
   const strays = readdirSync(dir)
     .filter((n) => n.endsWith('.sql') && !generated.has(n))
-    .filter((n) => /INSERT INTO public\.fuel_meals/.test(readLF(`supabase/migrations/${n}`)))
-  assert(strays.length === 0, `only a pair's own migration seeds fuel_meals — also written by ${strays.join(', ')}`)
+    .filter((n) => WRITES.test(readLF(`supabase/migrations/${n}`)))
+  assert(strays.length === 0, `only a pair's own migration writes fuel_meals rows — also written by ${strays.join(', ')}`)
+  // And the search BITES, so the loop above is not vacuous: the pair's own
+  // migration is the one file it would have named.
+  assert(WRITES.test(mig), 'and the search recognises a write when it sees one')
 }
 
 // ── 8. THE GENERATOR'S GUARDS, RUN RATHER THAN READ ───────────────────────
@@ -156,7 +190,12 @@ for (const s of expansion.fuel_meals_new.map((m) => m.slug)) {
     assert(threw === null || expect.test(threw.message), `and says why — ${label}: ${threw?.message?.slice(0, 90) ?? ''}`)
   }
 
-  refuses('a slug that is already seeded', (j) => { j.fuel_meals_new[0].slug = seededSlugs()[0] }, /already a seeded meal/)
+  // EVERY seeded slug, not the first one. Deleting rotation B from the
+  // generator's inventory left all 375 checks green, because the probe only
+  // ever tried a phase-1 slug (Codex r1 P2).
+  for (const taken of seededSlugs(EXPANSION_FIXTURE)) {
+    refuses(`a slug already seeded as "${taken}"`, (j) => { j.fuel_meals_new[0].slug = taken }, /already a seeded meal/)
+  }
   refuses('a slug in the own-meal namespace', (j) => { j.fuel_meals_new[0].slug = 'u00000000000000000000000000000000~mine' }, /own-meal namespace/)
   refuses('a slug duplicated inside the fixture', (j) => { j.fuel_meals_new[0].slug = j.fuel_meals_new[1].slug }, /appears twice/)
   refuses('a slug that is not a kebab token', (j) => { j.fuel_meals_new[0].slug = 'Beef Stew!' }, /kebab token/)
@@ -173,17 +212,67 @@ for (const s of expansion.fuel_meals_new.map((m) => m.slug)) {
   assert(ok === null, `and it renders the fixture as authored — ${ok?.message ?? ''}`)
 }
 
-// ── 9. a macro that is estimated rather than null is refused, with words ───
-// FOR-234 §4: no seed migration carries macros yet. The guard lives in
-// renderPair, and until FOR-257 it surfaced as an unhandled stack trace.
+// ── 9. a macro that is estimated rather than null is REFUSED, and that is run ─
+// FOR-234 §4: no seed migration carries macros yet, so a macro has to be
+// present and null until it is measured. The section used to assert only that
+// the fixture as authored satisfies that, which is a different claim: deleting
+// the non-null rejection from guardMacros left all 375 checks green (Codex r1
+// P3). The guard is called here instead.
 {
-  const pair = PAIRS.find((p) => p.fixture === 'fixtures/fuel-seed-library-expansion.json')
+  const pair = PAIRS.find((p) => p.fixture === EXPANSION_FIXTURE)
   assert(!!pair, 'the expansion has a pair in the generator')
-  const expansion = read('fixtures/fuel-seed-library-expansion.json')
-  for (const m of expansion.fuel_meals_new) {
+  const expansion9 = read(EXPANSION_FIXTURE)
+  for (const m of expansion9.fuel_meals_new) {
     for (const k of ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']) {
       assert(k in m, `${m.slug} carries ${k}`)
       assert(m[k] === null, `${m.slug}: ${k} is null until it is measured — it is ${JSON.stringify(m[k])}`)
+    }
+  }
+  // RUN: renderPair reads the fixture from disk, so the guard is reached
+  // through a temporary copy of the pair pointed at a written fixture.
+  const probe = 'fixtures/.for257-macro-probe.json'
+  const probePath = join(ROOT, probe)
+  const runGuard = (label, mutate, expect) => {
+    const j = JSON.parse(JSON.stringify(expansion9))
+    mutate(j)
+    writeFileSync(probePath, JSON.stringify(j, null, 2))
+    let threw = null
+    try { renderPair({ ...pair, fixture: probe }) } catch (e) { threw = e }
+    rmSync(probePath, { force: true })
+    assert(threw !== null, `the generator REFUSES ${label}`)
+    assert(threw === null || expect.test(threw.message), `and says why — ${label}: ${threw?.message?.slice(0, 90) ?? ''}`)
+  }
+  runGuard('an estimated calorie figure', (j) => { j.fuel_meals_new[0].calories_per_person = 999 }, /no seed migration carries macros/)
+  runGuard('an estimated carb figure', (j) => { j.fuel_meals_new[1].carbs_g_per_person = 40 }, /no seed migration carries macros/)
+  runGuard('a macro key that is missing entirely', (j) => { delete j.fuel_meals_new[2].fat_g_per_person }, /missing fat_g_per_person/)
+  // And it accepts the fixture as authored, through the same route.
+  writeFileSync(probePath, JSON.stringify(expansion9, null, 2))
+  let ok9 = null
+  try { renderPair({ ...pair, fixture: probe }) } catch (e) { ok9 = e }
+  rmSync(probePath, { force: true })
+  assert(ok9 === null, `and renders the fixture as authored — ${ok9?.message ?? ''}`)
+}
+
+// ── 9b. the protein quantities say they are estimates ─────────────────────
+// _provenance.SOURCED: "Nothing here is measured... Every quantity, time and
+// protein figure is Blaine's estimate... PLAUSIBLE, NOT MEASURED." Every
+// Meat & Seafood line carried `inferred: false`, which the checklist renders
+// as exact under a legend reading "The proteins are exact" (Codex r1 P2). In
+// the seeded 13 that flag is CORRECT — phase 1's protein figures are Andrew's
+// own portions. This is about these 24.
+{
+  const expansion9b = read(EXPANSION_FIXTURE)
+  for (const m of expansion9b.fuel_meals_new) {
+    for (const i of m.ingredients) {
+      if (i.store_section === 'Meat & Seafood') {
+        assert(i.inferred === true, `${m.slug}: "${i.item}" is marked an estimate — the fixture says nothing in it is measured`)
+      }
+      // And an ingredient whose NAME says frozen is bought in Frozen: in
+      // Produce it goes to the second trip, which is the wrong aisle and a
+      // later trip for something that keeps (Codex r1 P3).
+      if (/frozen/i.test(i.item)) {
+        assert(i.store_section === 'Frozen', `${m.slug}: "${i.item}" is bought in Frozen — it is in ${i.store_section}`)
+      }
     }
   }
 }

@@ -43,12 +43,19 @@ const MACROS = ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']
 // fact, written twice, with the second copy pinned to the first.
 const OWN_SLUG = /^u[0-9a-f]{32}~.+$/
 
-/** Every slug the seeded library already holds, across every pair's fixture. */
-export function seededSlugs() {
-  return [
-    ...readFixture('fixtures/fuel-seed.json').fuel_meals.map((m) => m.slug),
-    ...readFixture('fixtures/fuel-seed-rotation-b.json').fuel_meals_new.map((m) => m.slug),
-  ]
+/**
+ * Every slug the seeded library already holds, read off the PAIRS rather than
+ * from fixtures named here.
+ *
+ * `exclude` is the fixture being rendered, which must not count itself as
+ * already seeded. Naming the first two fixtures meant a FOURTH pair could
+ * carry `beef-barley-stew` with different content and render happily, and its
+ * upsert would rewrite the expansion meal (Codex r1). It also meant deleting
+ * rotation B from the list left every check green.
+ */
+export function seededSlugs(exclude = null) {
+  return PAIRS.filter((p) => p.fixture !== exclude)
+    .flatMap((p) => p.meals(readFixture(p.fixture)).map((m) => m.slug))
 }
 
 function guardMacros(meals) {
@@ -361,8 +368,12 @@ ON CONFLICT (rotation_slug, meal_slug) DO UPDATE SET
 // whatever the family actually eats. The guard below makes rotation rows in THIS
 // fixture unrepresentable — a later rotation gets its own fixture and its own
 // pair, the way rotation B did.
+export const EXPANSION_FIXTURE = 'fixtures/fuel-seed-library-expansion.json'
+
 export function renderLibraryExpansion(seed) {
-  const seeded = seededSlugs()
+  // Every OTHER pair's slugs. Its own are checked for internal duplicates
+  // below; counting them as "already seeded" would refuse the fixture itself.
+  const seeded = seededSlugs(EXPANSION_FIXTURE)
   const fresh = seed.fuel_meals_new.map((m) => m.slug)
 
   for (const key of ['fuel_rotations', 'fuel_rotation_meals']) {
@@ -415,7 +426,7 @@ ${mealInsert(seed.fuel_meals_new)}`
 export const PAIRS = [
   { fixture: 'fixtures/fuel-seed.json', migration: 'supabase/migrations/20260914_fuel_phase_1.sql', meals: (seed) => seed.fuel_meals, render: renderPhase1 },
   { fixture: 'fixtures/fuel-seed-rotation-b.json', migration: 'supabase/migrations/20260917_fuel_rotations.sql', meals: (seed) => seed.fuel_meals_new, render: renderRotations },
-  { fixture: 'fixtures/fuel-seed-library-expansion.json', migration: 'supabase/migrations/20261005_fuel_library_expansion.sql', meals: (seed) => seed.fuel_meals_new, render: renderLibraryExpansion },
+  { fixture: EXPANSION_FIXTURE, migration: 'supabase/migrations/20261005_fuel_library_expansion.sql', meals: (seed) => seed.fuel_meals_new, render: renderLibraryExpansion },
 ]
 
 /** The migration a pair's fixture generates. Throws, before rendering, on anything a seed migration must not carry. */
