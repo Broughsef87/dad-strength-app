@@ -670,17 +670,51 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
 // standing data invariants live in fuel-rotations.mjs, not here.
 {
   const rot = JSON.parse(readLF('fixtures/fuel-seed-rotation-b.json'))
+  // THE SET OF PAIRS, not how many there are. A count is satisfied by the
+  // wrong pair, and raising it when one is added asks the next person to tune
+  // a number instead of looking at what changed (FOR-257).
+  const EXPECTED_PAIRS = [
+    'fixtures/fuel-seed.json -> supabase/migrations/20260914_fuel_phase_1.sql',
+    'fixtures/fuel-seed-rotation-b.json -> supabase/migrations/20260917_fuel_rotations.sql',
+    'fixtures/fuel-seed-library-expansion.json -> supabase/migrations/20261005_fuel_library_expansion.sql',
+  ]
   const pairs = PAIRS.map((p) => `${p.fixture} -> ${p.migration}`)
-  assert(pairs.length === 2 && pairs.includes('fixtures/fuel-seed.json -> supabase/migrations/20260914_fuel_phase_1.sql') && pairs.includes('fixtures/fuel-seed-rotation-b.json -> supabase/migrations/20260917_fuel_rotations.sql'),
-    `the generator renders exactly two (fixture -> migration) pairs, phase 1 and rotations — got ${pairs.join('; ')}`)
+  const missing = EXPECTED_PAIRS.filter((x) => !pairs.includes(x))
+  const extra = pairs.filter((x) => !EXPECTED_PAIRS.includes(x))
+  assert(missing.length === 0 && extra.length === 0,
+    `the generator renders exactly these (fixture -> migration) pairs — missing: ${missing.join('; ') || 'none'}; unexpected: ${extra.join('; ') || 'none'}`)
   const rotPair = PAIRS.find((p) => p.fixture === 'fixtures/fuel-seed-rotation-b.json')
   assert(readdirSync(join(ROOT, 'scripts')).filter((f) => /seed/i.test(f)).length === 1, 'there is one seed generator — rotation B got a pair, not a second copy of the script')
-  const bad = drifted().map((p) => p.migration)
-  assert(bad.length === 0, `every migration is exactly what its fixture generates — drifted: ${bad.join(', ') || 'none'}`)
+  // A render that THROWS — the macro guard, a colliding slug — used to come out
+  // of here as an unhandled stack trace, which FOR-260 calls red with no
+  // message: it proves the suite broke, not what refused. Caught, it fails
+  // with the guard's own sentence (FOR-257).
+  let bad = null
+  let renderError = null
+  try { bad = drifted().map((p) => p.migration) } catch (e) { renderError = e }
+  assert(renderError === null, `every pair renders without throwing — ${renderError?.message ?? ''}`)
+  assert(renderError !== null || bad.length === 0, `every migration is exactly what its fixture generates — drifted: ${bad?.join(', ') || 'none'}`)
   const cli = spawnSync(process.execPath, [join(ROOT, 'scripts/fuel-seed-sql.mjs'), '--check'], { cwd: ROOT, encoding: 'utf8' })
-  assert(cli.status === 0 && /every migration matches its fixture \(2 pairs\)/.test(cli.stdout), `node scripts/fuel-seed-sql.mjs --check passes for both fixtures — exit ${cli.status}: ${(cli.stderr || cli.stdout || '').trim().slice(0, 160)}`)
+  assert(cli.status === 0 && cli.stdout.includes(`every migration matches its fixture (${PAIRS.length} pairs)`),
+    `node scripts/fuel-seed-sql.mjs --check passes for every fixture — exit ${cli.status}: ${(cli.stderr || cli.stdout || '').trim().slice(0, 160)}`)
   const gen10 = readLF('scripts/fuel-seed-sql.mjs')
-  assert((gen10.match(/guardMacros\(/g) || []).length === 2 && /\n  guardMacros\(pair\.meals\(seed\)\)\n  return pair\.render\(seed\)\n\}/.test(gen10), "the macro guard runs on every pair's meals, before anything renders — rotation B's five new meals included")
+  // ONE call site, inside renderPair, so the guard cannot be skipped by adding
+  // a pair. The old assertion counted two occurrences — the definition and the
+  // one call — which happened to equal the number of pairs and would have
+  // drifted into meaning nothing (FOR-257).
+  // THE ORDER, not the call's arguments. This pinned
+  // `return pair.render(seed)` character for character and broke the moment
+  // renderPair started handing the pair down — a signature change, not a
+  // defect (FOR-257 r2). What matters is that the guard runs on the pair's
+  // meals BEFORE anything renders.
+  const rpAll = gen10.slice(gen10.indexOf('export function renderPair('))
+  const rpEnd = rpAll.indexOf('\n}')
+  const rp = rpEnd < 0 ? rpAll : rpAll.slice(0, rpEnd)
+  assert(rp.includes('guardMacros(pair.meals(seed))'), "renderPair runs the macro guard on the pair's own meals")
+  assert(rp.indexOf('guardMacros(') >= 0 && rp.indexOf('pair.render(') > rp.indexOf('guardMacros('),
+    'and runs it BEFORE anything renders')
+  assert((gen10.match(/^function guardMacros\(/gm) || []).length === 1 && (gen10.match(/[^n] guardMacros\(/g) || []).length === 1,
+    'and it is defined once and called from exactly one place, so a new pair cannot route around it')
   assert(/export function drifted\(\) \{\n  return PAIRS\.filter\(\(p\) => onDisk\(p\) !== renderPair\(p\)\)\n\}/.test(gen10) && /if \(process\.argv\.includes\('--check'\)\) \{\n    const bad = drifted\(\)/.test(gen10), 'drift and --check cover every pair — no pair is left unchecked')
   let unkeyed = ''
   try { renderPair({ ...rotPair, meals: () => [{ slug: 'no-macro-keys' }] }) } catch (e) { unkeyed = String(e.message) }

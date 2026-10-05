@@ -53,6 +53,7 @@ const SUITES = [
   ['fuel rotations (FOR-238)', 'fuel-rotations.mjs'],
   // The picker's grouping against the whole library, its own suite (FOR-239).
   ['fuel vocabulary (FOR-239)', 'fuel-vocabulary.mjs'],
+  ['fuel library slugs (FOR-257)', 'fuel-library-slugs.mjs'],
   // No custom key is ever a solver key, over generated libraries — its own suite (FOR-240).
   ['fuel custom keys (FOR-240)', 'fuel-custom-keys.mjs'],
   // An own meal's slug can never be a seeded slug, over generated names — its own suite (FOR-242).

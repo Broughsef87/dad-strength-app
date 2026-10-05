@@ -1,0 +1,137 @@
+{
+  "_comment": "Migrations the Fuel database proof does NOT apply, each with the reason. scripts/checks/fuel-library-slugs.mjs requires every .sql in supabase/migrations/ to be either applied by the proof or listed here, so a new migration has to be classified rather than defaulting into being unexamined (FOR-257 r5). Applying every migration was tried and fails: 20260408_rls_gaps.sql does not apply to a throwaway database.",
+  "unapplied": [
+    {
+      "file": "20260312_brotherhood.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260312_family_pulse.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260408_ai_request_logs.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260408_rls_gaps.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260408_workout_logs_consolidation.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260409_ares.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260409_ares_shared_wod.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260409_canonical_workout_schema.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260410_ares_leaderboard.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260410_stripe_webhook_events.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260411_ares_wod_unique.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260411_user_profiles_columns.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260412_workout_logs_rls.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260416_user_programs_slug.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260421_ares_session_logs_upsert_ready.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260421_zeus_per_user_wod_unique.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260421_zeus_progression_server_side.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260422_ares_session_logs_session_complete_type.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260422_ares_session_logs_unique_full.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260422_drop_user_programs_done_days.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260422_generated_workouts_exercises_nullable.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260707_set_rpe.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260707_user_maxes.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260708_exercise_subs.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260710_exercise_subs_scope.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260710_program_tier_gate.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260710_user_learning.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260718_objective_presets.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260718_recovery_checks.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260718_recovery_counts.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260823_account_lifecycle.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260823_reconcile_prod_drift.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20260823_rls_hardening.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    }
+  ]
+}
