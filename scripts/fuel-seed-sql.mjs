@@ -379,7 +379,15 @@ export const EXPANSION_FIXTURE = 'fixtures/fuel-seed-library-expansion.json'
  *   upsert would rewrite that meal, while a disjoint fourth fixture had its
  *   own new slugs refused as "already a seeded meal" (Codex r2).
  */
-export function renderLibraryExpansion(seed, pair = { fixture: EXPANSION_FIXTURE }) {
+export function renderLibraryExpansion(seed, pair) {
+  // NO DEFAULT. Defaulting to EXPANSION_FIXTURE left the whole defect in place
+  // through the one-argument route: a copy of the fixture under another path,
+  // called without the pair, still excluded the REAL expansion and rendered a
+  // colliding upsert (Codex r3). A renderer that cannot tell which fixture it
+  // has must refuse to guess.
+  if (!pair?.fixture) {
+    throw new Error('renderLibraryExpansion needs the pair it is rendering — its fixture is what gets excluded from the seeded inventory, and guessing it is how a collision gets through')
+  }
   // Every OTHER pair's slugs. Its own are checked for internal duplicates
   // below; counting them as "already seeded" would refuse the fixture itself.
   const seeded = seededSlugs(pair.fixture)

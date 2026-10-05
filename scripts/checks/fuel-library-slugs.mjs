@@ -163,7 +163,22 @@ assert(!/CREATE TABLE|ALTER TABLE|CREATE POLICY|CREATE INDEX|DROP |CREATE OR REP
     .map((l) => l.replace(/^--\s?/, ''))
     .join('\n')
   const want = `DELETE FROM public.fuel_meals WHERE slug IN (\n${expected.map((x) => `    '${x}'`).join(',\n')}\n  );`
-  assert(revertSql.includes(want), 'the revert in the header is exactly a DELETE of those 24 slugs, closing parenthesis and terminator included')
+  // EQUAL, not contained. `); DELETE FROM public.fuel_meals WHERE user_id IS
+  // NOT NULL;` keeps the expected text as a substring and passed — and running
+  // that revert removes the expansion AND every own meal, leaving stored plans
+  // pointing at slugs that no longer exist (Codex r3 P3).
+  const i0 = revertSql.indexOf('DELETE FROM public.fuel_meals')
+  assert(i0 >= 0, 'the header carries a DELETE of the expansion')
+  const statement = revertSql.slice(i0, revertSql.indexOf(';', i0) + 1)
+  assert(statement === want, `the revert is exactly that one DELETE — got ${JSON.stringify(statement.slice(-60))}`)
+  // And it is the ONLY statement in the header. Scanning the text after it for
+  // SQL keywords was wrong twice over: the header's own note reads "delete the
+  // plan first", so prose tripped it, and prose is not what matters. What
+  // matters is that the header documents one statement and no more.
+  for (const kw of ['DELETE FROM', 'UPDATE ', 'INSERT INTO', 'DROP ', 'ALTER ', 'TRUNCATE ']) {
+    const n = (revertSql.match(new RegExp(kw.replace(/ /g, '\\s+'), 'gi')) ?? []).length
+    assert(n === (kw === 'DELETE FROM' ? 1 : 0), `the header documents ${kw === 'DELETE FROM' ? 'one DELETE' : `no ${kw.trim()}`} — it has ${n}`)
+  }
 }
 assert(/INSERT INTO public\.fuel_rotation/.test(mig) === false, 'and it writes no rotation or membership row')
 assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header carries the exact revert')
@@ -182,8 +197,19 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
   // (Codex r1 P3) — and a stray UPDATE is the worst of them, because it
   // rewrites a meal while --check stays green.
   // Quoted identifiers are ordinary SQL: UPDATE public."fuel_meals" escaped
-  // the first version of this (Codex r2 P3).
-  const WRITES = /\b(insert\s+into|update|delete\s+from)\s+("?public"?\s*\.\s*)?"?fuel_meals"?/i
+  // the first version of this (Codex r2 P3). So are `UPDATE ONLY`, and a
+  // comment between the keyword and the table (Codex r3 P3). The trailing
+  // boundary matters as much as the leading one: without it,
+  // `fuel_meals_archive` matched and the check fired on a different table.
+  const GAP = '(?:\\s|--[^\\n]*\\n|/\\*[\\s\\S]*?\\*/)+'
+  // OPT wraps the gap so it is optional. Writing `${GAP}?` makes a one-or-more
+  // group LAZY rather than optional, so it still demands a character — and
+  // `public.fuel_meals`, which has none around its dot, matched nothing.
+  const OPT = `(?:${GAP})?`
+  const WRITES = new RegExp(
+    `\\b(insert${GAP}into|update|delete${GAP}from)${GAP}(only${GAP})?("?public"?${OPT}\\.${OPT})?"?fuel_meals"?(?![_a-z0-9"])`,
+    'i',
+  )
   const strays = readdirSync(dir)
     .filter((n) => n.endsWith('.sql') && !generated.has(n))
     .filter((n) => WRITES.test(readLF(`supabase/migrations/${n}`)))
@@ -198,11 +224,25 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     ['an unqualified name', "update fuel_meals set name = 'x';"],
     ['a lowercase delete', 'delete from public.fuel_meals where slug = \'y\';'],
     ['an insert with odd whitespace', 'INSERT   INTO   public . fuel_meals (slug) VALUES (\'z\');'],
+    ['UPDATE ONLY', 'UPDATE ONLY public."fuel_meals" SET name = \'x\' WHERE slug = \'y\';'],
+    ['a line comment between the keyword and the table', 'UPDATE -- sneaky\npublic.fuel_meals SET name = \'x\';'],
+    ['a block comment between them', 'UPDATE /* sneaky */ public.fuel_meals SET name = \'x\';'],
+    ['a newline between INSERT and INTO', 'INSERT\n  INTO public.fuel_meals (slug) VALUES (\'z\');'],
   ]) {
     assert(WRITES.test(sql), `the search recognises ${label}`)
   }
-  assert(!WRITES.test('INSERT INTO public.fuel_rotation_meals (rotation_slug) VALUES (\'c\');'),
-    'and it does not fire on a different table')
+  // And it fires on fuel_meals ALONE. The negative probe used to be one table;
+  // without a trailing boundary `fuel_meals_archive` matched too, so the
+  // check would have failed the build over a file it has no business in
+  // (Codex r3 P3).
+  for (const [label, sql] of [
+    ['a different table', "INSERT INTO public.fuel_rotation_meals (rotation_slug) VALUES ('c');"],
+    ['a table whose name STARTS with it', "UPDATE public.fuel_meals_archive SET name = 'x';"],
+    ['a quoted table whose name starts with it', 'UPDATE public."fuel_meals_history" SET name = \'x\';'],
+    ['a SELECT, which writes nothing', 'SELECT * FROM public.fuel_meals;'],
+  ]) {
+    assert(!WRITES.test(sql), `and it does not fire on ${label}`)
+  }
 }
 
 // ── 8. THE GENERATOR'S GUARDS, RUN RATHER THAN READ ───────────────────────
@@ -277,6 +317,31 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
   let threwSelf = null
   try { renderLibraryExpansion(JSON.parse(JSON.stringify(good8b)), { fixture: EXPANSION_FIXTURE }) } catch (e) { threwSelf = e }
   assert(threwSelf === null, `and the expansion still renders its own slugs — ${threwSelf?.message ?? ''}`)
+
+  // THE EXCLUSION FOLLOWS THE ARGUMENT, which is the claim. Rendering the
+  // expansion's own seed while CLAIMING to be another registered fixture puts
+  // the expansion's slugs into the inventory, so they must be refused; the
+  // same seed claiming its own fixture must be accepted. Excluding the
+  // fixture only when it happens to be EXPANSION_FIXTURE passed every
+  // assertion before this (Codex r3 P3).
+  for (const claimed of PAIRS.map((x) => x.fixture).filter((f) => f !== EXPANSION_FIXTURE)) {
+    let t = null
+    try { renderLibraryExpansion(JSON.parse(JSON.stringify(good8b)), { fixture: claimed }) } catch (e) { t = e }
+    assert(t !== null, `rendering the expansion's seed as ${claimed} refuses its own slugs — they are seeded by the expansion`)
+    assert(t === null || /already a seeded meal/.test(t.message), `and says why — ${t?.message?.slice(0, 80) ?? ''}`)
+  }
+  // AND IT REFUSES TO GUESS. One argument used to mean "assume the expansion",
+  // which is where the whole defect lived.
+  for (const [label, call] of [
+    ['no pair at all', () => renderLibraryExpansion(JSON.parse(JSON.stringify(good8b)))],
+    ['a pair with no fixture', () => renderLibraryExpansion(JSON.parse(JSON.stringify(good8b)), {})],
+    ['a null pair', () => renderLibraryExpansion(JSON.parse(JSON.stringify(good8b)), null)],
+  ]) {
+    let t = null
+    try { call() } catch (e) { t = e }
+    assert(t !== null, `the renderer refuses ${label} rather than assuming a fixture`)
+    assert(t === null || /needs the pair it is rendering/.test(t.message), `and says why — ${t?.message?.slice(0, 70) ?? ''}`)
+  }
   // renderPair hands the pair down, which is what makes the two above differ.
   assert(/return pair\.render\(seed, pair\)/.test(readLF('scripts/fuel-seed-sql.mjs')),
     'renderPair passes the pair to the renderer, so a shared renderer knows which fixture it has')
@@ -327,6 +392,10 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
   for (const k of ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']) {
     runGuard(`an estimated ${k}`, (j) => { j.fuel_meals_new[0][k] = 42 }, new RegExp(`${k} = 42`))
     runGuard(`a missing ${k}`, (j) => { delete j.fuel_meals_new[1][k] }, new RegExp(`missing ${k}`))
+    // ZERO is a value. Every probe used a truthy number, so `if (m[k] != null)`
+    // could have been `if (m[k])` and nothing would have noticed — and a
+    // fixture carrying `calories_per_person: 0` would render (Codex r3 P3).
+    runGuard(`a ${k} of zero`, (j) => { j.fuel_meals_new[2][k] = 0 }, new RegExp(`${k} = 0`))
   }
   // And it accepts the fixture as authored, through the same route.
   writeFileSync(probePath, JSON.stringify(probeSeed(), null, 2))
@@ -418,13 +487,33 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
       `a week-2 ${slug} buys its seafood on the SECOND trip — ${meat.map((i) => `${i.item}:${i.second_trip ? 'trip2' : 'trip1'}`).join(', ')}`)
   }
   {
-    const two = { entries: [{ slug: 'lemon-crumb-haddock', week: 2, servings: 0 }, { slug: 'honey-soy-mahi', week: 2, servings: 0 }] }
-    const warnings = validatePlan(two, library, household)
-    assert(warnings.some((w) => /fish nights/.test(w)),
-      `two week-2 fish nights warn against the fish rule — got ${JSON.stringify(warnings)}`)
-    const one = { entries: [{ slug: 'lemon-crumb-haddock', week: 2, servings: 0 }] }
-    assert(!validatePlan(one, library, household).some((w) => /fish nights/.test(w)),
-      'and one does not, so the warning is about the count rather than about fish')
+    const fishy = (w) => w.some((x) => /fish nights/.test(x))
+    // EVERY new seafood cut, because the frequency rule counts them all.
+    // Excluding shrimp from the count left every assertion green while two
+    // shrimp nights stopped warning (Codex r3 P3).
+    for (const pair2 of [
+      ['lemon-crumb-haddock', 'honey-soy-mahi'],
+      ['garlic-shrimp-skillet', 'shrimp-fajitas'],
+      ['garlic-shrimp-skillet', 'lemon-crumb-haddock'],
+    ]) {
+      const two = { entries: pair2.map((slug) => ({ slug, week: 2, servings: 0 })) }
+      assert(fishy(validatePlan(two, library, household)),
+        `two week-2 seafood nights warn — ${pair2.join(' + ')}: ${JSON.stringify(validatePlan(two, library, household))}`)
+    }
+    for (const slug of ['lemon-crumb-haddock', 'garlic-shrimp-skillet']) {
+      const one = { entries: [{ slug, week: 2, servings: 0 }] }
+      assert(!fishy(validatePlan(one, library, household)),
+        `and one ${slug} does not, so the warning is about the count rather than about fish`)
+    }
+    // AT A DIFFERENT ALLOWANCE. The fixture's rule is one a week, so
+    // `fish > rules.fish_per_week` could have been `fish > 1` and every
+    // assertion above would still pass (Codex r3 P3).
+    const strict = { ...household, dietary_rules: { ...household.dietary_rules, fish_per_week: 0 } }
+    assert(fishy(validatePlan({ entries: [{ slug: 'lemon-crumb-haddock', week: 2, servings: 0 }] }, library, strict)),
+      'one fish night warns when the household allows none — the comparison reads the rule, not the number 1')
+    const loose = { ...household, dietary_rules: { ...household.dietary_rules, fish_per_week: 3 } }
+    assert(!fishy(validatePlan({ entries: [{ slug: 'lemon-crumb-haddock', week: 2, servings: 0 }, { slug: 'honey-soy-mahi', week: 2, servings: 0 }] }, library, loose)),
+      'and two do not warn when the household allows three')
   }
   // A week-2 cut that freezes stays on the first trip, so the trip rule is
   // about the list and not about week 2.
