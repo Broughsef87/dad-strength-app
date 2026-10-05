@@ -51,8 +51,20 @@ if [ -z "$NEXT" ]; then
   finish empty "queue is empty"
 fi
 
+# AN UNREADABLE CHAIN COUNT FAILS CLOSED (Codex r7; this was on master too).
+# The old guard forced any non-digit content to 0 and let every all-digit
+# string through. An overflowing one - 18446744073709551616 - made the next
+# line print THE FILE'S CONTENT to stderr as "integer expression expected",
+# which is the channel the claim message leaves on, so a bus file's bytes
+# reached CC's prompt. It then evaluated false, so the cap did not hold, and
+# COUNT + 1 wrapped to 1. A MISSING file is still the ordinary first dispatch
+# and reads 0. Anything else stops the chain and says so without quoting a
+# byte of it: delete the file to reset.
 COUNT=$(cat "$BUS/chain.count" 2>/dev/null || echo 0)
-case "$COUNT" in ''|*[!0-9]*) COUNT=0 ;; esac
+case "$COUNT" in
+  [0-9]|[0-9][0-9]|[0-9][0-9][0-9]) ;;
+  *) finish chain-unreadable "chain.count is not a 1-3 digit integer; nothing dispatched - delete it to reset" ;;
+esac
 if [ "$COUNT" -ge "$MAXCHAIN" ]; then
   finish cap-reached "chain cap $MAXCHAIN reached; $NEXT still queued"
 fi
@@ -111,8 +123,13 @@ To stop the chain at any time, APPEND one line to .claude/bus/HALT - never overw
    set_by=<cc|blaine|andrew> reason=<gate|ruling-needed|manual> ticket=<FOR-x|none>
 It holds one line per hold and may already hold someone else's. Overwriting could drop a
 migration gate only Andrew may lift and leave a ruling-needed line Blaine may lift, which would
-resume the bus past that gate. Remove only your own line; when the last line goes, move the file
-to .claude/bus/_trash/. An empty file is one manual hold. This hook treats any HALT as a halt,
-whatever it contains, and never reads its body.
+resume the bus past that gate.
+   If the file EXISTS and is EMPTY, that emptiness IS one anonymous manual hold. Write it out
+   as a line of its own BEFORE you append yours:
+      set_by=unknown reason=manual ticket=none
+   Otherwise removing your line later empties the file, "the last line goes" applies, and the
+   hold somebody else put there leaves with it.
+Remove only your own line; when the last line goes, move the file to .claude/bus/_trash/. This
+hook treats any HALT as a halt, whatever it contains, and never reads its body.
 MSG
 exit 2

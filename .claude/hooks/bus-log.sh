@@ -33,12 +33,26 @@ AGENT="$1"
 shift
 MESSAGE="$*"
 
-# The agent is a short token, so a stray argument order cannot silently become
-# the agent name.
-printf '%s' "$AGENT" | grep -qE '^[a-z][a-z0-9-]{0,15}$' || {
-  echo "bus-log.sh: agent '$AGENT' must be a short lowercase token" >&2
+# THE AGENT IS ONE WHOLE VALUE (Codex r7). `grep` matches per LINE, so an agent
+# of $'cc\n[2099-01-01T00:00:00Z] hook=stop outcome=claimed' satisfied it on its
+# first line, and the append below then wrote TWO lines - the second a
+# caller-supplied stamp shaped exactly like a hook entry, in the one file
+# bus-observability.mjs reads to decide whether the dispatcher is still alive.
+# Only MESSAGE was being collapsed. So: control characters are refused
+# outright, and the remaining match is anchored against the WHOLE string by the
+# shell rather than line by line by grep.
+#
+# The value is never echoed back. An agent holding a forged line would have put
+# that line on stderr, and stderr is a channel that reaches a prompt.
+case "$AGENT" in
+  *[[:cntrl:]]*)
+    echo "bus-log.sh: the agent holds a control character or a newline" >&2
+    exit 2 ;;
+esac
+if [[ ! "$AGENT" =~ ^[a-z][a-z0-9-]{0,31}$ ]]; then
+  echo "bus-log.sh: the agent must be a short lowercase token" >&2
   exit 2
-}
+fi
 
 if [ -z "${MESSAGE//[[:space:]]/}" ]; then
   echo "bus-log.sh: refusing to write an empty message" >&2

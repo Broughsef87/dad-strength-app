@@ -118,30 +118,44 @@ export function parse(text) {
 
 // ── the run ─────────────────────────────────────────────────────────────────
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
-const verbose = process.argv.includes('--verbose')
 // `--dir` so a caller can validate a throwaway directory instead of the live
 // bus. bus-v2.mjs needs it: probing malformed reports by writing them into
 // .claude/bus/reports/ under fixed names raced a concurrent run and could
 // overwrite a real report that happened to share the name (Codex r1). Upstream
 // bus-report-validate.js takes the same flag.
-const dirIdx = process.argv.indexOf('--dir')
-const EXPLICIT = dirIdx !== -1
-// An explicitly requested target must exist and must be named. `--dir` with no
-// argument silently fell back to the live bus, and `--dir /typo` exited 0
-// without validating anything — a mistyped command reporting success, which is
-// the one answer a validator must never give (Codex r5).
-if (EXPLICIT) {
-  const given = process.argv[dirIdx + 1]
-  if (!given || given.startsWith('--')) {
-    console.log('bus reports: --dir needs a directory')
-    process.exit(2)
-  }
-  if (!existsSync(given)) {
-    console.log(`bus reports: --dir ${given} does not exist`)
-    process.exit(2)
-  }
+//
+// EVERY ARGUMENT IS RECOGNISED, OR THIS EXITS NON-ZERO. The takes-one-flag
+// version has now reported false success twice. r5: `--dir` with no argument
+// fell back to the live bus, and `--dir /typo` exited 0 having validated
+// nothing. r7: `--dir=C:/bad` and `--dr C:/bad` both fell through to the live
+// bus because neither is the string `--dir`, and `--dir a --dir b` used the
+// first and ignored the second. A validator that answers "fine" having checked
+// something other than what it was asked is worse than no validator.
+const argv = process.argv.slice(2)
+const usage = (why) => {
+  console.log(`bus reports: ${why}`)
+  console.log('usage: bus-reports.mjs [--verbose] [--dir <path>]')
+  process.exit(2)
 }
-const DIR = EXPLICIT ? process.argv[dirIdx + 1] : join(ROOT, '.claude', 'bus', 'reports')
+let EXPLICIT = false
+let given = null
+for (let i = 0; i < argv.length; i++) {
+  const a = argv[i]
+  if (a === '--verbose') continue
+  if (a === '--dir') {
+    if (EXPLICIT) usage('--dir was given more than once; pass exactly one directory')
+    const v = argv[i + 1]
+    if (!v || v.startsWith('--')) usage('--dir needs a directory')
+    if (!existsSync(v)) usage(`--dir ${v} does not exist`)
+    EXPLICIT = true
+    given = v
+    i++
+    continue
+  }
+  usage(`unrecognised argument "${a}"`)
+}
+const verbose = argv.includes('--verbose')
+const DIR = EXPLICIT ? given : join(ROOT, '.claude', 'bus', 'reports')
 
 // The DEFAULT bus directory is git-ignored, so a fresh clone has no reports to
 // check and there is nothing to be wrong about. That exemption is for the

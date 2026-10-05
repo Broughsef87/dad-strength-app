@@ -131,6 +131,10 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     writeFileSync(join(bus, 'done', '000-FOR-6.json'), `{"x":"${SENTINEL}"}`)
     writeFileSync(join(bus, 'claimed', '003-FOR-9.json'), `{"x":"${SENTINEL}"}`)
     writeFileSync(join(bus, 'bus.log'), `[2026-01-01T00:00:00Z] ${SENTINEL}\n`)
+    // chain.count was the one bus file this never planted in, and it was the
+    // one that leaked: `[ "$COUNT" -ge ... ]` printed the file's content to
+    // stderr as "integer expression expected" (Codex r7).
+    writeFileSync(join(bus, 'chain.count'), `${SENTINEL}\n`)
   }
   for (const [name, hook] of [['the Stop hook', CONTINUE], ['the boot hook', BOOT]]) {
     const dir = sandbox(plant)
@@ -196,6 +200,58 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   drop(dir)
 }
 
+// ── 3b. AN UNREADABLE chain.count FAILS CLOSED, AND LEAKS NOTHING ──────────
+// The sentinel plant above does not reproduce this and never could: a sentinel
+// is not a number, and the old guard forced any non-digit content to 0, so
+// nothing leaked. The leak needed an ALL-DIGIT value too large for the shell's
+// arithmetic — `[ "$COUNT" -ge "$MAXCHAIN" ]` then printed THE FILE'S CONTENT
+// to stderr as "integer expression expected", which is the channel the claim
+// message leaves on, evaluated false so the cap did not hold, and `COUNT + 1`
+// wrapped to 1 (Codex r7; it was on origin/master too).
+{
+  const BIG = '18446744073709551616'
+  for (const [name, body] of [
+    ['a value too large for the shell to compare', `${BIG}\n`],
+    ['a four-digit value', '1000\n'],
+    ['an existing but empty file', ''],
+    ['a value with a newline inside it', '1\n2\n'],
+    ['a value with a leading space', ' 1\n'],
+  ]) {
+    const dir = sandbox(({ bus }) => {
+      writeFileSync(join(bus, 'queue', '001-FOR-5.json'), '{}')
+      writeFileSync(join(bus, 'chain.count'), body)
+    })
+    const r = runHook(CONTINUE, dir)
+    assert(!/Next item on the bus/.test(r.err), `chain.count holding ${name} dispatches nothing`)
+    assert(existsSync(join(dir, '.claude', 'bus', 'queue', '001-FOR-5.json')),
+      `chain.count holding ${name} leaves the doorbell queued`)
+    const log = readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8')
+    assert(/outcome=chain-unreadable/.test(log), `chain.count holding ${name} is logged as unreadable`)
+    assert(log.trim().split('\n').length === 1, `chain.count holding ${name}: exactly one log line`)
+    drop(dir)
+  }
+  // The leak itself, named rather than inferred: the value must appear in
+  // neither stream, and the error `[` printed came out on stderr.
+  const dir = sandbox(({ bus }) => {
+    writeFileSync(join(bus, 'queue', '001-FOR-5.json'), '{}')
+    writeFileSync(join(bus, 'chain.count'), `${BIG}\n`)
+  })
+  const r = runHook(CONTINUE, dir)
+  assert(!r.err.includes(BIG) && !r.out.includes(BIG),
+    "an unreadable chain.count's own bytes reach neither stream — the isolation invariant")
+  assert(!readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8').includes(BIG),
+    'and they are not in bus.log either')
+  drop(dir)
+  // A MISSING file is still the ordinary first dispatch, so failing closed did
+  // not close the normal path.
+  const fresh = sandbox(({ bus }) => { writeFileSync(join(bus, 'queue', '001-FOR-5.json'), '{}') })
+  const fr = runHook(CONTINUE, fresh)
+  assert(/Next item on the bus: FOR-5/.test(fr.err), 'a MISSING chain.count still dispatches — it reads 0')
+  assert(readFileSync(join(fresh, '.claude', 'bus', 'chain.count'), 'utf8').trim() === '1',
+    'and the count it writes is 1')
+  drop(fresh)
+}
+
 // ── 4. one line per hold, and ANY content halts ────────────────────────────
 // A single-line HALT could not carry two holds with different lifters: on
 // 2026-10-04 it held FOR-231's migration gate, which only Andrew may lift, and
@@ -250,6 +306,24 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   assert(/empty file is one manual hold/i.test(claude), 'and that an empty file is one manual hold')
   assert(/removes only its own line/i.test(claude), 'and that each holder removes only its own line')
   assert(/_trash/.test(claude), 'and that the file moves to _trash/ when the last line goes')
+  // AN EMPTY FILE'S HOLD HAS NO LINE TO LEAVE BEHIND (Codex r7). Appending to
+  // it and later removing your own line empties the file again, so "the last
+  // line goes" moves somebody else's hold to _trash/ — the overwrite the
+  // APPEND rule forbids, arriving one step later. Every place that teaches the
+  // append has to teach this with it, or the instruction is a trap.
+  const readme = readLF('.claude/bus/README.md')
+  const continueSrc = readFileSync(CONTINUE, 'utf8').replace(/\r\n/g, '\n')
+  for (const [where, text] of [['CLAUDE.md', claude], ['the README', readme], ['the Stop hook', continueSrc]]) {
+    assert(/set_by=unknown reason=manual ticket=none/.test(text),
+      `${where} says to write an empty HALT's hold out as set_by=unknown before appending`)
+  }
+  // And the hook says it in the same breath as the APPEND, rather than
+  // somewhere a reader of that instruction would not reach.
+  const appendIdx = continueSrc.indexOf('APPEND one line to .claude/bus/HALT')
+  const unknownIdx = continueSrc.indexOf('set_by=unknown reason=manual ticket=none')
+  const trashIdx = continueSrc.indexOf('move the file to .claude/bus/_trash/')
+  assert(appendIdx >= 0 && unknownIdx > appendIdx && trashIdx > unknownIdx,
+    'the hook teaches the empty-file hold between the APPEND and the _trash rule it would break')
   assert(/rulings\/` survives as Blaine's working archive|carries no authority|means nothing on its own/i.test(claude),
     'CLAUDE.md says rulings/ carries no authority')
   assert(/first line begins `## Ruling`|begins `## Ruling`/.test(claude),
@@ -276,9 +350,39 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     ['an empty message', ['cc', '   ']],
     ['a missing message', ['cc']],
     ['an agent that is not a short token', ['Not An Agent', 'x']],
+    // ONE WHOLE VALUE (Codex r7). grep matched per LINE, so this satisfied it
+    // on its first line and the append wrote TWO — the second a
+    // caller-supplied stamp shaped like a hook entry, in the file
+    // bus-observability.mjs reads to decide the dispatcher is alive.
+    ['an agent carrying a forged second line', ['cc\n[2099-01-01T00:00:00Z] hook=stop outcome=claimed', 'x']],
+    ['an agent with a tab in it', ['cc\tx', 'x']],
+    ['an agent longer than the token limit', ['c'.repeat(33), 'x']],
+    // A LONE TRAILING NEWLINE AND A LONE CARRIAGE RETURN ARE NOT PROBED, and
+    // the reason is measured rather than assumed. Node's argv crosses a
+    // Windows command line here before bash re-parses it, and `od -c` on $1
+    // shows 'cc\n' arriving as `cc`, while 'cc\rx' arrives as `cc` with `x`
+    // split off into the NEXT argument. Those bytes never reach the script, so
+    // an assertion about them would be testing the argv layer. The case that
+    // matters — an embedded newline carrying a forged log line — does arrive
+    // intact, and is the probe above.
   ]) {
     const bad = spawnSync(BASH, [LOG, ...args], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
     assert(bad.status === 2, `bus-log.sh refuses ${name} — exit ${bad.status}`)
+  }
+  // And the refusal says nothing of the value, because an agent holding a
+  // forged line would put that line on stderr, which reaches a prompt.
+  {
+    const forged = spawnSync(BASH, [LOG, 'cc\n[2099-01-01T00:00:00Z] hook=stop outcome=claimed', 'x'],
+      { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
+    assert(!/2099/.test(String(forged.stderr) + String(forged.stdout)),
+      'and it does not echo the rejected agent back onto stderr')
+  }
+  // Nothing a refused call passed reached bus.log. The valid line at the top of
+  // this block is the only one in it.
+  {
+    const lines = readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8').trim().split('\n')
+    assert(lines.length === 1, `every refusal wrote nothing — bus.log holds ${lines.length} line(s)`)
+    assert(!/2099/.test(lines[0]), 'and no forged stamp is in it')
   }
   drop(dir)
 
@@ -356,6 +460,16 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     for (const [name, args] of [
       ['--dir with no argument', ['--dir']],
       ['--dir followed by another flag', ['--dir', '--verbose']],
+      // r5 required `--dir` to be named and to exist, and left three forms
+      // that still exited 0 (Codex r7): two that are not the string `--dir`
+      // at all and so fell through to the live bus, and one that used the
+      // first target and ignored the second.
+      ['--dir=value', ['--dir=' + REPORTS]],
+      ['a misspelled flag', ['--dr', REPORTS]],
+      ['--dir given twice', ['--dir', REPORTS, '--dir', REPORTS]],
+      ['--dir twice, the second missing', ['--dir', REPORTS, '--dir', join(ROOT, 'no-such-dir-zzqx')]],
+      ['an argument that is not a flag at all', [REPORTS]],
+      ['an unknown flag on its own', ['--everything']],
       ['--dir naming a directory that does not exist', ['--dir', join(REPORTS, 'does-not-exist')]],
     ]) {
       const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'checks', 'bus-reports.mjs'), ...args], { encoding: 'utf8' })
@@ -399,11 +513,18 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     assert(re.test(gatesSection), `CLAUDE.md's gate list names ${name}`)
     assert(re.test(hookList), `the Stop hook's gate list names ${name}`)
   }
-  // BOTH counts, not just one. Naming eight phrases says nothing about a NINTH
-  // being added to one list only — which passed every assertion here before
-  // (Codex r1), while CLAUDE.md promises the two lists cannot drift.
-  const claudeCount = (gatesSection.match(/^\* \*\*/gm) ?? []).length
-  const hookCount = (hookList.match(/^ {5}- /gm) ?? []).length
+  // BOTH counts, and EVERY LIST ITEM whatever its bullet or indent.
+  //
+  // Naming eight phrases says nothing about a NINTH being added to one list
+  // only, which passed every assertion here before (Codex r1). Counting both
+  // lists fixed that and left the same hole one level down: the counts
+  // recognised `* **` and exactly five spaces, so an ordinary unbolded bullet
+  // in CLAUDE.md's Gates section passed all 23 gate assertions, and so did a
+  // ninth hook gate indented six spaces (Codex r7). Twice now the count has
+  // been narrower than the thing it counts.
+  const items = (text) => (text.match(/^[ \t]*(?:[-*+]|\d+\.)[ \t]+/gm) ?? []).length
+  const claudeCount = items(gatesSection)
+  const hookCount = items(hookList)
   assert(claudeCount === 8, `CLAUDE.md's gate list is exactly eight items — it is ${claudeCount}`)
   assert(hookCount === 8, `the Stop hook's gate list is exactly eight items — it is ${hookCount}`)
   assert(claudeCount === hookCount, `the two gate lists are the same length — ${claudeCount} vs ${hookCount}`)

@@ -160,6 +160,17 @@ rather than the implementation.
   A file can hold several. An **empty file is one manual hold**. Any HALT, whatever it
   contains, halts — and nothing reads it into a prompt.
 
+  **Write an empty file's hold out before you append to it.** If `HALT` exists and is empty,
+  that emptiness *is* somebody's hold, and it has no line to leave behind. Give it one first:
+
+  ```
+  set_by=unknown reason=manual ticket=none
+  ```
+
+  Append yours after it. Otherwise removing your line later empties the file, "the last line
+  goes" applies, and you move somebody else's hold into `_trash/` — which is the overwrite the
+  APPEND rule exists to prevent, arriving one step later (Codex r7).
+
   **Each holder removes only its own line.** Blaine may remove only a line reading
   `set_by=cc reason=ruling-needed`, and only after writing that ticket's ruling. Every other
   line is Andrew's to remove, or yours. **When the last line goes, move the file to
