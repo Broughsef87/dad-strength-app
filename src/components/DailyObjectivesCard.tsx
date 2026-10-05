@@ -20,11 +20,16 @@ export default function DailyObjectivesCard(
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
   const [saving, setSaving] = useState(false)
-  // Which write did not land — a tag, never a closure and never a payload.
+  // Which writes did not land — tags, never a closure and never a payload.
   // A captured closure holds the draft it was made with, which is a queued
   // intention; the re-spec forbids one and Codex found it writing stale
   // objectives over newer edits (FOR-231 v2, Blaine's ruling 2026-10-01).
-  const [unsaved, setUnsaved] = useState<'draft' | 'tick' | null>(null)
+  //
+  // ONE SLOT PER WRITER (Blaine's ruling, 2026-10-05). This was a single tag,
+  // so a successful tick cleared a FAILED draft and took its Retry with it,
+  // leaving objectives on screen that the row does not have. Each writer sets
+  // and clears only its own.
+  const [unsaved, setUnsaved] = useState<readonly ('draft' | 'tick')[]>([])
   const supabase = createClient()
   // Only the newest operation paints. A refresh that started before a tick
   // must not paint the row as it was before it (FOR-231 v2, r3).
@@ -49,7 +54,7 @@ export default function DailyObjectivesCard(
   const saveDraft = async () => {
     if (saving || !draft.some(o => o.trim())) return
     setSaving(true)
-    setUnsaved(null)
+    setUnsaved((u) => u.filter((t) => t !== 'draft'))
     const today = localDay()
     // Store DENSE. The render path filters blanks and hands toggle() the
     // filtered index, which then writes completedObjectives at that index — so
@@ -73,7 +78,7 @@ export default function DailyObjectivesCard(
         // Nothing local remembers this, so the screen has to. Retry re-runs
         // this function, which reads `draft` at that moment — so an edit made
         // after the failure is what gets written.
-        setUnsaved('draft')
+        setUnsaved((u) => (u.includes('draft') ? u : [...u, 'draft']))
         return
       }
       setObjectives(dense)
@@ -133,7 +138,7 @@ export default function DailyObjectivesCard(
     if (!locked || saving) return
     const next = [...completed]
     next[i] = !next[i]
-    setUnsaved(null)
+    setUnsaved((u) => u.filter((t) => t !== 'tick'))
     setSaving(true)
     const today = localDay()
     // THE PAIR, because the pair is ONE FACT. objectives and
@@ -154,7 +159,7 @@ export default function DailyObjectivesCard(
       { path: ['completedObjectives'], value: next },
     ])
     setSaving(false)
-    if (!landed) { setUnsaved('tick'); return }
+    if (!landed) { setUnsaved((u) => (u.includes('tick') ? u : [...u, 'tick'])); return }
     setCompleted(next)
   }
 
@@ -170,16 +175,22 @@ export default function DailyObjectivesCard(
   // Retry reads them as they are then. A failed TICK has nothing to retry —
   // the screen never moved, so the objective is still untick­ed and tapping it
   // again is the retry.
-  const unsavedBanner = unsaved ? (
-    <div className="mt-3 rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
-      <p className="text-status-danger-ink text-xs">
-        {unsaved === 'draft'
-          ? 'Not saved — the record did not take it. It is lost unless you retry.'
-          : 'That tick did not save — tap it again.'}
-      </p>
-      {unsaved === 'draft' && (
-        <button type="button" onClick={() => { void saveDraft() }} className="btn-ghost text-xs shrink-0">Retry</button>
-      )}
+  // One row per outstanding failure, in a fixed order, each with its own
+  // Retry — a failed draft and a failed tick are different losses.
+  const unsavedBanner = unsaved.length > 0 ? (
+    <div className="mt-3 space-y-2">
+      {(['draft', 'tick'] as const).filter((t) => unsaved.includes(t)).map((tag) => (
+        <div key={tag} className="rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
+          <p className="text-status-danger-ink text-xs">
+            {tag === 'draft'
+              ? 'Not saved — the record did not take it. It is lost unless you retry.'
+              : 'That tick did not save — tap it again.'}
+          </p>
+          {tag === 'draft' && (
+            <button type="button" onClick={() => { void saveDraft() }} className="btn-ghost text-xs shrink-0">Retry</button>
+          )}
+        </div>
+      ))}
     </div>
   ) : null
 

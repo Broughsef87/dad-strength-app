@@ -268,6 +268,37 @@ for (const path of ['{morning,completed}', '{morning,gratitude}', '{completedObj
   assert(proof.includes(path), `the DB proof contends ${path}, which a writer above names`)
 }
 
+// ── NO SUB-PATH OF {morning} IS WRITTEN BEFORE {morning} EXISTS ────────────
+// Splitting the writers by path created this. Generation paints before its
+// save lands, so the save can fail with the protocol on screen and nothing
+// under {morning} in the row; a tick patching {morning,completed} there would
+// report success, and the loader skips an entry with no protocol — the next
+// reload loses the morning, silently. It fails closed: the two writers of a
+// sub-path refuse until the entry is in the row, the step buttons are dead
+// until then, and the Retry that repairs it writes the whole entry.
+assert(/const \[entryInRow, setEntryInRow\] = useState\(false\)/.test(mp),
+  'the protocol tracks whether the ROW holds {morning}, which is not whether one is on screen')
+for (const [label, decl] of [
+  ['the step tick', '  const toggleStep = async (i: number) => {'],
+  ['gratitude on blur', '  const commitGratitude = () => {'],
+]) {
+  const fn = body(mp, decl)
+  assert(/!entryInRow\) return/.test(fn),
+    `${label} refuses to write a sub-path until {morning} is in the row`)
+}
+assert((mp.match(/disabled=\{writing \|\| !entryInRow\}/g) ?? []).length === 2,
+  'and both step buttons are dead until then, so the refusal is visible rather than silent')
+// It starts false and is raised ONLY by the loader finding an entry and by a
+// {morning} write landing. Being wrongly true is the direction that writes the
+// orphan, so the places that raise it are counted.
+assert((mp.match(/setEntryInRow\(true\)/g) ?? []).length === 3,
+  'it is raised in exactly three places: the loader, generation, and the Retry')
+const genFn = body(mp, '  const generate = async () => {')
+assert(/setEntryInRow\(false\)\n      if \(await patchSpirit/.test(genFn),
+  'generation drops it as it paints and raises it only if the write landed')
+assert(/setConfigured\(false\); setEntryInRow\(false\);/.test(mp),
+  'Rebuild drops it too — the entry it is replacing is not the one on screen')
+
 // ── AND NOTHING WRITES THE COLUMN WHOLE ANY MORE ───────────────────────────
 const lib = readSoft('src/lib/checkins.ts')
 assert(lib.length > 0, 'src/lib/checkins.ts exists — it is the only place a check-in is written')
@@ -280,9 +311,9 @@ assert((lib.match(/supabase\.rpc\('checkin_patch'/g) ?? []).length === 1,
 assert(/if \(patches\.length === 0\) return false/.test(lib),
   'a write with no patches is a failed write, not a silent success')
 
-assert(/if \(!landed\) \{ setUnsaved\(as\); return false \}/.test(mp),
+assert(/if \(!landed\) \{ setUnsaved\(\(u\) => \(u\.includes\(as\) \? u : \[\.\.\.u, as\]\)\); return false \}/.test(mp),
   'a spirit write that did not land answers false, so the caller cannot tick the screen')
-assert(/if \(!landed\) \{ setUnsaved\('objectives'\); return \}/.test(mp),
+assert(/if \(!landed\) \{ setUnsaved\(\(u\) => \(u\.includes\('objectives'\) \? u : \[\.\.\.u, 'objectives'\]\)\); return \}/.test(mp),
   'an objectives write that did not land says so and stops')
 assert(/if \(!landed\)[\s\S]{0,80}return \}\n    setMindSaved\(true\)/.test(mp),
   'the objectives Saved confirmation is only reached once the row has them')
@@ -306,7 +337,7 @@ assert(before(stepFn, 'await patchSpirit(', 'setCompleted('),
 assert(!/const before = completed/.test(card),
   'no snapshot of what the screen held — there is no paint to roll back to')
 assert(!/setCompleted\(before\)/.test(card), 'nothing rolls a paint back')
-assert(/if \(!locked \|\| saving\) return/.test(toggleFn) && /if \(!protocol \|\| writing\) return/.test(stepFn),
+assert(/if \(!locked \|\| saving\) return/.test(toggleFn) && /if \(!protocol \|\| writing \|\| !entryInRow\) return/.test(stepFn),
   'a write in flight stops a second one starting, so two writes of this row never race')
 
 // A retry carries a TAG, never a payload. A captured closure holds the draft it
@@ -317,14 +348,43 @@ for (const [name, src] of [['the objectives card', card], ['MorningProtocol', mp
 }
 // The TYPE is the guard a regex cannot be: a union of string literals and null
 // cannot hold a function, so tsc refuses a captured closure outright.
-assert(/useState<'draft' \| 'tick' \| null>\(null\)/.test(card),
-  'the card names which write failed and its type cannot hold a closure')
-assert(/useState<'protocol' \| 'objectives' \| 'tick' \| 'gratitude' \| null>\(null\)/.test(mp),
-  'the protocol names which write failed and its type cannot hold a closure')
+// ONE SLOT PER WRITER (Blaine's ruling, 2026-10-05). A single tag meant every
+// writer cleared the whole thing, so a successful tick cleared a FAILED draft
+// and took its Retry off the screen. An ARRAY of string literals still cannot
+// hold a function, which is the guard a regex cannot be.
+assert(/useState<readonly \('draft' \| 'tick'\)\[\]>\(\[\]\)/.test(card),
+  'the card names which writeS failed and its type cannot hold a closure')
+assert(/type SpiritTag = 'protocol' \| 'objectives' \| 'tick' \| 'gratitude'/.test(mp),
+  'the protocol has one tag per owned path')
+assert(/useState<readonly SpiritTag\[\]>\(\[\]\)/.test(mp),
+  'the protocol names which writeS failed and its type cannot hold a closure')
+// EACH WRITER CLEARS ONLY ITS OWN. This is the P1: a successful write on one
+// path cleared another writer's failure tag and its Retry, leaving a protocol
+// on screen that the row did not have and nothing saying so.
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(!/setUnsaved\(null\)/.test(src), `${name} never clears every failure at once`)
+  assert(!/setUnsaved\(\[\]\)/.test(src), `${name} does not clear them all by assigning an empty list either`)
+  assert((src.match(/setUnsaved\(\(u\) => u\.filter\(/g) ?? []).length >= 2,
+    `${name}'s writers each clear only their own tag`)
+  assert((src.match(/setUnsaved\(\(u\) => \(u\.includes\(/g) ?? []).length >= 2,
+    `${name}'s writers each ADD their own tag on failure, leaving the others standing`)
+}
 // A failed tick has nothing to retry: the screen never moved, so the step is
 // still as the row has it and tapping it again IS the retry. Offering Retry
 // there saved the unchanged array and cleared the warning (Codex r2).
-assert(/\{unsaved !== 'tick' && \(/.test(mp), 'a failed tick is offered no Retry, in the protocol as in the card')
+assert(/\{tag !== 'tick' && \(/.test(mp), 'a failed tick is offered no Retry, in the protocol as in the card')
+// EVERY OUTSTANDING FAILURE IS SHOWN. One row could not carry two: a protocol
+// that did not save and a gratitude that did not save are different losses
+// with different retries, and showing one of them hid the other.
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(/unsaved\.length > 0 \?/.test(src), `${name} shows a banner while ANY failure stands`)
+  assert(/\.filter\(\(t\) => unsaved\.includes\(t\)\)\.map\(/.test(src),
+    `${name} renders one row per outstanding failure, not just the newest`)
+}
+// In a FIXED order, so two failures do not swap places between renders and
+// move a Retry button under the user's finger.
+assert(/const UNSAVED_ORDER: readonly SpiritTag\[\] = \['protocol', 'objectives', 'gratitude', 'tick'\]/.test(mp),
+  'and in a fixed order rather than by when they failed')
 assert(/'That step did not save/.test(mp), 'a failed tick says to tap it again')
 assert(/patchSpirit\(\[\{ path: \['morning', 'completed'\], value: next \}\], 'tick'\)/.test(mp),
   'a tick tells the writer it was a tick, and sends only the completion flags')
@@ -334,14 +394,15 @@ assert(/patchSpirit\(\[\{ path: \['morning', 'completed'\], value: next \}\], 't
 // clobbering this round removes — the button would be the fourth whole-entry
 // writer. So there is a tag per owned path, and the Record type makes tsc
 // refuse a tag with no label rather than rendering `undefined`.
-const retry = mp.slice(mp.indexOf('          onClick={() => {'), mp.indexOf('          >\n          Retry'))
-assert(/unsaved === 'objectives'[\s\S]{0,120}saveMindState\(\)/.test(retry),
+const retry = body(mp, '  const retryOf = (tag: SpiritTag) => () => {')
+assert(retry.length > 0, 'the retry is found by name')
+assert(/tag === 'objectives'[\s\S]{0,120}saveMindState\(\)/.test(retry),
   'a failed objectives write is retried as an objectives write')
-assert(/unsaved === 'gratitude'[\s\S]{0,160}path: \['morning', 'gratitude'\]/.test(retry),
+assert(/tag === 'gratitude'[\s\S]{0,160}path: \['morning', 'gratitude'\]/.test(retry),
   'a failed gratitude write is retried as a gratitude write, not as the whole entry')
 assert(/morningEntry\(protocol, completed, gratitude\)/.test(retry),
   'and only the protocol tag retries the whole morning entry, which is what it owns')
-assert(/const UNSAVED_LABEL: Record<'protocol' \| 'objectives' \| 'gratitude', string>/.test(mp),
+assert(/const UNSAVED_LABEL: Record<SpiritTag, string>/.test(mp),
   'every tag that shows a label has one, enforced by the type rather than by a regex')
 assert(/onClick=\{\(\) => \{ void saveDraft\(\) \}\}/.test(card),
   "the card's Retry re-runs the draft save, which reads the inputs as they are then")
@@ -353,7 +414,7 @@ for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card
 // view. It used to sit inside the setup branch only, and generation sets
 // `configured` before saving — so after the first save no failure showed a
 // warning or a Retry anywhere (Codex r1, P1).
-const bannerDecl = mp.indexOf('const unsavedBanner = unsaved ?')
+const bannerDecl = mp.indexOf('const unsavedBanner = unsaved.length > 0 ?')
 const firstReturn = mp.indexOf('  if (reading) {')
 assert(bannerDecl >= 0 && firstReturn >= 0 && bannerDecl < firstReturn,
   'the protocol builds its unsaved banner before the first early return')
