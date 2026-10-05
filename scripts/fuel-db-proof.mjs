@@ -70,11 +70,23 @@ try {
     const rows = q(`select jsonb_agg(to_jsonb(t) order by t.slug) from (
       select slug, name, protein_cut, spice_profile, format, active_cook_minutes,
              total_minutes, servings, protein_g_per_person, perishable_within_days,
-             rotation_note, ingredients, active,
+             rotation_note, ingredients, active, user_id,
              carbs_g_per_person, fat_g_per_person, calories_per_person
       from public.fuel_meals) t`)
-    const got = new Map((JSON.parse(rows || '[]')).map((r) => [r.slug, r]))
+    const raw = JSON.parse(rows || '[]')
+    // COUNT THE ROWS BEFORE KEYING THEM. `new Map(rows.map(...))` collapses a
+    // duplicate slug, so 38 rows holding the expected 37 slugs compared equal
+    // — and loadMeals() would hand the planner the same meal twice. A child
+    // table inheriting fuel_meals is one way to get there, because a parent's
+    // unique constraint does not cover its children while a parent query does
+    // return their rows (FOR-257 r6).
+    const seenSlugs = new Map()
+    for (const r of raw) seenSlugs.set(r.slug, (seenSlugs.get(r.slug) ?? 0) + 1)
+    const dupes = [...seenSlugs.entries()].filter(([, n]) => n > 1).map(([sl, n]) => `${sl} ×${n}`)
+    if (dupes.length) throw new Error(`fuel_meals holds duplicate slugs ${when} — ${dupes.join(', ')}`)
+    const got = new Map(raw.map((r) => [r.slug, r]))
 
+    if (raw.length !== want.size) throw new Error(`fuel_meals holds ${raw.length} rows ${when}, and the fixtures declare ${want.size}`)
     const missing = [...want.keys()].filter((k) => !got.has(k))
     const extra = [...got.keys()].filter((k) => !want.has(k))
     if (missing.length || extra.length) {
@@ -91,14 +103,13 @@ try {
         const b = r[k] === undefined ? null : r[k]
         if (JSON.stringify(a) !== JSON.stringify(b)) diffs.push(`${slug}.${k}: fixture ${JSON.stringify(a)} vs row ${JSON.stringify(b)}`)
       }
-      // CANONICAL IN KEY ORDER, NOT IN TYPE. jsonb does not keep an object's
-      // key order, so the keys are listed; it does keep the type, so
+      // CANONICAL IN KEY ORDER ONLY. jsonb does not keep an object's key
+      // order, so the keys are SORTED; it does keep the type, so
       // String()/Number()/Boolean() were throwing away the difference between
-      // 7 and "7", and between true and "false" (FOR-257 r5). The values go
-      // through untouched.
-      const canon = (list) => JSON.stringify((list ?? []).map((i) => [
-        i.item, i.qty_per_person, i.unit, i.store_section, i.inferred,
-      ]))
+      // 7 and "7" (FOR-257 r5). Every key is compared, not five named ones: a
+      // projection let an extra JSON property survive the comparison
+      // (FOR-257 r6).
+      const canon = (list) => JSON.stringify((list ?? []).map((i) => Object.keys(i ?? {}).sort().map((k) => [k, i[k]])))
       if (canon(w.ingredients) !== canon(r.ingredients)) {
         diffs.push(`${slug}.ingredients differ — fixture ${canon(w.ingredients).slice(0, 120)} vs row ${canon(r.ingredients).slice(0, 120)}`)
       }
@@ -111,6 +122,9 @@ try {
         if (r[k] !== null) diffs.push(`${slug}.${k} is ${JSON.stringify(r[k])} in the ROW — no seed migration carries macros`)
       }
       if (r.active !== true) diffs.push(`${slug}.active is ${JSON.stringify(r.active)} — an inactive meal is dropped from the library by loadMeals()`)
+      // A seeded meal belongs to nobody. `id` and `created_at` are left out on
+      // purpose: one is random and the other is the clock.
+      if (r.user_id !== null) diffs.push(`${slug}.user_id is ${JSON.stringify(r.user_id)} — a seeded meal is owned by nobody`)
     }
     if (diffs.length) throw new Error(`fuel_meals rows disagree with their fixtures ${when}:\n  ${diffs.slice(0, 8).join('\n  ')}${diffs.length > 8 ? `\n  ... and ${diffs.length - 8} more` : ''}`)
     console.log(`  PASS (FOR-257) ${when}: the library is exactly the ${want.size} meals the fixtures declare, every column — a stray write cannot spell its way past a row comparison`)
@@ -123,7 +137,12 @@ try {
   // replaced — 20260919 replaces the trigger function 20260918 defines — and the
   // proof would then run against SQL that no fresh database ever has. That is not
   // hypothetical: it silently reverted the fix and the proof stayed red (FOR-243).
-  compareLibrary('after one apply of every migration, as production does it')
+  // END OF THE FIRST PASS, on a FRESH database. Not every branch a production
+  // apply could take: a migration guarded by `IF EXISTS (SELECT 1 FROM
+  // public.fuel_plans)` does nothing here, because the SQL proof creates plans
+  // after both comparisons (FOR-257 r6). What this catches is a write that
+  // fires once and would be hidden by the second seed replay.
+  compareLibrary('at the end of one apply of every migration, on a fresh database')
 
   for (const m of fp.migrations) apply(readLF(m.file), `${m.file}, a second time`)
   console.log(`applied all ${fp.migrations.length} Fuel migrations a second time, in order: idempotent`)

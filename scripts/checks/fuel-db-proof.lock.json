@@ -42,7 +42,7 @@
   "comparator": [
     {
       "file": "scripts/fuel-db-proof.mjs",
-      "sha256": "b7b031f373c31a2da0a824874d37734abac9e108cf76431935cf39c374039935"
+      "sha256": "a4c8766171be6964fce3e122cd63581a06a46f3d9d03fdda4d9c9f6b61249a35"
     },
     {
       "file": "scripts/fuel-db-proof-lib.mjs",

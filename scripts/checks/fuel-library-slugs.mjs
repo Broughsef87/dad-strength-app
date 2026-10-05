@@ -167,6 +167,13 @@ assert(!/CREATE TABLE|ALTER TABLE|CREATE POLICY|CREATE INDEX|DROP |CREATE OR REP
   // NOT NULL;` keeps the expected text as a substring and passed — and running
   // that revert removes the expansion AND every own meal, leaving stored plans
   // pointing at slugs that no longer exist (Codex r3 P3).
+  //
+  // WHAT THIS ESTABLISHES, exactly: the first DELETE is character for
+  // character the one the fixture's slugs imply, and the header holds none of
+  // a list of destructive tokens. It does NOT establish "the only statement" —
+  // a comment reading `EXECUTE 'DE' || 'LETE FROM ...'` is a destructive
+  // instruction no token count can see (FOR-257 r6). The revert is a sentence
+  // a person executes, and a person reads it.
   const i0 = revertSql.indexOf('DELETE FROM public.fuel_meals')
   assert(i0 >= 0, 'the header carries a DELETE of the expansion')
   const statement = revertSql.slice(i0, revertSql.indexOf(';', i0) + 1)
@@ -192,18 +199,20 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
 // (the revert is compared as a set above — a per-slug `includes` could not see
 // an EXTRA slug, which is the shape that breaks the DELETE)
 
-// ── 7. a CHEAP EARLY WARNING about a stray write — and not the proof ──────
+// ── 7. a PARTIAL LEXICAL HINT about a stray write — and not the proof ─────
 // What proves the library is what the fixtures say is `npm run proof:db`:
 // every migration that touches a fuel_ table is applied to a real Postgres and
 // the 37 rows are then compared field by field. A stray write changes a row
 // and fails there, whatever it is spelled like.
 //
-// This regex stays as the fast signal, and its claim is now that size. Four
-// rounds of widening it taught the lesson: Codex beat it with
-// `UPDATE ONLY(public.fuel_meals)`, a MERGE, a comment between the keyword and
-// the table, and a quoted upper-case name, and it also fired on a commented-out
-// example. Matching SQL with a regular expression is the wrong instrument for
-// a proof; it is a fine instrument for a hint.
+// This regex stays as the fast signal, and its claim is exactly that size: a
+// partial lexical hint. Five rounds of widening it taught the lesson — Codex
+// beat it with `UPDATE ONLY(public.fuel_meals)`, a MERGE, a comment between
+// the keyword and the table, a quoted upper-case name and a dollar-quote tag
+// holding a digit, and it also fired on documentation. It cannot promise that
+// every write matches, or that no comment trips it. Matching SQL with a
+// regular expression is the wrong instrument for a proof; it is a fine
+// instrument for a hint, and saying so is cheaper than a sixth widening.
 {
   const dir = join(ROOT, 'supabase', 'migrations')
   const generated = new Set(PAIRS.map((p) => p.migration.split('/').pop()))
@@ -238,7 +247,10 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     // is how every DO block in this repo is written. Stripping single quotes
     // alone meant `SELECT $$ UPDATE public.fuel_meals ... $$;` failed the
     // check with no write in it (FOR-257 r5).
-    .replace(/\$([a-z_]*)\$[\s\S]*?\$\1\$/gi, ' ')
+    // A dollar-quote tag is an IDENTIFIER, so it can hold digits: `$doc1$`
+    // tripped a pattern that allowed only letters (FOR-257 r6). This is the
+    // lexical rule rather than another round of widening.
+    .replace(/\$([a-z_][a-z0-9_]*)?\$[\s\S]*?\$\1\$/gi, ' ')
     .replace(/'(?:[^']|'')*'/g, "''")
   const strays = readdirSync(dir)
     .filter((n) => n.endsWith('.sql') && !generated.has(n))
@@ -259,10 +271,22 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     // deleting the row comparison left the lock unchanged while this check
     // went on asserting that the rows were compared (FOR-257 r5). A lock
     // cannot attest to what it does not hash.
+    // ALL FIVE inputs the comparison reads. Naming two of them meant the
+    // other three could be dropped from the fingerprint and the lock
+    // regenerated, and both this suite and the lock suite accepted it
+    // (FOR-257 r6) — a lock that hashes the comparator but not the fixtures
+    // it compares against attests to half the comparison.
     const covered = (lock.comparator ?? []).map((c) => c.file)
-    for (const f of ['scripts/fuel-db-proof.mjs', 'fixtures/fuel-seed-library-expansion.json']) {
+    for (const f of [
+      'scripts/fuel-db-proof.mjs',
+      'scripts/fuel-db-proof-lib.mjs',
+      'fixtures/fuel-seed.json',
+      'fixtures/fuel-seed-rotation-b.json',
+      'fixtures/fuel-seed-library-expansion.json',
+    ]) {
       assert(covered.includes(f), `the lock hashes ${f}, so a change to it forces the proof to run again`)
     }
+    assert(covered.length === 5, `and hashes nothing else as a comparator input — it lists ${covered.length}`)
     const { createHash } = await import('node:crypto')
     for (const c of lock.comparator ?? []) {
       const now = createHash('sha256').update(readLF(c.file)).digest('hex')
@@ -319,6 +343,8 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     ['a commented-out example', executableOnly("-- UPDATE public.fuel_meals SET name = 'Example';\nSELECT 1;")],
     ['a dollar-quoted example', executableOnly('SELECT $$ UPDATE public.fuel_meals SET name = \'Example\'; $$;')],
     ['a tagged dollar-quoted example', executableOnly('SELECT $doc$ DELETE FROM public.fuel_meals; $doc$;')],
+    ['a tag with a digit in it', executableOnly("SELECT $doc1$ UPDATE public.fuel_meals SET name='example'; $doc1$;")],
+    ['a tag with an underscore', executableOnly('SELECT $my_doc$ TRUNCATE public.fuel_meals; $my_doc$;')],
     ['a write inside a string literal', executableOnly("INSERT INTO public.fuel_audit (note) VALUES ('UPDATE public.fuel_meals SET name = x');")],
     ['a different table', "INSERT INTO public.fuel_rotation_meals (rotation_slug) VALUES ('c');"],
     ['a table whose name STARTS with it', "UPDATE public.fuel_meals_archive SET name = 'x';"],
@@ -663,6 +689,15 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
       assert(!fishy(validatePlan({ entries: [{ slug, week: 1, servings: 0 }] }, library, household)),
         `one week-1 ${slug} does not warn at an allowance of one`)
     }
+    // AT ANOTHER ALLOWANCE, because every week-1 probe used one — so
+    // `w === 1 ? 1 : rules.fish_per_week` passed them all while nagging at an
+    // allowance of none and staying silent at three (FOR-257 r6).
+    const strict1 = { ...household, dietary_rules: { ...household.dietary_rules, fish_per_week: 0 } }
+    assert(fishy(validatePlan({ entries: [{ slug: 'lemon-crumb-haddock', week: 1, servings: 0 }] }, library, strict1)),
+      'one week-1 fish night warns when the household allows none')
+    const loose1 = { ...household, dietary_rules: { ...household.dietary_rules, fish_per_week: 3 } }
+    assert(!fishy(validatePlan({ entries: ['lemon-crumb-haddock', 'honey-soy-mahi', 'garlic-shrimp-skillet'].map((slug) => ({ slug, week: 1, servings: 0 })) }, library, loose1)),
+      'and three week-1 fish nights do not warn when the household allows three')
   }
   // A week-2 cut that freezes stays on the first trip, so the trip rule is
   // about the list and not about week 2.
