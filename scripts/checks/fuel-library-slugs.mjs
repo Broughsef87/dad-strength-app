@@ -344,7 +344,10 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     ['a dollar-quoted example', executableOnly('SELECT $$ UPDATE public.fuel_meals SET name = \'Example\'; $$;')],
     ['a tagged dollar-quoted example', executableOnly('SELECT $doc$ DELETE FROM public.fuel_meals; $doc$;')],
     ['a tag with a digit in it', executableOnly("SELECT $doc1$ UPDATE public.fuel_meals SET name='example'; $doc1$;")],
-    ['a tag with an underscore', executableOnly('SELECT $my_doc$ TRUNCATE public.fuel_meals; $my_doc$;')],
+    // The payload is an UPDATE, not a TRUNCATE: `WRITES` does not recognise
+    // TRUNCATE, so the probe passed whether or not the tag was stripped and
+    // proved nothing about underscores in a tag (Codex r7).
+    ['a tag with an underscore', executableOnly("SELECT $my_doc$ UPDATE public.fuel_meals SET name='example'; $my_doc$;")],
     ['a write inside a string literal', executableOnly("INSERT INTO public.fuel_audit (note) VALUES ('UPDATE public.fuel_meals SET name = x');")],
     ['a different table', "INSERT INTO public.fuel_rotation_meals (rotation_slug) VALUES ('c');"],
     ['a table whose name STARTS with it', "UPDATE public.fuel_meals_archive SET name = 'x';"],
