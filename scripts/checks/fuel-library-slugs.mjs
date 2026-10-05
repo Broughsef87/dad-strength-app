@@ -180,7 +180,9 @@ assert(!/CREATE TABLE|ALTER TABLE|CREATE POLICY|CREATE INDEX|DROP |CREATE OR REP
   // line to the RENDERER rather than the file shows as no drift at all
   // (Codex r4 P3).
   const revertBare = revertSql.replace(/\/\*[\s\S]*?\*\//g, ' ')
-  for (const kw of ['DELETE FROM', 'UPDATE ', 'INSERT INTO', 'DROP ', 'ALTER ', 'TRUNCATE ']) {
+  // MERGE is a statement, and `MERGE ... WHEN MATCHED THEN DELETE` deletes
+  // rows without the word DELETE ever starting a statement (FOR-257 r5).
+  for (const kw of ['DELETE FROM', 'UPDATE ', 'INSERT INTO', 'DROP ', 'ALTER ', 'TRUNCATE ', 'MERGE ', 'WHEN MATCHED']) {
     const n = (revertBare.match(new RegExp(kw.replace(/ /g, '\\s+'), 'gi')) ?? []).length
     assert(n === (kw === 'DELETE FROM' ? 1 : 0), `the header documents ${kw === 'DELETE FROM' ? 'one DELETE' : `no ${kw.trim()}`} — it has ${n}`)
   }
@@ -232,6 +234,11 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
   const executableOnly = (sql) => sql
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/--[^\n]*/g, ' ')
+    // Dollar quoting is how Postgres writes a literal holding quotes, and it
+    // is how every DO block in this repo is written. Stripping single quotes
+    // alone meant `SELECT $$ UPDATE public.fuel_meals ... $$;` failed the
+    // check with no write in it (FOR-257 r5).
+    .replace(/\$([a-z_]*)\$[\s\S]*?\$\1\$/gi, ' ')
     .replace(/'(?:[^']|'')*'/g, "''")
   const strays = readdirSync(dir)
     .filter((n) => n.endsWith('.sql') && !generated.has(n))
@@ -246,6 +253,44 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     }
     assert(/every Fuel migration in order/.test(lock.provenAgainst ?? ''),
       'and it applied them in order, against a throwaway Postgres')
+
+    // THE LOCK COVERS THE COMPARATOR, so it can attest to the comparison.
+    // The fingerprint held the SQL proof and the migrations only, which meant
+    // deleting the row comparison left the lock unchanged while this check
+    // went on asserting that the rows were compared (FOR-257 r5). A lock
+    // cannot attest to what it does not hash.
+    const covered = (lock.comparator ?? []).map((c) => c.file)
+    for (const f of ['scripts/fuel-db-proof.mjs', 'fixtures/fuel-seed-library-expansion.json']) {
+      assert(covered.includes(f), `the lock hashes ${f}, so a change to it forces the proof to run again`)
+    }
+    const { createHash } = await import('node:crypto')
+    for (const c of lock.comparator ?? []) {
+      const now = createHash('sha256').update(readLF(c.file)).digest('hex')
+      assert(now === c.sha256, `${c.file} is unchanged since the proof ran — run npm run proof:db`)
+    }
+
+    // EVERY MIGRATION IS CLASSIFIED: applied by the proof, or listed as not
+    // applied with a reason. The selector reads names and text, and a
+    // migration that builds its table name at runtime matches neither — no
+    // text test can (FOR-257 r5). Applying every migration instead was tried
+    // and fails: 20260408_rls_gaps.sql does not apply to a throwaway
+    // database. So a new file has to be put in one list or the other, and
+    // cannot default into being unexamined.
+    const unappliedDoc = JSON.parse(readLF('scripts/checks/fuel-db-proof-unapplied.json'))
+    const excused = new Map((unappliedDoc.unapplied ?? []).map((u) => [u.file, u.reason]))
+    const appliedNames = new Set(applied.map((f) => f.split('/').pop()))
+    const everySql = readdirSync(dir).filter((n) => n.endsWith('.sql')).sort()
+    for (const n of everySql) {
+      assert(appliedNames.has(n) || excused.has(n),
+        `${n} is either applied by the database proof or listed in fuel-db-proof-unapplied.json — an unclassified migration is one nothing examined`)
+      assert(!(appliedNames.has(n) && excused.has(n)), `${n} is in one list, not both`)
+      if (excused.has(n)) {
+        assert((excused.get(n) ?? '').length > 20, `${n}'s reason for not being applied says something — "${excused.get(n)}"`)
+      }
+    }
+    for (const n of excused.keys()) {
+      assert(everySql.includes(n), `fuel-db-proof-unapplied.json names ${n}, which is not a migration any more — remove it`)
+    }
   }
   // And the search BITES on every spelling it claims to cover, so the loop
   // above is not vacuous. The old positive probe only tried the unquoted
@@ -272,6 +317,8 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
   // (Codex r3 P3).
   for (const [label, sql] of [
     ['a commented-out example', executableOnly("-- UPDATE public.fuel_meals SET name = 'Example';\nSELECT 1;")],
+    ['a dollar-quoted example', executableOnly('SELECT $$ UPDATE public.fuel_meals SET name = \'Example\'; $$;')],
+    ['a tagged dollar-quoted example', executableOnly('SELECT $doc$ DELETE FROM public.fuel_meals; $doc$;')],
     ['a write inside a string literal', executableOnly("INSERT INTO public.fuel_audit (note) VALUES ('UPDATE public.fuel_meals SET name = x');")],
     ['a different table', "INSERT INTO public.fuel_rotation_meals (rotation_slug) VALUES ('c');"],
     ['a table whose name STARTS with it', "UPDATE public.fuel_meals_archive SET name = 'x';"],
@@ -472,6 +519,9 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
     // `if (m[k])` and `if (m[k] || m[k] === 0)` (Codex r4 P3). The guard says
     // present-and-NULL, and this is what holds it to the word.
     runGuard(`a ${k} of false`, (j) => { j.fuel_meals_new[3][k] = false }, new RegExp(`${k} = false`))
+    // And an empty string, which survives `m[k] || m[k] === 0 || m[k] === false`
+    // — the next plausible shape of the same bug (FOR-257 r5).
+    runGuard(`a ${k} of an empty string`, (j) => { j.fuel_meals_new[4][k] = '' }, new RegExp(`${k} = `))
   }
   // And it accepts the fixture as authored, through the same route.
   writeFileSync(probePath, JSON.stringify(probeSeed(), null, 2))
@@ -605,6 +655,13 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
       const w1 = { entries: pair1.map((slug) => ({ slug, week: 1, servings: 0 })) }
       assert(fishy(validatePlan(w1, library, household)),
         `two week-1 seafood nights warn as well — ${pair1.join(' + ')}`)
+    }
+    // AND ONE DOES NOT. Probing week 1 only over its allowance cannot tell the
+    // rule from `w === 1 ? 0 : rules.fish_per_week`, which would nag about a
+    // single week-1 fish night (FOR-257 r5).
+    for (const slug of ['lemon-crumb-haddock', 'garlic-shrimp-skillet']) {
+      assert(!fishy(validatePlan({ entries: [{ slug, week: 1, servings: 0 }] }, library, household)),
+        `one week-1 ${slug} does not warn at an allowance of one`)
     }
   }
   // A week-2 cut that freezes stays on the first trip, so the trip rule is
