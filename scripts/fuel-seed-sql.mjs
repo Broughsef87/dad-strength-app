@@ -370,10 +370,19 @@ ON CONFLICT (rotation_slug, meal_slug) DO UPDATE SET
 // pair, the way rotation B did.
 export const EXPANSION_FIXTURE = 'fixtures/fuel-seed-library-expansion.json'
 
-export function renderLibraryExpansion(seed) {
+/**
+ * @param seed the fixture's parsed contents
+ * @param pair the pair being rendered. Its `fixture` is what must be excluded
+ *   from the seeded inventory — NOT a constant. Excluding EXPANSION_FIXTURE
+ *   by name meant reusing this renderer for another fixture checked the wrong
+ *   one both ways: a copy keeping `beef-barley-stew` rendered happily and its
+ *   upsert would rewrite that meal, while a disjoint fourth fixture had its
+ *   own new slugs refused as "already a seeded meal" (Codex r2).
+ */
+export function renderLibraryExpansion(seed, pair = { fixture: EXPANSION_FIXTURE }) {
   // Every OTHER pair's slugs. Its own are checked for internal duplicates
   // below; counting them as "already seeded" would refuse the fixture itself.
-  const seeded = seededSlugs(EXPANSION_FIXTURE)
+  const seeded = seededSlugs(pair.fixture)
   const fresh = seed.fuel_meals_new.map((m) => m.slug)
 
   for (const key of ['fuel_rotations', 'fuel_rotation_meals']) {
@@ -433,7 +442,9 @@ export const PAIRS = [
 export function renderPair(pair) {
   const seed = readFixture(pair.fixture)
   guardMacros(pair.meals(seed))
-  return pair.render(seed)
+  // The pair goes to the renderer: a renderer shared by two fixtures has to
+  // know which one it is rendering (Codex r2).
+  return pair.render(seed, pair)
 }
 
 /** The migration on disk for a pair, line endings normalised; null when it does not exist. */

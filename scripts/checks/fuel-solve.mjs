@@ -702,8 +702,17 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // a pair. The old assertion counted two occurrences — the definition and the
   // one call — which happened to equal the number of pairs and would have
   // drifted into meaning nothing (FOR-257).
-  assert(/\n  guardMacros\(pair\.meals\(seed\)\)\n  return pair\.render\(seed\)\n\}/.test(gen10),
-    "the macro guard runs inside renderPair, on every pair's meals, before anything renders")
+  // THE ORDER, not the call's arguments. This pinned
+  // `return pair.render(seed)` character for character and broke the moment
+  // renderPair started handing the pair down — a signature change, not a
+  // defect (FOR-257 r2). What matters is that the guard runs on the pair's
+  // meals BEFORE anything renders.
+  const rpAll = gen10.slice(gen10.indexOf('export function renderPair('))
+  const rpEnd = rpAll.indexOf('\n}')
+  const rp = rpEnd < 0 ? rpAll : rpAll.slice(0, rpEnd)
+  assert(rp.includes('guardMacros(pair.meals(seed))'), "renderPair runs the macro guard on the pair's own meals")
+  assert(rp.indexOf('guardMacros(') >= 0 && rp.indexOf('pair.render(') > rp.indexOf('guardMacros('),
+    'and runs it BEFORE anything renders')
   assert((gen10.match(/^function guardMacros\(/gm) || []).length === 1 && (gen10.match(/[^n] guardMacros\(/g) || []).length === 1,
     'and it is defined once and called from exactly one place, so a new pair cannot route around it')
   assert(/export function drifted\(\) \{\n  return PAIRS\.filter\(\(p\) => onDisk\(p\) !== renderPair\(p\)\)\n\}/.test(gen10) && /if \(process\.argv\.includes\('--check'\)\) \{\n    const bad = drifted\(\)/.test(gen10), 'drift and --check cover every pair — no pair is left unchecked')

@@ -358,7 +358,14 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
           {online && pending === 0 && failed.size === 0 && (lastSaved ? `every tick saved · ${new Date(lastSaved).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'every tick saved')}
           {online && failed.size > 0 && pending === 0 && 'a tick did not save — tap it again'}
         </div>
-        {estimates && <p className="text-[11px] text-muted-foreground mt-2">est. = a side quantity the docs never gave a number for. The proteins are exact.</p>}
+        {/* The legend used to say "The proteins are exact." That was true of the
+            13 seeded meals, whose protein figures are Andrew's own portions,
+            and FOR-257 added 24 whose every quantity — protein included — is an
+            estimate from standard home-cook practice. Marking those lines
+            `est.` fixed the marker and left the explanation contradicting it
+            (Codex r2). The legend says what the marker means and claims
+            nothing about the lines that lack it. */}
+        {estimates && <p className="text-[11px] text-muted-foreground mt-2">est. = a quantity nobody has measured yet. The first time you cook it is the measurement.</p>}
       </div>
 
       {sections.map((s) => (
