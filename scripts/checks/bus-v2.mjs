@@ -72,6 +72,15 @@ function sandbox(build) {
   build({ dir, bus: join(dir, '.claude', 'bus') })
   return dir
 }
+// bus.log, TOLERATING ITS ABSENCE. A hook that writes no line at all is a
+// defect this suite has to report, and reading the file outright turned that
+// into an ENOENT thrown before any assertion ran — which is the shape FOR-260
+// calls red with no message, and three of this round's mutations produced it.
+const logOf = (dir) => {
+  const f = join(dir, '.claude', 'bus', 'bus.log')
+  return existsSync(f) ? readFileSync(f, 'utf8') : ''
+}
+
 const runHook = (hook, dir) => {
   const r = spawnSync(BASH, [hook], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
   return { out: r.stdout || '', err: r.stderr || '', code: r.status }
@@ -225,7 +234,7 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     assert(!/Next item on the bus/.test(r.err), `chain.count holding ${name} dispatches nothing`)
     assert(existsSync(join(dir, '.claude', 'bus', 'queue', '001-FOR-5.json')),
       `chain.count holding ${name} leaves the doorbell queued`)
-    const log = readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8')
+    const log = logOf(dir)
     assert(/outcome=chain-unreadable/.test(log), `chain.count holding ${name} is logged as unreadable`)
     assert(log.trim().split('\n').length === 1, `chain.count holding ${name}: exactly one log line`)
     drop(dir)
@@ -239,7 +248,7 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   const r = runHook(CONTINUE, dir)
   assert(!r.err.includes(BIG) && !r.out.includes(BIG),
     "an unreadable chain.count's own bytes reach neither stream — the isolation invariant")
-  assert(!readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8').includes(BIG),
+  assert(!logOf(dir).includes(BIG),
     'and they are not in bus.log either')
   drop(dir)
   // A MISSING file is still the ordinary first dispatch, so failing closed did
@@ -247,7 +256,12 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   const fresh = sandbox(({ bus }) => { writeFileSync(join(bus, 'queue', '001-FOR-5.json'), '{}') })
   const fr = runHook(CONTINUE, fresh)
   assert(/Next item on the bus: FOR-5/.test(fr.err), 'a MISSING chain.count still dispatches — it reads 0')
-  assert(readFileSync(join(fresh, '.claude', 'bus', 'chain.count'), 'utf8').trim() === '1',
+  // existsSync first: a fix that failed closed on a missing file would leave
+  // nothing to read, and this suite must FAIL with a message rather than throw
+  // before the remaining assertions run.
+  const freshCount = join(fresh, '.claude', 'bus', 'chain.count')
+  assert(existsSync(freshCount), 'and it writes the count out')
+  assert(existsSync(freshCount) && readFileSync(freshCount, 'utf8').trim() === '1',
     'and the count it writes is 1')
   drop(fresh)
 }
@@ -274,7 +288,7 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
     const r = runHook(CONTINUE, dir)
     assert(r.code === 0 && !/Next item on the bus/.test(r.err), `HALT holding ${name} stops the Stop hook dead`)
     assert(existsSync(join(dir, '.claude', 'bus', 'queue', '001-FOR-4.json')), `HALT holding ${name} leaves the queue untouched`)
-    const log = readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8')
+    const log = logOf(dir)
     assert(/outcome=halted/.test(log), `HALT holding ${name} is logged as halted`)
     assert(!/ruling-needed|set_by|FOR-231/.test(log), `HALT holding ${name}: the hook logs none of its body`)
     const boot = runHook(BOOT, dir)
@@ -336,7 +350,7 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   const before = Date.now()
   const r = spawnSync(BASH, [LOG, 'cc', 'ticket=FOR-9 outcome=test'], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' })
   assert(r.status === 0, `bus-log.sh succeeds — exit ${r.status} ${r.stderr}`)
-  const line = readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8').trim()
+  const line = logOf(dir).trim()
   const m = /^\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)\] agent=cc ticket=FOR-9 outcome=test$/.exec(line)
   assert(!!m, `the line is "[<stamp>] agent=<agent> <message>" — got ${JSON.stringify(line)}`)
   if (m) {
@@ -380,7 +394,7 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   // Nothing a refused call passed reached bus.log. The valid line at the top of
   // this block is the only one in it.
   {
-    const lines = readFileSync(join(dir, '.claude', 'bus', 'bus.log'), 'utf8').trim().split('\n')
+    const lines = logOf(dir).trim().split('\n')
     assert(lines.length === 1, `every refusal wrote nothing — bus.log holds ${lines.length} line(s)`)
     assert(!/2099/.test(lines[0]), 'and no forged stamp is in it')
   }
@@ -391,11 +405,19 @@ const drop = (dir) => { try { rmSync(dir, { recursive: true, force: true }) } ca
   // above, the count depended on how many refusals had been written, so
   // loosening an unrelated guard broke this assertion and removing the collapse
   // did not.
+  //
+  // THE MESSAGE CARRIES SPACES, and that is load-bearing. Measured on this
+  // platform: Node quotes an argv element only when it holds a space, so
+  // 'first\nsecond' reached bash as `first` with `second` split off, and this
+  // assertion passed because `$*` rejoined them — never because of the `tr`
+  // collapse. It has therefore never tested the collapse until now. With
+  // spaces the element is quoted, the newline survives, and removing the
+  // collapse puts two physical lines in bus.log.
   const nlDir = sandbox(() => {})
-  spawnSync(BASH, [LOG, 'cc', 'first\nsecond'], { env: { ...process.env, CLAUDE_PROJECT_DIR: nlDir }, encoding: 'utf8' })
-  const nlLines = readFileSync(join(nlDir, '.claude', 'bus', 'bus.log'), 'utf8').trim().split('\n')
+  spawnSync(BASH, [LOG, 'cc', 'first line\nsecond line'], { env: { ...process.env, CLAUDE_PROJECT_DIR: nlDir }, encoding: 'utf8' })
+  const nlLines = logOf(nlDir).trim().split('\n')
   assert(nlLines.length === 1, `a multi-line message is collapsed into one line — got ${nlLines.length}`)
-  assert(/first second/.test(nlLines[0]), 'and both halves survive on that line')
+  assert(/first line second line/.test(nlLines[0]), 'and both halves survive on that line')
   drop(nlDir)
 }
 
