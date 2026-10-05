@@ -109,7 +109,16 @@ export async function computeAdjustments(
   for (const item of prevPlan.items) {
     if (item.kind === 'lift' && item.percent != null) {
       prescribed[item.slot] = {
-        percent: item.percent, targetRpe: item.targetRpe, maxKey: item.maxKey,
+        // A WAVE IS COMPARED AGAINST ITS OWN MEAN (FOR-263). The weight-follow
+        // below averages every load he logged, so the number it is measured
+        // against has to be the average of what was PRESCRIBED. `item.percent`
+        // is the wave's first set — 75 against a 3/2/1 wave averaging 81 — and
+        // reading obedience as "+6% heavy" would ratchet the whole wave up a
+        // week at a time, which is the drift the comment above describes.
+        percent: item.setPlan?.length
+          ? item.setPlan.reduce((a, s) => a + s.percent, 0) / item.setPlan.length
+          : item.percent,
+        targetRpe: item.targetRpe, maxKey: item.maxKey,
         name: item.name, velocity: item.velocity,
       }
     }

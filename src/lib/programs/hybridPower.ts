@@ -79,10 +79,18 @@ function macroPos(weekNumber: number): MacroPos {
 // percent ramp. pct(week) = pctStart + pctStep * (weekInMeso - 1).
 interface SlotMeso {
   names: [string, string, string, string]
+  /** 0 means the slot does not run in this meso — M2 has no snatch back-off (FOR-263). */
   sets: number
   reps: number
   pctStart: number
   pctStep: number
+  /**
+   * ONE ENTRY PER SET, when the sets differ from each other (FOR-263). A wave
+   * of 3/2/1 cannot be said with one sets × reps × % scheme. `sets` must equal
+   * this length; each entry ramps on its own pctStep, so the whole wave moves
+   * together week to week.
+   */
+  sequence?: Array<{ reps: number; pctStart: number; pctStep: number }>
   targetRpe?: number  // overrides the meso default (pulls feel heavy by design)
   velocity?: boolean  // speed slot — bar speed governs, so no RPE anchor at all
   note?: string
@@ -150,23 +158,46 @@ function liftFromSlot(
   adjustments: Record<string, number>,
   overrides?: Partial<LiftPrescription>,
 ): LiftPrescription {
-  const basePct = def.pctStart + def.pctStep * (weekInMeso - 1)
+  // A SEQUENCE'S SET COUNT IS ITS OWN LENGTH (FOR-263). Checked before any of
+  // the work below, because `sets` drives the rows the screen draws: six rows
+  // against five planned loads is a set with no prescription in it.
+  if (def.sequence && def.sequence.length !== def.sets) {
+    throw new Error(`${slot}: sets is ${def.sets} and the sequence holds ${def.sequence.length} — a sequence's set count is its own length`)
+  }
   const rawAdj = adjustments[slot] ?? 0
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, rawAdj))
-  let percent = Math.round((basePct + adj) * 2) / 2
-  if (percent > 0 && isClassicLiftSlot(slot, maxKey)) {
-    const floor = classicFloor(def.names[weekInMeso - 1], def.reps, slot)
-    if (percent < floor) percent = floor
+  // ONE floor rule for both shapes. A sequence step is a prescribed set like
+  // any other, so it goes through the same classic floor — on its OWN reps,
+  // since a single and a triple do not floor at the same place (FOR-263).
+  const atWeek = (pctStart: number, pctStep: number, reps: number) => {
+    let pct = Math.round((pctStart + pctStep * (weekInMeso - 1) + adj) * 2) / 2
+    if (pct > 0 && isClassicLiftSlot(slot, maxKey)) {
+      const floor = classicFloor(def.names[weekInMeso - 1], reps, slot)
+      if (pct < floor) pct = floor
+    }
+    return pct
   }
+  const percent = atWeek(def.pctStart, def.pctStep, def.reps)
+  // A WAVE IS SIX SETS WITH SIX LOADS. Every step takes the same autoreg
+  // delta, so feedback bends the whole wave rather than one set of it.
+  const setPlan = def.sequence?.map((step) => {
+    const stepPct = atWeek(step.pctStart, step.pctStep, step.reps)
+    return { reps: step.reps, percent: stepPct, targetWeightLbs: resolveWeight(stepPct, maxKey, maxes) }
+  })
+  // `reps` and `percent` describe the FIRST set, so anything reading them gets
+  // a coherent number rather than undefined or an average of the wave.
+  const headReps = setPlan ? setPlan[0].reps : def.reps
+  const headPct = setPlan ? setPlan[0].percent : percent
   return {
     kind: 'lift',
     slot,
     name: def.names[weekInMeso - 1],
     sets: def.sets,
-    reps: def.reps,
-    percent,
+    reps: headReps,
+    percent: headPct,
     maxKey,
-    targetWeightLbs: resolveWeight(percent, maxKey, maxes),
+    targetWeightLbs: resolveWeight(headPct, maxKey, maxes),
+    setPlan,
     // Speed slots carry NO difficulty anchor. A 55-64% double SHOULD feel like
     // an RPE 4; against a target of 6 the autoreg read that honesty as "+3%
     // too light" every single week and walked the slot out of its speed band.
@@ -449,7 +480,11 @@ function thursdayConditioning(weekNumber: number, pos: MacroPos): OutsideSession
 // heavy snatches and cleans per the user's own floor: fulls at ≤2 reps live
 // at 80%+. Speed lives in Friday's box squats, and in M1 in the 65-70%
 // warm-up singles below.
-//   M1 straight heavy doubles · M2 top double + back-offs · M3 top single.
+//   M1 straight heavy doubles · M2 EMOM singles · M3 top single.
+// M2 was a top double at 83 with hang back-offs, which put it within a
+// percentage point of M1's last week — the same lifts at nearly the same
+// loads (Andrew, 2026-10-05). It is an EMOM now: eight singles on the minute,
+// one weight, and no back-off slot at all (FOR-263).
 const D1_SN_TOP: SlotMeso[] = [
   // FOR-195: 4×2 → 2×2. The volume did not vanish, it moved down a slot: the
   // new back-offs below are 3×2 at 75-78, which is more total snatch than the
@@ -457,19 +492,23 @@ const D1_SN_TOP: SlotMeso[] = [
   // The 65-70% warm-up singles note goes with them: it was a patch for a meso
   // with no sub-max snatch in it, and the back-offs are the real fix.
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Build in singles, then two heavy working doubles — full lift, no fluff' },
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
+  // FOR-263: 8×1 EMOM at 80 / 81.5 / 83 / 84.5. The density is the stimulus —
+  // same weight every rep, and the minute is the rest.
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 8, reps: 1, pctStart: 80, pctStep: 1.5, targetRpe: 8, note: 'One single at the top of every minute for 8 minutes. Full lift, fast, same weight every rep.' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
 ]
-// M2 back-offs move to the hang — same full-depth catch (heavy expression
-// preserved), new position, legal under the ≥75 doubles rule. M3 snaps back
-// to the pure lift for realization.
+// M1 and M3 keep their back-offs. M2 HAS NONE: the EMOM above is the whole
+// snatch dose for the day, and `sets: 0` is how the registry says a slot does
+// not run in a meso (FOR-263). M3 snaps back to the pure lift for realization.
 const D1_SN_BACK: SlotMeso[] = [
   // M1 gains the top+back structure M2/M3 already had. The PURE lift, not the
   // hang — M1 is the pure-lift meso, and the hang belongs to M2's variation
   // brief. 75 is the doubles floor, so these are the lightest legal full-snatch
   // doubles in the program: real sub-maximal exposure, which is the point.
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'Back-off doubles — full lift, sharp and fast. These are the speed work, not a grind' },
-  { names: ['Hang Snatch', 'Hang Snatch', 'Hang Snatch', 'Hang Snatch'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — full catch, sit in' },
+  // FOR-263: the Hang Snatch 3×2 is removed. Eight singles on the minute is
+  // the dose; a back-off after it is volume for its own sake.
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 0, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7 },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
 ]
 // Monday heavy bench — the week's heavy-upper anchor. Dip-drive overhead was
@@ -487,9 +526,31 @@ const D1_BENCH_HEAVY: SlotMeso[] = [
 // Monday's snatch pull retired (2026-07): the day is squat-priority now, and
 // the freed slot went to Nordic curls — the program's only knee-flexion work.
 // Positional pulling lives in Friday's clean pulls (100-116%).
+//
+// M2 IS TWO WAVES OF 3/2/1, not a straight 4×4 (Andrew, 2026-10-05; FOR-263).
+// A straight 4×4 at 78 sat a couple of percent off M1's last week. Six sets,
+// each with its own reps and load, the second wave 2% over the first, and the
+// whole thing +2% a week:
+//   W5  3@75 2@80 1@85 · 3@77 2@82 1@87      W7  3@79 2@84 1@89 · 3@81 2@86 1@91
+//   W6  3@77 2@82 1@87 · 3@79 2@84 1@89      W8  3@81 2@86 1@91 · 3@83 2@88 1@93
 const D1_SQUAT: SlotMeso[] = [
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 5, pctStart: 70, pctStep: 2 },
-  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 4, pctStart: 78, pctStep: 2 },
+  {
+    names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'],
+    sets: 6,
+    reps: 3,
+    pctStart: 75,
+    pctStep: 2,
+    sequence: [
+      { reps: 3, pctStart: 75, pctStep: 2 },
+      { reps: 2, pctStart: 80, pctStep: 2 },
+      { reps: 1, pctStart: 85, pctStep: 2 },
+      { reps: 3, pctStart: 77, pctStep: 2 },
+      { reps: 2, pctStart: 82, pctStep: 2 },
+      { reps: 1, pctStart: 87, pctStep: 2 },
+    ],
+    note: 'Two waves of 3/2/1. Second wave is 2% over the first — the single at the top of each is the point.',
+  },
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 3, pctStart: 85, pctStep: 1.5 },
 ]
 
@@ -824,9 +885,12 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments),
       )
-      // Every meso has snatch back-offs now (FOR-195 item 1) — the guard that
-      // used to skip M1's empty slot went with them.
-      items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
+      // M1 and M3 have back-offs; M2's EMOM is the whole dose, and the
+      // registry says so with sets: 0 (FOR-263). The guard reads the slot
+      // rather than the meso number, so moving the exception is a data change.
+      if (D1_SN_BACK[m].sets > 0) {
+        items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
+      }
       items.push(
         liftFromSlot('bench_heavy', D1_BENCH_HEAVY[m], w, 'bench', maxes, pos.meso, adjustments),
         // Knee-flexion hamstring work — the one pattern pulls/DL don't cover.

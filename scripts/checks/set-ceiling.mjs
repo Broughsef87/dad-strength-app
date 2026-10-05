@@ -19,7 +19,14 @@
 // It runs against buildDay output rather than the source text, so it sees what
 // is actually PRESCRIBED — including anything a program assembles conditionally.
 //
-// Allowlist is empty and should stay that way. An entry needs a written reason.
+// An entry needs a written reason, and the check enforces that rather than
+// asking nicely — an exemption nobody had to justify is a hole.
+//
+// An entry is `{ entry: "slug:slot", maxSets, reason }`. maxSets BOUNDS the
+// exemption: `hybrid-power:sn_top` is excused at 8 sets because M2's snatch is
+// an 8x1 EMOM, and a ninth set would be a regression this check should still
+// catch. A bare string excuses the slot at any count, which is why the two
+// FOR-263 entries do not use one.
 import { readFileSync } from 'node:fs'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 
@@ -33,6 +40,25 @@ let allow = []
 try {
   allow = JSON.parse(readFileSync(new URL('./set-ceiling-allowlist.json', import.meta.url), 'utf8'))
 } catch { allow = [] }
+
+// EVERY ENTRY CARRIES ITS REASON, checked. The file's comment asked for one
+// for months and nothing read it; an allowlist that accepts a bare slot id is
+// a way to make this check pass without saying why (FOR-263).
+for (const a of allow) {
+  const key = typeof a === 'string' ? a : a?.entry
+  if (!key || !/^[a-z0-9-]+:[a-z0-9_]+$/.test(key)) {
+    console.error(`✗ set-ceiling-allowlist.json: "${JSON.stringify(a)}" is not a slug:slot entry`)
+    process.exit(1)
+  }
+  if (typeof a?.reason !== 'string' || a.reason.length < 40) {
+    console.error(`✗ set-ceiling-allowlist.json: ${key} needs a reason saying why the ceiling does not apply`)
+    process.exit(1)
+  }
+  if (a.maxSets != null && (!Number.isInteger(a.maxSets) || a.maxSets <= CEILING)) {
+    console.error(`✗ set-ceiling-allowlist.json: ${key} has maxSets ${a.maxSets}, which is not a whole number above the ${CEILING}-set ceiling`)
+    process.exit(1)
+  }
+}
 
 const violations = []
 let inspected = 0
@@ -63,7 +89,9 @@ for (const [slug, program] of Object.entries(PROGRAMS)) {
         const isTestRamp = week === 13 && String(item.slot ?? '').startsWith('test_')
         if (isTestRamp) { exemptTest++; continue }
         const key = `${slug}:${item.slot}`
-        if (allow.some((a) => a === key || a?.entry === key)) continue
+        // BOUNDED: an entry with maxSets excuses that many sets and no more.
+        if (allow.some((a) => a === key
+          || (a?.entry === key && (a.maxSets == null || item.sets <= a.maxSets)))) continue
         violations.push(
           `${slug} W${week}D${day} ${item.slot} — ${item.sets}x${item.reps ?? '?'}`
           + (item.percent != null ? ` @${item.percent}%` : ''))
@@ -81,6 +109,10 @@ console.log(`  prescriptions inspected     ${inspected}`)
 console.log(`  exempt, velocity            ${exemptVelocity}`)
 console.log(`  exempt, test-week ramp      ${exemptTest}`)
 console.log(`  allowlisted                 ${allow.length}`)
+for (const a of allow) {
+  const key = typeof a === 'string' ? a : a.entry
+  console.log(`    ${key} ${a?.maxSets != null ? `<= ${a.maxSets} sets` : '(unbounded)'}`)
+}
 console.log('')
 
 if (unique.length) {

@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "entry": "hybrid-power:sn_top",
+    "maxSets": 8,
+    "reason": "M2 Monday is an 8x1 snatch EMOM at 80-84.5%. Eight singles on the minute is density work, not accumulation: one weight, one rep, the minute is the rest. Andrew approved 2026-10-05 (FOR-263)"
+  },
+  {
+    "entry": "hybrid-power:back_squat_heavy",
+    "maxSets": 6,
+    "reason": "M2 Monday is two waves of 3/2/1 (75/80/85 then 77/82/87, +2% a week). Six sets whose rep counts descend to a single twice over is a wave, not six sets of the same thing. Andrew approved 2026-10-05 (FOR-263)"
+  }
+]
