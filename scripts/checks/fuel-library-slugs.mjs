@@ -22,6 +22,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { PAIRS, seededSlugs, renderLibraryExpansion } from '../fuel-seed-sql.mjs'
+import { FRESH_ONLY_CUTS } from '../../src/lib/fuel/solve.ts'
+import { STEAK_CUT } from '../../src/lib/fuel/record.ts'
 
 let checks = 0
 const fails = []
@@ -184,6 +186,62 @@ for (const s of expansion.fuel_meals_new.map((m) => m.slug)) {
       assert(m[k] === null, `${m.slug}: ${k} is null until it is measured — it is ${JSON.stringify(m[k])}`)
     }
   }
+}
+
+// ── 10. EVERY CUT IN THE LIBRARY IS CLASSIFIED FOR ITS TRIP ───────────────
+// `isSecondTrip` sends a week-2 Meat & Seafood line to the second trip only
+// when the meal's cut is in FRESH_ONLY_CUTS — a hand-written list. FOR-257
+// added shrimp, mahi and haddock, and until the list was widened a week-2
+// night cooking any of them bought its fish on the FIRST trip: bought day one,
+// cooked day eight or later.
+//
+// A list nobody is forced to maintain goes stale on the next fish. So every
+// cut in the library has to be in exactly one of the two sets below, and a new
+// one that is in neither FAILS here rather than defaulting into the wrong
+// trip. FREEZES is the complement, declared so the classification is
+// exhaustive; the app only needs the fresh half.
+{
+  const FREEZES = [
+    'ribeye', 'chuck', 'flank', 'ground_beef',
+    'chicken_thigh', 'chicken_breast', 'chicken_sausage',
+    'ground_turkey',
+    'pork_shoulder', 'pork_tenderloin', 'pork_chop',
+  ]
+  const fresh = [...FRESH_ONLY_CUTS]
+  const cuts = [...new Set(PAIRS.flatMap((p) => p.meals(read(p.fixture)).map((m) => m.protein_cut)))].sort()
+  for (const c of cuts) {
+    const inFresh = fresh.includes(c)
+    const inFreezes = FREEZES.includes(c)
+    assert(inFresh || inFreezes, `"${c}" is classified — bought fresh (FRESH_ONLY_CUTS) or frozen (this file); an unclassified cut buys week 2 on the first trip`)
+    assert(!(inFresh && inFreezes), `"${c}" is in one set, not both`)
+  }
+  // The four the expansion added, named rather than left to the loop: this is
+  // the defect, and it should fail by name if anyone narrows the list again.
+  for (const c of ['shrimp', 'mahi', 'haddock']) {
+    assert(fresh.includes(c), `"${c}" is bought fresh — a week-2 night would otherwise buy it on the first trip, eight days early`)
+  }
+  // And the rule still BITES where it did before, so widening it changed
+  // nothing for the seeded 13.
+  for (const c of ['salmon', 'cod_halibut']) assert(fresh.includes(c), `"${c}" is still bought fresh`)
+  for (const c of ['chicken_thigh', 'ground_turkey']) {
+    assert(!fresh.includes(c), `"${c}" still freezes — the fixture marks it MORE perishable than salmon, so a shelf-life threshold would have moved it`)
+  }
+}
+
+// ── 11. the steak cap knows which cuts it counts, and says so ─────────────
+// STEAK_CUT is a single cut, 'ribeye'. FOR-257 adds flank, which the ticket's
+// own §7 says "counts against the monthly steak cap with the ribeye" — and the
+// code does not count it. Adding flank to the rule would also count
+// beef-and-broccoli, which is flank in a stir-fry and nobody's steak night, so
+// the cut alone cannot decide it. REPORTED, not guessed: this asserts the
+// current behaviour so the gap is visible rather than assumed either way.
+{
+  const byCut = (cut) => PAIRS.flatMap((p) => p.meals(read(p.fixture))).filter((m) => m.protein_cut === cut).map((m) => m.slug)
+  assert(STEAK_CUT === 'ribeye', `the steak cap counts exactly one cut — it counts ${STEAK_CUT}`)
+  assert(byCut('ribeye').length === 1, `and one meal has it — ${byCut('ribeye').join(', ')}`)
+  const flank = byCut('flank')
+  assert(flank.length === 2 && flank.includes('flank-chimichurri') && flank.includes('beef-and-broccoli'),
+    `flank is two meals, one a steak night and one a stir-fry — ${flank.join(', ')}; that is why the cap cannot be fixed by naming the cut`)
 }
 
 // ── verdict ─────────────────────────────────────────────────────────────────

@@ -22,8 +22,27 @@ import type { Household, InventoryItem, ListItem, ListSection, MealIngredient, M
 import { daysBetween } from './cycle'
 import { STEAK_CUT, pastCut } from './record'
 
-/** Cuts the household buys fresh, close to the night they are cooked; everything else freezes. Sourced: "week-1 fresh fish at Costco, week-2 fish and produce elsewhere". */
-export const FRESH_ONLY_CUTS = ['salmon', 'cod_halibut', 'cod', 'halibut'] as const
+/**
+ * Cuts the household buys fresh, close to the night they are cooked;
+ * everything else freezes. Sourced: "week-1 fresh fish at Costco, week-2 fish
+ * and produce elsewhere" — so this is FISH AND SHELLFISH, a shopping habit,
+ * and not a shelf-life number.
+ *
+ * FOR-257 added shrimp, mahi and haddock to the library, and a week-2 night
+ * cooking any of them had its Meat & Seafood line bought on the FIRST trip —
+ * bought on day one, cooked on day eight or later, against a fixture that
+ * marks all four `perishable_within_days: 2`.
+ *
+ * Deriving this from that column was the obvious idea and it is WRONG: in the
+ * seeded 13 salmon and cod are 3 while chicken thigh and ground turkey are 2,
+ * so a threshold would have made chicken and turkey fresh-only and changed
+ * shipped behaviour. The column is shelf life; this is where it is bought.
+ *
+ * `scripts/checks/fuel-library-slugs.mjs` requires every cut in the library to
+ * be classified either here or as one that freezes, so the next fish added
+ * cannot default into the wrong trip silently.
+ */
+export const FRESH_ONLY_CUTS = ['salmon', 'cod_halibut', 'cod', 'halibut', 'shrimp', 'mahi', 'haddock'] as const
 export const MEAT_SECTION = 'Meat & Seafood'
 export const PRODUCE_SECTION = 'Produce'
 export const SECOND_TRIP_SECTION = 'Second trip'
