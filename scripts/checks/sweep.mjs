@@ -106,7 +106,19 @@ for (let week = 1; week <= 13; week++) {
       const lifts = plan.items.filter(i => i.kind === 'lift')
       const top = lifts.find(i => i.slot.endsWith('_top'))
       const back = lifts.find(i => i.slot.endsWith('_back'))
-      assert(top && back, `W${week} D${day}: expected top+backoff pair`)
+      // M2 MONDAY HAS NO BACK-OFF (FOR-263) — the 8x1 snatch EMOM is the
+      // whole dose for the day. Named by week and day, because it is Andrew's
+      // decision about one block rather than a general licence: a back-off
+      // going missing on any OTHER power day in a working meso still fails
+      // here, and this asserts the exception is PRESENT rather than merely
+      // tolerating its absence. meso2-monday.mjs pins what replaced it.
+      const noBackOff = day === 1 && week >= 5 && week <= 8
+      assert(top, `W${week} D${day}: expected a top set`)
+      if (noBackOff) {
+        assert(!back, `W${week} D${day}: M2 Monday prescribes no back-off, got ${back?.name}`)
+      } else {
+        assert(back, `W${week} D${day}: expected top+backoff pair`)
+      }
       // The back-off has to be genuinely lighter, not merely present: a
       // back-off at the top set's percentage is just two more working sets,
       // which is how a 4-set ceiling gets broken without any number changing.
@@ -139,7 +151,10 @@ const itemAt = (week, day, slot) =>
   hybridPower.buildDay(week, day, MAXES).items.find(i => i.slot === slot)
 
 // M2 variation meso → M3 realization on the pure lifts.
-assert(nameAt(5, 1, 'sn_back') === 'Hang Snatch' && nameAt(9, 1, 'sn_back') === 'Snatch', 'snatch back-offs: hang in M2, pure in M3')
+// M2 HAS NO BACK-OFF SLOT since FOR-263 — the 8x1 EMOM is the whole snatch
+// dose for the day — so the hang that used to live here is gone with it.
+assert(itemAt(5, 1, 'sn_back') === undefined, `M2 should prescribe no snatch back-off, got ${JSON.stringify(itemAt(5, 1, 'sn_back')?.name)}`)
+assert(nameAt(9, 1, 'sn_back') === 'Snatch', 'M3 snatch back-offs are the pure lift')
 // Athlete's preference: EVERY clean comes off the floor — no hang variant on
 // the clean side, in any meso. The snatch still hangs in M2.
 for (const wk of [5, 9]) assert(nameAt(wk, 5, 'cl_back') === 'Power Clean', `W${wk} clean back-offs must be off the floor`)
@@ -440,7 +455,9 @@ for (const [wk, sets, reps] of [[1, 5, 3], [5, 5, 2], [9, 4, 2]]) {
 }
 // Monday: the top set sheds two sets, the back-offs carry the volume (item 1).
 assert(itemAt(1, 1, 'sn_top')?.sets === 2, `M1 snatch top should be 2 sets, got ${itemAt(1, 1, 'sn_top')?.sets}`)
-for (const [wk, sets, lo] of [[1, 3, 75], [5, 3, 75], [9, 2, 83]]) {
+// M2 is absent from this table on purpose (FOR-263): its snatch is the EMOM
+// asserted in 8f, and it prescribes no back-off at all.
+for (const [wk, sets, lo] of [[1, 3, 75], [9, 2, 83]]) {
   const b = itemAt(wk, 1, 'sn_back')
   assert(b?.sets === sets, `W${wk} snatch back-offs should be ${sets} sets, got ${b?.sets}`)
   assert(b?.percent === lo, `W${wk} snatch back-offs should open at ${lo}%, got ${b?.percent}`)
@@ -696,8 +713,14 @@ for (let wk = 1; wk <= 13; wk++) {
 // clean_pull rotating into a snatch pull — item 6 deleted that rotation, so
 // Friday no longer HAS a percent slot that changes lift at the boundary and
 // the test would have been asserting a guard it no longer exercised. Monday
-// has two: bench_heavy (Bench Press → 1¼ Bench Press) and sn_back (Snatch →
-// Hang Snatch), against back_squat_heavy and sn_top which do not move.
+// has bench_heavy (Bench Press → 1¼ Bench Press), against back_squat_heavy and
+// sn_top which do not move.
+//
+// sn_back is still in the fixture, and it now tests the OTHER half of the same
+// guard: FOR-263 deleted M2's back-off slot, so `current[slot]` is undefined
+// rather than a different name. Both paths have to drop the adjustment, and
+// after FOR-263 only one of them is reached through a rotation — so the
+// rotation case is bench_heavy's, and sn_back's is the absent-slot case.
 const { computeAdjustments } = await import('../../src/lib/programs/autoreg.ts')
 const chain = data => {
   const o = { select: () => o, eq: () => o, gte: () => o, order: () => o, limit: () => Promise.resolve({ data }), not: () => Promise.resolve({ data }) }
@@ -713,7 +736,13 @@ const MON_W4_LOGS = [
 ]
 const monAdj = await computeAdjustments(fakeDbOf(MON_W4_LOGS), 'u1', hybridPower, 5, 1, RUN_EPOCH, MAXES)
 assert(monAdj.bench_heavy === undefined, `rotated bench_heavy carried an adjustment (${monAdj.bench_heavy})`)
-assert(monAdj.sn_back === undefined, `rotated sn_back carried an adjustment (${monAdj.sn_back})`)
+assert(monAdj.sn_back === undefined, `sn_back carried an adjustment into a meso that does not prescribe it (${monAdj.sn_back})`)
+// …and for the stated reason. An assertion that passes because the slot
+// vanished, while claiming to prove a rotation guard, is the shape of defect
+// this repo keeps producing (FOR-263).
+assert(itemAt(5, 1, 'sn_back') === undefined, 'sn_back is absent in M2 — that is WHY its adjustment drops')
+assert(nameAt(4, 1, 'bench_heavy') !== nameAt(5, 1, 'bench_heavy'),
+  'bench_heavy is the live ROTATION case on Monday — it must still change lift at the boundary')
 assert(monAdj.back_squat_heavy != null && monAdj.back_squat_heavy > 0,
   `unchanged back_squat_heavy lost its adjustment (${monAdj.back_squat_heavy})`)
 
@@ -735,7 +764,7 @@ assert(adj.cl_top != null && adj.cl_top > 0, `unchanged cl_top lost its adjustme
 assert((adj.speed_squat ?? 0) <= 0, `velocity slot chased an overload (${adj.speed_squat})`)
 console.log('\n── Autoreg at the M2 boundary (W4 logs → W5 build) ──')
 console.log(`  Mon carried: ${Object.entries(monAdj).map(([k, v]) => `${k}:${v > 0 ? '+' : ''}${v}`).join('  ') || '(none)'}`)
-console.log('  Mon blocked: bench_heavy, sn_back (rotated lifts)')
+console.log('  Mon blocked: bench_heavy (rotated), sn_back (absent in M2)')
 console.log(`  Fri carried: ${Object.entries(adj).map(([k, v]) => `${k}:${v > 0 ? '+' : ''}${v}`).join('  ') || '(none)'}`)
 
 console.log('\n── Speed day rotation (Tue) ──')

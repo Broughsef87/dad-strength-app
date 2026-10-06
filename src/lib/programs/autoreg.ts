@@ -83,18 +83,26 @@ export async function computeAdjustments(
   // rated or typed but not actually finished can't skew anything.
   const { data: rows } = await supabase
     .from('ares_session_logs')
-    .select('slot, rpe, weight_lbs')
+    // set_number, because a wave has a different prescribed load on every set
+    // and a load means nothing until you know WHICH set it was (FOR-263 r1).
+    .select('slot, rpe, weight_lbs, set_number')
     .eq('generated_workout_id', workoutId)
     .eq('log_type', 'strength_set')
     .eq('completed', true)
     .not('slot', 'is', null)
   if (!rows?.length) return {}
 
-  const bySlot: Record<string, { rpes: number[]; weights: number[] }> = {}
-  for (const r of rows as Array<{ slot: string; rpe: number | null; weight_lbs: number | null }>) {
-    const s = (bySlot[r.slot] ??= { rpes: [], weights: [] })
+  const bySlot: Record<string, { rpes: number[]; weights: number[]; sets: Array<{ n: number; lbs: number }> }> = {}
+  for (const r of rows as Array<{ slot: string; rpe: number | null; weight_lbs: number | null; set_number: number | null }>) {
+    const s = (bySlot[r.slot] ??= { rpes: [], weights: [], sets: [] })
     if (r.rpe != null) s.rpes.push(r.rpe)
-    if (r.weight_lbs != null && r.weight_lbs > 0) s.weights.push(Number(r.weight_lbs))
+    if (r.weight_lbs != null && r.weight_lbs > 0) {
+      s.weights.push(Number(r.weight_lbs))
+      // Kept alongside the flat list, not instead of it: a slot with no
+      // per-set plan behaves exactly as it did, and the set number is only
+      // consulted where there is a plan to match it against.
+      if (r.set_number != null) s.sets.push({ n: Number(r.set_number), lbs: Number(r.weight_lbs) })
+    }
   }
 
   // Last week's prescription per slot — rebuilt WITH last week's adjustments,
@@ -105,11 +113,30 @@ export async function computeAdjustments(
   // MAX_ADJ clamp stopped it 8 points above the wave. A speed squat designed
   // for 55-70% drifted to 74% on nothing but obedience.
   const prevPlan = program.buildDay(prevWeek, dayNumber, maxes, prevAdj)
-  const prescribed: Record<string, { percent: number; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
+  const prescribed: Record<string, { percent: number; setPcts?: number[]; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
   for (const item of prevPlan.items) {
     if (item.kind === 'lift' && item.percent != null) {
       prescribed[item.slot] = {
-        percent: item.percent, targetRpe: item.targetRpe, maxKey: item.maxKey,
+        // A WAVE IS COMPARED SET BY SET (FOR-263, and r1 is why). The
+        // weight-follow below reads the loads he actually lifted, and a wave
+        // prescribes a different one on every set, so a bare average cannot
+        // say whether he obeyed:
+        //
+        //   against the FIRST set (75) ..... doing as told reads +6% heavy
+        //   against the MEAN (81) .......... doing as told reads 0, but
+        //                                    stopping after four sets of six
+        //                                    reads -2%, and after the opening
+        //                                    triple -5.5%
+        //
+        // Both turn obedience into a signal. `setPcts` carries the prescribed
+        // percentage of each set so each logged load is measured against the
+        // set it belongs to; `percent` stays the mean as the fallback for a
+        // row that never recorded which set it was.
+        percent: item.setPlan?.length
+          ? item.setPlan.reduce((a, s) => a + s.percent, 0) / item.setPlan.length
+          : item.percent,
+        setPcts: item.setPlan?.length ? item.setPlan.map((x) => x.percent) : undefined,
+        targetRpe: item.targetRpe, maxKey: item.maxKey,
         name: item.name, velocity: item.velocity,
       }
     }
@@ -146,8 +173,22 @@ export async function computeAdjustments(
     let weightDelta = 0
     const max = p.maxKey ? maxes[p.maxKey] : undefined
     if (s.weights.length && max && max > 0) {
-      const actualPct = (s.weights.reduce((a, b) => a + b, 0) / s.weights.length / max) * 100
-      const d = actualPct - p.percent
+      // PER SET where the prescription was per set. Each logged load is
+      // measured against the percentage prescribed for THAT set, and the
+      // deviations are averaged — so finishing four sets of six exactly as
+      // written is four zeros, and stopping early says nothing about load
+      // (FOR-263 r1). A row with no set number, or a set number past the end
+      // of the plan (a set he added by hand), falls back to the slot's mean,
+      // because no planned load exists to compare it with.
+      const matched = p.setPcts
+        ? s.sets.map(({ n, lbs }) => ({
+            pct: (lbs / max) * 100,
+            want: p.setPcts![n - 1] ?? p.percent,
+          }))
+        : []
+      const d = matched.length
+        ? matched.reduce((a, m) => a + (m.pct - m.want), 0) / matched.length
+        : (s.weights.reduce((a, b) => a + b, 0) / s.weights.length / max) * 100 - p.percent
       if (Math.abs(d) >= WEIGHT_DEADBAND_PCT) weightDelta = d
       // On a speed slot, going heavier than prescribed isn't a data point to
       // build on — it's the failure mode of the slot. Following it up would

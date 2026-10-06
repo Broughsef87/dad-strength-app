@@ -47,6 +47,10 @@ const SUITES = [
   // A dead hook and an empty queue used to look identical — its own suite, so a
   // revert of the logging cannot take the check that would catch it (FOR-246).
   ['bus observability (FOR-246)', 'bus-observability.mjs'],
+  // M2 Monday's EMOM and squat waves, and the nine Mondays this must not have
+  // touched — its own suite, so a revert of hybridPower.ts cannot take the
+  // check that would catch the revert (FOR-263).
+  ['M2 Monday (FOR-263)', 'meso2-monday.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
   // Its own suite, not a section of fuel-solve: a revert of the rotations
   // feature must not take the check that would catch the revert with it.

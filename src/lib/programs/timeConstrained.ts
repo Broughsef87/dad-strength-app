@@ -7,6 +7,7 @@
 //
 // Deterministic, like everything in the prescription path: same plan in,
 // same reduced plan out.
+import { withSetCount } from './setPlan'
 import type { DayPlan, Prescription } from './types'
 
 /** Lifts kept on a reduced gym day — the primaries, which every program lists first. */
@@ -33,7 +34,10 @@ export function reduceForTime(plan: DayPlan): DayPlan {
     if (item.kind === 'lift') {
       if (lifts >= TIME_CONSTRAINED_LIFTS) break
       lifts++
-      kept.push({ ...item, sets: Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS) })
+      // withSetCount, so a wave's plan is trimmed with its set count — three
+      // sets holding six planned loads made the header describe a day that was
+      // not being prescribed (FOR-263, Codex r1).
+      kept.push(withSetCount(item, Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS)))
     } else if (item.kind === 'prep') {
       // The warm-up is never the thing you cut. A dad with twenty-five minutes
       // is exactly the dad who jumps cold, and the reduced day keeps the jump
@@ -41,7 +45,7 @@ export function reduceForTime(plan: DayPlan): DayPlan {
       // away the thing that makes it safe (FOR-244).
       kept.push(item)
     } else if (item.kind === 'plyo' && lifts === 0) {
-      kept.push({ ...item, sets: Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS) })
+      kept.push(withSetCount(item, Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS)))
     } else if (lifts >= TIME_CONSTRAINED_LIFTS) {
       break
     }
