@@ -102,36 +102,6 @@ was reverted anyway. Reach for them when the size calls for them.
 Andrew enters every credential value himself. Reference env var names, never values. Never echo
 one into a log, a commit, or a report. **Quarantine over delete.**
 
-## How you write to Andrew
-
-Your reports and your Linear ticket bodies are read by a person. Two rules, and the second has a
-check.
-
-**Bullets by default. Action items first. Bold the decision. One line of reasoning, not three.
-Cut the recap** — he was there, or he can read the commits.
-
-**ZERO negation-reversals per response.** The banned shape is assert-then-reframe. Andrew has
-called it out by name three times since July. The forms, quoted so the check skips them:
-
-> "That's not X, it's Y" · "not X — it's Y" · "X; it just isn't Y" · "I didn't X, I Y'd" · "…, not Y."
-Also banned: manufactured aphorism endings. Not every paragraph has to land.
-
-**Check it before you post a report or a ticket body:**
-
-```
-node ~/.openclaw/workspace/knowledge/tools/writing-check.mjs --log cc <file>
-```
-
-Exit 0 clean, exit 1 violations, hits logged to `tools/writing-violations.md`.
-
-**Where the impulse goes instead.** Nearly every violation is the same contrast — claimed against
-measured. Put it in structure rather than rhetoric:
-
-```
-Claimed:  settings.json still has "command": "bash"
-Measured: shell form on disk since ccdf81a
-```
-
 ## Re-read the bus before you merge
 
 `.claude/bus/HALT` is written **while you are working**, and the Stop hook only fires between
