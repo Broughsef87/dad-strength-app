@@ -54,6 +54,40 @@ die() { echo "codex-review: $2" >&2; exit "$1"; }
   < "$PROMPT" > "$LOG" 2>&1 &
 CODEX_PID=$!
 
+# THE CHILD DIES WITH THE LAUNCHER. Killing the launcher from outside — a
+# TaskStop, a closed session, Ctrl-C — used to leave codex running: on
+# 2026-10-05 a hung run was "stopped" by killing its shell, and the codex
+# process lived another TEN HOURS AND 43 MINUTES, blocked on stdin, until
+# somebody spotted it by hand. Every failure path below kills the child
+# explicitly; this covers the paths that are not ours to reach.
+trap 'kill "$CODEX_PID" 2>/dev/null; exit 130' INT TERM HUP
+trap 'kill "$CODEX_PID" 2>/dev/null' EXIT
+
+# A TRAP IS NOT ENOUGH, and the check proved it. On Windows a kill from outside
+# is a TerminateProcess: bash never receives a catchable signal, so no trap
+# runs and the child is orphaned exactly as it was on 2026-10-05. So a WATCHDOG
+# outlives us — it polls for this launcher and reaps codex the moment we are
+# gone, and enforces a hard ceiling even if nobody kills anything.
+WATCHDOG_MAX="${CODEX_MAX_RUNTIME:-3600}"
+SELF_PID=$$
+(
+  waited=0
+  while kill -0 "$CODEX_PID" 2>/dev/null; do
+    if ! kill -0 "$SELF_PID" 2>/dev/null; then
+      kill "$CODEX_PID" 2>/dev/null
+      exit 0
+    fi
+    if [ "$waited" -ge "$WATCHDOG_MAX" ]; then
+      kill "$CODEX_PID" 2>/dev/null
+      exit 0
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+) &
+WATCHDOG_PID=$!
+trap 'kill "$CODEX_PID" 2>/dev/null; kill "$WATCHDOG_PID" 2>/dev/null' EXIT
+
 # ── it has to prove it started ──────────────────────────────────────────────
 # A session id is Codex's own first-output marker, so it is evidence the model
 # is engaged rather than evidence a process exists.
@@ -96,4 +130,8 @@ rc=$?
 echo "CODEX EXIT $rc" >> "$LOG"
 [ "$rc" -eq 0 ] || die 7 "codex exited $rc — log: $LOG"
 
+# Clear the EXIT trap before the clean return: `wait` above already reaped the
+# child, and leaving it armed fires a kill against a dead pid on every exit.
+trap - EXIT
+kill "$WATCHDOG_PID" 2>/dev/null
 echo "codex-review: complete, $(wc -c < "$LOG") bytes" >&2

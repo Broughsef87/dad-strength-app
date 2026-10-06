@@ -14,7 +14,7 @@
 // ITS OWN FILE, so deleting the launcher cannot also delete the check that
 // would catch the deletion. Timeouts are driven down to seconds through the
 // script's own env knobs, so the whole suite runs in well under a minute.
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync, spawnSync, spawn } from 'node:child_process'
 import { mkdtempSync, writeFileSync, readFileSync, chmodSync, rmSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -154,6 +154,53 @@ function launch({ body, prompt = 'review this', env = {}, promptFile = true }) {
   assert(/exited 2/.test(r.stderr), 'and reports codex’s own exit code')
   assert(/partial findings here/.test(r.log), 'while keeping whatever it did produce')
   assert(/CODEX EXIT 2/.test(r.log), 'and recording the exit in the log')
+}
+
+// ── 9b. KILLING THE LAUNCHER KILLS CODEX ──────────────────────────────────
+//
+// The 8-hour hang was "stopped" by killing its shell. The codex process lived
+// another TEN HOURS AND 43 MINUTES, blocked on stdin, until it was spotted by
+// hand. So: start a launcher whose fake codex would run for ages, kill the
+// launcher the way a TaskStop does, and prove the child is gone.
+{
+  const dir = mkdtempSync(join(tmpdir(), 'codex-launcher-trap-'))
+  const bin = join(dir, 'bin')
+  execFileSync('mkdir', ['-p', bin])
+  const fake = join(bin, 'codex')
+  const marker = join(dir, 'child-alive')
+  // The fake writes a marker, reports a session id so the launcher proceeds
+  // past startup, then sleeps. If it is still alive after the kill it keeps
+  // touching the marker, so a stale mtime is the proof it died.
+  writeFileSync(fake,
+    `#!/usr/bin/env bash\ncat > /dev/null\necho "session id: trap-test"\n` +
+    `for i in $(seq 1 60); do date +%s > "${marker.replace(/\\/g, '/')}"; sleep 1; done\n`)
+  chmodSync(fake, 0o755)
+  writeFileSync(join(dir, 'prompt.md'), 'review this')
+
+  const child = spawn('bash', [LAUNCHER, join(dir, 'prompt.md'), join(dir, 'out.log')], {
+    env: { ...process.env, CODEX_BIN: fake, CODEX_START_TIMEOUT: '20', CODEX_STALL_LIMIT: '60', CODEX_POLL: '1' },
+    stdio: ['ignore', 'ignore', 'ignore'], detached: false,
+  })
+  // Wait for the fake to be demonstrably running before killing anything —
+  // otherwise this passes because nothing had started yet.
+  const waitedFor = (() => {
+    for (let i = 0; i < 40; i++) {
+      if (existsSync(marker)) return i
+      execFileSync('bash', ['-c', 'sleep 0.25'])
+    }
+    return -1
+  })()
+  assert(waitedFor >= 0, 'the fake codex child was running before the kill — otherwise this case proves nothing')
+
+  child.kill('SIGTERM')
+  execFileSync('bash', ['-c', 'sleep 2'])
+  const firstSeen = existsSync(marker) ? readFileSync(marker, 'utf8').trim() : ''
+  execFileSync('bash', ['-c', 'sleep 3'])
+  const laterSeen = existsSync(marker) ? readFileSync(marker, 'utf8').trim() : ''
+  assert(firstSeen !== '' && firstSeen === laterSeen,
+    `killing the launcher stops the child — the marker stopped advancing (${firstSeen} then ${laterSeen})`)
+  try { child.kill('SIGKILL') } catch {}
+  rmSync(dir, { recursive: true, force: true })
 }
 
 // ── 10. EVERY FAILURE GETS ITS OWN CODE ───────────────────────────────────
