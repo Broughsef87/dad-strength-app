@@ -47,6 +47,14 @@ const SUITES = [
   // A dead hook and an empty queue used to look identical — its own suite, so a
   // revert of the logging cannot take the check that would catch it (FOR-246).
   ['bus observability (FOR-246)', 'bus-observability.mjs'],
+  // The hook RUN against a throwaway bus, not read — its own suite, so a
+  // revert of the claim gate cannot take the check that would catch it (FOR-262).
+  ['bus one at a time (FOR-262)', 'bus-one-at-a-time.mjs'],
+  // A Codex review once ran for 8 hours having produced 39 bytes, blocked on
+  // stdin. scripts/codex-review.sh cannot report success unless the run
+  // started; this stubs codex and makes each failure happen. Its own file, so
+  // deleting the launcher cannot delete the check that would catch it.
+  ['codex launcher (2026-10-06)', 'codex-review-launcher.mjs'],
   // M2 Monday's EMOM and squat waves, and the nine Mondays this must not have
   // touched — its own suite, so a revert of hybridPower.ts cannot take the
   // check that would catch the revert (FOR-263).
