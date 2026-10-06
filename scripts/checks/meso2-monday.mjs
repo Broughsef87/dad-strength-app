@@ -21,6 +21,7 @@
 // output, so it pins what is PRESCRIBED rather than what the source says.
 import { hybridPower } from '../../src/lib/programs/hybridPower.ts'
 import { computeAdjustments } from '../../src/lib/programs/autoreg.ts'
+import { PROGRAMS } from '../../src/lib/programs/index.ts'
 
 // Andrew's maxes, the fixture sweep.mjs uses. The KEYS matter: the program asks
 // for `back_squat`, so a fixture spelling it `backSquat` resolves every squat
@@ -89,8 +90,13 @@ for (const [w, want] of Object.entries(WAVES)) {
     `W${w} squat wave should be ${JSON.stringify(want)}, got ${JSON.stringify(got)}`)
   // Every planned set resolves to a real bar weight — a plan with a null load
   // in it puts an empty row in front of him mid-session.
-  assert((sq?.setPlan ?? []).every((x) => typeof x.targetWeightLbs === 'number' && x.targetWeightLbs > 0),
-    `W${w} squat: every planned set has a load, got ${JSON.stringify((sq?.setPlan ?? []).map((x) => x.targetWeightLbs))}`)
+  // LENGTH FIRST. `[].every(...)` is true, so this clause alone passed on a
+  // slot with no plan at all (Codex r1) — the companion assertions above would
+  // have caught it, and an assertion that needs a companion to mean anything
+  // is one that does not mean what it says.
+  assert((sq?.setPlan?.length ?? 0) === 6
+    && sq.setPlan.every((x) => typeof x.targetWeightLbs === 'number' && x.targetWeightLbs > 0),
+    `W${w} squat: all six planned sets have a load, got ${JSON.stringify((sq?.setPlan ?? []).map((x) => x.targetWeightLbs))}`)
   // The loads ASCEND within each wave, which is what makes it a wave.
   for (const [lo, hi] of [[0, 2], [3, 5]]) {
     const a = sq?.setPlan?.[lo]?.targetWeightLbs ?? 0
@@ -110,6 +116,71 @@ for (const w of [5, 6, 7, 8]) {
     `W${w} squat: reps/percent describe the FIRST set, so nothing reading them sees undefined`)
 }
 
+// ── 4b. A DELOAD IS NOT A WAVE (Codex r1 P1) ──────────────────────────────
+//
+// applyDeload spread the prescription, so `setPlan` survived while `percent`
+// and `sets` came down: a forced deload inside M2 printed "3 x 60%, 220 lb" in
+// the header and prefilled the rows 275/290/310. The deload's own number and
+// the working wave's loads, on one card, 90 lb apart.
+for (const w of [5, 6, 7, 8]) {
+  const plan = hybridPower.buildDay(w, 1, MAXES, {}, { forceDeload: true })
+  const sq = plan.items.find((i) => i.slot === 'back_squat_heavy')
+  assert(sq != null, `W${w} forced deload still prescribes a squat`)
+  assert(sq?.setPlan === undefined,
+    `W${w} forced deload carries no per-set plan, got ${JSON.stringify(sq?.setPlan)}`)
+  // And it is a REAL deload, so the assertion above cannot pass by the day
+  // having quietly stopped deloading.
+  assert(sq?.percent === 60, `W${w} forced deload squat sits at 60%, got ${sq?.percent}%`)
+  assert((sq?.targetWeightLbs ?? 0) > 0 && (sq?.targetWeightLbs ?? 0) < 250,
+    `W${w} forced deload squat is a light bar, got ${sq?.targetWeightLbs} lb`)
+}
+// The natural deload week is M3's slot, which never had a plan — asserted
+// separately so the loop above is not the only thing standing between a
+// deload and a wave.
+assert(hybridPower.buildDay(12, 1, MAXES).items.every((i) => i.setPlan === undefined),
+  'W12, the macro deload, carries no per-set plan either')
+
+// ── 4c. `sets` AND `setPlan` ARE ONE FACT, everywhere (Codex r1 P2) ───────
+//
+// Three call sites changed `sets` and left the plan behind. The contract is
+// that a plan is never LONGER than the set count it describes, and it is
+// asserted over every program, both modes and every week — so a fourth call
+// site fails here rather than drifting.
+{
+  let planned = 0
+  const breaches = []
+  for (const [slug, program] of Object.entries(PROGRAMS)) {
+    const days = Array.isArray(program.gymDayNumbers) && program.gymDayNumbers.length
+      ? program.gymDayNumbers : [1, 2, 3, 4, 5, 6, 7]
+    for (const opts of [{}, { timeConstrained: true }, { forceDeload: true },
+                        { timeConstrained: true, forceDeload: true }]) {
+      for (let week = 1; week <= 13; week++) {
+        for (const day of days) {
+          for (const i of program.buildDay(week, day, MAXES, {}, opts)?.items ?? []) {
+            if (i.kind !== 'lift' || !i.setPlan) continue
+            planned++
+            if (i.setPlan.length > i.sets) {
+              breaches.push(`${slug} W${week}D${day} ${i.slot} ${JSON.stringify(opts)}`
+                + ` — ${i.sets} sets, ${i.setPlan.length} planned`)
+            }
+          }
+        }
+      }
+    }
+  }
+  assert(breaches.length === 0,
+    `no prescription plans more sets than it asks for — ${breaches.length ? breaches[0] : `${planned} plans checked`}`)
+  // The sweep has to actually REACH a per-set plan, or it proves nothing about
+  // a contract it never saw (this is the `every([])` trap, Codex r1).
+  assert(planned > 0, 'the contract sweep found at least one per-set plan to check')
+  // And the time-constrained mode is the site that was broken, so prove the
+  // mode reaches the wave and trims it rather than passing on a day it cut.
+  const tc = PROGRAMS['hybrid-power'].buildDay(5, 1, MAXES, {}, { timeConstrained: true })
+  const tcSq = tc.items.find((i) => i.slot === 'back_squat_heavy')
+  assert(tcSq?.setPlan != null && tcSq.setPlan.length === tcSq.sets && tcSq.sets < 6,
+    `time-constrained M2 Monday trims the wave with the set count, got ${tcSq?.sets} sets and ${tcSq?.setPlan?.length} planned`)
+}
+
 // ── 5. OBEDIENCE IS NOT A SIGNAL. Lift the wave as written, drift nothing ──
 //
 // The weight-follow averages every load logged in the day and measures it
@@ -117,10 +188,29 @@ for (const w of [5, 6, 7, 8]) {
 // its average is 81, so reading the first set as the prescription turns doing
 // exactly as told into "+6% heavy" and walks the whole wave up a week at a
 // time. This is the assertion that catches that.
+// THE STUB HONOURS `.select()`, projecting each row to the columns the engine
+// actually asked for. A stub that ignores the column list cannot tell that the
+// engine stopped asking for `set_number` — and without that column every
+// logged load falls back to the wave's mean, which is the P1 this round fixed.
+// Dropping it from the query left the whole suite green (Codex r1, my own
+// mutation run), so the instrument was the thing at fault.
 const chain = (data) => {
+  let cols = null
+  const project = () => (cols === null ? data : data.map((r) => {
+    const out = {}
+    for (const c of cols) if (c in r) out[c] = r[c]
+    return out
+  }))
   const o = {
-    select: () => o, eq: () => o, gte: () => o, order: () => o,
-    limit: () => Promise.resolve({ data }), not: () => Promise.resolve({ data }),
+    select: (list) => {
+      cols = typeof list === 'string' && list.trim() !== '*'
+        ? list.split(',').map((c) => c.trim())
+        : null
+      return o
+    },
+    eq: () => o, gte: () => o, order: () => o,
+    limit: () => Promise.resolve({ data: project() }),
+    not: () => Promise.resolve({ data: project() }),
   }
   return o
 }
@@ -130,9 +220,11 @@ const fakeDbOf = (logs) => ({ from: (t) => chain(t === 'generated_workouts' ? [{
   const sq = at(5, 'back_squat_heavy')
   const sn = at(5, 'sn_top')
   // Exactly what the card told him to do, every set, at the target RPE.
+  // set_number on every row, because that is what the engine now reads to
+  // tell set 1's prescription from set 6's.
   const logs = [
-    ...(sq?.setPlan ?? []).map((x) => ({ slot: 'back_squat_heavy', rpe: sq.targetRpe, weight_lbs: x.targetWeightLbs })),
-    ...Array.from({ length: sn?.sets ?? 0 }, () => ({ slot: 'sn_top', rpe: sn.targetRpe, weight_lbs: sn.targetWeightLbs })),
+    ...(sq?.setPlan ?? []).map((x, i) => ({ slot: 'back_squat_heavy', set_number: i + 1, rpe: sq.targetRpe, weight_lbs: x.targetWeightLbs })),
+    ...Array.from({ length: sn?.sets ?? 0 }, (_, i) => ({ slot: 'sn_top', set_number: i + 1, rpe: sn.targetRpe, weight_lbs: sn.targetWeightLbs })),
   ]
   const adj = await computeAdjustments(fakeDbOf(logs), 'u1', hybridPower, 6, 1, Date.now(), MAXES)
   assert((adj.back_squat_heavy ?? 0) === 0,
@@ -144,6 +236,26 @@ const fakeDbOf = (logs) => ({ from: (t) => chain(t === 'generated_workouts' ? [{
   const adjHeavy = await computeAdjustments(fakeDbOf(heavy), 'u1', hybridPower, 6, 1, Date.now(), MAXES)
   assert((adjHeavy.back_squat_heavy ?? 0) > 0,
     `10 lb a set above the wave must still read as heavier, got ${adjHeavy.back_squat_heavy}`)
+
+  // STOPPING EARLY IS NOT BACKING OFF (Codex r1 P1). Comparing the loads he
+  // logged against the mean of all six prescribed sets read four-of-six as
+  // -2% and the opening triple alone as -5.5% — a wave bent down by a man
+  // running out of time, not by anything about the load. Every prefix of the
+  // wave, lifted exactly as written, must move W6 nowhere.
+  for (const n of [1, 2, 3, 4, 5]) {
+    const part = logs.filter((r) => r.slot !== 'back_squat_heavy' || r.set_number <= n)
+    const a = await computeAdjustments(fakeDbOf(part), 'u1', hybridPower, 6, 1, Date.now(), MAXES)
+    assert((a.back_squat_heavy ?? 0) === 0,
+      `finishing ${n} of 6 wave sets as prescribed must move W6 nowhere, got ${a.back_squat_heavy}`)
+  }
+  // …and a prefix lifted HEAVY still reads heavy, so the assertion above is
+  // not passing because partial sessions were simply stopped being read.
+  const partHeavy = logs
+    .filter((r) => r.slot !== 'back_squat_heavy' || r.set_number <= 3)
+    .map((r) => (r.slot === 'back_squat_heavy' ? { ...r, weight_lbs: r.weight_lbs + 15 } : r))
+  const aHeavy = await computeAdjustments(fakeDbOf(partHeavy), 'u1', hybridPower, 6, 1, Date.now(), MAXES)
+  assert((aHeavy.back_squat_heavy ?? 0) > 0,
+    `three wave sets 15 lb heavy must still read as heavier, got ${aHeavy.back_squat_heavy}`)
 }
 
 // ── 6. EVERY OTHER MONDAY IS UNCHANGED ─────────────────────────────────────
@@ -227,7 +339,8 @@ for (const [w, want] of Object.entries(BASELINE)) {
   assert(JSON.stringify(got) === JSON.stringify(want),
     `W${w} Monday changed\n      before ${JSON.stringify(want)}\n      now    ${JSON.stringify(got)}`)
   // No week outside M2 grew a per-set plan.
-  assert(monday(Number(w)).items.every((i) => i.setPlan === undefined),
+  assert(monday(Number(w)).items.length > 0
+    && monday(Number(w)).items.every((i) => i.setPlan === undefined),
     `W${w} Monday should carry no per-set plan`)
 }
 
@@ -247,4 +360,4 @@ if (failed) {
   console.log(`\u2717 ${failed} of ${passed + failed} assertions failed`)
   process.exit(1)
 }
-console.log(`\u2713 ${passed} assertions: M2 Monday is the EMOM and the waves, every other Monday untouched`)
+console.log(`\u2713 ${passed} assertions: M2 Monday is the EMOM and the waves, a deload is neither, every other Monday untouched`)

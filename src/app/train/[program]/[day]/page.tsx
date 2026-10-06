@@ -27,6 +27,7 @@ import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
+import { withSetCount } from '../../../../lib/programs/setPlan'
 import { RECORDED, isRecorded, isTrained, samePlan, serialWriter, sessionPlan } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
 import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
@@ -134,13 +135,9 @@ function applyOverrides(plan: DayPlan, o: SessionOverrides): DayPlan {
   if (o.setCounts) {
     items = items.map(i => {
       if ((i.kind === 'lift' || i.kind === 'plyo') && o.setCounts![i.slot] != null) {
-        const sets = Math.max(1, o.setCounts![i.slot])
-        // `sets` GOVERNS, so a per-set plan never claims more sets than the
-        // session has (FOR-263). Cutting a 3/2/1 wave to four sets must leave
-        // the header reading 3/2/1/3 and not the six it no longer prescribes;
-        // growing it past the plan falls back to the slot's own numbers.
-        if (i.kind === 'lift' && i.setPlan) return { ...i, sets, setPlan: i.setPlan.slice(0, sets) }
-        return { ...i, sets }
+        // ONE helper for every site that moves a set count, so the plan cannot
+        // be left behind (FOR-263, Codex r1 found three sites that had been).
+        return withSetCount(i, o.setCounts![i.slot])
       }
       return i
     })
@@ -522,8 +519,13 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   // `6×3` IS A LIE ABOUT A WAVE (FOR-263). The header is where he decides what
   // he is walking into, so a slot with a setPlan reads out the rep sequence it
   // actually prescribes. Everything else keeps the sets×reps it always had.
+  // A plan may be SHORTER than the set count — a set he added by hand has no
+  // prescribed load, and inventing one would be a number nobody chose. The
+  // header says so rather than describing six sets when seven will be logged
+  // (FOR-263, Codex r1).
+  const extraSets = item.setPlan ? item.sets - item.setPlan.length : 0
   const setShape = item.setPlan
-    ? item.setPlan.map(x => x.reps).join('/')
+    ? item.setPlan.map(x => x.reps).join('/') + (extraSets > 0 ? ` +${extraSets}` : '')
     : `${item.sets}×${repsLabel}`
 
   return (

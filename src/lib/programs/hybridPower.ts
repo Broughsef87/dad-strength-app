@@ -141,6 +141,8 @@ function classicFloor(name: string, reps: number, slot?: string): number {
   return 70
 }
 
+import { withoutSetPlan } from './setPlan'
+
 const OLY_MAX_KEYS = new Set(['snatch', 'clean_jerk'])
 
 function isClassicLiftSlot(slot: string, maxKey: string): boolean {
@@ -791,8 +793,12 @@ const DELOAD_CLASSIC_PCT = 65 // deload is recovery, not a working set — light
 function applyDeload(p: LiftPrescription): LiftPrescription {
   // Classic lifts deload to a crisp 65%; everything else drops to 60.
   const pct = p.maxKey && isClassicLiftSlot(p.slot, p.maxKey) ? DELOAD_CLASSIC_PCT : 60
+  // THE WAVE GOES WITH IT (FOR-263, Codex r1). `...p` kept `setPlan`, so a
+  // forced deload inside meso 2 printed "3 x 60%, 220 lb" in the header while
+  // the six rows prefilled 275/290/310/280/300/320 — the deload's number and
+  // the working wave's loads on the same card. A deload IS the scalar shape.
   return {
-    ...p,
+    ...withoutSetPlan(p),
     sets: Math.max(2, Math.ceil(p.sets / 2)),
     percent: p.percent != null ? pct : undefined,
     targetRpe: p.targetRpe != null ? 6 : undefined, // deload should FEEL easy — keep autoreg honest

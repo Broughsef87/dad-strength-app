@@ -50,7 +50,9 @@ for (const a of allow) {
     console.error(`✗ set-ceiling-allowlist.json: "${JSON.stringify(a)}" is not a slug:slot entry`)
     process.exit(1)
   }
-  if (typeof a?.reason !== 'string' || a.reason.length < 40) {
+  // TRIMMED. Forty spaces passed the whole check (FOR-263, Codex r1) — the
+  // guard measured the string rather than what it says.
+  if (typeof a?.reason !== 'string' || a.reason.trim().length < 40) {
     console.error(`✗ set-ceiling-allowlist.json: ${key} needs a reason saying why the ceiling does not apply`)
     process.exit(1)
   }
