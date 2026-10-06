@@ -47,6 +47,9 @@ const SUITES = [
   // A dead hook and an empty queue used to look identical — its own suite, so a
   // revert of the logging cannot take the check that would catch it (FOR-246).
   ['bus observability (FOR-246)', 'bus-observability.mjs'],
+  // The hook RUN against a throwaway bus, not read — its own suite, so a
+  // revert of the claim gate cannot take the check that would catch it (FOR-262).
+  ['bus one at a time (FOR-262)', 'bus-one-at-a-time.mjs'],
   // M2 Monday's EMOM and squat waves, and the nine Mondays this must not have
   // touched — its own suite, so a revert of hybridPower.ts cannot take the
   // check that would catch the revert (FOR-263).

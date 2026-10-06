@@ -118,7 +118,12 @@ assert(silentExits.length === 0,
 // it cannot route through finish() — it logs on its own line and is asserted
 // separately below. Listing it here would have been a check that could only
 // pass by making the hook stop blocking.
-const FINISH_OUTCOMES = ['halted', 'empty', 'cap-reached', 'bad-filename', 'no-queue-dir', 'claim-failed']
+// `busy` joined the list in FOR-262: the hook refuses to deal a new ticket
+// while one is still claimed, and that refusal is the one exit most likely to
+// be hit in normal operation — a silent one would read exactly like a drained
+// queue, which is the confusion this whole suite exists to prevent. What the
+// refusal DOES is asserted in bus-one-at-a-time.mjs, by running the hook.
+const FINISH_OUTCOMES = ['halted', 'empty', 'busy', 'cap-reached', 'bad-filename', 'no-queue-dir', 'claim-failed']
 for (const o of FINISH_OUTCOMES) {
   // The CALL SITE, not the word. `finish halted "..."` is what routes an exit
   // through the logger; grepping for the outcome string alone would pass on a
