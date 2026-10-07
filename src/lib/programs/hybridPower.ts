@@ -773,12 +773,23 @@ function seatedBoxJumps(): PlyoPrescription {
 // Wednesday's ballistic slot: trap bar jumps, contrast-paired with front squat.
 // Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
 //
-// FOR-268 asked for a DEPTH JUMP here in meso 2 and it is NOT built: a maximal
-// depth jump at weeks 5-8 lands inside FOR-244's jump ramp, whose AC2 permits
-// depth work only from exposure week 7 (low-box depth DROPS) and a maximal one
-// only at full exposure, week 9. Andrew is on week 5 with no ramp restart
-// stored, so this is his position now rather than a hypothetical one. Held for
-// his ruling; see .claude/bus/reports/FOR-268.md.
+// FOR-268 asked for a DEPTH JUMP here in meso 2 and it is NOT built. A maximal
+// depth jump at weeks 5-8 lands inside FOR-244's jump ramp: maximalJumpsAllowed()
+// is false until full exposure (week 9), and ballistic-load.mjs fails on it —
+// "w5 d3: Depth Jump at stage max_vertical". user_programs has Andrew on week 5
+// with no ramp restart, so exposure equals the absolute week and this is his
+// position now rather than a hypothetical one.
+//
+// CORRECTION to what the commit message for a3d3077 claims, measured by Codex
+// r1: routing it through rampedJump() does NOT yield depth drops at W7-8. It
+// gives Box Jumps at W5-6 and keeps the Depth Jump at W7-8, tagged
+// ramp: 'low_depth', intent: 'SUBMAXIMAL — ~3/4', losing the ticket's own cue
+// text. The depth-drop substitution belongs to saturdayPlyo(). So that route
+// would deliver a submaximal depth jump for half of M2 — which is still not
+// the maximal one the ticket asks for across W5-8, and it is Andrew's call
+// whether half a meso of submaximal is what he wanted.
+//
+// Held for his ruling; see .claude/bus/reports/FOR-268.md.
 function trapBarJumps(maxes: Record<string, number>, entryPhase: boolean): PlyoPrescription {
   const bs = maxes['back_squat']
   const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
