@@ -465,10 +465,61 @@ for (const [wk, sets, lo] of [[1, 3, 75], [9, 2, 83]]) {
 // M1's back-offs are the PURE lift (M1 is the pure-lift meso); M2 hangs.
 assert(nameAt(1, 1, 'sn_back') === 'Snatch', 'M1 snatch back-offs must be the full lift, not the hang')
 // Wednesday: front squat 3 sets everywhere, jumps paired one-for-one (item 5).
+// The jump's SLOT changes by meso since FOR-268 — M2 is a depth jump — so the
+// pairing is asserted by SHAPE here, and which movement each meso gets is
+// pinned by name just below.
 for (const wk of [1, 5, 9]) {
   assert(itemAt(wk, 3, 'front_squat')?.sets === 3, `W${wk} front squat should be 3 sets, got ${itemAt(wk, 3, 'front_squat')?.sets}`)
-  const tb = hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'tb_jump')
-  assert(tb?.sets === 3 && tb?.reps === 3, `W${wk} trap bar jumps should be 3×3, got ${tb?.sets}×${tb?.reps}`)
+  const jumps = hybridPower.buildDay(wk, 3, MAXES).items.filter(i => i.kind === 'plyo')
+  assert(jumps.length === 1, `W${wk} Wednesday should carry exactly one jump slot, got ${jumps.map(j => j.slot).join(', ') || 'none'}`)
+  assert(jumps[0]?.sets === 3 && jumps[0]?.reps === 3,
+    `W${wk} Wednesday jumps should be 3×3, got ${jumps[0]?.sets}×${jumps[0]?.reps} (${jumps[0]?.slot})`)
+}
+// WHICH movement, by meso (FOR-268). M2 is the depth jump and nothing else is.
+for (const [wk, slot, name] of [[1, 'tb_jump', 'Trap Bar Jump'], [3, 'tb_jump', 'Trap Bar Jump'],
+                                [5, 'depth_jump', 'Depth Jump'], [8, 'depth_jump', 'Depth Jump'],
+                                [9, 'tb_jump', 'Trap Bar Jump']]) {
+  const j = hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.kind === 'plyo')
+  assert(j?.slot === slot && j?.name === name,
+    `W${wk} Wednesday jump should be ${slot}/${name}, got ${j?.slot}/${j?.name}`)
+}
+// The ramp lives in the BOX HEIGHT across M2 — 12" then 18" (Blaine 2026-10-07)
+// — and the REST of the note is the ticket's own text, unchanged.
+//
+// THE WHOLE STRING, not a substring. Asserting only the box phrase let the rest
+// of the cue be replaced wholesale, and an appended "Wear a 50 lbs weighted
+// vest" passed too because the load pattern was \blb\b (Codex r2 P2).
+const depthNote = (box) =>
+  `Step off ${box} box (don't jump off). Land and rebound immediately with the `
+  + 'shortest ground contact you can, jumping for max height. Full reset between reps.'
+for (const [wk, box] of [[5, 'a 12"'], [6, 'a 12"'], [7, 'an 18"'], [8, 'an 18"']]) {
+  const j = hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'depth_jump')
+  assert(j?.note === depthNote(box),
+    `W${wk} depth jump note should be exactly the ticket's text off ${box} box\n      got  ${JSON.stringify(j?.note)}\n      want ${JSON.stringify(depthNote(box))}`)
+}
+// A depth jump has no load — the drop IS the load. Kept alongside the exact
+// match above, because the note may legitimately gain a sentence one day and
+// this is the part that must never arrive with it.
+for (const wk of [5, 6, 7, 8]) {
+  const j = hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'depth_jump')
+  assert(j != null, `W${wk} prescribes a depth jump at all — the load and pairing checks mean nothing without it`)
+  assert(!/\blbs?\b|% ?BS|vest|weighted|dumbbell|\bkg\b/i.test(j?.note ?? ''),
+    `W${wk} depth jump must carry no load cue, note reads ${JSON.stringify(j?.note)}`)
+  assert(j?.superset === 'fs_contrast', `W${wk} depth jump stays paired with the front squat, got ${j?.superset}`)
+}
+// THE DELOAD'S M2 BRANCH. The Wednesday deload filtered the literal 'tb_jump',
+// so a forced deload inside M2 left a depth jump in a recovery week — and
+// removing depth_jump from WED_BALLISTIC_SLOTS left both suites green, because
+// the only no-jumps assertions ran on W12 and a forced W3 (Codex r2 P2).
+for (const wk of [5, 6, 7, 8]) {
+  const forced = hybridPower.buildDay(wk, 3, MAXES, {}, { forceDeload: true }).items
+  assert(forced.every(i => i.kind !== 'plyo'),
+    `W${wk} forced deload must cut the depth jump, got ${forced.filter(i => i.kind === 'plyo').map(i => i.slot).join(', ')}`)
+}
+for (const wk of [1, 3, 9, 11]) {
+  const forced = hybridPower.buildDay(wk, 3, MAXES, {}, { forceDeload: true }).items
+  assert(forced.every(i => i.kind !== 'plyo'),
+    `W${wk} forced deload must cut the trap bar jump too, got ${forced.filter(i => i.kind === 'plyo').map(i => i.slot).join(', ')}`)
 }
 // Saturday: M2 pulls from a deficit at a deliberately lighter % (item 11).
 assert(nameAt(1, 6, 'sat_dl') === 'Deadlift' && nameAt(9, 6, 'sat_dl') === 'Deadlift', 'M1/M3 deadlifts stay conventional')

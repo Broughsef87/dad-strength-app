@@ -591,7 +591,7 @@ const D3_FSQUAT: SlotMeso[] = [
   // FOR-268: 70 -> 76. Andrew's call, 2026-10-07. The pause is the point of
   // this slot and 70% was not asking anything of it; the dead stop is worth
   // more loaded. At his 330 front squat: W5 250, W6 255, W7 265, W8 270.
-  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 76, pctStep: 2, note: '2-count dead stop in the hole, then UP — trap bar jumps ~30s after each set' },
+  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 76, pctStep: 2, note: '2-count dead stop in the hole, then UP — depth jumps ~30s after each set' },
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 85, pctStep: 2.5, note: 'Contrast: trap bar jumps ~30s after each set' },
 ]
 
@@ -770,35 +770,76 @@ function seatedBoxJumps(): PlyoPrescription {
   return { kind: 'plyo', slot: 'seated_box_jump', name: 'Seated Box Jump', sets: 4, reps: 3, note: 'Sit tall on a box, shins vertical, NO rock or rebound — explode from a dead stop onto the box. Full reset between reps.' }
 }
 
-// Wednesday's ballistic slot: trap bar jumps, contrast-paired with front squat.
-// Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
-//
-// FOR-268 asked for a DEPTH JUMP here in meso 2 and it is NOT built. A maximal
-// depth jump at weeks 5-8 lands inside FOR-244's jump ramp: maximalJumpsAllowed()
-// is false until full exposure (week 9), and ballistic-load.mjs fails on it —
-// "w5 d3: Depth Jump at stage max_vertical". user_programs has Andrew on week 5
-// with no ramp restart, so exposure equals the absolute week and this is his
-// position now rather than a hypothetical one.
-//
-// CORRECTION to what the commit message for a3d3077 claims, measured by Codex
-// r1: routing it through rampedJump() does NOT yield depth drops at W7-8. It
-// gives Box Jumps at W5-6 and keeps the Depth Jump at W7-8, tagged
-// ramp: 'low_depth', intent: 'SUBMAXIMAL — ~3/4', losing the ticket's own cue
-// text. The depth-drop substitution belongs to saturdayPlyo(). So that route
-// would deliver a submaximal depth jump for half of M2 — which is still not
-// the maximal one the ticket asks for across W5-8, and it is Andrew's call
-// whether half a meso of submaximal is what he wanted.
-//
-// Held for his ruling; see .claude/bus/reports/FOR-268.md.
-function trapBarJumps(maxes: Record<string, number>, entryPhase: boolean): PlyoPrescription {
-  const bs = maxes['back_squat']
-  const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
+/**
+ * Wednesday's ballistic slot, contrast-paired with the front squat.
+ *
+ * Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
+ *
+ * M2 IS A DEPTH JUMP (FOR-268). Andrew picked it on 2026-10-07: he snatches and
+ * cleans heavy, so a loaded jump adds little he is not already getting, and the
+ * Olympic lifts do not train the fast landing-and-rebound at all. A depth jump
+ * does, and only that. It carries NO load for the same reason — the drop is the
+ * load.
+ *
+ * THIS IS AN AMENDMENT TO FOR-244's AC2, not a bypass of it. AC2 held that no
+ * maximal depth jump is prescribed before full exposure (week 9), and I held
+ * this item for exactly that reason. Blaine ruled on 2026-10-07 that the newer
+ * specific request wins: AC2 exists so a lifter never meets reactive work
+ * cold, and Andrew has had four weeks of trap bar and box jumps and chose this
+ * after hearing why. `scripts/checks/ballistic-load.mjs` carries the exemption,
+ * scoped to this program, this day and this slot from exposure 5 — every other
+ * program and stage keeps the ramp as shipped.
+ *
+ * THE RAMP SURVIVES IN THE BOX HEIGHT: 12" in W5-6, 18" in W7-8. The drop
+ * height is the dose of a depth jump, so the progression moved into it rather
+ * than being dropped.
+ *
+ * ONE function decides which jump Wednesday gets, so the slot, the name, the
+ * note and the pairing cannot disagree with each other.
+ */
+const WED_BALLISTIC_SLOTS = ['tb_jump', 'depth_jump'] as const
+
+function wednesdayBallistic(
+  maxes: Record<string, number>,
+  meso: number,
+  weekInMeso: number,
+  entryPhase: boolean,
+): PlyoPrescription {
   // 3×3 in every meso (FOR-195 item 5): the front squat is 3 sets everywhere
   // now, and the jumps are its contrast pair — one jump set per squat set.
   // NOT a contrast pair in the entry weeks (FOR-244 ruling 7): complex training
   // is for athletes who have already done high-intensity plyometric work
   // (Essentials p. 480), and the whole point of the ramp is that this one has
   // not. Same jumps, same load — done fresh, on their own, before the squat.
+  //
+  // The entry weeks are M1's, so M2 never takes that branch. The guard stays on
+  // the meso rather than being assumed away, because the ramp origin is a
+  // stored value and a restart can move it.
+  if (meso === 2 && !entryPhase) {
+    // 12" for the first half of the meso, 18" for the second. An article, not
+    // a template slip: "a 12\" box" and "an 18\" box".
+    const box = weekInMeso <= 2 ? 'a 12"' : 'an 18"'
+    // Its OWN slot key, so a depth jump's history never mixes with a loaded
+    // trap bar jump's — different movements at different loads, and one slot
+    // would read the change as a ~105 lb drop in the same exercise.
+    return {
+      kind: 'plyo',
+      slot: 'depth_jump',
+      name: 'Depth Jump',
+      sets: 3,
+      reps: 3,
+      superset: 'fs_contrast',
+      // The ticket's own words, with only the box height substituted — the
+      // ruling says the rest of the note stays as the ticket wrote it, so the
+      // "~30s after each pause front squat set" cue is NOT appended here
+      // (Codex r2 P3). The pairing is carried by superset: 'fs_contrast' and
+      // stated on the front squat's own note, which is where the athlete reads
+      // it in order.
+      note: `Step off ${box} box (don't jump off). Land and rebound immediately with the shortest ground contact you can, jumping for max height. Full reset between reps.`,
+    }
+  }
+  const bs = maxes['back_squat']
+  const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
   if (entryPhase) {
     return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Ramp weeks — these come FIRST, before the front squat, not paired with it.` }
   }
@@ -954,13 +995,13 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         // another, and the athlete follows the order (Codex r1).
         ...(entryPhase
           ? [
-              trapBarJumps(maxes, true),
+              wednesdayBallistic(maxes, pos.meso, w, true),
               liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments,
                 { note: 'Ramp weeks — the trap bar jumps ran before this, on their own. Squat is squat.' }),
             ]
           : [
               liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
-              trapBarJumps(maxes, false),
+              wednesdayBallistic(maxes, pos.meso, w, false),
             ]),
         rangeSlot('db_bench', 'DB Bench Press', D3_DB_BENCH[m].sets, D3_DB_BENCH[m].window, lt, {
           step: 5,
@@ -973,9 +1014,14 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
           : accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 5, 'Per leg — heavy DBs, 5s should be honest, 90s rest'),
       ]
       // Session diet: med-ball throws + farmer carries cut — ballistic work is
-      // the trap bar jumps' job, carries recur in Saturday's metcon pool.
+      // the jump slot's job, carries recur in Saturday's metcon pool.
       if (pos.isDeload) {
-        items = items.filter(i => !(i.kind === 'plyo' && i.slot === 'tb_jump'))
+        // WHICHEVER jump the meso prescribes (FOR-268). This filtered the
+        // literal 'tb_jump', so a forced deload inside M2 would have cut
+        // nothing and left a depth jump — the highest-impact landing in the
+        // program — inside a recovery week. FOR-263 shipped that exact shape of
+        // bug in a deload path, which is why this reads the slot list.
+        items = items.filter(i => !(i.kind === 'plyo' && (WED_BALLISTIC_SLOTS as readonly string[]).includes(i.slot)))
           .map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
           // Range work has no percent to cut, so the deload has to reach it by
           // sets instead — otherwise the barbell drops to 60% while the DB
