@@ -561,7 +561,9 @@ const D1_SQUAT: SlotMeso[] = [
 // Friday's C&J fresh. Bench supersets with weighted pull-ups (push/pull pair).
 const D3_PUSH_PRESS: SlotMeso[] = [
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 5, pctStart: 65, pctStep: 2 },
-  { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 3, pctStart: 72, pctStep: 2 },
+  // FOR-268: 72 -> 77. Andrew's call, 2026-10-07. Still keyed to the clean &
+  // jerk max. At his 265: W5 205, W6 210, W7 215, W8 220.
+  { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 3, pctStart: 77, pctStep: 2 },
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 2, pctStart: 78, pctStep: 2 },
 ]
 // Wednesday's press is DUMBBELLS in every meso (FOR-195 item 4). Monday keeps
@@ -586,7 +588,10 @@ const D3_FSQUAT: SlotMeso[] = [
   // clock beats him, and the front squat is contrast-paired with jumps — each
   // set costs two movements and a walk to the trap bar.
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 5, pctStart: 72, pctStep: 2, note: 'Contrast: trap bar jumps ~30s after each set' },
-  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 70, pctStep: 2, note: '2-count dead stop in the hole, then UP — trap bar jumps ~30s after each set' },
+  // FOR-268: 70 -> 76. Andrew's call, 2026-10-07. The pause is the point of
+  // this slot and 70% was not asking anything of it; the dead stop is worth
+  // more loaded. At his 330 front squat: W5 250, W6 255, W7 265, W8 270.
+  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 76, pctStep: 2, note: '2-count dead stop in the hole, then UP — trap bar jumps ~30s after each set' },
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 85, pctStep: 2.5, note: 'Contrast: trap bar jumps ~30s after each set' },
 ]
 
@@ -767,6 +772,13 @@ function seatedBoxJumps(): PlyoPrescription {
 
 // Wednesday's ballistic slot: trap bar jumps, contrast-paired with front squat.
 // Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
+//
+// FOR-268 asked for a DEPTH JUMP here in meso 2 and it is NOT built: a maximal
+// depth jump at weeks 5-8 lands inside FOR-244's jump ramp, whose AC2 permits
+// depth work only from exposure week 7 (low-box depth DROPS) and a maximal one
+// only at full exposure, week 9. Andrew is on week 5 with no ramp restart
+// stored, so this is his position now rather than a hypothetical one. Held for
+// his ruling; see .claude/bus/reports/FOR-268.md.
 function trapBarJumps(maxes: Record<string, number>, entryPhase: boolean): PlyoPrescription {
   const bs = maxes['back_squat']
   const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
