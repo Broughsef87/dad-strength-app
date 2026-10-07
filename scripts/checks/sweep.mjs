@@ -465,10 +465,35 @@ for (const [wk, sets, lo] of [[1, 3, 75], [9, 2, 83]]) {
 // M1's back-offs are the PURE lift (M1 is the pure-lift meso); M2 hangs.
 assert(nameAt(1, 1, 'sn_back') === 'Snatch', 'M1 snatch back-offs must be the full lift, not the hang')
 // Wednesday: front squat 3 sets everywhere, jumps paired one-for-one (item 5).
+// The jump's SLOT changes by meso since FOR-268 — M2 is a depth jump — so the
+// pairing is asserted by SHAPE here, and which movement each meso gets is
+// pinned by name just below.
 for (const wk of [1, 5, 9]) {
   assert(itemAt(wk, 3, 'front_squat')?.sets === 3, `W${wk} front squat should be 3 sets, got ${itemAt(wk, 3, 'front_squat')?.sets}`)
-  const tb = hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'tb_jump')
-  assert(tb?.sets === 3 && tb?.reps === 3, `W${wk} trap bar jumps should be 3×3, got ${tb?.sets}×${tb?.reps}`)
+  const jumps = hybridPower.buildDay(wk, 3, MAXES).items.filter(i => i.kind === 'plyo')
+  assert(jumps.length === 1, `W${wk} Wednesday should carry exactly one jump slot, got ${jumps.map(j => j.slot).join(', ') || 'none'}`)
+  assert(jumps[0]?.sets === 3 && jumps[0]?.reps === 3,
+    `W${wk} Wednesday jumps should be 3×3, got ${jumps[0]?.sets}×${jumps[0]?.reps} (${jumps[0]?.slot})`)
+}
+// WHICH movement, by meso (FOR-268). M2 is the depth jump and nothing else is.
+for (const [wk, slot, name] of [[1, 'tb_jump', 'Trap Bar Jump'], [3, 'tb_jump', 'Trap Bar Jump'],
+                                [5, 'depth_jump', 'Depth Jump'], [8, 'depth_jump', 'Depth Jump'],
+                                [9, 'tb_jump', 'Trap Bar Jump']]) {
+  const j = hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.kind === 'plyo')
+  assert(j?.slot === slot && j?.name === name,
+    `W${wk} Wednesday jump should be ${slot}/${name}, got ${j?.slot}/${j?.name}`)
+}
+// The ramp lives in the BOX HEIGHT across M2 — 12" then 18" (Blaine 2026-10-07).
+for (const [wk, inches] of [[5, '12"'], [6, '12"'], [7, '18"'], [8, '18"']]) {
+  const j = hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'depth_jump')
+  assert((j?.note ?? '').includes(`${inches} box`),
+    `W${wk} depth jump should step off a ${inches} box, note reads ${JSON.stringify(j?.note)}`)
+}
+// A depth jump has no load — the drop IS the load.
+for (const wk of [5, 6, 7, 8]) {
+  const j = hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'depth_jump')
+  assert(!/\blb\b|% ?BS/i.test(j?.note ?? ''), `W${wk} depth jump must carry no load cue, note reads ${JSON.stringify(j?.note)}`)
+  assert(j?.superset === 'fs_contrast', `W${wk} depth jump stays paired with the front squat, got ${j?.superset}`)
 }
 // Saturday: M2 pulls from a deficit at a deliberately lighter % (item 11).
 assert(nameAt(1, 6, 'sat_dl') === 'Deadlift' && nameAt(9, 6, 'sat_dl') === 'Deadlift', 'M1/M3 deadlifts stay conventional')

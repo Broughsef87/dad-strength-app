@@ -38,7 +38,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
-import { rampStage } from '../../src/lib/programs/prep.ts'
+import { rampStage, exposureWeek } from '../../src/lib/programs/prep.ts'
 import { blockCount, isStationFree } from '../../src/lib/programs/schedule.ts'
 
 let failures = 0, passes = 0
@@ -71,6 +71,45 @@ const METRES_PER_BOUND_STRIDE = 2.0
 
 /** Words that mean a foot leaves the ground and comes back. Used to catch load hiding in prose. */
 const JUMP_WORDS = /\b(jump|jumps|bound|bounds|bounding|hop|hops|hurdle|depth drop|drop freeze|plyo|plyometric|skip|skips|burpee|burpees)\b/i
+
+// ── AC2, AMENDED (FOR-268) ─────────────────────────────────────────────────
+//
+// AC2 as shipped: no maximal horizontal or depth jump is prescribed before the
+// ramp completes. I held FOR-268's depth jump for exactly that reason, and
+// Blaine ruled on 2026-10-07 that the newer specific request wins — AC2 exists
+// so a lifter never meets reactive work COLD, and Andrew has had four weeks of
+// trap bar and box jumps and chose depth jumps himself after hearing why.
+//
+// The exemption is NARROW BY CONSTRUCTION: one program, one day, one slot, from
+// one exposure week. "Every other program and stage keeps the ramp as shipped"
+// is the ruling's wording, and section A2b below proves that rather than
+// trusting this comment — each field is probed by flipping it and watching the
+// breach come back.
+//
+// An entry needs a reason, and the reason carries the date of the ruling that
+// granted it, so an exemption nobody can trace back cannot sit here quietly.
+const RAMP_EXEMPTIONS = [
+  {
+    program: 'hybrid-power',
+    day: 3,
+    slot: 'depth_jump',
+    fromExposure: 5,
+    reason:
+      "Blaine's ruling 2026-10-07 (FOR-268): Andrew's own newer request, after four weeks " +
+      'of trap bar and box jumps. The ramp survives in the drop height — 12" in W5-6, 18" in ' +
+      'W7-8 — because the box is the dose of a depth jump. hybrid-power Wednesday only.',
+  },
+]
+
+/** Is this maximal jump exempt from the ramp, by a written and dated grant? */
+const rampExempt = (slug, day, item, week) =>
+  RAMP_EXEMPTIONS.some(
+    (e) =>
+      e.program === slug &&
+      e.day === day &&
+      e.slot === item.slot &&
+      exposureWeek(week) >= e.fromExposure,
+  )
 /** Prose that mentions a jump word but is NOT load: a cue, a name, a caution. */
 const NOT_LOAD = /\b(step-over|step-overs|step over|no jogging|cooldown|walk|stretch)\b/i
 
@@ -209,7 +248,7 @@ for (const [slug, program] of Object.entries(PROGRAMS)) {
             if (n > 0) ballistic = true
             landings += n
             const maximal = /broad jump|depth jump|depth drop/i.test(it.name)
-            if (stage !== 'full' && maximal && it.ramp !== stage) rampBreaches.push(`${slug} w${week} d${day} ${label}: "${it.name}" at stage ${stage}`)
+            if (stage !== 'full' && maximal && it.ramp !== stage && !rampExempt(slug, day, it, week)) rampBreaches.push(`${slug} w${week} d${day} ${label}: "${it.name}" at stage ${stage}`)
             // A ramped line must say what it is, and a low-box depth drop must not
             // be told it is a max-height box jump.
             if (it.ramp && !it.intent) labelMismatch.push(`${slug} w${week} d${day}: "${it.name}" is ramped with no intent label`)
@@ -259,7 +298,39 @@ assert(noPrep.length === 0,
 // softer words. And at full exposure nothing may still claim to be ramping,
 // or the ramp would be a label that never comes off.
 assert(rampBreaches.length === 0,
-  `no maximal horizontal or depth jump is prescribed before the ramp completes — ${rampBreaches.length ? `${rampBreaches.length} are, first: ${rampBreaches[0]}` : 'none in any week'}`)
+  `no maximal horizontal or depth jump is prescribed before the ramp completes, except by a dated grant — ${rampBreaches.length ? `${rampBreaches.length} do, first: ${rampBreaches[0]}` : 'none in any week'}`)
+
+// ── A2b. THE GRANT IS NARROW, proved field by field ───────────────────────
+//
+// A one-line exemption is the cheapest way to turn a safety gate into a
+// formality, so every field of it is probed here: change one thing about the
+// prescription and the breach must come back. Without this, widening `slot` to
+// a prefix or dropping `day` would leave the suite green.
+{
+  const probe = { slot: 'depth_jump', name: 'Depth Jump' }
+  assert(rampExempt('hybrid-power', 3, probe, 5),
+    'the grant covers hybrid-power Wednesday depth_jump at exposure 5 — otherwise it grants nothing and M2 could not build')
+  assert(rampExempt('hybrid-power', 3, probe, 8), 'and through exposure 8, the end of M2')
+  assert(!rampExempt('hybrid-power', 3, probe, 4),
+    'it does NOT reach exposure 4 — the ramp still owns the weeks before Andrew had his four')
+  assert(!rampExempt('dad-built', 3, probe, 5), 'it does not leak to another program')
+  assert(!rampExempt('hybrid-dad', 3, probe, 5), 'nor to the third one')
+  assert(!rampExempt('hybrid-power', 1, probe, 5), 'nor to another day')
+  assert(!rampExempt('hybrid-power', 6, probe, 5), "nor to Saturday's plyo ladder")
+  assert(!rampExempt('hybrid-power', 3, { slot: 'broad_jump', name: 'Broad Jump' }, 5),
+    'nor to a maximal BROAD jump, which AC2 names alongside the depth jump')
+  assert(!rampExempt('hybrid-power', 3, { slot: 'plyo', name: 'Depth Drops' }, 5),
+    "nor to Saturday's depth drops wearing a different slot")
+  for (const e of RAMP_EXEMPTIONS) {
+    assert(/\d{4}-\d{2}-\d{2}/.test(e.reason),
+      `every grant's reason carries the date of the ruling that gave it — ${e.program}/${e.slot} does not`)
+    assert(e.reason.length > 60, `and says why, not just when — ${e.program}/${e.slot}`)
+    assert(Number.isInteger(e.fromExposure) && e.fromExposure >= 1,
+      `and names the exposure week it starts at — ${e.program}/${e.slot}`)
+  }
+  console.log(`  \u00b7 ${RAMP_EXEMPTIONS.length} dated ramp grant(s), each probed narrow: ` +
+    RAMP_EXEMPTIONS.map((e) => `${e.program} d${e.day} ${e.slot} from exposure ${e.fromExposure}`).join('; '))
+}
 assert(staleRamp.length === 0,
   `nothing is still marked as ramping once exposure is full — ${staleRamp.length ? `${staleRamp.length} are, first: ${staleRamp[0]}` : 'none'}`)
 
