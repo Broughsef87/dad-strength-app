@@ -829,7 +829,13 @@ function wednesdayBallistic(
       sets: 3,
       reps: 3,
       superset: 'fs_contrast',
-      note: `Step off ${box} box (don't jump off). Land and rebound immediately with the shortest ground contact you can, jumping for max height. Full reset between reps. Pair ~30s after each pause front squat set.`,
+      // The ticket's own words, with only the box height substituted — the
+      // ruling says the rest of the note stays as the ticket wrote it, so the
+      // "~30s after each pause front squat set" cue is NOT appended here
+      // (Codex r2 P3). The pairing is carried by superset: 'fs_contrast' and
+      // stated on the front squat's own note, which is where the athlete reads
+      // it in order.
+      note: `Step off ${box} box (don't jump off). Land and rebound immediately with the shortest ground contact you can, jumping for max height. Full reset between reps.`,
     }
   }
   const bs = maxes['back_squat']
