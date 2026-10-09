@@ -79,10 +79,18 @@ function macroPos(weekNumber: number): MacroPos {
 // percent ramp. pct(week) = pctStart + pctStep * (weekInMeso - 1).
 interface SlotMeso {
   names: [string, string, string, string]
+  /** 0 means the slot does not run in this meso — M2 has no snatch back-off (FOR-263). */
   sets: number
   reps: number
   pctStart: number
   pctStep: number
+  /**
+   * ONE ENTRY PER SET, when the sets differ from each other (FOR-263). A wave
+   * of 3/2/1 cannot be said with one sets × reps × % scheme. `sets` must equal
+   * this length; each entry ramps on its own pctStep, so the whole wave moves
+   * together week to week.
+   */
+  sequence?: Array<{ reps: number; pctStart: number; pctStep: number }>
   targetRpe?: number  // overrides the meso default (pulls feel heavy by design)
   velocity?: boolean  // speed slot — bar speed governs, so no RPE anchor at all
   note?: string
@@ -133,6 +141,8 @@ function classicFloor(name: string, reps: number, slot?: string): number {
   return 70
 }
 
+import { withoutSetPlan } from './setPlan'
+
 const OLY_MAX_KEYS = new Set(['snatch', 'clean_jerk'])
 
 function isClassicLiftSlot(slot: string, maxKey: string): boolean {
@@ -150,23 +160,46 @@ function liftFromSlot(
   adjustments: Record<string, number>,
   overrides?: Partial<LiftPrescription>,
 ): LiftPrescription {
-  const basePct = def.pctStart + def.pctStep * (weekInMeso - 1)
+  // A SEQUENCE'S SET COUNT IS ITS OWN LENGTH (FOR-263). Checked before any of
+  // the work below, because `sets` drives the rows the screen draws: six rows
+  // against five planned loads is a set with no prescription in it.
+  if (def.sequence && def.sequence.length !== def.sets) {
+    throw new Error(`${slot}: sets is ${def.sets} and the sequence holds ${def.sequence.length} — a sequence's set count is its own length`)
+  }
   const rawAdj = adjustments[slot] ?? 0
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, rawAdj))
-  let percent = Math.round((basePct + adj) * 2) / 2
-  if (percent > 0 && isClassicLiftSlot(slot, maxKey)) {
-    const floor = classicFloor(def.names[weekInMeso - 1], def.reps, slot)
-    if (percent < floor) percent = floor
+  // ONE floor rule for both shapes. A sequence step is a prescribed set like
+  // any other, so it goes through the same classic floor — on its OWN reps,
+  // since a single and a triple do not floor at the same place (FOR-263).
+  const atWeek = (pctStart: number, pctStep: number, reps: number) => {
+    let pct = Math.round((pctStart + pctStep * (weekInMeso - 1) + adj) * 2) / 2
+    if (pct > 0 && isClassicLiftSlot(slot, maxKey)) {
+      const floor = classicFloor(def.names[weekInMeso - 1], reps, slot)
+      if (pct < floor) pct = floor
+    }
+    return pct
   }
+  const percent = atWeek(def.pctStart, def.pctStep, def.reps)
+  // A WAVE IS SIX SETS WITH SIX LOADS. Every step takes the same autoreg
+  // delta, so feedback bends the whole wave rather than one set of it.
+  const setPlan = def.sequence?.map((step) => {
+    const stepPct = atWeek(step.pctStart, step.pctStep, step.reps)
+    return { reps: step.reps, percent: stepPct, targetWeightLbs: resolveWeight(stepPct, maxKey, maxes) }
+  })
+  // `reps` and `percent` describe the FIRST set, so anything reading them gets
+  // a coherent number rather than undefined or an average of the wave.
+  const headReps = setPlan ? setPlan[0].reps : def.reps
+  const headPct = setPlan ? setPlan[0].percent : percent
   return {
     kind: 'lift',
     slot,
     name: def.names[weekInMeso - 1],
     sets: def.sets,
-    reps: def.reps,
-    percent,
+    reps: headReps,
+    percent: headPct,
     maxKey,
-    targetWeightLbs: resolveWeight(percent, maxKey, maxes),
+    targetWeightLbs: resolveWeight(headPct, maxKey, maxes),
+    setPlan,
     // Speed slots carry NO difficulty anchor. A 55-64% double SHOULD feel like
     // an RPE 4; against a target of 6 the autoreg read that honesty as "+3%
     // too light" every single week and walked the slot out of its speed band.
@@ -449,7 +482,11 @@ function thursdayConditioning(weekNumber: number, pos: MacroPos): OutsideSession
 // heavy snatches and cleans per the user's own floor: fulls at ≤2 reps live
 // at 80%+. Speed lives in Friday's box squats, and in M1 in the 65-70%
 // warm-up singles below.
-//   M1 straight heavy doubles · M2 top double + back-offs · M3 top single.
+//   M1 straight heavy doubles · M2 EMOM singles · M3 top single.
+// M2 was a top double at 83 with hang back-offs, which put it within a
+// percentage point of M1's last week — the same lifts at nearly the same
+// loads (Andrew, 2026-10-05). It is an EMOM now: eight singles on the minute,
+// one weight, and no back-off slot at all (FOR-263).
 const D1_SN_TOP: SlotMeso[] = [
   // FOR-195: 4×2 → 2×2. The volume did not vanish, it moved down a slot: the
   // new back-offs below are 3×2 at 75-78, which is more total snatch than the
@@ -457,19 +494,23 @@ const D1_SN_TOP: SlotMeso[] = [
   // The 65-70% warm-up singles note goes with them: it was a patch for a meso
   // with no sub-max snatch in it, and the back-offs are the real fix.
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Build in singles, then two heavy working doubles — full lift, no fluff' },
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up' },
+  // FOR-263: 8×1 EMOM at 80 / 81.5 / 83 / 84.5. The density is the stimulus —
+  // same weight every rep, and the minute is the rest.
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 8, reps: 1, pctStart: 80, pctStep: 1.5, targetRpe: 8, note: 'One single at the top of every minute for 8 minutes. Full lift, fast, same weight every rep.' },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
 ]
-// M2 back-offs move to the hang — same full-depth catch (heavy expression
-// preserved), new position, legal under the ≥75 doubles rule. M3 snaps back
-// to the pure lift for realization.
+// M1 and M3 keep their back-offs. M2 HAS NONE: the EMOM above is the whole
+// snatch dose for the day, and `sets: 0` is how the registry says a slot does
+// not run in a meso (FOR-263). M3 snaps back to the pure lift for realization.
 const D1_SN_BACK: SlotMeso[] = [
   // M1 gains the top+back structure M2/M3 already had. The PURE lift, not the
   // hang — M1 is the pure-lift meso, and the hang belongs to M2's variation
   // brief. 75 is the doubles floor, so these are the lightest legal full-snatch
   // doubles in the program: real sub-maximal exposure, which is the point.
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'Back-off doubles — full lift, sharp and fast. These are the speed work, not a grind' },
-  { names: ['Hang Snatch', 'Hang Snatch', 'Hang Snatch', 'Hang Snatch'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'From above the knee — full catch, sit in' },
+  // FOR-263: the Hang Snatch 3×2 is removed. Eight singles on the minute is
+  // the dose; a back-off after it is volume for its own sake.
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 0, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7 },
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
 ]
 // Monday heavy bench — the week's heavy-upper anchor. Dip-drive overhead was
@@ -487,9 +528,31 @@ const D1_BENCH_HEAVY: SlotMeso[] = [
 // Monday's snatch pull retired (2026-07): the day is squat-priority now, and
 // the freed slot went to Nordic curls — the program's only knee-flexion work.
 // Positional pulling lives in Friday's clean pulls (100-116%).
+//
+// M2 IS TWO WAVES OF 3/2/1, not a straight 4×4 (Andrew, 2026-10-05; FOR-263).
+// A straight 4×4 at 78 sat a couple of percent off M1's last week. Six sets,
+// each with its own reps and load, the second wave 2% over the first, and the
+// whole thing +2% a week:
+//   W5  3@75 2@80 1@85 · 3@77 2@82 1@87      W7  3@79 2@84 1@89 · 3@81 2@86 1@91
+//   W6  3@77 2@82 1@87 · 3@79 2@84 1@89      W8  3@81 2@86 1@91 · 3@83 2@88 1@93
 const D1_SQUAT: SlotMeso[] = [
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 5, pctStart: 70, pctStep: 2 },
-  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 4, pctStart: 78, pctStep: 2 },
+  {
+    names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'],
+    sets: 6,
+    reps: 3,
+    pctStart: 75,
+    pctStep: 2,
+    sequence: [
+      { reps: 3, pctStart: 75, pctStep: 2 },
+      { reps: 2, pctStart: 80, pctStep: 2 },
+      { reps: 1, pctStart: 85, pctStep: 2 },
+      { reps: 3, pctStart: 77, pctStep: 2 },
+      { reps: 2, pctStart: 82, pctStep: 2 },
+      { reps: 1, pctStart: 87, pctStep: 2 },
+    ],
+    note: 'Two waves of 3/2/1. Second wave is 2% over the first — the single at the top of each is the point.',
+  },
   { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 3, pctStart: 85, pctStep: 1.5 },
 ]
 
@@ -498,7 +561,9 @@ const D1_SQUAT: SlotMeso[] = [
 // Friday's C&J fresh. Bench supersets with weighted pull-ups (push/pull pair).
 const D3_PUSH_PRESS: SlotMeso[] = [
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 5, pctStart: 65, pctStep: 2 },
-  { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 3, pctStart: 72, pctStep: 2 },
+  // FOR-268: 72 -> 77. Andrew's call, 2026-10-07. Still keyed to the clean &
+  // jerk max. At his 265: W5 205, W6 210, W7 215, W8 220.
+  { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 3, pctStart: 77, pctStep: 2 },
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 2, pctStart: 78, pctStep: 2 },
 ]
 // Wednesday's press is DUMBBELLS in every meso (FOR-195 item 4). Monday keeps
@@ -523,7 +588,10 @@ const D3_FSQUAT: SlotMeso[] = [
   // clock beats him, and the front squat is contrast-paired with jumps — each
   // set costs two movements and a walk to the trap bar.
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 5, pctStart: 72, pctStep: 2, note: 'Contrast: trap bar jumps ~30s after each set' },
-  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 70, pctStep: 2, note: '2-count dead stop in the hole, then UP — trap bar jumps ~30s after each set' },
+  // FOR-268: 70 -> 76. Andrew's call, 2026-10-07. The pause is the point of
+  // this slot and 70% was not asking anything of it; the dead stop is worth
+  // more loaded. At his 330 front squat: W5 250, W6 255, W7 265, W8 270.
+  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 76, pctStep: 2, note: '2-count dead stop in the hole, then UP — depth jumps ~30s after each set' },
   { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 85, pctStep: 2.5, note: 'Contrast: trap bar jumps ~30s after each set' },
 ]
 
@@ -702,17 +770,76 @@ function seatedBoxJumps(): PlyoPrescription {
   return { kind: 'plyo', slot: 'seated_box_jump', name: 'Seated Box Jump', sets: 4, reps: 3, note: 'Sit tall on a box, shins vertical, NO rock or rebound — explode from a dead stop onto the box. Full reset between reps.' }
 }
 
-// Wednesday's ballistic slot: trap bar jumps, contrast-paired with front squat.
-// Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
-function trapBarJumps(maxes: Record<string, number>, entryPhase: boolean): PlyoPrescription {
-  const bs = maxes['back_squat']
-  const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
+/**
+ * Wednesday's ballistic slot, contrast-paired with the front squat.
+ *
+ * Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
+ *
+ * M2 IS A DEPTH JUMP (FOR-268). Andrew picked it on 2026-10-07: he snatches and
+ * cleans heavy, so a loaded jump adds little he is not already getting, and the
+ * Olympic lifts do not train the fast landing-and-rebound at all. A depth jump
+ * does, and only that. It carries NO load for the same reason — the drop is the
+ * load.
+ *
+ * THIS IS AN AMENDMENT TO FOR-244's AC2, not a bypass of it. AC2 held that no
+ * maximal depth jump is prescribed before full exposure (week 9), and I held
+ * this item for exactly that reason. Blaine ruled on 2026-10-07 that the newer
+ * specific request wins: AC2 exists so a lifter never meets reactive work
+ * cold, and Andrew has had four weeks of trap bar and box jumps and chose this
+ * after hearing why. `scripts/checks/ballistic-load.mjs` carries the exemption,
+ * scoped to this program, this day and this slot from exposure 5 — every other
+ * program and stage keeps the ramp as shipped.
+ *
+ * THE RAMP SURVIVES IN THE BOX HEIGHT: 12" in W5-6, 18" in W7-8. The drop
+ * height is the dose of a depth jump, so the progression moved into it rather
+ * than being dropped.
+ *
+ * ONE function decides which jump Wednesday gets, so the slot, the name, the
+ * note and the pairing cannot disagree with each other.
+ */
+const WED_BALLISTIC_SLOTS = ['tb_jump', 'depth_jump'] as const
+
+function wednesdayBallistic(
+  maxes: Record<string, number>,
+  meso: number,
+  weekInMeso: number,
+  entryPhase: boolean,
+): PlyoPrescription {
   // 3×3 in every meso (FOR-195 item 5): the front squat is 3 sets everywhere
   // now, and the jumps are its contrast pair — one jump set per squat set.
   // NOT a contrast pair in the entry weeks (FOR-244 ruling 7): complex training
   // is for athletes who have already done high-intensity plyometric work
   // (Essentials p. 480), and the whole point of the ramp is that this one has
   // not. Same jumps, same load — done fresh, on their own, before the squat.
+  //
+  // The entry weeks are M1's, so M2 never takes that branch. The guard stays on
+  // the meso rather than being assumed away, because the ramp origin is a
+  // stored value and a restart can move it.
+  if (meso === 2 && !entryPhase) {
+    // 12" for the first half of the meso, 18" for the second. An article, not
+    // a template slip: "a 12\" box" and "an 18\" box".
+    const box = weekInMeso <= 2 ? 'a 12"' : 'an 18"'
+    // Its OWN slot key, so a depth jump's history never mixes with a loaded
+    // trap bar jump's — different movements at different loads, and one slot
+    // would read the change as a ~105 lb drop in the same exercise.
+    return {
+      kind: 'plyo',
+      slot: 'depth_jump',
+      name: 'Depth Jump',
+      sets: 3,
+      reps: 3,
+      superset: 'fs_contrast',
+      // The ticket's own words, with only the box height substituted — the
+      // ruling says the rest of the note stays as the ticket wrote it, so the
+      // "~30s after each pause front squat set" cue is NOT appended here
+      // (Codex r2 P3). The pairing is carried by superset: 'fs_contrast' and
+      // stated on the front squat's own note, which is where the athlete reads
+      // it in order.
+      note: `Step off ${box} box (don't jump off). Land and rebound immediately with the shortest ground contact you can, jumping for max height. Full reset between reps.`,
+    }
+  }
+  const bs = maxes['back_squat']
+  const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
   if (entryPhase) {
     return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Ramp weeks — these come FIRST, before the front squat, not paired with it.` }
   }
@@ -730,8 +857,12 @@ const DELOAD_CLASSIC_PCT = 65 // deload is recovery, not a working set — light
 function applyDeload(p: LiftPrescription): LiftPrescription {
   // Classic lifts deload to a crisp 65%; everything else drops to 60.
   const pct = p.maxKey && isClassicLiftSlot(p.slot, p.maxKey) ? DELOAD_CLASSIC_PCT : 60
+  // THE WAVE GOES WITH IT (FOR-263, Codex r1). `...p` kept `setPlan`, so a
+  // forced deload inside meso 2 printed "3 x 60%, 220 lb" in the header while
+  // the six rows prefilled 275/290/310/280/300/320 — the deload's number and
+  // the working wave's loads on the same card. A deload IS the scalar shape.
   return {
-    ...p,
+    ...withoutSetPlan(p),
     sets: Math.max(2, Math.ceil(p.sets / 2)),
     percent: p.percent != null ? pct : undefined,
     targetRpe: p.targetRpe != null ? 6 : undefined, // deload should FEEL easy — keep autoreg honest
@@ -824,9 +955,12 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
         liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments),
       )
-      // Every meso has snatch back-offs now (FOR-195 item 1) — the guard that
-      // used to skip M1's empty slot went with them.
-      items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
+      // M1 and M3 have back-offs; M2's EMOM is the whole dose, and the
+      // registry says so with sets: 0 (FOR-263). The guard reads the slot
+      // rather than the meso number, so moving the exception is a data change.
+      if (D1_SN_BACK[m].sets > 0) {
+        items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
+      }
       items.push(
         liftFromSlot('bench_heavy', D1_BENCH_HEAVY[m], w, 'bench', maxes, pos.meso, adjustments),
         // Knee-flexion hamstring work — the one pattern pulls/DL don't cover.
@@ -861,13 +995,13 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         // another, and the athlete follows the order (Codex r1).
         ...(entryPhase
           ? [
-              trapBarJumps(maxes, true),
+              wednesdayBallistic(maxes, pos.meso, w, true),
               liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments,
                 { note: 'Ramp weeks — the trap bar jumps ran before this, on their own. Squat is squat.' }),
             ]
           : [
               liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
-              trapBarJumps(maxes, false),
+              wednesdayBallistic(maxes, pos.meso, w, false),
             ]),
         rangeSlot('db_bench', 'DB Bench Press', D3_DB_BENCH[m].sets, D3_DB_BENCH[m].window, lt, {
           step: 5,
@@ -880,9 +1014,14 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
           : accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 5, 'Per leg — heavy DBs, 5s should be honest, 90s rest'),
       ]
       // Session diet: med-ball throws + farmer carries cut — ballistic work is
-      // the trap bar jumps' job, carries recur in Saturday's metcon pool.
+      // the jump slot's job, carries recur in Saturday's metcon pool.
       if (pos.isDeload) {
-        items = items.filter(i => !(i.kind === 'plyo' && i.slot === 'tb_jump'))
+        // WHICHEVER jump the meso prescribes (FOR-268). This filtered the
+        // literal 'tb_jump', so a forced deload inside M2 would have cut
+        // nothing and left a depth jump — the highest-impact landing in the
+        // program — inside a recovery week. FOR-263 shipped that exact shape of
+        // bug in a deload path, which is why this reads the slot list.
+        items = items.filter(i => !(i.kind === 'plyo' && (WED_BALLISTIC_SLOTS as readonly string[]).includes(i.slot)))
           .map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
           // Range work has no percent to cut, so the deload has to reach it by
           // sets instead — otherwise the barbell drops to 60% while the DB

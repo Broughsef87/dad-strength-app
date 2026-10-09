@@ -27,6 +27,7 @@ import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
+import { withSetCount } from '../../../../lib/programs/setPlan'
 import { RECORDED, isRecorded, isTrained, samePlan, serialWriter, sessionPlan } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
 import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
@@ -134,7 +135,9 @@ function applyOverrides(plan: DayPlan, o: SessionOverrides): DayPlan {
   if (o.setCounts) {
     items = items.map(i => {
       if ((i.kind === 'lift' || i.kind === 'plyo') && o.setCounts![i.slot] != null) {
-        return { ...i, sets: Math.max(1, o.setCounts![i.slot]) }
+        // ONE helper for every site that moves a set count, so the plan cannot
+        // be left behind (FOR-263, Codex r1 found three sites that had been).
+        return withSetCount(i, o.setCounts![i.slot])
       }
       return i
     })
@@ -447,13 +450,21 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   onSetCountChange?: (newCount: number) => void
   onRemove?: () => void
 }) {
+  // EVERY ROW IS PREFILLED FROM ITS OWN PRESCRIBED SET (FOR-263). A wave of
+  // 3/2/1 has a different load and a different rep count on every set, so
+  // filling six rows from one `targetWeightLbs` would put the opening triple's
+  // weight under the closing single. Slots with no setPlan are unaffected:
+  // planned[i] is undefined and the single-number behaviour stands.
+  const planned = (i: number) => item.setPlan?.[i]
   const [sets, setSets] = useState<SetEntry[]>(() =>
     Array.from({ length: item.sets }, (_, i) => {
       const row = initialLogs.find(r => r.set_number === i + 1)
+      const plan = item.setPlan?.[i]
+      const target = plan?.targetWeightLbs ?? item.targetWeightLbs
       return {
         setIndex: i,
-        weight: row?.weight_lbs != null ? String(row.weight_lbs) : (item.targetWeightLbs != null ? String(item.targetWeightLbs) : ''),
-        reps: row?.reps != null ? String(row.reps) : String(item.reps),
+        weight: row?.weight_lbs != null ? String(row.weight_lbs) : (target != null ? String(target) : ''),
+        reps: row?.reps != null ? String(row.reps) : String(plan?.reps ?? item.reps),
         done: row?.completed === true,
         rpe: row?.rpe ?? null,
       }
@@ -472,7 +483,12 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
         // Editing weight or reps cascades forward to the sets you haven't logged
         // yet — set your working load once and the rest follow. Earlier sets and
         // already-logged sets are never touched.
-        if ((field === 'weight' || field === 'reps') && i > idx && !s.done) {
+        //
+        // NOT ON A WAVE (FOR-263). When each set has its own prescribed load,
+        // cascading an edit on set 1 would overwrite the five planned loads
+        // below it with the opening triple's weight — the prescription erased
+        // by correcting a typo in it.
+        if (!item.setPlan && (field === 'weight' || field === 'reps') && i > idx && !s.done) {
           return { ...s, [field]: value }
         }
         return s
@@ -500,6 +516,17 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
     : item.targetRir != null ? ` · ${item.targetRir} RIR`
     : item.rpe != null ? ` · RPE ${item.rpe}`
     : ''
+  // `6×3` IS A LIE ABOUT A WAVE (FOR-263). The header is where he decides what
+  // he is walking into, so a slot with a setPlan reads out the rep sequence it
+  // actually prescribes. Everything else keeps the sets×reps it always had.
+  // A plan may be SHORTER than the set count — a set he added by hand has no
+  // prescribed load, and inventing one would be a number nobody chose. The
+  // header says so rather than describing six sets when seven will be logged
+  // (FOR-263, Codex r1).
+  const extraSets = item.setPlan ? item.sets - item.setPlan.length : 0
+  const setShape = item.setPlan
+    ? item.setPlan.map(x => x.reps).join('/') + (extraSets > 0 ? ` +${extraSets}` : '')
+    : `${item.sets}×${repsLabel}`
 
   return (
     <div className={` relative bg-card border transition-colors overflow-hidden ${allDone ? 'border-brand/50' : 'border-border'}`}>
@@ -544,7 +571,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                   </span>
                 </span>
                 <span className="eyebrow-mono">
-                  LB{item.percent != null ? ` @ ${item.percent}%` : ''} · {item.sets}×{repsLabel}{effortLabel}
+                  LB{item.percent != null ? ` @ ${item.percent}%` : ''} · {setShape}{effortLabel}
                 </span>
                 {item.appliedAdjustmentPct != null && (
                   <span className="eyebrow-mono border border-brand/50 px-1.5 py-0.5 text-brand">
@@ -554,10 +581,27 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                 {plateString(item.targetWeightLbs) && (
                   <span className="eyebrow-mono basis-full">{plateString(item.targetWeightLbs)}</span>
                 )}
+                {/* The whole wave, before he opens the card. The hero number is
+                    set ONE; without this the other five loads are invisible
+                    until the sets are expanded (FOR-263). */}
+                {item.setPlan && (
+                  <>
+                    {/* Loads on one line, percentages under them. NO faded ink:
+                        fading a muted token to 60% measures 2.32:1 on chalk and
+                        the contrast check is right to refuse it — secondary
+                        information gets its own line, not a dimmer colour. */}
+                    <span className="eyebrow-mono basis-full">
+                      {item.setPlan.map(x => `${x.reps}×${x.targetWeightLbs ?? '—'}`).join('  ')}
+                    </span>
+                    <span className="eyebrow-mono basis-full">
+                      {item.setPlan.map(x => `${x.percent}%`).join('  ')}
+                    </span>
+                  </>
+                )}
               </div>
             ) : (
               <p className="eyebrow-mono mt-1.5">
-                {item.sets}×{repsLabel}{item.percent != null ? ` @ ${item.percent}%` : ''}{effortLabel}
+                {setShape}{item.percent != null ? ` @ ${item.percent}%` : ''}{effortLabel}
               </p>
             )}
             {/* Prior weeks of this meso — what you actually lifted here before */}
@@ -627,9 +671,10 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
             <div key={idx} className={` border transition-colors ${s.done ? 'border-brand/40 bg-brand/5' : 'border-border/60 bg-background'}`}>
               <div className="grid grid-cols-4 gap-2 items-center p-2">
                 <span className="stat-num text-xs text-muted-foreground pl-1">{String(idx + 1).padStart(2, '0')}</span>
-                <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)} placeholder="lbs"
+                <input type="number" value={s.weight} onChange={e => update(idx, 'weight', e.target.value)}
+                  placeholder={planned(idx)?.targetWeightLbs != null ? String(planned(idx)?.targetWeightLbs) : 'lbs'}
                   className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
-                <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(item.reps)}
+                <input type="number" value={s.reps} onChange={e => update(idx, 'reps', e.target.value)} placeholder={String(planned(idx)?.reps ?? item.reps)}
                   className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
                 <button onClick={() => update(idx, 'done', !s.done)}
                   className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-brand-ink' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>

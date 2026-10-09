@@ -10,8 +10,9 @@
 // guard, one CLI — rather than a second copy for rotation B. A fixture with
 // no pair here has no migration.
 //
-//   fixtures/fuel-seed.json             -> 20260914_fuel_phase_1.sql   (FOR-177)
-//   fixtures/fuel-seed-rotation-b.json  -> 20260917_fuel_rotations.sql (FOR-238)
+//   fixtures/fuel-seed.json                      -> 20260914_fuel_phase_1.sql        (FOR-177)
+//   fixtures/fuel-seed-rotation-b.json           -> 20260917_fuel_rotations.sql       (FOR-238)
+//   fixtures/fuel-seed-library-expansion.json    -> 20261005_fuel_library_expansion.sql (FOR-257)
 //
 // The phase-1 migration is applied in production: what it renders never
 // changes. Tables and RLS ship in the SAME migration (rls_hardening lesson).
@@ -34,6 +35,28 @@ const n = (v) => (v == null ? 'NULL' : String(v))
 // them; until then they must be present and null, never estimated. Every
 // pair's meals pass through this one guard.
 const MACROS = ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']
+
+// The own-meal namespace FOR-242 reserved. This file is run by plain `node`
+// (`--check` has no tsx), so it cannot import `isOwnSlug` from
+// src/lib/fuel/ownMeal.ts the way the checks do. It is a COPY, and
+// scripts/checks/fuel-library-slugs.mjs fails if the two ever disagree — one
+// fact, written twice, with the second copy pinned to the first.
+const OWN_SLUG = /^u[0-9a-f]{32}~.+$/
+
+/**
+ * Every slug the seeded library already holds, read off the PAIRS rather than
+ * from fixtures named here.
+ *
+ * `exclude` is the fixture being rendered, which must not count itself as
+ * already seeded. Naming the first two fixtures meant a FOURTH pair could
+ * carry `beef-barley-stew` with different content and render happily, and its
+ * upsert would rewrite the expansion meal (Codex r1). It also meant deleting
+ * rotation B from the list left every check green.
+ */
+export function seededSlugs(exclude = null) {
+  return PAIRS.filter((p) => p.fixture !== exclude)
+    .flatMap((p) => p.meals(readFixture(p.fixture)).map((m) => m.slug))
+}
 
 function guardMacros(meals) {
   for (const m of meals) for (const k of MACROS) {
@@ -338,17 +361,98 @@ ON CONFLICT (rotation_slug, meal_slug) DO UPDATE SET
 `
 }
 
+// ── fixtures/fuel-seed-library-expansion.json -> the library expansion ───────
+// LIBRARY ONLY, and that is the ticket's central design decision rather than an
+// omission (FOR-257 §3): Andrew asked for new dinners to choose from, so all 37
+// become pickable night by night and the rotations get assembled later from
+// whatever the family actually eats. The guard below makes rotation rows in THIS
+// fixture unrepresentable — a later rotation gets its own fixture and its own
+// pair, the way rotation B did.
+export const EXPANSION_FIXTURE = 'fixtures/fuel-seed-library-expansion.json'
+
+/**
+ * @param seed the fixture's parsed contents
+ * @param pair the pair being rendered. Its `fixture` is what must be excluded
+ *   from the seeded inventory — NOT a constant. Excluding EXPANSION_FIXTURE
+ *   by name meant reusing this renderer for another fixture checked the wrong
+ *   one both ways: a copy keeping `beef-barley-stew` rendered happily and its
+ *   upsert would rewrite that meal, while a disjoint fourth fixture had its
+ *   own new slugs refused as "already a seeded meal" (Codex r2).
+ */
+export function renderLibraryExpansion(seed, pair) {
+  // NO DEFAULT. Defaulting to EXPANSION_FIXTURE left the whole defect in place
+  // through the one-argument route: a copy of the fixture under another path,
+  // called without the pair, still excluded the REAL expansion and rendered a
+  // colliding upsert (Codex r3). A renderer that cannot tell which fixture it
+  // has must refuse to guess.
+  if (!pair?.fixture) {
+    throw new Error('renderLibraryExpansion needs the pair it is rendering — its fixture is what gets excluded from the seeded inventory, and guessing it is how a collision gets through')
+  }
+  // Every OTHER pair's slugs. Its own are checked for internal duplicates
+  // below; counting them as "already seeded" would refuse the fixture itself.
+  const seeded = seededSlugs(pair.fixture)
+  const fresh = seed.fuel_meals_new.map((m) => m.slug)
+
+  for (const key of ['fuel_rotations', 'fuel_rotation_meals']) {
+    if (key in seed) throw new Error(`fuel-seed-library-expansion.json carries ${key} — this pair renders the LIBRARY only (FOR-257 §3); a rotation needs its own fixture and pair`)
+  }
+  for (const s of fresh) {
+    // A slug is a foreign key in fuel_rotation_meals, fuel_plans and stored
+    // lists. Reusing one silently REWRITES a meal the family already eats,
+    // because the upsert is ON CONFLICT (slug) DO UPDATE.
+    if (seeded.includes(s)) throw new Error(`${s}: already a seeded meal — a library expansion adds meals, it never rewrites one`)
+    if (OWN_SLUG.test(s)) throw new Error(`${s}: is in the own-meal namespace FOR-242 reserved — a seeded slug must never collide with a user's`)
+    if (fresh.indexOf(s) !== fresh.lastIndexOf(s)) throw new Error(`${s}: appears twice in the fixture — the second row would overwrite the first`)
+    // A lowercase kebab token, refused HERE and not only in the standing
+    // check. A slug reaches SQL through q(), a URL, and a stored list key; one
+    // with a space or a quote works until the one place that does not quote
+    // it. Found by attributing each red-first refusal: the check caught this
+    // shape and the generator rendered it happily (FOR-257).
+    if (!/^[a-z][a-z0-9-]*[a-z0-9]$/.test(s) || s.includes('--')) throw new Error(`${s}: is not a lowercase kebab token — a slug is an identifier that reaches SQL, a URL and a stored list key`)
+  }
+
+  return `-- ============================================================
+-- Fuel library expansion (FOR-257) — 2026-10-05
+-- GENERATED by scripts/fuel-seed-sql.mjs from fixtures/fuel-seed-library-expansion.json.
+-- Do not edit by hand; edit the fixture and regenerate.
+--
+-- ADDITIVE, AND MEAL ROWS ONLY: ${seed.fuel_meals_new.length} new meals into the existing
+-- fuel_meals table. No table, column, policy or index changes. No rotation
+-- and no membership row: all ${seeded.length + seed.fuel_meals_new.length} meals become pickable night by night, and the
+-- rotations get assembled later from the ones the family keeps (FOR-257 §3).
+-- Rotations A and B are untouched, so every existing plan still resolves.
+--
+-- THE QUANTITIES ARE ESTIMATES. _provenance.SOURCED in the fixture says which
+-- figures are standard home-cook practice rather than measured, and every
+-- inferred ingredient carries "inferred": true. The first cook of each meal is
+-- the measurement.
+--
+-- REVERT, exactly:
+--   DELETE FROM public.fuel_meals WHERE slug IN (
+--     ${fresh.map((x) => `'${x}'`).join(',\n--     ')}
+--   );
+-- Safe while no plan references them. A plan that already picked one holds the
+-- slug in fuel_plans.meal_ids, so delete the plan first or leave the row.
+-- ============================================================
+
+-- ── The new meals, from the fixture ──────────────────────────────────────
+${mealInsert(seed.fuel_meals_new)}`
+}
+
 // ── The pairs ────────────────────────────────────────────────────────────────
 export const PAIRS = [
   { fixture: 'fixtures/fuel-seed.json', migration: 'supabase/migrations/20260914_fuel_phase_1.sql', meals: (seed) => seed.fuel_meals, render: renderPhase1 },
   { fixture: 'fixtures/fuel-seed-rotation-b.json', migration: 'supabase/migrations/20260917_fuel_rotations.sql', meals: (seed) => seed.fuel_meals_new, render: renderRotations },
+  { fixture: EXPANSION_FIXTURE, migration: 'supabase/migrations/20261005_fuel_library_expansion.sql', meals: (seed) => seed.fuel_meals_new, render: renderLibraryExpansion },
 ]
 
 /** The migration a pair's fixture generates. Throws, before rendering, on anything a seed migration must not carry. */
 export function renderPair(pair) {
   const seed = readFixture(pair.fixture)
   guardMacros(pair.meals(seed))
-  return pair.render(seed)
+  // The pair goes to the renderer: a renderer shared by two fixtures has to
+  // know which one it is rendering (Codex r2).
+  return pair.render(seed, pair)
 }
 
 /** The migration on disk for a pair, line endings normalised; null when it does not exist. */

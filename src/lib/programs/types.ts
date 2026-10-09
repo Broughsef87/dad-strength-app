@@ -21,6 +21,14 @@ export interface LiftPrescription {
   maxKey?: string          // which max the % references
   targetWeightLbs?: number // computed: round((percent/100) * max, nearest 5)
   rpe?: number             // accessories use RPE instead of %
+  /**
+   * WHEN THE SETS ARE NOT ALL THE SAME (FOR-263). A wave of 3/2/1 is six sets
+   * with six loads, and `sets`/`reps`/`percent` can only say one thing each.
+   * When this is present it is one entry per set, in order, and the screen
+   * draws it; `sets` is its length and `reps`/`percent` carry the FIRST set so
+   * anything reading them gets a coherent number rather than undefined.
+   */
+  setPlan?: Array<{ reps: number; percent: number; targetWeightLbs?: number }>
   targetRpe?: number       // expected difficulty for %-based work — autoreg anchor
   // ── Double progression (hypertrophy work) ──────────────────────────────
   // A lateral raise has no 1RM, so percent-based waves say nothing about it.

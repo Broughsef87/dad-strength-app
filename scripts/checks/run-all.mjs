@@ -50,12 +50,25 @@ const SUITES = [
   // A dead hook and an empty queue used to look identical — its own suite, so a
   // revert of the logging cannot take the check that would catch it (FOR-246).
   ['bus observability (FOR-246)', 'bus-observability.mjs'],
+  // The hook RUN against a throwaway bus, not read — its own suite, so a
+  // revert of the claim gate cannot take the check that would catch it (FOR-262).
+  ['bus one at a time (FOR-262)', 'bus-one-at-a-time.mjs'],
+  // A Codex review once ran for 8 hours having produced 39 bytes, blocked on
+  // stdin. scripts/codex-review.sh cannot report success unless the run
+  // started; this stubs codex and makes each failure happen. Its own file, so
+  // deleting the launcher cannot delete the check that would catch it.
+  ['codex launcher (2026-10-06)', 'codex-review-launcher.mjs'],
+  // M2 Monday's EMOM and squat waves, and the nine Mondays this must not have
+  // touched — its own suite, so a revert of hybridPower.ts cannot take the
+  // check that would catch the revert (FOR-263).
+  ['M2 Monday (FOR-263)', 'meso2-monday.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
   // Its own suite, not a section of fuel-solve: a revert of the rotations
   // feature must not take the check that would catch the revert with it.
   ['fuel rotations (FOR-238)', 'fuel-rotations.mjs'],
   // The picker's grouping against the whole library, its own suite (FOR-239).
   ['fuel vocabulary (FOR-239)', 'fuel-vocabulary.mjs'],
+  ['fuel library slugs (FOR-257)', 'fuel-library-slugs.mjs'],
   // No custom key is ever a solver key, over generated libraries — its own suite (FOR-240).
   ['fuel custom keys (FOR-240)', 'fuel-custom-keys.mjs'],
   // An own meal's slug can never be a seeded slug, over generated names — its own suite (FOR-242).

@@ -33,6 +33,32 @@
     {
       "file": "supabase/migrations/20260920_fuel_own_meals.sql",
       "sha256": "ac3b0f1c3cb56e2d2d3a0a08c2a03f1ba6044a98d83f09c6a28216230ae7c56b"
+    },
+    {
+      "file": "supabase/migrations/20261005_fuel_library_expansion.sql",
+      "sha256": "291862585161c562a789d59f0e9c801d4e49e02b3dc0b138baca9152ec6b5111"
+    }
+  ],
+  "comparator": [
+    {
+      "file": "scripts/fuel-db-proof.mjs",
+      "sha256": "a4c8766171be6964fce3e122cd63581a06a46f3d9d03fdda4d9c9f6b61249a35"
+    },
+    {
+      "file": "scripts/fuel-db-proof-lib.mjs",
+      "sha256": "5bb46d0d72ba3f5fbc5ce6d612d3d48f3f9960bd935d65b04fdd8f29d4e58f71"
+    },
+    {
+      "file": "fixtures/fuel-seed.json",
+      "sha256": "1c4108e4767d58656d8da3152483cbca5a69974e5f4e7eca31cb153f9a46be2c"
+    },
+    {
+      "file": "fixtures/fuel-seed-rotation-b.json",
+      "sha256": "37575d307fb67bbd109d7df2e015a4d9bb7e7cb3858d983ca64699d51fe5d4aa"
+    },
+    {
+      "file": "fixtures/fuel-seed-library-expansion.json",
+      "sha256": "7d73ec60cab04f4acb3cb26e9f7f46c11ff9f7e58e97fe2d6b3830b6534aaa0c"
     }
   ],
   "fuel_lists_triggers": "fuel_lists_pro_gate,fuel_lists_staples",

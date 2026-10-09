@@ -1,9 +1,9 @@
 // ── Fuel inventory vocabulary (FOR-239) — the standing invariant, its own file ──
 // What is on hand is picked from the ingredients the meals use, grouped by the
 // aisle they are bought in. This judges that grouping against the whole seeded
-// library — both fixtures — and against a library holding a section the
-// household's store order does not name, so a new section can never orphan
-// its ingredients:
+// library — EVERY seed fixture, read off the generator's pairs rather than
+// listed here — and against a library holding a section the household's store
+// order does not name, so a new section can never orphan its ingredients:
 //   1. every distinct store_section in the library is a group in the picker
 //   2. every ingredient in the library is in the picker exactly once, and the
 //      picker holds nothing else
@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { libraryItems, libraryVocabulary } from '../../src/lib/fuel/solve.ts'
+import { PAIRS } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
 const assert = (cond, msg) => { if (cond) passes++; else { failures++; console.log('  ✗ ' + msg) } }
@@ -22,8 +23,10 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const read = (rel) => JSON.parse(readFileSync(join(ROOT, rel), 'utf8'))
 
 const base = read('fixtures/fuel-seed.json')
-const rot = read('fixtures/fuel-seed-rotation-b.json')
-const library = [...base.fuel_meals, ...rot.fuel_meals_new]
+// Every pair's meals, so a fixture added without touching this file is still
+// judged. Listing the fixtures by name let FOR-257's 24 meals join the library
+// while this invariant kept passing over 13 of them.
+const library = PAIRS.flatMap((pair) => pair.meals(read(pair.fixture)))
 const order = base.store_section_order
 
 function judge(label, meals, sectionOrder) {
@@ -49,6 +52,7 @@ function judge(label, meals, sectionOrder) {
   assert(firstUnordered === -1 || names.slice(firstUnordered).every((s) => !sectionOrder.includes(s)), `${label}: a section the store order does not name comes after the ordered ones — got ${names.join(', ')}`)
 }
 
+assert(library.length === 37, `the seeded library this judges is every seeded meal — ${library.length}`)
 judge('the seeded library', library, order)
 assert(libraryItems(library).length === new Set(library.flatMap((m) => m.ingredients.map((i) => i.item))).size && libraryItems(library).length > 0, 'the seeded library has an ingredient vocabulary to pick from')
 

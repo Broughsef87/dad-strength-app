@@ -112,6 +112,26 @@ export default function Home() {
           <a href="/privacy" className="text-[10px] lowercase text-muted-foreground/60 hover:text-muted-foreground transition-colors">privacy</a>
           <a href="/disclaimer" className="text-[10px] lowercase text-muted-foreground/60 hover:text-muted-foreground transition-colors">disclaimer</a>
         </div>
+
+        {/* Who this is for (FOR-267). Its own line rather than a fourth item in
+            the row above: that row is legal, this is an attribution.
+
+            NOT `lowercase`, and NOT a faded ink. The row above is both, and
+            copying it would have rendered "romans xii men" — the site names
+            itself Romans XII, and lowercasing somebody else's name to satisfy
+            our own voice rule is the wrong trade. Full-opacity muted ink
+            because the contrast check bans NEW faded ink, and the /60 above is
+            pre-existing debt in faded-ink-debt.json. */}
+        <p className="text-[10px] text-center text-muted-foreground">
+          <a
+            href="https://romansxiimen.com"
+            target="_blank"
+            rel="noopener"
+            className="hover:text-foreground transition-colors"
+          >
+            training for Romans XII men
+          </a>
+        </p>
       </div>
     </div>
   );
