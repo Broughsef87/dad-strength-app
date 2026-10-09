@@ -119,7 +119,9 @@ try {
   // ── the paths the rule leaves alone ───────────────────────────────────────
   const gen = asUser(A, `select public.checkin_patch('2026-10-10','spirit_state','[{"path":["morning"],"value":${entry('2026-10-10')}}]'::jsonb);`)
   ok('{morning} whole on a missing row still inserts it (generation), with the entry it was given',
-    gen.status === 0 && q(`select spirit_state #>> '{morning,protocol,theme}' || ' ' || (spirit_state #>> '{morning,date}') from public.daily_checkins where user_id='${A}' and date='2026-10-10'`) === 't 2026-10-10',
+    // The WHOLE stored entry equals the one sent (Codex draft pass 2, P3): a
+    // branch that dropped protocol.steps would pass a theme-and-date check.
+    gen.status === 0 && q(`select (spirit_state -> 'morning') = '${entry('2026-10-10')}'::jsonb from public.daily_checkins where user_id='${A}' and date='2026-10-10'`) === 't',
     gen.err.slice(0, 120) || spirit(A, '2026-10-10'))
   const goals = asUser(A, `select public.checkin_patch('2026-10-11','mind_state','[{"path":["objectives"],"value":["x"]},{"path":["completedObjectives"],"value":[false]}]'::jsonb);`)
   ok('a mind_state write on a missing row still inserts it, with the values it was given',
