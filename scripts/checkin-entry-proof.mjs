@@ -20,7 +20,8 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
-const IMAGE = 'supabase/postgres:15.8.1.060'
+// CHECKIN_PROOF_IMAGE runs it on another image, e.g. production's Postgres 17.
+const IMAGE = process.env.CHECKIN_PROOF_IMAGE || 'supabase/postgres:15.8.1.060'
 const NAME = `checkin-entry-proof-${process.pid}`
 const docker = (a, o = {}) => spawnSync('docker', a, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...o })
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
@@ -67,6 +68,8 @@ try {
   apply(read(BASE), BASE)
   const FN_BODY_Q = "select md5(pg_get_functiondef('public.checkin_patch(date,text,jsonb)'::regprocedure))"
   const baseBody = q(FN_BODY_Q)
+  // Printed so the bodies can be compared with production's pg_proc.
+  console.log(`20261003 body md5s: ${q("select string_agg(proname||'='||md5(pg_get_functiondef(oid)), ' ' order by proname) from pg_proc where proname like 'checkin%'")}`)
   const GRANTS_Q = `select coalesce(string_agg(routine_name||'>'||grantee, ',' order by routine_name, grantee), '') from information_schema.role_routine_grants
         where routine_schema='public' and routine_name like 'checkin%' and privilege_type='EXECUTE' and grantee <> 'postgres'`
   const baseGrants = q(GRANTS_Q)
