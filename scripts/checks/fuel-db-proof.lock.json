@@ -35,6 +35,10 @@
       "sha256": "ac3b0f1c3cb56e2d2d3a0a08c2a03f1ba6044a98d83f09c6a28216230ae7c56b"
     },
     {
+      "file": "supabase/migrations/20261003_checkin_set_path.sql",
+      "sha256": "dcd9c3f187b7e923cf558836e651e86ee573408400e4394686dd01fd217c53e4"
+    },
+    {
       "file": "supabase/migrations/20261005_fuel_library_expansion.sql",
       "sha256": "291862585161c562a789d59f0e9c801d4e49e02b3dc0b138baca9152ec6b5111"
     }
