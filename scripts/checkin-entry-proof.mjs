@@ -79,14 +79,18 @@ try {
   const INDEX_Q = `select md5(coalesce(string_agg(indexname||':'||indexdef, ',' order by indexname),'-')) from pg_indexes where tablename='daily_checkins'`
   const POLICY_Q = "select md5(string_agg(policyname||':'||cmd||':'||coalesce(qual,'-')||':'||coalesce(with_check,'-')||':'||coalesce(array_to_string(roles,'+'),'-'), ',' order by policyname)) from pg_policies where tablename='daily_checkins'"
   const ROWS_Q = `select md5(coalesce(string_agg(user_id::text||date::text||coalesce(mind_state::text,'-')||coalesce(spirit_state::text,'-')||coalesce(updated_at::text,'-'), ',' order by user_id, date),'-')) from public.daily_checkins`
-  const before = { schema: q(SCHEMA_Q), constr: q(CONSTR_Q), index: q(INDEX_Q), policy: q(POLICY_Q), rows: q(ROWS_Q) }
+  // RLS ON/FORCED is part of the fingerprint (Codex draft pass 1): the policy
+  // hash alone does not see `ALTER TABLE ... DISABLE ROW LEVEL SECURITY`.
+  const RLS_Q = "select relrowsecurity::text||'/'||relforcerowsecurity::text from pg_class where oid='public.daily_checkins'::regclass"
+  const before = { schema: q(SCHEMA_Q), constr: q(CONSTR_Q), index: q(INDEX_Q), policy: q(POLICY_Q), rls: q(RLS_Q), rows: q(ROWS_Q) }
+  if (before.rls !== 'true/false') throw new Error(`the table under proof does not have RLS on as production does: ${before.rls}`)
   const fnsBefore = q("select string_agg(proname,',' order by proname) from pg_proc where proname like 'checkin%'")
 
   apply(read(MIG), MIG)
   ok('the migration applies on top of 20261003', true, 'applied')
   ok('it touched no row, and no schema, constraint, index or policy',
     q(SCHEMA_Q) === before.schema && q(CONSTR_Q) === before.constr && q(INDEX_Q) === before.index
-    && q(POLICY_Q) === before.policy && q(ROWS_Q) === before.rows, 'a fingerprint moved')
+    && q(POLICY_Q) === before.policy && q(RLS_Q) === before.rls && q(ROWS_Q) === before.rows, 'a fingerprint moved')
   apply(read(MIG), `${MIG} a second time`)
   ok('it applies a second time (idempotent)', true, 'applied twice')
   ok('it added exactly two functions',
@@ -114,11 +118,24 @@ try {
 
   // ── the paths the rule leaves alone ───────────────────────────────────────
   const gen = asUser(A, `select public.checkin_patch('2026-10-10','spirit_state','[{"path":["morning"],"value":${entry('2026-10-10')}}]'::jsonb);`)
-  ok('{morning} whole on a missing row still inserts it (generation)', gen.status === 0 && rowCount(A, '2026-10-10') === '1', gen.err.slice(0, 120))
+  ok('{morning} whole on a missing row still inserts it (generation), with the entry it was given',
+    gen.status === 0 && q(`select spirit_state #>> '{morning,protocol,theme}' || ' ' || (spirit_state #>> '{morning,date}') from public.daily_checkins where user_id='${A}' and date='2026-10-10'`) === 't 2026-10-10',
+    gen.err.slice(0, 120) || spirit(A, '2026-10-10'))
   const goals = asUser(A, `select public.checkin_patch('2026-10-11','mind_state','[{"path":["objectives"],"value":["x"]},{"path":["completedObjectives"],"value":[false]}]'::jsonb);`)
-  ok('a mind_state write on a missing row still inserts it', goals.status === 0 && rowCount(A, '2026-10-11') === '1', goals.err.slice(0, 120))
+  ok('a mind_state write on a missing row still inserts it, with the values it was given',
+    goals.status === 0 && q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-11'`) === '{"objectives": ["x"], "completedObjectives": [false]}',
+    goals.err.slice(0, 120) || q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-11'`))
   const other = asUser(A, `select public.checkin_patch('2026-10-12','spirit_state','[{"path":["evening","rating"],"value":3}]'::jsonb);`)
-  ok('a spirit_state sub-path outside morning still upserts', other.status === 0 && rowCount(A, '2026-10-12') === '1', other.err.slice(0, 120))
+  ok('a spirit_state sub-path outside morning still upserts, with its value',
+    other.status === 0 && spirit(A, '2026-10-12') === '{"evening": {"rating": 3}}', other.err.slice(0, 120) || spirit(A, '2026-10-12'))
+  // ...and on an EXISTING row, every untouched key survives each of them.
+  const m2 = asUser(A, `select public.checkin_patch('2026-10-10','mind_state','[{"path":["objectives"],"value":["y"]},{"path":["completedObjectives"],"value":[true]}]'::jsonb);`)
+  const e2 = asUser(A, `select public.checkin_patch('2026-10-10','spirit_state','[{"path":["evening","rating"],"value":5}]'::jsonb);`)
+  ok('on an existing row, a mind_state write and a non-morning spirit write land and leave the morning entry whole',
+    m2.status === 0 && e2.status === 0
+    && q(`select mind_state::text from public.daily_checkins where user_id='${A}' and date='2026-10-10'`) === '{"objectives": ["y"], "completedObjectives": [true]}'
+    && q(`select (spirit_state #>> '{evening,rating}') || ' ' || (spirit_state #>> '{morning,protocol,theme}') || ' ' || (spirit_state #>> '{morning,completed}') from public.daily_checkins where user_id='${A}' and date='2026-10-10'`) === '5 t [false, false]',
+    `${m2.err.slice(0, 80)} ${e2.err.slice(0, 80)} ${spirit(A, '2026-10-10')}`)
 
   // ── the rule: a sub-path lands on that day's entry ────────────────────────
   const t1 = asUser(A, tick('2026-10-10'))
@@ -173,11 +190,41 @@ try {
   const bad = asUser(A, `select public.checkin_patch('2026-10-16','spirit_state','[{"path":["morning",1],"value":2}]'::jsonb);`)
   ok('a malformed sub-path on a good entry is still refused by the 20261003 validation', bad.status !== 0 && /every key in a path must be a string/.test(bad.err), bad.err.slice(0, 160))
 
+  // ── THE DATE COMPARISON (Codex draft pass 1) ──────────────────────────────
+  // to_char() returned NULL for infinity (so a missing entry date matched),
+  // dropped the BC era, and went through timestamptz. Each is a case now.
+  apply(`INSERT INTO public.daily_checkins (user_id, date, spirit_state) VALUES ('${A}','infinity','{"morning":{"protocol":{"theme":"t"},"completed":[false]}}');`, 'an infinity row with no entry date')
+  const inf = asUser(A, tick('infinity'))
+  ok("an 'infinity' row whose entry has no date is refused", refusedCK(inf), inf.err.slice(0, 160) || 'landed')
+  apply(`INSERT INTO public.daily_checkins (user_id, date, spirit_state) VALUES ('${A}','2026-10-22 BC','{"morning":${entry('2026-10-22')}}');`, 'a BC row')
+  const bc = asUser(A, tick('2026-10-22 BC'))
+  ok('a BC row is refused even though its entry says the AD day of the same digits', refusedCK(bc), bc.err.slice(0, 160) || 'landed')
+  apply(`INSERT INTO public.daily_checkins (user_id, date, spirit_state) VALUES ('${A}','2026-10-23','{"morning":{"date":20261023,"protocol":{"theme":"t"},"completed":[false]}}');`, 'a numeric entry date')
+  const numDate = asUser(A, tick('2026-10-23'))
+  ok('an entry date that is a JSON number, not a string, is refused', refusedCK(numDate), numDate.err.slice(0, 160) || 'landed')
+  apply(`INSERT INTO public.daily_checkins (user_id, date, spirit_state) VALUES ('${A}','2011-12-30','{"morning":${entry('2011-12-30')}}');`, 'the day Samoa skipped')
+  const apia = asUser(A, `set local timezone = 'Pacific/Apia'; set local datestyle = 'German, DMY';
+${tick('2011-12-30')}`)
+  ok('a matching entry lands whatever the session time zone and DateStyle (Pacific/Apia on the day it skipped, German)',
+    apia.status === 0 && q(`select spirit_state #>> '{morning,completed}' from public.daily_checkins where user_id='${A}' and date='2011-12-30'`) === '[true, false]',
+    apia.err.slice(0, 160) || spirit(A, '2011-12-30'))
+  ok('and the helper is still IMMUTABLE, which is now honest: it reads only the date\'s own fields',
+    q("select provolatile from pg_proc where oid='public.checkin_require_entry(jsonb,date)'::regprocedure") === 'i', 'not immutable')
+
   // ── RLS ───────────────────────────────────────────────────────────────────
   const aRow = spirit(A, '2026-10-10')
   const bTick = asUser(B, tick('2026-10-10', '[false,false]'))
   ok("B's tick on a date where only A has an entry is refused — B has no row", refusedCK(bTick), bTick.err.slice(0, 160) || 'no error')
   ok("and A's row is untouched", spirit(A, '2026-10-10') === aRow, spirit(A, '2026-10-10'))
+  // That case holds because the function addresses the row by auth.uid(),
+  // whatever RLS does (Codex draft pass 1). RLS itself is checked directly:
+  // still on, and B reaching for A's row by hand gets nothing.
+  ok('row-level security is still ON for daily_checkins after the migration', q(RLS_Q) === 'true/false', q(RLS_Q))
+  const bSees = asUser(B, `select count(*) from public.daily_checkins where user_id='${A}';`)
+  ok("B cannot see A's rows", bSees.out.split(/\r?\n/).map((l) => l.trim()).includes('0'), bSees.out)
+  const bUpd = asUser(B, `update public.daily_checkins set spirit_state='{"hacked":true}' where user_id='${A}';`)
+  ok("B's direct UPDATE of A's rows touches none of them", /UPDATE 0/.test(bUpd.out) && !q(`select string_agg(coalesce(spirit_state::text,''), ',') from public.daily_checkins where user_id='${A}'`).includes('hacked'),
+    bUpd.out || bUpd.err.slice(0, 120))
 
   // ── under a held row lock ─────────────────────────────────────────────────
   // The check sits in the UPDATE's SET. Session 1 removes the entry and HOLDS
@@ -190,6 +237,21 @@ try {
   }
   // Wait until the holder is ACTUALLY asleep inside its transaction, holding
   // the row lock — a fixed sleep raced docker exec start-up on the first run.
+  // The tick is OBSERVED blocked by the holder's pid while the holder sleeps,
+  // rather than inferred from elapsed time (Codex draft pass 1): elapsed time
+  // includes docker start-up, so a tick that reached Postgres after the holder
+  // released would also have "waited".
+  const blockedByHolder = () => {
+    for (let i = 0; i < 40; i++) {
+      const n = q(`select count(*) from pg_stat_activity w
+                    join pg_stat_activity h on h.pid = any(pg_blocking_pids(w.pid))
+                   where w.query like '%"morning","completed"%'
+                     and h.query like '%pg_sleep(3)%'`)
+      if (Number(n) > 0) return true
+      sleep(50)
+    }
+    return false
+  }
   const holderAsleep = () => {
     for (let i = 0; i < 100; i++) {
       if (q("select count(*) from pg_stat_activity where query like '%pg_sleep(3)%' and wait_event = 'PgSleep'") === '1') return true
@@ -201,7 +263,9 @@ try {
   const removing = bg(A, `select public.checkin_patch('2026-10-20','spirit_state','[{"path":["morning"],"value":null}]'::jsonb);\nselect pg_sleep(3);`)
   ok('the holder is asleep holding the lock before the tick starts', holderAsleep(), 'never seen asleep')
   let t0 = Date.now()
-  const blockedTick = await bg(A, tick('2026-10-20'))
+  const blockedTickP = bg(A, tick('2026-10-20'))
+  ok('the tick is seen BLOCKED by the holder, by pid, while the holder still sleeps', blockedByHolder(), 'never seen blocked')
+  const blockedTick = await blockedTickP
   let waited = Date.now() - t0
   const removed = await removing
   ok('the holding session succeeded', removed.code === 0, removed.e.slice(0, 120))
@@ -216,7 +280,9 @@ try {
   const writing = bg(A, `select public.checkin_patch('2026-10-21','spirit_state','[{"path":["morning"],"value":${entry('2026-10-21')}}]'::jsonb);\nselect pg_sleep(3);`)
   ok('the holder is asleep holding the lock before the tick starts', holderAsleep(), 'never seen asleep')
   t0 = Date.now()
-  const lateTick = await bg(A, tick('2026-10-21'))
+  const lateTickP = bg(A, tick('2026-10-21'))
+  ok('the tick is seen BLOCKED by the holder, by pid, while the holder still sleeps', blockedByHolder(), 'never seen blocked')
+  const lateTick = await lateTickP
   waited = Date.now() - t0
   const wrote = await writing
   ok('the entry-writing session succeeded', wrote.code === 0, wrote.e.slice(0, 120))
@@ -236,7 +302,7 @@ try {
 
   // ── nothing else moved ────────────────────────────────────────────────────
   ok('the schema, constraints, indexes and policies are unchanged',
-    q(SCHEMA_Q) === before.schema && q(CONSTR_Q) === before.constr && q(INDEX_Q) === before.index && q(POLICY_Q) === before.policy, 'a fingerprint moved')
+    q(SCHEMA_Q) === before.schema && q(CONSTR_Q) === before.constr && q(INDEX_Q) === before.index && q(POLICY_Q) === before.policy && q(RLS_Q) === before.rls, 'a fingerprint moved')
   ok('the bystander row is unchanged',
     q(`select spirit_state::text from public.daily_checkins where user_id='${C}'`) === '{"morning": {"date": "2026-09-01", "completed": [true]}}',
     q(`select spirit_state::text from public.daily_checkins where user_id='${C}'`))
@@ -251,7 +317,7 @@ try {
   const old = asUser(A, tick('2026-10-30'))
   ok('and the old behaviour is back: a tick on a missing row inserts it', old.status === 0 && rowCount(A, '2026-10-30') === '1', old.err.slice(0, 120))
   ok('the revert moved no schema, constraint, index or policy',
-    q(SCHEMA_Q) === before.schema && q(CONSTR_Q) === before.constr && q(INDEX_Q) === before.index && q(POLICY_Q) === before.policy, 'a fingerprint moved')
+    q(SCHEMA_Q) === before.schema && q(CONSTR_Q) === before.constr && q(INDEX_Q) === before.index && q(POLICY_Q) === before.policy && q(RLS_Q) === before.rls, 'a fingerprint moved')
 
   console.log(`\n${pass} passed, ${fails.length} failed`)
   if (fails.length) { for (const f of fails) console.log(`  ✗ ${f}`); process.exitCode = 1 }

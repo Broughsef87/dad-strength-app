@@ -108,6 +108,16 @@ $fn$;
 -- ── 2. the entry must be there, and be this row's own day ───────────────────
 -- Returns the column unchanged, or raises CK001. Called inside the UPDATE's SET
 -- so it reads the locked row version.
+--
+-- THE DATE IS COMPARED AS THE CALENDAR DAY, built from its own fields (Codex
+-- draft pass 1). The first draft used to_char(p_date, 'YYYY-MM-DD'), which
+-- (a) returns NULL for 'infinity', so a NULL entry date matched it, (b) drops
+-- the BC era, so an AD string matched a BC row, and (c) goes through a
+-- timestamptz conversion, so in a zone that skipped a day (Pacific/Apia,
+-- 2011-12-30) it named the wrong day. Now: the row's date must be finite and
+-- AD, the entry's date must be a JSON STRING, and the string is compared with
+-- the year, month and day extracted from the date itself. EXTRACT on a `date`
+-- reads its fields with no time zone involved, so this is IMMUTABLE honestly.
 CREATE OR REPLACE FUNCTION public.checkin_require_entry(
   doc    jsonb,
   p_date date
@@ -117,10 +127,20 @@ LANGUAGE plpgsql
 IMMUTABLE
 SET search_path = public, pg_temp
 AS $fn$
+DECLARE
+  v_day text;
 BEGIN
-  IF jsonb_typeof(doc -> 'morning') IS DISTINCT FROM 'object'
+  IF p_date IS NOT NULL AND isfinite(p_date) AND EXTRACT(year FROM p_date) BETWEEN 1 AND 9999 THEN
+    v_day := lpad(EXTRACT(year FROM p_date)::int::text, 4, '0') || '-'
+          || lpad(EXTRACT(month FROM p_date)::int::text, 2, '0') || '-'
+          || lpad(EXTRACT(day FROM p_date)::int::text, 2, '0');
+  END IF;
+
+  IF v_day IS NULL
+     OR jsonb_typeof(doc -> 'morning') IS DISTINCT FROM 'object'
      OR jsonb_typeof(doc #> '{morning,protocol}') IS DISTINCT FROM 'object'
-     OR (doc #>> '{morning,date}') IS DISTINCT FROM to_char(p_date, 'YYYY-MM-DD') THEN
+     OR jsonb_typeof(doc #> '{morning,date}') IS DISTINCT FROM 'string'
+     OR (doc #>> '{morning,date}') IS DISTINCT FROM v_day THEN
     RAISE EXCEPTION 'checkin_patch: no morning entry for % in this row', p_date
       USING ERRCODE = 'CK001';
   END IF;
@@ -171,8 +191,16 @@ BEGIN
     -- that had no entry while another session was committing one (measured by
     -- the proof, which then failed). FOR UPDATE waits for that session, and the
     -- UPDATE below is a new statement with a new snapshot, so it reads what
-    -- the lock holder left. A row inserted by a session that has not committed
-    -- is invisible here and the patch is refused: that direction fails closed.
+    -- the lock holder left.
+    --
+    -- A ROW THAT DOES NOT EXIST YET LOCKS NOTHING (Codex draft pass 1). If a
+    -- concurrent session inserts it and commits between this SELECT and the
+    -- UPDATE, the UPDATE's new snapshot sees it and patches it — and that is
+    -- still judged: the entry check runs inside the UPDATE against that row,
+    -- so it lands only if the inserted row holds this day's entry. If the
+    -- insert has not committed by then, the UPDATE finds no row and the patch
+    -- is refused. Either way the rule holds; what is not promised is WHICH of
+    -- the two a racing insert gets.
     EXECUTE 'SELECT 1 FROM public.daily_checkins WHERE user_id = $1 AND date = $2 FOR UPDATE'
       USING v_uid, p_date;
     EXECUTE format($q$
