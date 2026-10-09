@@ -69,12 +69,12 @@ export default function DailyObjectivesCard(
       // Anything else under mind_state is not named here and survives it —
       // which is what the old whole-column write could not promise.
       gate.claim()
-      if (!await patchCheckin('mind_state', today, [
+      if (await patchCheckin('mind_state', today, [
         { path: ['date'], value: today },
         { path: ['objectives'], value: dense },
         { path: ['completedObjectives'], value: dense.map(() => false) },
         { path: ['lockedIn'], value: true },
-      ])) {
+      ]) !== 'landed') {
         // Nothing local remembers this, so the screen has to. Retry re-runs
         // this function, which reads `draft` at that moment — so an edit made
         // after the failure is what gets written.
@@ -93,29 +93,45 @@ export default function DailyObjectivesCard(
     const load = async () => {
       const today = localDay()
       const claim = gate.claim()
-      // The row, and nothing before it. There is no cache to paint from.
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+      try {
+        // The row, and nothing before it. There is no cache to paint from.
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-      const { data } = await supabase
-        .from('daily_checkins')
-        .select('mind_state')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .single()
+        const { data } = await supabase
+          .from('daily_checkins')
+          .select('mind_state')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .single()
 
-      // A refresh that started before a write must not paint the row as it was
-      // (FOR-231 v2, r3). It is DISCARDED, never queued: the write it lost to
-      // already put the newer value on the screen. The skeleton comes down
-      // either way, or a discarded first load would leave the card blank.
-      if (data?.mind_state && gate.mayPaint(claim)) {
-        const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean }
-        const n = normalise(ms.objectives, ms.completedObjectives)
-        setObjectives(n.objectives)
-        setCompleted(n.completed)
-        setLocked(ms.lockedIn || false)
+        // A refresh that started before a write must not paint the row as it
+        // was (FOR-231 v2, r3). It is DISCARDED, never queued: the write it
+        // lost to already put the newer value on the screen.
+        if (data?.mind_state && gate.mayPaint(claim)) {
+          const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean }
+          const n = normalise(ms.objectives, ms.completedObjectives)
+          setObjectives(n.objectives)
+          setCompleted(n.completed)
+          setLocked(ms.lockedIn || false)
+        }
+      } catch { /* the row could not be read; the card shows the empty editor */ }
+      finally {
+        // THE SKELETON COMES DOWN ONLY FOR THE NEWEST READ (FOR-231 v3).
+        //
+        // It used to come down for every read, so a first read discarded by a
+        // newer one (a MorningProtocol save bumping refreshKey while the first
+        // read was still out) took the skeleton away and showed the EMPTY
+        // editor while the newer read was pending. A save made there replaced
+        // the list that read was about to paint. Codex r4: no StrictMode
+        // needed, so it reached production.
+        //
+        // Held up only for the newest claim, it cannot stay up forever: while
+        // the skeleton is showing nothing else is rendered, so nothing can
+        // write, so whatever claimed after this read is itself a read — and
+        // that read reaches this `finally` too, error or not.
+        if (gate.mayPaint(claim)) setLoading(false)
       }
-      setLoading(false)
     }
     load()
     // refreshKey is bumped when MorningProtocol saves objectives from the
@@ -157,7 +173,7 @@ export default function DailyObjectivesCard(
     const landed = await patchCheckin('mind_state', today, [
       { path: ['objectives'], value: objectives },
       { path: ['completedObjectives'], value: next },
-    ])
+    ]) === 'landed'
     setSaving(false)
     if (!landed) { setUnsaved((u) => (u.includes('tick') ? u : [...u, 'tick'])); return }
     setCompleted(next)

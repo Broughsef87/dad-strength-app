@@ -32,7 +32,22 @@ export type CheckinColumn = 'spirit_state' | 'mind_state'
 export type CheckinPatch = { path: string[]; value: unknown }
 
 /**
- * Patch one check-in's fields. Returns whether the row took it.
+ * What happened to a write.
+ *
+ * `no-entry` is the database refusing a `{morning,…}` patch because the row
+ * does not hold a morning entry for its own day (SQLSTATE CK001,
+ * supabase/migrations/20261009_checkin_patch_requires_entry.sql). It is not a
+ * network failure and retrying the same patch cannot fix it: only a write of
+ * the whole entry can. So the caller needs to tell it apart (FOR-231 v3).
+ */
+export type PatchResult = 'landed' | 'failed' | 'no-entry'
+
+/** The SQLSTATE `checkin_patch` raises when a morning sub-path has no entry
+ *  to land on. PostgREST passes an unknown SQLSTATE through as `error.code`. */
+export const NO_ENTRY = 'CK001'
+
+/**
+ * Patch one check-in's fields, and say what happened.
  *
  * SEVERAL PATCHES ARE ONE STATEMENT, and that is the reason this takes a list
  * rather than a single path: `mind_state.objectives` and
@@ -49,8 +64,8 @@ export async function patchCheckin(
   column: CheckinColumn,
   date: string,
   patches: CheckinPatch[],
-): Promise<boolean> {
-  if (patches.length === 0) return false
+): Promise<PatchResult> {
+  if (patches.length === 0) return 'failed'
   try {
     const supabase = createClient()
     const { error } = await supabase.rpc('checkin_patch', {
@@ -58,8 +73,9 @@ export async function patchCheckin(
       p_column: column,
       p_patches: patches,
     })
-    return !error
-  } catch { return false }
+    if (!error) return 'landed'
+    return error.code === NO_ENTRY ? 'no-entry' : 'failed'
+  } catch { return 'failed' }
 }
 
 /**
@@ -78,7 +94,10 @@ export async function patchCheckin(
  * longer what the screen should show, and it paints nothing.
  *
  * Claim before the first await; a read checks before every setState that
- * follows one, except the one that stops the loading skeleton.
+ * follows one, INCLUDING the one that stops a loading skeleton. A discarded
+ * read leaves the skeleton to whatever claimed after it (FOR-231 v3; r4 found
+ * a discarded first read showing the empty editor while the newer read was
+ * still pending).
  */
 export type PaintGate = {
   /** Take the newest claim. Everything claimed before it may no longer paint. */

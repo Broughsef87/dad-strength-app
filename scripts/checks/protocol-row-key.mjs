@@ -33,10 +33,16 @@ assert(localDayWithCutoff(4, new Date(2026, 8, 13, 23, 59)) === '2026-09-13', 'l
 // thing this file exists for, so these assertions follow it to its new home
 // rather than being struck: the date the client passes, the date the entry
 // carries, and the one-row-per-day conflict target — now in the function.
-assert(/await patchCheckin\('spirit_state', todayKey\(\), patches\)/.test(mp),
-  'the spirit write is keyed on todayKey()')
-assert(/const morningEntry = \(p: Protocol, c: boolean\[\], g: string\[\]\) =>\s*\(\{ date: todayKey\(\),/.test(mp),
-  'and the entry it writes carries todayKey() — the same expression as the row')
+// FOR-231 v3: the day is computed ONCE — by generation, or read off the entry
+// the loader painted — and both the row and the entry it carries use that one
+// value. Recomputing todayKey() per write is what moved a 3:50 protocol's
+// 4:10 tick into the next day's row (Codex r4).
+assert(/await patchCheckin\('spirit_state', day, patches\)/.test(mp),
+  'the spirit write is keyed on the day it is given')
+assert(/const morningEntry = \(day: string, p: Protocol, c: boolean\[\], g: string\[\]\) =>\s*\(\{ date: day,/.test(mp),
+  'and the entry carries that same day — the same value as the row key')
+assert(/const day = todayKey\(\)/.test(mp.slice(mp.indexOf('  const generate = async () => {'))),
+  'and generation takes that day from todayKey(), the 4am-cutoff day')
 assert(!/patchCheckin\('spirit_state', localDay\(\)/.test(mp), 'the spirit row is not keyed on the calendar day')
 const fn = readLF('../../supabase/migrations/20261003_checkin_set_path.sql')
 assert(/ON CONFLICT \(user_id, date\) DO UPDATE/.test(fn),
@@ -48,7 +54,7 @@ assert(/INSERT INTO public\.daily_checkins \(user_id, date, %1\$I, updated_at\)/
 // Before 4am the protocol's row is yesterday's calendar row; the loader
 // reads today and yesterday and picks the entry stamped todayKey().
 assert(/\.in\('date', \[localDay\(\), yesterday\]\)/.test(mp), 'the loader reads both today\'s and yesterday\'s rows')
-assert(/m\.date !== todayKey\(\)\) continue/.test(mp), 'the loader picks the entry stamped with todayKey()')
+assert(/const day = todayKey\(\)/.test(mp) && /m\.date !== day\) continue/.test(mp), 'the loader picks the entry stamped with todayKey()')
 
 // ── 4. mind_state keeps its own day, and neither write reaches the other ───
 // The objectives are NOT a morning-routine entry and are not subject to the
