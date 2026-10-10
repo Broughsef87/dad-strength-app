@@ -1,0 +1,404 @@
+{
+  "_provenance": {
+    "authored_by": "CC, 2026-10-10, FOR-250",
+    "approved_by": "Andrew, 2026-10-09 and 2026-10-10 — all eight soups, one a week, as four fortnights. Blaine's rulings on FOR-250 carry both picks.",
+    "why": "Lisa, 2026-09-21: soup and stew options on the menu for fall and winter. The eight soups shipped in FOR-257's library expansion; this fixture puts them in rotations.",
+    "SOURCED": "Every dinner here is an existing meal row. The soup order is the 2026-10-09 ruling's. Each week is one of rotation A's or rotation B's own weeks with one dinner swapped for the soup.",
+    "DECIDED_BY_CC": "Which dinner each soup replaces, and that every fortnight is rotation A's week 1 followed by rotation B's week 2. See _shape.",
+    "adds_no_meal": "This fixture has no fuel_meals_new, and the generator refuses one here."
+  },
+  "_shape": {
+    "why_a_week_1_then_b_week_2_every_time": "The app reads which rotation a plan ran from the picks that belong to ONE rotation alone (rotationOf), and uses that to start the next cycle from the rotation not just run. Every A or B dinner used here stops being A's or B's alone. Drawing week 2 from rotation A in any fortnight leaves rotation A with no dinner of its own except one that a turkey soup happens to replace, so a finished rotation A would stop being recognised and the next cycle would start from A again. Using only A's week 1 and B's week 2 keeps four dinners that are rotation A's alone and one that is rotation B's alone.",
+    "not_used_anywhere_here": [
+      "garlic-herb-thighs",
+      "turkey-burgers",
+      "blackened-cod",
+      "soy-ginger-stirfry",
+      "miso-ginger-salmon"
+    ],
+    "fish_night_is_never_replaced": true,
+    "a_turkey_soup_replaces_that_weeks_turkey_night": [
+      "italian-wedding-soup",
+      "turkey-chili"
+    ]
+  },
+  "fuel_rotations": [
+    {
+      "slug": "rotation-c1",
+      "name": "Soup Fortnight One",
+      "sort_order": 3,
+      "note": "Week 1 is Fortnight One's first week with beef and barley stew in place of the ribeye. Week 2 is Fortnight Two's second week with chicken tortilla soup in place of the jerk thighs."
+    },
+    {
+      "slug": "rotation-c2",
+      "name": "Soup Fortnight Two",
+      "sort_order": 4,
+      "note": "Week 1 is Fortnight One's first week with white chicken chili in place of the chili-lime thighs. Week 2 is Fortnight Two's second week with Italian wedding soup in place of the turkey meatballs."
+    },
+    {
+      "slug": "rotation-c3",
+      "name": "Soup Fortnight Three",
+      "sort_order": 5,
+      "note": "Week 1 is Fortnight One's first week with pork green chili in place of the ribeye. Week 2 is Fortnight Two's second week with lentil and sausage soup in place of the tandoori chicken."
+    },
+    {
+      "slug": "rotation-c4",
+      "name": "Soup Fortnight Four",
+      "sort_order": 6,
+      "note": "Week 1 is Fortnight One's first week with turkey chili in place of the Greek turkey bowl. Week 2 is Fortnight Two's second week with zuppa toscana in place of the jerk thighs."
+    }
+  ],
+  "fuel_rotation_meals": [
+    {
+      "rotation_slug": "rotation-c1",
+      "meal_slug": "beef-barley-stew",
+      "week": 1,
+      "sort_order": 1
+    },
+    {
+      "rotation_slug": "rotation-c1",
+      "meal_slug": "chili-lime-thighs",
+      "week": 1,
+      "sort_order": 2
+    },
+    {
+      "rotation_slug": "rotation-c1",
+      "meal_slug": "lemon-garlic-salmon",
+      "week": 1,
+      "sort_order": 3
+    },
+    {
+      "rotation_slug": "rotation-c1",
+      "meal_slug": "greek-turkey-bowl",
+      "week": 1,
+      "sort_order": 4
+    },
+    {
+      "rotation_slug": "rotation-c1",
+      "meal_slug": "chicken-tortilla-soup",
+      "week": 2,
+      "sort_order": 5
+    },
+    {
+      "rotation_slug": "rotation-c1",
+      "meal_slug": "turkey-meatballs",
+      "week": 2,
+      "sort_order": 6
+    },
+    {
+      "rotation_slug": "rotation-c1",
+      "meal_slug": "tandoori-breast",
+      "week": 2,
+      "sort_order": 7
+    },
+    {
+      "rotation_slug": "rotation-c1",
+      "meal_slug": "chipotle-cod-tacos",
+      "week": 2,
+      "sort_order": 8
+    },
+    {
+      "rotation_slug": "rotation-c2",
+      "meal_slug": "cast-iron-ribeye",
+      "week": 1,
+      "sort_order": 1
+    },
+    {
+      "rotation_slug": "rotation-c2",
+      "meal_slug": "white-chicken-chili",
+      "week": 1,
+      "sort_order": 2
+    },
+    {
+      "rotation_slug": "rotation-c2",
+      "meal_slug": "lemon-garlic-salmon",
+      "week": 1,
+      "sort_order": 3
+    },
+    {
+      "rotation_slug": "rotation-c2",
+      "meal_slug": "greek-turkey-bowl",
+      "week": 1,
+      "sort_order": 4
+    },
+    {
+      "rotation_slug": "rotation-c2",
+      "meal_slug": "jerk-thighs",
+      "week": 2,
+      "sort_order": 5
+    },
+    {
+      "rotation_slug": "rotation-c2",
+      "meal_slug": "italian-wedding-soup",
+      "week": 2,
+      "sort_order": 6
+    },
+    {
+      "rotation_slug": "rotation-c2",
+      "meal_slug": "tandoori-breast",
+      "week": 2,
+      "sort_order": 7
+    },
+    {
+      "rotation_slug": "rotation-c2",
+      "meal_slug": "chipotle-cod-tacos",
+      "week": 2,
+      "sort_order": 8
+    },
+    {
+      "rotation_slug": "rotation-c3",
+      "meal_slug": "pork-green-chili",
+      "week": 1,
+      "sort_order": 1
+    },
+    {
+      "rotation_slug": "rotation-c3",
+      "meal_slug": "chili-lime-thighs",
+      "week": 1,
+      "sort_order": 2
+    },
+    {
+      "rotation_slug": "rotation-c3",
+      "meal_slug": "lemon-garlic-salmon",
+      "week": 1,
+      "sort_order": 3
+    },
+    {
+      "rotation_slug": "rotation-c3",
+      "meal_slug": "greek-turkey-bowl",
+      "week": 1,
+      "sort_order": 4
+    },
+    {
+      "rotation_slug": "rotation-c3",
+      "meal_slug": "jerk-thighs",
+      "week": 2,
+      "sort_order": 5
+    },
+    {
+      "rotation_slug": "rotation-c3",
+      "meal_slug": "turkey-meatballs",
+      "week": 2,
+      "sort_order": 6
+    },
+    {
+      "rotation_slug": "rotation-c3",
+      "meal_slug": "lentil-sausage-soup",
+      "week": 2,
+      "sort_order": 7
+    },
+    {
+      "rotation_slug": "rotation-c3",
+      "meal_slug": "chipotle-cod-tacos",
+      "week": 2,
+      "sort_order": 8
+    },
+    {
+      "rotation_slug": "rotation-c4",
+      "meal_slug": "cast-iron-ribeye",
+      "week": 1,
+      "sort_order": 1
+    },
+    {
+      "rotation_slug": "rotation-c4",
+      "meal_slug": "chili-lime-thighs",
+      "week": 1,
+      "sort_order": 2
+    },
+    {
+      "rotation_slug": "rotation-c4",
+      "meal_slug": "lemon-garlic-salmon",
+      "week": 1,
+      "sort_order": 3
+    },
+    {
+      "rotation_slug": "rotation-c4",
+      "meal_slug": "turkey-chili",
+      "week": 1,
+      "sort_order": 4
+    },
+    {
+      "rotation_slug": "rotation-c4",
+      "meal_slug": "zuppa-toscana",
+      "week": 2,
+      "sort_order": 5
+    },
+    {
+      "rotation_slug": "rotation-c4",
+      "meal_slug": "turkey-meatballs",
+      "week": 2,
+      "sort_order": 6
+    },
+    {
+      "rotation_slug": "rotation-c4",
+      "meal_slug": "tandoori-breast",
+      "week": 2,
+      "sort_order": 7
+    },
+    {
+      "rotation_slug": "rotation-c4",
+      "meal_slug": "chipotle-cod-tacos",
+      "week": 2,
+      "sort_order": 8
+    }
+  ],
+  "_rule_check": {
+    "_comment": "Computed from fuel_rotation_meals and the meal rows by the script that wrote this file, then asserted independently by scripts/checks/fuel-rotations.mjs.",
+    "meals_per_fortnight": "8 in each of the four — 4 in week 1, 4 in week 2, no meal twice in a fortnight.",
+    "soups": [
+      "beef-barley-stew",
+      "white-chicken-chili",
+      "pork-green-chili",
+      "turkey-chili",
+      "chicken-tortilla-soup",
+      "italian-wedding-soup",
+      "lentil-sausage-soup",
+      "zuppa-toscana"
+    ],
+    "steak_per_month": "At most 1 ribeye a fortnight, so any two fortnights run back to back hold at most 2. The cap is 2.",
+    "outside_wheelhouse_cuts": [
+      "chicken_sausage",
+      "chuck",
+      "pork_shoulder"
+    ],
+    "_wheelhouse_note": "Four soups use a cut outside wheelhouse_cuts. They were authored that way in FOR-257 and Andrew picked all eight.",
+    "weeks": {
+      "rotation-c1 week 1": {
+        "dinners": [
+          "beef-barley-stew",
+          "chili-lime-thighs",
+          "lemon-garlic-salmon",
+          "greek-turkey-bowl"
+        ],
+        "fish": [
+          "lemon-garlic-salmon"
+        ],
+        "ground_turkey": [
+          "greek-turkey-bowl"
+        ],
+        "ribeye": 0,
+        "max_active_cook_minutes": 25,
+        "min_protein_g_per_person": 42
+      },
+      "rotation-c1 week 2": {
+        "dinners": [
+          "chicken-tortilla-soup",
+          "turkey-meatballs",
+          "tandoori-breast",
+          "chipotle-cod-tacos"
+        ],
+        "fish": [
+          "chipotle-cod-tacos"
+        ],
+        "ground_turkey": [
+          "turkey-meatballs"
+        ],
+        "ribeye": 0,
+        "max_active_cook_minutes": 20,
+        "min_protein_g_per_person": 40
+      },
+      "rotation-c2 week 1": {
+        "dinners": [
+          "cast-iron-ribeye",
+          "white-chicken-chili",
+          "lemon-garlic-salmon",
+          "greek-turkey-bowl"
+        ],
+        "fish": [
+          "lemon-garlic-salmon"
+        ],
+        "ground_turkey": [
+          "greek-turkey-bowl"
+        ],
+        "ribeye": 1,
+        "max_active_cook_minutes": 20,
+        "min_protein_g_per_person": 42
+      },
+      "rotation-c2 week 2": {
+        "dinners": [
+          "jerk-thighs",
+          "italian-wedding-soup",
+          "tandoori-breast",
+          "chipotle-cod-tacos"
+        ],
+        "fish": [
+          "chipotle-cod-tacos"
+        ],
+        "ground_turkey": [
+          "italian-wedding-soup"
+        ],
+        "ribeye": 0,
+        "max_active_cook_minutes": 25,
+        "min_protein_g_per_person": 40
+      },
+      "rotation-c3 week 1": {
+        "dinners": [
+          "pork-green-chili",
+          "chili-lime-thighs",
+          "lemon-garlic-salmon",
+          "greek-turkey-bowl"
+        ],
+        "fish": [
+          "lemon-garlic-salmon"
+        ],
+        "ground_turkey": [
+          "greek-turkey-bowl"
+        ],
+        "ribeye": 0,
+        "max_active_cook_minutes": 25,
+        "min_protein_g_per_person": 42
+      },
+      "rotation-c3 week 2": {
+        "dinners": [
+          "jerk-thighs",
+          "turkey-meatballs",
+          "lentil-sausage-soup",
+          "chipotle-cod-tacos"
+        ],
+        "fish": [
+          "chipotle-cod-tacos"
+        ],
+        "ground_turkey": [
+          "turkey-meatballs"
+        ],
+        "ribeye": 0,
+        "max_active_cook_minutes": 20,
+        "min_protein_g_per_person": 40
+      },
+      "rotation-c4 week 1": {
+        "dinners": [
+          "cast-iron-ribeye",
+          "chili-lime-thighs",
+          "lemon-garlic-salmon",
+          "turkey-chili"
+        ],
+        "fish": [
+          "lemon-garlic-salmon"
+        ],
+        "ground_turkey": [
+          "turkey-chili"
+        ],
+        "ribeye": 1,
+        "max_active_cook_minutes": 20,
+        "min_protein_g_per_person": 42
+      },
+      "rotation-c4 week 2": {
+        "dinners": [
+          "zuppa-toscana",
+          "turkey-meatballs",
+          "tandoori-breast",
+          "chipotle-cod-tacos"
+        ],
+        "fish": [
+          "chipotle-cod-tacos"
+        ],
+        "ground_turkey": [
+          "turkey-meatballs"
+        ],
+        "ribeye": 0,
+        "max_active_cook_minutes": 20,
+        "min_protein_g_per_person": 40
+      }
+    }
+  }
+}

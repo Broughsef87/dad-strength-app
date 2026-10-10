@@ -130,6 +130,32 @@ try {
     console.log(`  PASS (FOR-257) ${when}: the library is exactly the ${want.size} meals the fixtures declare, every column — a stray write cannot spell its way past a row comparison`)
   }
 
+  // ── AND THE ROTATIONS ARE EXACTLY WHAT THE FIXTURES SAY (FOR-250) ────────
+  // The same instrument, pointed at the two rotation tables. The soup
+  // fortnights are rows only, so the constraints that matter — week is 1 or 2,
+  // a rotation holds a meal once, every member is a real meal — are Postgres's
+  // to enforce, and applying the seed here is what proves they accept it. The
+  // comparison then proves the seed left rotations A and B as they were: a
+  // fixture that rewrote one changes a row, and every row is compared.
+  const compareRotations = (when) => {
+    const fixtures = ['fixtures/fuel-seed-rotation-b.json', 'fixtures/fuel-seed-rotation-c.json'].map((f) => JSON.parse(readLF(f)))
+    const canonRot = (rows) => JSON.stringify(rows.map((r) => [r.slug, r.name, r.sort_order, r.note ?? null]).sort())
+    const canonMem = (rows) => JSON.stringify(rows.map((r) => [r.rotation_slug, r.meal_slug, r.week, r.sort_order]).sort())
+    const wantRot = fixtures.flatMap((j) => j.fuel_rotations)
+    const wantMem = fixtures.flatMap((j) => j.fuel_rotation_meals)
+    const gotRot = JSON.parse(q("select coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from (select slug, name, sort_order, note from public.fuel_rotations) t") || '[]')
+    const gotMem = JSON.parse(q("select coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) from (select rotation_slug, meal_slug, week, sort_order from public.fuel_rotation_meals) t") || '[]')
+    if (gotRot.length !== wantRot.length || canonRot(gotRot) !== canonRot(wantRot)) {
+      throw new Error(`fuel_rotations is not what the fixtures declare ${when} — ${gotRot.length} rows against ${wantRot.length}: ${gotRot.map((r) => r.slug).sort().join(', ')}`)
+    }
+    if (gotMem.length !== wantMem.length || canonMem(gotMem) !== canonMem(wantMem)) {
+      const have = new Set(gotMem.map((r) => `${r.rotation_slug}/${r.meal_slug}/${r.week}/${r.sort_order}`))
+      const lost = wantMem.filter((r) => !have.has(`${r.rotation_slug}/${r.meal_slug}/${r.week}/${r.sort_order}`)).map((r) => `${r.rotation_slug}/${r.meal_slug}`)
+      throw new Error(`fuel_rotation_meals is not what the fixtures declare ${when} — ${gotMem.length} rows against ${wantMem.length}; not as declared: ${lost.slice(0, 8).join(', ') || 'none (unexpected extra rows)'}`)
+    }
+    console.log(`  PASS (FOR-250) ${when}: ${gotRot.length} rotations and ${gotMem.length} membership rows, exactly the fixtures' — the soup fortnights applied and rotations A and B are as they were`)
+  }
+
   for (const m of fp.migrations) { apply(readLF(m.file), m.file); console.log(`applied ${m.file}`) }
   // Every Fuel migration applies a second time, IN ORDER, and leaves the same
   // database: a second apply is proven harmless. The order is the point.
@@ -143,6 +169,7 @@ try {
   // after both comparisons (FOR-257 r6). What this catches is a write that
   // fires once and would be hidden by the second seed replay.
   compareLibrary('at the end of one apply of every migration, on a fresh database')
+  compareRotations('at the end of one apply of every migration, on a fresh database')
 
   for (const m of fp.migrations) apply(readLF(m.file), `${m.file}, a second time`)
   console.log(`applied all ${fp.migrations.length} Fuel migrations a second time, in order: idempotent`)
@@ -152,6 +179,7 @@ try {
   // replay, so comparing at the end alone declared the library correct while a
   // single production apply would have left it wrong (FOR-257 r5).
   compareLibrary('after every migration has been applied twice')
+  compareRotations('after every migration has been applied twice')
 
   const rls = q("select relrowsecurity from pg_class where oid = 'public.fuel_staples'::regclass")
   const policies = q("select string_agg(cmd, ',' order by cmd) from pg_policies where tablename = 'fuel_staples'")
