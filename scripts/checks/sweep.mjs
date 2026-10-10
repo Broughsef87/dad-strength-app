@@ -65,8 +65,17 @@ for (let week = 1; week <= 13; week++) {
         assert(item.percent >= 75, `${tag}: ${item.reps}-rep set @ ${item.percent} < 75`)
       }
       // 3. Pulls are heavy: >= 100% (except deload week).
+      // ONE pull runs under 100, and it is named here rather than excused by a
+      // lower floor: M2's Pause Clean Pull (FOR-271). A two-second stop below
+      // the knee is a harder lift than the straight pull at the same
+      // percentage, so Andrew set it at 95-102.5. Section 8g pins its four
+      // percentages exactly; every other pull in the macro still has to clear
+      // 100, and a straight "Clean Pull" inside M2 would fail here. Bound to the
+      // day and the slot as well as the name (Codex r1): a pull called "Pause
+      // Clean Pull" anywhere else is not this exception.
       if (item.slot.includes('pull') && week !== 12) {
-        assert(item.percent >= 100, `${tag}: pull pct ${item.percent} < 100`)
+        const pausedM2 = day === 5 && item.slot === 'clean_pull' && item.name === 'Pause Clean Pull' && week >= 5 && week <= 8
+        assert(pausedM2 || item.percent >= 100, `${tag}: pull pct ${item.percent} < 100`)
       }
       // 4. Oly floors: power/hang >= 65 (deload included). Pulls and presses
       // are excluded, mirroring isClassicLiftSlot in the config.
@@ -112,10 +121,14 @@ for (let week = 1; week <= 13; week++) {
       // going missing on any OTHER power day in a working meso still fails
       // here, and this asserts the exception is PRESENT rather than merely
       // tolerating its absence. meso2-monday.mjs pins what replaced it.
-      const noBackOff = day === 1 && week >= 5 && week <= 8
+      //
+      // M2 FRIDAY JOINED IT (FOR-271): two waves of 2/1/1 replace the top
+      // double AND its back-offs. Same terms — named by week and day, asserted
+      // absent. Section 8g pins what replaced it.
+      const noBackOff = (day === 1 || day === 5) && week >= 5 && week <= 8
       assert(top, `W${week} D${day}: expected a top set`)
       if (noBackOff) {
-        assert(!back, `W${week} D${day}: M2 Monday prescribes no back-off, got ${back?.name}`)
+        assert(!back, `W${week} D${day}: M2 prescribes no back-off on this day, got ${back?.name}`)
       } else {
         assert(back, `W${week} D${day}: expected top+backoff pair`)
       }
@@ -157,7 +170,9 @@ assert(itemAt(5, 1, 'sn_back') === undefined, `M2 should prescribe no snatch bac
 assert(nameAt(9, 1, 'sn_back') === 'Snatch', 'M3 snatch back-offs are the pure lift')
 // Athlete's preference: EVERY clean comes off the floor — no hang variant on
 // the clean side, in any meso. The snatch still hangs in M2.
-for (const wk of [5, 9]) assert(nameAt(wk, 5, 'cl_back') === 'Power Clean', `W${wk} clean back-offs must be off the floor`)
+// M2 HAS NO CLEAN BACK-OFF since FOR-271 — the two waves are the whole dose.
+assert(itemAt(5, 5, 'cl_back') === undefined, `M2 should prescribe no clean back-off, got ${JSON.stringify(itemAt(5, 5, 'cl_back')?.name)}`)
+for (const wk of [1, 9]) assert(nameAt(wk, 5, 'cl_back') === 'Power Clean', `W${wk} clean back-offs must be off the floor`)
 for (const wk of [1, 5, 9]) {
   for (const slot of ['cl_top', 'cl_back']) {
     assert(!/hang/i.test(nameAt(wk, 5, slot) ?? ''), `W${wk} ${slot}: no hang cleans — athlete's call`)
@@ -169,7 +184,9 @@ for (const wk of [1, 5, 9]) {
 for (const wk of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
   const top = itemAt(wk, 5, 'cl_top')
   assert(top?.name === 'Power Clean', `W${wk} cl_top should be Power Clean`)
-  assert(top?.percent >= 80, `W${wk} cl_top @ ${top?.percent} — top power clean must stay ≥80`)
+  // M2 is two waves of 2/1/1 that OPEN on a double at 76-79 (FOR-271), so the
+  // head percentage is no longer the top set there. 8g pins all six sets.
+  if (wk < 5 || wk > 8) assert(top?.percent >= 80, `W${wk} cl_top @ ${top?.percent} — top power clean must stay ≥80`)
   assert(top?.maxKey === 'clean_jerk', `W${wk} cl_top must key off the FULL clean max`)
 }
 // Pulls: 3 sets, every meso (athlete's call).
@@ -183,18 +200,27 @@ for (const wk of [1, 5, 9]) {
 // Andrew's call: the primary gets the fresh slot, exactly like the squat does
 // on Monday. The jumps still open (unloaded RFD is still first), and the speed
 // squat is still velocity: true, so autoreg cannot chase it while fatigued.
+//
+// M2 is its own shape since FOR-271: the waves carry the back-off's work, so
+// there is no cl_back card, and Bulgarian split squats stand at the speed
+// squat's station under their own slot key.
 const FRI_ORDER = ['seated_box_jump', 'cl_top', 'cl_back', 'speed_squat', 'clean_pull', 'acc_pullup']
-for (const wk of [1, 2, 5, 9, 11]) {
+const FRI_ORDER_M2 = ['seated_box_jump', 'cl_top', 'bss', 'clean_pull', 'acc_pullup']
+for (const wk of [1, 2, 5, 6, 7, 8, 9, 11]) {
   const s = hybridPower.buildDay(wk, 5, MAXES).items.map(i => i.slot)
   const pos = k => s.indexOf(k)
-  assert(s.join(' → ') === FRI_ORDER.join(' → '), `W${wk} Fri order: ${s.join(' → ')}`)
+  const m2 = wk >= 5 && wk <= 8
+  const want = m2 ? FRI_ORDER_M2 : FRI_ORDER
+  const legs = m2 ? 'bss' : 'speed_squat'
+  assert(s.join(' → ') === want.join(' → '), `W${wk} Fri order: ${s.join(' → ')}`)
   assert(pos('hang_psn') === -1, `W${wk} Fri: hang_psn was removed (FOR-188)`)
-  // Every meso is 6 cards / 5 stations now — M1 gained the clean back-off.
-  assert(s.length === 6, `W${wk} Fri: 6 cards expected, got ${s.length}`)
+  // M1 and M3 are 6 cards / 5 stations; M2 is 5 cards.
+  assert(s.length === want.length, `W${wk} Fri: ${want.length} cards expected, got ${s.length}`)
   // both present first: indexOf gives -1 for a missing slot, and -1 < n is
   // true, so the ordering assert alone would survive either one vanishing
-  assert(pos('speed_squat') >= 0 && pos('cl_top') >= 0, `W${wk} Fri: speed squat and clean must both exist`)
-  assert(pos('cl_top') < pos('speed_squat'), `W${wk} Fri: the clean is the primary and goes first`)
+  assert(pos(legs) >= 0 && pos('cl_top') >= 0, `W${wk} Fri: ${legs} and clean must both exist`)
+  assert(pos(m2 ? 'speed_squat' : 'bss') === -1, `W${wk} Fri: ${m2 ? 'speed_squat' : 'bss'} does not run in this meso`)
+  assert(pos('cl_top') < pos(legs), `W${wk} Fri: the clean is the primary and goes first`)
   assert(pos('cl_top') < pos('clean_pull'), `W${wk} Fri: clean before the pull`)
   assert(pos('acc_pullup') === s.length - 1, `W${wk} Fri: the row is the overflow block, must be last`)
   // No snatch survives on Friday in any form — that was the whole of item 6.
@@ -204,7 +230,8 @@ for (const wk of [1, 2, 5, 9, 11]) {
 }
 // Speed slots carry NO RPE anchor (a 57% double honestly rates ~4; against a
 // target of 6 the autoreg read that as "+3% too light" every week).
-for (const wk of [1, 5, 9]) {
+// (M1 and M3 — M2 does not run the speed squat, FOR-271.)
+for (const wk of [1, 9]) {
   for (const slot of ['speed_squat']) {
     const it = itemAt(wk, 5, slot)
     assert(it?.velocity === true, `W${wk} ${slot} must be flagged velocity`)
@@ -245,17 +272,22 @@ assert(nameAt(5, 3, 'front_squat') === 'Pause Front Squat' && nameAt(9, 3, 'fron
 // M2's snatch pull was the snatch's only heavy pulling, and the snatch has
 // left this day entirely — a snatch pull on the clean day was the last thing
 // keeping two lifts on one session.
+// FOR-271: M2's is PAUSED — still a clean pull, still off the clean max.
 for (const wk of [1, 5, 9]) {
-  assert(nameAt(wk, 5, 'clean_pull') === 'Clean Pull', `W${wk} pull should be a Clean Pull`)
+  const want = wk === 5 ? 'Pause Clean Pull' : 'Clean Pull'
+  assert(nameAt(wk, 5, 'clean_pull') === want, `W${wk} pull should be a ${want}, got ${nameAt(wk, 5, 'clean_pull')}`)
   assert(itemAt(wk, 5, 'clean_pull')?.maxKey === 'clean_jerk', `W${wk} pull must key off the clean max`)
 }
-// ...and the M1→M3 ramp is continuous now that it is one lift off one max:
-// each meso tops out higher than the last, on fewer reps.
+// ...and the straight pull still climbs from M1 to M3 on fewer reps. M2 sits
+// UNDER M1 on purpose since FOR-271 — the pause is the stimulus, and its four
+// percentages are pinned exactly in 8g — so the old "each meso tops out higher
+// than the last" no longer holds and is not asserted.
 {
   // M3 stops at week 11: week 12 is the deload and drops the pull entirely.
   const topOf = wks => Math.max(...wks.map(wk => itemAt(wk, 5, 'clean_pull').percent))
   const [m1, m2, m3] = [topOf([1, 2, 3, 4]), topOf([5, 6, 7, 8]), topOf([9, 10, 11])]
-  assert(m1 < m2 && m2 < m3, `pull ramp must ascend across mesos: ${m1} → ${m2} → ${m3}`)
+  assert(m1 < m3, `the straight pull must ascend from M1 to M3: ${m1} → ${m3}`)
+  assert(m2 < m1, `M2's paused pull runs lighter than M1's straight one: ${m2} vs ${m1}`)
   assert(itemAt(1, 5, 'clean_pull').reps > itemAt(5, 5, 'clean_pull').reps
       && itemAt(5, 5, 'clean_pull').reps > itemAt(9, 5, 'clean_pull').reps,
     'pull reps must fall as the percentage climbs')
@@ -437,16 +469,20 @@ assert([1, 5, 9].every(wk => itemAt(wk, 5, 'hang_psn') === undefined),
 // failed the 4-set ceiling he ratified two days earlier. It went into the
 // back-offs instead: +2 sets in M1 and M2, +3 in M3, and nothing past 4.
 assert(itemAt(1, 5, 'cl_back')?.sets === 2, `M1 clean back-offs should be 2, got ${itemAt(1, 5, 'cl_back')?.sets}`)
-assert(itemAt(5, 5, 'cl_back')?.sets === 4 && itemAt(9, 5, 'cl_back')?.sets === 4, 'clean back-offs should be 4 (M2) / 4 (M3)')
-for (const wk of [1, 5, 9]) {
+assert(itemAt(9, 5, 'cl_back')?.sets === 4, `M3 clean back-offs should be 4, got ${itemAt(9, 5, 'cl_back')?.sets}`)
+for (const wk of [1, 9]) {
   assert(itemAt(wk, 5, 'cl_top').sets <= 4 && itemAt(wk, 5, 'cl_back').sets <= 4,
     `W${wk} Fri: a clean slot went past the 4-set ceiling`)
 }
+// M2 is the approved exception (FOR-271): six sets, because they are two waves
+// of 2/1/1 and not six of the same thing. set-ceiling-allowlist.json bounds it
+// at 6 with the reason written in, exactly as the squat waves are.
+assert(itemAt(5, 5, 'cl_top').sets === 6, `M2 cl_top should be the six-set wave, got ${itemAt(5, 5, 'cl_top').sets}`)
 // The one slot on this day allowed past 4, and only because it is genuinely
 // sub-maximal: 5×3 @ 55% off a box is speed, which is the exemption in the
 // athlete's own words. M1 goes to TRIPLES (item 10) — the lightest wave of
 // the three, so the extra rep costs seconds and buys bar-speed reps.
-for (const [wk, sets, reps] of [[1, 5, 3], [5, 5, 2], [9, 4, 2]]) {
+for (const [wk, sets, reps] of [[1, 5, 3], [9, 4, 2]]) {
   const sq = itemAt(wk, 5, 'speed_squat')
   assert(sq.sets === sets && sq.reps === reps,
     `W${wk} Fri: speed squat should be ${sets}×${reps}, got ${sq.sets}×${sq.reps}`)
@@ -532,9 +568,13 @@ assert(nameAt(5, 3, 'acc_single_leg') === 'DB Reverse Lunge' && nameAt(9, 3, 'ac
 // the variation meso finally reaching the deadlift. The config had already
 // blessed it ("deficit deadlifts are legal for future mesos") and the M2
 // rotation is asserted above. Everything else still never rotates.
-for (const [d, s] of [[1, 'sn_top'], [5, 'cl_top'], [1, 'back_squat_heavy'], [6, 'ohp_press'], [3, 'push_press'], [5, 'speed_squat']]) {
+for (const [d, s] of [[1, 'sn_top'], [5, 'cl_top'], [1, 'back_squat_heavy'], [6, 'ohp_press'], [3, 'push_press']]) {
   assert(nameAt(1, d, s) === nameAt(5, d, s) && nameAt(5, d, s) === nameAt(9, d, s), `spine slot ${s} must NOT rotate`)
 }
+// speed_squat left this list in FOR-271: M2 does not run it at all. Where it
+// does run it is still one lift.
+assert(nameAt(1, 5, 'speed_squat') === 'Speed Box Squat' && nameAt(9, 5, 'speed_squat') === 'Speed Box Squat',
+  'the speed squat is the same lift in M1 and M3')
 
 // The 4-set ceiling (FOR-188). Nothing pinned this before, which is how the
 // config kept prescribing a fifth Monday squat that the athlete cut by hand
@@ -701,6 +741,89 @@ for (const [label, wk, opts] of [['W12', 12, undefined], ['forced', 3, { forceDe
     `${label} deload Saturday plyo should be the easy one, got ${sat.map(p => p.name).join(', ')}`)
 }
 
+// 8g. M2 FRIDAY (FOR-271) — clean waves, pause clean pull, split squats.
+// Andrew picked all three on 2026-10-09. The loads are asserted at a 265 clean
+// because that is the max the ticket's table was written at; the percentages
+// are asserted on their own so a change of max cannot hide a change of wave.
+{
+  const AT_265 = { ...MAXES, clean_jerk: 265 }
+  const fri = (wk, opts) => hybridPower.buildDay(wk, 5, AT_265, {}, opts)
+  const at = (wk, slot, opts) => fri(wk, opts).items.find(i => i.slot === slot)
+  // [reps, percent, lb] for each of the six sets, wave 1 then wave 2.
+  const WAVES = {
+    5: [[2, 76, 200], [1, 80, 210], [1, 84, 225], [2, 78, 205], [1, 82, 215], [1, 86, 230]],
+    6: [[2, 77, 205], [1, 81, 215], [1, 85, 225], [2, 79, 210], [1, 83, 220], [1, 87, 230]],
+    7: [[2, 78, 205], [1, 82, 215], [1, 86, 230], [2, 80, 210], [1, 84, 225], [1, 88, 235]],
+    8: [[2, 79, 210], [1, 83, 220], [1, 87, 230], [2, 81, 215], [1, 85, 225], [1, 89, 235]],
+  }
+  const PULL = { 5: [95, 250], 6: [97.5, 260], 7: [100, 265], 8: [102.5, 270] }
+  const CL_NOTE = 'Two waves. If a rep rides down into a squat clean, ride it and stand up.'
+  const PULL_NOTE = 'Pause 2 seconds just below the knee, shoulders over the bar, back tight, then finish fast.'
+  for (const wk of [5, 6, 7, 8]) {
+    const cl = at(wk, 'cl_top')
+    const got = (cl?.setPlan ?? []).map(x => [x.reps, x.percent, x.targetWeightLbs])
+    assert(JSON.stringify(got) === JSON.stringify(WAVES[wk]),
+      `W${wk} clean waves should be ${JSON.stringify(WAVES[wk])}, got ${JSON.stringify(got)}`)
+    assert(cl?.name === 'Power Clean' && cl?.maxKey === 'clean_jerk' && cl?.sets === 6,
+      `W${wk} cl_top should be six Power Clean sets off the clean max, got ${cl?.sets} x ${cl?.name} off ${cl?.maxKey}`)
+    assert(cl?.note === CL_NOTE, `W${wk} cl_top note: ${cl?.note}`)
+    assert(at(wk, 'cl_back') === undefined, `W${wk} the waves replace the back-offs — cl_back must not be prescribed`)
+
+    const pull = at(wk, 'clean_pull')
+    assert(pull?.name === 'Pause Clean Pull' && pull?.sets === 3 && pull?.reps === 3,
+      `W${wk} pull should be Pause Clean Pull 3x3, got ${pull?.name} ${pull?.sets}x${pull?.reps}`)
+    assert(pull?.percent === PULL[wk][0] && pull?.targetWeightLbs === PULL[wk][1],
+      `W${wk} pause pull should be ${PULL[wk][0]}% = ${PULL[wk][1]}, got ${pull?.percent}% = ${pull?.targetWeightLbs}`)
+    assert(pull?.setPlan === undefined && pull?.note === PULL_NOTE, `W${wk} pause pull note/plan: ${pull?.note}`)
+
+    const bss = at(wk, 'bss')
+    assert(bss?.name === 'Bulgarian Split Squat' && bss?.sets === 3
+        && JSON.stringify(bss?.repRange) === '[6,8]' && bss?.reps === 6,
+      `W${wk} bss should be Bulgarian Split Squat 3 x 6-8, got ${bss?.name} ${bss?.sets} x ${JSON.stringify(bss?.repRange)}`)
+    assert(bss?.percent == null && bss?.maxKey == null && bss?.velocity !== true,
+      `W${wk} bss has no percentage, no max, and is not velocity work`)
+    assert(bss?.loadStepLbs === 5 && bss?.targetRir === 2, `W${wk} bss steps 5 lb per hand and leaves 2 in the tank`)
+    assert(/rear foot on a bench/i.test(bss?.note ?? '') && /per hand/i.test(bss?.note ?? '') && /per leg/i.test(bss?.note ?? ''),
+      `W${wk} bss note: ${bss?.note}`)
+    assert(at(wk, 'speed_squat') === undefined, `W${wk} the split squats REPLACE the speed box squat`)
+    // The load only arrives if buildDay is handed loadTargets — the FOR-175
+    // failure mode, checked for this slot the way it is for db_bench.
+    assert(bss?.targetWeightLbs === undefined, `W${wk} bss invents no load with no history`)
+    assert(at(wk, 'bss', { loadTargets: { bss: 40 } })?.targetWeightLbs === 40, `W${wk} bss must take its load from loadTargets`)
+
+    // A forced deload inside M2: the wave goes, the split squats cut by sets.
+    const dl = fri(wk, { forceDeload: true }).items
+    assert(dl.every(i => i.setPlan === undefined), `W${wk} forced deload carries no per-set plan`)
+    assert(dl.find(i => i.slot === 'bss')?.sets === 2, `W${wk} forced deload: split squats should drop to 2 sets`)
+    assert(!dl.some(i => i.slot === 'clean_pull' || i.slot === 'cl_back'), `W${wk} forced deload drops the pull`)
+  }
+  // THE SIX-SET EXCEPTION IS M2'S ALONE (Codex r1). set-ceiling-allowlist.json
+  // keys on program:slot and cannot say "weeks 5-8", so on its own it would
+  // excuse a six-set cl_top in any week. Every week outside M2 — the deload
+  // included — is held to the ceiling here, forced deloads too.
+  for (const wk of [1, 2, 3, 4, 9, 10, 11, 12]) {
+    for (const opts of [undefined, { forceDeload: true }]) {
+      const sets = at(wk, 'cl_top', opts)?.sets
+      assert(typeof sets === 'number' && sets <= 4,
+        `W${wk}${opts ? ' forced deload' : ''} cl_top is ${sets} sets — the six-set wave is meso 2's only`)
+    }
+  }
+  // Meso 1 and meso 3 are untouched: no wave, no split squat, the old pull.
+  for (const wk of [1, 2, 3, 4, 9, 10, 11]) {
+    assert(at(wk, 'cl_top')?.setPlan === undefined, `W${wk} cl_top is one scheme, not a wave`)
+    assert(at(wk, 'bss') === undefined && at(wk, 'speed_squat')?.name === 'Speed Box Squat',
+      `W${wk} keeps the speed box squat`)
+    assert(at(wk, 'clean_pull')?.name === 'Clean Pull' && at(wk, 'cl_back')?.name === 'Power Clean',
+      `W${wk} keeps the straight pull and the back-offs`)
+  }
+  // Pinned so a quiet edit to M1 or M3 shows up here and not at the bar.
+  const scheme = (wk, slot) => { const i = at(wk, slot); return `${i.sets}x${i.reps}@${i.percent}` }
+  assert(scheme(4, 'cl_top') === '4x2@83' && scheme(4, 'cl_back') === '2x2@76' && scheme(4, 'clean_pull') === '3x4@106',
+    `W4 Friday moved: ${scheme(4, 'cl_top')} ${scheme(4, 'cl_back')} ${scheme(4, 'clean_pull')}`)
+  assert(scheme(9, 'cl_top') === '1x1@87' && scheme(9, 'cl_back') === '4x1@83' && scheme(9, 'clean_pull') === '3x2@110',
+    `W9 Friday moved: ${scheme(9, 'cl_top')} ${scheme(9, 'cl_back')} ${scheme(9, 'clean_pull')}`)
+}
+
 // 9. Autoreg clamp extremes can't break floors (adjustments ±8 — the new
 // MAX_ADJ, wide enough for the weight-follow — on every slot).
 for (const sign of [-8, 8]) {
@@ -797,22 +920,25 @@ assert(nameAt(4, 1, 'bench_heavy') !== nameAt(5, 1, 'bench_heavy'),
 assert(monAdj.back_squat_heavy != null && monAdj.back_squat_heavy > 0,
   `unchanged back_squat_heavy lost its adjustment (${monAdj.back_squat_heavy})`)
 
-// Friday's own case. clean_pull is the SAME lift off the SAME max in every
-// meso now, so the adjustment has to survive the boundary — the mirror image
-// of the assertion it replaces, and it fails if item 6 is ever reverted
-// halfway.
+// Friday's own case, and FOR-271 turned it over. The pull ROTATES again at the
+// M2 boundary — Clean Pull becomes Pause Clean Pull, same max, different lift —
+// so week 4's feedback about the straight pull must not open the paused one
+// heavy. The speed squat does not run in M2 at all, so its feedback has no slot
+// to land on. Only the power clean is the same lift on both sides.
 const FRI_W4_LOGS = [
   { slot: 'cl_top', rpe: 8, weight_lbs: 230 },       // Power Clean → Power Clean (unchanged)
-  { slot: 'clean_pull', rpe: 8, weight_lbs: 300 },   // Clean Pull → Clean Pull (unchanged now)
-  { slot: 'speed_squat', rpe: 6, weight_lbs: 250 },  // Speed Box Squat (unchanged)
+  { slot: 'clean_pull', rpe: 8, weight_lbs: 300 },   // Clean Pull → Pause Clean Pull (rotated)
+  { slot: 'speed_squat', rpe: 6, weight_lbs: 250 },  // Speed Box Squat → not prescribed in M2
 ]
 const adj = await computeAdjustments(fakeDbOf(FRI_W4_LOGS), 'u1', hybridPower, 5, 5, RUN_EPOCH, MAXES)
-assert(adj.clean_pull != null, 'clean_pull no longer rotates at the boundary — its feedback must carry')
+assert(adj.clean_pull === undefined, `rotated clean_pull carried an adjustment into the paused pull (${adj.clean_pull})`)
+assert(nameAt(4, 5, 'clean_pull') !== nameAt(5, 5, 'clean_pull'),
+  'clean_pull is the live ROTATION case on Friday — it must change lift at the M2 boundary')
 assert(adj.cl_top != null && adj.cl_top > 0, `unchanged cl_top lost its adjustment (${adj.cl_top})`)
-// speed_squat is unchanged across the boundary too, but it's a VELOCITY slot:
-// loading above the window is the slot's failure mode, so autoreg must refuse
-// to follow it up. Downward tracking is covered in autoreg-behaviour.mjs.
-assert((adj.speed_squat ?? 0) <= 0, `velocity slot chased an overload (${adj.speed_squat})`)
+assert(adj.speed_squat === undefined, `speed_squat carried an adjustment into a meso that does not prescribe it (${adj.speed_squat})`)
+assert(itemAt(5, 5, 'speed_squat') === undefined, 'speed_squat is absent in M2 — that is WHY its adjustment drops')
+// The velocity slot refusing to chase an overload is covered where the slot
+// runs on both sides: autoreg-behaviour.mjs, weeks 2 → 3.
 console.log('\n── Autoreg at the M2 boundary (W4 logs → W5 build) ──')
 console.log(`  Mon carried: ${Object.entries(monAdj).map(([k, v]) => `${k}:${v > 0 ? '+' : ''}${v}`).join('  ') || '(none)'}`)
 console.log('  Mon blocked: bench_heavy (rotated), sn_back (absent in M2)')
