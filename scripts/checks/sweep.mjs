@@ -70,9 +70,11 @@ for (let week = 1; week <= 13; week++) {
       // the knee is a harder lift than the straight pull at the same
       // percentage, so Andrew set it at 95-102.5. Section 8g pins its four
       // percentages exactly; every other pull in the macro still has to clear
-      // 100, and a straight "Clean Pull" inside M2 would fail here.
+      // 100, and a straight "Clean Pull" inside M2 would fail here. Bound to the
+      // day and the slot as well as the name (Codex r1): a pull called "Pause
+      // Clean Pull" anywhere else is not this exception.
       if (item.slot.includes('pull') && week !== 12) {
-        const pausedM2 = item.name === 'Pause Clean Pull' && week >= 5 && week <= 8
+        const pausedM2 = day === 5 && item.slot === 'clean_pull' && item.name === 'Pause Clean Pull' && week >= 5 && week <= 8
         assert(pausedM2 || item.percent >= 100, `${tag}: pull pct ${item.percent} < 100`)
       }
       // 4. Oly floors: power/hang >= 65 (deload included). Pulls and presses
@@ -794,6 +796,17 @@ for (const [label, wk, opts] of [['W12', 12, undefined], ['forced', 3, { forceDe
     assert(dl.every(i => i.setPlan === undefined), `W${wk} forced deload carries no per-set plan`)
     assert(dl.find(i => i.slot === 'bss')?.sets === 2, `W${wk} forced deload: split squats should drop to 2 sets`)
     assert(!dl.some(i => i.slot === 'clean_pull' || i.slot === 'cl_back'), `W${wk} forced deload drops the pull`)
+  }
+  // THE SIX-SET EXCEPTION IS M2'S ALONE (Codex r1). set-ceiling-allowlist.json
+  // keys on program:slot and cannot say "weeks 5-8", so on its own it would
+  // excuse a six-set cl_top in any week. Every week outside M2 — the deload
+  // included — is held to the ceiling here, forced deloads too.
+  for (const wk of [1, 2, 3, 4, 9, 10, 11, 12]) {
+    for (const opts of [undefined, { forceDeload: true }]) {
+      const sets = at(wk, 'cl_top', opts)?.sets
+      assert(typeof sets === 'number' && sets <= 4,
+        `W${wk}${opts ? ' forced deload' : ''} cl_top is ${sets} sets — the six-set wave is meso 2's only`)
+    }
   }
   // Meso 1 and meso 3 are untouched: no wave, no split squat, the old pull.
   for (const wk of [1, 2, 3, 4, 9, 10, 11]) {
