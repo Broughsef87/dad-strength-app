@@ -5,7 +5,7 @@ import { createClient } from '../utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, X, Dumbbell, Target, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { localDayWithCutoff } from '../utils/day'
+import { localDay, localDayWithCutoff } from '../utils/day'
 
 interface ChecklistItem {
   key: string
@@ -135,25 +135,33 @@ export default function FirstWeekChecklist(
   // Auto-check morning_protocol if they've completed at least one pillar today
   useEffect(() => {
     if (!userId || state.morning_protocol) return
-    try {
-      const raw = localStorage.getItem('dad-strength-morning-protocol')
-      if (!raw) return
-      const saved = JSON.parse(raw)
-      // MUST match how MorningProtocol writes the cache: localDayWithCutoff(4),
-      // i.e. YYYY-MM-DD on a 4am boundary. This compared against
-      // toLocaleDateString() — '2026-08-26' vs '8/26/2026' — so it was never
-      // equal in any normal locale, and this item could never auto-complete.
-      // day.ts documents the same mismatch being fixed elsewhere; this file
-      // was missed. Pre-existing, surfaced by wiring protocolTick in.
-      const today = localDayWithCutoff(4)
-      if (saved.date === today && Array.isArray(saved.completed) && saved.completed.some(Boolean)) {
-        updateItem('morning_protocol', true)
-      }
-    } catch { /* ignore */ }
-    // protocolTick is bumped by the dashboard when MorningProtocol saves a
-    // completed pillar. It is the only reason this effect re-runs mid-session:
-    // the check reads localStorage, and a sibling writing localStorage fires
-    // no event a component in the same tab can hear.
+    let cancelled = false
+    void (async () => {
+      try {
+        // The record, not a cache (FOR-231 v2). The protocol's day is the
+        // 4am-cutoff key the entry carries, and that day can sit in either of
+        // two calendar rows, so read both and match on the entry's own date.
+        const today = localDayWithCutoff(4)
+        const yesterday = localDay(new Date(Date.now() - 86_400_000))
+        const { data: rows } = await supabase
+          .from('daily_checkins')
+          .select('spirit_state')
+          .eq('user_id', userId)
+          .in('date', [localDay(), yesterday])
+        if (cancelled) return
+        for (const r of rows ?? []) {
+          const m = (r.spirit_state as { morning?: { date?: string; completed?: boolean[] } } | null)?.morning
+          if (m?.date === today && Array.isArray(m.completed) && m.completed.some(Boolean)) {
+            updateItem('morning_protocol', true)
+            break
+          }
+        }
+      } catch { /* the row could not be read; the item stays unticked */ }
+    })()
+    return () => { cancelled = true }
+    // protocolTick is bumped by the dashboard once a save has LANDED in the
+    // row. It is the only reason this effect re-runs mid-session: a sibling
+    // writing the row fires no event a component in the same tab can hear.
   }, [userId, state.morning_protocol, protocolTick])
 
   const updateItem = async (key: keyof ChecklistState, value: boolean) => {
@@ -232,7 +240,7 @@ export default function FirstWeekChecklist(
       else router.push(item.href)
     }
     // set_mission: mission page marks it done on save — don't mark here
-    // morning_protocol: verified against localStorage when a pillar is completed
+    // morning_protocol: verified against the row when a pillar is completed
   }
 
   const doneCount = [state.first_workout, state.set_mission, state.morning_protocol].filter(Boolean).length

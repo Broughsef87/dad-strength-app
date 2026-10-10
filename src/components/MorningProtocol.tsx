@@ -1,12 +1,30 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, BookOpen, Flame, Heart, Star, Moon, CloudDrizzle, Skull, Zap, Coffee, Wind, Target, ArrowRight } from 'lucide-react'
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
 import { localDay, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
+import { patchCheckin, usePaintGate, type CheckinPatch } from '../lib/checkins'
+
+// A tag names the path its writer owns.
+type SpiritTag = 'protocol' | 'objectives' | 'tick' | 'gratitude'
+
+// What each failed write is called on screen. Record<> rather than a lookup
+// with a fallback, so tsc refuses a tag with no label instead of the screen
+// rendering `undefined`. 'tick' is here too now that every tag is shown.
+const UNSAVED_LABEL: Record<SpiritTag, string> = {
+  protocol: 'Not saved',
+  objectives: 'Objectives not saved',
+  gratitude: 'Gratitude not saved',
+  tick: 'That step did not save',
+}
+// The order they are shown in, so two failures do not swap places between
+// renders. Deriving it from the state array would order them by when they
+// failed, which moves a Retry button under the user's finger.
+const UNSAVED_ORDER: readonly SpiritTag[] = ['protocol', 'objectives', 'gratitude', 'tick']
 import UpgradeModal from './UpgradeModal'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
@@ -57,24 +75,26 @@ type Protocol = {
   closingWord: string
 }
 
-const STORAGE_KEY = 'dad-strength-morning-protocol'
+// THE RECORD IS THE ROW (FOR-231 v2).
+// daily_checkins is the morning protocol. Nothing about a check-in is kept in
+// localStorage: no cache, no mirror, no optimistic layer, so there is never a
+// second copy to decide between. A save is a write to the row: it lands, or it
+// fails and says so, and Retry writes what is on the screen now.
+//
 // The morning routine's "day" runs 4am → 3:59am, so a late-night or pre-dawn
 // check-in doesn't wipe a routine completed that morning.
 const todayKey = () => localDayWithCutoff(4)
 
 export default function MorningProtocol(
-  { objectives = [], onSaved, onProtocolSaved }:
+  { objectives = [], onSaved }:
   {
     objectives?: string[]
-    /** Something was written — protocol OR objectives. Siblings that read either listen here. */
-    onSaved?: () => void
     /**
-     * The PROTOCOL cache was just written (saveCache only, never the
-     * objectives path). The adherence count trusts the local cache only on
-     * the heels of this signal; an objectives-only save must not trip it,
-     * because then a stale cache would override a completion made elsewhere.
+     * A write LANDED in the row — protocol or objectives. Siblings that read
+     * either re-read the row here. One signal, because there is only one thing
+     * it can mean now: the record changed.
      */
-    onProtocolSaved?: () => void
+    onSaved?: () => void
   } = {},
 ) {
   const [minutes, setMinutes] = useState(20)
@@ -87,6 +107,75 @@ export default function MorningProtocol(
   const [expanded, setExpanded] = useState<number | null>(0)
   const [error, setError] = useState('')
   const [configured, setConfigured] = useState(false)
+  // Reading the record. Nothing is rendered from anywhere else, so until the
+  // row answers there is nothing honest to show.
+  const [reading, setReading] = useState(true)
+  // A write that did not land — a tag. Retry re-reads what is on the screen at
+  // that moment; nothing here captures a payload.
+  /**
+   * ONE FAILURE SLOT PER WRITER (Blaine's ruling, 2026-10-05; Codex r3 P1).
+   *
+   * This was a single tag, and every writer cleared the whole thing. So a
+   * successful step tick cleared a FAILED protocol save and took its Retry off
+   * the screen with it — leaving a protocol the athlete can see and the row
+   * does not have, with nothing saying so, and a reload losing the paid
+   * result. A successful tick cleared a failed gratitude save the same way.
+   *
+   * Each writer now sets and clears only its own tag, which is the same rule
+   * as one HALT line per hold: a holder releases what it placed and nothing
+   * else. A failure stays on screen until the writer that owns it succeeds.
+   *
+   * `gratitude` is its own tag for the same reason: a gratitude failure has to
+   * be retried as a gratitude write, or the Retry button becomes the
+   * whole-entry writer this ticket exists to remove.
+   *
+   * An array of string literals, so the type still cannot hold a function —
+   * a captured closure is a queued intention the re-spec forbids, and tsc is
+   * the only guard a regex cannot be.
+   */
+  const [unsaved, setUnsaved] = useState<readonly SpiritTag[]>([])
+  /**
+   * A write of spirit_state is in flight. ONE AT A TIME, for every writer here
+   * (FOR-231 v3): while it is set, the step buttons, every Retry, Rebuild and
+   * Build refuse, and the gratitude inputs are read-only. It refuses - it never
+   * queues and never replays - so there are never two writes of this row in
+   * flight and nothing has to decide which of two should win.
+   *
+   * That is what closes both accepted v2 races: an old tick, or an old protocol
+   * Retry, cannot land after a Rebuild's new protocol, because Rebuild cannot
+   * be pressed until it has landed. And it is what makes a gratitude write
+   * unable to land under a protocol write that is about to replace it.
+   *
+   * State, for the render; a ref, for the handlers, because two taps inside
+   * one frame both read the same stale state value.
+   */
+  const [writing, setWritingState] = useState(false)
+  const writingRef = useRef(false)
+  const setWriting = (w: boolean) => { writingRef.current = w; setWritingState(w) }
+  // Only the newest operation paints. The mount read and a write race on first
+  // load: generation can finish before the read does, and the read would then
+  // paint the old row over the protocol just generated (FOR-231 v2, r3).
+  const gate = usePaintGate()
+  /**
+   * THE DAY OF THE PROTOCOL ON THE SCREEN, and the row every write goes to.
+   *
+   * Not `todayKey()` recomputed at write time. A protocol loaded at 3:50 and
+   * ticked at 4:10 used to be ticked into the NEXT day's row, because the key
+   * moved under the screen at the 4am cutoff (Codex r4). The protocol on the
+   * screen belongs to one day, and that is the row its ticks belong in. Set by
+   * the loader from the entry it painted, and by generation from the entry it
+   * built; cleared by Rebuild. It is the identity of what is painted, not a
+   * belief about the row.
+   *
+   * WHETHER THE ROW HOLDS THE ENTRY IS NOT KNOWN HERE AT ALL. v2's
+   * `entryInRow` tried to know it and went stale across the cutoff, and where
+   * it held it turned an orphan write into a silent one. The database holds
+   * it now: `checkin_patch` refuses a {morning,...} patch onto a row with no
+   * entry for its own day (CK001,
+   * supabase/migrations/20261009_checkin_patch_requires_entry.sql), and the
+   * screen reports that as the protocol not being saved.
+   */
+  const [entryDay, setEntryDay] = useState<string | null>(null)
   // Completed protocols collapse to a "systems green" stamp; review re-expands.
   const [reviewOpen, setReviewOpen] = useState(false)
   // Gratitude entries: 3 text inputs
@@ -97,128 +186,141 @@ export default function MorningProtocol(
   const [mindSaved, setMindSaved] = useState(false)
 
   const saveMindState = async () => {
-    const supabase = createClient()
     const today = localDay()
+    setUnsaved((u) => u.filter((t) => t !== 'objectives'))
     // Dense, for the same reason DailyObjectivesCard stores dense: its render
     // path filters blanks and toggles by the FILTERED index, so a sparse array
     // misaligns completion flags against objectives. Both writers must agree.
     const dense = mindObjectives.map(o => o.trim()).filter(Boolean)
-    const state = {
-      date: localDay(),
-      objectives: dense,
-      completedObjectives: dense.map(() => false),
-      lockedIn: true,
-    }
-    // Write to localStorage so DailyObjectivesCard picks it up instantly
-    localStorage.setItem('dad-strength-mind-state', JSON.stringify(state))
-    // Persist to DB
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase.from('daily_checkins').upsert(
-        { user_id: user.id, date: today, mind_state: state, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id,date' }
-      )
-    }
+    // ITS OWN FOUR KEYS, IN ONE CALL - the same four the card's Goals write
+    // names, because whichever one the athlete reaches first has to do the
+    // same thing. This used to write mind_state WHOLE, defended as the write
+    // that creates the record; Rebuild runs the Goals step again on a row that
+    // already exists, so it wiped ticked objectives, and after FOR-229 it
+    // would wipe the spiritual rating and any carried-over item too (Blaine's
+    // draft review, 2026-10-04). Keys this step does not name survive it now.
+    gate.claim()
+    const landed = await patchCheckin('mind_state', today, [
+      { path: ['date'], value: today },
+      { path: ['objectives'], value: dense },
+      { path: ['completedObjectives'], value: dense.map(() => false) },
+      { path: ['lockedIn'], value: true },
+    ]) === 'landed'
+    if (!landed) { setUnsaved((u) => (u.includes('objectives') ? u : [...u, 'objectives'])); return }
     setMindSaved(true)
-    // Objectives are written HERE, not in saveCache — a separate path, so it
-    // needs the signal separately. DailyObjectivesCard renders directly below
-    // this component and reads mind_state; without this it keeps showing "no
-    // objectives set" beside the Saved confirmation until a reload.
+    // DailyObjectivesCard renders directly below this component and reads
+    // mind_state; without this it keeps showing "no objectives set" beside the
+    // Saved confirmation until a reload. Fired only now the row holds them.
     onSaved?.()
   }
 
   useEffect(() => {
-    // Local first (instant paint)…
-    let localDone = -1
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const data = JSON.parse(saved)
-        if (data.date === todayKey()) {
-          setProtocol(data.protocol)
-          setCompleted(data.completed || new Array(data.protocol.steps.length).fill(false))
-          setGratitude(data.gratitude || ['', '', ''])
-          setConfigured(true)
-          localDone = (data.completed ?? []).filter(Boolean).length
-        }
-      }
-    } catch {}
-
-    // …then the DB copy, so completion made on another device wins. The 4am-
-    // cutoff day can span two calendar rows, so check today and yesterday.
+    // The row decides what is on this screen. The 4am-cutoff day can span two
+    // calendar rows, so read today and yesterday and take the entry stamped
+    // with today's protocol day.
+    let cancelled = false
     void (async () => {
       try {
+        const claim = gate.claim()
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        if (!user || cancelled) return
         const yesterday = localDay(new Date(Date.now() - 86_400_000))
         const { data: rows } = await supabase
           .from('daily_checkins')
-          .select('spirit_state')
+          .select('date, spirit_state')
           .eq('user_id', user.id)
           .in('date', [localDay(), yesterday])
-        for (const r of rows ?? []) {
+        // A read that started before a write paints nothing. Generation paints
+        // first and then saves, so on a slow first load this read can land
+        // AFTER it, and it would otherwise put the old row back over the
+        // protocol the athlete just paid for. It is discarded, never queued:
+        // whatever claimed after it already describes the screen (r3).
+        if (cancelled || !gate.mayPaint(claim)) return
+        // The record row first: the one keyed on the day its entry carries.
+        // A pre-fix row (keyed on the calendar day, holding the cutoff day's
+        // entry) is painted only if there is no record row, and a write
+        // addressed from it goes to the entry's own day, where the database
+        // refuses it until Retry writes the entry there.
+        const day = todayKey()
+        const ordered = [...(rows ?? [])].sort((a, b) => Number(b.date === day) - Number(a.date === day))
+        for (const r of ordered) {
           const m = (r.spirit_state as { morning?: { date?: string; protocol?: Protocol; completed?: boolean[]; gratitude?: string[] } } | null)?.morning
-          if (!m?.protocol || m.date !== todayKey()) continue
-          const remoteDone = (m.completed ?? []).filter(Boolean).length
-          if (remoteDone > localDone) {
-            const c = m.completed ?? new Array(m.protocol.steps.length).fill(false)
-            const g = m.gratitude ?? ['', '', '']
-            setProtocol(m.protocol)
-            setCompleted(c)
-            setGratitude(g)
-            setConfigured(true)
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: m.protocol, completed: c, gratitude: g }))
-          }
+          if (!m?.protocol || m.date !== day) continue
+          setProtocol(m.protocol)
+          setCompleted(m.completed ?? new Array(m.protocol.steps.length).fill(false))
+          setGratitude(m.gratitude ?? ['', '', ''])
+          setConfigured(true)
+          setEntryDay(m.date)
           break
         }
-      } catch { /* offline — localStorage still works */ }
+      } catch { /* the row could not be read; the screen says nothing is set */ }
+      finally { if (!cancelled) setReading(false) }
     })()
+    return () => { cancelled = true }
   }, [])
 
-  const saveCache = (p: Protocol, c: boolean[], g: string[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), protocol: p, completed: c, gratitude: g }))
-    // Tell the parent this component just persisted state. Siblings on the
-    // dashboard — the first-week checklist and the objectives card — read that
-    // state back, and a same-tab localStorage write fires no event they can
-    // hear; the storage event is cross-tab only. So this is the notification.
-    //
-    // It fires on EVERY save, not only when a pillar is completed. Gating it on
-    // completion meant saving objectives from the Goals step, without having
-    // ticked a pillar yet, left the objectives card showing "no objectives set"
-    // right beside the Saved confirmation. Consumers decide what a save means
-    // to them; this signal only says that something was written.
+  /**
+   * The whole morning entry, as generation and Rebuild write it. `{morning}` is
+   * a path, so it replaces what lives under it and nothing beside it - and a
+   * new protocol SHOULD reset its own completion and gratitude, which is the
+   * one case where replacing a subtree is the intent rather than a defect.
+   */
+  const morningEntry = (day: string, p: Protocol, c: boolean[], g: string[]) =>
+    ({ date: day, protocol: p, completed: c, gratitude: g })
+
+  /**
+   * Write some fields of this day's spirit_state. They land or they do not, and
+   * the screen says which. No queue, no retry-on-reconnect, no unload guard: a
+   * save made with no network is lost, and `unsaved` is how the user is told,
+   * so they can press Retry, which writes whatever is on the screen then.
+   *
+   * EACH CALLER NAMES THE PATHS IT OWNS, and the merge happens in the database
+   * (supabase/migrations/20261003_checkin_set_path.sql). While all four writers
+   * here sent the whole entry, a gratitude blur carried the completion flags it
+   * had read before a tick, and the tick came back off the row while the screen
+   * still showed it ticked. Nothing about that was a cache or a queue; it was
+   * four whole-entry writers on one jsonb column.
+   *
+   * The row is keyed on the protocol's OWN day, the same 4am-cutoff key the
+   * entry carries, never the calendar day. Keyed on the calendar day, a
+   * protocol finished at 1am landed in the next day's row, and generating that
+   * day's protocol after 4am overwrote it (FOR-228, ruling 2). And it is the
+   * day of the protocol ON THE SCREEN, passed in, never recomputed here: see
+   * `entryDay`.
+   *
+   * A REFUSAL FOR NO ENTRY IS THE PROTOCOL'S FAILURE, not this writer's. The
+   * tick or the gratitude did not fail; there was no entry for it to land on,
+   * and patching it again cannot make one. The protocol's Retry writes the
+   * whole entry off the screen, gratitude included, which is the only write
+   * that can. So this writer's tag is left clear and the protocol's is raised.
+   */
+  const patchSpirit = async (
+    day: string,
+    patches: CheckinPatch[],
+    as: SpiritTag = 'protocol',
+  ): Promise<boolean> => {
+    if (writingRef.current) return false
+    // ITS OWN TAG, AND NOTHING ELSE'S. Clearing them all is how a successful
+    // tick used to take a failed protocol save off the screen.
+    setUnsaved((u) => u.filter((t) => t !== as))
+    setWriting(true)
+    gate.claim()
+    const result = await patchCheckin('spirit_state', day, patches)
+    setWriting(false)
+    if (result !== 'landed') {
+      const tag: SpiritTag = result === 'no-entry' ? 'protocol' : as
+      setUnsaved((u) => (u.includes(tag) ? u : [...u, tag]))
+      return false
+    }
+    // The row holds it, so siblings that read the row can read it now. A
+    // same-tab write notifies nobody on its own; this is the notification.
     onSaved?.()
-    // ...and this one says the protocol cache specifically was written. Only
-    // here — saveMindState writes objectives, not the cache.
-    onProtocolSaved?.()
-    // Mirror to daily_checkins.spirit_state so state follows the user across
-    // devices. Upsert touches only the provided columns — mind_state is safe.
-    void (async () => {
-      try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        // The row is keyed on the protocol's OWN day — the same 4am-cutoff
-        // key the entry carries — not the calendar day. Keyed on the calendar
-        // day, a protocol finished at 1am landed in the next day's row, and
-        // generating that day's protocol after 4am overwrote it: a completed
-        // protocol gone (FOR-228, ruling 2). The loader below reads today and
-        // yesterday, so a pre-dawn row is still found.
-        await supabase.from('daily_checkins').upsert(
-          {
-            user_id: user.id,
-            date: todayKey(),
-            spirit_state: { morning: { date: todayKey(), protocol: p, completed: c, gratitude: g } },
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id,date' },
-        )
-      } catch { /* offline — will re-sync on next save */ }
-    })()
+    return true
   }
 
   const generate = async () => {
+    if (writingRef.current) return
     setLoading(true)
     setError('')
     try {
@@ -245,12 +347,21 @@ export default function MorningProtocol(
       const fresh = data.protocol as Protocol
       const freshCompleted = new Array(fresh.steps.length).fill(false)
       const freshGratitude = ['', '', '']
+      const day = todayKey()
+      // Generation paints BEFORE its save lands, unlike every other write here:
+      // write-first would throw away a paid AI result on a network blip. What
+      // makes that order safe: `writing` is set for the whole save, so no tick,
+      // no gratitude and no Retry can start until it lands or fails; and if it
+      // fails, any later sub-path write is refused by the database (no entry)
+      // and reported as the protocol not being saved, never written as an
+      // orphan and never dropped silently.
       setProtocol(fresh)
       setCompleted(freshCompleted)
       setGratitude(freshGratitude)
       setExpanded(0)
       setConfigured(true)
-      saveCache(fresh, freshCompleted, freshGratitude)
+      setEntryDay(day)
+      await patchSpirit(day, [{ path: ['morning'], value: morningEntry(day, fresh, freshCompleted, freshGratitude) }])
     } catch {
       setError('Failed to generate. Try again.')
     } finally {
@@ -258,26 +369,110 @@ export default function MorningProtocol(
     }
   }
 
-  const toggleStep = (i: number) => {
+  /**
+   * THE ROW FIRST. A step that did not reach the record was never ticked on the
+   * screen, so there is no paint to roll back and no snapshot to roll back to
+   * (Blaine's ruling, 2026-10-01).
+   */
+  const toggleStep = async (i: number) => {
+    if (!protocol || !entryDay || writingRef.current) return
     const next = [...completed]
     next[i] = !next[i]
+    // ONE FIELD. A tick owns {morning,completed}; the protocol and the
+    // gratitude are not in this call, so a tick cannot carry either of them.
+    if (!await patchSpirit(entryDay, [{ path: ['morning', 'completed'], value: next }], 'tick')) return
     setCompleted(next)
-    if (protocol) saveCache(protocol, next, gratitude)
-    if (next[i] && i < (protocol?.steps.length || 0) - 1) {
+    if (next[i] && i < protocol.steps.length - 1) {
       setExpanded(i + 1)
     }
   }
 
+  /**
+   * Typing is local. A text field's value is the athlete's input until it is
+   * submitted, which is not a second copy of the record to reconcile — but
+   * writing it on every keystroke put many writes of one row in flight at
+   * once, and choosing between them is the ordering question this ticket
+   * exists to delete. So it is written ONCE, when the field is left.
+   */
   const updateGratitude = (i: number, val: string) => {
     const next = [...gratitude]
     next[i] = val
     setGratitude(next)
-    if (protocol) saveCache(protocol, completed, next)
+  }
+  // ONE FIELD. Gratitude owns {morning,gratitude}. This is the write that used
+  // to undo a tick: it carried `completed` as it stood when the field was
+  // focused, which is before the tick made while typing.
+  //
+  // IT ALWAYS WRITES (FOR-231 v3). v2's r4 guard returned here, silently,
+  // whenever the client believed the entry was not in the row, and gratitude
+  // typed during the protocol save was lost with nothing on screen. Now the
+  // database decides: no entry, and the write is refused and the screen says
+  // the protocol is not saved, with a Retry that carries this gratitude.
+  //
+  // The one case it does not write is a write already in flight, and then
+  // there is nothing to write: the inputs are read-only for exactly that
+  // span, so the text cannot have changed since the blur that started it.
+  const commitGratitude = () => {
+    if (!protocol || !entryDay || writingRef.current) return
+    void patchSpirit(entryDay, [{ path: ['morning', 'gratitude'], value: gratitude }], 'gratitude')
   }
 
   const doneCount = completed.filter(Boolean).length
   const totalSteps = protocol?.steps.length || 0
   const allDone = doneCount === totalSteps && totalSteps > 0
+
+  /**
+   * A write that did not land, said once and rendered in EVERY view.
+   *
+   * One tag per owned path, so the Retry below can re-send exactly what failed.
+   *
+   * It used to live inside the setup branch only, and generation sets
+   * `configured` before saving — so every failure after the first save showed
+   * no warning and no Retry at all, and an unsaved completion read "morning
+   * done" until a reload took it away (Codex r1, P1). Defined here, above the
+   * early returns, it cannot be stranded in one branch again.
+   *
+   * Retry carries nothing: it re-reads what is on the screen at that moment.
+   */
+  // RETRY WRITES THE SAME PATH THAT FAILED, read off the screen at the moment
+  // it is pressed. One Retry that rewrote the whole entry would hand every
+  // failure the clobbering this ticket exists to prevent.
+  const retryOf = (tag: SpiritTag) => () => {
+    if (tag === 'objectives') { void saveMindState(); return }
+    if (!protocol || !entryDay || writingRef.current) return
+    if (tag === 'gratitude') { void patchSpirit(entryDay, [{ path: ['morning', 'gratitude'], value: gratitude }], 'gratitude'); return }
+    void patchSpirit(entryDay, [{ path: ['morning'], value: morningEntry(entryDay, protocol, completed, gratitude) }])
+  }
+
+  // EVERY OUTSTANDING FAILURE, each with its own Retry. One row per tag,
+  // because one row could not carry two: a protocol that did not save and a
+  // gratitude that did not save are different losses with different retries,
+  // and showing one of them hid the other.
+  const unsavedBanner = unsaved.length > 0 ? (
+    <div className="space-y-2">
+      {UNSAVED_ORDER.filter((t) => unsaved.includes(t)).map((tag) => (
+        <div key={tag} className="rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
+          <p className="text-status-danger-ink text-xs">
+            {tag === 'tick'
+              ? `${UNSAVED_LABEL[tag]} — tap it again.`
+              : `${UNSAVED_LABEL[tag]} — the record did not take it. It is lost unless you retry.`}
+          </p>
+          {/* A failed tick has nothing to retry: the screen never moved, so the
+              step is still as the row has it and tapping it again IS the retry. */}
+          {tag !== 'tick' && (
+            <button type="button" onClick={retryOf(tag)} disabled={writing && tag !== 'objectives'} className="btn-ghost text-xs shrink-0 disabled:saturate-[.15]">
+              Retry
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  ) : null
+
+  // Reading the record. Not a paint of a remembered protocol: there is none.
+  if (reading) {
+    return <div className="tile h-48" aria-busy="true" />
+  }
 
   // ── Config screen ──────────────────────────────────────────────────────────
   if (!configured) {
@@ -353,6 +548,7 @@ export default function MorningProtocol(
           </div>
         </div>
 
+        {unsavedBanner && <div className="mt-3">{unsavedBanner}</div>}
         {error && (
           <div className="flex items-center justify-center gap-2">
             <p className="text-status-danger-ink text-xs">{error}</p>
@@ -362,7 +558,7 @@ export default function MorningProtocol(
 
         <button
           onClick={() => generate()}
-          disabled={loading}
+          disabled={loading || writing}
           className="w-full flex items-center justify-center gap-2 bg-foreground disabled:bg-surface-2 disabled:text-muted-foreground text-background font-medium py-4 rounded-lg text-sm lowercase transition-all"
         >
           {loading
@@ -393,13 +589,16 @@ export default function MorningProtocol(
           <h3 className="font-light text-lg tracking-tight leading-tight">{protocol?.theme}</h3>
         </div>
         <button
-          onClick={() => { setConfigured(false); setProtocol(null); setCompleted([]); setGratitude(['', '', '']) }}
-          className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+          onClick={() => { if (writingRef.current) return; setConfigured(false); setEntryDay(null); setProtocol(null); setCompleted([]); setGratitude(['', '', '']) }}
+          disabled={writing}
+          className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors disabled:saturate-[.15]"
           title="Rebuild"
         >
           <RefreshCw size={13} />
         </button>
       </div>
+
+      {unsavedBanner}
 
       {allDone && !reviewOpen ? (
         /* ── Collapsed — every check done. Volt marks what's earned. ── */
@@ -456,8 +655,9 @@ export default function MorningProtocol(
                 className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-muted/50 transition-colors"
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); toggleStep(i) }}
-                  className="flex-shrink-0 transition-all"
+                  onClick={(e) => { e.stopPropagation(); void toggleStep(i) }}
+                  disabled={writing}
+                  className="flex-shrink-0 transition-all disabled:saturate-[.15]"
                 >
                   {isDone
                     ? <CheckCircle2 size={18} className="text-brand" />
@@ -499,6 +699,8 @@ export default function MorningProtocol(
                             type="text"
                             value={gratitude[j]}
                             onChange={e => updateGratitude(j, e.target.value)}
+                            onBlur={commitGratitude}
+                            readOnly={writing}
                             placeholder={
                               j === 0 ? 'My family...' :
                               j === 1 ? 'My health...' :
@@ -564,8 +766,9 @@ export default function MorningProtocol(
                   )}
 
                   <button
-                    onClick={() => toggleStep(i)}
-                    className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all"
+                    onClick={() => { void toggleStep(i) }}
+                    disabled={writing}
+                    className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:saturate-[.15]"
                   >
                     Mark Complete ✓
                   </button>

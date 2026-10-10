@@ -132,6 +132,10 @@
     {
       "file": "20260823_rls_hardening.sql",
       "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20261009_checkin_patch_requires_entry.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table; proven on its own throwaway database by scripts/checkin-entry-proof.mjs (npm run proof:checkin-entry)"
     }
   ]
 }
