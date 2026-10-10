@@ -22,7 +22,7 @@ Write a report to `.claude/bus/reports/` and stop only for:
 Schema shape, merge points, counting rules, check design, backlog priority, whether a finding
 blocks a merge or gets filed as a follow-up, whether to ship a feature partially — **these are
 not Andrew's and you must not ask him.** You cannot reach Blaine mid-run, so **you rule it,
-record the decision and your reasoning in your report, and carry on.** Blaine reviews it on the
+record the decision and your rationale in your report, and carry on.** Blaine reviews it on the
 next wake and reverses it if it was wrong.
 
 * **A program change Andrew asked for is approved by the asking.** The ticket is the approval.
