@@ -460,7 +460,14 @@ function seededRotations(exclude) {
 
 export function renderRotationRows(seed, pair) {
   if (!pair?.fixture) throw new Error('renderRotationRows needs the pair it is rendering — its fixture is what gets excluded from the seeded rotations')
-  if ('fuel_meals_new' in seed) throw new Error(`${pair.fixture} carries fuel_meals_new — this pair renders rotation ROWS only (FOR-250); a new meal needs a library fixture and its slug guards`)
+  for (const key of ['fuel_meals_new', 'fuel_meals']) {
+    if (key in seed) throw new Error(`${pair.fixture} carries ${key} — this pair renders rotation ROWS only (FOR-250); a new meal needs a library fixture and its slug guards`)
+  }
+  // An empty list renders `VALUES` with nothing after it, which is not SQL
+  // (Codex r1). Found only when someone applies it, so refused here.
+  for (const key of ['fuel_rotations', 'fuel_rotation_meals']) {
+    if (!Array.isArray(seed[key]) || seed[key].length === 0) throw new Error(`${pair.fixture}: ${key} is missing or empty — there is nothing to seed`)
+  }
   // Membership is checked against EVERY fixture's meals, not a named two: the
   // soups live in the library expansion, the dinners in phase 1 and rotation B.
   const library = seededSlugs(pair.fixture)

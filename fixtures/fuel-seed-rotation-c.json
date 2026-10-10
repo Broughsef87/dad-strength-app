@@ -8,7 +8,7 @@
     "adds_no_meal": "This fixture has no fuel_meals_new, and the generator refuses one here."
   },
   "_shape": {
-    "why_a_week_1_then_b_week_2_every_time": "The app reads which rotation a plan ran from the picks that belong to ONE rotation alone (rotationOf), and uses that to start the next cycle from the rotation not just run. Every A or B dinner used here stops being A's or B's alone. Drawing week 2 from rotation A in any fortnight leaves rotation A with no dinner of its own except one that a turkey soup happens to replace, so a finished rotation A would stop being recognised and the next cycle would start from A again. Using only A's week 1 and B's week 2 keeps four dinners that are rotation A's alone and one that is rotation B's alone.",
+    "why_a_week_1_then_b_week_2_every_time": "A choice, not a necessity. The app reads which rotation a plan ran from the picks that belong to ONE rotation alone (rotationOf), and starts the next cycle from the rotation not just run. Every A or B dinner used here stops being A's or B's alone. Enumerating all 16 ways to draw the four fortnights from A and B, and all 64 legal choices of replaced dinner in each: strict alternation (A1+B2, B1+A2, A1+B2, B1+A2) never keeps both A and B recognisable. Four patterns do. This one keeps four dinners that are rotation A's alone and one that is rotation B's. The one with more variety (the second fortnight drawn from B's week 1 and A's week 2, 11 distinct dinners instead of 8) keeps one each, so a rotation A with its turkey burgers swapped out would read as no rotation and the next cycle would start from A again. Rotation A is the one that matters: a misread B still lands on A next.",
     "not_used_anywhere_here": [
       "garlic-herb-thighs",
       "turkey-burgers",

@@ -97,6 +97,10 @@ for (const slug of SOUP_FORTNIGHTS) {
     return ['rotation-a', 'rotation-b'].filter((src) => mine.length === 3 && mine.every((s) => weekSlugs(src, w).includes(s)))
   })
   assert(sources.every((s) => s.length >= 1), `${slug}: each week is three dinners of one existing rotation's same week, plus the soup — got ${JSON.stringify(sources)}`)
+  // ...and the two weeks come from DIFFERENT rotations (Codex r1). Each week
+  // can match more than one source — A's and B's week 1 share three dinners —
+  // so the question is whether some pairing uses two.
+  assert(sources[0].some((x) => sources[1].some((y) => y !== x)), `${slug}: week 1 and week 2 are drawn from different rotations — got ${JSON.stringify(sources)}`)
   // Steak is capped at two a month. One ribeye a fortnight at most means any
   // two fortnights back to back hold two at most.
   const ribeye = WEEKS.flatMap((w) => nightsOf(slug, w)).filter((m) => m.protein_cut === 'ribeye').length
@@ -132,6 +136,11 @@ for (const slug of SOUP_FORTNIGHTS) {
   }
   // The margin, measured: how many of its own dinners each of A and B keeps.
   // Rotation A is the one that matters — misreading B still lands on A next.
+  // FOUR IS A DECISION, NOT A LAW (Codex r1): one is enough for a complete
+  // rotation A to read back, and an arrangement with more variety keeps only
+  // one. Four is what lets A lose a night to a swap and still be A, asserted
+  // just below. Loosening this is a choice about that trade, to be made on
+  // purpose.
   const alone = (slug) => members.filter((x) => x.rotation_slug === slug && members.filter((y) => y.meal_slug === x.meal_slug).length === 1).map((x) => x.meal_slug)
   assert(alone('rotation-a').length >= 4, `rotation A keeps at least four dinners that are its alone — got ${alone('rotation-a').join(', ') || 'none'}`)
   assert(alone('rotation-b').length >= 1, `rotation B keeps at least one dinner that is its alone — got ${alone('rotation-b').join(', ') || 'none'}`)
