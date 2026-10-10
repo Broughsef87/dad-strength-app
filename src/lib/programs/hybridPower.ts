@@ -607,13 +607,38 @@ const D3_FSQUAT: SlotMeso[] = [
 // to keep every rep a true power.
 const D5_CL_TOP: SlotMeso[] = [
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Straight heavy doubles — catch above parallel, stand it up' },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 2, pctStart: 83, pctStep: 1, targetRpe: 8, note: 'Build to this top double — singles on the way up. If it rides down, ride it down and stand up.' },
+  // M2 IS TWO WAVES OF 2/1/1 (Andrew, 2026-10-09; FOR-271), on FOR-263's
+  // sequence machinery — the same shape as Monday's squat. The waves replace
+  // BOTH the top double and the back-offs, so D5_CL_BACK[1] is sets: 0. Second
+  // wave 2% over the first, every set +1% a week:
+  //   W5  2@76 1@80 1@84 · 2@78 1@82 1@86      W7  2@78 1@82 1@86 · 2@80 1@84 1@88
+  //   W6  2@77 1@81 1@85 · 2@79 1@83 1@87      W8  2@79 1@83 1@87 · 2@81 1@85 1@89
+  // Six sets is past the 4-set ceiling, allowlisted with its reason the way
+  // the squat waves are.
+  {
+    names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'],
+    sets: 6,
+    reps: 2,
+    pctStart: 76,
+    pctStep: 1,
+    targetRpe: 8,
+    sequence: [
+      { reps: 2, pctStart: 76, pctStep: 1 },
+      { reps: 1, pctStart: 80, pctStep: 1 },
+      { reps: 1, pctStart: 84, pctStep: 1 },
+      { reps: 2, pctStart: 78, pctStep: 1 },
+      { reps: 1, pctStart: 82, pctStep: 1 },
+      { reps: 1, pctStart: 86, pctStep: 1 },
+    ],
+    note: 'Two waves. If a rep rides down into a squat clean, ride it and stand up.',
+  },
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single. If it rides down, ride it down and stand up — the weight is the point up here.' },
 ]
 // Every clean stays off the FLOOR — athlete's preference, so no hang variant
 // here (the snatch side still hangs in M2). The M2 variation for this slot is
-// structural instead: a top double plus back-offs, where M1 ran straight sets.
-// Top set climbs 83→86 while the back-offs hold at 80 — that's the point.
+// structural instead: two waves of 2/1/1 where M1 ran straight sets (FOR-271).
+// The waves are the whole clean dose, so M2 HAS NO BACK-OFF — `sets: 0`, the
+// way the registry says a slot does not run in a meso (FOR-263).
 // FOR-195 item 8: more heavy clean volume, all of it in the BACK-OFFS. Andrew
 // asked for the extra sets on the primary where there are no back-offs, which
 // would have put M1 at 6×2 and failed the 4-set ceiling he ratified himself
@@ -621,7 +646,7 @@ const D5_CL_TOP: SlotMeso[] = [
 // M3, and no slot goes past 4.
 const D5_CL_BACK: SlotMeso[] = [
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 2, reps: 2, pctStart: 76, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — off the floor, stay sharp' },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — off the floor, stay sharp' },
+  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 0, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7 },
   { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles — off the floor, stay sharp' },
 ]
 // Clean pulls in EVERY meso (FOR-195 item 6). M2 used to rotate to snatch
@@ -629,12 +654,16 @@ const D5_CL_BACK: SlotMeso[] = [
 // Friday entirely now and lives on Monday, so a snatch pull on the clean day
 // was the last thing keeping two lifts on one session. The percentages carry
 // the M1→M3 ramp continuously instead of resetting across a lift change:
-//   M1  100 → 106  (4s)      M2  102 → 109.5 (3s)      M3  110 → 119 (2s)
-// M2 keeps its own step (2.5) because it now has to bridge M1's 106 to M3's
-// 110 rather than starting over on a different max.
+//   M1  100 → 106  (4s)      M2  95 → 102.5 (3s, paused)      M3  110 → 119 (2s)
+// M2 IS A PAUSE CLEAN PULL (Andrew, 2026-10-09; FOR-271): 95 instead of 102,
+// same 2.5 step. A two-second stop below the knee is a harder lift than the
+// straight pull at the same percentage, so the load comes down for it. It is
+// a pause and not a deficit because Saturday M2 is already a deficit deadlift,
+// and two deficit pulls on back-to-back days is too much. At his 265: W5 250,
+// W6 260, W7 265, W8 270.
 const D5_PULL: SlotMeso[] = [
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
-  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 3, pctStart: 102, pctStep: 2.5, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
+  { names: ['Pause Clean Pull', 'Pause Clean Pull', 'Pause Clean Pull', 'Pause Clean Pull'], sets: 3, reps: 3, pctStart: 95, pctStep: 2.5, targetRpe: 8, note: 'Pause 2 seconds just below the knee, shoulders over the bar, back tight, then finish fast.' },
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 110, pctStep: 3, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
 ]
 // Speed-strength slot: box squat at dynamic-effort loads. Dead stop on the box
@@ -646,9 +675,16 @@ const D5_SPEED_SQUAT: SlotMeso[] = [
   // 4-set ceiling does not apply: 5×3 @ 55% is the sub-maximal work the rule
   // explicitly exempts.
   { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 3, pctStart: 55, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
-  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 2, pctStart: 60, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
+  // M2 does not run it: `sets: 0`, and D5_BSS below takes the station (FOR-271).
+  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 0, reps: 2, pctStart: 60, pctStep: 2, velocity: true },
   { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 4, reps: 2, pctStart: 64, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
 ]
+// M2 swaps the speed box squat for Bulgarian split squats (Andrew, 2026-10-09;
+// FOR-271). Dumbbells, so no percentage and no max: double progression like
+// Wednesday's DB bench — hold the pair until every set reaches 8, then +5 lb
+// per hand. It has its OWN slot key, so its history never mixes with the speed
+// squat's and nothing that counts `speed_squat` as velocity work counts this.
+const D5_BSS: { sets: number; window: [number, number] } = { sets: 3, window: [6, 8] }
 
 // ── Day 6 — Sat: heavy conventional DL + overhead + plyos + metcon ────────────
 // Conventional deadlift off its own 1RM — the strength driver. Positional
@@ -1056,16 +1092,26 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         //    snatch gone: the day is clean-primary now, so the primary gets
         //    the fresh slot the way the squat does on Monday.
         liftFromSlot('cl_top', D5_CL_TOP[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
-        // 3. Back-offs, same bar, straight after the top set.
-        liftFromSlot('cl_back', D5_CL_BACK[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
       ]
+      // 3. Back-offs, same bar, straight after the top set. M2's waves are the
+      //    whole clean dose and the registry says so with sets: 0 (FOR-271) —
+      //    the guard reads the slot, as Monday's snatch back-off does.
+      if (D5_CL_BACK[m].sets > 0) {
+        items.push(liftFromSlot('cl_back', D5_CL_BACK[m], w, 'clean_jerk', maxes, pos.meso, adjustments))
+      }
       items.push(
         // 4. Dynamic-effort squat off the box — stretch reflex killed, force
         //    from zero. Clamped to its band; never chased upward by autoreg.
         //    Still velocity: true, so autoreg never chases it while fatigued —
         //    which matters more now that it follows the heavy clean.
-        liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
-        // 5. Heavy pull, unchanged at 100-119%.
+        //    M2 runs Bulgarian split squats at this station instead (FOR-271).
+        D5_SPEED_SQUAT[m].sets > 0
+          ? liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments)
+          : rangeSlot('bss', 'Bulgarian Split Squat', D5_BSS.sets, D5_BSS.window, lt, {
+              step: 5,
+              note: 'Rear foot on a bench. Leave 2 reps in the tank. First time: start with dumbbells you could do ~10 with. Reps are per leg, weight is PER HAND.',
+            }),
+        // 5. Heavy pull at 100-119% — paused and lighter in M2.
         liftFromSlot('clean_pull', D5_PULL[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
         // 6. The program's ONLY horizontal pulling, against five pressing
         //    exposures a week — so M2 and M3 both row. Deliberately last: this
@@ -1084,12 +1130,17 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
           .filter(i => !(i.kind === 'lift' && (i.slot === 'clean_pull' || i.slot === 'cl_back')))
           .filter(i => !(i.kind === 'plyo' && i.slot === 'seated_box_jump'))
+          // Range work has no percent to cut, so a forced deload inside M2
+          // reaches the split squats by sets, as Wednesday's DB bench does.
+          .map(i => (i.kind === 'lift' && i.repRange ? { ...i, sets: 2, note: DELOAD_NOTE } : i))
       }
       return {
         dayNumber, dayName: 'Speed + Clean', dayType: 'gym',
         sessionIntent: pos.isDeload
           ? 'Deload — a few crisp doubles, nothing else.'
-          : 'Jumps to open, then the clean and its back-offs. Speed squats and the pull to finish.',
+          : pos.meso === 2
+            ? 'Jumps to open, then two waves of power cleans. Split squats and the pause pull to finish.'
+            : 'Jumps to open, then the clean and its back-offs. Speed squats and the pull to finish.',
         items,
       }
     }
