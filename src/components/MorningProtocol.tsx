@@ -320,6 +320,12 @@ export default function MorningProtocol(
       setUnsaved((u) => (u.includes(tag) ? u : [...u, tag]))
       return false
     }
+    // A PROTOCOL WRITE AND A TICK BOTH CARRY THE GRATITUDE ON SCREEN, so when
+    // either lands, a gratitude failure still showing is no longer true: the
+    // row has that text. Left up, it told the athlete something saved was
+    // "lost unless you retry" (Codex v3 r4). A gratitude write retires only
+    // its own. Nothing else is ever retired by a write that did not carry it.
+    if (as !== 'gratitude') setUnsaved((u) => u.filter((t) => t !== 'gratitude'))
     // The row holds it, so siblings that read the row can read it now. A
     // same-tab write notifies nobody on its own; this is the notification.
     onSaved?.()
@@ -385,9 +391,22 @@ export default function MorningProtocol(
     if (!protocol || !entryDay || writingRef.current || protocolUnsaved) return
     const next = [...completed]
     next[i] = !next[i]
-    // ONE FIELD. A tick owns {morning,completed}; the protocol and the
-    // gratitude are not in this call, so a tick cannot carry either of them.
-    if (!await patchSpirit(entryDay, [{ path: ['morning', 'completed'], value: next }], 'tick')) return
+    // THE FLAGS, AND THE GRATITUDE AS IT IS ON THE SCREEN, in one statement.
+    //
+    // The gratitude rides along because a blur is not a promise. Tapping a
+    // button does not take focus off a text field on a phone, and marking the
+    // Gratitude step done unmounts its inputs, which fires no blur at all: the
+    // text typed just before the tap was never sent by anything (Codex v3 r4).
+    // So every write sends what the athlete can have changed since the last
+    // one, read off the screen now.
+    //
+    // This is not the write that used to undo a tick. That one overlapped a
+    // tick and carried flags read before it. Writes here are one at a time, so
+    // the gratitude on this screen is never older than the row's.
+    if (!await patchSpirit(entryDay, [
+      { path: ['morning', 'completed'], value: next },
+      { path: ['morning', 'gratitude'], value: gratitude },
+    ], 'tick')) return
     setCompleted(next)
     if (next[i] && i < protocol.steps.length - 1) {
       setExpanded(i + 1)

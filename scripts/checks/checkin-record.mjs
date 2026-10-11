@@ -223,7 +223,9 @@ function before(fn, first, second) {
 // adds is that the CLIENT names those same paths.
 const WRITERS = [
   ['MorningProtocol generation', mp, '  const generate = async () => {', [['morning']]],
-  ['MorningProtocol step tick', mp, '  const toggleStep = async (i: number) => {', [['morning', 'completed']]],
+  // The flags AND the gratitude on screen (v3 r4): a blur is not guaranteed
+  // before a tap, so the tick carries what can have been typed.
+  ['MorningProtocol step tick', mp, '  const toggleStep = async (i: number) => {', [['morning', 'completed'], ['morning', 'gratitude']]],
   ['MorningProtocol gratitude', mp, '  const commitGratitude = () => {', [['morning', 'gratitude']]],
   ["the card's Goals write", card, '  const saveDraft = async () => {',
     [['date'], ['objectives'], ['completedObjectives'], ['lockedIn']]],
@@ -388,12 +390,28 @@ assert(card.indexOf('  if (readFailed) {') > card.indexOf('  if (loading) {') &&
 assert(/\.maybeSingle\(\)/.test(card) && !/\.single\(\)/.test(card),
   'the card reads with maybeSingle — single() reports "no row" as an error, which a failed read must not be confused with')
 
+// ── A FAILED DRAFT STOPS BEFORE IT PAINTS (v3 r4, P3) ──────────────────────
+// With the failure branch's `return` deleted, a draft that never landed fell
+// through, locked the list and showed objectives the row does not have — and
+// every assertion above still passed.
+assert(/\]\) !== 'landed'\) \{\n[\s\S]{0,400}setUnsaved\(\(u\) => \(u\.includes\('draft'\) \? u : \[\.\.\.u, 'draft'\]\)\)\n        return\n      \}\n      setObjectives\(dense\)/.test(card),
+  "the card's draft save returns on a failed write, immediately before the only place it paints the list as saved")
+assert((body(card, '  const saveDraft = async () => {').match(/setLocked\(true\)/g) ?? []).length === 1,
+  'and it locks the list in exactly one place')
+
+// ── A WRITE THAT CARRIED THE GRATITUDE RETIRES ITS FAILURE (v3 r4, P3) ─────
+// The protocol's whole-entry write and a tick both send the gratitude on
+// screen. A "gratitude not saved" banner left up after one of them lands says
+// something saved is lost.
+assert(/if \(as !== 'gratitude'\) setUnsaved\(\(u\) => u\.filter\(\(t\) => t !== 'gratitude'\)\)\n[\s\S]{0,200}onSaved\?\.\(\)\n    return true/.test(body(mp, '  const patchSpirit = async (')),
+  'a landed protocol write or tick retires an outstanding gratitude failure, after it lands and not before')
+
 // ── A FAILED TICK STOPS BEFORE IT PAINTS (v3 r2, P3) ───────────────────────
 // Source order alone (write before paint) is also satisfied by a handler that
 // paints after a FAILED write. The failure branch has to leave.
 assert(/if \(!landed\) \{ setUnsaved\(\(u\) => \(u\.includes\('tick'\) \? u : \[\.\.\.u, 'tick'\]\)\); return \}\n    setCompleted\(next\)/.test(card),
   "the card's tick returns on a failed write, immediately before the only place it paints")
-assert(/if \(!await patchSpirit\(entryDay, \[\{ path: \['morning', 'completed'\], value: next \}\], 'tick'\)\) return\n    setCompleted\(next\)/.test(mp),
+assert(/\], 'tick'\)\) return\n    setCompleted\(next\)/.test(mp) && /if \(!await patchSpirit\(entryDay, \[\n/.test(body(mp, '  const toggleStep = async (i: number) => {')),
   "the protocol's tick returns on a failed write, immediately before the only place it paints")
 assert((body(card, '  const toggle = async (i: number) => {').match(/setCompleted\(/g) ?? []).length === 1
   && (body(mp, '  const toggleStep = async (i: number) => {').match(/setCompleted\(/g) ?? []).length === 1,
@@ -491,10 +509,13 @@ assert(/useState<readonly SpiritTag\[\]>\(\[\]\)/.test(mp),
 // The protocol has ONE writer function now (patchSpirit) serving three tags,
 // so it clears and adds in one place each, by the tag it was called with. The
 // card has two writer functions. Rebuild's wholesale clear is asserted above.
-for (const [name, src, writers] of [['MorningProtocol', mp, 1], ['the objectives card', card, 2]]) {
+// `clears` is one more than `writers` for the protocol: the one writer clears
+// the tag it was called as, and a landed write that CARRIED the gratitude
+// retires the gratitude failure (asserted on its own below).
+for (const [name, src, writers, clears] of [['MorningProtocol', mp, 1, 2], ['the objectives card', card, 2, 2]]) {
   assert(!/setUnsaved\(null\)/.test(src), `${name} never clears every failure at once`)
   if (name !== 'MorningProtocol') assert(!/setUnsaved\(\[\]\)/.test(src), `${name} does not clear them all by assigning an empty list either`)
-  assert((src.match(/setUnsaved\(\(u\) => u\.filter\(/g) ?? []).length === writers,
+  assert((src.match(/setUnsaved\(\(u\) => u\.filter\(/g) ?? []).length === clears,
     `${name}'s writers each clear only their own tag`)
   assert((src.match(/setUnsaved\(\(u\) => \(u\.includes\(/g) ?? []).length === writers,
     `${name}'s writers each ADD their own tag on failure, leaving the others standing`)
@@ -518,7 +539,7 @@ for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card
 assert(/const UNSAVED_ORDER: readonly SpiritTag\[\] = \['protocol', 'gratitude', 'tick'\]/.test(mp),
   'and in a fixed order rather than by when they failed')
 assert(/'That step did not save/.test(mp), 'a failed tick says to tap it again')
-assert(/patchSpirit\(entryDay, \[\{ path: \['morning', 'completed'\], value: next \}\], 'tick'\)/.test(mp),
+assert(/patchSpirit\(entryDay, \[\n\s*\{ path: \['morning', 'completed'\], value: next \},\n\s*\{ path: \['morning', 'gratitude'\], value: gratitude \},\n\s*\], 'tick'\)/.test(mp),
   'a tick tells the writer it was a tick, and sends only the completion flags')
 
 // ── A RETRY RE-SENDS THE PATH THAT FAILED (r3) ─────────────────────────────
