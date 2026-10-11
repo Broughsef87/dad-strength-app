@@ -327,7 +327,7 @@ assert(rebuild.length > 0 && /\n          disabled=\{writing\}\n/.test(rebuild),
   'Rebuild refuses, and is disabled, while a write is in flight')
 assert((mp.match(/disabled=\{writing \|\| protocolUnsaved\}/g) ?? []).length === 2, 'both step buttons are disabled while writing, and while the protocol is not saved')
 assert(/disabled=\{loading \|\| writing\}/.test(mp), 'Build is disabled while writing')
-assert(/onClick=\{retryOf\(tag\)\} disabled=\{writing\}/.test(mp), 'every Retry is disabled while writing')
+assert(/onClick=\{retryOf\(tag\)\} disabled=\{writing \|\| /.test(mp), 'every Retry is disabled while writing')
 
 // ── A PROTOCOL THAT IS NOT SAVED TAKES NO TICKS AND NO GRATITUDE (v3 r1) ───
 // After a Rebuild whose save failed, the row still holds the PREVIOUS
@@ -339,8 +339,17 @@ assert(/const protocolUnsaved = unsaved\.includes\('protocol'\)/.test(mp),
   "the protocol's own outstanding failure is read off the failure list, not kept as a second fact")
 assert(/if \(!protocol \|\| !entryDay \|\| writingRef\.current \|\| protocolUnsaved\) return/.test(body(mp, '  const toggleStep = async (i: number) => {')),
   'a step tick refuses while the protocol itself is not saved')
-assert(!/protocolUnsaved/.test(body(mp, '  const retryOf = (tag: SpiritTag) => () => {')),
+// The GRATITUDE Retry is a sub-path write, so it waits too (v3 r5); the
+// PROTOCOL Retry, the last statement of the handler, is the way out and is not
+// gated on it.
+const retrySrc = body(mp, '  const retryOf = (tag: SpiritTag) => () => {')
+const gratRetry = retrySrc.slice(retrySrc.indexOf("if (tag === 'gratitude') {"), retrySrc.indexOf('    void patchSpirit(entryDay, [{ path: [\'morning\'], value: morningEntry('))
+assert(gratRetry.length > 0 && /if \(protocolUnsaved\) return\n\s*void patchSpirit\(entryDay, \[\{ path: \['morning', 'gratitude'\], value: gratitude \}\], 'gratitude'\)/.test(gratRetry),
+  'the gratitude Retry refuses while the protocol is not saved, and otherwise sends the gratitude ON THE SCREEN to its own path')
+assert((retrySrc.match(/protocolUnsaved/g) ?? []).length === 1 && !/protocolUnsaved/.test(retrySrc.slice(retrySrc.indexOf(gratRetry) + gratRetry.length)),
   "and the protocol's Retry is NOT gated on it — it is the way out")
+assert(/disabled=\{writing \|\| \(tag === 'gratitude' && protocolUnsaved\)\}/.test(mp),
+  'the gratitude Retry button is disabled for the same span, so the refusal is visible')
 // REBUILD RETIRES THE DISCARDED PROTOCOL'S FAILURES (v3 r1, P3). Every tag in
 // this component now belongs to the protocol on screen, so discarding it
 // clears them all — and that is the ONLY place the list is emptied.
@@ -389,6 +398,11 @@ assert(card.indexOf('  if (readFailed) {') > card.indexOf('  if (loading) {') &&
   'the card shows a failed read before its editor can render')
 assert(/\.maybeSingle\(\)/.test(card) && !/\.single\(\)/.test(card),
   'the card reads with maybeSingle — single() reports "no row" as an error, which a failed read must not be confused with')
+
+// AN EMPTY DRAFT RETIRES ITS OWN FAILURE (v3 r5, P3): cleared after a failed
+// save, it left a banner whose Retry returned silently for ever.
+assert(/if \(saving\) return\n[\s\S]{0,300}if \(!draft\.some\(o => o\.trim\(\)\)\) \{ setUnsaved\(\(u\) => u\.filter\(\(t\) => t !== 'draft'\)\); return \}/.test(card),
+  'a draft save with nothing in the inputs clears the draft failure instead of returning with the banner still up')
 
 // ── A FAILED DRAFT STOPS BEFORE IT PAINTS (v3 r4, P3) ──────────────────────
 // With the failure branch's `return` deleted, a draft that never landed fell
@@ -512,7 +526,7 @@ assert(/useState<readonly SpiritTag\[\]>\(\[\]\)/.test(mp),
 // `clears` is one more than `writers` for the protocol: the one writer clears
 // the tag it was called as, and a landed write that CARRIED the gratitude
 // retires the gratitude failure (asserted on its own below).
-for (const [name, src, writers, clears] of [['MorningProtocol', mp, 1, 2], ['the objectives card', card, 2, 2]]) {
+for (const [name, src, writers, clears] of [['MorningProtocol', mp, 1, 2], ['the objectives card', card, 2, 3]]) {
   assert(!/setUnsaved\(null\)/.test(src), `${name} never clears every failure at once`)
   if (name !== 'MorningProtocol') assert(!/setUnsaved\(\[\]\)/.test(src), `${name} does not clear them all by assigning an empty list either`)
   assert((src.match(/setUnsaved\(\(u\) => u\.filter\(/g) ?? []).length === clears,
@@ -549,7 +563,7 @@ assert(/patchSpirit\(entryDay, \[\n\s*\{ path: \['morning', 'completed'\], value
 // refuse a tag with no label rather than rendering `undefined`.
 const retry = body(mp, '  const retryOf = (tag: SpiritTag) => () => {')
 assert(retry.length > 0, 'the retry is found by name')
-assert(/tag === 'gratitude'[\s\S]{0,160}path: \['morning', 'gratitude'\]/.test(retry),
+assert(/tag === 'gratitude'[\s\S]{0,600}path: \['morning', 'gratitude'\]/.test(retry),
   'a failed gratitude write is retried as a gratitude write, not as the whole entry')
 assert(/morningEntry\(entryDay, protocol, completed, gratitude\)/.test(retry),
   'and only the protocol tag retries the whole morning entry, which is what it owns')

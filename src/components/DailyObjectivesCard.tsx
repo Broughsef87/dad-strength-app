@@ -77,7 +77,11 @@ export default function DailyObjectivesCard() {
   // daily_checkins column, so the two are interchangeable and whichever the
   // user reaches first works.
   const saveDraft = async () => {
-    if (saving || !draft.some(o => o.trim())) return
+    if (saving) return
+    // AN EMPTY DRAFT HAS NOTHING TO SAVE, and so nothing that failed to: a
+    // draft that failed and was then cleared left its banner up with a Retry
+    // that returned here, silently, every time (Codex v3 r5).
+    if (!draft.some(o => o.trim())) { setUnsaved((u) => u.filter((t) => t !== 'draft')); return }
     setSaving(true)
     setUnsaved((u) => u.filter((t) => t !== 'draft'))
     const today = localDay()

@@ -466,7 +466,15 @@ export default function MorningProtocol(
   // failure the clobbering this ticket exists to prevent.
   const retryOf = (tag: SpiritTag) => () => {
     if (!protocol || !entryDay || writingRef.current) return
-    if (tag === 'gratitude') { void patchSpirit(entryDay, [{ path: ['morning', 'gratitude'], value: gratitude }], 'gratitude'); return }
+    if (tag === 'gratitude') {
+      // A SUB-PATH, so it waits for the protocol like every other one (Codex
+      // v3 r5): with the protocol itself not saved, this would either be
+      // refused for want of an entry or land on the PREVIOUS protocol's. The
+      // protocol's Retry carries this gratitude and retires this failure.
+      if (protocolUnsaved) return
+      void patchSpirit(entryDay, [{ path: ['morning', 'gratitude'], value: gratitude }], 'gratitude')
+      return
+    }
     void patchSpirit(entryDay, [{ path: ['morning'], value: morningEntry(entryDay, protocol, completed, gratitude) }])
   }
 
@@ -486,7 +494,7 @@ export default function MorningProtocol(
           {/* A failed tick has nothing to retry: the screen never moved, so the
               step is still as the row has it and tapping it again IS the retry. */}
           {tag !== 'tick' && (
-            <button type="button" onClick={retryOf(tag)} disabled={writing} className="btn-ghost text-xs shrink-0 disabled:saturate-[.15]">
+            <button type="button" onClick={retryOf(tag)} disabled={writing || (tag === 'gratitude' && protocolUnsaved)} className="btn-ghost text-xs shrink-0 disabled:saturate-[.15]">
               Retry
             </button>
           )}
