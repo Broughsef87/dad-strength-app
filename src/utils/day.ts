@@ -22,3 +22,16 @@ export function localDay(d: Date = new Date()): string {
 export function localDayWithCutoff(cutoffHour: number, d: Date = new Date()): string {
   return localDay(new Date(d.getTime() - cutoffHour * 3_600_000))
 }
+
+// The local calendar day BEFORE `d`, by calendar arithmetic.
+//
+// Not `d - 24 hours`. On the day after the clocks go forward a local day is 23
+// hours long, so at 00:30 that Monday, 24 hours earlier is 23:30 on SATURDAY
+// and Sunday is skipped altogether. A reader asking for "today and yesterday"
+// then never asks for Sunday's row, shows nothing, and the next save writes
+// over it (FOR-231 v3, Codex r2). setDate() moves the calendar field and lets
+// the engine find that day, whatever its length.
+export function localDayBefore(d: Date = new Date()): string {
+  const prev = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1)
+  return localDay(prev)
+}

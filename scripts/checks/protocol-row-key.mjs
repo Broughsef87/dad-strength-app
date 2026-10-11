@@ -10,7 +10,7 @@
 //
 //   node --import tsx scripts/checks/protocol-row-key.mjs   (run-all does this)
 import { readFileSync } from 'node:fs'
-import { localDay, localDayWithCutoff } from '../../src/utils/day.ts'
+import { localDay, localDayBefore, localDayWithCutoff } from '../../src/utils/day.ts'
 
 let checks = 0
 const fails = []
@@ -53,7 +53,26 @@ assert(/INSERT INTO public\.daily_checkins \(user_id, date, %1\$I, updated_at\)/
 // ── 3. the loader still finds a pre-dawn row ───────────────────────────────
 // Before 4am the protocol's row is yesterday's calendar row; the loader
 // reads today and yesterday and picks the entry stamped todayKey().
-assert(/\.in\('date', \[localDay\(\), yesterday\]\)/.test(mp), 'the loader reads both today\'s and yesterday\'s rows')
+assert(/\.in\('date', \[localDay\(\), localDayBefore\(\)\]\)/.test(mp), 'the loader reads both today\'s and yesterday\'s rows')
+// YESTERDAY IS A CALENDAR DAY, NOT 24 HOURS AGO (FOR-231 v3, Codex r2). RUN,
+// in a zone that changes its clocks: at 00:30 on the Monday after the US
+// spring-forward, 24 hours earlier is 23:30 on SATURDAY, so "today and
+// yesterday" never asked for Sunday's row — and Sunday is the protocol day.
+{
+  const tzBefore = process.env.TZ
+  process.env.TZ = 'America/Denver'
+  const monday = new Date(2026, 2, 9, 0, 30)
+  assert(monday.getTimezoneOffset() === 360 && new Date(2026, 2, 7, 12).getTimezoneOffset() === 420,
+    'the zone under test really did move its clocks on 2026-03-08 — otherwise the next two prove nothing')
+  assert(localDay(new Date(monday.getTime() - 86_400_000)) === '2026-03-07',
+    'subtracting 24 hours there lands on Saturday: the defect, reproduced')
+  assert(localDayBefore(monday) === '2026-03-08', 'localDayBefore() names Sunday, the day before by the calendar')
+  assert(localDayWithCutoff(4, monday) === '2026-03-08', 'which is the protocol day the loader has to find')
+  assert(localDayBefore(new Date(2026, 0, 1, 12)) === '2025-12-31', 'and it crosses a year boundary')
+  if (tzBefore === undefined) delete process.env.TZ; else process.env.TZ = tzBefore
+}
+assert(!/Date\.now\(\) - 86_400_000/.test(mp) && !/Date\.now\(\) - 86_400_000/.test(readLF('../../src/components/FirstWeekChecklist.tsx')),
+  'neither the protocol nor the checklist computes yesterday by subtracting 24 hours')
 assert(/const day = todayKey\(\)/.test(mp) && /m\.date !== day\) continue/.test(mp), 'the loader picks the entry stamped with todayKey()')
 
 // ── 4. mind_state keeps its own day, and neither write reaches the other ───

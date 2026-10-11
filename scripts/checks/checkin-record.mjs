@@ -360,7 +360,44 @@ assert(/<a href="#daily-objectives"/.test(mp) && /<div id="daily-objectives"/.te
   'the Goals step points at the card, and the card carries the anchor it points at')
 assert(!/refreshKey/.test(card.replace(/\/\/.*/g, '')) && /export default function DailyObjectivesCard\(\) \{/.test(card),
   'the card takes no refresh signal at all')
-assert(/    load\(\)\n[\s\S]{0,200}\}, \[\]\)/.test(card), 'and reads the row once, on mount')
+assert(/    load\(\)\n[\s\S]{0,300}\}, \[readNonce\]\)/.test(card) && (card.match(/setReadNonce\(/g) ?? []).length === 1,
+  'and reads the row once on mount, and again only from the one Retry on a failed read')
+
+// ── A FAILED READ IS NOT AN EMPTY DAY (v3 r2) ──────────────────────────────
+// supabase-js returns a failed query instead of throwing it, so both readers
+// took "the request failed" for "there is nothing here" and showed the setup
+// form / the empty editor — and what was saved from there replaced the record
+// the row had held all along. Each reader now asks for the error, shows the
+// failure with a Retry that reads again, and renders nothing that can write.
+for (const [name, src, busy] of [['MorningProtocol', mp, 'setReading(true)'], ['the objectives card', card, 'setLoading(true)']]) {
+  assert(/const \[readFailed, setReadFailed\] = useState\(false\)/.test(src), `${name} holds whether its read failed`)
+  assert(/const \{ data(?:: rows)?, error \} = await supabase\s*\n\s*\.from\('daily_checkins'\)/.test(src) && /if \(error\) \{[^}]*setReadFailed\(true\)/.test(src),
+    `${name} asks the query for its error, and a returned error is a failed read`)
+  assert(/catch \{ if \(.*?\) setReadFailed\(true\) \}/.test(src), `${name} treats a thrown read as failed too`)
+  assert(/error: authError/.test(src) && /if \(authError.*?\) setReadFailed\(true\)/.test(src), `${name} treats a failed session lookup as a failed read`)
+  const failedView = src.slice(src.indexOf('  if (readFailed) {'), src.indexOf('\n  }\n', src.indexOf('  if (readFailed) {')))
+  assert(failedView.length > 0 && failedView.includes('Retry') && failedView.includes(`setReadFailed(false); ${busy}; setReadNonce((n) => n + 1)`),
+    `${name} shows the failure with a Retry that reads again`)
+  assert(!/patchCheckin|patchSpirit|saveDraft|generate\(/.test(failedView), `${name}'s failed-read view offers nothing that writes`)
+  assert((src.match(/setReadNonce\(/g) ?? []).length === 1, `${name} re-reads from that Retry and from nowhere else`)
+}
+assert(mp.indexOf('  if (readFailed) {') > mp.indexOf('  if (reading) {') && mp.indexOf('  if (readFailed) {') < mp.indexOf('  if (!configured) {'),
+  'the protocol shows a failed read BEFORE the setup form can render')
+assert(card.indexOf('  if (readFailed) {') > card.indexOf('  if (loading) {') && card.indexOf('  if (readFailed) {') < card.indexOf('  const unsavedBanner ='),
+  'the card shows a failed read before its editor can render')
+assert(/\.maybeSingle\(\)/.test(card) && !/\.single\(\)/.test(card),
+  'the card reads with maybeSingle — single() reports "no row" as an error, which a failed read must not be confused with')
+
+// ── A FAILED TICK STOPS BEFORE IT PAINTS (v3 r2, P3) ───────────────────────
+// Source order alone (write before paint) is also satisfied by a handler that
+// paints after a FAILED write. The failure branch has to leave.
+assert(/if \(!landed\) \{ setUnsaved\(\(u\) => \(u\.includes\('tick'\) \? u : \[\.\.\.u, 'tick'\]\)\); return \}\n    setCompleted\(next\)/.test(card),
+  "the card's tick returns on a failed write, immediately before the only place it paints")
+assert(/if \(!await patchSpirit\(entryDay, \[\{ path: \['morning', 'completed'\], value: next \}\], 'tick'\)\) return\n    setCompleted\(next\)/.test(mp),
+  "the protocol's tick returns on a failed write, immediately before the only place it paints")
+assert((body(card, '  const toggle = async (i: number) => {').match(/setCompleted\(/g) ?? []).length === 1
+  && (body(mp, '  const toggleStep = async (i: number) => {').match(/setCompleted\(/g) ?? []).length === 1,
+  'and each tick handler paints in exactly one place')
 assert(/<DailyObjectivesCard \/>/.test(dash) && !/refreshKey/.test(dash), 'the dashboard feeds the card nothing')
 const cardWriters = [...card.matchAll(/patchCheckin\('mind_state', (\w+),/g)].map((m) => m[1])
 assert(cardWriters.join(',') === 'today,listDay', `the card has exactly two writes of mind_state, the draft and the tick — got ${cardWriters.join(',')}`)

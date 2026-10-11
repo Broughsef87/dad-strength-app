@@ -5,7 +5,7 @@ import { createClient } from '../utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, X, Dumbbell, Target, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { localDay, localDayWithCutoff } from '../utils/day'
+import { localDay, localDayBefore } from '../utils/day'
 
 interface ChecklistItem {
   key: string
@@ -138,20 +138,23 @@ export default function FirstWeekChecklist(
     let cancelled = false
     void (async () => {
       try {
-        // The record, not a cache (FOR-231 v2). The protocol's day is the
-        // 4am-cutoff key the entry carries, and that day can sit in either of
-        // two calendar rows, so read both and match on the entry's own date.
-        const today = localDayWithCutoff(4)
-        const yesterday = localDay(new Date(Date.now() - 86_400_000))
+        // The record, not a cache (FOR-231 v2). The milestone is "run your
+        // morning protocol, just once", so ANY entry with a pillar done
+        // counts, in either of the two calendar rows a protocol day can sit
+        // in. It used to count only the entry stamped with the cutoff day as
+        // of NOW: a protocol loaded at 3:50 and ticked at 4:10 is saved,
+        // correctly, under the day it belongs to, which by then is no longer
+        // "today" - and the item stayed unticked beside a finished protocol
+        // (FOR-231 v3, Codex r2).
         const { data: rows } = await supabase
           .from('daily_checkins')
           .select('spirit_state')
           .eq('user_id', userId)
-          .in('date', [localDay(), yesterday])
+          .in('date', [localDay(), localDayBefore()])
         if (cancelled) return
         for (const r of rows ?? []) {
-          const m = (r.spirit_state as { morning?: { date?: string; completed?: boolean[] } } | null)?.morning
-          if (m?.date === today && Array.isArray(m.completed) && m.completed.some(Boolean)) {
+          const m = (r.spirit_state as { morning?: { completed?: boolean[] } } | null)?.morning
+          if (Array.isArray(m?.completed) && m.completed.some(Boolean)) {
             updateItem('morning_protocol', true)
             break
           }

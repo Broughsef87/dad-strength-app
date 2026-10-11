@@ -5,7 +5,7 @@ import { Loader2, RefreshCw, CheckCircle2, Circle, ChevronDown, ChevronUp, Sun, 
 import AmbientAudioPlayer from './AmbientAudioPlayer'
 import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
-import { localDay, localDayWithCutoff } from '../utils/day'
+import { localDay, localDayBefore, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
 import { patchCheckin, usePaintGate, type CheckinPatch } from '../lib/checkins'
 
@@ -109,6 +109,17 @@ export default function MorningProtocol(
   // Reading the record. Nothing is rendered from anywhere else, so until the
   // row answers there is nothing honest to show.
   const [reading, setReading] = useState(true)
+  /**
+   * THE ROW COULD NOT BE READ. Not the same as "there is nothing in the row",
+   * and it must never look the same: a failed read used to fall through to the
+   * setup form, which says nothing is built, and a protocol built from there
+   * REPLACED the one the row was holding all along (Codex v3 r2). So a failed
+   * read shows that it failed, with a Retry that reads again, and no way to
+   * build until a read has actually answered.
+   */
+  const [readFailed, setReadFailed] = useState(false)
+  // Bumped by that Retry, and by nothing else: it is the only re-read.
+  const [readNonce, setReadNonce] = useState(0)
   // A write that did not land — a tag. Retry re-reads what is on the screen at
   // that moment; nothing here captures a payload.
   /**
@@ -214,14 +225,19 @@ export default function MorningProtocol(
       try {
         const claim = gate.claim()
         const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user || cancelled) return
-        const yesterday = localDay(new Date(Date.now() - 86_400_000))
-        const { data: rows } = await supabase
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (cancelled) return
+        if (!user) { if (authError) setReadFailed(true); return }
+        const { data: rows, error } = await supabase
           .from('daily_checkins')
           .select('date, spirit_state')
           .eq('user_id', user.id)
-          .in('date', [localDay(), yesterday])
+          .in('date', [localDay(), localDayBefore()])
+        if (cancelled) return
+        // supabase-js RETURNS a failed query rather than throwing it, so
+        // `rows` is null for "the request failed" exactly as it is for nothing
+        // else. Asked for explicitly, or a failure reads as an empty day.
+        if (error) { setReadFailed(true); return }
         // A read that started before a write paints nothing. Generation paints
         // first and then saves, so on a slow first load this read can land
         // AFTER it, and it would otherwise put the old row back over the
@@ -245,11 +261,11 @@ export default function MorningProtocol(
           setEntryDay(m.date)
           break
         }
-      } catch { /* the row could not be read; the screen says nothing is set */ }
+      } catch { if (!cancelled) setReadFailed(true) }
       finally { if (!cancelled) setReading(false) }
     })()
     return () => { cancelled = true }
-  }, [])
+  }, [readNonce])
 
   /**
    * The whole morning entry, as generation and Rebuild write it. `{morning}` is
@@ -463,6 +479,23 @@ export default function MorningProtocol(
   // Reading the record. Not a paint of a remembered protocol: there is none.
   if (reading) {
     return <div className="tile h-48" aria-busy="true" />
+  }
+
+  // The read failed. Nothing below this may render: the setup form would say
+  // there is no protocol, and that is not known.
+  if (readFailed) {
+    return (
+      <div className="rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3">
+        <p className="text-status-danger-ink text-xs">Could not load your morning protocol. Nothing has been changed.</p>
+        <button
+          type="button"
+          onClick={() => { setReadFailed(false); setReading(true); setReadNonce((n) => n + 1) }}
+          className="btn-ghost text-xs shrink-0"
+        >
+          Retry
+        </button>
+      </div>
+    )
   }
 
   // ── Config screen ──────────────────────────────────────────────────────────

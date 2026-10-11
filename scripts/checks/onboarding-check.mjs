@@ -94,9 +94,16 @@ ok('every MorningProtocol save path signals the parent',
 // looks at code lines only — a guard that trips on its own documentation is
 // worse than no guard.
 const listCode = list.split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join('\n')
-ok('the checklist reads the same date key the protocol writes',
-  /localDayWithCutoff\(4\)/.test(listCode) && !/toLocaleDateString\(\)/.test(listCode),
-  'date formats diverge — YYYY-MM-DD vs a locale string')
+// FOR-231 v3 (Codex r2): the milestone is "just once", so the checklist no
+// longer matches a date key at all. It reads the two calendar rows a protocol
+// day can sit in and counts any entry with a pillar done. Matching "today's"
+// key missed a protocol loaded at 3:50 and ticked at 4:10, which is saved under
+// the day it belongs to.
+ok('the checklist counts any completed pillar in the two rows a protocol day can sit in',
+  /\.in\('date', \[localDay\(\), localDayBefore\(\)\]\)/.test(listCode)
+  && /Array\.isArray\(m\?\.completed\) && m\.completed\.some\(Boolean\)/.test(listCode)
+  && !/m\?\.date === /.test(listCode) && !/toLocaleDateString\(\)/.test(listCode),
+  'it matches a date key again, or reads the wrong rows')
 ok('dashboard wires that report to a tick', /onSaved=\{/.test(dash))
 ok('the checklist watcher depends on the tick',
   /\}, \[userId, state\.morning_protocol, protocolTick\]\)/.test(list),

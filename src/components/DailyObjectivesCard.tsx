@@ -33,6 +33,16 @@ export default function DailyObjectivesCard() {
    * from the day it saved under. The same rule as the protocol's `entryDay`.
    */
   const [listDay, setListDay] = useState<string | null>(null)
+  /**
+   * THE ROW COULD NOT BE READ, which is not "no objectives today". A failed
+   * read used to show the empty editor, and objectives saved from there
+   * replaced the list the row was holding (Codex v3 r2). A failed read says it
+   * failed and offers to read again; the editor stays out of reach until a read
+   * has answered.
+   */
+  const [readFailed, setReadFailed] = useState(false)
+  // Bumped by that Retry, and by nothing else: it is the only re-read.
+  const [readNonce, setReadNonce] = useState(0)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
   const [saving, setSaving] = useState(false)
   // Which writes did not land — tags, never a closure and never a payload.
@@ -111,15 +121,18 @@ export default function DailyObjectivesCard() {
       const claim = gate.claim()
       try {
         // The row, and nothing before it. There is no cache to paint from.
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (!user) { if (authError && gate.mayPaint(claim)) setReadFailed(true); return }
 
-        const { data } = await supabase
+        // maybeSingle, not single: single() reports "no row" AS an error, and
+        // then a day with no objectives could not be told from a failed read.
+        const { data, error } = await supabase
           .from('daily_checkins')
           .select('mind_state')
           .eq('user_id', user.id)
           .eq('date', today)
-          .single()
+          .maybeSingle()
+        if (error) { if (gate.mayPaint(claim)) setReadFailed(true); return }
 
         // Only the newest read paints. With one read per mount this matters
         // in development, where StrictMode runs the effect twice and the
@@ -132,7 +145,7 @@ export default function DailyObjectivesCard() {
           setLocked(ms.lockedIn || false)
           setListDay(today)
         }
-      } catch { /* the row could not be read; the card shows the empty editor */ }
+      } catch { if (gate.mayPaint(claim)) setReadFailed(true) }
       finally {
         // THE SKELETON COMES DOWN ONLY FOR THE NEWEST READ (FOR-231 v3). A
         // read discarded by a newer one used to take it down and show the
@@ -147,9 +160,10 @@ export default function DailyObjectivesCard() {
       }
     }
     load()
-    // Once, on mount. Nothing else writes objectives, so there is nothing to
+    // Once, on mount, and again only when the athlete presses Retry on a read
+    // that FAILED. Nothing else writes objectives, so there is nothing else to
     // re-read them for.
-  }, [])
+  }, [readNonce])
 
   /**
    * THE ROW FIRST. A tick that did not reach the record was never on the
@@ -195,6 +209,23 @@ export default function DailyObjectivesCard() {
 
   if (loading) {
     return <div className="tile h-32" />
+  }
+
+  // The read failed. The editor below would say there are no objectives, and
+  // that is not known.
+  if (readFailed) {
+    return (
+      <div id="daily-objectives" className="rounded-kit border border-status-danger-line bg-status-danger-bg p-3 flex items-center justify-between gap-3 scroll-mt-24">
+        <p className="text-status-danger-ink text-xs">Could not load today&apos;s objectives. Nothing has been changed.</p>
+        <button
+          type="button"
+          onClick={() => { setReadFailed(false); setLoading(true); setReadNonce((n) => n + 1) }}
+          className="btn-ghost text-xs shrink-0"
+        >
+          Retry
+        </button>
+      </div>
+    )
   }
 
   // A failed draft can be retried: the objectives are still in the inputs, so
