@@ -11,13 +11,28 @@ import { patchCheckin, usePaintGate } from '../lib/checkins'
 // daily_checkins.mind_state holds the day's objectives. Nothing is kept in
 // localStorage, so the card never has a second copy to reconcile against the
 // row. A save is a write to the row: it lands, or it fails and says so.
-export default function DailyObjectivesCard(
-  { refreshKey = 0 }: { refreshKey?: number } = {},
-) {
+//
+// AND THIS CARD IS THE ONLY WRITER OF OBJECTIVES (Andrew's ruling, 2026-10-11).
+// The morning protocol's Goals step used to write them too, so the card
+// re-read the row whenever the protocol saved. That re-read painted a tick
+// back off the screen when it raced one, and left a failed draft's Retry able
+// to replace objectives saved from the other writer (Codex v3 r1). With one
+// writer the row is read ONCE, when the card mounts, and nothing re-reads it.
+export default function DailyObjectivesCard() {
   const [objectives, setObjectives] = useState<string[]>(['', '', ''])
   const [completed, setCompleted] = useState<boolean[]>([false, false, false])
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(true)
+  /**
+   * THE DAY OF THE LIST ON THE SCREEN, and the row a tick goes to.
+   *
+   * Not `localDay()` recomputed at tick time. A list loaded before midnight
+   * and ticked after it was ticked into the NEXT day's row, which had no
+   * `lockedIn`, so a reload showed a blank editor where the tick had been
+   * (Codex v3 r1). Set by the read from the day it read, and by a saved draft
+   * from the day it saved under. The same rule as the protocol's `entryDay`.
+   */
+  const [listDay, setListDay] = useState<string | null>(null)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
   const [saving, setSaving] = useState(false)
   // Which writes did not land — tags, never a closure and never a payload.
@@ -84,6 +99,7 @@ export default function DailyObjectivesCard(
       setObjectives(dense)
       setCompleted(dense.map(() => false))
       setLocked(true)
+      setListDay(today)
     } finally {
       setSaving(false)
     }
@@ -105,40 +121,35 @@ export default function DailyObjectivesCard(
           .eq('date', today)
           .single()
 
-        // A refresh that started before a write must not paint the row as it
-        // was (FOR-231 v2, r3). It is DISCARDED, never queued: the write it
-        // lost to already put the newer value on the screen.
+        // Only the newest read paints. With one read per mount this matters
+        // in development, where StrictMode runs the effect twice and the
+        // first read is discarded.
         if (data?.mind_state && gate.mayPaint(claim)) {
           const ms = data.mind_state as { objectives?: string[]; completedObjectives?: boolean[]; lockedIn?: boolean }
           const n = normalise(ms.objectives, ms.completedObjectives)
           setObjectives(n.objectives)
           setCompleted(n.completed)
           setLocked(ms.lockedIn || false)
+          setListDay(today)
         }
       } catch { /* the row could not be read; the card shows the empty editor */ }
       finally {
-        // THE SKELETON COMES DOWN ONLY FOR THE NEWEST READ (FOR-231 v3).
+        // THE SKELETON COMES DOWN ONLY FOR THE NEWEST READ (FOR-231 v3). A
+        // read discarded by a newer one used to take it down and show the
+        // EMPTY editor while the newer read was still out, and a save made
+        // there replaced the list that read was about to paint (Codex r4).
         //
-        // It used to come down for every read, so a first read discarded by a
-        // newer one (a MorningProtocol save bumping refreshKey while the first
-        // read was still out) took the skeleton away and showed the EMPTY
-        // editor while the newer read was pending. A save made there replaced
-        // the list that read was about to paint. Codex r4: no StrictMode
-        // needed, so it reached production.
-        //
-        // Held up only for the newest claim, it cannot stay up forever: while
-        // the skeleton is showing nothing else is rendered, so nothing can
-        // write, so whatever claimed after this read is itself a read — and
-        // that read reaches this `finally` too, error or not.
+        // It cannot stay up forever: while the skeleton is showing nothing
+        // else is rendered, so nothing can write, so whatever claimed after
+        // this read is itself a read, and that read reaches this `finally`
+        // too, error or not.
         if (gate.mayPaint(claim)) setLoading(false)
       }
     }
     load()
-    // refreshKey is bumped when MorningProtocol saves objectives from the
-    // same page. Its Goals step writes mind_state, and a same-tab
-    // localStorage write notifies no sibling — without this the card keeps
-    // saying "no objectives set" next to the ones just entered.
-  }, [refreshKey])
+    // Once, on mount. Nothing else writes objectives, so there is nothing to
+    // re-read them for.
+  }, [])
 
   /**
    * THE ROW FIRST. A tick that did not reach the record was never on the
@@ -151,12 +162,11 @@ export default function DailyObjectivesCard(
    * which of two in-flight writes should win.
    */
   const toggle = async (i: number) => {
-    if (!locked || saving) return
+    if (!locked || saving || !listDay) return
     const next = [...completed]
     next[i] = !next[i]
     setUnsaved((u) => u.filter((t) => t !== 'tick'))
     setSaving(true)
-    const today = localDay()
     // THE PAIR, because the pair is ONE FACT. objectives and
     // completedObjectives are paired by index: the render path filters blanks
     // and hands toggle() the filtered index, and normalise() pairs objective i
@@ -170,7 +180,7 @@ export default function DailyObjectivesCard(
     //
     // `lockedIn` and `date` are the Goals step's and are NOT in this call.
     gate.claim()
-    const landed = await patchCheckin('mind_state', today, [
+    const landed = await patchCheckin('mind_state', listDay, [
       { path: ['objectives'], value: objectives },
       { path: ['completedObjectives'], value: next },
     ]) === 'landed'
@@ -211,7 +221,7 @@ export default function DailyObjectivesCard(
   ) : null
 
   return (
-    <div className="tile p-5 relative overflow-hidden">
+    <div id="daily-objectives" className="tile p-5 relative overflow-hidden scroll-mt-24">
       <div className="flex items-center justify-between mb-4 relative z-10">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-brand/10 rounded-lg">

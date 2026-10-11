@@ -61,10 +61,10 @@ if (mount) {
 // The checklist ticks morning_protocol by READING THE ROW (FOR-231 v2). A
 // sibling writing the row fires no same-tab event, so without an explicit
 // signal the item stays unchecked no matter how long the component stays
-// mounted. Both write paths must signal. patchSpirit persists pillar
-// completion; saveMindState persists objectives. They are separate functions,
-// and wiring only the first left objectives saves invisible to the card below
-// them. Each signals only once its write has LANDED in the row.
+// mounted. The write path must signal. patchSpirit persists the protocol,
+// pillar completion and gratitude, and it is the only write path this
+// component has: the Goals step hands objectives to the card (FOR-231,
+// 2026-10-11). It signals only once its write has LANDED in the row.
 const mp = read('../../src/components/MorningProtocol.tsx')
 ok('MorningProtocol reports completion upward', /onSaved/.test(mp),
   'no callback — the checklist cannot learn the protocol was run')
@@ -79,10 +79,10 @@ const bodyOf = (src, decl) => {
   const j = src.indexOf('\n  }', i)
   return j < 0 ? src.slice(i) : src.slice(i, j + 4)
 }
-const saveFns = ['  const patchSpirit = async (', '  const saveMindState = async () => {']
+const saveFns = ['  const patchSpirit = async (']
   .map((d) => bodyOf(mp, d))
 ok('every MorningProtocol save path signals the parent',
-  saveFns.length === 2 && saveFns.every((f) => f.length > 0 && /onSaved\?\.\(\)/.test(f)),
+  saveFns.length === 1 && saveFns.every((f) => f.length > 0 && /onSaved\?\.\(\)/.test(f)),
   'found ' + saveFns.filter((f) => f.length > 0).length + ' save paths, ' +
   saveFns.filter((f) => /onSaved\?\.\(\)/.test(f.slice(0, 1400))).length + ' signalling')
 
@@ -102,14 +102,17 @@ ok('the checklist watcher depends on the tick',
   /\}, \[userId, state\.morning_protocol, protocolTick\]\)/.test(list),
   'watcher deps exclude protocolTick, so it never re-runs mid-session')
 
-// Same signal, same reason: the objectives card loads on mount and the
-// protocol writes objectives beside it. Without the key it shows "no
-// objectives set" next to the ones just entered.
-ok('the objectives card takes a refresh key',
-  /refreshKey/.test(read('../../src/components/DailyObjectivesCard.tsx')),
-  'mount-only loader with no signal — a same-page save is invisible to it')
-ok('dashboard feeds the tick to the objectives card',
-  /<DailyObjectivesCard[\s\S]*?refreshKey=\{protocolTick\}/.test(dash))
+// The objectives card used to take the same signal, because the protocol's
+// Goals step wrote objectives beside it. It is the ONLY writer of objectives
+// now (FOR-231, 2026-10-11), so nothing changes what it shows behind its back
+// and it takes no signal. What must hold instead is that the Goals step sends
+// the athlete to it rather than saving anything itself.
+ok('the objectives card takes no refresh key',
+  !/refreshKey=/.test(dash) && /<DailyObjectivesCard \/>/.test(dash),
+  'the card is fed a signal again — is there a second writer of objectives?')
+ok('the protocol Goals step hands off to the card',
+  /href="#daily-objectives"/.test(mp) && /id="daily-objectives"/.test(read('../../src/components/DailyObjectivesCard.tsx')),
+  'the Goals step has no way to reach the only place objectives are set')
 
 // -- 2d. objectives must be settable without AI -----------------------------
 // The protocol's Goals step sits behind `if (!configured)`, which is only true
@@ -123,12 +126,11 @@ ok('the objectives card can set objectives itself',
 ok('the objectives empty state does not navigate away',
   !/<a href="\/(mind|dashboard)/.test(objCard),
   'still links out instead of editing in place')
-// Both editors write the same shape to the same place, or one silently
-// overwrites the other.
+// One editor, one shape. The protocol must not write any of it.
 for (const field of ['objectives', 'completedObjectives', 'lockedIn']) {
-  ok(`both objective writers persist ${field}`,
-    new RegExp(field).test(objCard) && new RegExp(field).test(mp),
-    'shapes diverge between the card and the protocol Goals step')
+  ok(`the one objective writer persists ${field}, and the protocol does not`,
+    new RegExp(`path: \\['${field}'\\]`).test(objCard) && !new RegExp(`path: \\['${field}'\\]`).test(mp),
+    'the card does not write it, or the protocol Goals step writes it again')
 }
 
 // Objectives render filtered and toggle by the FILTERED index, which writes
@@ -137,7 +139,7 @@ for (const field of ['objectives', 'completedObjectives', 'lockedIn']) {
 // [false,true,false] renders B as done when A is. Both writers store dense,
 // and reads normalise legacy rows by pairing each objective with its own flag
 // BEFORE compacting — compacting the strings alone is the bug, not the fix.
-for (const [label, src] of [['card', objCard], ['protocol', mp]]) {
+for (const [label, src] of [['card', objCard]]) {
   ok(`the ${label} stores objectives dense`,
     /\.map\(o => o\.trim\(\)\)\.filter\(Boolean\)/.test(src),
     'saves a sparse array; completion flags will misalign')

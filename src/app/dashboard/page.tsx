@@ -415,12 +415,10 @@ export default function Dashboard() {
                   onSaved={() => setProtocolTick(t => t + 1)}
                 />
               </div>
-              {/* Objectives are SET in the protocol's Goals step, which writes
-                  mind_state; this card is the only thing that reads them back
-                  and lets you tick them off. Unmounting it while the protocol
-                  still saves objectives left users with a "Saved" confirmation
-                  and nowhere to see what they saved. */}
-              <DailyObjectivesCard refreshKey={protocolTick} />
+              {/* The ONLY place objectives are set and ticked. The protocol's
+                  Goals step points here and writes nothing itself, so this card
+                  takes no refresh signal: nobody else changes what it shows. */}
+              <DailyObjectivesCard />
             </div>
           </motion.div>
 

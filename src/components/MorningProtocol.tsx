@@ -10,21 +10,20 @@ import { isUpgradeRequired } from '../lib/upgradeRequired'
 import { patchCheckin, usePaintGate, type CheckinPatch } from '../lib/checkins'
 
 // A tag names the path its writer owns.
-type SpiritTag = 'protocol' | 'objectives' | 'tick' | 'gratitude'
+type SpiritTag = 'protocol' | 'tick' | 'gratitude'
 
 // What each failed write is called on screen. Record<> rather than a lookup
 // with a fallback, so tsc refuses a tag with no label instead of the screen
 // rendering `undefined`. 'tick' is here too now that every tag is shown.
 const UNSAVED_LABEL: Record<SpiritTag, string> = {
   protocol: 'Not saved',
-  objectives: 'Objectives not saved',
   gratitude: 'Gratitude not saved',
   tick: 'That step did not save',
 }
 // The order they are shown in, so two failures do not swap places between
 // renders. Deriving it from the state array would order them by when they
 // failed, which moves a Retry button under the user's finger.
-const UNSAVED_ORDER: readonly SpiritTag[] = ['protocol', 'objectives', 'gratitude', 'tick']
+const UNSAVED_ORDER: readonly SpiritTag[] = ['protocol', 'gratitude', 'tick']
 import UpgradeModal from './UpgradeModal'
 
 const TIME_OPTIONS = [5, 10, 20, 30]
@@ -90,7 +89,7 @@ export default function MorningProtocol(
   {
     objectives?: string[]
     /**
-     * A write LANDED in the row — protocol or objectives. Siblings that read
+     * A write of the PROTOCOL landed in the row. Siblings that read
      * either re-read the row here. One signal, because there is only one thing
      * it can mean now: the record changed.
      */
@@ -181,38 +180,30 @@ export default function MorningProtocol(
   // Gratitude entries: 3 text inputs
   const [gratitude, setGratitude] = useState(['', '', ''])
 
-  // Goals — synced to Mind tab storage
-  const [mindObjectives, setMindObjectives] = useState(['', '', ''])
-  const [mindSaved, setMindSaved] = useState(false)
+  /**
+   * THE GOALS STEP DOES NOT WRITE OBJECTIVES (Andrew's ruling, 2026-10-11).
+   *
+   * It used to: three inputs here wrote `mind_state`, and so did the daily
+   * objectives card below. Two writers of one list meant the card had to
+   * re-read the row every time this component saved, and that re-read is what
+   * painted a tick back off the screen and let a stale Retry replace newer
+   * objectives (Codex v3 r1). The card is the ONLY writer now. This step
+   * points at it.
+   */
 
-  const saveMindState = async () => {
-    const today = localDay()
-    setUnsaved((u) => u.filter((t) => t !== 'objectives'))
-    // Dense, for the same reason DailyObjectivesCard stores dense: its render
-    // path filters blanks and toggles by the FILTERED index, so a sparse array
-    // misaligns completion flags against objectives. Both writers must agree.
-    const dense = mindObjectives.map(o => o.trim()).filter(Boolean)
-    // ITS OWN FOUR KEYS, IN ONE CALL - the same four the card's Goals write
-    // names, because whichever one the athlete reaches first has to do the
-    // same thing. This used to write mind_state WHOLE, defended as the write
-    // that creates the record; Rebuild runs the Goals step again on a row that
-    // already exists, so it wiped ticked objectives, and after FOR-229 it
-    // would wipe the spiritual rating and any carried-over item too (Blaine's
-    // draft review, 2026-10-04). Keys this step does not name survive it now.
-    gate.claim()
-    const landed = await patchCheckin('mind_state', today, [
-      { path: ['date'], value: today },
-      { path: ['objectives'], value: dense },
-      { path: ['completedObjectives'], value: dense.map(() => false) },
-      { path: ['lockedIn'], value: true },
-    ]) === 'landed'
-    if (!landed) { setUnsaved((u) => (u.includes('objectives') ? u : [...u, 'objectives'])); return }
-    setMindSaved(true)
-    // DailyObjectivesCard renders directly below this component and reads
-    // mind_state; without this it keeps showing "no objectives set" beside the
-    // Saved confirmation until a reload. Fired only now the row holds them.
-    onSaved?.()
-  }
+  /**
+   * THE PROTOCOL ON SCREEN IS NOT IN THE ROW, as far as this tab knows: its own
+   * save failed, or the database refused a sub-path for want of an entry. That
+   * is the 'protocol' failure already on the screen, nothing more — it is this
+   * tab's knowledge of its own write, not a read of the row.
+   *
+   * While it stands, steps and gratitude take no writes (Codex v3 r1): after a
+   * Rebuild whose save failed, the row still holds the PREVIOUS protocol, which
+   * is a valid entry for the day, so the database accepts a tick made on the
+   * new one and files it under the old. Nothing is lost by refusing: the
+   * protocol's Retry writes the whole entry off the screen, gratitude included.
+   */
+  const protocolUnsaved = unsaved.includes('protocol')
 
   useEffect(() => {
     // The row decides what is on this screen. The 4am-cutoff day can span two
@@ -375,7 +366,7 @@ export default function MorningProtocol(
    * (Blaine's ruling, 2026-10-01).
    */
   const toggleStep = async (i: number) => {
-    if (!protocol || !entryDay || writingRef.current) return
+    if (!protocol || !entryDay || writingRef.current || protocolUnsaved) return
     const next = [...completed]
     next[i] = !next[i]
     // ONE FIELD. A tick owns {morning,completed}; the protocol and the
@@ -409,11 +400,12 @@ export default function MorningProtocol(
   // database decides: no entry, and the write is refused and the screen says
   // the protocol is not saved, with a Retry that carries this gratitude.
   //
-  // The one case it does not write is a write already in flight, and then
-  // there is nothing to write: the inputs are read-only for exactly that
-  // span, so the text cannot have changed since the blur that started it.
+  // The cases it does not write are a write already in flight, and a protocol
+  // that is itself not saved. In both there is nothing to lose: the inputs
+  // are read-only for exactly those spans, and the protocol's Retry carries
+  // whatever gratitude is on the screen.
   const commitGratitude = () => {
-    if (!protocol || !entryDay || writingRef.current) return
+    if (!protocol || !entryDay || writingRef.current || protocolUnsaved) return
     void patchSpirit(entryDay, [{ path: ['morning', 'gratitude'], value: gratitude }], 'gratitude')
   }
 
@@ -438,7 +430,6 @@ export default function MorningProtocol(
   // it is pressed. One Retry that rewrote the whole entry would hand every
   // failure the clobbering this ticket exists to prevent.
   const retryOf = (tag: SpiritTag) => () => {
-    if (tag === 'objectives') { void saveMindState(); return }
     if (!protocol || !entryDay || writingRef.current) return
     if (tag === 'gratitude') { void patchSpirit(entryDay, [{ path: ['morning', 'gratitude'], value: gratitude }], 'gratitude'); return }
     void patchSpirit(entryDay, [{ path: ['morning'], value: morningEntry(entryDay, protocol, completed, gratitude) }])
@@ -460,7 +451,7 @@ export default function MorningProtocol(
           {/* A failed tick has nothing to retry: the screen never moved, so the
               step is still as the row has it and tapping it again IS the retry. */}
           {tag !== 'tick' && (
-            <button type="button" onClick={retryOf(tag)} disabled={writing && tag !== 'objectives'} className="btn-ghost text-xs shrink-0 disabled:saturate-[.15]">
+            <button type="button" onClick={retryOf(tag)} disabled={writing} className="btn-ghost text-xs shrink-0 disabled:saturate-[.15]">
               Retry
             </button>
           )}
@@ -589,7 +580,13 @@ export default function MorningProtocol(
           <h3 className="font-light text-lg tracking-tight leading-tight">{protocol?.theme}</h3>
         </div>
         <button
-          onClick={() => { if (writingRef.current) return; setConfigured(false); setEntryDay(null); setProtocol(null); setCompleted([]); setGratitude(['', '', '']) }}
+          onClick={() => {
+            if (writingRef.current) return
+            setConfigured(false); setEntryDay(null); setProtocol(null); setCompleted([]); setGratitude(['', '', ''])
+            // The protocol is discarded, so its failures go with it: a banner
+            // left up here offered a Retry with nothing to retry (Codex v3 r1).
+            setUnsaved([])
+          }}
           disabled={writing}
           className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors disabled:saturate-[.15]"
           title="Rebuild"
@@ -656,7 +653,7 @@ export default function MorningProtocol(
               >
                 <button
                   onClick={(e) => { e.stopPropagation(); void toggleStep(i) }}
-                  disabled={writing}
+                  disabled={writing || protocolUnsaved}
                   className="flex-shrink-0 transition-all disabled:saturate-[.15]"
                 >
                   {isDone
@@ -700,7 +697,7 @@ export default function MorningProtocol(
                             value={gratitude[j]}
                             onChange={e => updateGratitude(j, e.target.value)}
                             onBlur={commitGratitude}
-                            readOnly={writing}
+                            readOnly={writing || protocolUnsaved}
                             placeholder={
                               j === 0 ? 'My family...' :
                               j === 1 ? 'My health...' :
@@ -713,49 +710,16 @@ export default function MorningProtocol(
                     </div>
 
                   ) : step.pillar === 'Goals' || step.pillar === 'Goals & Journal' ? (
-                    /* Goals — inline objectives that sync to the Mind tab */
-                    <div className="space-y-4">
-                      {/* Daily Objectives */}
-                      <div className="space-y-2">
-                        <p className="text-[10px] lowercase text-muted-foreground font-medium">Today&apos;s objectives</p>
-                        {[0, 1, 2].map(j => (
-                          <div key={j} className="flex items-center gap-2">
-                            <span className="text-[10px] text-muted-foreground font-mono w-5 shrink-0">0{j + 1}</span>
-                            <input
-                              type="text"
-                              value={mindObjectives[j]}
-                              onChange={e => {
-                                const next = [...mindObjectives]
-                                next[j] = e.target.value
-                                setMindObjectives(next)
-                                setMindSaved(false)
-                              }}
-                              placeholder={
-                                j === 0 ? 'Primary objective for today...' :
-                                j === 1 ? 'Secondary focus...' :
-                                'One more thing...'
-                              }
-                              className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-border transition-colors"
-                            />
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Save button */}
-                      {!mindSaved ? (
-                        <button
-                          onClick={saveMindState}
-                          disabled={!mindObjectives.some(o => o.trim())}
-                          className="w-full flex items-center justify-center gap-2 bg-muted border border-border hover:bg-muted text-muted-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:bg-surface-2 disabled:border-transparent disabled:cursor-not-allowed disabled:cursor-not-allowed"
-                        >
-                          <Target size={12} /> Save to Mind Tab
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
-                          <CheckCircle2 size={13} />
-                          Saved
-                        </div>
-                      )}
+                    /* Goals — handed to the daily objectives card, the only
+                       writer of objectives. Nothing is typed or saved here. */
+                    <div className="space-y-2">
+                      <p className="text-[10px] lowercase text-muted-foreground font-medium">Today&apos;s objectives</p>
+                      <p className="text-sm text-muted-foreground font-light leading-relaxed">
+                        Set your three in Daily Objectives, just below this protocol. Then come back and mark this step done.
+                      </p>
+                      <a href="#daily-objectives" className="btn-ghost text-xs inline-flex items-center gap-1.5">
+                        <Target size={12} /> Go to Daily Objectives <ArrowRight size={12} />
+                      </a>
                     </div>
 
                   ) : (
@@ -767,7 +731,7 @@ export default function MorningProtocol(
 
                   <button
                     onClick={() => { void toggleStep(i) }}
-                    disabled={writing}
+                    disabled={writing || protocolUnsaved}
                     className="w-full bg-muted hover:bg-foreground hover:text-background text-foreground font-medium py-2.5 rounded-lg text-xs lowercase transition-all disabled:saturate-[.15]"
                   >
                     Mark Complete ✓

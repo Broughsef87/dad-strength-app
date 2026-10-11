@@ -225,8 +225,6 @@ const WRITERS = [
   ['MorningProtocol generation', mp, '  const generate = async () => {', [['morning']]],
   ['MorningProtocol step tick', mp, '  const toggleStep = async (i: number) => {', [['morning', 'completed']]],
   ['MorningProtocol gratitude', mp, '  const commitGratitude = () => {', [['morning', 'gratitude']]],
-  ['MorningProtocol Goals step', mp, '  const saveMindState = async () => {',
-    [['date'], ['objectives'], ['completedObjectives'], ['lockedIn']]],
   ["the card's Goals write", card, '  const saveDraft = async () => {',
     [['date'], ['objectives'], ['completedObjectives'], ['lockedIn']]],
   // The PAIR, not one half of it: objectives and completedObjectives are
@@ -247,8 +245,7 @@ for (const [label, src, decl, want] of WRITERS) {
 // The four mind_state keys are ONE call, because objectives and
 // completedObjectives are paired by index: as two calls the row holds a new
 // list against the old list's flags between them.
-for (const [label, src, decl] of [['MorningProtocol', mp, '  const saveMindState = async () => {'],
-                                  ['the card', card, '  const saveDraft = async () => {']]) {
+for (const [label, src, decl] of [['the card', card, '  const saveDraft = async () => {']]) {
   assert((body(src, decl).match(/patchCheckin\(/g) ?? []).length === 1,
     `${label}'s Goals write sends its four keys in one call`)
 }
@@ -299,10 +296,10 @@ assert(/setConfigured\(false\); setEntryDay\(null\);/.test(mp), 'Rebuild clears 
 // NO SILENT RETURN FOR GRATITUDE. Its only early return is a write already in
 // flight, and the inputs are read-only for exactly that span.
 const gratSrc = body(mp, '  const commitGratitude = () => {')
-assert(/if \(!protocol \|\| !entryDay \|\| writingRef\.current\) return/.test(gratSrc),
-  'gratitude on blur writes unless there is no protocol or a write is already in flight')
-assert((mp.match(/readOnly=\{writing\}/g) ?? []).length === 1 && /onBlur=\{commitGratitude\}\n\s*readOnly=\{writing\}/.test(mp),
-  'and the gratitude inputs are read-only while a write is in flight, so that early return has nothing to lose')
+assert(/if \(!protocol \|\| !entryDay \|\| writingRef\.current \|\| protocolUnsaved\) return/.test(gratSrc),
+  'gratitude on blur writes unless there is no protocol, a write is already in flight, or the protocol itself is not saved')
+assert((mp.match(/readOnly=\{writing \|\| protocolUnsaved\}/g) ?? []).length === 1 && /onBlur=\{commitGratitude\}\n\s*readOnly=\{writing \|\| protocolUnsaved\}/.test(mp),
+  'and the gratitude inputs are read-only for exactly those spans, so those early returns have nothing to lose')
 // A REFUSAL FOR NO ENTRY IS RAISED AS THE PROTOCOL'S FAILURE, whose Retry
 // writes the whole entry off the screen — the one write that can make it.
 assert(/const tag: SpiritTag = result === 'no-entry' \? 'protocol' : as/.test(mp),
@@ -321,13 +318,61 @@ for (const [label, decl] of [
   ['generation', '  const generate = async () => {'],
   ['the Retry', '  const retryOf = (tag: SpiritTag) => () => {'],
 ]) {
-  assert(/writingRef\.current\) return/.test(body(mp, decl)), `${label} refuses while a write is in flight`)
+  assert(/writingRef\.current(?: \|\| protocolUnsaved)?\) return/.test(body(mp, decl)), `${label} refuses while a write is in flight`)
 }
-assert(/onClick=\{\(\) => \{ if \(writingRef\.current\) return; setConfigured\(false\)/.test(mp) && /setGratitude\(\['', '', ''\]\) \}\}\n\s*disabled=\{writing\}/.test(mp),
+const rebuild = mp.slice(mp.indexOf('          onClick={() => {\n            if (writingRef.current) return\n            setConfigured(false)'), mp.indexOf('          title="Rebuild"'))
+assert(rebuild.length > 0 && /\n          disabled=\{writing\}\n/.test(rebuild),
   'Rebuild refuses, and is disabled, while a write is in flight')
-assert((mp.match(/disabled=\{writing\}/g) ?? []).length === 3, 'both step buttons and Rebuild are disabled while writing')
+assert((mp.match(/disabled=\{writing \|\| protocolUnsaved\}/g) ?? []).length === 2, 'both step buttons are disabled while writing, and while the protocol is not saved')
 assert(/disabled=\{loading \|\| writing\}/.test(mp), 'Build is disabled while writing')
-assert(/disabled=\{writing && tag !== 'objectives'\}/.test(mp), 'every spirit Retry is disabled while writing')
+assert(/onClick=\{retryOf\(tag\)\} disabled=\{writing\}/.test(mp), 'every Retry is disabled while writing')
+
+// ── A PROTOCOL THAT IS NOT SAVED TAKES NO TICKS AND NO GRATITUDE (v3 r1) ───
+// After a Rebuild whose save failed, the row still holds the PREVIOUS
+// protocol, a valid entry for the day, so the database accepts a tick made on
+// the new one and files it under the old. The tab knows its own save failed:
+// that is the 'protocol' failure on screen. Nothing is lost by refusing,
+// because the protocol's Retry writes the whole entry off the screen.
+assert(/const protocolUnsaved = unsaved\.includes\('protocol'\)/.test(mp),
+  "the protocol's own outstanding failure is read off the failure list, not kept as a second fact")
+assert(/if \(!protocol \|\| !entryDay \|\| writingRef\.current \|\| protocolUnsaved\) return/.test(body(mp, '  const toggleStep = async (i: number) => {')),
+  'a step tick refuses while the protocol itself is not saved')
+assert(!/protocolUnsaved/.test(body(mp, '  const retryOf = (tag: SpiritTag) => () => {')),
+  "and the protocol's Retry is NOT gated on it — it is the way out")
+// REBUILD RETIRES THE DISCARDED PROTOCOL'S FAILURES (v3 r1, P3). Every tag in
+// this component now belongs to the protocol on screen, so discarding it
+// clears them all — and that is the ONLY place the list is emptied.
+assert(/setUnsaved\(\[\]\)/.test(rebuild) && (mp.match(/setUnsaved\(\[\]\)/g) ?? []).length === 1,
+  'Rebuild clears the failures of the protocol it discards, and nothing else empties the list')
+
+// ── ONE WRITER OF THE OBJECTIVES (Andrew's ruling, 2026-10-11) ─────────────
+// The Goals step wrote mind_state and so did the card, so the card re-read the
+// row on every protocol save. That re-read painted a tick back off the screen
+// and let a failed draft's Retry replace objectives saved from the other
+// writer (Codex v3 r1, the two findings that stopped the round). The step
+// hands off to the card now, and the card reads once.
+const mpCode = mp.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*/g, '')
+assert(!/mind_state/.test(mpCode), 'no code in MorningProtocol names mind_state — it does not read or write objectives')
+assert(!/saveMindState|mindObjectives|mindSaved/.test(mp), "the Goals step's inputs, its save and its Saved state are gone")
+assert((mpCode.match(/patchCheckin\(/g) ?? []).length === 1 && /patchCheckin\('spirit_state', day, patches\)/.test(mpCode),
+  'MorningProtocol calls the writer in exactly one place, for spirit_state')
+assert(/<a href="#daily-objectives"/.test(mp) && /<div id="daily-objectives"/.test(card),
+  'the Goals step points at the card, and the card carries the anchor it points at')
+assert(!/refreshKey/.test(card.replace(/\/\/.*/g, '')) && /export default function DailyObjectivesCard\(\) \{/.test(card),
+  'the card takes no refresh signal at all')
+assert(/    load\(\)\n[\s\S]{0,200}\}, \[\]\)/.test(card), 'and reads the row once, on mount')
+assert(/<DailyObjectivesCard \/>/.test(dash) && !/refreshKey/.test(dash), 'the dashboard feeds the card nothing')
+const cardWriters = [...card.matchAll(/patchCheckin\('mind_state', (\w+),/g)].map((m) => m[1])
+assert(cardWriters.join(',') === 'today,listDay', `the card has exactly two writes of mind_state, the draft and the tick — got ${cardWriters.join(',')}`)
+
+// ── A TICK GOES TO THE DAY OF THE LIST ON SCREEN (v3 r1) ───────────────────
+// Recomputed at tick time, a list loaded before midnight and ticked after it
+// was ticked into the next day's row, which had no lockedIn — a reload showed
+// a blank editor. Same rule as the protocol's entryDay.
+assert(/const \[listDay, setListDay\] = useState<string \| null>\(null\)/.test(card), 'the card holds the day of the list on screen')
+assert((card.match(/setListDay\(today\)/g) ?? []).length === 2, 'set by the read, and by a draft that landed — and nowhere else')
+assert(/if \(!locked \|\| saving \|\| !listDay\) return/.test(card) && !/const today = localDay\(\)/.test(body(card, '  const toggle = async (i: number) => {')),
+  'the tick writes to that day and never recomputes today')
 
 // patchCheckin answers with a STRING now, and a string is always truthy — so
 // `if (!landed)` on its result would never fire, and tsc cannot see it. Every
@@ -361,10 +406,6 @@ assert(/export const NO_ENTRY = 'CK001'/.test(lib)
 
 assert(/if \(result !== 'landed'\) \{[\s\S]{0,200}return false\n    \}/.test(mp),
   'a spirit write that did not land answers false, so the caller cannot tick the screen')
-assert(/if \(!landed\) \{ setUnsaved\(\(u\) => \(u\.includes\('objectives'\) \? u : \[\.\.\.u, 'objectives'\]\)\); return \}/.test(mp),
-  'an objectives write that did not land says so and stops')
-assert(/if \(!landed\)[\s\S]{0,80}return \}\n    setMindSaved\(true\)/.test(mp),
-  'the objectives Saved confirmation is only reached once the row has them')
 assert(!/onSaved\?\.\(\)[\s\S]{0,400}await patchCheckin\(/.test(mp),
   'the save signal is never fired before the write')
 
@@ -386,7 +427,7 @@ assert(before(stepFn, 'await patchSpirit(', 'setCompleted('),
 assert(!/const before = completed/.test(card),
   'no snapshot of what the screen held — there is no paint to roll back to')
 assert(!/setCompleted\(before\)/.test(card), 'nothing rolls a paint back')
-assert(/if \(!locked \|\| saving\) return/.test(toggleFn) && /if \(!protocol \|\| !entryDay \|\| writingRef\.current\) return/.test(stepFn),
+assert(/if \(!locked \|\| saving \|\| !listDay\) return/.test(toggleFn) && /if \(!protocol \|\| !entryDay \|\| writingRef\.current \|\| protocolUnsaved\) return/.test(stepFn),
   'a write in flight stops a second one starting, so two writes of this row never race')
 
 // A retry carries a TAG, never a payload. A captured closure holds the draft it
@@ -403,21 +444,26 @@ for (const [name, src] of [['the objectives card', card], ['MorningProtocol', mp
 // hold a function, which is the guard a regex cannot be.
 assert(/useState<readonly \('draft' \| 'tick'\)\[\]>\(\[\]\)/.test(card),
   'the card names which writeS failed and its type cannot hold a closure')
-assert(/type SpiritTag = 'protocol' \| 'objectives' \| 'tick' \| 'gratitude'/.test(mp),
+assert(/type SpiritTag = 'protocol' \| 'tick' \| 'gratitude'/.test(mp),
   'the protocol has one tag per owned path')
 assert(/useState<readonly SpiritTag\[\]>\(\[\]\)/.test(mp),
   'the protocol names which writeS failed and its type cannot hold a closure')
 // EACH WRITER CLEARS ONLY ITS OWN. This is the P1: a successful write on one
 // path cleared another writer's failure tag and its Retry, leaving a protocol
 // on screen that the row did not have and nothing saying so.
-for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+// The protocol has ONE writer function now (patchSpirit) serving three tags,
+// so it clears and adds in one place each, by the tag it was called with. The
+// card has two writer functions. Rebuild's wholesale clear is asserted above.
+for (const [name, src, writers] of [['MorningProtocol', mp, 1], ['the objectives card', card, 2]]) {
   assert(!/setUnsaved\(null\)/.test(src), `${name} never clears every failure at once`)
-  assert(!/setUnsaved\(\[\]\)/.test(src), `${name} does not clear them all by assigning an empty list either`)
-  assert((src.match(/setUnsaved\(\(u\) => u\.filter\(/g) ?? []).length >= 2,
+  if (name !== 'MorningProtocol') assert(!/setUnsaved\(\[\]\)/.test(src), `${name} does not clear them all by assigning an empty list either`)
+  assert((src.match(/setUnsaved\(\(u\) => u\.filter\(/g) ?? []).length === writers,
     `${name}'s writers each clear only their own tag`)
-  assert((src.match(/setUnsaved\(\(u\) => \(u\.includes\(/g) ?? []).length >= 2,
+  assert((src.match(/setUnsaved\(\(u\) => \(u\.includes\(/g) ?? []).length === writers,
     `${name}'s writers each ADD their own tag on failure, leaving the others standing`)
 }
+assert(/setUnsaved\(\(u\) => u\.filter\(\(t\) => t !== as\)\)/.test(mp) && /setUnsaved\(\(u\) => \(u\.includes\(tag\) \? u : \[\.\.\.u, tag\]\)\)/.test(mp),
+  'the spirit writer clears the tag it was called as, and adds the tag that failed')
 // A failed tick has nothing to retry: the screen never moved, so the step is
 // still as the row has it and tapping it again IS the retry. Offering Retry
 // there saved the unchanged array and cleared the warning (Codex r2).
@@ -432,7 +478,7 @@ for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card
 }
 // In a FIXED order, so two failures do not swap places between renders and
 // move a Retry button under the user's finger.
-assert(/const UNSAVED_ORDER: readonly SpiritTag\[\] = \['protocol', 'objectives', 'gratitude', 'tick'\]/.test(mp),
+assert(/const UNSAVED_ORDER: readonly SpiritTag\[\] = \['protocol', 'gratitude', 'tick'\]/.test(mp),
   'and in a fixed order rather than by when they failed')
 assert(/'That step did not save/.test(mp), 'a failed tick says to tap it again')
 assert(/patchSpirit\(entryDay, \[\{ path: \['morning', 'completed'\], value: next \}\], 'tick'\)/.test(mp),
@@ -445,8 +491,6 @@ assert(/patchSpirit\(entryDay, \[\{ path: \['morning', 'completed'\], value: nex
 // refuse a tag with no label rather than rendering `undefined`.
 const retry = body(mp, '  const retryOf = (tag: SpiritTag) => () => {')
 assert(retry.length > 0, 'the retry is found by name')
-assert(/tag === 'objectives'[\s\S]{0,120}saveMindState\(\)/.test(retry),
-  'a failed objectives write is retried as an objectives write')
 assert(/tag === 'gratitude'[\s\S]{0,160}path: \['morning', 'gratitude'\]/.test(retry),
   'a failed gratitude write is retried as a gratitude write, not as the whole entry')
 assert(/morningEntry\(entryDay, protocol, completed, gratitude\)/.test(retry),
@@ -556,7 +600,6 @@ assert(before(mpRead, 'gate.mayPaint(claim)', 'setProtocol('),
 // row, so there is no older value it could be painting over.
 for (const [label, src, decl] of [
   ['the spirit writer', mp, '  const patchSpirit = async ('],
-  ['the Goals step', mp, '  const saveMindState = async () => {'],
   ["the card's Goals write", card, '  const saveDraft = async () => {'],
   ["the card's objective tick", card, '  const toggle = async (i: number) => {'],
 ]) {

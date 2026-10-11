@@ -59,16 +59,18 @@ assert(/const day = todayKey\(\)/.test(mp) && /m\.date !== day\) continue/.test(
 // ── 4. mind_state keeps its own day, and neither write reaches the other ───
 // The objectives are NOT a morning-routine entry and are not subject to the
 // 4am cutoff: they are keyed on the calendar day, and were before this ticket.
-assert(/const today = localDay\(\)[\s\S]{0,1800}patchCheckin\('mind_state', today,/.test(mp),
+// One writer of objectives since 2026-10-11 (FOR-231, Andrew's ruling): the
+// daily objectives card. The protocol's Goals step hands off to it.
+const card = readLF('../../src/components/DailyObjectivesCard.tsx')
+assert(/const today = localDay\(\)[\s\S]{0,1800}patchCheckin\('mind_state', today,/.test(card),
   'objectives still write mind_state under the calendar day')
 // Not vacuous: one call names one column, and the column is an argument now,
 // so a writer reaching into the other one would read as plainly as this does.
 const spiritFn = mp.slice(mp.indexOf('  const patchSpirit = async ('), mp.indexOf('  const generate = async () => {'))
 assert(spiritFn.length > 0 && /'spirit_state'/.test(spiritFn) && !/mind_state/.test(spiritFn),
   'the spirit writer names spirit_state and never mind_state')
-const goalsFn = mp.slice(mp.indexOf('  const saveMindState = async () => {'), mp.indexOf('  useEffect(() => {'))
-assert(goalsFn.length > 0 && /'mind_state'/.test(goalsFn) && !/spirit_state/.test(goalsFn),
-  'the Goals step names mind_state and never spirit_state')
+assert(!/patchCheckin\('mind_state'/.test(mp) && /'mind_state'/.test(card) && !/spirit_state/.test(card),
+  'the protocol never writes mind_state, and the card names mind_state and never spirit_state')
 
 // ── verdict ─────────────────────────────────────────────────────────────────
 if (fails.length) {

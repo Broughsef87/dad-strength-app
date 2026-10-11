@@ -176,12 +176,14 @@ assert(/if \(protocolTick === 0\) return[\s\S]{0,500}fetchProtocolDays\([\s\S]{0
 const mp = readLF('../../src/components/MorningProtocol.tsx')
 assert(!mp.includes('onProtocolSaved') && !dash.includes('onProtocolSaved'),
   'the protocol-only signal is gone — it existed to time a cache read')
-assert((mp.match(/onSaved\?\.\(\)/g) || []).length === 2,
-  'MorningProtocol announces a landed write from both of its two write paths')
+assert((mp.match(/onSaved\?\.\(\)/g) || []).length === 1,
+  'MorningProtocol announces a landed write from its one write path')
 assert(/onSaved=\{\(\) => setProtocolTick\(t => t \+ 1\)\}/.test(dash),
   'the dashboard wires that one signal to its one tick')
-assert(/<DailyObjectivesCard refreshKey=\{protocolTick\}/.test(dash) && /protocolTick=\{protocolTick\}/.test(dash),
-  'the objectives card and the checklist follow the same signal')
+// The objectives card no longer follows it: it is the only writer of
+// objectives (FOR-231, 2026-10-11), so a protocol save changes nothing it shows.
+assert(/<DailyObjectivesCard \/>/.test(dash) && /protocolTick=\{protocolTick\}/.test(dash),
+  'the checklist follows that signal, and the objectives card takes none')
 assert(dash.includes('trainingAdherence('), 'the dashboard computes the weekly training number')
 assert(/training\.done\}\/\{training\.prescribed\}/.test(dash), 'the weekly number renders done/prescribed')
 assert(/protocolDays\.done\}\/\{protocolDays\.window\}/.test(dash), 'the daily number renders done/window')
