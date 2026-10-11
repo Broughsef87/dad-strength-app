@@ -1,0 +1,703 @@
+// ── The record is the row (FOR-231 v2) ───────────────────────────────────────
+// daily_checkins is the morning protocol (spirit_state) and the day's
+// objectives (mind_state). Nothing about a check-in is kept in localStorage —
+// no cache, no mirror, no optimistic layer — so there is never a second copy
+// and never a question about which copy wins.
+//
+// v1 of this ticket demoted localStorage to a paint layer and kept unsaved
+// changes alive until the row had them. That cost 41 Codex rounds, ~35 of them
+// on questions that only exist once a change outlives the screen it was made
+// on. v2 deletes the second copy instead of adjudicating it. This check is what
+// stops it growing back.
+//
+// Its own file, so a revert of the feature cannot take the check with it.
+//
+//   node --import tsx scripts/checks/checkin-record.mjs   (run-all does this)
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
+
+let checks = 0
+const fails = []
+const assert = (cond, msg) => { checks++; if (!cond) fails.push(msg) }
+
+const root = fileURLToPath(new URL('../../', import.meta.url))
+const readLF = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+// A file this suite reads can be ABSENT — that is what a revert of the writer
+// looks like — and the suite then has to FAIL with a message rather than crash
+// before a single assertion has run. Red with no message proves nothing.
+const readSoft = (p) => (existsSync(join(root, p)) ? readLF(p) : '')
+
+// Imported for its behaviour, and imported LOUDLY. A tree where the record rule
+// is not exported yet is a tree this check must FAIL on, with a message, rather
+// than crash on before a single assertion has run.
+let record = null
+let recordError = null
+try {
+  record = await import('../../src/lib/adherence.ts')
+} catch (e) {
+  recordError = e
+}
+
+// The paint rule, imported for its BEHAVIOUR rather than read as text.
+let gateFactory = null
+let gateError = null
+try {
+  gateFactory = (await import('../../src/lib/checkins.ts')).paintGate
+} catch (e) {
+  gateError = e
+}
+
+/** Every .ts/.tsx file under src/, so a new one cannot quietly reintroduce a copy. */
+function sourceFiles(dir = 'src') {
+  const out = []
+  for (const name of readdirSync(join(root, dir))) {
+    const rel = dir + '/' + name
+    if (statSync(join(root, rel)).isDirectory()) out.push(...sourceFiles(rel))
+    else if (/\.(ts|tsx)$/.test(name)) out.push(rel)
+  }
+  return out
+}
+const SRC = sourceFiles()
+const ALL = new Map(SRC.map((p) => [p, readLF(p)]))
+
+// ── 1. localStorage holds nothing about a check-in ───────────────────────────
+// The two keys are gone from the whole tree, not only from the files that used
+// to hold them: what is being prevented is a SECOND copy existing anywhere.
+for (const key of ['dad-strength-morning-protocol', 'dad-strength-mind-state']) {
+  const holders = SRC.filter((p) => ALL.get(p).includes(key))
+  assert(holders.length === 0, `no file under src/ names ${key} — found in ${holders.join(', ')}`)
+}
+
+for (const p of ['src/components/MorningProtocol.tsx', 'src/components/DailyObjectivesCard.tsx']) {
+  assert(!/localStorage\s*\.\s*\w+/.test(ALL.get(p)), `${p} never touches localStorage`)
+}
+
+// The check-in surface is every file that touches the two columns. Those files
+// may still use localStorage for things that are not check-ins — which program
+// is deployed, which workout is open — and for nothing else. Scoped this way the
+// rule follows the surface as it grows, instead of policing unrelated features.
+const CHECKIN_FILES = SRC.filter((p) => /spirit_state|mind_state/.test(ALL.get(p)))
+// A floor on the count would pass while the scan quietly lost a file, which
+// would make the stray-key rule below vacuous for it. So the surface is named:
+// every file that must be in it, is in it.
+const MUST_BE_CHECKIN = [
+  'src/app/dashboard/page.tsx',
+  'src/components/DailyObjectivesCard.tsx',
+  'src/components/FirstWeekChecklist.tsx',
+  'src/components/MorningProtocol.tsx',
+  'src/lib/adherence.ts',
+]
+const missedSurface = MUST_BE_CHECKIN.filter((p) => !CHECKIN_FILES.includes(p))
+assert(missedSurface.length === 0, `the check-in surface found by reading the tree includes every file that owns check-in state — missing ${missedSurface.join(', ')}`)
+const NON_CHECKIN_KEYS = new Set([
+  "'activeWorkoutId'", "'activeProgramConfig'", "'dad-strength-active-program'", "'onboardingComplete'",
+])
+const stray = []
+for (const p of CHECKIN_FILES) {
+  for (const m of ALL.get(p).matchAll(/localStorage\s*\.\s*(?:get|set|remove)Item\(\s*([^,)]+)/g)) {
+    if (!NON_CHECKIN_KEYS.has(m[1].trim())) stray.push(p + ' -> ' + m[1].trim())
+  }
+}
+assert(stray.length === 0, `no file that touches spirit_state or mind_state keeps check-in state in localStorage — stray: ${stray.join(', ')}`)
+
+// ── 2. the negotiation machinery is gone, by name and by file ────────────────
+for (const name of ['reconcileLocal', 'localMatchesMirror', 'pendingLocalSave', 'onProtocolSaved']) {
+  const holders = SRC.filter((p) => ALL.get(p).includes(name))
+  assert(holders.length === 0, `${name} is gone from src/ — found in ${holders.join(', ')}`)
+}
+
+const adh = ALL.get('src/lib/adherence.ts')
+for (const fn of ['tier', 'newer', 'rank']) {
+  assert(!new RegExp('function ' + fn + '\\s*\\(').test(adh),
+    `adherence.ts has no ${fn}() — the row-vs-row ranking is deleted, not renamed`)
+}
+
+for (const f of ['src/lib/checkinQueue.ts', 'src/lib/objectivesOutbox.ts', 'src/lib/objectivesRecord.ts',
+                 'src/lib/serialWriter.ts', 'src/lib/unloadGuard.ts']) {
+  assert(!existsSync(join(root, f)), `${f} does not exist — v1's retention machinery stays deleted`)
+}
+
+// The bounded re-read loop: the dashboard waited for the row to catch up with
+// the cache. With no cache there is nothing to wait for.
+const dash = ALL.get('src/app/dashboard/page.tsx')
+assert(!/setTimeout/.test(dash), 'the dashboard has no timed re-read — a landed save is read once')
+assert(!/attempt\s*<\s*\d/.test(dash), 'the dashboard has no bounded retry loop')
+assert((dash.match(/useState\(0\)/g) ?? []).length === 1,
+  'the dashboard carries ONE save signal, not a general one plus a protocol-only one')
+
+const guards = SRC.filter((p) => ALL.get(p).includes('beforeunload'))
+assert(guards.length === 0, `nothing under src/ warns on unload — found in ${guards.join(', ')}`)
+
+// ── 3. behaviour: the count reads the record row, and only that ──────────────
+assert(record !== null && typeof record.isRecordRow === 'function' && typeof record.protocolCompleteDays === 'function',
+  'src/lib/adherence.ts exports the record rule (isRecordRow, protocolCompleteDays) — '
+  + (recordError ? String(recordError).split('\n')[0] : 'one of them is missing'))
+
+if (record !== null && typeof record.isRecordRow === 'function') {
+  const { isRecordRow, protocolCompleteDays, rollingDays } = record
+  const eq = (got, want, msg) => {
+    checks++
+    if (JSON.stringify(got) !== JSON.stringify(want)) {
+      fails.push(`${msg} — got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`)
+    }
+  }
+  const steps = (n) => ({ steps: new Array(n).fill({}) })
+  const row = (day, on, done, protocolSteps = done.length) =>
+    ({ morning: { date: day, protocol: steps(protocolSteps), completed: done }, row: on })
+
+  eq(protocolCompleteDays([row('2026-09-20', '2026-09-20', [true, true, true])]), ['2026-09-20'],
+    'a fully ticked entry in the row keyed on its own day is a done day')
+  eq(protocolCompleteDays([row('2026-09-20', '2026-09-20', [true, false, true])]), [],
+    'a partly ticked entry is not a done day')
+  eq(protocolCompleteDays([row('2026-09-20', '2026-09-20', [true, true], 3)]), [],
+    'an entry whose tick count disagrees with its step count is not judged done')
+
+  // The row-key transition, stated as behaviour. A legacy row — keyed on the
+  // calendar day, so a 1am finish landed in the NEXT day's row — is not the
+  // record and is not counted, however complete it looks.
+  eq(protocolCompleteDays([row('2026-09-12', '2026-09-13', [true, true, true])]), [],
+    'a legacy row whose date differs from the entry it carries is not the record')
+  eq(protocolCompleteDays([
+    row('2026-09-12', '2026-09-12', [true, false, false]),
+    row('2026-09-12', '2026-09-13', [true, true, true]),
+  ]), [],
+    "the record row decides even when a complete legacy row exists for the same day — the ticket's row 9, deleted rather than answered")
+  eq(protocolCompleteDays([{ morning: { date: '2026-09-20', protocol: steps(1), completed: [true] } }]), [],
+    'an entry with no row is not the record — nothing produces that shape now')
+  eq(protocolCompleteDays([
+    row('2026-09-20', '2026-09-20', [true]),
+    row('2026-09-20', '2026-09-20', [true]),
+  ]), ['2026-09-20'],
+    'one day key, however many times the record row is handed over')
+
+  assert(isRecordRow(row('2026-09-20', '2026-09-20', [true])), "isRecordRow: the row keyed on the entry's day IS the record")
+  assert(!isRecordRow(row('2026-09-20', '2026-09-21', [true])), 'isRecordRow: any other row is not')
+  assert(!isRecordRow({ morning: { date: undefined }, row: undefined }), 'isRecordRow: an entry with no day is not the record')
+  assert(!isRecordRow(null), 'isRecordRow: nothing is not the record')
+
+  // ── 4. the transition ages out of the window on its own ───────────────────
+  // Pre-fix rows stopped being written on 2026-09-13 (1111342). The daily
+  // number is a 20-day rolling window, so the oldest day it counts is
+  // today − 19: from 2026-10-03 no pre-fix day is inside it, and the legacy
+  // case above can never fire again.
+  const PRE_FIX_LAST_DAY = '2026-09-13'
+  assert(rollingDays([PRE_FIX_LAST_DAY], '2026-09-29', 20).done === 1,
+    'on 2026-09-29 the last pre-fix day is still inside the 20-day window')
+  assert(rollingDays([PRE_FIX_LAST_DAY], '2026-10-02', 20).done === 1,
+    'on 2026-10-02 it is still inside the window')
+  assert(rollingDays([PRE_FIX_LAST_DAY], '2026-10-03', 20).done === 0,
+    'on 2026-10-03 the last pre-fix day has left the window')
+}
+
+// ── 5. a save is a write to the row, and a failure is reported ──────────────
+// Structural: this repo has no component renderer, so the mechanism is asserted
+// at the source rather than driven. What is asserted is the mechanism, never the
+// wording of a comment.
+const mp = ALL.get('src/components/MorningProtocol.tsx')
+const card = ALL.get('src/components/DailyObjectivesCard.tsx')
+
+/** One function's body, by its opening line — so order inside it can be asserted. */
+function body(src, header) {
+  const i = src.indexOf(header)
+  if (i < 0) return ''
+  const j = src.indexOf('\n  }', i)
+  return j < 0 ? src.slice(i) : src.slice(i, j + 4)
+}
+/** Does `first` appear before `second` inside `fn`, with `second` present? */
+function before(fn, first, second) {
+  const a = fn.indexOf(first), b = fn.indexOf(second)
+  return a >= 0 && b >= 0 && a < b
+}
+
+// ── EACH WRITER NAMES THE PATHS IT OWNS (r3) ───────────────────────────────
+// Deleting localStorage did not cure the clobbering and was never going to:
+// `spirit_state` had four writers and every one of them sent the WHOLE entry,
+// so a gratitude blur carried the completion flags it had read before a tick
+// and the tick came back off the row. The cure is that each writer names its
+// own fields and the database merges them (20261003_checkin_set_path.sql).
+//
+// This table is the spec. A writer that gains a path it does not own, or loses
+// one it does, fails here. The DB proof (`npm run proof:checkins`) is what
+// shows two of these paths surviving each other on one row; what this check
+// adds is that the CLIENT names those same paths.
+const WRITERS = [
+  ['MorningProtocol generation', mp, '  const generate = async () => {', [['morning']]],
+  // The flags AND the gratitude on screen (v3 r4): a blur is not guaranteed
+  // before a tap, so the tick carries what can have been typed.
+  ['MorningProtocol step tick', mp, '  const toggleStep = async (i: number) => {', [['morning', 'completed'], ['morning', 'gratitude']]],
+  ['MorningProtocol gratitude', mp, '  const commitGratitude = () => {', [['morning', 'gratitude']]],
+  ["the card's Goals write", card, '  const saveDraft = async () => {',
+    [['date'], ['objectives'], ['completedObjectives'], ['lockedIn']]],
+  // The PAIR, not one half of it: objectives and completedObjectives are
+  // paired by index, so a writer of either writes both, or a flag can land on
+  // a list it was not read against. `lockedIn` and `date` stay the Goals
+  // step's — a tick naming either would be reaching outside what it owns.
+  ["the card's objective tick", card, '  const toggle = async (i: number) => {',
+    [['objectives'], ['completedObjectives']]],
+]
+for (const [label, src, decl, want] of WRITERS) {
+  const fn = body(src, decl)
+  assert(fn.length > 0, `${label} is found by name`)
+  const got = [...fn.matchAll(/path:\s*\[([^\]]*)\]/g)]
+    .map(m => m[1].split(',').map(k => k.trim().replace(/^'|'$/g, '')).join('.'))
+  assert(got.join(' + ') === want.map(w => w.join('.')).join(' + '),
+    `${label} patches exactly ${want.map(w => w.join('.')).join(' + ')} — got ${got.join(' + ') || 'no path at all'}`)
+}
+// The four mind_state keys are ONE call, because objectives and
+// completedObjectives are paired by index: as two calls the row holds a new
+// list against the old list's flags between them.
+for (const [label, src, decl] of [['the card', card, '  const saveDraft = async () => {']]) {
+  assert((body(src, decl).match(/patchCheckin\(/g) ?? []).length === 1,
+    `${label}'s Goals write sends its four keys in one call`)
+}
+// A whole-column write is refused by the function itself (a path must name a
+// key), so this says the client does not even try.
+assert(!/path:\s*\[\s*\]/.test(mp + card), 'no writer names an empty path')
+
+// AND THE DB PROOF EXERCISES THE PATHS THE CLIENT NAMES. The survival of two
+// writers on one row is proven in SQL against a throwaway Postgres
+// (`npm run proof:checkins`), never here — nothing in this process touches a
+// database. What this guards is the two drifting apart: a client renaming a
+// path while the proof keeps contending the old one would leave the collision
+// proven for a path nobody writes.
+const proof = readSoft('scripts/checkin-db-proof.mjs')
+assert(proof.length > 0, 'the DB proof exists — a path merge nobody proved against a database is a claim')
+for (const path of ['{morning,completed}', '{morning,gratitude}', '{completedObjectives}', '{objectives}']) {
+  assert(proof.includes(path), `the DB proof contends ${path}, which a writer above names`)
+}
+
+// ── WHETHER THE ROW HOLDS THE ENTRY IS THE DATABASE'S QUESTION (v3) ────────
+// v2's r4 answered it on the client with `entryInRow`, and Codex broke it two
+// ways: the boolean described the row the loader read while the destination
+// was recomputed per write (load at 3:50, tick at 4:10 → the next day's row),
+// and where it was false gratitude returned without writing or saying so.
+// `checkin_patch` now refuses a {morning,…} patch onto a row with no entry for
+// its own day (supabase/migrations/20261009_checkin_patch_requires_entry.sql,
+// proven by `npm run proof:checkin-entry`). The client must not try to know.
+assert(!/entryInRow/.test(mp.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '')),
+  'no code in the protocol caches whether the row holds the entry — comments may name the old design, code may not')
+assert(/const \[entryDay, setEntryDay\] = useState<string \| null>\(null\)/.test(mp),
+  'the protocol holds the DAY of the protocol on screen, which is what is painted, not a belief about the row')
+// EVERY spirit write goes to that day, never to todayKey() recomputed at
+// write time — that recomputation is what crossed 4am under the screen.
+assert(/await patchCheckin\('spirit_state', day, patches\)/.test(mp),
+  'the one spirit writer writes to the day it is given')
+assert(!/patchCheckin\('spirit_state', todayKey\(\)/.test(mp),
+  'and never to todayKey() recomputed at the moment of the write')
+const spiritCalls = [...mp.matchAll(/patchSpirit\(([^,]+),/g)].map((m) => m[1].trim())
+assert(spiritCalls.length >= 5 && spiritCalls.every((a) => a === 'entryDay' || a === 'day'),
+  `every patchSpirit call names the protocol's own day — got ${spiritCalls.join(', ')}`)
+const loaderSrc = mp.slice(mp.indexOf('    let cancelled = false'), mp.indexOf('    return () => { cancelled = true }'))
+assert(/setEntryDay\(m\.date\)/.test(loaderSrc), 'the loader takes the day from the entry it painted')
+assert(/\.select\('date, spirit_state'\)/.test(loaderSrc), 'and reads each row\'s own date, so it can prefer the record row')
+const genSrc = body(mp, '  const generate = async () => {')
+assert(/const day = todayKey\(\)[\s\S]*setEntryDay\(day\)[\s\S]*patchSpirit\(day, \[\{ path: \['morning'\], value: morningEntry\(day,/.test(genSrc),
+  'generation computes the day ONCE, paints it, and writes the entry for that same day to that same row')
+assert(/setConfigured\(false\); setEntryDay\(null\);/.test(mp), 'Rebuild clears the day with the protocol it belonged to')
+// NO SILENT RETURN FOR GRATITUDE. Its only early return is a write already in
+// flight, and the inputs are read-only for exactly that span.
+const gratSrc = body(mp, '  const commitGratitude = () => {')
+assert(/if \(!protocol \|\| !entryDay \|\| writingRef\.current \|\| protocolUnsaved\) return/.test(gratSrc),
+  'gratitude on blur writes unless there is no protocol, a write is already in flight, or the protocol itself is not saved')
+assert((mp.match(/readOnly=\{writing \|\| protocolUnsaved\}/g) ?? []).length === 1 && /onBlur=\{commitGratitude\}\n\s*readOnly=\{writing \|\| protocolUnsaved\}/.test(mp),
+  'and the gratitude inputs are read-only for exactly those spans, so those early returns have nothing to lose')
+// A REFUSAL FOR NO ENTRY IS RAISED AS THE PROTOCOL'S FAILURE, whose Retry
+// writes the whole entry off the screen — the one write that can make it.
+assert(/const tag: SpiritTag = result === 'no-entry' \? 'protocol' : as/.test(mp),
+  "a no-entry refusal raises the protocol's failure, not the tick's or the gratitude's")
+
+// ── ONE SPIRIT WRITE AT A TIME (v3) ────────────────────────────────────────
+// Refused, never queued. This is what closes the two v2 known limits: an old
+// tick or an old protocol Retry cannot land after a Rebuild's new protocol,
+// because Rebuild cannot be pressed until it lands.
+assert(/const writingRef = useRef\(false\)/.test(mp) && /const setWriting = \(w: boolean\) => \{ writingRef\.current = w; setWritingState\(w\) \}/.test(mp),
+  'the in-flight flag is a ref the handlers read, kept in step with the state the render reads')
+assert(/if \(writingRef\.current\) return false\n/.test(body(mp, '  const patchSpirit = async (')),
+  'the spirit writer itself refuses a second write while one is in flight')
+for (const [label, decl] of [
+  ['the step tick', '  const toggleStep = async (i: number) => {'],
+  ['generation', '  const generate = async () => {'],
+  ['the Retry', '  const retryOf = (tag: SpiritTag) => () => {'],
+]) {
+  assert(/writingRef\.current(?: \|\| protocolUnsaved)?\) return/.test(body(mp, decl)), `${label} refuses while a write is in flight`)
+}
+const rebuild = mp.slice(mp.indexOf('          onClick={() => {\n            if (writingRef.current) return\n            setConfigured(false)'), mp.indexOf('          title="Rebuild"'))
+assert(rebuild.length > 0 && /\n          disabled=\{writing\}\n/.test(rebuild),
+  'Rebuild refuses, and is disabled, while a write is in flight')
+assert((mp.match(/disabled=\{writing \|\| protocolUnsaved\}/g) ?? []).length === 2, 'both step buttons are disabled while writing, and while the protocol is not saved')
+assert(/disabled=\{loading \|\| writing\}/.test(mp), 'Build is disabled while writing')
+assert(/onClick=\{retryOf\(tag\)\} disabled=\{writing \|\| /.test(mp), 'every Retry is disabled while writing')
+
+// ── A PROTOCOL THAT IS NOT SAVED TAKES NO TICKS AND NO GRATITUDE (v3 r1) ───
+// After a Rebuild whose save failed, the row still holds the PREVIOUS
+// protocol, a valid entry for the day, so the database accepts a tick made on
+// the new one and files it under the old. The tab knows its own save failed:
+// that is the 'protocol' failure on screen. Nothing is lost by refusing,
+// because the protocol's Retry writes the whole entry off the screen.
+assert(/const protocolUnsaved = unsaved\.includes\('protocol'\)/.test(mp),
+  "the protocol's own outstanding failure is read off the failure list, not kept as a second fact")
+assert(/if \(!protocol \|\| !entryDay \|\| writingRef\.current \|\| protocolUnsaved\) return/.test(body(mp, '  const toggleStep = async (i: number) => {')),
+  'a step tick refuses while the protocol itself is not saved')
+// The GRATITUDE Retry is a sub-path write, so it waits too (v3 r5); the
+// PROTOCOL Retry, the last statement of the handler, is the way out and is not
+// gated on it.
+const retrySrc = body(mp, '  const retryOf = (tag: SpiritTag) => () => {')
+const gratRetry = retrySrc.slice(retrySrc.indexOf("if (tag === 'gratitude') {"), retrySrc.indexOf('    void patchSpirit(entryDay, [{ path: [\'morning\'], value: morningEntry('))
+assert(gratRetry.length > 0 && /if \(protocolUnsaved\) return\n\s*void patchSpirit\(entryDay, \[\{ path: \['morning', 'gratitude'\], value: gratitude \}\], 'gratitude'\)/.test(gratRetry),
+  'the gratitude Retry refuses while the protocol is not saved, and otherwise sends the gratitude ON THE SCREEN to its own path')
+assert((retrySrc.match(/protocolUnsaved/g) ?? []).length === 1 && !/protocolUnsaved/.test(retrySrc.slice(retrySrc.indexOf(gratRetry) + gratRetry.length)),
+  "and the protocol's Retry is NOT gated on it — it is the way out")
+assert(/disabled=\{writing \|\| \(tag === 'gratitude' && protocolUnsaved\)\}/.test(mp),
+  'the gratitude Retry button is disabled for the same span, so the refusal is visible')
+// REBUILD RETIRES THE DISCARDED PROTOCOL'S FAILURES (v3 r1, P3). Every tag in
+// this component now belongs to the protocol on screen, so discarding it
+// clears them all — and that is the ONLY place the list is emptied.
+assert(/setUnsaved\(\[\]\)/.test(rebuild) && (mp.match(/setUnsaved\(\[\]\)/g) ?? []).length === 1,
+  'Rebuild clears the failures of the protocol it discards, and nothing else empties the list')
+
+// ── ONE WRITER OF THE OBJECTIVES (Andrew's ruling, 2026-10-11) ─────────────
+// The Goals step wrote mind_state and so did the card, so the card re-read the
+// row on every protocol save. That re-read painted a tick back off the screen
+// and let a failed draft's Retry replace objectives saved from the other
+// writer (Codex v3 r1, the two findings that stopped the round). The step
+// hands off to the card now, and the card reads once.
+const mpCode = mp.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*/g, '')
+assert(!/mind_state/.test(mpCode), 'no code in MorningProtocol names mind_state — it does not read or write objectives')
+assert(!/saveMindState|mindObjectives|mindSaved/.test(mp), "the Goals step's inputs, its save and its Saved state are gone")
+assert((mpCode.match(/patchCheckin\(/g) ?? []).length === 1 && /patchCheckin\('spirit_state', day, patches\)/.test(mpCode),
+  'MorningProtocol calls the writer in exactly one place, for spirit_state')
+assert(/<a href="#daily-objectives"/.test(mp) && /<div id="daily-objectives"/.test(card),
+  'the Goals step points at the card, and the card carries the anchor it points at')
+assert(!/refreshKey/.test(card.replace(/\/\/.*/g, '')) && /export default function DailyObjectivesCard\(\) \{/.test(card),
+  'the card takes no refresh signal at all')
+assert(/    load\(\)\n[\s\S]{0,300}\}, \[readNonce\]\)/.test(card) && (card.match(/setReadNonce\(/g) ?? []).length === 1,
+  'and reads the row once on mount, and again only from the one Retry on a failed read')
+
+// ── A FAILED READ IS NOT AN EMPTY DAY (v3 r2) ──────────────────────────────
+// supabase-js returns a failed query instead of throwing it, so both readers
+// took "the request failed" for "there is nothing here" and showed the setup
+// form / the empty editor — and what was saved from there replaced the record
+// the row had held all along. Each reader now asks for the error, shows the
+// failure with a Retry that reads again, and renders nothing that can write.
+for (const [name, src, busy] of [['MorningProtocol', mp, 'setReading(true)'], ['the objectives card', card, 'setLoading(true)']]) {
+  assert(/const \[readFailed, setReadFailed\] = useState\(false\)/.test(src), `${name} holds whether its read failed`)
+  assert(/const \{ data(?:: rows)?, error \} = await supabase\s*\n\s*\.from\('daily_checkins'\)/.test(src) && /if \(error\) \{[^}]*setReadFailed\(true\)/.test(src),
+    `${name} asks the query for its error, and a returned error is a failed read`)
+  assert(/catch \{ if \(.*?\) setReadFailed\(true\) \}/.test(src), `${name} treats a thrown read as failed too`)
+  assert(/error: authError/.test(src) && /if \(authError.*?\) setReadFailed\(true\)/.test(src), `${name} treats a failed session lookup as a failed read`)
+  const failedView = src.slice(src.indexOf('  if (readFailed) {'), src.indexOf('\n  }\n', src.indexOf('  if (readFailed) {')))
+  assert(failedView.length > 0 && failedView.includes('Retry') && failedView.includes(`setReadFailed(false); ${busy}; setReadNonce((n) => n + 1)`),
+    `${name} shows the failure with a Retry that reads again`)
+  assert(!/patchCheckin|patchSpirit|saveDraft|generate\(/.test(failedView), `${name}'s failed-read view offers nothing that writes`)
+  assert((src.match(/setReadNonce\(/g) ?? []).length === 1, `${name} re-reads from that Retry and from nowhere else`)
+}
+assert(mp.indexOf('  if (readFailed) {') > mp.indexOf('  if (reading) {') && mp.indexOf('  if (readFailed) {') < mp.indexOf('  if (!configured) {'),
+  'the protocol shows a failed read BEFORE the setup form can render')
+assert(card.indexOf('  if (readFailed) {') > card.indexOf('  if (loading) {') && card.indexOf('  if (readFailed) {') < card.indexOf('  const unsavedBanner ='),
+  'the card shows a failed read before its editor can render')
+assert(/\.maybeSingle\(\)/.test(card) && !/\.single\(\)/.test(card),
+  'the card reads with maybeSingle — single() reports "no row" as an error, which a failed read must not be confused with')
+
+// AN EMPTY DRAFT RETIRES ITS OWN FAILURE (v3 r5, P3): cleared after a failed
+// save, it left a banner whose Retry returned silently for ever.
+assert(/if \(saving\) return\n[\s\S]{0,300}if \(!draft\.some\(o => o\.trim\(\)\)\) \{ setUnsaved\(\(u\) => u\.filter\(\(t\) => t !== 'draft'\)\); return \}/.test(card),
+  'a draft save with nothing in the inputs clears the draft failure instead of returning with the banner still up')
+
+// ── A FAILED DRAFT STOPS BEFORE IT PAINTS (v3 r4, P3) ──────────────────────
+// With the failure branch's `return` deleted, a draft that never landed fell
+// through, locked the list and showed objectives the row does not have — and
+// every assertion above still passed.
+assert(/\]\) !== 'landed'\) \{\n[\s\S]{0,400}setUnsaved\(\(u\) => \(u\.includes\('draft'\) \? u : \[\.\.\.u, 'draft'\]\)\)\n        return\n      \}\n      setObjectives\(dense\)/.test(card),
+  "the card's draft save returns on a failed write, immediately before the only place it paints the list as saved")
+assert((body(card, '  const saveDraft = async () => {').match(/setLocked\(true\)/g) ?? []).length === 1,
+  'and it locks the list in exactly one place')
+
+// ── A WRITE THAT CARRIED THE GRATITUDE RETIRES ITS FAILURE (v3 r4, P3) ─────
+// The protocol's whole-entry write and a tick both send the gratitude on
+// screen. A "gratitude not saved" banner left up after one of them lands says
+// something saved is lost.
+assert(/if \(as !== 'gratitude'\) setUnsaved\(\(u\) => u\.filter\(\(t\) => t !== 'gratitude'\)\)\n[\s\S]{0,200}onSaved\?\.\(\)\n    return true/.test(body(mp, '  const patchSpirit = async (')),
+  'a landed protocol write or tick retires an outstanding gratitude failure, after it lands and not before')
+
+// ── A FAILED TICK STOPS BEFORE IT PAINTS (v3 r2, P3) ───────────────────────
+// Source order alone (write before paint) is also satisfied by a handler that
+// paints after a FAILED write. The failure branch has to leave.
+assert(/if \(!landed\) \{ setUnsaved\(\(u\) => \(u\.includes\('tick'\) \? u : \[\.\.\.u, 'tick'\]\)\); return \}\n    setCompleted\(next\)/.test(card),
+  "the card's tick returns on a failed write, immediately before the only place it paints")
+assert(/\], 'tick'\)\) return\n    setCompleted\(next\)/.test(mp) && /if \(!await patchSpirit\(entryDay, \[\n/.test(body(mp, '  const toggleStep = async (i: number) => {')),
+  "the protocol's tick returns on a failed write, immediately before the only place it paints")
+assert((body(card, '  const toggle = async (i: number) => {').match(/setCompleted\(/g) ?? []).length === 1
+  && (body(mp, '  const toggleStep = async (i: number) => {').match(/setCompleted\(/g) ?? []).length === 1,
+  'and each tick handler paints in exactly one place')
+assert(/<DailyObjectivesCard \/>/.test(dash) && !/refreshKey/.test(dash), 'the dashboard feeds the card nothing')
+const cardWriters = [...card.matchAll(/patchCheckin\('mind_state', (\w+),/g)].map((m) => m[1])
+assert(cardWriters.join(',') === 'today,listDay', `the card has exactly two writes of mind_state, the draft and the tick — got ${cardWriters.join(',')}`)
+
+// ── A TICK GOES TO THE DAY OF THE LIST ON SCREEN (v3 r1) ───────────────────
+// Recomputed at tick time, a list loaded before midnight and ticked after it
+// was ticked into the next day's row, which had no lockedIn — a reload showed
+// a blank editor. Same rule as the protocol's entryDay.
+assert(/const \[listDay, setListDay\] = useState<string \| null>\(null\)/.test(card), 'the card holds the day of the list on screen')
+assert((card.match(/setListDay\(today\)/g) ?? []).length === 2, 'set by the read, and by a draft that landed — and nowhere else')
+assert(/if \(!locked \|\| saving \|\| !listDay\) return/.test(card) && !/const today = localDay\(\)/.test(body(card, '  const toggle = async (i: number) => {')),
+  'the tick writes to that day and never recomputes today')
+
+// patchCheckin answers with a STRING now, and a string is always truthy — so
+// `if (!landed)` on its result would never fire, and tsc cannot see it. Every
+// caller compares with 'landed' or names the result.
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  const at = [...src.matchAll(/await patchCheckin\(/g)].map((m) => m.index)
+  const bad = at.filter((i) => {
+    const lead = src.slice(Math.max(0, i - 20), i)
+    const close = src.indexOf('])', i)
+    const tail = src.slice(close + 2, close + 18)
+    return !/const result = $/.test(lead) && !/^ [=!]== 'landed'/.test(tail)
+  })
+  assert(at.length > 0 && bad.length === 0,
+    `${name}: every patchCheckin result is compared with 'landed' or kept as a result, never used as a boolean (${bad.length} not)`)
+}
+
+// ── AND NOTHING WRITES THE COLUMN WHOLE ANY MORE ───────────────────────────
+const lib = readSoft('src/lib/checkins.ts')
+assert(lib.length > 0, 'src/lib/checkins.ts exists — it is the only place a check-in is written')
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(!/\.upsert\(/.test(src), `${name} no longer upserts the check-in row`)
+  assert(!/\.rpc\(/.test(src), `${name} reaches the database through the one writer, not directly`)
+}
+assert((lib.match(/supabase\.rpc\('checkin_patch'/g) ?? []).length === 1,
+  'there is exactly ONE call site for the merge function, and it is in src/lib/checkins.ts')
+assert(/if \(patches\.length === 0\) return 'failed'/.test(lib),
+  'a write with no patches is a failed write, not a silent success')
+assert(/export const NO_ENTRY = 'CK001'/.test(lib)
+  && /ERRCODE = 'CK001'/.test(readSoft('supabase/migrations/20261009_checkin_patch_requires_entry.sql')),
+  'the client and the migration name the same SQLSTATE for "no entry"')
+
+assert(/if \(result !== 'landed'\) \{[\s\S]{0,200}return false\n    \}/.test(mp),
+  'a spirit write that did not land answers false, so the caller cannot tick the screen')
+assert(!/onSaved\?\.\(\)[\s\S]{0,400}await patchCheckin\(/.test(mp),
+  'the save signal is never fired before the write')
+
+assert(/if \(!error\) return 'landed'\n    return error\.code === NO_ENTRY \? 'no-entry' : 'failed'/.test(lib),
+  "the one writer answers on the function's own result, and tells a refusal for no entry from any other failure")
+// THE ROW FIRST. The previous version of this suite asserted
+// /setCompleted\(before\)/ to prove "a failed tick comes off the screen" — which
+// REQUIRED the stale-snapshot rollback Codex flagged as a P2, so it would have
+// failed on the correct fix. It encoded the defect as the spec. What the
+// re-spec actually asks for is that the tick was never on the screen at all
+// (Blaine's ruling, 2026-10-01).
+const toggleFn = body(card, '  const toggle = async (i: number) => {')
+const stepFn = body(mp, '  const toggleStep = async (i: number) => {')
+assert(toggleFn.length > 0 && stepFn.length > 0, 'both tick handlers are found by name')
+assert(before(toggleFn, 'await patchCheckin(', 'setCompleted('),
+  'the objectives card writes the row BEFORE the tick reaches the screen')
+assert(before(stepFn, 'await patchSpirit(', 'setCompleted('),
+  'the protocol writes the row BEFORE the step is ticked on the screen')
+assert(!/const before = completed/.test(card),
+  'no snapshot of what the screen held — there is no paint to roll back to')
+assert(!/setCompleted\(before\)/.test(card), 'nothing rolls a paint back')
+assert(/if \(!locked \|\| saving \|\| !listDay\) return/.test(toggleFn) && /if \(!protocol \|\| !entryDay \|\| writingRef\.current \|\| protocolUnsaved\) return/.test(stepFn),
+  'a write in flight stops a second one starting, so two writes of this row never race')
+
+// A retry carries a TAG, never a payload. A captured closure holds the draft it
+// was made with, which is a queued intention the re-spec forbids — and Codex
+// caught one writing stale objectives over newer edits.
+for (const [name, src] of [['the objectives card', card], ['MorningProtocol', mp]]) {
+  assert(!/setUnsaved\(\(\)\s*=>/.test(src), `${name} stores no closure in its unsaved state`)
+}
+// The TYPE is the guard a regex cannot be: a union of string literals and null
+// cannot hold a function, so tsc refuses a captured closure outright.
+// ONE SLOT PER WRITER (Blaine's ruling, 2026-10-05). A single tag meant every
+// writer cleared the whole thing, so a successful tick cleared a FAILED draft
+// and took its Retry off the screen. An ARRAY of string literals still cannot
+// hold a function, which is the guard a regex cannot be.
+assert(/useState<readonly \('draft' \| 'tick'\)\[\]>\(\[\]\)/.test(card),
+  'the card names which writeS failed and its type cannot hold a closure')
+assert(/type SpiritTag = 'protocol' \| 'tick' \| 'gratitude'/.test(mp),
+  'the protocol has one tag per owned path')
+assert(/useState<readonly SpiritTag\[\]>\(\[\]\)/.test(mp),
+  'the protocol names which writeS failed and its type cannot hold a closure')
+// EACH WRITER CLEARS ONLY ITS OWN. This is the P1: a successful write on one
+// path cleared another writer's failure tag and its Retry, leaving a protocol
+// on screen that the row did not have and nothing saying so.
+// The protocol has ONE writer function now (patchSpirit) serving three tags,
+// so it clears and adds in one place each, by the tag it was called with. The
+// card has two writer functions. Rebuild's wholesale clear is asserted above.
+// `clears` is one more than `writers` for the protocol: the one writer clears
+// the tag it was called as, and a landed write that CARRIED the gratitude
+// retires the gratitude failure (asserted on its own below).
+for (const [name, src, writers, clears] of [['MorningProtocol', mp, 1, 2], ['the objectives card', card, 2, 3]]) {
+  assert(!/setUnsaved\(null\)/.test(src), `${name} never clears every failure at once`)
+  if (name !== 'MorningProtocol') assert(!/setUnsaved\(\[\]\)/.test(src), `${name} does not clear them all by assigning an empty list either`)
+  assert((src.match(/setUnsaved\(\(u\) => u\.filter\(/g) ?? []).length === clears,
+    `${name}'s writers each clear only their own tag`)
+  assert((src.match(/setUnsaved\(\(u\) => \(u\.includes\(/g) ?? []).length === writers,
+    `${name}'s writers each ADD their own tag on failure, leaving the others standing`)
+}
+assert(/setUnsaved\(\(u\) => u\.filter\(\(t\) => t !== as\)\)/.test(mp) && /setUnsaved\(\(u\) => \(u\.includes\(tag\) \? u : \[\.\.\.u, tag\]\)\)/.test(mp),
+  'the spirit writer clears the tag it was called as, and adds the tag that failed')
+// A failed tick has nothing to retry: the screen never moved, so the step is
+// still as the row has it and tapping it again IS the retry. Offering Retry
+// there saved the unchanged array and cleared the warning (Codex r2).
+assert(/\{tag !== 'tick' && \(/.test(mp), 'a failed tick is offered no Retry, in the protocol as in the card')
+// EVERY OUTSTANDING FAILURE IS SHOWN. One row could not carry two: a protocol
+// that did not save and a gratitude that did not save are different losses
+// with different retries, and showing one of them hid the other.
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(/unsaved\.length > 0 \?/.test(src), `${name} shows a banner while ANY failure stands`)
+  assert(/\.filter\(\(t\) => unsaved\.includes\(t\)\)\.map\(/.test(src),
+    `${name} renders one row per outstanding failure, not just the newest`)
+}
+// In a FIXED order, so two failures do not swap places between renders and
+// move a Retry button under the user's finger.
+assert(/const UNSAVED_ORDER: readonly SpiritTag\[\] = \['protocol', 'gratitude', 'tick'\]/.test(mp),
+  'and in a fixed order rather than by when they failed')
+assert(/'That step did not save/.test(mp), 'a failed tick says to tap it again')
+assert(/patchSpirit\(entryDay, \[\n\s*\{ path: \['morning', 'completed'\], value: next \},\n\s*\{ path: \['morning', 'gratitude'\], value: gratitude \},\n\s*\], 'tick'\)/.test(mp),
+  'a tick tells the writer it was a tick, and sends only the completion flags')
+
+// ── A RETRY RE-SENDS THE PATH THAT FAILED (r3) ─────────────────────────────
+// One Retry that rewrote the whole entry would hand every failure back the
+// clobbering this round removes — the button would be the fourth whole-entry
+// writer. So there is a tag per owned path, and the Record type makes tsc
+// refuse a tag with no label rather than rendering `undefined`.
+const retry = body(mp, '  const retryOf = (tag: SpiritTag) => () => {')
+assert(retry.length > 0, 'the retry is found by name')
+assert(/tag === 'gratitude'[\s\S]{0,600}path: \['morning', 'gratitude'\]/.test(retry),
+  'a failed gratitude write is retried as a gratitude write, not as the whole entry')
+assert(/morningEntry\(entryDay, protocol, completed, gratitude\)/.test(retry),
+  'and only the protocol tag retries the whole morning entry, which is what it owns')
+assert(/const UNSAVED_LABEL: Record<SpiritTag, string>/.test(mp),
+  'every tag that shows a label has one, enforced by the type rather than by a regex')
+assert(/onClick=\{\(\) => \{ void saveDraft\(\) \}\}/.test(card),
+  "the card's Retry re-runs the draft save, which reads the inputs as they are then")
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(/>Retry</.test(src) || /\n\s*Retry\n/.test(src), `${name} offers Retry on screen`)
+}
+
+// The banner is built ONCE, above every early return, and rendered in every
+// view. It used to sit inside the setup branch only, and generation sets
+// `configured` before saving — so after the first save no failure showed a
+// warning or a Retry anywhere (Codex r1, P1).
+const bannerDecl = mp.indexOf('const unsavedBanner = unsaved.length > 0 ?')
+const firstReturn = mp.indexOf('  if (reading) {')
+assert(bannerDecl >= 0 && firstReturn >= 0 && bannerDecl < firstReturn,
+  'the protocol builds its unsaved banner before the first early return')
+assert((mp.match(/\{unsavedBanner[\s&}]/g) ?? []).length >= 2,
+  'the protocol renders that banner in more than one view')
+const activeView = mp.slice(mp.indexOf('  // ── Active protocol'))
+assert(activeView.includes('{unsavedBanner}'),
+  'the ACTIVE protocol view renders it — a failed save after generation is where it was invisible')
+assert(activeView.indexOf('{unsavedBanner}') < activeView.indexOf('allDone && !reviewOpen'),
+  'it renders above the done/expanded split, so the collapsed "morning done" state carries it too')
+
+// ── ONLY THE NEWEST OPERATION PAINTS (r3) ──────────────────────────────────
+// The last ordering question this ticket had left: a refresh that started
+// before a write landing after it, and painting the row as it was. Blaine left
+// it to me. The answer never compares the two operations' contents — it asks
+// only which one is newer — so there is nothing to vouch for, nothing to
+// negotiate, and the loser is DISCARDED rather than queued.
+//
+// RUN, not read. `paintGate` is a plain factory in src/lib/checkins.ts for
+// exactly this reason: an ordering rule written inside a component could only
+// be asserted as text here, and text is satisfied by code wired up wrong.
+assert(gateError === null, `src/lib/checkins.ts imports cleanly — ${gateError?.message ?? ''}`)
+if (gateFactory) {
+  const g = gateFactory()
+  const first = g.claim()
+  assert(g.mayPaint(first), 'a claim with nothing after it may paint')
+  const second = g.claim()
+  assert(!g.mayPaint(first), 'a read that claimed BEFORE a later operation may not paint')
+  assert(g.mayPaint(second), 'and the later one may')
+  assert(!g.mayPaint(first), 'the older claim stays refused — it is discarded, never queued')
+  const third = g.claim()
+  assert(!g.mayPaint(second) && g.mayPaint(third), 'only ever the newest claim, however many there are')
+  assert(first !== second && second !== third, 'claims are distinct, so two cannot be confused for each other')
+  const h = gateFactory()
+  assert(h.mayPaint(h.claim()), 'each component gets its own gate')
+  assert(!h.mayPaint(third), "and one component's claim means nothing to another's gate")
+  // The over-discarding direction, which a counter shared between components
+  // produces: the protocol writing would throw away the card's in-flight read
+  // and the card would hold a loading skeleton it never comes out of.
+  const g1 = gateFactory(), g2 = gateFactory()
+  const reading = g1.claim()
+  g2.claim()
+  assert(g1.mayPaint(reading),
+    "one component's write does not discard another component's read")
+}
+
+// ONE GATE PER COMPONENT, NOT ONE PER RENDER. A gate rebuilt on every render
+// forgets every claim, so every read would believe itself the newest and the
+// rule would be inert while reading exactly right. Only the hook can say this,
+// and running the factory cannot see it — so it is read, and listed in the
+// report as read rather than proven.
+assert(/if \(gate\.current === null\) gate\.current = paintGate\(\)/.test(lib),
+  'the hook builds its gate once and keeps it across renders')
+
+// The rest of the WIRING is also only readable as source, the gap FOR-256 names.
+// What can be asserted: both components hold a gate, every read claims before
+// it awaits anything and checks before it paints the row, and the claim in a
+// read is a captured value rather than a fresh call at the end.
+for (const [name, src] of [['MorningProtocol', mp], ['the objectives card', card]]) {
+  assert(/const gate = usePaintGate\(\)/.test(src), `${name} holds one paint gate`)
+}
+const cardLoad = card.slice(card.indexOf('    const load = async () => {'), card.indexOf('    load()'))
+assert(cardLoad.length > 0, "the card's read is found by name")
+assert(before(cardLoad, 'const claim = gate.claim()', 'await'),
+  "the card's read claims before it awaits anything, or a write could start inside the gap")
+// The guard ON THE PAINT ITSELF, not any mention of the gate above it: the
+// error branches name gate.mayPaint(claim) too, so "appears before
+// setObjectives" stayed true with this guard deleted (Codex v3 r3).
+assert(/if \(data\?\.mind_state && gate\.mayPaint\(claim\)\) \{\n[\s\S]{0,260}setObjectives\(n\.objectives\)/.test(cardLoad)
+  && (cardLoad.match(/setObjectives\(/g) ?? []).length === 1,
+  "the card's read paints the row in one place, inside the claim check")
+// THE DRAFT CANNOT CHANGE UNDER ITS OWN SAVE (v3 r3). The save sends the
+// draft as it stood when it started and, landing, hides the inputs; an edit
+// typed in between was neither sent nor kept.
+assert(/setDraft\(next\)\n\s*\}\}\n[\s\S]{0,420}readOnly=\{saving\}/.test(card) && (card.match(/readOnly=\{saving\}/g) ?? []).length === 1,
+  'the draft inputs are read-only while the save is in flight')
+// A FAILED COUNT READ IS NOT A COUNT OF ZERO (v3 r3).
+assert(/const \{ data: checkins, error \} = await supabase/.test(dash) && /if \(error\) return null/.test(dash)
+  && /if \(firstDays\) setProtocolDays\(firstDays\)/.test(dash) && /if \(!cancelled && days\) setProtocolDays\(days\)/.test(dash)
+  && (dash.match(/setProtocolDays\(/g) ?? []).length === 2,
+  'the dashboard keeps the count it has when the re-read fails, at both of the places it sets it')
+// THE SKELETON COMES DOWN ONLY FOR THE NEWEST READ (v3). r4: it came down
+// for every read, so a first read discarded by a newer one showed the EMPTY
+// editor while the newer read was pending, and a save there replaced the list
+// that read was about to paint — reachable in production with no StrictMode.
+// It cannot stay up forever: while it is up nothing renders that can write, so
+// whatever claimed after this read is itself a read that reaches the same
+// `finally`, error or not.
+assert(/finally \{[\s\S]*?if \(gate\.mayPaint\(claim\)\) setLoading\(false\)\n      \}/.test(cardLoad),
+  'the loading skeleton comes down in a finally, and only for the newest read')
+assert((cardLoad.match(/setLoading\(/g) ?? []).length === 1,
+  'and nowhere else in the read — not on the no-user path, not on the discarded path')
+assert(/if \(loading\) \{\n    return <div className="tile h-32" \/>/.test(card),
+  'while it is up the card renders the skeleton alone, so no write can be started under it')
+
+const mpRead = mp.slice(mp.indexOf('    let cancelled = false'), mp.indexOf('    return () => { cancelled = true }'))
+assert(mpRead.length > 0, "the protocol's read is found by name")
+assert(before(mpRead, 'const claim = gate.claim()', 'await'),
+  "the protocol's read claims before it awaits anything")
+assert(before(mpRead, 'gate.mayPaint(claim)', 'setProtocol('),
+  "the protocol's read checks its claim before it paints — generation paints first, so this read can land after it")
+
+// Every write claims. A write never CHECKS: it paints what it just put in the
+// row, so there is no older value it could be painting over.
+for (const [label, src, decl] of [
+  ['the spirit writer', mp, '  const patchSpirit = async ('],
+  ["the card's Goals write", card, '  const saveDraft = async () => {'],
+  ["the card's objective tick", card, '  const toggle = async (i: number) => {'],
+]) {
+  const fn = body(src, decl)
+  assert(before(fn, 'gate.claim()', 'await'), `${label} claims before it awaits the row`)
+  assert(!/gate\.mayPaint/.test(fn), `${label} does not check a claim — a write paints what it wrote`)
+}
+
+// ── verdict ─────────────────────────────────────────────────────────────────
+if (fails.length) {
+  console.log(`\ncheckin record: ${fails.length} of ${checks} checks FAILED`)
+  for (const f of fails) console.log('  ✗ ' + f)
+  process.exit(1)
+}
+console.log(`checkin record: ${checks} checks passed — the row is the record, and there is no second copy`)

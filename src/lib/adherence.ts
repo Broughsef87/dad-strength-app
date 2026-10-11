@@ -59,124 +59,62 @@ export function rollingDays(doneDays: Iterable<string>, today: string, window = 
   return { done: inWindow.size, window }
 }
 
-/** One saved protocol — the shape MorningProtocol caches locally and mirrors. */
+/** One saved protocol, as it sits in daily_checkins.spirit_state.morning. */
 export interface MorningEntry {
   date?: string
   protocol?: { theme?: string; steps?: unknown[] }
   completed?: boolean[]
 }
 
-/** The shape MorningProtocol mirrors into daily_checkins.spirit_state. */
+/** The shape daily_checkins.spirit_state holds. */
 export interface MorningState {
   morning?: MorningEntry | null
-  /**
-   * When this snapshot was written — the mirror row's updated_at. Absent
-   * means newest: a local save that has not landed yet.
-   */
-  at?: string | null
-  /**
-   * The calendar row this snapshot came from — daily_checkins.date. Absent
-   * on a local save.
-   */
+  /** The row this snapshot came from — daily_checkins.date. */
   row?: string | null
 }
 
-/** Ordering of a snapshot: newest first. Unstamped is newest; unparsable is oldest. */
-function rank(s: MorningState): number {
-  if (s.at == null) return Infinity
-  const t = Date.parse(s.at)
-  return Number.isNaN(t) ? -Infinity : t
-}
-
 /**
- * Which copy of a protocol day to believe BEFORE any timestamp. A local save
- * (no row) is newest of all. A canonical row — keyed on the entry's own day,
- * where every protocol write lands since the row-key fix — outranks a legacy
- * row keyed on the calendar day, whatever their timestamps say: the row's
- * updated_at also moves when objectives are saved into it, so a legacy
- * pre-dawn completion could otherwise be resurrected by an unrelated save
- * (Codex, round 6).
- */
-function tier(s: MorningState): number {
-  if (s.row == null) return s.at == null ? 3 : 2
-  return s.row === s.morning?.date ? 2 : 1
-}
-
-/** Is `a` the snapshot to believe over `b` — higher tier, or later within one? */
-function newer(a: MorningState, b: MorningState): boolean {
-  return tier(a) !== tier(b) ? tier(a) > tier(b) : rank(a) >= rank(b)
-}
-
-/**
- * Reconcile the local cache MorningProtocol writes FIRST against the mirror
- * it writes after.
+ * THE RECORD IS THE ROW, and for one protocol day it is ONE row: the row keyed
+ * on that day. Nothing else is consulted — no second copy, no timestamp, no
+ * ranking between rows (FOR-231 v2).
  *
- * The cache is the newer state — onSaved fires before the mirror lands — but
- * it carries no owner: it is one browser-wide key, and a previous account's
- * completion would otherwise count for whoever signs in next. So it is
- * trusted only when the mirror, which is row-level-secured to the signed-in
- * user, already holds the same protocol for the same day; then the cache is
- * that entry's latest state and REPLACES it — a step unticked seconds ago is
- * unticked, not unioned with the snapshot that still says done. A cache with
- * no matching mirror entry is ignored: someone else's, or a protocol so new
- * that nothing on it can be complete yet.
+ * Every protocol write lands in the row keyed on the entry's own 4am-cutoff day
+ * (FOR-228, ruling 2), so post-fix a protocol day has exactly one row and
+ * (user_id, date) is unique. A row whose date differs from the entry it carries
+ * is pre-fix history — written when the row was keyed on the calendar day, so a
+ * 1am finish landed in the next day's row. Those rows are NOT the record and
+ * are not counted.
+ *
+ * The transition, stated: a protocol completed pre-dawn before 2026-09-13 sits
+ * in the following day's row and stops counting. Nothing writes that shape any
+ * more, and the 20-day window drops every pre-fix day on 2026-10-03, after
+ * which this rule never fires. That is the ninth clause DELETED rather than
+ * answered — the eight-clause negotiation it belonged to is gone with it.
  */
-export function reconcileLocal(
-  states: Iterable<MorningState | null | undefined>,
-  local: MorningEntry | null | undefined,
-): (MorningState | null | undefined)[] {
-  const all = [...states]
-  if (!local?.date || !localMatchesMirror(all, local)) return all
-  return [...all.filter((s) => !sameProtocol(s?.morning, local)), { morning: local }]
-}
-
-/**
- * Does the mirror already hold the protocol the local cache holds — same day,
- * same theme, same step count? False until the save that wrote the cache has
- * landed, which is how the dashboard knows whether to read again.
- */
-export function localMatchesMirror(
-  states: Iterable<MorningState | null | undefined>,
-  local: MorningEntry | null | undefined,
-): boolean {
-  if (!local?.date) return false
-  for (const s of states) if (sameProtocol(s?.morning, local)) return true
-  return false
-}
-
-function sameProtocol(m: MorningEntry | null | undefined, local: MorningEntry): boolean {
-  return !!m && m.date === local.date
-    && m.protocol?.theme === local.protocol?.theme
-    && (m.protocol?.steps?.length ?? -1) === (local.protocol?.steps?.length ?? -1)
+export function isRecordRow(s: MorningState | null | undefined): boolean {
+  const date = s?.morning?.date
+  return !!date && s?.row === date
 }
 
 /**
  * The day keys on which the morning protocol was COMPLETED — every step
- * ticked, the state MorningProtocol itself stamps "morning done". A protocol
- * that was generated and half-run is a day the protocol was opened, not a day
- * it was done. Keyed on the protocol's own 4am-cutoff date, not the row date.
+ * ticked. A protocol generated and half-run is a day it was opened, not a day
+ * it was done. Keyed on the protocol's own 4am-cutoff date.
  */
 export function protocolCompleteDays(states: Iterable<MorningState | null | undefined>): string[] {
-  // One protocol day can be mirrored in two calendar rows — finished before
-  // midnight in one, a step unticked at 1am in the next — so each protocol
-  // day is resolved to its LATEST snapshot first, and only that one is
-  // judged. A completion that was later undone is not a completion.
-  const latest = new Map<string, MorningState>()
+  // One pass, no ranking: only the row that IS the record for a day is judged.
+  // A completion later undone is not a completion, because the undo lands in
+  // that same row.
+  const done = new Set<string>()
   for (const s of states) {
-    const date = s?.morning?.date
-    if (!s || !date) continue
-    const prev = latest.get(date)
-    if (!prev || newer(s, prev)) latest.set(date, s)
-  }
-  const out: string[] = []
-  for (const [date, s] of latest) {
-    const m = s.morning
-    if (!m || !Array.isArray(m.completed) || m.completed.length === 0) continue
+    if (!isRecordRow(s)) continue
+    const m = s!.morning!
+    if (!Array.isArray(m.completed) || m.completed.length === 0) continue
     const steps = m.protocol?.steps
     if (Array.isArray(steps) && steps.length !== m.completed.length) continue
-    if (m.completed.every(Boolean)) out.push(date)
+    if (m.completed.every(Boolean)) done.add(m.date!)
   }
-  return out
+  return [...done]
 }
 
 export interface WeekRecord {

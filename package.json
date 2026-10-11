@@ -9,6 +9,8 @@
     "lint": "eslint",
     "checks": "node scripts/checks/run-all.mjs",
     "proof:db": "node scripts/fuel-db-proof.mjs",
+    "proof:checkins": "node scripts/checkin-db-proof.mjs",
+    "proof:checkin-entry": "node scripts/checkin-entry-proof.mjs",
     "design-system:bundle": "node scripts/design-system-bundle.mjs"
   },
   "dependencies": {
