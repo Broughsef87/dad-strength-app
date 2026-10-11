@@ -61,12 +61,17 @@ interface WorkoutData {
 // rows on the query keep it inside the window.
 async function fetchProtocolDays(
   supabase: ReturnType<typeof createClient>, userId: string,
-): Promise<RollingDays> {
-  const { data: checkins } = await supabase
+): Promise<RollingDays | null> {
+  const { data: checkins, error } = await supabase
     .from('daily_checkins')
     .select('spirit_state, date')
     .eq('user_id', userId)
     .gte('date', localDay(new Date(Date.now() - 22 * 86_400_000)))
+  // A FAILED READ IS NOT ZERO DAYS (FOR-231 v3, Codex r3). supabase-js returns
+  // the failure instead of throwing it, so this used to count no rows and the
+  // number on screen dropped to nothing right after a protocol was finished.
+  // null means "not known": the caller keeps the number it already has.
+  if (error) return null
   const states: (MorningState | null | undefined)[] = (checkins ?? []).map(
     (r: { spirit_state: MorningState | null; date: string }) =>
       ({ morning: r.spirit_state?.morning, row: r.date }),
@@ -275,7 +280,8 @@ export default function Dashboard() {
       }
       setWorkout(workoutData)
 
-      setProtocolDays(await fetchProtocolDays(supabase, user.id))
+      const firstDays = await fetchProtocolDays(supabase, user.id)
+      if (firstDays) setProtocolDays(firstDays)
       setLoading(false)
     }
     loadDashboard()
@@ -291,7 +297,7 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || cancelled) return
       const days = await fetchProtocolDays(supabase, user.id)
-      if (!cancelled) setProtocolDays(days)
+      if (!cancelled && days) setProtocolDays(days)
     })()
     return () => { cancelled = true }
   }, [protocolTick, supabase])

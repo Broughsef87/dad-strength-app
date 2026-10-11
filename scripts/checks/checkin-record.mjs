@@ -610,8 +610,22 @@ const cardLoad = card.slice(card.indexOf('    const load = async () => {'), card
 assert(cardLoad.length > 0, "the card's read is found by name")
 assert(before(cardLoad, 'const claim = gate.claim()', 'await'),
   "the card's read claims before it awaits anything, or a write could start inside the gap")
-assert(before(cardLoad, 'gate.mayPaint(claim)', 'setObjectives('),
-  "the card's read checks its claim before it paints the row")
+// The guard ON THE PAINT ITSELF, not any mention of the gate above it: the
+// error branches name gate.mayPaint(claim) too, so "appears before
+// setObjectives" stayed true with this guard deleted (Codex v3 r3).
+assert(/if \(data\?\.mind_state && gate\.mayPaint\(claim\)\) \{\n[\s\S]{0,260}setObjectives\(n\.objectives\)/.test(cardLoad)
+  && (cardLoad.match(/setObjectives\(/g) ?? []).length === 1,
+  "the card's read paints the row in one place, inside the claim check")
+// THE DRAFT CANNOT CHANGE UNDER ITS OWN SAVE (v3 r3). The save sends the
+// draft as it stood when it started and, landing, hides the inputs; an edit
+// typed in between was neither sent nor kept.
+assert(/setDraft\(next\)\n\s*\}\}\n[\s\S]{0,420}readOnly=\{saving\}/.test(card) && (card.match(/readOnly=\{saving\}/g) ?? []).length === 1,
+  'the draft inputs are read-only while the save is in flight')
+// A FAILED COUNT READ IS NOT A COUNT OF ZERO (v3 r3).
+assert(/const \{ data: checkins, error \} = await supabase/.test(dash) && /if \(error\) return null/.test(dash)
+  && /if \(firstDays\) setProtocolDays\(firstDays\)/.test(dash) && /if \(!cancelled && days\) setProtocolDays\(days\)/.test(dash)
+  && (dash.match(/setProtocolDays\(/g) ?? []).length === 2,
+  'the dashboard keeps the count it has when the re-read fails, at both of the places it sets it')
 // THE SKELETON COMES DOWN ONLY FOR THE NEWEST READ (v3). r4: it came down
 // for every read, so a first read discarded by a newer one showed the EMPTY
 // editor while the newer read was pending, and a save there replaced the list

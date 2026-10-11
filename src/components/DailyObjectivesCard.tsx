@@ -285,6 +285,12 @@ export default function DailyObjectivesCard() {
                 next[i] = e.target.value
                 setDraft(next)
               }}
+              // READ-ONLY WHILE THE SAVE IS IN FLIGHT (FOR-231 v3, Codex r3).
+              // The save sends the draft as it stood when it started, and a
+              // landed save locks the list and takes these inputs away. An
+              // edit typed in between was neither sent nor kept. What can be
+              // typed is what gets written - the protocol's gratitude rule.
+              readOnly={saving}
               placeholder={`Objective ${i + 1}`}
               className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand/50 placeholder:text-muted-foreground/50"
             />

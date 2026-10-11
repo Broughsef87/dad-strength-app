@@ -69,6 +69,20 @@ assert(/\.in\('date', \[localDay\(\), localDayBefore\(\)\]\)/.test(mp), 'the loa
   assert(localDayBefore(monday) === '2026-03-08', 'localDayBefore() names Sunday, the day before by the calendar')
   assert(localDayWithCutoff(4, monday) === '2026-03-08', 'which is the protocol day the loader has to find')
   assert(localDayBefore(new Date(2026, 0, 1, 12)) === '2025-12-31', 'and it crosses a year boundary')
+  // THE CUTOFF IS 4AM ON THE CLOCK, on the two days the clock itself moves
+  // (Codex r3). Subtracting four elapsed hours put the boundary at 5am on
+  // spring-forward day and 3am on fall-back day.
+  const elapsed = (dt) => localDay(new Date(dt.getTime() - 4 * 3_600_000))
+  const spring410 = new Date(2026, 2, 8, 4, 10)
+  assert(elapsed(spring410) === '2026-03-07', 'four ELAPSED hours before 4:10am on spring-forward day is the night before: the defect, reproduced')
+  assert(localDayWithCutoff(4, spring410) === '2026-03-08', 'at 4:10am on spring-forward day the protocol day is that day')
+  assert(localDayWithCutoff(4, new Date(2026, 2, 8, 1, 30)) === '2026-03-07', 'and at 1:30am it is still the day before')
+  const fall310 = new Date(2026, 10, 1, 3, 10)
+  assert(new Date(2026, 10, 1, 12).getTimezoneOffset() === 420 && new Date(2026, 9, 31, 12).getTimezoneOffset() === 360,
+    'the zone under test really did move its clocks back on 2026-11-01')
+  assert(elapsed(fall310) === '2026-11-01', 'four elapsed hours before 3:10am on fall-back day is already that day: the defect, reproduced')
+  assert(localDayWithCutoff(4, fall310) === '2026-10-31', 'at 3:10am on fall-back day the protocol day is still the day before')
+  assert(localDayWithCutoff(4, new Date(2026, 10, 1, 4, 0)) === '2026-11-01', 'and at 4:00am it rolls over')
   if (tzBefore === undefined) delete process.env.TZ; else process.env.TZ = tzBefore
 }
 assert(!/Date\.now\(\) - 86_400_000/.test(mp) && !/Date\.now\(\) - 86_400_000/.test(readLF('../../src/components/FirstWeekChecklist.tsx')),
