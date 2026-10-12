@@ -10,6 +10,7 @@
 // solver, validatePlan still decides whether the list can be built, and
 // planner.ts places what it says on the night that causes it.
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronRight } from 'lucide-react'
 import type { Household, MealRow, Plan, PlanEntry, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../../lib/fuel/solve'
 import { rotationEntries, rotationOf, sortedRotations } from '../../lib/fuel/rotation'
@@ -17,6 +18,7 @@ import { addNight, nightLine, nightSource, planIssues, reconcileDraft, removeNig
 import { isOwn, type OwnMealDraft } from '../../lib/fuel/ownMeal'
 import { isRecorded, unrecordedSlugs } from '../../lib/fuel/record'
 import MealForm from './MealForm'
+import RecipeView from './RecipeView'
 
 /** Cooked servings a night may be set to: three per person covers a leftover night, never fewer than eight. */
 export const maxServings = (household: Pick<Household, 'people_count'>) => Math.max(8, household.people_count * 3)
@@ -53,8 +55,10 @@ type Drawer = { swap: number } | { add: 1 | 2 } | null
  * They carry a quiet "yours" marker and an edit control; the marker is concrete
  * ink, not volt — an own meal is not an earned accent.
  */
-export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAddOwn, onEditOwn }: {
+export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAddOwn, onEditOwn, onRecipe }: {
   meals: MealRow[]; household: Household; heading: string; onPick: (meal: MealRow) => void; onClose: () => void
+  /** Open a meal's recipe (FUEL-RECIPES). With it, a tap on the meal opens its recipe — as it does everywhere a meal is listed — and picking it for the night is the row's own "pick" control. Absent, a tap on the meal picks it, as it did before recipes. */
+  onRecipe?: (meal: MealRow) => void
   /** Add a meal of your own. Absent when the page cannot write meals. */
   onAddOwn?: () => void
   /** Edit one of yours. Absent for a library meal, and when the page cannot write meals. */
@@ -78,7 +82,9 @@ export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAd
           const mine = isOwn(m)
           return (
             <li key={m.slug} className="flex items-stretch gap-2">
-              <button type="button" className="row-recessed flex-1 min-w-0 px-3.5 py-3 text-left disabled:text-muted-foreground" disabled={!ok} onClick={() => onPick(m)}>
+              <button type="button" data-recipe-opener={onRecipe ? `library-${m.slug}` : undefined} aria-label={onRecipe ? `recipe for ${m.name}` : undefined}
+                className={`row-recessed flex-1 min-w-0 px-3.5 py-3 text-left disabled:text-muted-foreground ${onRecipe && !ok ? 'text-muted-foreground' : ''}`}
+                disabled={!onRecipe && !ok} onClick={() => (onRecipe ? onRecipe(m) : onPick(m))}>
                 <span className="block text-sm font-medium lowercase">
                   {m.name}
                   {mine && <span className="eyebrow-mono-sm ml-2">yours</span>}
@@ -88,6 +94,10 @@ export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAd
                   {m.active_cook_minutes} min active{m.protein_g_per_person ? ` · ${m.protein_g_per_person} g protein` : ''}{ok ? '' : ` · over your ${household.cook_cap_minutes}-min cap`}
                 </span>
               </button>
+              {onRecipe && (
+                <button type="button" disabled={!ok} onClick={() => onPick(m)} aria-label={`pick ${m.name}`}
+                  className="pill-quiet shrink-0 px-3 text-[11px] lowercase font-semibold disabled:text-muted-foreground disabled:font-normal">pick</button>
+              )}
               {mine && onEditOwn && (
                 <button type="button" onClick={() => onEditOwn(m)} aria-label={`edit ${m.name}`}
                   className="pill-quiet shrink-0 px-3 text-[11px] lowercase">edit</button>
@@ -174,6 +184,28 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   // The meal form takes over the drawer rather than opening beside it: one
   // thing on screen at a time, on a phone, in a kitchen (FOR-242).
   const [mealForm, setMealForm] = useState<{ meal: MealRow | null } | null>(null)
+  // The recipe on screen (FUEL-RECIPES): a meal, at the servings of the night
+  // it was opened from, or at none when it was opened from the library. It
+  // takes the page over and gives it back exactly as it was — the draft, the
+  // drawer and where the athlete had scrolled to — because opening a recipe is
+  // looking something up, not leaving the plan. Read through the library, so a
+  // meal that leaves it mid-read simply closes.
+  const [recipe, setRecipe] = useState<{ slug: string; servings?: number } | null>(null)
+  const recipeMeal = recipe ? bySlug.get(recipe.slug) : undefined
+  // Where it was opened from: the scroll position, and the control that opened
+  // it — by name, because the plan unmounts under the recipe and that button
+  // is a new element when it comes back. Focus returns to it, so a keyboard or
+  // a screen reader resumes on the meal and not at the top of the document.
+  const cameFrom = useRef<{ scrollY: number; opener: string } | null>(null)
+  const planRef = useRef<HTMLDivElement>(null)
+  const openRecipe = (opener: string, slug: string, servings?: number) => { cameFrom.current = { scrollY: window.scrollY, opener }; setRecipe({ slug, servings }) }
+  useEffect(() => {
+    if (recipeMeal || !cameFrom.current) return
+    const { scrollY, opener } = cameFrom.current
+    cameFrom.current = null
+    window.scrollTo(0, scrollY)
+    planRef.current?.querySelector<HTMLElement>(`[data-recipe-opener="${opener}"]`)?.focus({ preventScroll: true })
+  }, [recipeMeal])
   // Every slug a stored night stands on WITHOUT A RECORD. Such a night has been
   // SHOPPED, and steakWindowWarnings still counts it by resolving the slug
   // against the library as it stands now — so changing its meal's cut, or
@@ -212,8 +244,10 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     setDrawer(null)
   }
 
+  if (recipe && recipeMeal) return <RecipeView meal={recipeMeal} household={household} servings={recipe.servings} onClose={() => setRecipe(null)} />
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" ref={planRef}>
       <section className="tile p-5 space-y-2">
         <p className="eyebrow-mono">{weeks === 2 ? 'the fortnight' : 'the week'}</p>
         <h2 className="text-[26px] lowercase">{weeks === 2 ? 'your dinners for the next two weeks' : 'your dinners for the week'}</h2>
@@ -253,10 +287,12 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
               return (
                 <li key={`${i}-${e.slug}`} className="row-recessed px-3.5 py-3 space-y-2">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium lowercase">{m.name}</p>
-                      <p className="eyebrow-mono mt-1">{nightLine(m)}</p>
-                    </div>
+                    <button type="button" className="min-w-0 text-left" data-recipe-opener={`night-${i}`} aria-label={`recipe for ${name}`} onClick={() => openRecipe(`night-${i}`, e.slug, e.servings)}>
+                      <span className="block text-sm font-medium lowercase">
+                        {m.name}<ChevronRight size={14} aria-hidden="true" className="inline-block ml-0.5 -mt-0.5 text-muted-foreground" />
+                      </span>
+                      <span className="block eyebrow-mono mt-1">{nightLine(m)}</span>
+                    </button>
                     <div className="flex items-center gap-1.5 shrink-0" role="group" aria-label={`servings of ${name}`}>
                       <span className="eyebrow-mono-sm mr-0.5">servings</span>
                       <button type="button" aria-label={`fewer servings of ${name}`} className="pill-quiet w-7 h-7 text-sm" onClick={() => setEntries(setServings(entries, e.slug, w, Math.max(1, e.servings - 1)))}>−</button>
@@ -307,6 +343,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
               onCancel={() => setMealForm(null)} />
           ) : (
             <LibraryDrawer meals={meals} household={household} heading={drawerHeading} onPick={pick} onClose={() => setDrawer(null)}
+              onRecipe={(m) => openRecipe(`library-${m.slug}`, m.slug)}
               onAddOwn={onSaveMeal ? () => setMealForm({ meal: null }) : undefined}
               onEditOwn={onSaveMeal ? (m) => setMealForm({ meal: m }) : undefined} />
           )}

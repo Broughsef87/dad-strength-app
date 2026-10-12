@@ -678,6 +678,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'fixtures/fuel-seed-rotation-b.json -> supabase/migrations/20260917_fuel_rotations.sql',
     'fixtures/fuel-seed-library-expansion.json -> supabase/migrations/20261005_fuel_library_expansion.sql',
     'fixtures/fuel-seed-rotation-c.json -> supabase/migrations/20261010_fuel_rotation_c.sql',
+    'fixtures/fuel-seed-steps.json -> supabase/migrations/20261012_fuel_meal_steps.sql',
   ]
   const pairs = PAIRS.map((p) => `${p.fixture} -> ${p.migration}`)
   const missing = EXPECTED_PAIRS.filter((x) => !pairs.includes(x))

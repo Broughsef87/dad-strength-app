@@ -16,6 +16,12 @@ export interface MealIngredient {
   inferred: boolean
 }
 
+/** One step of a meal's recipe, in the order it is cooked. `minutes` is the clock that step takes on its own; a step done while something else cooks carries none. */
+export interface MealStep {
+  text: string
+  minutes?: number
+}
+
 /** A fuel_meals row — the curated library, read-only to users. */
 export interface MealRow {
   slug: string
@@ -31,6 +37,13 @@ export interface MealRow {
   perishable_within_days: number | null
   rotation_note: string | null
   ingredients: MealIngredient[]
+  /**
+   * The recipe, in order (FUEL-RECIPES). NULL or absent is "no steps yet" — a
+   * meal still opens without them — and absent is also what every row reads as
+   * before the steps migration is applied. Read it through recipe.ts, which
+   * never trusts the shape of what the column holds.
+   */
+  steps?: MealStep[] | null
   /**
    * Who owns this meal (FOR-242). NULL or absent is the seeded library —
    * everyone reads it, nobody writes it. A value is that athlete's own meal.
