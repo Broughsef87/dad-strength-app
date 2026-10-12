@@ -12,7 +12,7 @@
 // run on those rows, so the screen can never show a list the build would not
 // produce. "Build my list" hands the rows to the page, which saves them as the
 // household's inventory and builds through the one path there has ever been.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Household, InventoryItem, ListItem, MealRow, Plan } from '../../lib/fuel/types'
 import { MEAT_SECTION, SECOND_TRIP_SECTION } from '../../lib/fuel/solve'
 import { isCustom, sectionsInOrder, type StapleRow } from '../../lib/fuel/custom'
@@ -22,7 +22,7 @@ import { fmtQty } from './Checklist'
 const NO_STAPLES: StapleRow[] = []
 const qtyText = (qty: number, unit: string) => fmtQty({ qty, unit })
 
-export default function HaveStep({ household, meals, plan, staples = NO_STAPLES, askInventory = false, countByDefault = false, building, resume, onBack, onBuild }: {
+export default function HaveStep({ household, meals, plan, staples = NO_STAPLES, askInventory = false, countByDefault = false, prior = null, building, resume, onHold, onBack, onBuild }: {
   household: Household; meals: MealRow[]
   /** The nights step 1 settled on. */
   plan: Plan
@@ -33,10 +33,13 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   /** When it needs asking: does it count unless told otherwise — saved after the newest plan was built — or has a week been eating it (round 17)? */
   countByDefault?: boolean
   building: boolean
-  /** What this same step 2 held when it was left for the menu: it opens on that rather than on the saved stock, so going back loses nothing (Codex r1). */
+  /** The plan this build would rebuild — its nights and the rows it was built with — or null when the build is a new one. What a rebuild lets stand is judged against it (onhand.ts, Codex r2). */
+  prior?: { plan: Plan; inventory: InventoryItem[] } | null
+  /** What this same step 2 held when it was last on screen: it opens on that rather than on the saved stock, so leaving it loses nothing (Codex r1). */
   resume?: { rows: InventoryItem[]; skipped: string[] }
-  /** Back to the menu, handing over what is ticked so it can be given back. */
-  onBack: (rows: InventoryItem[], skipped: string[]) => void
+  /** What is ticked, told to the page as it changes — so it survives however step 2 is left: the back button, the steps above, the gear (Codex r2). */
+  onHold?: (rows: InventoryItem[], skipped: string[]) => void
+  onBack: () => void
   /** Build the list with these rows on hand. `skipKeys` are the staple lines ticked "have it", to come off this one list; `keepKeys` the ones left unticked, which the list must carry. */
   onBuild: (rows: InventoryItem[], skipKeys: string[], keepKeys: string[]) => void
 }) {
@@ -44,12 +47,16 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   // ask whose default was yes. Otherwise it is offered back line by line.
   const counts = !askInventory || countByDefault
   const draft = useMemo(() => draftList(household, meals, plan), [household, meals, plan])
-  const [rows, setRows] = useState<InventoryItem[]>(() => resume?.rows ?? startRows(household.inventory, draft.items, counts, !askInventory))
+  const opened = useMemo(() => startRows(household.inventory, draft.items, counts, prior ? { items: draftList(household, meals, prior.plan).items, inventory: prior.inventory } : null), [household, meals, draft, counts, prior])
+  const [rows, setRows] = useState<InventoryItem[]>(() => resume?.rows ?? opened)
   const [skipped, setSkipped] = useState<Set<string>>(() => new Set(resume?.skipped ?? []))
   const [open, setOpen] = useState<Set<string>>(new Set())
   // What is being typed in a "have some" box, as typed: "1." is not yet a
   // number and must not be rewritten under the thumb.
   const [typed, setTyped] = useState<Record<string, string>>({})
+  const hold = useRef(onHold)
+  useEffect(() => { hold.current = onHold })
+  useEffect(() => { hold.current?.(rows, [...skipped]) }, [rows, skipped])
   const states = useMemo(() => lineStates(draft.items, listWith(household, meals, plan, rows)), [draft, household, meals, plan, rows])
   const custom = useMemo(() => stapleLines(staples), [staples])
 
@@ -61,7 +68,10 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   const haveLine = (l: ListItem) => (isCustom(l) ? skipped.has(l.key) : !!states.get(l.key)?.have)
   const all = [...draft.items, ...custom]
   const have = all.filter(haveLine).length
-  const offered = !counts && draft.items.some((l) => lastTime(household.inventory, l) !== null)
+  // Saved stock that did not open counted, for a line on this list: offered
+  // back, one tap a line. The note says so only when there is some.
+  const offer = (l: ListItem): number | null => (someQty(opened, l) === null ? lastTime(household.inventory, l) : null)
+  const offered = draft.items.some((l) => offer(l) !== null)
 
   const tap = (l: ListItem) => {
     if (isCustom(l)) { setSkipped((s) => { const n = new Set(s); if (n.has(l.key)) n.delete(l.key); else n.add(l.key); return n }); return }
@@ -79,7 +89,7 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
         <p className="eyebrow-mono">before you shop</p>
         <h2 className="text-[26px] lowercase">what do you already have?</h2>
         <p className="text-sm text-muted-foreground">everything this menu needs, in store order. tap what is already in the kitchen and it comes off the list — tap again to put it back.</p>
-        {offered && <p className="status-msg text-[12px]" role="status">nothing is ticked from last time — a week has been eating it. tap what is still there.</p>}
+        {offered && <p className="status-msg text-[12px]" role="status">some of what you had last time is not counted yet — it may have been eaten since. tap &quot;still have&quot; on what is still there.</p>}
       </section>
 
       {sections.map((s) => (
@@ -93,7 +103,7 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
               const got = haveLine(l)
               const some = own ? null : someQty(rows, l)
               const part = !own && !got && !!st && st.buying < l.qty
-              const last = own || counts ? null : lastTime(household.inventory, l)
+              const last = own ? null : offer(l)
               const box = !own && (l.section === MEAT_SECTION || open.has(l.key) || part)
               return (
                 <li key={l.key} className="space-y-1">
@@ -149,7 +159,7 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
         <button type="button" className="pill-volt w-full py-3 text-sm" disabled={building} onClick={() => onBuild(rows, custom.filter((l) => skipped.has(l.key)).map((l) => l.key), custom.filter((l) => !skipped.has(l.key)).map((l) => l.key))}>
           {building ? 'building the list…' : 'build my list'}
         </button>
-        <button type="button" className="pill-quiet w-full py-2 text-[12px] lowercase" disabled={building} onClick={() => onBack(rows, [...skipped])}>back to the menu</button>
+        <button type="button" className="pill-quiet w-full py-2 text-[12px] lowercase" disabled={building} onClick={onBack}>back to the menu</button>
       </div>
     </div>
   )

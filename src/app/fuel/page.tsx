@@ -367,7 +367,7 @@ export default function FuelPage() {
   // remove, after the database has written the list — nothing is read or
   // merged here, and the database stays the only source of those lines.
   // `keepKeys` are the ones left unticked: wanted on the list.
-  const onBuild = async (p: Plan, opts: { countInventory: boolean; onHand?: InventoryItem[]; skipKeys?: string[]; keepKeys?: string[] }) => {
+  const onBuild = async (p: Plan, opts: { countInventory: boolean; onHand?: InventoryItem[]; skipKeys?: string[]; keepKeys?: string[]; drawnFor?: string }) => {
     if (!userId || !household) return
     // A meal write is in flight: its ingredients are not on screen yet, so a
     // list built now would be built from the old ones (Codex r4).
@@ -378,6 +378,10 @@ export default function FuelPage() {
     // on: a page left open across a boundary was drawn for another target
     // (Codex, round 18). If the answer changed, nothing is built — the page
     // redraws with the ask where it now belongs.
+    // Step 2's rows were gathered for the week it was DRAWN for. A page left
+    // open across a boundary now builds for another: nothing is built from
+    // rows gathered for the old one, whatever the ask below says (Codex r2).
+    if (opts.drawnFor !== undefined && opts.drawnFor !== weekStart) { setError('the week has moved on since this page was drawn — check what you have, then build again'); return }
     const askNow = household.inventory.length > 0 && !rebuildOfCounted(weekStart)
     if (askNow !== askInventory) { setError('the week has moved on since this page was drawn — check what you have, then build again'); return }
     // What is on hand counts only on say-so wherever the ask was shown —
@@ -404,7 +408,7 @@ export default function FuelPage() {
     // nothing: a list built from rows the household does not hold would read
     // as out of date the moment it opened.
     if (opts.onHand && !sameRows(opts.onHand, household.inventory)) {
-      const { error: e } = await saveOnHand(supabase, userId, opts.onHand, householdSavedAt)
+      const { error: e } = await saveOnHand(supabase, userId, opts.onHand, household.inventory)
       if (e) { setBusy(false); setError(e.message ?? 'could not save what you have'); return }
       moved()
       // The saved-at stamp does not move: this is not the stock being counted
@@ -417,15 +421,16 @@ export default function FuelPage() {
     // database builds with every such line (Codex r1).
     const carriesKept = !!list && (opts.keepKeys ?? []).every((k) => list.items.some((i) => i.key === k))
     if (carriesKept && !startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, h, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(h, inventoryCounted), meals, p).items, list.items)) {
-      setBusy(false)
+      // Busy until the lines are off: a second build must not start on a list
+      // a removal is still on its way to (Codex r2).
       await takeOff(list.id, list.items, opts.skipKeys)
+      setBusy(false)
       setDraft(null); setHad(null); setStep('list'); return
     }
     // No staples are read here: the database is the only source of staple
     // lines, rebuilt under the version's own lock (FOR-240, Andrew's ruling A).
     const res = await createVersion(supabase, weekStart, h, meals, p, inventoryCounted)
-    setBusy(false)
-    if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
+    if (res.error || !res.plan || !res.list) { setBusy(false); setError(res.error?.message ?? 'could not build the list'); return }
     const built = res.plan
     moved(built)
     setPlan(built); setList(res.list); setRecent((r) => [...r, built]); setNewestPlanAt(built.created_at ?? new Date().toISOString()); setNewestPlanKnown(true)
@@ -437,6 +442,7 @@ export default function FuelPage() {
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
     setNextCycle(false)
     await takeOff(res.list.id, res.list.items, opts.skipKeys)
+    setBusy(false)
     setDraft(null); setHad(null)
     setStep('list')
   }
@@ -596,7 +602,12 @@ export default function FuelPage() {
   // open across a week boundary — step 2 is a new one and opens on the stock
   // as that week would count it, never on rows gathered for another (Codex r1).
   const countByDefault = inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)
-  const haveKey = household && drafted ? `${builderKey}-${buildTarget(new Date())}-${askInventory}-${countByDefault}-${JSON.stringify(drafted.entries)}` : ''
+  const target = buildTarget(new Date())
+  const haveKey = household && drafted ? `${builderKey}-${target}-${askInventory}-${countByDefault}-${JSON.stringify(drafted.entries)}` : ''
+  // The plan the build would REBUILD, when it is one: what a rebuild lets
+  // stand at step 2 is judged against that plan's own nights and its own
+  // snapshot of what was on hand (Codex r2).
+  const prior = plan && rebuildOfCounted(target) ? { plan: { entries: plan.meal_ids }, inventory: plan.rules_snapshot?.inventory ?? [] } : null
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -634,7 +645,10 @@ export default function FuelPage() {
                   <p className="data-mono shrink-0 mr-1"><b>{flowAt + 1}</b> of {FLOW.length}</p>
                   {FLOW.map(({ step: s, label }) => (
                     <button key={s} type="button" onClick={() => setStep(s)} aria-current={at === s ? 'step' : undefined}
-                      disabled={(s === 'plan' && !household) || (s === 'have' && !drafted) || (s === 'list' && !list)}
+                      // Step 2 is reached only through "use this menu", which is what settles the
+                      // nights it lists: from anywhere else the tap would open a menu the athlete
+                      // has since changed (Codex r2).
+                      disabled={(s === 'plan' && !household) || (s === 'have' && at !== 'have') || (s === 'list' && !list)}
                       className={`pill-quiet px-3 py-1.5 text-[12px] lowercase ${at === s ? 'font-semibold' : 'text-muted-foreground'}`}>
                       {label}
                     </button>
@@ -688,9 +702,9 @@ export default function FuelPage() {
               {at === 'have' && household && drafted && (
                 <HaveStep key={haveKey} household={household} meals={meals} plan={drafted} staples={customOn ? staples : undefined}
                   askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)} building={busy}
-                  resume={had && had.for === haveKey ? had : undefined}
-                  onBack={(rows, skipped) => { setHad({ for: haveKey, rows, skipped }); setStep('plan') }}
-                  onBuild={(rows, skipKeys, keepKeys) => void onBuild(drafted, { countInventory: true, onHand: rows, skipKeys, keepKeys })} />
+                  prior={prior} resume={had && had.for === haveKey ? had : undefined}
+                  onHold={(rows, skipped) => setHad({ for: haveKey, rows, skipped })} onBack={() => setStep('plan')}
+                  onBuild={(rows, skipKeys, keepKeys) => void onBuild(drafted, { countInventory: true, onHand: rows, skipKeys, keepKeys, drawnFor: target })} />
               )}
               {at === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">

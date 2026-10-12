@@ -31,6 +31,12 @@ export function listWith(household: Household, meals: MealRow[], plan: Plan, row
   return buildShoppingList({ ...household, inventory: rows }, meals, plan)
 }
 
+/** The plan a build would REBUILD: its nights, and the rows on hand it was built with — its own snapshot. */
+export interface PriorBuild {
+  items: Pick<ListItem, 'item'>[]
+  inventory: InventoryItem[]
+}
+
 /**
  * The rows step 2 opens with, from what the household last saved.
  *
@@ -43,16 +49,28 @@ export function listWith(household: Household, meals: MealRow[], plan: Plan, row
  * time, by `lastTime`, and counts only on a tap.
  *
  * Stock for something this menu does not cook is kept either way: it comes off
- * nothing here, and dropping it would lose the freezer over a week of soup. A
- * tick is about one line of ONE list: it is kept only for `sameBuild` — a
- * rebuild of the plan it was ticked for — and only while its line is still on
- * the draft. Stock can be counted afresh in settings; a tick never can, so a
- * tick never rides into another week on the stock's freshness.
+ * nothing here, and dropping it would lose the freezer over a week of soup.
+ *
+ * `prior` is the plan being rebuilt, when the build is a rebuild, and it is
+ * what "counted" MEANS there (Codex r2). Stock counts on a rebuild because the
+ * athlete was shown that ingredient at that build's step 2 and let the row
+ * stand — so stock for an ingredient that build never cooked was never shown,
+ * was carried along unseen, and does not count now that the menu has changed
+ * to cook it: it is offered back like any other. And a tick is about one line
+ * of ONE list: it is kept only if that build's own snapshot holds it, and its
+ * line is still on the draft. A tick made for another week's list — the next
+ * one, built ahead — is not this build's, however alike the line's key.
  */
-export function startRows(saved: InventoryItem[], draft: Pick<ListItem, 'key' | 'item'>[], counts: boolean, sameBuild: boolean = counts): InventoryItem[] {
+export function startRows(saved: InventoryItem[], draft: Pick<ListItem, 'key' | 'item'>[], counts: boolean, prior: PriorBuild | null = null): InventoryItem[] {
   const keys = new Set(draft.map((l) => l.key))
   const items = new Set(draft.map((l) => norm(l.item)))
-  return saved.filter((r) => (isTick(r) ? sameBuild && keys.has(r.covers as string) : counts || !items.has(norm(r.item))))
+  const shown = prior ? new Set(prior.items.map((l) => norm(l.item))) : null
+  const ticked = new Set((prior?.inventory ?? []).flatMap((r) => (r.covers !== undefined ? [r.covers] : [])))
+  return saved.filter((r) => {
+    if (isTick(r)) return ticked.has(r.covers as string) && keys.has(r.covers as string)
+    if (!items.has(norm(r.item))) return true
+    return counts && (!shown || shown.has(norm(r.item)))
+  })
 }
 
 /** A line ticked "have it": covered whole, whatever was on hand for it before. Stock is left alone — it still goes to the lines that were not ticked. */

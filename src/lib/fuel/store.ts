@@ -234,17 +234,17 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
  * last week's stock would count again unasked whenever the phone ran ahead.
  * Only a save from settings says the stock was counted afresh.
  */
-export async function saveOnHand(db: Db, userId: string, rows: Household['inventory'], loadedAt: string | null): Promise<{ error: { code?: string; message?: string } | null; changedElsewhere: boolean }> {
-  // Only over the household this page LOADED (Codex r1): step 2 opened on that
-  // copy of the stock, so if settings were saved somewhere else since — a
-  // pound added to the freezer in another tab — writing these rows would
-  // erase it. The stamp a settings save moves is the witness; no row matched
-  // means it moved, nothing is written, and the athlete is told to reload.
-  let q = db.from('fuel_household').update({ inventory: rows }).eq('user_id', userId)
-  if (loadedAt) q = q.eq('updated_at', loadedAt)
-  const { data, error } = await q.select('user_id').maybeSingle()
+export async function saveOnHand(db: Db, userId: string, rows: Household['inventory'], loaded: Household['inventory']): Promise<{ error: { code?: string; message?: string } | null; changedElsewhere: boolean }> {
+  // Only over the inventory this page LOADED (Codex r1, r2): step 2 opened on
+  // that copy of the stock, so if it has changed since — a pound added to the
+  // freezer in another tab's settings, or another tab's step 2 building its
+  // own list — writing these rows would erase that, or leave the newest list
+  // snapshotting rows the household no longer holds. The column itself is the
+  // witness, compared by the database as jsonb: no row matched means it moved,
+  // nothing is written, and the athlete is told to reload.
+  const { data, error } = await db.from('fuel_household').update({ inventory: rows }).eq('user_id', userId).eq('inventory', JSON.stringify(loaded)).select('user_id').maybeSingle()
   if (error) return { error, changedElsewhere: false }
-  if (!data) return { error: { message: 'your settings were changed somewhere else since this page loaded — reload, then tick what you have again' }, changedElsewhere: true }
+  if (!data) return { error: { message: 'what you have on hand was changed somewhere else since this page loaded — reload, then tick what you have again' }, changedElsewhere: true }
   return { error: null, changedElsewhere: false }
 }
 
