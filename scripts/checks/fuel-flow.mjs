@@ -87,7 +87,7 @@ const BANNED = /fortnight|rotation|cycle/i
   // rows that are not ticks solve exactly as they did before the field existed
   const stock = [{ item: 'rice', qty: 1, unit: 'lb' }, { item: 'broccoli', qty: 10, unit: 'oz' }, { item: 'chicken thigh, boneless skinless', qty: 4, unit: 'lb' }]
   const src = readLF('src/lib/fuel/solve.ts')
-  assert(/const ticked = inventory\.some\(\(inv\) => inv\.covers === key\)/.test(src) && /for \(const inv of ticked \? \[\] : inventory\) \{\n\s+if \(inv\.covers !== undefined\) continue\n\s+if \(norm\(inv\.item\) !== norm\(b\.item\) \|\| inv\.left <= 0\) continue/.test(src),
+  assert(/const ticked = inventory\.some\(\(inv\) => inv\.covers === key && inv\.qty >= asBought\)/.test(src) &&/for \(const inv of ticked \? \[\] : inventory\) \{\n\s+if \(inv\.covers !== undefined\) continue\n\s+if \(norm\(inv\.item\) !== norm\(b\.item\) \|\| inv\.left <= 0\) continue/.test(src),
     'the subtraction loop is the one it was, entered only for a line that is not ticked')
   assert(solve(stock).items.some((l) => l.item === 'rice' && l.qty < rice.qty && !l.stocked), 'plain stock still subtracts by quantity')
 }
