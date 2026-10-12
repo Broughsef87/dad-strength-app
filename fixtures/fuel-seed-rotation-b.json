@@ -11,15 +11,15 @@
   "fuel_rotations": [
     {
       "slug": "rotation-a",
-      "name": "Fortnight One",
+      "name": "Everyday menu 1",
       "sort_order": 1,
-      "note": "The original eight. Ran Aug 24 – Sep 14, 2026."
+      "note": "The original eight: ribeye, chili-lime thighs, lemon-garlic salmon, turkey bowls and burgers, blackened cod and a stir-fry."
     },
     {
       "slug": "rotation-b",
-      "name": "Fortnight Two",
+      "name": "Everyday menu 2",
       "sort_order": 2,
-      "note": "Five new meals plus the three keepers. Same cut mix as rotation A — ribeye 1, chicken thigh 2, ground turkey 2, fish 2, chicken breast 1 — so the Costco shop is identical in shape and cost. Every spice profile and format is new against rotation A."
+      "note": "Same shop, new flavours: miso salmon, jerk thighs, turkey meatballs, tandoori chicken and cod tacos."
     }
   ],
   "fuel_rotation_meals": [

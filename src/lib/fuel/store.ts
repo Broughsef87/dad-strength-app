@@ -222,6 +222,26 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
 }
 
 /**
+ * What step 2 gathered, saved as the household's rows on hand before a build
+ * (FOR-281). ONE column: the rules and the people are not this write's to
+ * carry, so a rule changed in another tab is never put back by a build here.
+ *
+ * `updated_at` is deliberately NOT moved. That stamp is how the page tells
+ * stock counted since the newest plan from stock a week has been eating
+ * (inventoryFresh, FOR-177 round 17), and this save lands a moment before the
+ * plan it is for — on the client's clock, against the database's. Stamping it
+ * would make "was it saved after the plan?" a race between two clocks, and
+ * last week's stock would count again unasked whenever the phone ran ahead.
+ * Only a save from settings says the stock was counted afresh.
+ */
+export async function saveOnHand(db: Db, userId: string, rows: Household['inventory']): Promise<{ error: { code?: string; message?: string } | null }> {
+  const { data, error } = await db.from('fuel_household').update({ inventory: rows }).eq('user_id', userId).select('user_id').maybeSingle()
+  if (error) return { error }
+  if (!data) return { error: { message: 'could not save what you have — set up your household in settings first' } }
+  return { error: null }
+}
+
+/**
  * The live cycle's newest plan and its list. A fortnight plan stays live for
  * fourteen days from its start (cycle.ts), so the second week — and the
  * second trip — is still on the page.

@@ -144,7 +144,7 @@ function ownKeyPresent(listId: string): boolean {
   try { return localStorage.getItem(outboxKey(listId, tabId())) !== null } catch { return true }
 }
 
-const fmtQty = (i: ListItem) => {
+export const fmtQty = (i: Pick<ListItem, 'qty' | 'unit'>) => {
   const q = Number.isInteger(i.qty) ? String(i.qty) : i.qty.toFixed(1).replace(/\.0$/, '')
   if (i.unit === 'oz' && i.qty >= 16) return `${q} oz · ${(i.qty / 16).toFixed(1).replace(/\.0$/, '')} lb`
   return `${q} ${i.unit}`
@@ -334,7 +334,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
   // lines are stored after the solver's and must still land in their own
   // aisle, once (FOR-240).
   const sections: Array<{ title: string; items: typeof rendered; note?: string }> = sectionsInOrder(main, sectionOrder).map((s) => ({ title: s.section, items: s.items }))
-  if (trip2.length) sections.push({ title: SECOND_TRIP_SECTION, items: trip2, note: 'mid-cycle top-up — fresh fish and produce for week two, bought closer to the night' })
+  if (trip2.length) sections.push({ title: SECOND_TRIP_SECTION, items: trip2, note: 'the second shop — fresh fish and produce for week two, bought closer to the night' })
   const p = progress(rowItems)
   const pending = outbox.length
   const estimates = rendered.some((i) => i.inferred)
@@ -349,7 +349,7 @@ export default function Checklist({ listId, version, versions, items: rowItems, 
             <p className="text-[11px] text-muted-foreground lowercase">saved on the row · {p.total - p.done} to go</p>
           </div>
           <button type="button" onClick={onRegenerate} className="pill-quiet px-3 py-2 text-[12px] lowercase flex items-center gap-1.5">
-            <RefreshCw size={12} aria-hidden="true" /> change the plan
+            <RefreshCw size={12} aria-hidden="true" /> change the menu
           </button>
         </div>
         <div className={`status-msg ${online ? 'good' : 'danger'} mt-3 text-[12px]`} role="status" aria-live="polite">

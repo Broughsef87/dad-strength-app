@@ -1,7 +1,12 @@
 'use client'
 
 // ── /fuel — the Pro anchor, Phase 1: plan + list ────────────────────────────
-// Intake (taps and numbers) → pick the nights → the checklist. Behind
+// ONE GUIDED FLOW (FOR-281), three steps with the count on screen: pick the
+// menu → what do you already have? → your list. The household, the rules, prep
+// diversion and the stock that lasts sit behind a gear, and a first visit
+// starts there. Step 2 is the draft list with a tap per line; what it gathers
+// becomes the household's rows on hand before the build, so the build below is
+// the one there has always been (onhand.ts). Behind
 // PremiumGate. The solver is pure (src/lib/fuel/solve.ts); this page is the
 // I/O around it. Every rule or plan change writes version + 1 and keeps the
 // old versions (L6, L7). Check state is row-authoritative (ticks.ts).
@@ -34,18 +39,20 @@
 // on a superseded list, and that old page shows the refusal as "not saved ·
 // tap again" until it reloads. Nothing is lost that was not already dead.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../utils/supabase/client'
 import BottomNav from '../../components/BottomNav'
 import PremiumGate from '../../components/PremiumGate'
 import IntakeForm from '../../components/fuel/IntakeForm'
 import PlanBuilder from '../../components/fuel/PlanBuilder'
+import HaveStep from '../../components/fuel/HaveStep'
 import Checklist, { sendQueued } from '../../components/fuel/Checklist'
 import AddItem from '../../components/fuel/AddItem'
-import type { Household, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from '../../lib/fuel/types'
+import type { Household, InventoryItem, ListItem, MealRow, Plan, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import {
   DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createOwnMeal, createVersion, isMissingColumn, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
-  readItems, removeCustomItem, saveHousehold, setItemChecked, retireOwnMeal, stopStaple, updateOwnMeal, type ListRow, type PlanRow,
+  readItems, removeCustomItem, saveHousehold, saveOnHand, setItemChecked, retireOwnMeal, stopStaple, updateOwnMeal, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
 import { customKey, isCustom, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
 import type { OwnMealDraft } from '../../lib/fuel/ownMeal'
@@ -54,8 +61,12 @@ import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
 import { builderStart } from '../../lib/fuel/rotation'
 import { planIssueSentences } from '../../lib/fuel/planner'
+import { sameRows } from '../../lib/fuel/onhand'
 
-type Step = 'intake' | 'plan' | 'list'
+// 'intake' is settings, behind the gear. The three steps of the flow, in order,
+// are 'plan' (pick the menu), 'have' (what do you already have?) and 'list'.
+type Step = 'intake' | 'plan' | 'have' | 'list'
+const FLOW: Array<{ step: Step; label: string }> = [{ step: 'plan', label: 'the menu' }, { step: 'have', label: 'what you have' }, { step: 'list', label: 'your list' }]
 
 const asCycle = (p: PlanRow): CycleRow => ({ week_start: p.week_start, version: p.version, shop_cadence_days: Number(p.rules_snapshot?.shop_cadence_days ?? 7) })
 
@@ -120,6 +131,13 @@ export default function FuelPage() {
   // rebuild that kept the old start would be live for a day and gone
   // (Codex, round 3). The athlete can flip it either way.
   const [nextCycle, setNextCycle] = useState(false)
+  // The rebuild-or-next choice sits behind a "planning ahead?" link (FOR-281):
+  // open once asked for, and whenever the choice is already "next".
+  const [ahead, setAhead] = useState(false)
+  // The nights step 1 settled on, held HERE so step 2 can be left and come back
+  // to — and tagged with the builder it was made in, so a menu drawn for one
+  // week is never carried into another (FOR-281).
+  const [draft, setDraft] = useState<{ for: string; plan: Plan } | null>(null)
   const liveCycle: CycleRow | null = plan ? asCycle(plan) : null
   // The identity the checklist keys on. Callbacks depend on THIS, not on the
   // list object, so a row update never recreates them and never re-triggers
@@ -232,6 +250,8 @@ export default function FuelPage() {
     if (e) { setError(e.message); return }
     moved()
     setHousehold(h); setHouseholdSavedAt(new Date().toISOString())
+    // The nights were settled for the household as it was.
+    setDraft(null)
     // A rule change invalidates the list (L7): if a version exists and the
     // household differs from its snapshot, the next build writes version + 1.
     setStep('plan')
@@ -335,7 +355,14 @@ export default function FuelPage() {
     }
   }
 
-  const onBuild = async (p: Plan, opts: { countInventory: boolean }) => {
+  // FOR-281: `onHand` is what step 2 gathered — the rows on hand for THIS
+  // build. They are saved as the household's inventory before the solve, so
+  // the snapshot, the staleness check and the unchanged-list shortcut all read
+  // the one inventory they always have. `skipKeys` are the athlete's own lines
+  // ticked "have it": taken off the built list by key, through the guarded
+  // remove, after the database has written the list — nothing is read or
+  // merged here, and the database stays the only source of those lines.
+  const onBuild = async (p: Plan, opts: { countInventory: boolean; onHand?: InventoryItem[]; skipKeys?: string[] }) => {
     if (!userId || !household) return
     // A meal write is in flight: its ingredients are not on screen yet, so a
     // list built now would be built from the old ones (Codex r4).
@@ -347,7 +374,7 @@ export default function FuelPage() {
     // (Codex, round 18). If the answer changed, nothing is built — the page
     // redraws with the ask where it now belongs.
     const askNow = household.inventory.length > 0 && !rebuildOfCounted(weekStart)
-    if (askNow !== askInventory) { setError('the cycle has moved on since this page was drawn — check what is on hand, then build again'); return }
+    if (askNow !== askInventory) { setError('the week has moved on since this page was drawn — check what you have, then build again'); return }
     // What is on hand counts only on say-so wherever the ask was shown —
     // otherwise always (Codex, rounds 15 and 16). Recorded in the snapshot,
     // so the plan is compared the way it was built.
@@ -366,11 +393,27 @@ export default function FuelPage() {
     // reused only while its start is still the one a rebuild would get —
     // and only when a fresh solve comes out identical, because the library
     // itself can have been corrected since (Codex, round 11).
-    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, household, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(household, inventoryCounted), meals, p).items, list.items)) { setStep('list'); return }
+    const h: Household = opts.onHand ? { ...household, inventory: opts.onHand } : household
     setBusy(true); setError(null)
+    // What step 2 said is on hand is saved FIRST, and a save that fails builds
+    // nothing: a list built from rows the household does not hold would read
+    // as out of date the moment it opened.
+    if (opts.onHand && !sameRows(opts.onHand, household.inventory)) {
+      const { error: e } = await saveOnHand(supabase, userId, opts.onHand)
+      if (e) { setBusy(false); setError(e.message ?? 'could not save what you have'); return }
+      moved()
+      // The saved-at stamp does not move: this is not the stock being counted
+      // afresh, it is the build writing down what it was told (saveOnHand).
+      setHousehold(h)
+    }
+    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, h, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(h, inventoryCounted), meals, p).items, list.items)) {
+      setBusy(false)
+      await takeOff(list.id, list.items, opts.skipKeys)
+      setDraft(null); setStep('list'); return
+    }
     // No staples are read here: the database is the only source of staple
     // lines, rebuilt under the version's own lock (FOR-240, Andrew's ruling A).
-    const res = await createVersion(supabase, weekStart, household, meals, p, inventoryCounted)
+    const res = await createVersion(supabase, weekStart, h, meals, p, inventoryCounted)
     setBusy(false)
     if (res.error || !res.plan || !res.list) { setError(res.error?.message ?? 'could not build the list'); return }
     const built = res.plan
@@ -383,6 +426,8 @@ export default function FuelPage() {
     if (upcoming && (upcoming.week_start === weekStart || weekStart > upcoming.week_start)) setUpcoming(null)
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
     setNextCycle(false)
+    await takeOff(res.list.id, res.list.items, opts.skipKeys)
+    setDraft(null)
     setStep('list')
   }
 
@@ -430,6 +475,18 @@ export default function FuelPage() {
   // re-read the page: FOR-233 keeps the re-read to the callers it has, and the
   // next tick moves the page to the newer list, as it does today.
   const rebuiltElsewhere = 'this list was rebuilt somewhere else, so nothing changed on it — reload to open the newest list'
+  // A staple ticked "have it" at step 2 (FOR-281) comes off the list just
+  // built — this list only; the staple stays on for the next one. Only keys the
+  // list actually carries are asked for, each through the list's queue. A
+  // remove that fails leaves the line on the list, and says so: it can still
+  // be ticked there, and nothing was lost.
+  const takeOff = async (id: string, items: ListItem[], keys: string[] = []) => {
+    for (const key of keys.filter((k) => items.some((i) => i.key === k))) {
+      const r = await sendQueued(id, () => removeCustomItem(supabase, id, key))
+      if (r.items) onRowItems(id, r.items)
+      else setError('your list is built, but one thing you said you have is still on it — tick it off on the list')
+    }
+  }
   const onAddCustom = async (item: string, section: string, everyList: boolean): Promise<string | null> => {
     if (!userId || !listId) return 'there is no list to add to yet'
     const id = listId
@@ -518,13 +575,28 @@ export default function FuelPage() {
   // while buying food that is already in the freezer.
   const onHandWarnings = household ? inventoryWarnings(household.inventory, meals) : []
 
+  // The builder a draft belongs to. A draft made in another is not this menu.
+  const builderKey = household ? `${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}-${rotations.length}` : ''
+  const drafted = draft && draft.for === builderKey ? draft.plan : null
+  // Step 2 needs the nights step 1 settled on; without them it is step 1.
+  const at: Step = step === 'have' && !(household && drafted) ? 'plan' : step
+  const flowAt = FLOW.findIndex((f) => f.step === at)
+
   return (
     <div className="min-h-screen bg-background pb-28">
       <div className="max-w-md mx-auto px-4 pt-6 space-y-4">
-        <header>
-          <p className="eyebrow-mono">fuel · phase 1</p>
-          <h1 className="text-2xl lowercase mt-1">automate the noise</h1>
-          <p className="text-[12px] text-muted-foreground">Sunday: pick the nights. The list comes out in store order, minus what you already have.</p>
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="eyebrow-mono">fuel · phase 1</p>
+            <h1 className="text-2xl lowercase mt-1">automate the noise</h1>
+            <p className="text-[12px] text-muted-foreground">Sunday: pick the menu, tick what you already have, shop the list.</p>
+          </div>
+          {!loading && !notReady && household && (
+            <button type="button" className="pill-quiet shrink-0 w-10 h-10 flex items-center justify-center" aria-label="settings" aria-pressed={at === 'intake'}
+              onClick={() => setStep(at === 'intake' ? (list && !stale ? 'list' : 'plan') : 'intake')}>
+              <Settings size={16} aria-hidden="true" />
+            </button>
+          )}
         </header>
 
         <PremiumGate feature="Fuel — meal planner + shopping list">
@@ -536,20 +608,28 @@ export default function FuelPage() {
           )}
           {!loading && !notReady && (
             <>
-              <nav className="flex gap-2" aria-label="fuel steps">
-                {(['intake', 'plan', 'list'] as Step[]).map((s) => (
-                  <button key={s} type="button" onClick={() => setStep(s)} aria-current={step === s ? 'step' : undefined}
-                    disabled={(s === 'plan' && !household) || (s === 'list' && !list)}
-                    className={`pill-quiet px-3 py-1.5 text-[12px] lowercase ${step === s ? 'font-semibold' : 'text-muted-foreground'}`}>
-                    {s === 'intake' ? 'household' : s === 'plan' ? 'the nights' : 'the list'}
-                  </button>
-                ))}
-              </nav>
+              {at === 'intake' ? (
+                <div className="flex items-center justify-between gap-3">
+                  <p className="eyebrow-mono">settings{household ? '' : ' · first, who is eating'}</p>
+                  {household && <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase" onClick={() => setStep(list && !stale ? 'list' : 'plan')}>back</button>}
+                </div>
+              ) : (
+                <nav className="flex items-center gap-2" aria-label="fuel steps">
+                  <p className="data-mono shrink-0 mr-1"><b>{flowAt + 1}</b> of {FLOW.length}</p>
+                  {FLOW.map(({ step: s, label }) => (
+                    <button key={s} type="button" onClick={() => setStep(s)} aria-current={at === s ? 'step' : undefined}
+                      disabled={(s === 'plan' && !household) || (s === 'have' && !drafted) || (s === 'list' && !list)}
+                      className={`pill-quiet px-3 py-1.5 text-[12px] lowercase ${at === s ? 'font-semibold' : 'text-muted-foreground'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+              )}
               {error && <div className="status-msg danger text-[12px]" role="alert">{error}</div>}
-              {step !== 'intake' && onHandWarnings.length > 0 && (
+              {at !== 'intake' && onHandWarnings.length > 0 && (
                 <div className="status-msg danger text-[12px] space-y-2" role="alert">
                   {onHandWarnings.map((w) => <p key={w}>{w}</p>)}
-                  <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase" onClick={() => setStep('intake')}>fix what is on hand</button>
+                  <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase" onClick={() => setStep('intake')}>fix it in settings</button>
                 </div>
               )}
               {refreshFailed && (
@@ -560,33 +640,43 @@ export default function FuelPage() {
               )}
               {live && plan && plan.id !== live.id && (
                 <div className="tile p-3 flex items-center justify-between gap-3">
-                  <p className="text-[12px] text-muted-foreground lowercase">showing the cycle starting {plan.week_start} · this week&apos;s started {live.week_start}</p>
+                  <p className="text-[12px] text-muted-foreground lowercase">showing the menu starting {plan.week_start} · this week&apos;s started {live.week_start}</p>
                   <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={() => void openLive()}>back to this week</button>
                 </div>
               )}
               {upcoming && (
                 <div className="tile p-3 flex items-center justify-between gap-3">
-                  <p className="text-[12px] text-muted-foreground lowercase">next cycle already planned · starts {upcoming.week_start}</p>
+                  <p className="text-[12px] text-muted-foreground lowercase">next menu already planned · starts {upcoming.week_start}</p>
                   <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={() => void openUpcoming()}>open it</button>
                 </div>
               )}
-              {step === 'intake' && <IntakeForm initial={household ?? DEFAULT_HOUSEHOLD} meals={meals} saving={busy} onSave={onSaveHousehold} />}
-              {step === 'plan' && household && liveCycle && (
+              {at === 'intake' && <IntakeForm initial={household ?? DEFAULT_HOUSEHOLD} meals={meals} saving={busy} onSave={onSaveHousehold} />}
+              {at === 'plan' && household && (
+                <PlanBuilder key={builderKey} household={household} meals={meals} building={busy} onBuild={(p) => { setError(null); setDraft({ for: builderKey, plan: p }); setStep('have') }}
+                  initial={drafted ?? startEntries(buildTarget(new Date()), household)} rotations={rotations} members={members}
+                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} onRetireMeal={onRetireMeal} libraryStale={libraryStale} savingMeal={mealSaving} />
+              )}
+              {at === 'plan' && household && liveCycle && !(ahead || nextCycle) && (
+                <button type="button" className="text-[12px] text-muted-foreground lowercase underline underline-offset-2 px-1" onClick={() => setAhead(true)}>planning ahead?</button>
+              )}
+              {at === 'plan' && household && liveCycle && (ahead || nextCycle) && (
                 <div className="tile p-3 flex items-center justify-between gap-3">
                   <p className="text-[12px] text-muted-foreground lowercase">
-                    {nextCycle ? `planning the next cycle · starts ${upcoming?.week_start ?? nextCycleStart(liveCycle)}` : `rebuilding this cycle · started ${liveCycle.week_start}`}
+                    {nextCycle ? `planning ahead · this menu starts ${upcoming?.week_start ?? nextCycleStart(liveCycle)}` : `changing the menu you are on · it started ${liveCycle.week_start}`}
                   </p>
                   <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase shrink-0" onClick={() => setNextCycle((n) => !n)}>
-                    {nextCycle ? 'rebuild this cycle instead' : 'plan the next cycle'}
+                    {nextCycle ? 'change the one you are on instead' : 'plan the one after it'}
                   </button>
                 </div>
               )}
-              {step === 'plan' && household && (
-                <PlanBuilder key={`${household.shop_cadence_days}-${household.cook_cap_minutes}-${plan?.id ?? 'new'}-${nextCycle ? 'next' : 'this'}-${rotations.length}`} household={household} meals={meals} building={busy} onBuild={onBuild} askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)}
-                  initial={startEntries(buildTarget(new Date()), household)} rotations={rotations} members={members}
-                  cycles={{ history: recent, targetStart: buildTarget(new Date()), cadenceDays: household.shop_cadence_days }} onSaveMeal={onSaveMeal} onRetireMeal={onRetireMeal} libraryStale={libraryStale} savingMeal={mealSaving} />
+              {at === 'have' && household && drafted && (
+                // Keyed by the builder and the nights: a different menu is a
+                // different draft list, and starts from the saved stock again.
+                <HaveStep key={`${builderKey}-${JSON.stringify(drafted.entries)}`} household={household} meals={meals} plan={drafted} staples={customOn ? staples : undefined}
+                  askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)} building={busy}
+                  onBack={() => setStep('plan')} onBuild={(rows, skipKeys) => void onBuild(drafted, { countInventory: true, onHand: rows, skipKeys })} />
               )}
-              {step === 'list' && list && plan && listId && stale && (
+              {at === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">
                   <div className="status-msg danger text-[12px]" role="status">
                     the household changed after this list was built — its quantities are out of date
@@ -594,7 +684,7 @@ export default function FuelPage() {
                   <button type="button" className="pill-volt w-full py-3 text-sm" onClick={() => setStep('plan')}>rebuild the list</button>
                 </div>
               )}
-              {step === 'list' && list && plan && listId && !stale && (
+              {at === 'list' && list && plan && listId && !stale && (
                 // Keyed by the list: opening another cycle REMOUNTS the checklist, so
                 // its outbox, refs and effects never straddle two lists (Codex, round 5).
                 <>

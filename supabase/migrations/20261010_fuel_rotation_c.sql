@@ -18,10 +18,10 @@
 -- ── The rotations ────────────────────────────────────────────────────────
 INSERT INTO public.fuel_rotations (slug, name, sort_order, note)
 VALUES
-  ('rotation-c1', 'Soup Fortnight One', 3, 'Week 1 is Fortnight One''s first week with beef and barley stew in place of the ribeye. Week 2 is Fortnight Two''s second week with chicken tortilla soup in place of the jerk thighs.'),
-  ('rotation-c2', 'Soup Fortnight Two', 4, 'Week 1 is Fortnight One''s first week with white chicken chili in place of the chili-lime thighs. Week 2 is Fortnight Two''s second week with Italian wedding soup in place of the turkey meatballs.'),
-  ('rotation-c3', 'Soup Fortnight Three', 5, 'Week 1 is Fortnight One''s first week with pork green chili in place of the ribeye. Week 2 is Fortnight Two''s second week with lentil and sausage soup in place of the tandoori chicken.'),
-  ('rotation-c4', 'Soup Fortnight Four', 6, 'Week 1 is Fortnight One''s first week with turkey chili in place of the Greek turkey bowl. Week 2 is Fortnight Two''s second week with zuppa toscana in place of the jerk thighs.')
+  ('rotation-c1', 'Soup season 1', 3, 'Beef and barley stew one week, chicken tortilla soup the next.'),
+  ('rotation-c2', 'Soup season 2', 4, 'White chicken chili one week, Italian wedding soup the next.'),
+  ('rotation-c3', 'Soup season 3', 5, 'Pork green chili one week, lentil and sausage soup the next.'),
+  ('rotation-c4', 'Soup season 4', 6, 'Turkey chili one week, zuppa toscana the next.')
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name, sort_order = EXCLUDED.sort_order, note = EXCLUDED.note;
 

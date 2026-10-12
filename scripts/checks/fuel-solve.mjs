@@ -473,12 +473,15 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 9: the next-cycle target is checked against today, and a cycle planned ahead that the build passed is let go
   assert(/nextCycleKey\(liveCycle, upcoming\?\.week_start \?\? null, household\.shop_cadence_days, now\)/.test(pg) && /if \(upcoming && \(upcoming\.week_start === weekStart \|\| weekStart > upcoming\.week_start\)\) setUpcoming\(null\)/.test(pg), 'a next-cycle build keys through nextCycleKey — checked against today — and drops an upcoming cycle it has passed')
   // round 11: the shortcut stands only when a fresh solve comes out identical — the library can have been corrected
-  assert(/&& listUnchanged\(buildShoppingList\(householdFor\(household, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg), 'the unchanged-plan shortcut re-solves before it stands — the way the stored plan was built — so a library correction is never skipped')
+  assert(/&& listUnchanged\(buildShoppingList\(householdFor\(h, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{\n/.test(pg), 'the unchanged-plan shortcut re-solves before it stands — the way the stored plan was built — so a library correction is never skipped')
   // round 15: what is on hand counts against a next cycle only on say-so, recorded in the snapshot
-  assert(/const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)/.test(pg) && /askInventory=\{askInventory\}/.test(pg),
+  assert(/const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, h, meals, p, inventoryCounted\)/.test(pg) && /askInventory=\{askInventory\}/.test(pg) && /const h: Household = opts\.onHand \? \{ \.\.\.household, inventory: opts\.onHand \} : household/.test(pg),
     'a next cycle counts what is on hand only on say-so; a rebuild always; the say-so goes into the version')
-  assert(/onBuild\(\{ entries \}, \{ countInventory: askInventory \? countInventory : true \}\)/.test(pb) && /count what\\'s on hand again/.test(pb) && /askInventory && household\.inventory\.length > 0 &&/.test(pb),
-    'the builder asks, for a next cycle with something on hand, whether to count it again — off by default')
+  // FOR-281: the ask is no longer a toggle under the planner. It is step 2, where saved stock opens ticked only when it counts
+  // without asking, and is otherwise offered back a line at a time (fuel-flow.mjs runs that; this pins where it is wired).
+  const hs = readLF('src/components/fuel/HaveStep.tsx')
+  assert(/const counts = !askInventory \|\| countByDefault/.test(hs) && /useState<InventoryItem\[\]>\(\(\) => startRows\(household\.inventory, draft\.items, counts, !askInventory\)\)/.test(hs) && /onBuild\(drafted, \{ countInventory: true, onHand: rows, skipKeys \}\)/.test(pg) && !/countInventory/.test(pb),
+    'step 2 asks, for a next cycle with something on hand, whether it still counts — off by default, and on only by a tap')
   // round 16: the saved choice stands on a rebuild unless changed, and a changed choice is never short-cut
   // round 17: the ask is shown for anything but a rebuild of a plan that already counted it — a fresh start after an expired cycle asks too — and defaults to freshness
   assert(/const rebuildOfCounted = \(start: string\) => !!plan && !startingNextNow && start === plan\.week_start && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\)/.test(pg) && /const askInventory = \(household\?\.inventory\.length \?\? 0\) > 0 && !rebuildOfCounted\(buildTarget\(new Date\(\)\)\)/.test(pg),
@@ -486,7 +489,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 18: the ask is judged on the start the build would land on, and judged again at build time
   assert(/const askNow = household\.inventory\.length > 0 && !rebuildOfCounted\(weekStart\)/.test(pg) && /if \(askNow !== askInventory\) \{ setError\(/.test(pg) && /const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg),
     'the ask is based on the target the build would land on — a shortened fortnight is a new start — and rechecked at build time')
-  assert(/countByDefault=\{inventoryFresh\(householdSavedAt, newestPlanAt, newestPlanKnown\)\}/.test(pg) && /setHousehold\(h\.household\); setHouseholdSavedAt\(h\.updatedAt\)/.test(pg) && /setHousehold\(h\); setHouseholdSavedAt\(new Date\(\)\.toISOString\(\)\)/.test(pg) && /useState\(countByDefault\)/.test(pb),
+  assert(/countByDefault=\{inventoryFresh\(householdSavedAt, newestPlanAt, newestPlanKnown\)\}/.test(pg) && /setHousehold\(h\.household\); setHouseholdSavedAt\(h\.updatedAt\)/.test(pg) && /setHousehold\(h\); setHouseholdSavedAt\(new Date\(\)\.toISOString\(\)\)/.test(pg) && /const counts = !askInventory \|\| countByDefault/.test(readLF('src/components/fuel/HaveStep.tsx')),
     'the ask defaults to whether what is on hand was saved after the newest plan was built')
   const st18 = readLF('src/lib/fuel/store.ts')
   assert(/select\('created_at'\)\.eq\('user_id', userId\)\.order\('created_at', \{ ascending: false \}\)\.limit\(1\)\.maybeSingle\(\)/.test(st18) && /newestPlanAt: string \| null/.test(st18) && (pg.match(/setNewestPlanAt\(active\.newestPlanAt\)/g) || []).length === 2 && /setNewestPlanAt\(built\.created_at \?\? new Date\(\)\.toISOString\(\)\)/.test(pg),
@@ -512,7 +515,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const cl17 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const pausedRef = useRef\(paused\)/.test(cl17) && /&& !pausedRef\.current\) \{/.test(cl17) && /\[online, listId, refetch, onRowItems, flush, wake, paused\]/.test(cl17),
     'a paused checklist sends nothing, and flushes when the pause lifts')
-  assert(/!changed\(plan\.rules_snapshot, household, p\) && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\) === inventoryCounted && listUnchanged\(/.test(pg) && /listUnchanged\(buildShoppingList\(householdFor\(household, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{ setStep\('list'\); return \}/.test(pg),
+  assert(/!changed\(plan\.rules_snapshot, h, p\) && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\) === inventoryCounted && listUnchanged\(/.test(pg) && /listUnchanged\(buildShoppingList\(householdFor\(h, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{\n/.test(pg),
     'a changed inventory choice is never short-cut to the stored list')
   const st15 = readLF('src/lib/fuel/store.ts')
   assert(/buildShoppingList\(householdFor\(household, inventoryCounted\), meals, plan\)/.test(st15) && (st15.match(/snapshot\(household, plan, inventoryCounted\)/g) || []).length === 2, 'the version is solved and snapshotted the way it was asked for')
@@ -834,7 +837,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'the page states rotations on the cycle sentence, directly under it: where the builder starts, read from the picks, never a second thing shown')
   assert(!/const \[\w*[Rr]otation\w*, set\w*\] = useState<string/.test(pg11) && !/rotation_slug/.test(pg11) && !/localStorage/.test(pg11),
     'the page holds no rotation selection — nothing for a re-read to keep or lose')
-  assert(/const entries = builderStart\(targetStart, recent, rotations, members, meals, h, plan \? plan\.meal_ids : null\)/.test(pg11) && /initial=\{startEntries\(buildTarget\(new Date\(\)\), household\)\} rotations=\{rotations\} members=\{members\}/.test(pg11) && !/if \(plan && !nextCycle\) return/.test(pg11),
+  assert(/const entries = builderStart\(targetStart, recent, rotations, members, meals, h, plan \? plan\.meal_ids : null\)/.test(pg11) && /initial=\{drafted \?\? startEntries\(buildTarget\(new Date\(\)\), household\)\} rotations=\{rotations\} members=\{members\}/.test(pg11) && !/if \(plan && !nextCycle\) return/.test(pg11),
     'the page starts the builder through builderStart, on the start the build lands on — never on which toggle is set')
   // builderStart: the picks saved for the target start, else the rotation not just run, else the selected picks (Codex, FOR-238 r1)
   const sep7 = { week_start: '2026-09-07', version: 1, meal_ids: rotationPlan('rotation-a').entries }
@@ -856,9 +859,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/if \(error\) return \{ rotations: \[\], members: \[\], error: isMissingTable\(error\) \? null : error \}/.test(st11) && /from\('fuel_rotations'\)\.select\('slug, name, sort_order, note'\)/.test(st11) && /from\('fuel_rotation_meals'\)\.select\('rotation_slug, meal_slug, week, sort_order'\)/.test(st11),
     'before the rotations migration is applied, Fuel runs as it did: no rotations, and never "not ready"')
   const pb11 = readLF('src/components/fuel/PlanBuilder.tsx')
-  assert(/const startFrom = \(slug: string\) => \{ setEntries\(rotationEntries\(slug, members, meals, household\)\); setDrawer\(null\) \}/.test(pb11) && /onClick=\{\(\) => startFrom\(r\.slug\)\}/.test(pb11),
+  assert(/const startFrom = \(slug: string\) => \{ setEntries\(rotationEntries\(slug, members, meals, household\)\); setDrawer\(null\); setChoosing\(false\); setEditing\(false\) \}/.test(pb11) && /onClick=\{\(\) => startFrom\(r\.slug\)\}/.test(pb11),
     'the switcher starts the picks over from a rotation')
-  assert(/const current = useMemo\(\(\) => rotationOf\(entries, rotations, members\), \[entries, rotations, members\]\)/.test(pb11) && /\{rotationName \? `started from \$\{rotationName\}` : 'your own picks'\}/.test(pb11) && /\.filter\(\(r\) => r\.slug !== current\)/.test(pb11) && /\{rotations\.length > 1 && \(/.test(pb11) && !/useState<string/.test(pb11),
+  assert(/const current = useMemo\(\(\) => rotationOf\(entries, rotations, members\), \[entries, rotations, members\]\)/.test(pb11) && /\{rotationName \?\? 'your own menu'\}/.test(pb11) && /\.filter\(\(r\) => r\.slug !== current\)/.test(pb11) && /\{others\.length > 0 && \(/.test(pb11) && !/useState<string/.test(pb11),
     'the switcher shows which rotation the picks are, read from the picks, with no rotation state beside them')
   // acceptance 6: ticks persist on reload exactly as FOR-177 shipped them
   for (const f of ['src/components/fuel/Checklist.tsx', 'src/lib/fuel/ticks.ts', 'supabase/migrations/20260916_fuel_tick_superseded_guard.sql']) {
@@ -881,7 +884,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
 
   // acceptance 3: the warning names the row and says what to do, and never blocks a build
   const beef = asTyped.warnings.find((w) => w.includes('"ground beef"')) ?? ''
-  assert(/no meal uses an ingredient by that name, so nothing comes off the list for it\. In the household, pick the ingredient you mean, or remove it\./.test(beef),
+  assert(/no meal uses an ingredient by that name, so nothing comes off the list for it\. In settings, pick the ingredient you mean, or remove it\./.test(beef),
     `the warning tells a person what is wrong and what to do — got "${beef}"`)
   assert(!validatePlan(fortnight, meals, { ...andrew, inventory: typed }).some((w) => /on hand/.test(w)), 'a row on hand that comes off nothing is warned about on the list, never in the plan rules that stop a build')
   const wrongUnit = buildShoppingList({ ...andrew, inventory: [{ item: 'chicken thigh, boneless skinless', qty: 3, unit: 'each' }] }, meals, fortnight)
@@ -925,7 +928,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'a stored row that matches nothing renders unresolved, not as working')
   assert(/onPick=\{\(item\) => repick\(i, item\)\}/.test(intake) && /j === index \? \{ \.\.\.inv, item \} : inv/.test(intake), 'an unresolved row has a one-tap re-pick of the ingredient')
   const pg12 = readLF('src/app/fuel/page.tsx')
-  assert(/const onHandWarnings = household \? inventoryWarnings\(household\.inventory, meals\) : \[\]/.test(pg12) && /\{step !== 'intake' && onHandWarnings\.length > 0 && \(/.test(pg12) && /fix what is on hand/.test(pg12),
+  assert(/const onHandWarnings = household \? inventoryWarnings\(household\.inventory, meals\) : \[\]/.test(pg12) && /\{at !== 'intake' && onHandWarnings\.length > 0 && \(/.test(pg12) && /fix it in settings/.test(pg12),
     'a row on hand that comes off nothing is seen on the nights and the list, with the way to fix it')
   const runAll12 = readLF('scripts/checks/run-all.mjs')
   assert(/\['fuel vocabulary \(FOR-239\)', 'fuel-vocabulary\.mjs'\]/.test(runAll12) && existsSync(join(ROOT, 'scripts/checks/fuel-vocabulary.mjs')), 'the picker grouping invariant is registered as its own suite')
@@ -951,7 +954,9 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     const attrs = [...html.matchAll(/(?:aria-label|title|placeholder|alt)="([^"]*)"/g)].map((m) => decode(m[1]))
     return { html, text, attrs }
   }
-  const builder = (props) => paint(createElement(PlanBuilder, { household: andrew, meals: library, initial: null, building: false, onBuild: () => {}, rotations, members, ...props }))
+  // FOR-281: the planner opens on the menu card, with the nights behind "change a night". FOR-241's acceptance is about the
+  // nights, so these renders open there; fuel-flow.mjs holds the card, and that a plan with something to fix opens on its nights unasked.
+  const builder = (props) => paint(createElement(PlanBuilder, { household: andrew, meals: library, initial: null, building: false, onBuild: () => {}, rotations, members, startEditing: true, ...props }))
   const section = (html, label) => { const at = html.indexOf(`aria-label="${label}"`); return at < 0 ? '' : html.slice(at, html.indexOf('</section>', at)) }
   const nightsOf = (html) => [...html.matchAll(/aria-label="remove ([^"]+)"/g)].map((m) => decode(m[1]))
   const rowFor = (html, name) => { const at = html.indexOf(`aria-label="remove ${name}"`); return at < 0 ? '' : decode(html.slice(html.lastIndexOf('<li', at), html.indexOf('</li>', at))) }
@@ -984,7 +989,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // a night the rotation chose and a night the athlete picked are told apart
   const swappedIn = swapNight(prefill, prefill.findIndex((e) => e.slug === 'jerk-thighs'), lib('garlic-herb-thighs'), andrew, maxServings(andrew))
   const mixed = builder({ initial: { entries: swappedIn } })
-  assert(/from fortnight two/.test(rowFor(mixed.html, nameOf('miso-ginger-salmon'))) && !/your pick/.test(rowFor(mixed.html, nameOf('miso-ginger-salmon'))) && /your pick/.test(rowFor(mixed.html, nameOf('garlic-herb-thighs'))),
+  assert(/from everyday menu 2/.test(rowFor(mixed.html, nameOf('miso-ginger-salmon'))) && !/your pick/.test(rowFor(mixed.html, nameOf('miso-ginger-salmon'))) && /your pick/.test(rowFor(mixed.html, nameOf('garlic-herb-thighs'))),
     'a night the rotation chose says so, and a night the athlete picked says so — the screen never implies he decided what he did not')
 
   // acceptance 3: every night carries swap and remove; the library opens only to swap or add
@@ -1030,7 +1035,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const fishScreen = builder({ initial: fishTwice })
   assert(/2 fish nights in week 1/.test(rowFor(fishScreen.html, nameOf('lemon-garlic-salmon'))) && !/fish nights/.test(rowFor(fishScreen.html, nameOf('cast-iron-ribeye'))),
     'the rule renders on the night at fault, not in a block above a dead button')
-  assert(/fix the flagged nights to build the list/.test(fishScreen.text) && /add 1 more night to build the list/.test(builder({ initial: { entries: prefill.slice(1) } }).text), 'a blocked build says why in its own label')
+  assert(/fix the flagged nights to use this menu/.test(fishScreen.text) && /add 1 more night to use this menu/.test(builder({ initial: { entries: prefill.slice(1) } }).text), 'a blocked menu says why in its own label')
 
   // every warning validatePlan speaks is placed, and none leaks an id
   const noProtein = library.map((m) => (m.slug === 'jerk-thighs' ? { ...m, protein_g_per_person: null } : m))
@@ -1078,10 +1083,10 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
 
   // one volt control: the build button
   const withRoom = builder({ initial: { entries: prefill.slice(1) } })
-  assert(/add a night to week 1/.test(withRoom.text) && [filled, fishScreen, withRoom].every((s) => (s.html.match(/pill-volt/g) || []).length === 1) && !/pill-volt/.test(library13.html) && /build the shopping list/.test(filled.text),
-    'the build button is the one volt control on the planner — with a week full, with a week that has room, and in the library')
+  assert(/add a night to week 1/.test(withRoom.text) && [filled, fishScreen, withRoom].every((s) => (s.html.match(/pill-volt/g) || []).length === 1) && !/pill-volt/.test(library13.html) && /use this menu/.test(filled.text),
+    'using the menu is the one volt control on the planner — with a week full, with a week that has room, and in the library')
   const pg13 = readLF('src/app/fuel/page.tsx')
-  assert(!/step === s \? 'pill-volt'/.test(pg13) && /aria-current=\{step === s \? 'step' : undefined\}/.test(pg13), "the page's step nav is quiet, so the planner's one volt control is the build")
+  assert(!/(step|at) === s \? 'pill-volt'/.test(pg13) && /aria-current=\{at === s \? 'step' : undefined\}/.test(pg13), "the page's step nav is quiet, so the planner's one volt control is the build")
   assert(/if \(late\.length\) \{ setError\(planIssueSentences\(late, p\.entries, meals\)\.join\(' · '\)\); return \}/.test(pg13), 'a plan refused at build time is explained in words that name the night, not in rule ids')
 }
 
@@ -1180,7 +1185,7 @@ const buildAgainst = async (storedItems) => {
   assert(/p_items: list\.items \}\n/.test(st14) && /const stored = Array\.isArray\(row\.items\) \? row\.items : list\.items\n/.test(st14) && /version: row\.version, items: stored, updated_at/.test(st14) && /DATABASE is the only source of staple lines \(Andrew's ruling A\)/.test(st14),
     "the client sends the solver's lines only, says so where the version is written, and holds the items the database stored")
   const onBuild14 = pg14.slice(pg14.indexOf('const onBuild = async'), pg14.indexOf('const openUpcoming = async')).split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
-  assert(onBuild14.length > 200 && !/staple/i.test(onBuild14) && /const res = await createVersion\(supabase, weekStart, household, meals, p, inventoryCounted\)\n/.test(onBuild14),
+  assert(onBuild14.length > 200 && !/staple/i.test(onBuild14) && /const res = await createVersion\(supabase, weekStart, h, meals, p, inventoryCounted\)\n/.test(onBuild14),
     'a build reads no staples on the client — the database is the only source of staple lines')
   assert(!/withStaples|customLine/.test(readLF('src/lib/fuel/custom.ts') + pg14 + st14), 'nothing on the client merges staples — the client merge has left the write path')
   assert(/if \(error\) return \{ staples: \[\], available: false, error: isMissingTable\(error\) \? null : error \}/.test(st14), 'before the migration is applied: no staples, no add form, and never "not ready"')
@@ -1239,7 +1244,7 @@ const buildAgainst = async (storedItems) => {
     `answers on one list are published in the order they were sent, however long each takes — got ${published.join(' → ')}`)
   const pgR1 = readLF('src/app/fuel/page.tsx')
   assert(/import Checklist, \{ sendQueued \} from '\.\.\/\.\.\/components\/fuel\/Checklist'/.test(pgR1) && /await sendQueued\(id, \(\) => addCustomItem\(supabase, id, item, section, stapleId\)\)/.test(pgR1)
-    && (pgR1.match(/await sendQueued\(id, \(\) => removeCustomItem\(supabase, id, /g) || []).length === 2 && !/await (addCustomItem|removeCustomItem)\(/.test(pgR1),
+    && (pgR1.match(/await sendQueued\(id, \(\) => removeCustomItem\(supabase, id, /g) || []).length === 3 && !/await (addCustomItem|removeCustomItem)\(/.test(pgR1),
     "custom writes wait their turn in the checklist's queue, behind any tick or re-read — an older answer never lands over a newer one")
   // 2. a duplicate staple is found in the database, not in the page's copy
   assert(/if \(s\.duplicate\) \{[\s\S]{0,400}?const fresh = await loadStaples\(supabase, userId\)[\s\S]{0,300}?setStaples\(fresh\.staples\)\n\s+saved = fresh\.staples\.find\(/.test(pgR1) && !/\bstaples\.find\(/.test(pgR1.replace(/fresh\.staples\.find\(/g, '')),

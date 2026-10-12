@@ -47,6 +47,8 @@ export const MEAT_SECTION = 'Meat & Seafood'
 export const PRODUCE_SECTION = 'Produce'
 export const SECOND_TRIP_SECTION = 'Second trip'
 export const STOCKED_SECTION = 'Stocked'
+/** Why a line ticked "have it" needs no purchase (FOR-281). */
+export const HAVE_IT_REASON = 'you have it'
 
 /** Unit conversions the inventory subtraction understands. Everything else must match units exactly. */
 const TO_BASE: Record<string, { base: string; factor: number }> = {
@@ -123,6 +125,9 @@ export function inventoryIssues(inventory: InventoryItem[], meals: Pick<MealRow,
   if (unitsOf.size === 0) return []
   const issues: InventoryIssue[] = []
   inventory.forEach((inv, index) => {
+    // A "have it" tick is about one line of one list, not a name the athlete
+    // typed: it has nothing to re-pick, so it is never an issue (FOR-281).
+    if (inv.covers !== undefined) return
     const units = unitsOf.get(norm(inv.item))
     if (!units) { issues.push({ index, item: inv.item, unit: inv.unit, reason: 'not-an-ingredient', units: [] }); return }
     const onHand = TO_BASE[norm(inv.unit)]
@@ -135,8 +140,8 @@ export function inventoryIssues(inventory: InventoryItem[], meals: Pick<MealRow,
 /** The same rows, worded for a person: what is wrong, and what to do about it. */
 export function inventoryWarnings(inventory: InventoryItem[], meals: Pick<MealRow, 'ingredients'>[]): string[] {
   return inventoryIssues(inventory, meals).map((i) => (i.reason === 'not-an-ingredient'
-    ? `"${i.item}" is on hand, but no meal uses an ingredient by that name, so nothing comes off the list for it. In the household, pick the ingredient you mean, or remove it.`
-    : `"${i.item}" is on hand in ${i.unit}, but the meals measure it in ${i.units.join(' or ')}, so nothing comes off the list for it. In the household, remove it and add it again in ${i.units.join(' or ')}.`))
+    ? `"${i.item}" is on hand, but no meal uses an ingredient by that name, so nothing comes off the list for it. In settings, pick the ingredient you mean, or remove it.`
+    : `"${i.item}" is on hand in ${i.unit}, but the meals measure it in ${i.units.join(' or ')}, so nothing comes off the list for it. In settings, remove it and add it again in ${i.units.join(' or ')}.`))
 }
 const round = (n: number) => Math.round(n * 100) / 100
 
@@ -421,7 +426,13 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
   for (const [key, b] of allocation) {
     let need = b.need
     let reason: string | undefined
-    for (const inv of inventory) {
+    // FOR-281: a line ticked "have it" is covered whole, by its own key, before
+    // any stock is spent on it — so the pound in the freezer still goes to the
+    // line that was not ticked. The tick counts toward this line and no other.
+    const ticked = inventory.some((inv) => inv.covers === key)
+    if (ticked) { need = 0; reason = HAVE_IT_REASON }
+    for (const inv of ticked ? [] : inventory) {
+      if (inv.covers !== undefined) continue
       if (norm(inv.item) !== norm(b.item) || inv.left <= 0) continue
       const a = TO_BASE[norm(b.unit)], c = TO_BASE[norm(inv.unit)]
       let available: number

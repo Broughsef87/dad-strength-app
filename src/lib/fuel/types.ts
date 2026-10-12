@@ -90,6 +90,13 @@ export interface InventoryItem {
   item: string
   qty: number
   unit: string
+  /**
+   * FOR-281: this row is a "have it" tick on ONE line of the list being built —
+   * the line's key. It covers that line whole and counts toward no other; `qty`
+   * and `unit` are the line's own, kept so the row still reads as stock. Absent
+   * on a row of real stock, which is matched by name and quantity as before.
+   */
+  covers?: string
 }
 
 /** A fuel_household row — one per user. */
