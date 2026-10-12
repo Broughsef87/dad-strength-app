@@ -98,11 +98,16 @@ export const draftSignature = (draft: Pick<ListItem, 'key' | 'qty'>[]): string =
  * tick covers the rest (Codex r7). So the tick's amount is THE REST: `left`,
  * what the line still buys with the rows as they stand. The whole line's
  * amount would count the stock a second time the day the line grew — a pound
- * typed, then ticked, then servings doubled (Codex r13). With no stock on the
- * line the rest is the whole line.
+ * typed, then ticked, then servings doubled (Codex r13). And the rest is ADDED
+ * to a tick the line already carries — a part-tick from an earlier build, now
+ * short because the line grew — never put in its place, or tapping "have it"
+ * on a line buying its last 8 oz would forget the 24 already ticked (Codex
+ * r14). With no `left` given the tick is the whole line, outright.
  */
-export function markHave(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item' | 'qty' | 'unit'>, left: number = line.qty): InventoryItem[] {
-  return [...rows.filter((r) => r.covers !== line.key), { item: line.item, qty: left, unit: line.unit, covers: line.key }]
+export function markHave(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item' | 'qty' | 'unit'>, left?: number): InventoryItem[] {
+  const already = rows.find((r) => r.covers === line.key)?.qty ?? 0
+  const qty = left === undefined ? line.qty : Math.round((already + left) * 100) / 100
+  return [...rows.filter((r) => r.covers !== line.key), { item: line.item, qty, unit: line.unit, covers: line.key }]
 }
 
 /**

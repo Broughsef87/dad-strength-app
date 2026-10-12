@@ -117,6 +117,14 @@ const BANNED = /fortnight|rotation|cycle/i
       `a pound typed and then ticked covers the line once: when the line doubles, exactly the extra is bought — ${grown.qty} of ${bigThigh.qty}, having covered ${thigh.qty}`)
     assert(/markHave\(r, l, states\.get\(l\.key\)\?\.buying\)/.test(readLF('src/components/fuel/HaveStep.tsx')), 'the screen ticks a line for what it still buys, not for its whole amount')
   }
+  // Codex r14: "have it" on a line that already carries a part-tick adds the rest to it — it does not replace it
+  {
+    const part = [{ item: thigh.item, qty: thigh.qty - 8, unit: thigh.unit, covers: thigh.key }]
+    const left = lineStates(draft.items, solve(part)).get(thigh.key).buying
+    const whole = markHave(part, thigh, left)
+    assert(Math.abs(left - 8) < 0.011 && whole.length === 1 && Math.abs(whole[0].qty - thigh.qty) < 0.011 && solve(whole).items.find((l) => l.key === thigh.key).stocked,
+      `a line buying its last 8 after a part-tick is covered whole by one more tap — the tick becomes ${whole[0].qty} of ${thigh.qty}, not 8`)
+  }
   // Codex r4: undoing a tick is not a statement about the pound typed before it
   const someThenTick = markHave(setSome([], thigh, 1), thigh), undone = putBack(someThenTick, thigh)
   assert(someQty(undone, thigh) === 1 && !undone.some((r) => r.covers !== undefined) && lineStates(draft.items, solve(undone)).get(thigh.key).buying < thigh.qty,
