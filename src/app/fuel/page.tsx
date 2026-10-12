@@ -38,7 +38,7 @@
 // it reloads; its ticks still go through the database, which now refuses one
 // on a superseded list, and that old page shows the refusal as "not saved ·
 // tap again" until it reloads. Nothing is lost that was not already dead.
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../utils/supabase/client'
@@ -607,10 +607,15 @@ export default function FuelPage() {
   // build that then failed must find step 2 exactly as it was left (Codex r3).
   const target = buildTarget(new Date())
   const haveKey = household && drafted ? `${builderKey}-${target}-${JSON.stringify(drafted.entries)}` : ''
-  // The plan the build would REBUILD, when it is one: what a rebuild lets
-  // stand at step 2 is judged against that plan's own nights and its own
-  // snapshot of what was on hand (Codex r2).
-  const prior = plan && rebuildOfCounted(target) ? { plan: { entries: plan.meal_ids }, inventory: plan.rules_snapshot?.inventory ?? [] } : null
+  // The build this one would REBUILD, when it is one: what a rebuild lets
+  // stand at step 2 is judged against that build's own list AS STORED — the
+  // lines it actually showed — and its own snapshot of what was on hand
+  // (Codex r2, r5). With no stored list there is nothing it showed.
+  const priorItems = list?.items
+  const priorRows = plan?.rules_snapshot?.inventory
+  const prior = useMemo(() => (plan && rebuildOfCounted(target) ? { items: priorItems ?? [], inventory: priorRows ?? [] } : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuildOfCounted reads only what is listed here
+    [plan, target, priorItems, priorRows, nextCycle])
 
   return (
     <div className="min-h-screen bg-background pb-28">

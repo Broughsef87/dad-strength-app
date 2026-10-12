@@ -188,8 +188,8 @@ const BANNED = /fortnight|rotation|cycle/i
     'step 2 is keyed on the menu and the week the build lands on, and on nothing its own save can move — a page left open across a boundary opens a new step 2, and a build that failed after its save finds step 2 as it was left (Codex r1, r3)')
   assert(/if \(opts\.drawnFor !== undefined && opts\.drawnFor !== weekStart\) \{ setError\(/.test(pg) && /drawnFor: target \}\)/.test(pg) && pg.indexOf('opts.drawnFor !== weekStart') < pg.indexOf('await saveOnHand('),
     'rows gathered for one week are never built into another: the build is refused, before anything is saved, when the week it lands on is not the week step 2 was drawn for (Codex r2)')
-  assert(/const prior = plan && rebuildOfCounted\(target\) \? \{ plan: \{ entries: plan\.meal_ids \}, inventory: plan\.rules_snapshot\?\.inventory \?\? \[\] \} : null/.test(pg) && /prior=\{prior\}/.test(pg),
-    'what a rebuild lets stand at step 2 is judged against the plan being rebuilt — its own nights and its own snapshot of what was on hand (Codex r2)')
+  assert(/const priorItems = list\?\.items\n/.test(pg) && /plan && rebuildOfCounted\(target\) \? \{ items: priorItems \?\? \[\], inventory: priorRows \?\? \[\] \} : null/.test(pg) && /prior=\{prior\}/.test(pg) && !/draftList\([^)]*prior/.test(readLF('src/components/fuel/HaveStep.tsx')),
+    'what a rebuild lets stand at step 2 is judged against the build being rebuilt — the lines its list was STORED with, never a fresh solve of a library edited since, and its own snapshot of what was on hand (Codex r2, r5)')
   assert(/\(s === 'have' && at !== 'have'\)/.test(pg), 'step 2 is reached only through "use this menu", never by a tap that would open a menu since changed (Codex r2)')
   {
     const short = pg.slice(pg.indexOf('if (carriesKept && !startingNext'), pg.indexOf('const res = await createVersion('))

@@ -31,7 +31,12 @@ export function listWith(household: Household, meals: MealRow[], plan: Plan, row
   return buildShoppingList({ ...household, inventory: rows }, meals, plan)
 }
 
-/** The plan a build would REBUILD: its nights, and the rows on hand it was built with — its own snapshot. */
+/**
+ * The build a new one would REBUILD: the lines its list was stored with, and
+ * the rows on hand it was built with — its own snapshot. The lines are the
+ * STORED list's, never a fresh solve of its nights: a meal edited since would
+ * solve to ingredients that build never showed anyone (Codex r5).
+ */
 export interface PriorBuild {
   items: Pick<ListItem, 'item'>[]
   inventory: InventoryItem[]

@@ -480,7 +480,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // FOR-281: the ask is no longer a toggle under the planner. It is step 2, where saved stock opens ticked only when it counts
   // without asking, and is otherwise offered back a line at a time (fuel-flow.mjs runs that; this pins where it is wired).
   const hs = readLF('src/components/fuel/HaveStep.tsx')
-  assert(/const counts = !askInventory \|\| countByDefault/.test(hs) && /const opened = useMemo\(\(\) => startRows\(household\.inventory, draft\.items, counts, prior \? /.test(hs) && /useState<InventoryItem\[\]>\(\(\) => resumed\?\.rows \?\? opened\)/.test(hs) && /onBuild\(drafted, \{ countInventory: true, onHand: rows, skipKeys, keepKeys, drawnFor: target \}\)/.test(pg) && !/countInventory/.test(pb),
+  assert(/const counts = !askInventory \|\| countByDefault/.test(hs) && /const opened = useMemo\(\(\) => startRows\(household\.inventory, draft\.items, counts, prior\), /.test(hs) && /useState<InventoryItem\[\]>\(\(\) => resumed\?\.rows \?\? opened\)/.test(hs) && /onBuild\(drafted, \{ countInventory: true, onHand: rows, skipKeys, keepKeys, drawnFor: target \}\)/.test(pg) && !/countInventory/.test(pb),
     'step 2 asks, for a next cycle with something on hand, whether it still counts — off by default, and on only by a tap')
   // round 16: the saved choice stands on a rebuild unless changed, and a changed choice is never short-cut
   // round 17: the ask is shown for anything but a rebuild of a plan that already counted it — a fresh start after an expired cycle asks too — and defaults to freshness

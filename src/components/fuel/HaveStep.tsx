@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Household, InventoryItem, ListItem, MealRow, Plan } from '../../lib/fuel/types'
 import { MEAT_SECTION, SECOND_TRIP_SECTION } from '../../lib/fuel/solve'
 import { isCustom, sectionsInOrder, type StapleRow } from '../../lib/fuel/custom'
-import { draftList, draftSignature, haveUnit, lastTime, lineStates, listWith, markHave, putBack, setSome, someQty, startRows, stapleLines } from '../../lib/fuel/onhand'
+import { draftList, draftSignature, haveUnit, lastTime, lineStates, listWith, markHave, putBack, setSome, someQty, startRows, stapleLines, type PriorBuild } from '../../lib/fuel/onhand'
 import { fmtQty } from './Checklist'
 
 const NO_STAPLES: StapleRow[] = []
@@ -35,8 +35,8 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   /** When it needs asking: does it count unless told otherwise — saved after the newest plan was built — or has a week been eating it (round 17)? */
   countByDefault?: boolean
   building: boolean
-  /** The plan this build would rebuild — its nights and the rows it was built with — or null when the build is a new one. What a rebuild lets stand is judged against it (onhand.ts, Codex r2). */
-  prior?: { plan: Plan; inventory: InventoryItem[] } | null
+  /** The build this one would rebuild — the lines its list was STORED with and the rows it was built with — or null when the build is a new one. What a rebuild lets stand is judged against it (onhand.ts, Codex r2). */
+  prior?: PriorBuild | null
   /** What this same step 2 held when it was last on screen: it opens on that rather than on the saved stock, so leaving it loses nothing (Codex r1). */
   resume?: { rows: InventoryItem[]; skipped: string[]; draft: string }
   /** What is ticked, told to the page as it changes — so it survives however step 2 is left: the back button, the steps above, the gear (Codex r2). `draft` says which draft list it was ticked on. */
@@ -49,7 +49,7 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   // ask whose default was yes. Otherwise it is offered back line by line.
   const counts = !askInventory || countByDefault
   const draft = useMemo(() => draftList(household, meals, plan), [household, meals, plan])
-  const opened = useMemo(() => startRows(household.inventory, draft.items, counts, prior ? { items: draftList(household, meals, prior.plan).items, inventory: prior.inventory } : null), [household, meals, draft, counts, prior])
+  const opened = useMemo(() => startRows(household.inventory, draft.items, counts, prior), [household, draft, counts, prior])
   // What was held comes back only onto the draft it was ticked on: the same
   // lines at the same amounts (Codex r4).
   const signature = useMemo(() => draftSignature(draft.items), [draft])
