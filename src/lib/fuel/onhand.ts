@@ -50,13 +50,14 @@ export interface PriorBuild {
 /**
  * The rows step 2 opens with, from what the household last saved.
  *
- * `counts` is the rule the page has always had for whether saved stock counts
- * toward a build without being asked (FOR-177 rounds 15 to 18): yes for a
- * rebuild of a plan that counted it, and yes when it was saved after the newest
- * plan was built; no when a week has been eating it since. When it counts, the
- * saved rows stand and the lines they cover open ticked. When it does not,
- * nothing about this menu opens ticked — the stock is offered back a line at a
- * time, by `lastTime`, and counts only on a tap.
+ * `counts` is whether saved stock counts toward a build without being asked.
+ * Step 2 always passes yes (FOR-281; Andrew, 2026-10-12: "I think we want the
+ * on hand items pre ticked in the case of any overlapping items between
+ * weeks") — it used to be no when a week had been eating the stock since it
+ * was saved (FOR-177 rounds 15 to 18). When it counts, the saved rows stand
+ * and the lines they cover open ticked. When it does not, nothing about this
+ * menu opens ticked — the stock is offered back a line at a time, by
+ * `lastTime`, and counts only on a tap.
  *
  * Stock for something this menu does not cook is kept either way: it comes off
  * nothing here, and dropping it would lose the freezer over a week of soup.

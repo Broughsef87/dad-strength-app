@@ -475,13 +475,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 11: the shortcut stands only when a fresh solve comes out identical — the library can have been corrected
   assert(/&& listUnchanged\(buildShoppingList\(householdFor\(h, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{\n/.test(pg), 'the unchanged-plan shortcut re-solves before it stands — the way the stored plan was built — so a library correction is never skipped')
   // round 15: what is on hand counts against a next cycle only on say-so, recorded in the snapshot
-  assert(/const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, h, meals, p, inventoryCounted\)/.test(pg) && /askInventory=\{askInventory\}/.test(pg) && /const h: Household = opts\.onHand \? \{ \.\.\.household, inventory: opts\.onHand \} : household/.test(pg),
+  assert(/const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg) && /createVersion\(supabase, weekStart, h, meals, p, inventoryCounted\)/.test(pg) && /const h: Household = opts\.onHand \? \{ \.\.\.household, inventory: opts\.onHand \} : household/.test(pg),
     'a next cycle counts what is on hand only on say-so; a rebuild always; the say-so goes into the version')
-  // FOR-281: the ask is no longer a toggle under the planner. It is step 2, where saved stock opens ticked only when it counts
-  // without asking, and is otherwise offered back a line at a time (fuel-flow.mjs runs that; this pins where it is wired).
+  // FOR-281: the ask is no longer a toggle under the planner. It is step 2, where saved stock always opens ticked
+  // (Andrew, 2026-10-12) and any line can be untapped (fuel-flow.mjs runs that; this pins where it is wired).
   const hs = readLF('src/components/fuel/HaveStep.tsx')
-  assert(/const counts = !askInventory \|\| countByDefault/.test(hs) && /const opened = useMemo\(\(\) => startRows\(household\.inventory, draft\.items, counts, prior\), /.test(hs) && /useState<InventoryItem\[\]>\(\(\) => resumed\?\.rows \?\? opened\)/.test(hs) && /onBuild\(drafted, \{ countInventory: true, onHand: rows, skipKeys, keepKeys, drawnFor: target \}\)/.test(pg) && !/countInventory/.test(pb),
-    'step 2 asks, for a next cycle with something on hand, whether it still counts — off by default, and on only by a tap')
+  assert(/const counts = true\n/.test(hs) && /const opened = useMemo\(\(\) => startRows\(household\.inventory, draft\.items, counts, prior\), /.test(hs) && /useState<InventoryItem\[\]>\(\(\) => resumed\?\.rows \?\? opened\)/.test(hs) && /onBuild\(drafted, \{ countInventory: true, onHand: rows, skipKeys, keepKeys, drawnFor: target \}\)/.test(pg) && !/countInventory/.test(pb),
+    'step 2 opens with saved stock counted on every build (FOR-281, Andrew 2026-10-12), and what it hands the build is counted on say-so')
   // round 16: the saved choice stands on a rebuild unless changed, and a changed choice is never short-cut
   // round 17: the ask is shown for anything but a rebuild of a plan that already counted it — a fresh start after an expired cycle asks too — and defaults to freshness
   assert(/const rebuildOfCounted = \(start: string\) => !!plan && !startingNextNow && start === plan\.week_start && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\)/.test(pg) && /const askInventory = \(household\?\.inventory\.length \?\? 0\) > 0 && !rebuildOfCounted\(buildTarget\(new Date\(\)\)\)/.test(pg),
@@ -489,8 +489,8 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // round 18: the ask is judged on the start the build would land on, and judged again at build time
   assert(/const askNow = household\.inventory\.length > 0 && !rebuildOfCounted\(weekStart\)/.test(pg) && /if \(askNow !== askInventory\) \{ setError\(/.test(pg) && /const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg),
     'the ask is based on the target the build would land on — a shortened fortnight is a new start — and rechecked at build time')
-  assert(/countByDefault=\{inventoryFresh\(householdSavedAt, newestPlanAt, newestPlanKnown\)\}/.test(pg) && /setHousehold\(h\.household\); setHouseholdSavedAt\(h\.updatedAt\)/.test(pg) && /setHousehold\(h\); setHouseholdSavedAt\(new Date\(\)\.toISOString\(\)\)/.test(pg) && /const counts = !askInventory \|\| countByDefault/.test(readLF('src/components/fuel/HaveStep.tsx')),
-    'the ask defaults to whether what is on hand was saved after the newest plan was built')
+  assert(!/countByDefault/.test(pg) && /const savedSince = inventoryFresh\(householdSavedAt, newestPlanAt, newestPlanKnown\)/.test(pg) && /setHousehold\(h\.household\); setHouseholdSavedAt\(h\.updatedAt\)/.test(pg) && /setHousehold\(h\); setHouseholdSavedAt\(new Date\(\)\.toISOString\(\)\)/.test(pg),
+    'whether what is on hand was saved after the newest plan no longer sets step 2\'s default (FOR-281) — it only says what a rebuild lets stand')
   const st18 = readLF('src/lib/fuel/store.ts')
   assert(/select\('created_at'\)\.eq\('user_id', userId\)\.order\('created_at', \{ ascending: false \}\)\.limit\(1\)\.maybeSingle\(\)/.test(st18) && /newestPlanAt: string \| null/.test(st18) && (pg.match(/setNewestPlanAt\(active\.newestPlanAt\)/g) || []).length === 2 && /setNewestPlanAt\(built\.created_at \?\? new Date\(\)\.toISOString\(\)\)/.test(pg),
     'the newest plan is looked up on its own, unbounded — a long break does not read as never planned')

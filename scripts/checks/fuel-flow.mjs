@@ -304,10 +304,18 @@ const show = (name, el) => { const s = { name, ...paint(el) }; screens.push(s); 
   assert(!/<(button|input)(?![^>]*disabled)[^>]*>/.test(building.html) && /building the list/.test(building.text), 'nothing on step 2 can be changed while a build is in flight — the build took the rows as they stood (Codex r3)')
   const preticked = show('step 2 — saved stock counts', have({ household: { ...andrew, inventory: savedStock } }))
   assert((preticked.html.match(/aria-pressed="true"/g) || []).length === draft.items.filter((l) => l.item === 'rice').length && /buying /.test(preticked.text), 'what the saved stock covers opens ticked, and what it part-covers says what is still bought')
-  const asked = show('step 2 — a week has been eating it', have({ household: { ...andrew, inventory: savedStock }, askInventory: true, countByDefault: false }))
-  assert((asked.html.match(/aria-pressed="true"/g) || []).length === 0 && asked.text.includes(`still have 1 ${haveUnit(meat[0])}`) && /not counted yet/.test(asked.text), 'stock a week has been eating opens unticked, offered back by one tap — it never counts on its own')
-  const fresh = paint(have({ household: { ...andrew, inventory: savedStock }, askInventory: true, countByDefault: true }))
-  assert((fresh.html.match(/aria-pressed="true"/g) || []).length > 0, 'stock saved after the newest plan counts without a tap, as it always has')
+  // FOR-281, Andrew 2026-10-12: saved stock opens ticked on every build — step 2 no longer hears whether a plan is newer than the save
+  assert(!/still have/.test(preticked.text) && !/not counted yet/.test(preticked.text), 'saved stock is never offered back on a new build — it is already counted')
+  {
+    const hs = readLF('src/components/fuel/HaveStep.tsx'), page = readLF('src/app/fuel/page.tsx')
+    assert(!/countByDefault|askInventory/.test(hs) && !/countByDefault/.test(page) && !/<HaveStep[^>]*askInventory/.test(page), 'whether a plan is newer than the save is not passed to step 2 at all: there is nothing there for it to switch off')
+    // a new week after an old plan: no prior build, the stock saved before that plan was built
+    const newWeek = startRows(savedStock, draft.items, true, null)
+    assert(newWeek.length === savedStock.length && lineStates(draft.items, listWith(andrew, meals, plan, newWeek)).get(draft.items.find((l) => l.item === 'rice').key).have, 'on a new week every saved row stands, and the line it covers is had')
+  }
+  // a rebuild still judges stock against the build being rebuilt: an ingredient that build never cooked is offered back, counted once and only on a tap
+  const rebuilt = show('step 2 — a rebuild whose plan never cooked it', have({ household: { ...andrew, inventory: savedStock }, prior: { items: [{ item: 'rice' }], inventory: [] } }))
+  assert((rebuilt.html.match(/aria-pressed="true"/g) || []).length === draft.items.filter((l) => l.item === 'rice').length && rebuilt.text.includes(`still have 1 ${haveUnit(meat[0])}`) && /not counted yet/.test(rebuilt.text), 'on a rebuild, stock the rebuilt plan never showed is offered back by one tap — and what it did show opens ticked')
 
   show('settings', createElement(IntakeForm, { initial: { ...andrew, inventory: [...savedStock, { item: 'onion', qty: 2, unit: 'each', covers: 'Produce:onion:each' }] }, meals, saving: false, onSave: () => {} }))
   const settings = screens[screens.length - 1]

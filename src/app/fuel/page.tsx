@@ -282,8 +282,8 @@ export default function FuelPage() {
   // a NEW start under rebuildKey, and what week one ate is not on hand
   // (Codex, rounds 15 to 18). A next cycle, a rebuild of a plan built
   // without it, and a fresh start after a cycle expired all ask. The ask
-  // defaults to the inventory's freshness; the saved choice stands unless
-  // the athlete changes it.
+  // is step 2, and saved stock opens counted there on every build (FOR-281;
+  // Andrew, 2026-10-12) — the athlete unticks what is gone.
   const startingNextNow = !!(liveCycle && nextCycle)
   const rebuildOfCounted = (start: string) => !!plan && !startingNextNow && start === plan.week_start && (plan.rules_snapshot?.inventory_counted ?? true)
   const askInventory = (household?.inventory.length ?? 0) > 0 && !rebuildOfCounted(buildTarget(new Date()))
@@ -721,7 +721,7 @@ export default function FuelPage() {
               )}
               {at === 'have' && household && drafted && (
                 <HaveStep key={haveKey} household={household} meals={meals} plan={drafted} staples={customOn ? staples : undefined}
-                  askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)} building={busy}
+                  building={busy}
                   prior={prior} resume={had && had.for === haveKey ? had : undefined}
                   onHold={(rows, skipped, draft) => setHad({ for: haveKey, rows, skipped, draft })} onBack={() => setStep('plan')}
                   onBuild={(rows, skipKeys, keepKeys) => void onBuild(drafted, { countInventory: true, onHand: rows, skipKeys, keepKeys, drawnFor: target })} />

@@ -24,16 +24,12 @@ import { fmtQty } from './Checklist'
 const NO_STAPLES: StapleRow[] = []
 const qtyText = (qty: number, unit: string) => fmtQty({ qty, unit })
 
-export default function HaveStep({ household, meals, plan, staples = NO_STAPLES, askInventory = false, countByDefault = false, prior = null, building, resume, onHold, onBack, onBuild }: {
+export default function HaveStep({ household, meals, plan, staples = NO_STAPLES, prior = null, building, resume, onHold, onBack, onBuild }: {
   household: Household; meals: MealRow[]
   /** The nights step 1 settled on. */
   plan: Plan
   /** The items on every list, shown where they will land. Empty when the page cannot write custom lines. */
   staples?: StapleRow[]
-  /** Whether saved stock needs asking about for this build: anything but a rebuild of a plan that already counted it (FOR-177, rounds 15 and 16). */
-  askInventory?: boolean
-  /** When it needs asking: does it count unless told otherwise — saved after the newest plan was built — or has a week been eating it (round 17)? */
-  countByDefault?: boolean
   building: boolean
   /** The build this one would rebuild — the lines its list was STORED with and the rows it was built with — or null when the build is a new one. What a rebuild lets stand is judged against it (onhand.ts, Codex r2). */
   prior?: PriorBuild | null
@@ -45,9 +41,12 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   /** Build the list with these rows on hand. `skipKeys` are the staple lines ticked "have it", to come off this one list; `keepKeys` the ones left unticked, which the list must carry. */
   onBuild: (rows: InventoryItem[], skipKeys: string[], keepKeys: string[]) => void
 }) {
-  // Saved stock counts on its own exactly when it always did: no ask, or an
-  // ask whose default was yes. Otherwise it is offered back line by line.
-  const counts = !askInventory || countByDefault
+  // Saved stock always opens counted, on every build — a new week after an
+  // old plan included — and the lines it covers open ticked (FOR-281; Andrew,
+  // 2026-10-12: "I think we want the on hand items pre ticked in the case of
+  // any overlapping items between weeks"). Any line can still be untapped.
+  // Before this it counted only when saved after the newest plan (FOR-177).
+  const counts = true
   const draft = useMemo(() => draftList(household, meals, plan), [household, meals, plan])
   const opened = useMemo(() => startRows(household.inventory, draft.items, counts, prior), [household, draft, counts, prior])
   // What was held comes back only onto the draft it was ticked on: the same
@@ -79,7 +78,8 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   const all = [...draft.items, ...custom]
   const have = all.filter(haveLine).length
   // Saved stock that did not open counted, for a line on this list: offered
-  // back, one tap a line. The note says so only when there is some.
+  // back, one tap a line. That is now only a rebuild whose plan never cooked
+  // the ingredient (onhand.ts). The note says so only when there is some.
   const offer = (l: ListItem): number | null => (someQty(opened, l) === null ? lastTime(household.inventory, l) : null)
   const offered = draft.items.some((l) => offer(l) !== null)
 
