@@ -123,10 +123,20 @@ const BANNED = /fortnight|rotation|cycle/i
   assert(freshStock.length === 2 && !freshStock.some((r) => r.covers !== undefined) && someQty(freshStock, thigh) === 3, 'stock counted afresh in settings counts for a new week — a tick from the last list never rides along with it')
   const st2 = readLF('src/lib/fuel/store.ts')
   const saveFn = st2.slice(st2.indexOf('export async function saveOnHand'), st2.indexOf('export async function loadActive'))
-  assert(/\.update\(\{ inventory: rows \}\)\.eq\('user_id', userId\)/.test(saveFn) && !/updated_at/.test(saveFn.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*\*)/.test(l)).join('\n')),
+  assert(/if \(loadedAt\) q = q\.eq\('updated_at', loadedAt\)/.test(saveFn) && /if \(!data\) return \{ error: \{ message: 'your settings were changed somewhere else/.test(saveFn) && /await saveOnHand\(supabase, userId, opts\.onHand, householdSavedAt\)/.test(readLF('src/app/fuel/page.tsx')),
+    'the build-time save lands only on the household this page loaded: settings saved somewhere else since are never overwritten, and the build stops (Codex r1)')
+  assert(/\.update\(\{ inventory: rows \}\)\.eq\('user_id', userId\)/.test(saveFn) && !/updated_at:/.test(saveFn.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*\*)/.test(l)).join('\n')),
     'the build-time save writes the rows on hand and nothing else — it never moves the stamp that says the stock was counted afresh')
   assert(lastTime(saved, thigh) === 3 && lastTime(saved, onion) === null, 'what was saved is offered back by quantity — a tick from another week is not stock and is never offered')
-  assert(sameRows([saved[0], saved[1]], [saved[1], { ...saved[0] }]) && !sameRows([saved[0]], [{ ...saved[0], qty: 4 }]) && !sameRows([saved[2]], [{ ...saved[2], covers: undefined }]), 'the same rows in another order are the same; a quantity or a tick that differs is not')
+  assert(sameRows([saved[0], saved[1]], [{ ...saved[0] }, { ...saved[1] }]) && !sameRows([saved[0], saved[1]], [saved[1], saved[0]]) && !sameRows([saved[0]], [{ ...saved[0], qty: 4 }]) && !sameRows([saved[2]], [{ ...saved[2], covers: undefined }]),
+    'rows are the same only row for row, in order — the order is what the snapshot is compared on, so rows re-tapped into another order are saved (Codex r1)')
+  {
+    const onionL = line((l) => l.section !== MEAT_SECTION && !l.second_trip), other = draft.items.find((l) => l.key !== onionL.key && l.section !== MEAT_SECTION)
+    const ab = markHave(markHave([], onionL), other), ba = markHave(clearLine(ab, onionL), onionL)
+    const builtFrom = JSON.parse(JSON.stringify(snapshot({ ...andrew, inventory: ba }, plan, true)))
+    assert(!sameRows(ab, ba) && changed(builtFrom, { ...andrew, inventory: ab }, plan) && !changed(builtFrom, { ...andrew, inventory: ba }, plan),
+      'a tick undone and redone moves its row, and the household must be saved in that order or the list built from it reads as out of date')
+  }
   assert(stapleLines([{ id: '6f1c2d3e-0000-4000-8000-00000000c0ff', item: 'coffee', store_section: 'Pantry' }])[0].key === customKey('6f1c2d3e-0000-4000-8000-00000000c0ff'), 'a staple on the draft is keyed exactly as the database keys its line, so a tick can take that line off the built list')
 }
 
@@ -144,9 +154,13 @@ const BANNED = /fortnight|rotation|cycle/i
   const pg = readLF('src/app/fuel/page.tsx')
   assert(/const askNow = household\.inventory\.length > 0 && !rebuildOfCounted\(weekStart\)/.test(pg) && /const inventoryCounted = askNow \? opts\.countInventory : true/.test(pg) && /if \(askNow !== askInventory\) \{ setError\(/.test(pg),
     'the page still judges, at build time, whether what is on hand needed asking about — on the household as it was drawn')
-  const saveAt = pg.indexOf('await saveOnHand(supabase, userId, opts.onHand)'), buildAt = pg.indexOf('await createVersion(supabase, weekStart, h, meals, p, inventoryCounted)')
+  const saveAt = pg.indexOf('await saveOnHand(supabase, userId, opts.onHand, householdSavedAt)'), buildAt = pg.indexOf('await createVersion(supabase, weekStart, h, meals, p, inventoryCounted)')
   assert(saveAt > 0 && buildAt > saveAt && /if \(e\) \{ setBusy\(false\); setError\(e\.message \?\? 'could not save what you have'\); return \}/.test(pg.slice(saveAt, buildAt)),
     'what step 2 gathered is saved as the household\'s inventory BEFORE the build, and a save that fails builds nothing')
+  assert(/const carriesKept = !!list && \(opts\.keepKeys \?\? \[\]\)\.every\(\(k\) => list\.items\.some\(\(i\) => i\.key === k\)\)/.test(pg) && /if \(carriesKept && !startingNext && plan && list/.test(pg),
+    'the stored list is reused only while it carries every own line left unticked — one taken off last time and wanted now gets a new version (Codex r1)')
+  assert(/const haveKey = household && drafted \? `\$\{builderKey\}-\$\{buildTarget\(new Date\(\)\)\}-\$\{askInventory\}-\$\{countByDefault\}-/.test(pg) && /<HaveStep key=\{haveKey\}/.test(pg) && /resume=\{had && had\.for === haveKey \? had : undefined\}/.test(pg),
+    'step 2 is keyed on the week the build lands on and on whether saved stock counts there — a page left open across a boundary opens a new step 2, and what was ticked comes back only to the same one (Codex r1)')
   assert(/setStep\(active\.list && !persistedStale \? 'list' : h\.household \? 'plan' : 'intake'\)/.test(pg), 'a returning athlete lands on the list when there is a current one, otherwise on the menu; a first visit starts in settings')
 }
 

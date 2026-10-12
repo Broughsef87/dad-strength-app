@@ -128,8 +128,14 @@ export function stapleLines(staples: StapleRow[]): ListItem[] {
   return staples.map((s) => ({ key: customKey(s.id), item: s.item, qty: 0, unit: '', section: s.store_section, from: [], second_trip: false, inferred: false, stocked: false, checked: false, custom: 'staple' as const }))
 }
 
-/** The same rows on hand, whatever order they were tapped in — whether the household needs saving before the build. */
+/**
+ * The same rows on hand, IN THE SAME ORDER — whether the household needs saving
+ * before the build. Order counts because the plan's snapshot is compared to
+ * the household's inventory as stored, row for row (version.ts): rows that
+ * differ only in order, left unsaved, would build a list that read as out of
+ * date the moment it opened (Codex r1).
+ */
 export function sameRows(a: InventoryItem[], b: InventoryItem[]): boolean {
-  const key = (rows: InventoryItem[]) => rows.map((r) => JSON.stringify([norm(r.item), r.qty, norm(r.unit), r.covers ?? null])).sort().join('\n')
+  const key = (rows: InventoryItem[]) => JSON.stringify(rows.map((r) => [r.item, r.qty, r.unit, r.covers ?? null]))
   return key(a) === key(b)
 }

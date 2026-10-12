@@ -234,11 +234,18 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
  * last week's stock would count again unasked whenever the phone ran ahead.
  * Only a save from settings says the stock was counted afresh.
  */
-export async function saveOnHand(db: Db, userId: string, rows: Household['inventory']): Promise<{ error: { code?: string; message?: string } | null }> {
-  const { data, error } = await db.from('fuel_household').update({ inventory: rows }).eq('user_id', userId).select('user_id').maybeSingle()
-  if (error) return { error }
-  if (!data) return { error: { message: 'could not save what you have — set up your household in settings first' } }
-  return { error: null }
+export async function saveOnHand(db: Db, userId: string, rows: Household['inventory'], loadedAt: string | null): Promise<{ error: { code?: string; message?: string } | null; changedElsewhere: boolean }> {
+  // Only over the household this page LOADED (Codex r1): step 2 opened on that
+  // copy of the stock, so if settings were saved somewhere else since — a
+  // pound added to the freezer in another tab — writing these rows would
+  // erase it. The stamp a settings save moves is the witness; no row matched
+  // means it moved, nothing is written, and the athlete is told to reload.
+  let q = db.from('fuel_household').update({ inventory: rows }).eq('user_id', userId)
+  if (loadedAt) q = q.eq('updated_at', loadedAt)
+  const { data, error } = await q.select('user_id').maybeSingle()
+  if (error) return { error, changedElsewhere: false }
+  if (!data) return { error: { message: 'your settings were changed somewhere else since this page loaded — reload, then tick what you have again' }, changedElsewhere: true }
+  return { error: null, changedElsewhere: false }
 }
 
 /**

@@ -22,7 +22,7 @@ import { fmtQty } from './Checklist'
 const NO_STAPLES: StapleRow[] = []
 const qtyText = (qty: number, unit: string) => fmtQty({ qty, unit })
 
-export default function HaveStep({ household, meals, plan, staples = NO_STAPLES, askInventory = false, countByDefault = false, building, onBack, onBuild }: {
+export default function HaveStep({ household, meals, plan, staples = NO_STAPLES, askInventory = false, countByDefault = false, building, resume, onBack, onBuild }: {
   household: Household; meals: MealRow[]
   /** The nights step 1 settled on. */
   plan: Plan
@@ -33,16 +33,19 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   /** When it needs asking: does it count unless told otherwise — saved after the newest plan was built — or has a week been eating it (round 17)? */
   countByDefault?: boolean
   building: boolean
-  onBack: () => void
-  /** Build the list with these rows on hand; `skipStaples` are the keys of the staple lines ticked "have it", to come off this one list. */
-  onBuild: (rows: InventoryItem[], skipStaples: string[]) => void
+  /** What this same step 2 held when it was left for the menu: it opens on that rather than on the saved stock, so going back loses nothing (Codex r1). */
+  resume?: { rows: InventoryItem[]; skipped: string[] }
+  /** Back to the menu, handing over what is ticked so it can be given back. */
+  onBack: (rows: InventoryItem[], skipped: string[]) => void
+  /** Build the list with these rows on hand. `skipKeys` are the staple lines ticked "have it", to come off this one list; `keepKeys` the ones left unticked, which the list must carry. */
+  onBuild: (rows: InventoryItem[], skipKeys: string[], keepKeys: string[]) => void
 }) {
   // Saved stock counts on its own exactly when it always did: no ask, or an
   // ask whose default was yes. Otherwise it is offered back line by line.
   const counts = !askInventory || countByDefault
   const draft = useMemo(() => draftList(household, meals, plan), [household, meals, plan])
-  const [rows, setRows] = useState<InventoryItem[]>(() => startRows(household.inventory, draft.items, counts, !askInventory))
-  const [skipped, setSkipped] = useState<Set<string>>(new Set())
+  const [rows, setRows] = useState<InventoryItem[]>(() => resume?.rows ?? startRows(household.inventory, draft.items, counts, !askInventory))
+  const [skipped, setSkipped] = useState<Set<string>>(() => new Set(resume?.skipped ?? []))
   const [open, setOpen] = useState<Set<string>>(new Set())
   // What is being typed in a "have some" box, as typed: "1." is not yet a
   // number and must not be rewritten under the thumb.
@@ -143,10 +146,10 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
 
       <div className="tile p-4 space-y-3">
         <p className="data-mono"><b>{all.length - have}</b> to buy · <b>{have}</b> you have</p>
-        <button type="button" className="pill-volt w-full py-3 text-sm" disabled={building} onClick={() => onBuild(rows, [...skipped])}>
+        <button type="button" className="pill-volt w-full py-3 text-sm" disabled={building} onClick={() => onBuild(rows, custom.filter((l) => skipped.has(l.key)).map((l) => l.key), custom.filter((l) => !skipped.has(l.key)).map((l) => l.key))}>
           {building ? 'building the list…' : 'build my list'}
         </button>
-        <button type="button" className="pill-quiet w-full py-2 text-[12px] lowercase" disabled={building} onClick={onBack}>back to the menu</button>
+        <button type="button" className="pill-quiet w-full py-2 text-[12px] lowercase" disabled={building} onClick={() => onBack(rows, [...skipped])}>back to the menu</button>
       </div>
     </div>
   )

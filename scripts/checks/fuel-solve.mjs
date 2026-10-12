@@ -457,7 +457,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/export const maxServings = \(household: Pick<Household, 'people_count'>\) => Math\.max\(8, household\.people_count \* 3\)/.test(pb) && /Math\.min\(cap, e\.servings \+ 1\)/.test(pb), 'cooked servings can reach three per person for the largest household intake allows')
   assert(/Math\.min\(defaultServings\(meal, household\), cap\)/.test(readLF('src/lib/fuel/planner.ts')) && /m && e\.servings < household\.people_count \? \{ \.\.\.e, servings: defaultServings\(m, household\) \} : e/.test(pb),
     'a new night defaults to what the household needs; a saved night is raised only if it no longer feeds everyone, otherwise kept as chosen (Codex r2, r3)')
-  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /if \(!startingNext && plan && list && plan\.week_start === weekStart && !changed\(/.test(pg) && /planningMode\(/.test(pg),
+  assert(/const startingNext = !!\(liveCycle && nextCycle\)/.test(pg) && /if \(carriesKept && !startingNext && plan && list && plan\.week_start === weekStart && !changed\(/.test(pg) && /planningMode\(/.test(pg),
     'the page can plan the NEXT cycle — keyed to where the live one ends (or the cycle already planned ahead), defaulting to it on the final day, never short-circuited by the unchanged-plan shortcut')
   assert(/rebuildKey\(liveCycle, household\.shop_cadence_days, now\)/.test(pg) && /const buildTarget = \(now: Date\): string =>/.test(pg), 'a rebuild keys through rebuildKey, so a shortened cadence cannot snapshot an expired cycle')
   // round 10: the builder is told the steak nights already planned in other cycles, for the target the build would land on
@@ -480,7 +480,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   // FOR-281: the ask is no longer a toggle under the planner. It is step 2, where saved stock opens ticked only when it counts
   // without asking, and is otherwise offered back a line at a time (fuel-flow.mjs runs that; this pins where it is wired).
   const hs = readLF('src/components/fuel/HaveStep.tsx')
-  assert(/const counts = !askInventory \|\| countByDefault/.test(hs) && /useState<InventoryItem\[\]>\(\(\) => startRows\(household\.inventory, draft\.items, counts, !askInventory\)\)/.test(hs) && /onBuild\(drafted, \{ countInventory: true, onHand: rows, skipKeys \}\)/.test(pg) && !/countInventory/.test(pb),
+  assert(/const counts = !askInventory \|\| countByDefault/.test(hs) && /useState<InventoryItem\[\]>\(\(\) => resume\?\.rows \?\? startRows\(household\.inventory, draft\.items, counts, !askInventory\)\)/.test(hs) && /onBuild\(drafted, \{ countInventory: true, onHand: rows, skipKeys, keepKeys \}\)/.test(pg) && !/countInventory/.test(pb),
     'step 2 asks, for a next cycle with something on hand, whether it still counts — off by default, and on only by a tap')
   // round 16: the saved choice stands on a rebuild unless changed, and a changed choice is never short-cut
   // round 17: the ask is shown for anything but a rebuild of a plan that already counted it — a fresh start after an expired cycle asks too — and defaults to freshness
@@ -515,7 +515,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   const cl17 = readLF('src/components/fuel/Checklist.tsx')
   assert(/const pausedRef = useRef\(paused\)/.test(cl17) && /&& !pausedRef\.current\) \{/.test(cl17) && /\[online, listId, refetch, onRowItems, flush, wake, paused\]/.test(cl17),
     'a paused checklist sends nothing, and flushes when the pause lifts')
-  assert(/!changed\(plan\.rules_snapshot, h, p\) && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\) === inventoryCounted && listUnchanged\(/.test(pg) && /listUnchanged\(buildShoppingList\(householdFor\(h, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{\n/.test(pg),
+  assert(/if \(carriesKept && !startingNext && plan && list && plan\.week_start === weekStart && !changed\(plan\.rules_snapshot, h, p\) && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\) === inventoryCounted && listUnchanged\(/.test(pg) && /listUnchanged\(buildShoppingList\(householdFor\(h, inventoryCounted\), meals, p\)\.items, list\.items\)\) \{\n/.test(pg),
     'a changed inventory choice is never short-cut to the stored list')
   const st15 = readLF('src/lib/fuel/store.ts')
   assert(/buildShoppingList\(householdFor\(household, inventoryCounted\), meals, plan\)/.test(st15) && (st15.match(/snapshot\(household, plan, inventoryCounted\)/g) || []).length === 2, 'the version is solved and snapshotted the way it was asked for')

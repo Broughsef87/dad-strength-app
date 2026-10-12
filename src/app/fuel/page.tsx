@@ -138,6 +138,10 @@ export default function FuelPage() {
   // to — and tagged with the builder it was made in, so a menu drawn for one
   // week is never carried into another (FOR-281).
   const [draft, setDraft] = useState<{ for: string; plan: Plan } | null>(null)
+  // What step 2 held when it was left for the menu, tagged with the step 2 it
+  // was — the same menu, the same week, the same ask — so coming back to it
+  // gives the ticks back, and anything else starts clean (Codex r1).
+  const [had, setHad] = useState<{ for: string; rows: InventoryItem[]; skipped: string[] } | null>(null)
   const liveCycle: CycleRow | null = plan ? asCycle(plan) : null
   // The identity the checklist keys on. Callbacks depend on THIS, not on the
   // list object, so a row update never recreates them and never re-triggers
@@ -251,7 +255,7 @@ export default function FuelPage() {
     moved()
     setHousehold(h); setHouseholdSavedAt(new Date().toISOString())
     // The nights were settled for the household as it was.
-    setDraft(null)
+    setDraft(null); setHad(null)
     // A rule change invalidates the list (L7): if a version exists and the
     // household differs from its snapshot, the next build writes version + 1.
     setStep('plan')
@@ -362,7 +366,8 @@ export default function FuelPage() {
   // ticked "have it": taken off the built list by key, through the guarded
   // remove, after the database has written the list — nothing is read or
   // merged here, and the database stays the only source of those lines.
-  const onBuild = async (p: Plan, opts: { countInventory: boolean; onHand?: InventoryItem[]; skipKeys?: string[] }) => {
+  // `keepKeys` are the ones left unticked: wanted on the list.
+  const onBuild = async (p: Plan, opts: { countInventory: boolean; onHand?: InventoryItem[]; skipKeys?: string[]; keepKeys?: string[] }) => {
     if (!userId || !household) return
     // A meal write is in flight: its ingredients are not on screen yet, so a
     // list built now would be built from the old ones (Codex r4).
@@ -399,17 +404,22 @@ export default function FuelPage() {
     // nothing: a list built from rows the household does not hold would read
     // as out of date the moment it opened.
     if (opts.onHand && !sameRows(opts.onHand, household.inventory)) {
-      const { error: e } = await saveOnHand(supabase, userId, opts.onHand)
+      const { error: e } = await saveOnHand(supabase, userId, opts.onHand, householdSavedAt)
       if (e) { setBusy(false); setError(e.message ?? 'could not save what you have'); return }
       moved()
       // The saved-at stamp does not move: this is not the stock being counted
       // afresh, it is the build writing down what it was told (saveOnHand).
       setHousehold(h)
     }
-    if (!startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, h, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(h, inventoryCounted), meals, p).items, list.items)) {
+    // The stored list stands only if it still carries every one of the
+    // athlete's own lines step 2 showed and left unticked: one taken off it
+    // last time and wanted now is put back by a new version, which the
+    // database builds with every such line (Codex r1).
+    const carriesKept = !!list && (opts.keepKeys ?? []).every((k) => list.items.some((i) => i.key === k))
+    if (carriesKept && !startingNext && plan && list && plan.week_start === weekStart && !changed(plan.rules_snapshot, h, p) && (plan.rules_snapshot?.inventory_counted ?? true) === inventoryCounted && listUnchanged(buildShoppingList(householdFor(h, inventoryCounted), meals, p).items, list.items)) {
       setBusy(false)
       await takeOff(list.id, list.items, opts.skipKeys)
-      setDraft(null); setStep('list'); return
+      setDraft(null); setHad(null); setStep('list'); return
     }
     // No staples are read here: the database is the only source of staple
     // lines, rebuilt under the version's own lock (FOR-240, Andrew's ruling A).
@@ -427,7 +437,7 @@ export default function FuelPage() {
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
     setNextCycle(false)
     await takeOff(res.list.id, res.list.items, opts.skipKeys)
-    setDraft(null)
+    setDraft(null); setHad(null)
     setStep('list')
   }
 
@@ -581,6 +591,12 @@ export default function FuelPage() {
   // Step 2 needs the nights step 1 settled on; without them it is step 1.
   const at: Step = step === 'have' && !(household && drafted) ? 'plan' : step
   const flowAt = FLOW.findIndex((f) => f.step === at)
+  // The step 2 on screen: the menu, the week the build would land on, and
+  // whether saved stock counts there. When any of them moves — a page left
+  // open across a week boundary — step 2 is a new one and opens on the stock
+  // as that week would count it, never on rows gathered for another (Codex r1).
+  const countByDefault = inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)
+  const haveKey = household && drafted ? `${builderKey}-${buildTarget(new Date())}-${askInventory}-${countByDefault}-${JSON.stringify(drafted.entries)}` : ''
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -670,11 +686,11 @@ export default function FuelPage() {
                 </div>
               )}
               {at === 'have' && household && drafted && (
-                // Keyed by the builder and the nights: a different menu is a
-                // different draft list, and starts from the saved stock again.
-                <HaveStep key={`${builderKey}-${JSON.stringify(drafted.entries)}`} household={household} meals={meals} plan={drafted} staples={customOn ? staples : undefined}
+                <HaveStep key={haveKey} household={household} meals={meals} plan={drafted} staples={customOn ? staples : undefined}
                   askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)} building={busy}
-                  onBack={() => setStep('plan')} onBuild={(rows, skipKeys) => void onBuild(drafted, { countInventory: true, onHand: rows, skipKeys })} />
+                  resume={had && had.for === haveKey ? had : undefined}
+                  onBack={(rows, skipped) => { setHad({ for: haveKey, rows, skipped }); setStep('plan') }}
+                  onBuild={(rows, skipKeys, keepKeys) => void onBuild(drafted, { countInventory: true, onHand: rows, skipKeys, keepKeys })} />
               )}
               {at === 'list' && list && plan && listId && stale && (
                 <div className="tile p-4 space-y-3">
