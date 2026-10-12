@@ -63,6 +63,9 @@ try {
     for (const [file, pick] of fixtures) {
       for (const m of pick(JSON.parse(readLF(file)))) want.set(m.slug, { ...m, _from: file })
     }
+    // The recipes (FUEL-RECIPES): each seeded meal's steps, as their own
+    // fixture declares them. A meal the fixture does not name must hold null.
+    const wantSteps = JSON.parse(readLF('fixtures/fuel-seed-steps.json')).fuel_meal_steps
     // EVERY column the app reads, `active` included. The query used to omit
     // it and the three macro columns, so a write setting `active = false`
     // passed the comparison while loadMeals() dropped the meal from the
@@ -70,7 +73,7 @@ try {
     const rows = q(`select jsonb_agg(to_jsonb(t) order by t.slug) from (
       select slug, name, protein_cut, spice_profile, format, active_cook_minutes,
              total_minutes, servings, protein_g_per_person, perishable_within_days,
-             rotation_note, ingredients, active, user_id,
+             rotation_note, ingredients, active, user_id, steps,
              carbs_g_per_person, fat_g_per_person, calories_per_person
       from public.fuel_meals) t`)
     const raw = JSON.parse(rows || '[]')
@@ -120,6 +123,12 @@ try {
       for (const k of ['carbs_g_per_person', 'fat_g_per_person', 'calories_per_person']) {
         if (w[k] !== null && w[k] !== undefined) diffs.push(`${slug}.${k} is ${JSON.stringify(w[k])} in ${w._from} — no seed migration carries macros`)
         if (r[k] !== null) diffs.push(`${slug}.${k} is ${JSON.stringify(r[k])} in the ROW — no seed migration carries macros`)
+      }
+      // In order, and every key: a step list is ordered, and jsonb keeps an
+      // array's order while it does not keep an object's keys.
+      const canonSteps = (list) => (list == null ? 'null' : JSON.stringify(list.map((st) => Object.keys(st ?? {}).sort().map((k) => [k, st[k]]))))
+      if (canonSteps(wantSteps[slug] ?? null) !== canonSteps(r.steps ?? null)) {
+        diffs.push(`${slug}.steps differ — fixture ${canonSteps(wantSteps[slug] ?? null).slice(0, 120)} vs row ${canonSteps(r.steps ?? null).slice(0, 120)}`)
       }
       if (r.active !== true) diffs.push(`${slug}.active is ${JSON.stringify(r.active)} — an inactive meal is dropped from the library by loadMeals()`)
       // A seeded meal belongs to nobody. `id` and `created_at` are left out on

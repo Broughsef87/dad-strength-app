@@ -10,9 +10,10 @@
 // owner and the database enforces it with a CHECK — this module mints what that
 // constraint already demands, it does not define the rule. The two must agree:
 // 20260920_fuel_own_meals.sql checks left(slug, 34) = 'u' || <32 hex> || '~'.
-import type { MealIngredient, MealRow } from './types'
+import type { MealIngredient, MealRow, MealStep } from './types'
 import { FRESH_ONLY_CUTS } from './solve'
 import { STEAK_CUT } from './record'
+import { stepsIssues } from './recipe'
 
 /**
  * The cuts validatePlan and the second-trip rule key on. Taken from the
@@ -91,6 +92,12 @@ export interface OwnMealDraft {
   active_cook_minutes?: number
   total_minutes?: number | null
   perishable_within_days?: number | null
+  /**
+   * OPTIONAL, and the only field here that is: the recipe, one step per line in
+   * the form (FUEL-RECIPES). It changes no shopping list and no rule, so a meal
+   * saves without it and opens saying "no steps yet".
+   */
+  steps?: MealStep[] | null
 }
 
 /** What an own meal is when the athlete did not say. None of these changes a shopping list or a rule. */
@@ -155,6 +162,7 @@ export function ownMealIssues(draft: OwnMealDraft): string[] {
     if (seen.has(k)) issues.push(`${ing.item.trim()} is listed twice in the same unit — put it on one line`)
     seen.add(k)
   }
+  issues.push(...stepsIssues(draft.steps))
   return issues
 }
 
@@ -179,6 +187,10 @@ export function ownMealFields(draft: OwnMealDraft): Omit<MealRow, 'slug' | 'user
     ingredients: draft.ingredients
       .filter((i) => i.item.trim())
       .map((i) => ({ item: i.item.trim(), qty_per_person: i.qty_per_person, unit: i.unit.trim(), store_section: i.store_section.trim(), inferred: i.inferred ?? false })),
+    // Text only: an athlete types lines, never minutes. No steps is NULL, the
+    // one way the column says "no steps yet" — and an edit that clears them
+    // has to WRITE that null, so the key is always sent.
+    steps: draft.steps?.length ? draft.steps.map((s) => ({ text: s.text.trim() })).filter((s) => s.text) : null,
   }
 }
 

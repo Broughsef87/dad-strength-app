@@ -63,6 +63,7 @@ const COMPARATOR = [
   'fixtures/fuel-seed.json',
   'fixtures/fuel-seed-rotation-b.json',
   'fixtures/fuel-seed-library-expansion.json',
+  'fixtures/fuel-seed-steps.json',
 ]
 
 export function fingerprint() {

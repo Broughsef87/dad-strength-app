@@ -178,6 +178,18 @@ export function proteinScale(meal: Pick<MealRow, 'protein_g_per_person'>, floorG
   return Math.max(1, floorG / meal.protein_g_per_person)
 }
 
+/**
+ * What one night COOKS of one ingredient: its quantity per person × the
+ * servings cooked, the protein line scaled up to the household's floor (L4).
+ * The shopping list sums exactly this, and the recipe view prints exactly this
+ * — one expression, so a recipe can never ask for a different amount than the
+ * list bought for it. Prep diversion is not in here: that is what is BOUGHT on
+ * top, for meal prep, and never reaches this pan.
+ */
+export function cookQuantity(ing: Pick<MealIngredient, 'qty_per_person' | 'store_section'>, meal: Pick<MealRow, 'protein_g_per_person'>, servings: number, floorG: number): number {
+  return ing.qty_per_person * servings * (isDiverted(ing) ? proteinScale(meal, floorG) : 1)
+}
+
 /** L3: does this ingredient, cooked in this week of the cycle, come from the second trip? */
 export function isSecondTrip(ing: MealIngredient, meal: MealRow, entry: PlanEntry, household: Household): boolean {
   if (cycleWeeks(household) < 2 || entry.week !== 2) return false
@@ -376,7 +388,6 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
     const meal = bySlug.get(entry.slug)
     if (!meal) continue
     const servings = entry.servings > 0 ? entry.servings : meal.servings
-    const scale = proteinScale(meal, floor)
     for (const ing of meal.ingredients) {
       const trip2 = isSecondTrip(ing, meal, entry, household)
       const diverted = isDiverted(ing)
@@ -385,7 +396,7 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
         item: ing.item, unit: ing.unit, section: ing.store_section, second_trip: trip2,
         need: 0, inferred: false, from: new Set<string>(), diverted,
       }
-      b.need += ing.qty_per_person * servings * (diverted ? scale : 1)
+      b.need += cookQuantity(ing, meal, servings, floor)
       b.inferred = b.inferred || ing.inferred
       b.from.add(meal.slug)
       buckets.set(key, b)

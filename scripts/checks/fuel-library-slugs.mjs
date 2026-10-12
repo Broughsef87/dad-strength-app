@@ -283,10 +283,12 @@ assert(/DELETE FROM public\.fuel_meals WHERE slug IN \(/.test(mig), 'its header 
       'fixtures/fuel-seed.json',
       'fixtures/fuel-seed-rotation-b.json',
       'fixtures/fuel-seed-library-expansion.json',
+      // The recipes: the row comparison reads each meal's steps off this one.
+      'fixtures/fuel-seed-steps.json',
     ]) {
       assert(covered.includes(f), `the lock hashes ${f}, so a change to it forces the proof to run again`)
     }
-    assert(covered.length === 5, `and hashes nothing else as a comparator input — it lists ${covered.length}`)
+    assert(covered.length === 6, `and hashes nothing else as a comparator input — it lists ${covered.length}`)
     const { createHash } = await import('node:crypto')
     for (const c of lock.comparator ?? []) {
       const now = createHash('sha256').update(readLF(c.file)).digest('hex')

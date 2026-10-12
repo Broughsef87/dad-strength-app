@@ -25,6 +25,7 @@ import type { MealIngredient, MealRow } from '../../lib/fuel/types'
 import { libraryItems, libraryUnits } from '../../lib/fuel/solve'
 import { defaultSection } from '../../lib/fuel/custom'
 import { cutOptions, ownMealIssues, type OwnMealDraft } from '../../lib/fuel/ownMeal'
+import { stepsFromText, stepsToText } from '../../lib/fuel/recipe'
 
 const blankRow = (section: string): MealIngredient => ({ item: '', qty_per_person: 0, unit: '', store_section: section, inferred: false })
 
@@ -65,7 +66,12 @@ export default function MealForm({ meal, meals, sectionOrder, busy, cutLocked = 
   /** Retire this meal: it leaves the library and cannot be picked again. Returns what went wrong, in words, or null when it landed. Absent: no retire control (FOR-242 AC6, FOR-247). */
   onRetire?: () => Promise<string | null>
 }) {
-  const [draft, setDraft] = useState<OwnMealDraft>(() => draftFrom(meal, sectionOrder))
+  // The recipe is typed as text, one step per line, and kept as text while it
+  // is being typed — parsed into the draft only where the draft is read, so a
+  // half-typed line is never rewritten under the cursor (FUEL-RECIPES).
+  const [fields, setDraft] = useState<OwnMealDraft>(() => draftFrom(meal, sectionOrder))
+  const [stepsText, setStepsText] = useState(() => (meal ? stepsToText(meal) : ''))
+  const draft = useMemo<OwnMealDraft>(() => ({ ...fields, steps: stepsFromText(stepsText) }), [fields, stepsText])
   const [error, setError] = useState<string | null>(null)
   const [tried, setTried] = useState(false)
 
@@ -179,6 +185,14 @@ export default function MealForm({ meal, meals, sectionOrder, busy, cutLocked = 
             ))}
           </ul>
           <button type="button" onClick={addRow} className="pill-quiet px-3 py-1.5 text-[12px] lowercase">add an ingredient</button>
+        </div>
+
+        <div className="space-y-2">
+          <p className="eyebrow-mono-sm px-1">how you cook it · optional</p>
+          <textarea value={stepsText} onChange={(e) => setStepsText(e.target.value)} rows={5}
+            placeholder="one step per line" aria-label="recipe steps, one per line"
+            className="row-recessed block w-full px-3 py-2 text-sm bg-transparent" />
+          <p className="text-[11px] text-muted-foreground px-1">one step per line — it is the recipe you see when you tap this meal</p>
         </div>
 
         {tried && issues.length > 0 && (

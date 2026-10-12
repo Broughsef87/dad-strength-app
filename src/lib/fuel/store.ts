@@ -68,6 +68,9 @@ export interface ListRow {
 
 const MEAL_COLUMNS = 'slug, name, protein_cut, spice_profile, format, active_cook_minutes, total_minutes, servings, protein_g_per_person, perishable_within_days, rotation_note, ingredients'
 
+/** What a meal row reads as once own meals (FOR-242) and recipes (FUEL-RECIPES) are both applied. */
+const OWN_MEAL_COLUMNS = `${MEAL_COLUMNS}, user_id, steps`
+
 /** PostgREST codes that mean "this column is not there yet" — the own-meals migration is not applied (FOR-242). */
 export function isMissingColumn(err: { code?: string; message?: string } | null | undefined): boolean {
   if (!err) return false
@@ -83,9 +86,17 @@ export function isMissingColumn(err: { code?: string; message?: string } | null 
  * Before the own-meals migration is applied there is no user_id column and
  * there are no own meals, so the library reads exactly as it always did. That
  * is never "not ready"; any other failure is reported.
+ *
+ * The recipes ride along in the same read (FUEL-RECIPES): `steps` is one more
+ * column of the one row, not a second fetch when a meal is opened. Before the
+ * steps migration is applied the column is not there, every meal reads as it
+ * did, and the recipe view says "no steps yet".
  */
 export async function loadMeals(db: Db): Promise<{ meals: MealRow[]; error: { code?: string; message?: string } | null }> {
-  let { data, error } = await db.from('fuel_meals').select(`${MEAL_COLUMNS}, user_id`).eq('active', true).order('slug')
+  let { data, error } = await db.from('fuel_meals').select(OWN_MEAL_COLUMNS).eq('active', true).order('slug')
+  // Each column that may not be there yet comes off in the order it arrived:
+  // the recipes first (FUEL-RECIPES), then the owner (FOR-242).
+  if (error && isMissingColumn(error)) ({ data, error } = await db.from('fuel_meals').select(`${MEAL_COLUMNS}, user_id`).eq('active', true).order('slug'))
   if (error && isMissingColumn(error)) ({ data, error } = await db.from('fuel_meals').select(MEAL_COLUMNS).eq('active', true).order('slug'))
   return { meals: (data ?? []) as MealRow[], error }
 }
@@ -99,7 +110,7 @@ export async function loadMeals(db: Db): Promise<{ meals: MealRow[]; error: { co
 export async function createOwnMeal(db: Db, userId: string, draft: OwnMealDraft): Promise<{ meal: MealRow | null; error: { code?: string; message?: string } | null }> {
   const row = ownMealRow(userId, draft)
   if (!row) return { meal: null, error: { message: 'that name leaves nothing to build a slug from — give it a letter or a number' } }
-  const { data, error } = await db.from('fuel_meals').insert(row).select(`${MEAL_COLUMNS}, user_id`).single()
+  const { data, error } = await db.from('fuel_meals').insert(row).select(OWN_MEAL_COLUMNS).single()
   if (error?.code === '23505') return { meal: null, error: { code: error.code, message: `you already have a meal called "${draft.name.trim()}"` } }
   return { meal: (data as MealRow) ?? null, error }
 }
@@ -120,7 +131,7 @@ export async function createOwnMeal(db: Db, userId: string, draft: OwnMealDraft)
  * both come through here (Codex r7).
  */
 export async function updateOwnMeal(db: Db, slug: string, draft: OwnMealDraft): Promise<{ meal: MealRow | null; error: { code?: string; message?: string } | null }> {
-  const { data, error } = await db.from('fuel_meals').update(ownMealFields(draft)).eq('slug', slug).select(`${MEAL_COLUMNS}, user_id`).single()
+  const { data, error } = await db.from('fuel_meals').update(ownMealFields(draft)).eq('slug', slug).select(OWN_MEAL_COLUMNS).single()
   return { meal: (data as MealRow) ?? null, error }
 }
 
