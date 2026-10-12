@@ -140,7 +140,7 @@ export default function FuelPage() {
   // What step 2 held when it was left for the menu, tagged with the step 2 it
   // was — the same menu, the same week, the same ask — so coming back to it
   // gives the ticks back, and anything else starts clean (Codex r1).
-  const [had, setHad] = useState<{ for: string; rows: InventoryItem[]; skipped: string[] } | null>(null)
+  const [had, setHad] = useState<{ for: string; rows: InventoryItem[]; skipped: string[]; draft: string } | null>(null)
   const liveCycle: CycleRow | null = plan ? asCycle(plan) : null
   // The identity the checklist keys on. Callbacks depend on THIS, not on the
   // list object, so a row update never recreates them and never re-triggers
@@ -706,7 +706,7 @@ export default function FuelPage() {
                 <HaveStep key={haveKey} household={household} meals={meals} plan={drafted} staples={customOn ? staples : undefined}
                   askInventory={askInventory} countByDefault={inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)} building={busy}
                   prior={prior} resume={had && had.for === haveKey ? had : undefined}
-                  onHold={(rows, skipped) => setHad({ for: haveKey, rows, skipped })} onBack={() => setStep('plan')}
+                  onHold={(rows, skipped, draft) => setHad({ for: haveKey, rows, skipped, draft })} onBack={() => setStep('plan')}
                   onBuild={(rows, skipKeys, keepKeys) => void onBuild(drafted, { countInventory: true, onHand: rows, skipKeys, keepKeys, drawnFor: target })} />
               )}
               {at === 'list' && list && plan && listId && stale && (

@@ -65,15 +65,21 @@ export function startRows(saved: InventoryItem[], draft: Pick<ListItem, 'key' | 
   const amount = new Map(draft.map((l) => [l.key, l.qty]))
   const items = new Set(draft.map((l) => norm(l.item)))
   const shown = prior ? new Set(prior.items.map((l) => norm(l.item))) : null
-  const ticked = new Set((prior?.inventory ?? []).flatMap((r) => (r.covers !== undefined ? [r.covers] : [])))
+  const ticked = new Map((prior?.inventory ?? []).flatMap((r) => (r.covers !== undefined ? [[r.covers, r.qty] as const] : [])))
   return saved.filter((r) => {
     // ...and only while the line asks for no more than it did when it was
     // ticked: a tick was never a promise about a bigger amount (Codex r3).
-    if (isTick(r)) { const now = amount.get(r.covers as string); return ticked.has(r.covers as string) && now !== undefined && r.qty >= now }
+    // The amount is the PRIOR build's own: the household's row may since have
+    // been re-ticked, bigger, for another week's list under the same key, and
+    // that says nothing about this one (Codex r4).
+    if (isTick(r)) { const now = amount.get(r.covers as string), was = ticked.get(r.covers as string); return was !== undefined && now !== undefined && r.qty === was && was >= now }
     if (!items.has(norm(r.item))) return true
     return counts && (!shown || shown.has(norm(r.item)))
   })
 }
+
+/** The draft a step 2 was working on, as one string: its lines and their amounts. Rows held for one draft are never given back to another — a meal edited between two visits changes the list under the same nights (Codex r4). */
+export const draftSignature = (draft: Pick<ListItem, 'key' | 'qty'>[]): string => JSON.stringify(draft.map((l) => [l.key, l.qty]))
 
 /** A line ticked "have it": covered whole, whatever was on hand for it before. Stock is left alone — it still goes to the lines that were not ticked. */
 export function markHave(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item' | 'qty' | 'unit'>): InventoryItem[] {
@@ -81,9 +87,20 @@ export function markHave(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'it
 }
 
 /**
- * A line put back on the list: its tick goes, and so does any stock of that
- * ingredient — the athlete has just said it is not there. After this the line
- * is bought in full, which is what makes the second tap an undo.
+ * The second tap on a line that shows as had. A tick comes off and NOTHING
+ * else does: the pound typed into "have some" before the tick was still real,
+ * and undoing the tick is not a statement about it (Codex r4). Only a line
+ * with no tick — one the stock alone covers — is put back by taking the stock
+ * as gone, because then the stock is the only thing the tap can be about.
+ */
+export function putBack(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item'>): InventoryItem[] {
+  return rows.some((r) => r.covers === line.key) ? rows.filter((r) => r.covers !== line.key) : clearLine(rows, line)
+}
+
+/**
+ * A line cleared outright: its tick goes, and so does any stock of that
+ * ingredient. After this the line is bought in full. What "have some" builds
+ * on, and what a tap does to a line the stock alone covers.
  */
 export function clearLine(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item'>): InventoryItem[] {
   return rows.filter((r) => (isTick(r) ? r.covers !== line.key : !sameItem(r, line)))

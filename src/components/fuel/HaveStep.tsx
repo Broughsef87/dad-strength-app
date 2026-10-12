@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Household, InventoryItem, ListItem, MealRow, Plan } from '../../lib/fuel/types'
 import { MEAT_SECTION, SECOND_TRIP_SECTION } from '../../lib/fuel/solve'
 import { isCustom, sectionsInOrder, type StapleRow } from '../../lib/fuel/custom'
-import { clearLine, draftList, haveUnit, lastTime, lineStates, listWith, markHave, setSome, someQty, startRows, stapleLines } from '../../lib/fuel/onhand'
+import { draftList, draftSignature, haveUnit, lastTime, lineStates, listWith, markHave, putBack, setSome, someQty, startRows, stapleLines } from '../../lib/fuel/onhand'
 import { fmtQty } from './Checklist'
 
 const NO_STAPLES: StapleRow[] = []
@@ -38,9 +38,9 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   /** The plan this build would rebuild — its nights and the rows it was built with — or null when the build is a new one. What a rebuild lets stand is judged against it (onhand.ts, Codex r2). */
   prior?: { plan: Plan; inventory: InventoryItem[] } | null
   /** What this same step 2 held when it was last on screen: it opens on that rather than on the saved stock, so leaving it loses nothing (Codex r1). */
-  resume?: { rows: InventoryItem[]; skipped: string[] }
-  /** What is ticked, told to the page as it changes — so it survives however step 2 is left: the back button, the steps above, the gear (Codex r2). */
-  onHold?: (rows: InventoryItem[], skipped: string[]) => void
+  resume?: { rows: InventoryItem[]; skipped: string[]; draft: string }
+  /** What is ticked, told to the page as it changes — so it survives however step 2 is left: the back button, the steps above, the gear (Codex r2). `draft` says which draft list it was ticked on. */
+  onHold?: (rows: InventoryItem[], skipped: string[], draft: string) => void
   onBack: () => void
   /** Build the list with these rows on hand. `skipKeys` are the staple lines ticked "have it", to come off this one list; `keepKeys` the ones left unticked, which the list must carry. */
   onBuild: (rows: InventoryItem[], skipKeys: string[], keepKeys: string[]) => void
@@ -50,15 +50,19 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   const counts = !askInventory || countByDefault
   const draft = useMemo(() => draftList(household, meals, plan), [household, meals, plan])
   const opened = useMemo(() => startRows(household.inventory, draft.items, counts, prior ? { items: draftList(household, meals, prior.plan).items, inventory: prior.inventory } : null), [household, meals, draft, counts, prior])
-  const [rows, setRows] = useState<InventoryItem[]>(() => resume?.rows ?? opened)
-  const [skipped, setSkipped] = useState<Set<string>>(() => new Set(resume?.skipped ?? []))
+  // What was held comes back only onto the draft it was ticked on: the same
+  // lines at the same amounts (Codex r4).
+  const signature = useMemo(() => draftSignature(draft.items), [draft])
+  const resumed = resume && resume.draft === signature ? resume : undefined
+  const [rows, setRows] = useState<InventoryItem[]>(() => resumed?.rows ?? opened)
+  const [skipped, setSkipped] = useState<Set<string>>(() => new Set(resumed?.skipped ?? []))
   const [open, setOpen] = useState<Set<string>>(new Set())
   // What is being typed in a "have some" box, as typed: "1." is not yet a
   // number and must not be rewritten under the thumb.
   const [typed, setTyped] = useState<Record<string, string>>({})
   const hold = useRef(onHold)
   useEffect(() => { hold.current = onHold })
-  useEffect(() => { hold.current?.(rows, [...skipped]) }, [rows, skipped])
+  useEffect(() => { hold.current?.(rows, [...skipped], signature) }, [rows, skipped, signature])
   const states = useMemo(() => lineStates(draft.items, listWith(household, meals, plan, rows)), [draft, household, meals, plan, rows])
   const custom = useMemo(() => stapleLines(staples), [staples])
 
@@ -78,7 +82,7 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   const tap = (l: ListItem) => {
     if (isCustom(l)) { setSkipped((s) => { const n = new Set(s); if (n.has(l.key)) n.delete(l.key); else n.add(l.key); return n }); return }
     setTyped((t) => { const n = { ...t }; delete n[l.key]; return n })
-    setRows((r) => (states.get(l.key)?.have ? clearLine(r, l) : markHave(r, l)))
+    setRows((r) => (states.get(l.key)?.have ? putBack(r, l) : markHave(r, l)))
   }
   const type = (l: ListItem, text: string) => {
     setTyped((t) => ({ ...t, [l.key]: text }))

@@ -29,7 +29,7 @@ import { changed, listUnchanged, snapshot } from '../../src/lib/fuel/version.ts'
 import { rotationEntries, sortedRotations } from '../../src/lib/fuel/rotation.ts'
 import { planIssueSentences } from '../../src/lib/fuel/planner.ts'
 import { customKey } from '../../src/lib/fuel/custom.ts'
-import { clearLine, draftList, haveUnit, lastTime, lineStates, listWith, markHave, setSome, someQty, startRows, stapleLines } from '../../src/lib/fuel/onhand.ts'
+import { clearLine, draftList, draftSignature, haveUnit, lastTime, lineStates, listWith, markHave, putBack, setSome, someQty, startRows, stapleLines } from '../../src/lib/fuel/onhand.ts'
 import * as planBuilderModule from '../../src/components/fuel/PlanBuilder.tsx'
 import * as haveStepModule from '../../src/components/fuel/HaveStep.tsx'
 import * as intakeModule from '../../src/components/fuel/IntakeForm.tsx'
@@ -100,10 +100,16 @@ const BANNED = /fortnight|rotation|cycle/i
   const tapped = markHave([], onion)
   assert(tapped.length === 1 && tapped[0].covers === onion.key && tapped[0].item === onion.item && tapped[0].qty === onion.qty && tapped[0].unit === onion.unit, 'a tap is one row on hand, covering that line, in the line\'s own quantity and unit')
   assert(markHave(tapped, onion).length === 1, 'tapping a covered line twice through markHave never doubles its row')
-  assert(JSON.stringify(solve(clearLine(tapped, onion))) === JSON.stringify(draft), 'a second tap puts the line back: the list is the draft again')
+  assert(JSON.stringify(solve(putBack(tapped, onion))) === JSON.stringify(draft), 'a second tap puts the line back: the list is the draft again')
+  // Codex r4: undoing a tick is not a statement about the pound typed before it
+  const someThenTick = markHave(setSome([], thigh, 1), thigh), undone = putBack(someThenTick, thigh)
+  assert(someQty(undone, thigh) === 1 && !undone.some((r) => r.covers !== undefined) && lineStates(draft.items, solve(undone)).get(thigh.key).buying < thigh.qty,
+    'a tick undone leaves the "have some" quantity under it: the pound in the freezer is still counted')
+  assert(draftSignature(draft.items) === draftSignature(draftList(andrew, meals, plan).items) && draftSignature(draft.items) !== draftSignature(draftList(andrew, meals.map((m) => (m.slug === plan.entries[0].slug ? { ...m, ingredients: [...m.ingredients, { item: 'rice', qty_per_person: 9, unit: 'cup dry', store_section: 'Pantry', inferred: true }] } : m)), plan).items),
+    'a meal edited between two visits is a different draft under the same nights — what was held for the old one is not given back to it')
   // a line covered by saved stock is put back by one tap too
   const fromStock = [{ item: onion.item, qty: 9999, unit: onion.unit }]
-  assert(lineStates(draft.items, solve(fromStock)).get(onion.key).have && !lineStates(draft.items, solve(clearLine(fromStock, onion))).get(onion.key).have, 'a line covered by stock is put back by one tap: the stock for it is taken as gone')
+  assert(lineStates(draft.items, solve(fromStock)).get(onion.key).have && !lineStates(draft.items, solve(putBack(fromStock, onion))).get(onion.key).have, 'a line covered by stock is put back by one tap: the stock for it is taken as gone')
   // have some: real stock, in the line's unit; meat counts at (1 − diversion)
   const some = setSome([], thigh, 2)
   const st = lineStates(draft.items, solve(some)).get(thigh.key)
@@ -129,6 +135,9 @@ const BANNED = /fortnight|rotation|cycle/i
   // Codex r2: a tick made for another list — next week's, built ahead — is not this build's, however alike the key
   const othersTick = startRows(saved, draft.items, true, { items: [{ item: thigh.item }, { item: onion.item }], inventory: [] })
   assert(!othersTick.some((r) => r.covers !== undefined) && someQty(othersTick, thigh) === 3, 'a tick is kept only if the plan being rebuilt was itself built with it — a tick from another week never covers this one')
+  // Codex r4: the amount that counts is the prior build's own — the household's row re-ticked bigger for another list does not carry
+  const reticked = [{ ...saved[2], qty: onion.qty * 2 }]
+  assert(startRows(reticked, draft.items, true, { items: [{ item: onion.item }], inventory: [{ ...saved[2], qty: onion.qty }] }).length === 0, 'a tick re-made at another amount for another list is not the tick the rebuilt plan was built with')
   assert(freshStock.length === 2 && !freshStock.some((r) => r.covers !== undefined) && someQty(freshStock, thigh) === 3, 'stock counted afresh in settings counts for a new week — a tick from the last list never rides along with it')
   const st2 = readLF('src/lib/fuel/store.ts')
   const saveFn = st2.slice(st2.indexOf('export async function saveOnHand'), st2.indexOf('export async function loadActive'))
@@ -175,7 +184,7 @@ const BANNED = /fortnight|rotation|cycle/i
     'what step 2 gathered is saved as the household\'s inventory BEFORE the build, and a save that fails builds nothing')
   assert(/const carriesKept = !!list && \(opts\.keepKeys \?\? \[\]\)\.every\(\(k\) => list\.items\.some\(\(i\) => i\.key === k\)\)/.test(pg) && /if \(carriesKept && !startingNext && plan && list/.test(pg),
     'the stored list is reused only while it carries every own line left unticked — one taken off last time and wanted now gets a new version (Codex r1)')
-  assert(/const haveKey = household && drafted \? `\$\{builderKey\}-\$\{target\}-\$\{JSON\.stringify\(drafted\.entries\)\}` : ''/.test(pg) && /const target = buildTarget\(new Date\(\)\)/.test(pg) && /<HaveStep key=\{haveKey\}/.test(pg) && /resume=\{had && had\.for === haveKey \? had : undefined\}/.test(pg) && /onHold=\{\(rows, skipped\) => setHad\(\{ for: haveKey, rows, skipped \}\)\}/.test(pg),
+  assert(/const haveKey = household && drafted \? `\$\{builderKey\}-\$\{target\}-\$\{JSON\.stringify\(drafted\.entries\)\}` : ''/.test(pg) && /const target = buildTarget\(new Date\(\)\)/.test(pg) && /<HaveStep key=\{haveKey\}/.test(pg) && /resume=\{had && had\.for === haveKey \? had : undefined\}/.test(pg) && /onHold=\{\(rows, skipped, draft\) => setHad\(\{ for: haveKey, rows, skipped, draft \}\)\}/.test(pg) && /const resumed = resume && resume\.draft === signature \? resume : undefined/.test(readLF('src/components/fuel/HaveStep.tsx')),
     'step 2 is keyed on the menu and the week the build lands on, and on nothing its own save can move — a page left open across a boundary opens a new step 2, and a build that failed after its save finds step 2 as it was left (Codex r1, r3)')
   assert(/if \(opts\.drawnFor !== undefined && opts\.drawnFor !== weekStart\) \{ setError\(/.test(pg) && /drawnFor: target \}\)/.test(pg) && pg.indexOf('opts.drawnFor !== weekStart') < pg.indexOf('await saveOnHand('),
     'rows gathered for one week are never built into another: the build is refused, before anything is saved, when the week it lands on is not the week step 2 was drawn for (Codex r2)')
