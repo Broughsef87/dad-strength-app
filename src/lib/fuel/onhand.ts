@@ -38,7 +38,12 @@ export function listWith(household: Household, meals: MealRow[], plan: Plan, row
  * solve to ingredients that build never showed anyone (Codex r5).
  */
 export interface PriorBuild {
-  items: Pick<ListItem, 'item'>[]
+  /**
+   * The SOLVER's lines of that list — the ingredients it showed. Null when the
+   * stock was counted afresh in settings after that build: then every row was
+   * put there since, on purpose, and all of it counts (Codex r6).
+   */
+  items: Pick<ListItem, 'item'>[] | null
   inventory: InventoryItem[]
 }
 
@@ -69,7 +74,7 @@ export interface PriorBuild {
 export function startRows(saved: InventoryItem[], draft: Pick<ListItem, 'key' | 'item' | 'qty'>[], counts: boolean, prior: PriorBuild | null = null): InventoryItem[] {
   const amount = new Map(draft.map((l) => [l.key, l.qty]))
   const items = new Set(draft.map((l) => norm(l.item)))
-  const shown = prior ? new Set(prior.items.map((l) => norm(l.item))) : null
+  const shown = prior?.items ? new Set(prior.items.map((l) => norm(l.item))) : null
   const ticked = new Map((prior?.inventory ?? []).flatMap((r) => (r.covers !== undefined ? [[r.covers, r.qty] as const] : [])))
   return saved.filter((r) => {
     // ...and only while the line asks for no more than it did when it was

@@ -138,6 +138,9 @@ const BANNED = /fortnight|rotation|cycle/i
   // Codex r4: the amount that counts is the prior build's own — the household's row re-ticked bigger for another list does not carry
   const reticked = [{ ...saved[2], qty: onion.qty * 2 }]
   assert(startRows(reticked, draft.items, true, { items: [{ item: onion.item }], inventory: [{ ...saved[2], qty: onion.qty }] }).length === 0, 'a tick re-made at another amount for another list is not the tick the rebuilt plan was built with')
+  // Codex r6: stock saved in settings since that build was put there on purpose — it counts, shown by that build or not
+  const savedSince = startRows(saved, draft.items, true, { items: null, inventory: [saved[2]] })
+  assert(someQty(savedSince, thigh) === 3 && savedSince.some((r) => r.covers === onion.key), 'on a rebuild after the stock was counted afresh in settings, all of it counts — the ticks are still only that build\'s own')
   assert(freshStock.length === 2 && !freshStock.some((r) => r.covers !== undefined) && someQty(freshStock, thigh) === 3, 'stock counted afresh in settings counts for a new week — a tick from the last list never rides along with it')
   const st2 = readLF('src/lib/fuel/store.ts')
   const saveFn = st2.slice(st2.indexOf('export async function saveOnHand'), st2.indexOf('export async function loadActive'))
@@ -188,7 +191,7 @@ const BANNED = /fortnight|rotation|cycle/i
     'step 2 is keyed on the menu and the week the build lands on, and on nothing its own save can move — a page left open across a boundary opens a new step 2, and a build that failed after its save finds step 2 as it was left (Codex r1, r3)')
   assert(/if \(opts\.drawnFor !== undefined && opts\.drawnFor !== weekStart\) \{ setError\(/.test(pg) && /drawnFor: target \}\)/.test(pg) && pg.indexOf('opts.drawnFor !== weekStart') < pg.indexOf('await saveOnHand('),
     'rows gathered for one week are never built into another: the build is refused, before anything is saved, when the week it lands on is not the week step 2 was drawn for (Codex r2)')
-  assert(/const priorItems = list\?\.items\n/.test(pg) && /plan && rebuildOfCounted\(target\) \? \{ items: priorItems \?\? \[\], inventory: priorRows \?\? \[\] \} : null/.test(pg) && /prior=\{prior\}/.test(pg) && !/draftList\([^)]*prior/.test(readLF('src/components/fuel/HaveStep.tsx')),
+  assert(/const priorItems = list\?\.items\n/.test(pg) && /plan && rebuildOfCounted\(target\) \? \{ items: savedSince \? null : solverLines\(priorItems \?\? \[\]\), inventory: priorRows \?\? \[\] \} : null/.test(pg) && /const savedSince = inventoryFresh\(householdSavedAt, newestPlanAt, newestPlanKnown\)/.test(pg) && /prior=\{prior\}/.test(pg) && !/draftList\([^)]*prior/.test(readLF('src/components/fuel/HaveStep.tsx')),
     'what a rebuild lets stand at step 2 is judged against the build being rebuilt — the lines its list was STORED with, never a fresh solve of a library edited since, and its own snapshot of what was on hand (Codex r2, r5)')
   assert(/\(s === 'have' && at !== 'have'\)/.test(pg), 'step 2 is reached only through "use this menu", never by a tap that would open a menu since changed (Codex r2)')
   {

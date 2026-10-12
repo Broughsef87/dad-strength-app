@@ -54,7 +54,7 @@ import {
   DEFAULT_HOUSEHOLD, addCustomItem, addStaple, createOwnMeal, createVersion, isMissingColumn, isMissingTable, loadActive, loadHousehold, loadListFor, loadMeals, loadRotations, loadStaples, loadVersions,
   readItems, removeCustomItem, saveHousehold, saveOnHand, setItemChecked, retireOwnMeal, stopStaple, updateOwnMeal, type ListRow, type PlanRow,
 } from '../../lib/fuel/store'
-import { customKey, isCustom, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
+import { customKey, isCustom, solverLines, stapleIdFromKey, type StapleRow } from '../../lib/fuel/custom'
 import type { OwnMealDraft } from '../../lib/fuel/ownMeal'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
@@ -613,9 +613,14 @@ export default function FuelPage() {
   // (Codex r2, r5). With no stored list there is nothing it showed.
   const priorItems = list?.items
   const priorRows = plan?.rules_snapshot?.inventory
-  const prior = useMemo(() => (plan && rebuildOfCounted(target) ? { items: priorItems ?? [], inventory: priorRows ?? [] } : null),
+  // Only the SOLVER's lines say an ingredient was shown — a staple called
+  // milk is not the milk a dinner cooks with. And stock saved in settings
+  // AFTER that build was put there since, on purpose: all of it counts, shown
+  // by that build or not (Codex r6).
+  const savedSince = inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)
+  const prior = useMemo(() => (plan && rebuildOfCounted(target) ? { items: savedSince ? null : solverLines(priorItems ?? []), inventory: priorRows ?? [] } : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuildOfCounted reads only what is listed here
-    [plan, target, priorItems, priorRows, nextCycle])
+    [plan, target, priorItems, priorRows, nextCycle, savedSince])
 
   return (
     <div className="min-h-screen bg-background pb-28">
