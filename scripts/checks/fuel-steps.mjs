@@ -65,6 +65,13 @@ const naming = (item) => words(item).filter((w) => !DESCRIBES.has(w))
 const vocabulary = new Set(library.flatMap((m) => m.ingredients.flatMap((i) => naming(i.item))))
 assert(vocabulary.has('garlic') && vocabulary.has('stock') && vocabulary.has('butter') && !vocabulary.has('salt'), 'the ingredient vocabulary is read off the library, salt, pepper, oil and water aside')
 
+// A temperature a cook stops AT, as opposed to one an oven is set to.
+const endpoints = (text) => (text.match(/\d{3}(?=F\b)/g) ?? []).map(Number).filter((t) => t < 250)
+const safeFloorF = (cut) => (/chicken|turkey/.test(cut) ? 165 : /^(ribeye|flank|chuck)$/.test(cut) ? 130 : 145)
+// Proved against recipes that break it: a scan that matches nothing passes everything (Codex r2).
+assert(JSON.stringify(endpoints('Heat the oven to 425F. Cook to 125-130F, or 140F.')) === '[130,140]', `the scan reads the temperatures a step stops at and not the oven's — ${JSON.stringify(endpoints('Heat the oven to 425F. Cook to 125-130F, or 140F.'))}`)
+assert(endpoints('until the salmon flakes at 130F').some((t) => t < safeFloorF('salmon')) && endpoints('until the thighs read 160F').some((t) => t < safeFloorF('chicken_thigh')) && !endpoints('to 145F').some((t) => t < safeFloorF('pork_chop')), 'salmon at 130F and chicken at 160F are below their floors, and pork at 145F is not')
+
 for (const m of library) {
   const recipe = steps[m.slug] ?? []
   const text = recipe.map((s) => s.text).join(' ')
@@ -88,8 +95,8 @@ for (const m of library) {
   // Poultry and ground meat to 165F, pork and fish to 145F: no recipe tells
   // the cook to stop below the safe endpoint for what is in the pan. Whole
   // cuts of beef may name a rarer temperature beside it.
-  const temps = (text.match(/\d{3}(?=F)/g) ?? []).map(Number).filter((t) => t < 250)
-  const floorF = /chicken|turkey/.test(m.protein_cut) ? 165 : /^(ribeye|flank|chuck)$/.test(m.protein_cut) ? 130 : 145
+  const temps = endpoints(text)
+  const floorF = safeFloorF(m.protein_cut)
   assert(temps.every((t) => t >= floorF), `${m.slug} (${m.protein_cut}) never stops below ${floorF}F — it names ${temps.join(', ')}`)
 
   // ── 5. its own ingredients, all of them, and nobody else's ─────────────────

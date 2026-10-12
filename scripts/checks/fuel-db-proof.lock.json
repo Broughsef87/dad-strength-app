@@ -48,7 +48,7 @@
     },
     {
       "file": "supabase/migrations/20261012_fuel_meal_steps.sql",
-      "sha256": "30d99ee0acd3bf44a4b569eac1f471e3b4ba797dcfc937bd1aab4182467c8ce4"
+      "sha256": "7167acce769afafc6c1e5b64187a59a8d8e5057be27ab8805120cc94d790df7b"
     }
   ],
   "comparator": [
@@ -74,7 +74,7 @@
     },
     {
       "file": "fixtures/fuel-seed-steps.json",
-      "sha256": "67fde104027233978301ec069613880473859ad986e2249170b9bbff34208b34"
+      "sha256": "dd2e2ce311a9e24673a4d5f36da1d4564b044c503645e17db0956e162a042fd6"
     }
   ],
   "fuel_lists_triggers": "fuel_lists_pro_gate,fuel_lists_staples",
