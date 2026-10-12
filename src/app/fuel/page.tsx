@@ -436,6 +436,11 @@ export default function FuelPage() {
     const built = res.plan
     moved(built)
     setPlan(built); setList(res.list); setRecent((r) => [...r, built]); setNewestPlanAt(built.created_at ?? new Date().toISOString()); setNewestPlanKnown(true)
+    // The list is built: the page is on it NOW, in the same breath as the plan
+    // it belongs to. The plan moving ends the draft's builder, and until the
+    // step moved too the page fell back to an editable menu while the reads
+    // below were still on their way (Codex r8). Still busy until they land.
+    setDraft(null); setHad(null); setStep('list')
     // `live` is today's live cycle BY DATE, never "whatever was just built":
     // a rebuild of the cycle selected ahead must not become this week, and
     // the way back stays on the page (FOR-233, finding 2; Codex r1).
@@ -445,8 +450,6 @@ export default function FuelPage() {
     setNextCycle(false)
     await takeOff(res.list.id, res.list.items, opts.skipKeys)
     setBusy(false)
-    setDraft(null); setHad(null)
-    setStep('list')
   }
 
   // Resume the cycle planned ahead (Codex, round 4). The live cycle stays

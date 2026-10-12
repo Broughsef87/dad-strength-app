@@ -102,9 +102,15 @@ export function markHave(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'it
  * and undoing the tick is not a statement about it (Codex r4). Only a line
  * with no tick — one the stock alone covers — is put back by taking the stock
  * as gone, because then the stock is the only thing the tap can be about.
+ *
+ * `alsoHad` are the OTHER lines of that ingredient the same stock was
+ * covering — the first trip's tomatoes, when it is the second trip's being put
+ * back. The tap was about one line, so those stay had: each is ticked in its
+ * own right as the stock goes (Codex r8).
  */
-export function putBack(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item'>): InventoryItem[] {
-  return rows.some((r) => r.covers === line.key) ? rows.filter((r) => r.covers !== line.key) : clearLine(rows, line)
+export function putBack(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item'>, alsoHad: Pick<ListItem, 'key' | 'item' | 'qty' | 'unit'>[] = []): InventoryItem[] {
+  if (rows.some((r) => r.covers === line.key)) return rows.filter((r) => r.covers !== line.key)
+  return alsoHad.filter((o) => o.key !== line.key && sameItem({ item: o.item, qty: 0, unit: '' }, line)).reduce((acc, o) => markHave(acc, o), clearLine(rows, line))
 }
 
 /**

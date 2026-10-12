@@ -114,6 +114,16 @@ const BANNED = /fortnight|rotation|cycle/i
   // a line covered by saved stock is put back by one tap too
   const fromStock = [{ item: onion.item, qty: 9999, unit: onion.unit }]
   assert(lineStates(draft.items, solve(fromStock)).get(onion.key).have && !lineStates(draft.items, solve(putBack(fromStock, onion))).get(onion.key).have, 'a line covered by stock is put back by one tap: the stock for it is taken as gone')
+  // Codex r8: stock covering the same ingredient on both trips — putting ONE line back leaves the other had
+  {
+    const both = draft.items.filter((l) => draft.items.some((o) => o !== l && o.item === l.item && o.unit === l.unit && o.second_trip !== l.second_trip))
+    const second = both.find((l) => l.second_trip), first = both.find((l) => !l.second_trip && l.item === second.item)
+    const plenty = [{ item: first.item, qty: 9999, unit: first.unit }]
+    const before = lineStates(draft.items, solve(plenty))
+    const after = lineStates(draft.items, solve(putBack(plenty, second, draft.items.filter((l) => before.get(l.key).have))))
+    assert(before.get(first.key).have && before.get(second.key).have && after.get(first.key).have && !after.get(second.key).have && after.get(second.key).buying === second.qty,
+      'a line the stock covers is put back alone: the same ingredient on the other trip stays had')
+  }
   // have some: real stock, in the line's unit; meat counts at (1 − diversion)
   const some = setSome([], thigh, 2)
   const st = lineStates(draft.items, solve(some)).get(thigh.key)
@@ -203,6 +213,11 @@ const BANNED = /fortnight|rotation|cycle/i
     const tail = pg.slice(pg.indexOf('const res = await createVersion('), pg.indexOf('const openUpcoming = async'))
     assert(short.indexOf('await takeOff(') > 0 && short.indexOf('await takeOff(') < short.indexOf('setBusy(false)') && tail.indexOf('await takeOff(') < tail.lastIndexOf('setBusy(false)'),
       'the page stays busy until the lines ticked "have it" are off the list — a second build cannot start on a list a removal is still on its way to (Codex r2)')
+  }
+  {
+    const tail = pg.slice(pg.indexOf('const res = await createVersion('), pg.indexOf('const openUpcoming = async'))
+    assert(tail.indexOf("setDraft(null); setHad(null); setStep('list')") > 0 && tail.indexOf("setDraft(null); setHad(null); setStep('list')") < tail.indexOf('await loadVersions('),
+      'a built list is on screen in the same breath as its plan — the page never falls back to an editable menu while the build\'s last reads are on their way (Codex r8)')
   }
   assert(/setStep\(active\.list && !persistedStale \? 'list' : h\.household \? 'plan' : 'intake'\)/.test(pg), 'a returning athlete lands on the list when there is a current one, otherwise on the menu; a first visit starts in settings')
 }
