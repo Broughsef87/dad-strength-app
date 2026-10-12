@@ -59,7 +59,11 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   const [open, setOpen] = useState<Set<string>>(new Set())
   // What is being typed in a "have some" box, as typed: "1." is not yet a
   // number and must not be rewritten under the thumb.
+  // Held per INGREDIENT, not per line: "have some" is the stock of that
+  // ingredient, so salmon on both trips is one number in two boxes, and a box
+  // must never go on showing a quantity the other one has replaced (Codex r9).
   const [typed, setTyped] = useState<Record<string, string>>({})
+  const boxOf = (l: ListItem) => `${l.item.trim().toLowerCase()}|${haveUnit(l)}`
   const hold = useRef(onHold)
   useEffect(() => { hold.current = onHold })
   useEffect(() => { hold.current?.(rows, [...skipped], signature) }, [rows, skipped, signature])
@@ -81,12 +85,12 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
 
   const tap = (l: ListItem) => {
     if (isCustom(l)) { setSkipped((s) => { const n = new Set(s); if (n.has(l.key)) n.delete(l.key); else n.add(l.key); return n }); return }
-    setTyped((t) => { const n = { ...t }; delete n[l.key]; return n })
+    setTyped((t) => { const n = { ...t }; delete n[boxOf(l)]; return n })
     const had = draft.items.filter((o) => states.get(o.key)?.have)
     setRows((r) => (states.get(l.key)?.have ? putBack(r, l, had) : markHave(r, l)))
   }
   const type = (l: ListItem, text: string) => {
-    setTyped((t) => ({ ...t, [l.key]: text }))
+    setTyped((t) => ({ ...t, [boxOf(l)]: text }))
     setRows((r) => setSome(r, l, Number(text)))
   }
 
@@ -137,7 +141,7 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
                     <div className="flex items-center gap-2 pl-10 pr-1">
                       <label className="text-[11px] text-muted-foreground lowercase" htmlFor={`some-${l.key}`}>have some</label>
                       <input id={`some-${l.key}`} type="number" inputMode="decimal" min={0} step={0.5} placeholder="0" disabled={building}
-                        value={typed[l.key] ?? (some === null ? '' : String(some))} onChange={(e) => type(l, e.target.value)}
+                        value={typed[boxOf(l)] ?? (some === null ? '' : String(some))} onChange={(e) => type(l, e.target.value)}
                         className="row-recessed w-20 px-2 py-1.5 text-sm bg-transparent outline-none stat-num" aria-label={`how much ${l.item} you have, in ${haveUnit(l)}`} />
                       <span className="data-mono">{haveUnit(l)}</span>
                       {last !== null && some === null && !got && (
