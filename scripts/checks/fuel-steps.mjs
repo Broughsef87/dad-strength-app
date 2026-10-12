@@ -22,7 +22,7 @@ import { join } from 'node:path'
 import { buildShoppingList, cookQuantity, defaultServings } from '../../src/lib/fuel/solve.ts'
 import { STEPS_MAX, STEP_MAX_LENGTH, formatQuantity, mealSteps, recipeLines, recipeServings, stepsFromText, stepsIssues, stepsToText } from '../../src/lib/fuel/recipe.ts'
 import { ownMealFields, ownMealIssues } from '../../src/lib/fuel/ownMeal.ts'
-import { DEFAULT_HOUSEHOLD, loadMeals } from '../../src/lib/fuel/store.ts'
+import { DEFAULT_HOUSEHOLD, createOwnMeal, isMissingColumn, loadMeals, updateOwnMeal } from '../../src/lib/fuel/store.ts'
 import { PAIRS, STEPS_FIXTURE, renderMealSteps, renderPair, stepIssue } from '../fuel-seed-sql.mjs'
 
 let failures = 0, passes = 0
@@ -84,6 +84,13 @@ for (const m of library) {
   assert(minutes > 0 && minutes <= m.total_minutes, `${m.slug}'s steps add up to no more than its ${m.total_minutes} minutes — ${minutes}`)
   assert(/\d\s*(to\s*\d+\s*)?(minutes?|hours?|seconds?)\b/.test(text), `${m.slug} gives a time`)
   assert(/\buntil\b|\d{3}(-\d{3})?F\b/.test(text), `${m.slug} gives a doneness cue or a temperature`)
+
+  // Poultry and ground meat to 165F, pork and fish to 145F: no recipe tells
+  // the cook to stop below the safe endpoint for what is in the pan. Whole
+  // cuts of beef may name a rarer temperature beside it.
+  const temps = (text.match(/\d{3}(?=F)/g) ?? []).map(Number).filter((t) => t < 250)
+  const floorF = /chicken|turkey/.test(m.protein_cut) ? 165 : /^(ribeye|flank|chuck)$/.test(m.protein_cut) ? 130 : 145
+  assert(temps.every((t) => t >= floorF), `${m.slug} (${m.protein_cut}) never stops below ${floorF}F — it names ${temps.join(', ')}`)
 
   // ── 5. its own ingredients, all of them, and nobody else's ─────────────────
   const own = new Set(m.ingredients.flatMap((i) => naming(i.item)))
@@ -209,6 +216,44 @@ for (const m of library) {
   const oldest = fakeDb([])
   const c = await loadMeals(oldest)
   assert(c.error === null && c.meals.length === 1 && oldest.asked.length === 3, 'and before own meals too, it still reads the library')
+}
+
+// ── An own meal still saves in the window before the migration ───────────────
+// The app deploys on merge and the migration is applied separately. A meal
+// saved without steps must save exactly as it did; one saved WITH steps must
+// fail and say so, never succeed having dropped what was typed (Codex r1).
+{
+  const writeDb = (hasSteps) => {
+    const sent = []
+    const write = (row) => {
+      sent.push(row)
+      const builder = {
+        eq: () => builder,
+        select: (columns) => ({
+          single: async () => (!hasSteps && ('steps' in row || /steps/.test(columns))
+            ? { data: null, error: { code: 'PGRST204', message: "Could not find the 'steps' column of 'fuel_meals' in the schema cache" } }
+            : { data: { ...row }, error: null }),
+        }),
+      }
+      return builder
+    }
+    return { sent, from: () => ({ insert: write, update: write }) }
+  }
+  const user = '0f8fad5b-d9cb-469f-a165-70867728950e'
+  const plain = { name: 'Chicken thing', servings: 3, protein_g_per_person: 40, protein_cut: 'chicken_thigh', ingredients: [{ item: 'chicken thigh', qty_per_person: 8, unit: 'oz', store_section: 'Meat & Seafood', inferred: false }] }
+  const withSteps = { ...plain, steps: [{ text: 'Brown it.' }] }
+
+  const before = writeDb(false)
+  const made = await createOwnMeal(before, user, plain)
+  assert(made.error === null && made.meal?.name === 'Chicken thing' && before.sent.length === 2 && 'steps' in before.sent[0] && !('steps' in before.sent[1]), 'before the migration, a new meal without steps saves as it always did — retried once without the column')
+  const edited = await updateOwnMeal(writeDb(false), 'u0f8fad5bd9cb469fa16570867728950e~chicken-thing', plain)
+  assert(edited.error === null && edited.meal?.name === 'Chicken thing', 'and so does an edit')
+  const lost = writeDb(false)
+  const refused = await createOwnMeal(lost, user, withSteps)
+  assert(refused.meal === null && isMissingColumn(refused.error) && lost.sent.length === 1, 'a meal saved WITH steps is not retried without them — it fails rather than dropping what was typed')
+  const after = writeDb(true)
+  const saved = await createOwnMeal(after, user, withSteps)
+  assert(saved.error === null && after.sent.length === 1 && JSON.stringify(saved.meal?.steps) === JSON.stringify([{ text: 'Brown it.' }]), 'with the migration applied, the steps are written in the one statement')
 }
 
 if (failures) { console.log(`\nfuel-steps: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

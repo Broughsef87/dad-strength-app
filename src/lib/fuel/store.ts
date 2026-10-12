@@ -102,6 +102,20 @@ export async function loadMeals(db: Db): Promise<{ meals: MealRow[]; error: { co
 }
 
 /**
+ * A meal write as it was before recipes (FUEL-RECIPES). The app deploys on
+ * merge and the steps migration is applied separately, so for a while the
+ * column may not be there: a meal saved WITHOUT steps must go on saving exactly
+ * as it did, and is retried once without the key. A meal saved WITH steps is
+ * not retried — dropping what the athlete typed and reporting success would be
+ * a silent loss — so that one fails and says so.
+ */
+function withoutSteps<T extends { steps?: unknown }>(row: T): Omit<T, 'steps'> {
+  const rest = { ...row }
+  delete rest.steps
+  return rest
+}
+
+/**
  * Add a meal of the athlete's own. The slug is minted from the name ONCE, here,
  * and the database's CHECK refuses it if it is not in the owner's namespace.
  * The same name twice mints the same slug and the UNIQUE constraint refuses the
@@ -110,7 +124,8 @@ export async function loadMeals(db: Db): Promise<{ meals: MealRow[]; error: { co
 export async function createOwnMeal(db: Db, userId: string, draft: OwnMealDraft): Promise<{ meal: MealRow | null; error: { code?: string; message?: string } | null }> {
   const row = ownMealRow(userId, draft)
   if (!row) return { meal: null, error: { message: 'that name leaves nothing to build a slug from — give it a letter or a number' } }
-  const { data, error } = await db.from('fuel_meals').insert(row).select(OWN_MEAL_COLUMNS).single()
+  let { data, error } = await db.from('fuel_meals').insert(row).select(OWN_MEAL_COLUMNS).single()
+  if (error && isMissingColumn(error) && !row.steps) ({ data, error } = await db.from('fuel_meals').insert(withoutSteps(row)).select(`${MEAL_COLUMNS}, user_id`).single())
   if (error?.code === '23505') return { meal: null, error: { code: error.code, message: `you already have a meal called "${draft.name.trim()}"` } }
   return { meal: (data as MealRow) ?? null, error }
 }
@@ -131,7 +146,9 @@ export async function createOwnMeal(db: Db, userId: string, draft: OwnMealDraft)
  * both come through here (Codex r7).
  */
 export async function updateOwnMeal(db: Db, slug: string, draft: OwnMealDraft): Promise<{ meal: MealRow | null; error: { code?: string; message?: string } | null }> {
-  const { data, error } = await db.from('fuel_meals').update(ownMealFields(draft)).eq('slug', slug).select(OWN_MEAL_COLUMNS).single()
+  const fields = ownMealFields(draft)
+  let { data, error } = await db.from('fuel_meals').update(fields).eq('slug', slug).select(OWN_MEAL_COLUMNS).single()
+  if (error && isMissingColumn(error) && !fields.steps) ({ data, error } = await db.from('fuel_meals').update(withoutSteps(fields)).eq('slug', slug).select(`${MEAL_COLUMNS}, user_id`).single())
   return { meal: (data as MealRow) ?? null, error }
 }
 

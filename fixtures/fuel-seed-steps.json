@@ -108,7 +108,7 @@
       { "text": "Heat the oven to 450F. Pat the ribeye very dry and season generously with salt and pepper. If you have 20 minutes to let it sit out first, take them.", "minutes": 2 },
       { "text": "Scrub the russet potatoes, prick them all over with a fork and microwave on high 8 to 10 minutes, turning once, until a knife slides in easily. Put them straight on the oven rack to crisp the skin while everything else cooks.", "minutes": 10 },
       { "text": "Toss the broccoli florets with the olive oil, salt and pepper on a sheet pan and roast 12 to 15 minutes, until the tips are charred and the stems tender." },
-      { "text": "Heat a cast-iron skillet over high until it just smokes. Add 1 tsp oil and lay the ribeye in, away from you. Sear 3 to 4 minutes a side for a 1-inch cut, to 130F in the centre for medium-rare, then hold the fat edge against the pan for 30 seconds.", "minutes": 8 },
+      { "text": "Heat a cast-iron skillet over high until it just smokes. Add 1 tsp oil and lay the ribeye in, away from you. Sear 3 to 4 minutes a side for a 1-inch cut, to 130F in the centre for medium-rare (145F if you want it cooked through), then hold the fat edge against the pan for 30 seconds.", "minutes": 8 },
       { "text": "Rest the ribeye on a board for 5 minutes before cutting. Split the potatoes and serve with the broccoli.", "minutes": 5 }
     ],
     "chili-lime-thighs": [
@@ -121,7 +121,7 @@
     "lemon-garlic-salmon": [
       { "text": "Start the rice: rinse it, then put 1 cup rice to 2 cups water in a pot with a pinch of salt. Boil, cover, turn to the lowest heat for 15 minutes, then leave it off the heat with the lid on.", "minutes": 2 },
       { "text": "Trim the green beans. Mince the garlic and halve the lemons. Pat the salmon dry and season with salt and pepper.", "minutes": 4 },
-      { "text": "Heat 1 tbsp oil in a large skillet over medium-high. Lay the salmon in skin-side down and leave it 4 to 5 minutes, until the skin is crisp and the flesh is opaque halfway up. Flip and cook 2 to 3 minutes more, to 125-130F in the centre. Move to a plate.", "minutes": 8 },
+      { "text": "Heat 1 tbsp oil in a large skillet over medium-high. Lay the salmon in skin-side down and leave it 4 to 5 minutes, until the skin is crisp and the flesh is opaque halfway up. Flip and cook 2 to 4 minutes more, until it reads 145F at the thickest point and flakes with a fork. Move to a plate.", "minutes": 8 },
       { "text": "In the same pan, cook the green beans with a pinch of salt and 2 tbsp water, tossing, 4 to 5 minutes, until bright and crisp-tender. Add the garlic for the last 30 seconds.", "minutes": 5 },
       { "text": "Squeeze the lemon over the salmon and the beans and serve over the rice.", "minutes": 1 }
     ],
@@ -150,7 +150,7 @@
       { "text": "Start the rice: rinse it, then put 1 cup rice to 2 cups water in a pot with a pinch of salt. Boil, cover, turn to the lowest heat for 15 minutes, then leave it off the heat with the lid on.", "minutes": 2 },
       { "text": "Heat the oven to 450F. Toss the broccoli florets with 1 tsp oil and a pinch of salt on a sheet pan and roast 12 to 14 minutes, until charred at the tips.", "minutes": 3 },
       { "text": "Pat the cod or halibut very dry. Rub it with a little oil and coat both sides with the blackening seasoning.", "minutes": 2 },
-      { "text": "Heat a cast-iron skillet over medium-high until very hot, and open a window — it will smoke. Add 1 tbsp oil and cook the fish 3 to 4 minutes a side, turning once and gently, until the crust is dark and the flesh flakes at 140F.", "minutes": 8 },
+      { "text": "Heat a cast-iron skillet over medium-high until very hot, and open a window — it will smoke. Add 1 tbsp oil and cook the fish 3 to 4 minutes a side, turning once and gently, until the crust is dark and the flesh is opaque, flakes easily and reads 145F.", "minutes": 8 },
       { "text": "Serve over the rice with the broccoli.", "minutes": 1 }
     ],
     "soy-ginger-stirfry": [
@@ -166,7 +166,7 @@
       { "text": "Heat the broiler to high with a rack 6 inches below it. Line a sheet pan with foil and oil it lightly." },
       { "text": "Whisk the miso, grated ginger, honey and soy sauce together. Pat the salmon dry, set it skin-side down on the pan and spread the glaze over the top.", "minutes": 5 },
       { "text": "Toss the trimmed green beans with 1 tsp oil and a pinch of salt and spread them around the salmon.", "minutes": 3 },
-      { "text": "Broil 8 to 10 minutes, until the glaze is bubbling and dark in spots and the salmon flakes at 125-130F. Watch the last 2 minutes — honey burns fast. If it darkens early, move the pan down a rack.", "minutes": 10 },
+      { "text": "Broil 8 to 10 minutes, until the glaze is bubbling and dark in spots and the salmon flakes and reads 145F at the thickest point. Watch the last 2 minutes — honey burns fast. If it darkens early, move the pan down a rack.", "minutes": 10 },
       { "text": "Serve over the rice.", "minutes": 1 }
     ],
     "jerk-thighs": [
@@ -185,7 +185,7 @@
       { "text": "Tear the basil over the pan. Serve the meatballs and their tomato over the rice with the green beans.", "minutes": 2 }
     ],
     "tandoori-breast": [
-      { "text": "In the morning or the night before: mix the yogurt, tandoori seasoning, minced garlic, the juice of half the lemons and 1/2 tsp salt per pound of chicken. Halve any thick chicken breast horizontally so the pieces are even, coat them and refrigerate — an hour at least, a day at most." },
+      { "text": "Ahead of time — in the morning or the night before, and not counted in this meal's 45 minutes: mix the yogurt, tandoori seasoning, minced garlic, the juice of half the lemons and 1/2 tsp salt per pound of chicken. Halve any thick chicken breast horizontally so the pieces are even, coat them and refrigerate — an hour at least, a day at most." },
       { "text": "Start the rice: rinse it, then put 1 cup rice to 2 cups water in a pot with a pinch of salt. Boil, cover, turn to the lowest heat for 15 minutes, then leave it off the heat with the lid on.", "minutes": 2 },
       { "text": "Heat the broiler to high with a rack 6 inches below it. Line a sheet pan with foil and oil it. Shake the excess marinade off the chicken and lay it on the pan.", "minutes": 3 },
       { "text": "Broil 7 to 8 minutes a side, until charred in spots and 165F at the thickest point.", "minutes": 16 },
@@ -195,14 +195,14 @@
     "chipotle-cod-tacos": [
       { "text": "Shred the cabbage finely and chop the cilantro. Toss both with the juice of half the limes and a good pinch of salt, and leave to soften.", "minutes": 5 },
       { "text": "Pat the cod or halibut dry and cut it into 1-inch-wide strips. Season with the chipotle, cumin and salt.", "minutes": 3 },
-      { "text": "Heat 1 tbsp oil in a nonstick skillet over medium-high. Cook the fish 2 to 3 minutes a side, until opaque and flaking at 140F. Squeeze a little more lime over it.", "minutes": 6 },
+      { "text": "Heat 1 tbsp oil in a nonstick skillet over medium-high. Cook the fish 2 to 3 minutes a side, until opaque, flaking and 145F. Squeeze a little more lime over it.", "minutes": 6 },
       { "text": "Warm the tortillas in a dry skillet, 30 seconds a side, until pliable and toasted in spots. Keep them wrapped in a towel.", "minutes": 4 },
       { "text": "Fill the tortillas with fish and slaw and serve with the remaining lime in wedges.", "minutes": 2 }
     ],
     "flank-chimichurri": [
       { "text": "Make the chimichurri: finely chop the parsley and garlic (or pulse them in a blender) and stir with the vinegar, the olive oil, 1/4 tsp salt and a pinch of pepper. Let it sit.", "minutes": 5 },
       { "text": "Pat the flank dry and season both sides generously with salt and pepper.", "minutes": 1 },
-      { "text": "Heat a grill or a cast-iron skillet on high until it smokes. Sear the flank 4 to 5 minutes a side, to 130F for medium-rare, then move it to a board to rest.", "minutes": 10 },
+      { "text": "Heat a grill or a cast-iron skillet on high until it smokes. Sear the flank 4 to 5 minutes a side, to 130F for medium-rare (145F if you want it cooked through), then move it to a board to rest.", "minutes": 10 },
       { "text": "While it rests, blister the mini sweet peppers, whole, in the same hot pan with 1 tsp oil and a pinch of salt, 5 to 6 minutes, turning, until charred in spots and soft.", "minutes": 6 },
       { "text": "Slice the flank thin across the grain, knife held at an angle. Spoon the chimichurri over and serve the peppers alongside.", "minutes": 3 }
     ],
@@ -237,7 +237,7 @@
     ],
     "mustard-pork-chops": [
       { "text": "Pat the pork chops dry and season with salt, pepper and the thyme. Trim the green beans.", "minutes": 3 },
-      { "text": "Heat 1 tbsp oil in a large skillet over medium-high. Sear the pork 4 to 5 minutes a side, until deep golden and 140F near the bone — it climbs to 145F as it rests. Stand each one on its fat edge for 30 seconds, then rest them on a plate.", "minutes": 10 },
+      { "text": "Heat 1 tbsp oil in a large skillet over medium-high. Sear the pork 4 to 5 minutes a side, until deep golden and 145F next to the bone; if they are not there yet, give them another minute a side. Stand each one on its fat edge for 30 seconds, then rest them on a plate for 3 minutes.", "minutes": 10 },
       { "text": "While the pork cooks, boil the green beans in salted water 4 to 5 minutes, until crisp-tender, and drain." },
       { "text": "Pour off all but a film of fat. Add the stock to the hot pan, scrape up the stuck bits and simmer 2 to 3 minutes, until reduced by half.", "minutes": 3 },
       { "text": "Off the heat, whisk in the dijon, the butter and any juices from the resting plate until glossy. Taste for salt.", "minutes": 1 },
@@ -283,7 +283,7 @@
     "honey-soy-mahi": [
       { "text": "Start the rice: rinse it, then put 1 cup jasmine rice to 1.25 cups water in a pot with a pinch of salt. Boil, cover, turn to the lowest heat for 12 minutes, then leave it off the heat with the lid on.", "minutes": 2 },
       { "text": "Stir the soy sauce, honey and grated ginger together. Pull the strings off the snap peas. Pat the mahi very dry and salt it lightly.", "minutes": 4 },
-      { "text": "Heat 1 tbsp oil in a nonstick skillet over medium-high. Cook the mahi 3 to 4 minutes, until golden underneath, then flip and cook 2 to 3 minutes more, until opaque and flaking at 137F.", "minutes": 7 },
+      { "text": "Heat 1 tbsp oil in a nonstick skillet over medium-high. Cook the mahi 3 to 4 minutes, until golden underneath, then flip and cook 2 to 3 minutes more, until opaque, flaking and 145F.", "minutes": 7 },
       { "text": "Pour the honey-soy mixture around the fish and let it bubble 1 minute, spooning it over, until syrupy. Move the fish to plates.", "minutes": 1 },
       { "text": "Toss the snap peas in the pan with 1 tbsp water for 2 minutes, until bright green and still crisp. Serve everything over the rice with the pan glaze on top.", "minutes": 3 }
     ],
@@ -291,7 +291,7 @@
       { "text": "Heat the oven to 425F. Peel the carrots and cut them into sticks about 1/2 inch thick. Toss with half the olive oil and a pinch of salt on a sheet pan and get them roasting while you make the crumb.", "minutes": 4 },
       { "text": "Rub the panko, parsley, the zest of the lemons, the rest of the olive oil and a pinch of salt together with your fingers until it feels like damp sand.", "minutes": 3 },
       { "text": "Pat the haddock dry and season with salt and pepper. Push the carrots aside, set the fish on the pan and press the crumb onto the top of each piece.", "minutes": 2 },
-      { "text": "Roast 10 to 12 minutes, until the crumb is golden and the haddock flakes at 140F.", "minutes": 12 },
+      { "text": "Roast 10 to 12 minutes, until the crumb is golden and the haddock is opaque, flakes easily and reads 145F.", "minutes": 12 },
       { "text": "Squeeze the lemon over the fish and the carrots.", "minutes": 1 }
     ],
     "sheet-pan-sausage-peppers": [
