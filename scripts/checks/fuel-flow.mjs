@@ -91,7 +91,7 @@ const BANNED = /fortnight|rotation|cycle/i
   // rows that are not ticks solve exactly as they did before the field existed
   const stock = [{ item: 'rice', qty: 1, unit: 'lb' }, { item: 'broccoli', qty: 10, unit: 'oz' }, { item: 'chicken thigh, boneless skinless', qty: 4, unit: 'lb' }]
   const src = readLF('src/lib/fuel/solve.ts')
-  assert(/const ticked = inventory\.some\(\(inv\) => inv\.covers === key && inv\.qty >= asBought\)/.test(src) &&/for \(const inv of inventory\) \{\n\s+if \(inv\.covers !== undefined\) continue\n\s+if \(norm\(inv\.item\) !== norm\(b\.item\) \|\| inv\.left <= 0\) continue/.test(src) && /if \(ticked && need > 0\) \{ need = 0; reason = HAVE_IT_REASON \}/.test(src),
+  assert(/const tick = inventory\.find\(\(inv\) => inv\.covers === key\)/.test(src) &&/for \(const inv of inventory\) \{\n\s+if \(inv\.covers !== undefined\) continue\n\s+if \(norm\(inv\.item\) !== norm\(b\.item\) \|\| inv\.left <= 0\) continue/.test(src) && /qty = round\(qty\) <= tick\.qty \? 0 : qty - tick\.qty/.test(src),
     'the subtraction loop is the one it was, run on every line, and a tick covers only what the stock left')
   assert(solve(stock).items.some((l) => l.item === 'rice' && l.qty < rice.qty && !l.stocked), 'plain stock still subtracts by quantity')
 }
@@ -126,9 +126,8 @@ const BANNED = /fortnight|rotation|cycle/i
     const short = [{ item: first.item, qty: first.unit === 'oz' ? (first.qty + second.qty / 2) / 16 : first.qty + second.qty / 2, unit: haveUnit(first) }]
     const b2 = lineStates(draft.items, solve(short))
     const a2 = lineStates(draft.items, solve(putBack(short, first, withStates(b2))))
-    const bought = (m) => m.get(first.key).buying + m.get(second.key).buying
-    assert(b2.get(first.key).have && !b2.get(second.key).have && Math.abs(bought(b2) - second.qty / 2) < 0.02 && Math.abs(bought(a2) - (first.qty + second.qty / 2)) < 0.02,
-      `a line put back when the stock ran part-way into the next adds back exactly that line and no more — bought ${bought(b2)} before, ${bought(a2)} after, of ${first.qty} + ${second.qty}`)
+    assert(b2.get(first.key).have && !b2.get(second.key).have && Math.abs(b2.get(second.key).buying - second.qty / 2) < 0.02 && !a2.get(first.key).have && a2.get(first.key).buying === first.qty && Math.abs(a2.get(second.key).buying - b2.get(second.key).buying) < 0.02,
+      `a line put back when the stock ran part-way into the next is bought in full, and the next line buys exactly what it did — first ${a2.get(first.key).buying} of ${first.qty}, second ${b2.get(second.key).buying} then ${a2.get(second.key).buying}`)
     assert(before.get(first.key).have && before.get(second.key).have && after.get(first.key).have && !after.get(second.key).have && after.get(second.key).buying === second.qty,
       'a line the stock covers is put back alone: the same ingredient on the other trip stays had')
   }
@@ -177,8 +176,9 @@ const BANNED = /fortnight|rotation|cycle/i
     const bigDraft = draftList(andrew, meals, big)
     const bigOnion = bigDraft.items.find((l) => l.key === onion.key)
     const tick = markHave([], onion)
-    assert(bigOnion && bigOnion.qty > onion.qty && !listWith(andrew, meals, big, tick).items.find((l) => l.key === onion.key).stocked && solve(tick).items.find((l) => l.key === onion.key).stocked,
-      'servings doubled on a rebuild double the line under the same key, and the old tick no longer covers it: the solver buys it in full until it is ticked at the new amount')
+    const bigBuilt = listWith(andrew, meals, big, tick).items.find((l) => l.key === onion.key)
+    assert(bigOnion && bigOnion.qty > onion.qty && !bigBuilt.stocked && Math.abs(bigBuilt.qty - (bigOnion.qty - onion.qty)) < 0.011 && solve(tick).items.find((l) => l.key === onion.key).stocked,
+      `servings doubled on a rebuild double the line under the same key, and the old tick covers only the amount it was made on: the solver buys the rest — ${bigBuilt.qty} of ${bigOnion.qty}`)
     assert(!startRows(tick, bigDraft.items, true, { items: bigDraft.items, inventory: tick }).some((r) => r.covers !== undefined) && startRows(tick, draft.items, true, { items: draft.items, inventory: tick }).length === 1,
       'and step 2 opens that line unticked, so the bigger amount is asked about rather than assumed')
     const smaller = { entries: plan.entries.map((e) => ({ ...e, servings: Math.max(1, e.servings - 1) })) }

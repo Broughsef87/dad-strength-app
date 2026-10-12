@@ -426,17 +426,17 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
   for (const [key, b] of allocation) {
     let need = b.need
     let reason: string | undefined
-    // FOR-281: a line ticked "have it" is covered whole, by its own key, and
-    // the tick counts toward this line and no other. The stock on hand is
-    // spent on it FIRST, exactly as on any line, and the tick covers what is
-    // left: "I have it" includes the pound already counted in the freezer, so
-    // that pound must not also come off the next line (Codex r7).
-    // A tick covers the amount it was made on, or less (Codex r3): servings
+    // FOR-281: a tick is an AMOUNT OF THIS LINE the athlete has, by the line's
+    // own key, in the unit and the terms the line is bought in — and it counts
+    // toward this line and no other. A line ticked "have it" carries the whole
+    // amount, so nothing is left to buy. The stock on hand is spent on the
+    // line FIRST, exactly as on any line, and the tick covers what is left:
+    // "I have it" includes the pound already counted in the freezer, so that
+    // pound must not also come off the next line (Codex r7). And because a
+    // tick is an amount, it never covers more than it was made on: servings
     // doubled on a rebuild double the line under the same key, and the extra
-    // was never said to be in the kitchen — so that line is bought in full
-    // again until it is ticked at its new amount.
-    const asBought = round(b.need * (b.diverted ? mult : 1))
-    const ticked = inventory.some((inv) => inv.covers === key && inv.qty >= asBought)
+    // was never said to be in the kitchen, so the extra is bought (Codex r3).
+    const tick = inventory.find((inv) => inv.covers === key)
     for (const inv of inventory) {
       if (inv.covers !== undefined) continue
       if (norm(inv.item) !== norm(b.item) || inv.left <= 0) continue
@@ -458,9 +458,14 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
         : `${inv.qty} ${inv.unit} on hand`
       if (need <= 0) break
     }
-    if (ticked && need > 0) { need = 0; reason = HAVE_IT_REASON }
-    // What still has to reach the table, scaled to what must be bought.
-    const qty = need <= 0 ? 0 : need * (b.diverted ? mult : 1)
+    // What still has to reach the table, scaled to what must be bought — less
+    // what the tick says is already there. Compared as the line is shown, to
+    // two places, so a whole tick never leaves a sliver of its line behind.
+    let qty = need <= 0 ? 0 : need * (b.diverted ? mult : 1)
+    if (tick && qty > 0) {
+      qty = round(qty) <= tick.qty ? 0 : qty - tick.qty
+      if (qty <= 0) reason = HAVE_IT_REASON
+    }
     const line: ListItem = {
       key, item: b.item, qty: round(Math.max(0, qty)), unit: b.unit, section: b.section,
       from: [...b.from].sort(), second_trip: b.second_trip, inferred: b.inferred,
