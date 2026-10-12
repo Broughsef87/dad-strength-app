@@ -440,14 +440,16 @@ export default function FuelPage() {
     // it belongs to. The plan moving ends the draft's builder, and until the
     // step moved too the page fell back to an editable menu while the reads
     // below were still on their way (Codex r8). Still busy until they land.
-    setDraft(null); setHad(null); setStep('list')
+    // The rebuild-or-next choice goes back to its default here too, not after
+    // the read below: it is part of the builder's key, and moving it late
+    // would remount a menu the athlete had already started changing (Codex r13).
+    setDraft(null); setHad(null); setNextCycle(false); setStep('list')
     // `live` is today's live cycle BY DATE, never "whatever was just built":
     // a rebuild of the cycle selected ahead must not become this week, and
     // the way back stays on the page (FOR-233, finding 2; Codex r1).
     setLive(activeCycle([...recent, built].map((r) => ({ ...r, ...asCycle(r) })), new Date()))
     if (upcoming && (upcoming.week_start === weekStart || weekStart > upcoming.week_start)) setUpcoming(null)
     setVersions((await loadVersions(supabase, userId, weekStart)).map((v) => v.version))
-    setNextCycle(false)
     await takeOff(res.list.id, res.list.items, opts.skipKeys)
     setBusy(false)
   }

@@ -105,6 +105,18 @@ const BANNED = /fortnight|rotation|cycle/i
   assert(tapped.length === 1 && tapped[0].covers === onion.key && tapped[0].item === onion.item && tapped[0].qty === onion.qty && tapped[0].unit === onion.unit, 'a tap is one row on hand, covering that line, in the line\'s own quantity and unit')
   assert(markHave(tapped, onion).length === 1, 'tapping a covered line twice through markHave never doubles its row')
   assert(JSON.stringify(solve(putBack(tapped, onion))) === JSON.stringify(draft), 'a second tap puts the line back: the list is the draft again')
+  // Codex r13: a tick made over stock records only THE REST, so the stock is not counted twice the day the line grows
+  {
+    const pound = setSome([], thigh, 1)
+    const left = lineStates(draft.items, solve(pound)).get(thigh.key).buying
+    const both = markHave(pound, thigh, left)
+    const big = { entries: plan.entries.map((e) => ({ ...e, servings: e.servings * 2 })) }
+    const bigThigh = draftList(andrew, meals, big).items.find((l) => l.key === thigh.key)
+    const grown = listWith(andrew, meals, big, both).items.find((l) => l.key === thigh.key)
+    assert(left > 0 && left < thigh.qty && both.find((r) => r.covers === thigh.key).qty === left && solve(both).items.find((l) => l.key === thigh.key).stocked && Math.abs(grown.qty - (bigThigh.qty - thigh.qty)) < 0.02,
+      `a pound typed and then ticked covers the line once: when the line doubles, exactly the extra is bought — ${grown.qty} of ${bigThigh.qty}, having covered ${thigh.qty}`)
+    assert(/markHave\(r, l, states\.get\(l\.key\)\?\.buying\)/.test(readLF('src/components/fuel/HaveStep.tsx')), 'the screen ticks a line for what it still buys, not for its whole amount')
+  }
   // Codex r4: undoing a tick is not a statement about the pound typed before it
   const someThenTick = markHave(setSome([], thigh, 1), thigh), undone = putBack(someThenTick, thigh)
   assert(someQty(undone, thigh) === 1 && !undone.some((r) => r.covers !== undefined) && lineStates(draft.items, solve(undone)).get(thigh.key).buying < thigh.qty,
@@ -232,7 +244,7 @@ const BANNED = /fortnight|rotation|cycle/i
   }
   {
     const tail = pg.slice(pg.indexOf('const res = await createVersion('), pg.indexOf('const openUpcoming = async'))
-    assert(tail.indexOf("setDraft(null); setHad(null); setStep('list')") > 0 && tail.indexOf("setDraft(null); setHad(null); setStep('list')") < tail.indexOf('await loadVersions('),
+    assert(tail.indexOf("setDraft(null); setHad(null); setNextCycle(false); setStep('list')") > 0 && tail.indexOf("setDraft(null); setHad(null); setNextCycle(false); setStep('list')") < tail.indexOf('await loadVersions(') && !/setNextCycle/.test(tail.slice(tail.indexOf('await loadVersions('))),
       'a built list is on screen in the same breath as its plan — the page never falls back to an editable menu while the build\'s last reads are on their way (Codex r8)')
   }
   assert(/setStep\(active\.list && !persistedStale \? 'list' : h\.household \? 'plan' : 'intake'\)/.test(pg), 'a returning athlete lands on the list when there is a current one, otherwise on the menu; a first visit starts in settings')

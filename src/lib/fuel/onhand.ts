@@ -92,9 +92,17 @@ export function startRows(saved: InventoryItem[], draft: Pick<ListItem, 'key' | 
 /** The draft a step 2 was working on, as one string: its lines and their amounts. Rows held for one draft are never given back to another — a meal edited between two visits changes the list under the same nights (Codex r4). */
 export const draftSignature = (draft: Pick<ListItem, 'key' | 'qty'>[]): string => JSON.stringify(draft.map((l) => [l.key, l.qty]))
 
-/** A line ticked "have it": covered whole. The stock rows are left as they are, so an undo finds them — the solver spends them on this line first, and the tick covers the rest (Codex r7). */
-export function markHave(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item' | 'qty' | 'unit'>): InventoryItem[] {
-  return [...rows.filter((r) => r.covers !== line.key), { item: line.item, qty: line.qty, unit: line.unit, covers: line.key }]
+/**
+ * A line ticked "have it": covered whole. The stock rows are left as they are,
+ * so an undo finds them — the solver spends them on this line first, and the
+ * tick covers the rest (Codex r7). So the tick's amount is THE REST: `left`,
+ * what the line still buys with the rows as they stand. The whole line's
+ * amount would count the stock a second time the day the line grew — a pound
+ * typed, then ticked, then servings doubled (Codex r13). With no stock on the
+ * line the rest is the whole line.
+ */
+export function markHave(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item' | 'qty' | 'unit'>, left: number = line.qty): InventoryItem[] {
+  return [...rows.filter((r) => r.covers !== line.key), { item: line.item, qty: left, unit: line.unit, covers: line.key }]
 }
 
 /**
