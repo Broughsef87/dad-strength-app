@@ -426,17 +426,18 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
   for (const [key, b] of allocation) {
     let need = b.need
     let reason: string | undefined
-    // FOR-281: a line ticked "have it" is covered whole, by its own key, before
-    // any stock is spent on it — so the pound in the freezer still goes to the
-    // line that was not ticked. The tick counts toward this line and no other.
+    // FOR-281: a line ticked "have it" is covered whole, by its own key, and
+    // the tick counts toward this line and no other. The stock on hand is
+    // spent on it FIRST, exactly as on any line, and the tick covers what is
+    // left: "I have it" includes the pound already counted in the freezer, so
+    // that pound must not also come off the next line (Codex r7).
     // A tick covers the amount it was made on, or less (Codex r3): servings
     // doubled on a rebuild double the line under the same key, and the extra
     // was never said to be in the kitchen — so that line is bought in full
     // again until it is ticked at its new amount.
     const asBought = round(b.need * (b.diverted ? mult : 1))
     const ticked = inventory.some((inv) => inv.covers === key && inv.qty >= asBought)
-    if (ticked) { need = 0; reason = HAVE_IT_REASON }
-    for (const inv of ticked ? [] : inventory) {
+    for (const inv of inventory) {
       if (inv.covers !== undefined) continue
       if (norm(inv.item) !== norm(b.item) || inv.left <= 0) continue
       const a = TO_BASE[norm(b.unit)], c = TO_BASE[norm(inv.unit)]
@@ -457,6 +458,7 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
         : `${inv.qty} ${inv.unit} on hand`
       if (need <= 0) break
     }
+    if (ticked && need > 0) { need = 0; reason = HAVE_IT_REASON }
     // What still has to reach the table, scaled to what must be bought.
     const qty = need <= 0 ? 0 : need * (b.diverted ? mult : 1)
     const line: ListItem = {

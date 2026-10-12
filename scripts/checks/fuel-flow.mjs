@@ -81,14 +81,18 @@ const BANNED = /fortnight|rotation|cycle/i
   const onlyLate = solve(markHave([], late))
   assert(onlyLate.items.find((l) => l.key === late.key).stocked && !onlyLate.items.find((l) => l.key === early.key).stocked && onlyLate.items.find((l) => l.key === early.key).qty === early.qty,
     'a tick on the second-trip line covers that line, and the main shop still buys its own — a tick is by key, never by name')
-  // stock is not spent on a ticked line: it goes on to the line that was not ticked
-  const stockAndTick = solve([...markHave([], early), { item: late.item, qty: late.qty, unit: late.unit }])
-  assert(stockAndTick.items.find((l) => l.key === late.key).stocked, 'stock on hand passes over a ticked line and covers the next one')
+  // Codex r7: "have it" includes the stock already counted for that line — it is spent there first, and never comes off the next line too
+  const partStock = [{ item: early.item, qty: early.qty / 2, unit: early.unit }]
+  const stockAndTick = solve([...markHave([], early), ...partStock])
+  assert(stockAndTick.items.find((l) => l.key === early.key).stocked && stockAndTick.items.find((l) => l.key === late.key).qty === late.qty,
+    'a ticked line uses up the stock on hand for it first: the half already in the kitchen is not counted again against the second trip')
+  assert(solve(partStock).items.find((l) => l.key === late.key).qty === late.qty && solve([...markHave([], early), { item: early.item, qty: early.qty + late.qty, unit: early.unit }]).items.find((l) => l.key === late.key).stocked,
+    'and stock beyond what the ticked line needs still goes on to the next line')
   // rows that are not ticks solve exactly as they did before the field existed
   const stock = [{ item: 'rice', qty: 1, unit: 'lb' }, { item: 'broccoli', qty: 10, unit: 'oz' }, { item: 'chicken thigh, boneless skinless', qty: 4, unit: 'lb' }]
   const src = readLF('src/lib/fuel/solve.ts')
-  assert(/const ticked = inventory\.some\(\(inv\) => inv\.covers === key && inv\.qty >= asBought\)/.test(src) &&/for \(const inv of ticked \? \[\] : inventory\) \{\n\s+if \(inv\.covers !== undefined\) continue\n\s+if \(norm\(inv\.item\) !== norm\(b\.item\) \|\| inv\.left <= 0\) continue/.test(src),
-    'the subtraction loop is the one it was, entered only for a line that is not ticked')
+  assert(/const ticked = inventory\.some\(\(inv\) => inv\.covers === key && inv\.qty >= asBought\)/.test(src) &&/for \(const inv of inventory\) \{\n\s+if \(inv\.covers !== undefined\) continue\n\s+if \(norm\(inv\.item\) !== norm\(b\.item\) \|\| inv\.left <= 0\) continue/.test(src) && /if \(ticked && need > 0\) \{ need = 0; reason = HAVE_IT_REASON \}/.test(src),
+    'the subtraction loop is the one it was, run on every line, and a tick covers only what the stock left')
   assert(solve(stock).items.some((l) => l.item === 'rice' && l.qty < rice.qty && !l.stocked), 'plain stock still subtracts by quantity')
 }
 
