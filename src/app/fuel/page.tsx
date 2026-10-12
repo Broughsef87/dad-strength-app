@@ -635,7 +635,7 @@ export default function FuelPage() {
             <p className="text-[12px] text-muted-foreground">Sunday: pick the menu, tick what you already have, shop the list.</p>
           </div>
           {!loading && !notReady && household && (
-            <button type="button" className="pill-quiet shrink-0 w-10 h-10 flex items-center justify-center" aria-label="settings" aria-pressed={at === 'intake'}
+            <button type="button" className="pill-quiet shrink-0 w-10 h-10 flex items-center justify-center" aria-label="settings" aria-pressed={at === 'intake'} disabled={busy}
               onClick={() => setStep(at === 'intake' ? (list && !stale ? 'list' : 'plan') : 'intake')}>
               <Settings size={16} aria-hidden="true" />
             </button>
@@ -664,7 +664,9 @@ export default function FuelPage() {
                       // Step 2 is reached only through "use this menu", which is what settles the
                       // nights it lists: from anywhere else the tap would open a menu the athlete
                       // has since changed (Codex r2).
-                      disabled={(s === 'plan' && !household) || (s === 'have' && at !== 'have') || (s === 'list' && !list)}
+                      // And nowhere while a build or a save is in flight: what it lands on is
+                      // the page it left, and an edit made meanwhile would be thrown away (Codex r10).
+                      disabled={busy || (s === 'plan' && !household) || (s === 'have' && at !== 'have') || (s === 'list' && !list)}
                       className={`pill-quiet px-3 py-1.5 text-[12px] lowercase ${at === s ? 'font-semibold' : 'text-muted-foreground'}`}>
                       {label}
                     </button>

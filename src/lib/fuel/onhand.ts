@@ -103,14 +103,25 @@ export function markHave(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'it
  * with no tick — one the stock alone covers — is put back by taking the stock
  * as gone, because then the stock is the only thing the tap can be about.
  *
- * `alsoHad` are the OTHER lines of that ingredient the same stock was
- * covering — the first trip's tomatoes, when it is the second trip's being put
- * back. The tap was about one line, so those stay had: each is ticked in its
- * own right as the stock goes (Codex r8).
+ * `others` are the OTHER lines of that ingredient, with how they stood — the
+ * first trip's tomatoes, when it is the second trip's being put back. The tap
+ * was about one line, so what the stock was doing for the rest is kept: a
+ * line it covered whole is ticked in its own right (Codex r8), and what it
+ * covered of a line in part stays on hand as stock, in that amount (Codex
+ * r10) — so the list never buys back food nobody said was gone.
  */
-export function putBack(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item'>, alsoHad: Pick<ListItem, 'key' | 'item' | 'qty' | 'unit'>[] = []): InventoryItem[] {
+export function putBack(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item'>, others: Array<{ line: Pick<ListItem, 'key' | 'item' | 'qty' | 'unit'>; state: LineState }> = []): InventoryItem[] {
   if (rows.some((r) => r.covers === line.key)) return rows.filter((r) => r.covers !== line.key)
-  return alsoHad.filter((o) => o.key !== line.key && sameItem({ item: o.item, qty: 0, unit: '' }, line)).reduce((acc, o) => markHave(acc, o), clearLine(rows, line))
+  const same = others.filter((o) => o.line.key !== line.key && norm(o.line.item) === norm(line.item))
+  let next = clearLine(rows, line)
+  for (const o of same) {
+    if (o.state.have) { next = markHave(next, o.line); continue }
+    // What the stock covered of this line, in the unit stock is counted in.
+    // A line's amount is what is BOUGHT, and stock comes off it one for one.
+    const covered = Math.round((o.line.qty - o.state.buying) * (norm(o.line.unit) === 'oz' ? 1 / 16 : 1) * 10000) / 10000
+    if (covered > 0) next = [...next, { item: o.line.item, qty: covered, unit: haveUnit(o.line) }]
+  }
+  return next
 }
 
 /**

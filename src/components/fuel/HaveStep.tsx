@@ -86,8 +86,8 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
   const tap = (l: ListItem) => {
     if (isCustom(l)) { setSkipped((s) => { const n = new Set(s); if (n.has(l.key)) n.delete(l.key); else n.add(l.key); return n }); return }
     setTyped((t) => { const n = { ...t }; delete n[boxOf(l)]; return n })
-    const had = draft.items.filter((o) => states.get(o.key)?.have)
-    setRows((r) => (states.get(l.key)?.have ? putBack(r, l, had) : markHave(r, l)))
+    const others = draft.items.flatMap((o) => { const state = states.get(o.key); return state ? [{ line: o, state }] : [] })
+    setRows((r) => (states.get(l.key)?.have ? putBack(r, l, others) : markHave(r, l)))
   }
   const type = (l: ListItem, text: string) => {
     setTyped((t) => ({ ...t, [boxOf(l)]: text }))

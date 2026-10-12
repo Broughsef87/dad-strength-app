@@ -120,7 +120,15 @@ const BANNED = /fortnight|rotation|cycle/i
     const second = both.find((l) => l.second_trip), first = both.find((l) => !l.second_trip && l.item === second.item)
     const plenty = [{ item: first.item, qty: 9999, unit: first.unit }]
     const before = lineStates(draft.items, solve(plenty))
-    const after = lineStates(draft.items, solve(putBack(plenty, second, draft.items.filter((l) => before.get(l.key).have))))
+    const withStates = (states) => draft.items.map((l) => ({ line: l, state: states.get(l.key) }))
+    const after = lineStates(draft.items, solve(putBack(plenty, second, withStates(before))))
+    // Codex r10: stock that covered the other line only in part stays on hand, in that amount — nothing nobody said was gone is bought back
+    const short = [{ item: first.item, qty: first.unit === 'oz' ? (first.qty + second.qty / 2) / 16 : first.qty + second.qty / 2, unit: haveUnit(first) }]
+    const b2 = lineStates(draft.items, solve(short))
+    const a2 = lineStates(draft.items, solve(putBack(short, first, withStates(b2))))
+    const bought = (m) => m.get(first.key).buying + m.get(second.key).buying
+    assert(b2.get(first.key).have && !b2.get(second.key).have && Math.abs(bought(b2) - second.qty / 2) < 0.02 && Math.abs(bought(a2) - (first.qty + second.qty / 2)) < 0.02,
+      `a line put back when the stock ran part-way into the next adds back exactly that line and no more — bought ${bought(b2)} before, ${bought(a2)} after, of ${first.qty} + ${second.qty}`)
     assert(before.get(first.key).have && before.get(second.key).have && after.get(first.key).have && !after.get(second.key).have && after.get(second.key).buying === second.qty,
       'a line the stock covers is put back alone: the same ingredient on the other trip stays had')
   }
@@ -207,6 +215,7 @@ const BANNED = /fortnight|rotation|cycle/i
     'rows gathered for one week are never built into another: the build is refused, before anything is saved, when the week it lands on is not the week step 2 was drawn for (Codex r2)')
   assert(/const priorItems = list\?\.items\n/.test(pg) && /plan && rebuildOfCounted\(target\) \? \{ items: savedSince \? null : solverLines\(priorItems \?\? \[\]\), inventory: priorRows \?\? \[\] \} : null/.test(pg) && /const savedSince = inventoryFresh\(householdSavedAt, newestPlanAt, newestPlanKnown\)/.test(pg) && /prior=\{prior\}/.test(pg) && !/draftList\([^)]*prior/.test(readLF('src/components/fuel/HaveStep.tsx')),
     'what a rebuild lets stand at step 2 is judged against the build being rebuilt — the lines its list was STORED with, never a fresh solve of a library edited since, and its own snapshot of what was on hand (Codex r2, r5)')
+  assert(/disabled=\{busy \|\| \(s === 'plan' && !household\)/.test(pg) && /aria-label="settings" aria-pressed=\{at === 'intake'\} disabled=\{busy\}/.test(pg), 'the steps and the gear do nothing while a build or a save is in flight (Codex r10)')
   assert(/\(s === 'have' && at !== 'have'\)/.test(pg), 'step 2 is reached only through "use this menu", never by a tap that would open a menu since changed (Codex r2)')
   {
     const short = pg.slice(pg.indexOf('if (carriesKept && !startingNext'), pg.indexOf('const res = await createVersion('))
