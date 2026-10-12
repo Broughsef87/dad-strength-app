@@ -429,7 +429,12 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
     // FOR-281: a line ticked "have it" is covered whole, by its own key, before
     // any stock is spent on it — so the pound in the freezer still goes to the
     // line that was not ticked. The tick counts toward this line and no other.
-    const ticked = inventory.some((inv) => inv.covers === key)
+    // A tick covers the amount it was made on, or less (Codex r3): servings
+    // doubled on a rebuild double the line under the same key, and the extra
+    // was never said to be in the kitchen — so that line is bought in full
+    // again until it is ticked at its new amount.
+    const asBought = round(b.need * (b.diverted ? mult : 1))
+    const ticked = inventory.some((inv) => inv.covers === key && inv.qty >= asBought)
     if (ticked) { need = 0; reason = HAVE_IT_REASON }
     for (const inv of ticked ? [] : inventory) {
       if (inv.covers !== undefined) continue

@@ -61,13 +61,15 @@ export interface PriorBuild {
  * line is still on the draft. A tick made for another week's list — the next
  * one, built ahead — is not this build's, however alike the line's key.
  */
-export function startRows(saved: InventoryItem[], draft: Pick<ListItem, 'key' | 'item'>[], counts: boolean, prior: PriorBuild | null = null): InventoryItem[] {
-  const keys = new Set(draft.map((l) => l.key))
+export function startRows(saved: InventoryItem[], draft: Pick<ListItem, 'key' | 'item' | 'qty'>[], counts: boolean, prior: PriorBuild | null = null): InventoryItem[] {
+  const amount = new Map(draft.map((l) => [l.key, l.qty]))
   const items = new Set(draft.map((l) => norm(l.item)))
   const shown = prior ? new Set(prior.items.map((l) => norm(l.item))) : null
   const ticked = new Set((prior?.inventory ?? []).flatMap((r) => (r.covers !== undefined ? [r.covers] : [])))
   return saved.filter((r) => {
-    if (isTick(r)) return ticked.has(r.covers as string) && keys.has(r.covers as string)
+    // ...and only while the line asks for no more than it did when it was
+    // ticked: a tick was never a promise about a bigger amount (Codex r3).
+    if (isTick(r)) { const now = amount.get(r.covers as string); return ticked.has(r.covers as string) && now !== undefined && r.qty >= now }
     if (!items.has(norm(r.item))) return true
     return counts && (!shown || shown.has(norm(r.item)))
   })
@@ -144,16 +146,4 @@ export function lineStates(draft: ListItem[], solved: Pick<ShoppingList, 'items'
  */
 export function stapleLines(staples: StapleRow[]): ListItem[] {
   return staples.map((s) => ({ key: customKey(s.id), item: s.item, qty: 0, unit: '', section: s.store_section, from: [], second_trip: false, inferred: false, stocked: false, checked: false, custom: 'staple' as const }))
-}
-
-/**
- * The same rows on hand, IN THE SAME ORDER — whether the household needs saving
- * before the build. Order counts because the plan's snapshot is compared to
- * the household's inventory as stored, row for row (version.ts): rows that
- * differ only in order, left unsaved, would build a list that read as out of
- * date the moment it opened (Codex r1).
- */
-export function sameRows(a: InventoryItem[], b: InventoryItem[]): boolean {
-  const key = (rows: InventoryItem[]) => JSON.stringify(rows.map((r) => [r.item, r.qty, r.unit, r.covers ?? null]))
-  return key(a) === key(b)
 }

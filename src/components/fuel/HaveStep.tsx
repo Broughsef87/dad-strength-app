@@ -10,7 +10,9 @@
 // This screen holds ROWS ON HAND and nothing else (onhand.ts). What each line
 // looks like — covered, part covered, bought — is read back from the solver
 // run on those rows, so the screen can never show a list the build would not
-// produce. "Build my list" hands the rows to the page, which saves them as the
+// produce. Nothing here can be changed while a build is in flight: the build
+// took the rows as they stood, and a tap it could not honour would be a lie
+// (Codex r3). "Build my list" hands the rows to the page, which saves them as the
 // household's inventory and builds through the one path there has ever been.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Household, InventoryItem, ListItem, MealRow, Plan } from '../../lib/fuel/types'
@@ -108,7 +110,7 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
               return (
                 <li key={l.key} className="space-y-1">
                   <div className="flex items-stretch gap-1">
-                    <button type="button" onClick={() => tap(l)} aria-pressed={got} aria-label={`${l.item} — ${got ? 'you have it, tap to put it back on the list' : 'tap if you have it'}`}
+                    <button type="button" onClick={() => tap(l)} aria-pressed={got} disabled={building} aria-label={`${l.item} — ${got ? 'you have it, tap to put it back on the list' : 'tap if you have it'}`}
                       className={`row-recessed w-full min-w-0 flex items-center gap-3 px-3 py-3 text-left ${got ? 'text-muted-foreground' : ''}`}>
                       <span className={`day-pill shrink-0 ${got ? 'on' : ''}`} aria-hidden="true" />
                       <span className={`flex-1 min-w-0 text-sm ${got ? 'line-through' : ''}`}>
@@ -122,19 +124,19 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
                       </span>
                     </button>
                     {!own && !box && (
-                      <button type="button" className="pill-quiet shrink-0 px-3 text-[11px] lowercase" aria-label={`you have some ${l.item}`}
+                      <button type="button" className="pill-quiet shrink-0 px-3 text-[11px] lowercase" aria-label={`you have some ${l.item}`} disabled={building}
                         onClick={() => setOpen((o) => new Set(o).add(l.key))}>some</button>
                     )}
                   </div>
                   {box && (
                     <div className="flex items-center gap-2 pl-10 pr-1">
                       <label className="text-[11px] text-muted-foreground lowercase" htmlFor={`some-${l.key}`}>have some</label>
-                      <input id={`some-${l.key}`} type="number" inputMode="decimal" min={0} step={0.5} placeholder="0"
+                      <input id={`some-${l.key}`} type="number" inputMode="decimal" min={0} step={0.5} placeholder="0" disabled={building}
                         value={typed[l.key] ?? (some === null ? '' : String(some))} onChange={(e) => type(l, e.target.value)}
                         className="row-recessed w-20 px-2 py-1.5 text-sm bg-transparent outline-none stat-num" aria-label={`how much ${l.item} you have, in ${haveUnit(l)}`} />
                       <span className="data-mono">{haveUnit(l)}</span>
                       {last !== null && some === null && !got && (
-                        <button type="button" className="pill-quiet px-3 py-1.5 text-[11px] lowercase" onClick={() => type(l, String(last))}>
+                        <button type="button" className="pill-quiet px-3 py-1.5 text-[11px] lowercase" disabled={building} onClick={() => type(l, String(last))}>
                           still have {qtyText(last, haveUnit(l))}
                         </button>
                       )}
@@ -142,7 +144,7 @@ export default function HaveStep({ household, meals, plan, staples = NO_STAPLES,
                   )}
                   {!box && last !== null && !got && (
                     <div className="pl-10">
-                      <button type="button" className="pill-quiet px-3 py-1.5 text-[11px] lowercase" onClick={() => type(l, String(last))}>
+                      <button type="button" className="pill-quiet px-3 py-1.5 text-[11px] lowercase" disabled={building} onClick={() => type(l, String(last))}>
                         still have {qtyText(last, haveUnit(l))}
                       </button>
                     </div>

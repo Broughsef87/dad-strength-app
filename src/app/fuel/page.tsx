@@ -61,7 +61,6 @@ import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
 import { builderStart } from '../../lib/fuel/rotation'
 import { planIssueSentences } from '../../lib/fuel/planner'
-import { sameRows } from '../../lib/fuel/onhand'
 
 // 'intake' is settings, behind the gear. The three steps of the flow, in order,
 // are 'plan' (pick the menu), 'have' (what do you already have?) and 'list'.
@@ -406,8 +405,11 @@ export default function FuelPage() {
     setBusy(true); setError(null)
     // What step 2 said is on hand is saved FIRST, and a save that fails builds
     // nothing: a list built from rows the household does not hold would read
-    // as out of date the moment it opened.
-    if (opts.onHand && !sameRows(opts.onHand, household.inventory)) {
+    // as out of date the moment it opened. Saved EVERY time, changed or not:
+    // the save is also the check that the stock this page loaded is still the
+    // stock the household holds, and rows left as they opened need that check
+    // as much as rows that were tapped (Codex r3).
+    if (opts.onHand) {
       const { error: e } = await saveOnHand(supabase, userId, opts.onHand, household.inventory)
       if (e) { setBusy(false); setError(e.message ?? 'could not save what you have'); return }
       moved()
@@ -597,13 +599,14 @@ export default function FuelPage() {
   // Step 2 needs the nights step 1 settled on; without them it is step 1.
   const at: Step = step === 'have' && !(household && drafted) ? 'plan' : step
   const flowAt = FLOW.findIndex((f) => f.step === at)
-  // The step 2 on screen: the menu, the week the build would land on, and
-  // whether saved stock counts there. When any of them moves — a page left
-  // open across a week boundary — step 2 is a new one and opens on the stock
-  // as that week would count it, never on rows gathered for another (Codex r1).
-  const countByDefault = inventoryFresh(householdSavedAt, newestPlanAt, newestPlanKnown)
+  // The step 2 on screen: the menu and the week the build would land on. When
+  // either moves — a page left open across a week boundary — step 2 is a new
+  // one and opens on the stock as that week would count it, never on rows
+  // gathered for another (Codex r1). Whether saved stock counts is NOT in the
+  // key: this page's own save of step 2's rows can change that answer, and a
+  // build that then failed must find step 2 exactly as it was left (Codex r3).
   const target = buildTarget(new Date())
-  const haveKey = household && drafted ? `${builderKey}-${target}-${askInventory}-${countByDefault}-${JSON.stringify(drafted.entries)}` : ''
+  const haveKey = household && drafted ? `${builderKey}-${target}-${JSON.stringify(drafted.entries)}` : ''
   // The plan the build would REBUILD, when it is one: what a rebuild lets
   // stand at step 2 is judged against that plan's own nights and its own
   // snapshot of what was on hand (Codex r2).

@@ -29,7 +29,7 @@ import { changed, listUnchanged, snapshot } from '../../src/lib/fuel/version.ts'
 import { rotationEntries, sortedRotations } from '../../src/lib/fuel/rotation.ts'
 import { planIssueSentences } from '../../src/lib/fuel/planner.ts'
 import { customKey } from '../../src/lib/fuel/custom.ts'
-import { clearLine, draftList, haveUnit, lastTime, lineStates, listWith, markHave, sameRows, setSome, someQty, startRows, stapleLines } from '../../src/lib/fuel/onhand.ts'
+import { clearLine, draftList, haveUnit, lastTime, lineStates, listWith, markHave, setSome, someQty, startRows, stapleLines } from '../../src/lib/fuel/onhand.ts'
 import * as planBuilderModule from '../../src/components/fuel/PlanBuilder.tsx'
 import * as haveStepModule from '../../src/components/fuel/HaveStep.tsx'
 import * as intakeModule from '../../src/components/fuel/IntakeForm.tsx'
@@ -137,15 +137,22 @@ const BANNED = /fortnight|rotation|cycle/i
   assert(/\.update\(\{ inventory: rows \}\)\.eq\('user_id', userId\)/.test(saveFn) && !/updated_at:/.test(saveFn.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*\*)/.test(l)).join('\n')),
     'the build-time save writes the rows on hand and nothing else — it never moves the stamp that says the stock was counted afresh')
   assert(lastTime(saved, thigh) === 3 && lastTime(saved, onion) === null, 'what was saved is offered back by quantity — a tick from another week is not stock and is never offered')
-  assert(sameRows([saved[0], saved[1]], [{ ...saved[0] }, { ...saved[1] }]) && !sameRows([saved[0], saved[1]], [saved[1], saved[0]]) && !sameRows([saved[0]], [{ ...saved[0], qty: 4 }]) && !sameRows([saved[2]], [{ ...saved[2], covers: undefined }]),
-    'rows are the same only row for row, in order — the order is what the snapshot is compared on, so rows re-tapped into another order are saved (Codex r1)')
+  // Codex r3: a tick covers the amount it was made on, or less — never a bigger one under the same key
   {
-    const onionL = line((l) => l.section !== MEAT_SECTION && !l.second_trip), other = draft.items.find((l) => l.key !== onionL.key && l.section !== MEAT_SECTION)
-    const ab = markHave(markHave([], onionL), other), ba = markHave(clearLine(ab, onionL), onionL)
-    const builtFrom = JSON.parse(JSON.stringify(snapshot({ ...andrew, inventory: ba }, plan, true)))
-    assert(!sameRows(ab, ba) && changed(builtFrom, { ...andrew, inventory: ab }, plan) && !changed(builtFrom, { ...andrew, inventory: ba }, plan),
-      'a tick undone and redone moves its row, and the household must be saved in that order or the list built from it reads as out of date')
+    const big = { entries: plan.entries.map((e) => ({ ...e, servings: e.servings * 2 })) }
+    const bigDraft = draftList(andrew, meals, big)
+    const bigOnion = bigDraft.items.find((l) => l.key === onion.key)
+    const tick = markHave([], onion)
+    assert(bigOnion && bigOnion.qty > onion.qty && !listWith(andrew, meals, big, tick).items.find((l) => l.key === onion.key).stocked && solve(tick).items.find((l) => l.key === onion.key).stocked,
+      'servings doubled on a rebuild double the line under the same key, and the old tick no longer covers it: the solver buys it in full until it is ticked at the new amount')
+    assert(!startRows(tick, bigDraft.items, true, { items: bigDraft.items, inventory: tick }).some((r) => r.covers !== undefined) && startRows(tick, draft.items, true, { items: draft.items, inventory: tick }).length === 1,
+      'and step 2 opens that line unticked, so the bigger amount is asked about rather than assumed')
+    const smaller = { entries: plan.entries.map((e) => ({ ...e, servings: Math.max(1, e.servings - 1) })) }
+    assert(listWith(andrew, meals, smaller, tick).items.find((l) => l.key === onion.key)?.stocked !== false, 'a tick still covers the same line at a smaller amount')
   }
+  // Codex r3: the save is the check that the stock this page loaded is still the household's — so it runs every time, tapped or not
+  assert(/if \(opts\.onHand\) \{\n\s+const \{ error: e \} = await saveOnHand\(/.test(readLF('src/app/fuel/page.tsx')) && !/sameRows/.test(readLF('src/app/fuel/page.tsx')),
+    'the on-hand save, and with it the check against another tab, runs on every build from step 2 — rows left as they opened are checked like rows that were tapped')
   assert(stapleLines([{ id: '6f1c2d3e-0000-4000-8000-00000000c0ff', item: 'coffee', store_section: 'Pantry' }])[0].key === customKey('6f1c2d3e-0000-4000-8000-00000000c0ff'), 'a staple on the draft is keyed exactly as the database keys its line, so a tick can take that line off the built list')
 }
 
@@ -168,8 +175,8 @@ const BANNED = /fortnight|rotation|cycle/i
     'what step 2 gathered is saved as the household\'s inventory BEFORE the build, and a save that fails builds nothing')
   assert(/const carriesKept = !!list && \(opts\.keepKeys \?\? \[\]\)\.every\(\(k\) => list\.items\.some\(\(i\) => i\.key === k\)\)/.test(pg) && /if \(carriesKept && !startingNext && plan && list/.test(pg),
     'the stored list is reused only while it carries every own line left unticked — one taken off last time and wanted now gets a new version (Codex r1)')
-  assert(/const haveKey = household && drafted \? `\$\{builderKey\}-\$\{target\}-\$\{askInventory\}-\$\{countByDefault\}-/.test(pg) && /const target = buildTarget\(new Date\(\)\)/.test(pg) && /<HaveStep key=\{haveKey\}/.test(pg) && /resume=\{had && had\.for === haveKey \? had : undefined\}/.test(pg) && /onHold=\{\(rows, skipped\) => setHad\(\{ for: haveKey, rows, skipped \}\)\}/.test(pg),
-    'step 2 is keyed on the week the build lands on and on whether saved stock counts there — a page left open across a boundary opens a new step 2, and what was ticked comes back only to the same one (Codex r1)')
+  assert(/const haveKey = household && drafted \? `\$\{builderKey\}-\$\{target\}-\$\{JSON\.stringify\(drafted\.entries\)\}` : ''/.test(pg) && /const target = buildTarget\(new Date\(\)\)/.test(pg) && /<HaveStep key=\{haveKey\}/.test(pg) && /resume=\{had && had\.for === haveKey \? had : undefined\}/.test(pg) && /onHold=\{\(rows, skipped\) => setHad\(\{ for: haveKey, rows, skipped \}\)\}/.test(pg),
+    'step 2 is keyed on the menu and the week the build lands on, and on nothing its own save can move — a page left open across a boundary opens a new step 2, and a build that failed after its save finds step 2 as it was left (Codex r1, r3)')
   assert(/if \(opts\.drawnFor !== undefined && opts\.drawnFor !== weekStart\) \{ setError\(/.test(pg) && /drawnFor: target \}\)/.test(pg) && pg.indexOf('opts.drawnFor !== weekStart') < pg.indexOf('await saveOnHand('),
     'rows gathered for one week are never built into another: the build is refused, before anything is saved, when the week it lands on is not the week step 2 was drawn for (Codex r2)')
   assert(/const prior = plan && rebuildOfCounted\(target\) \? \{ plan: \{ entries: plan\.meal_ids \}, inventory: plan\.rules_snapshot\?\.inventory \?\? \[\] \} : null/.test(pg) && /prior=\{prior\}/.test(pg),
@@ -226,6 +233,8 @@ const show = (name, el) => { const s = { name, ...paint(el) }; screens.push(s); 
   assert(!/<select|type="text"|type="search"/.test(step2.html) && (step2.html.match(/pill-volt/g) || []).length === 1 && /build my list/.test(step2.text), 'no search box and no picker — and one volt control: build my list')
   assert((step2.html.match(/aria-pressed="true"/g) || []).length === 0 && new RegExp(`${draft.items.length + 1} to buy · 0 you have`).test(step2.text), 'with nothing saved, nothing opens ticked')
   const savedStock = [{ item: 'rice', qty: 25, unit: 'lb' }, { item: meat[0].item, qty: 1, unit: haveUnit(meat[0]) }]
+  const building = paint(have({ building: true }))
+  assert(!/<(button|input)(?![^>]*disabled)[^>]*>/.test(building.html) && /building the list/.test(building.text), 'nothing on step 2 can be changed while a build is in flight — the build took the rows as they stood (Codex r3)')
   const preticked = show('step 2 — saved stock counts', have({ household: { ...andrew, inventory: savedStock } }))
   assert((preticked.html.match(/aria-pressed="true"/g) || []).length === draft.items.filter((l) => l.item === 'rice').length && /buying /.test(preticked.text), 'what the saved stock covers opens ticked, and what it part-covers says what is still bought')
   const asked = show('step 2 — a week has been eating it', have({ household: { ...andrew, inventory: savedStock }, askInventory: true, countByDefault: false }))
