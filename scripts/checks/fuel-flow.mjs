@@ -6,8 +6,8 @@
 //      only thing that makes a list
 //   2. step 2's edits, as rows: a tap covers, a second tap puts the line back
 //      exactly, "have some" is real stock in the line's unit, and saved stock
-//      opens ticked only when it counts without asking (inventory_counted's
-//      rule, FOR-177 rounds 15 to 18)
+//      opens ticked on every build (Andrew, 2026-10-12) — a rebuild alone
+//      still judges it against the build being rebuilt
 //   3. the guards still read the one inventory: the snapshot carries the rows,
 //      a changed row is a changed household, and a tick is never an "issue"
 //   4. the three screens, RENDERED: the menu is a card with its dinners and one
@@ -166,7 +166,7 @@ const BANNED = /fortnight|rotation|cycle/i
   const prior = { items: [{ item: thigh.item }, { item: onion.item }], inventory: [saved[2]] }
   const counted = startRows(saved, draft.items, true, prior), asked = startRows(saved, draft.items, false)
   assert(counted.length === 3 && counted.some((r) => r.covers === onion.key) && someQty(counted, thigh) === 3, 'on a rebuild, what that build was shown and let stand opens as it was saved — the lines it covers open ticked')
-  assert(asked.length === 1 && asked[0].item === 'venison', 'when a week has been eating it, nothing about this menu opens ticked — and stock for something the menu does not cook is kept, not lost')
+  assert(asked.length === 1 && asked[0].item === 'venison', 'startRows told the stock does not count opens nothing about this menu ticked (step 2 no longer asks for that — FOR-281, Andrew 2026-10-12) — and stock for something the menu does not cook is kept, not lost')
   assert(!counted.some((r) => r.covers === 'Pantry:not on this list:each') && !asked.some((r) => r.covers !== undefined), 'a tick whose line is not on this list is dropped: it was about another list')
   const freshStock = startRows(saved, draft.items, true)
   // Codex r2: stock the rebuilt plan never cooked was carried along unseen — it does not count now that the menu cooks it

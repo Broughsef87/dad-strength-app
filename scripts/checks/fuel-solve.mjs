@@ -483,7 +483,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/const counts = true\n/.test(hs) && /const opened = useMemo\(\(\) => startRows\(household\.inventory, draft\.items, counts, prior\), /.test(hs) && /useState<InventoryItem\[\]>\(\(\) => resumed\?\.rows \?\? opened\)/.test(hs) && /onBuild\(drafted, \{ countInventory: true, onHand: rows, skipKeys, keepKeys, drawnFor: target \}\)/.test(pg) && !/countInventory/.test(pb),
     'step 2 opens with saved stock counted on every build (FOR-281, Andrew 2026-10-12), and what it hands the build is counted on say-so')
   // round 16: the saved choice stands on a rebuild unless changed, and a changed choice is never short-cut
-  // round 17: the ask is shown for anything but a rebuild of a plan that already counted it — a fresh start after an expired cycle asks too — and defaults to freshness
+  // round 17: the ask is shown for anything but a rebuild of a plan that already counted it — a fresh start after an expired cycle asks too (it defaulted to freshness until FOR-281; step 2 now always opens counted)
   assert(/const rebuildOfCounted = \(start: string\) => !!plan && !startingNextNow && start === plan\.week_start && \(plan\.rules_snapshot\?\.inventory_counted \?\? true\)/.test(pg) && /const askInventory = \(household\?\.inventory\.length \?\? 0\) > 0 && !rebuildOfCounted\(buildTarget\(new Date\(\)\)\)/.test(pg),
     'a rebuild of a plan built without counting what is on hand asks again — the saved choice stands unless changed — and a fresh start asks too')
   // round 18: the ask is judged on the start the build would land on, and judged again at build time
