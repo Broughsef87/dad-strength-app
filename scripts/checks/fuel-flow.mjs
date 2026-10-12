@@ -179,8 +179,15 @@ const BANNED = /fortnight|rotation|cycle/i
     const bigBuilt = listWith(andrew, meals, big, tick).items.find((l) => l.key === onion.key)
     assert(bigOnion && bigOnion.qty > onion.qty && !bigBuilt.stocked && Math.abs(bigBuilt.qty - (bigOnion.qty - onion.qty)) < 0.011 && solve(tick).items.find((l) => l.key === onion.key).stocked,
       `servings doubled on a rebuild double the line under the same key, and the old tick covers only the amount it was made on: the solver buys the rest — ${bigBuilt.qty} of ${bigOnion.qty}`)
-    assert(!startRows(tick, bigDraft.items, true, { items: bigDraft.items, inventory: tick }).some((r) => r.covers !== undefined) && startRows(tick, draft.items, true, { items: draft.items, inventory: tick }).length === 1,
-      'and step 2 opens that line unticked, so the bigger amount is asked about rather than assumed')
+    const reopened = startRows(tick, bigDraft.items, true, { items: bigDraft.items, inventory: tick })
+    const reState = lineStates(bigDraft.items, listWith(andrew, meals, big, reopened)).get(onion.key)
+    assert(reopened.length === 1 && !reState.have && Math.abs(reState.buying - (bigOnion.qty - onion.qty)) < 0.011 && startRows(tick, draft.items, true, { items: draft.items, inventory: tick }).length === 1,
+      'and step 2 opens that line showing the rest still to buy — the tick rides at its own amount, a part-tick included, so an unchanged rebuild buys what it did (Codex r12)')
+    // Codex r12: a number typed into "have some" is everything on hand of that ingredient — a tick on its other line does not come off on top
+    const partTick = [{ item: thigh.item, qty: 4, unit: thigh.unit, covers: 'Meat & Seafood:another line of it:oz' }, { item: onion.item, qty: 1, unit: onion.unit, covers: onion.key }]
+    const typedTotal = setSome(partTick, thigh, 1)
+    assert(typedTotal.length === 2 && someQty(typedTotal, thigh) === 1 && typedTotal.some((r) => r.covers === onion.key) && !typedTotal.some((r) => r.covers !== undefined && r.item === thigh.item),
+      'typing the amount on hand replaces every row for that ingredient, ticks on its other lines included — and touches no other ingredient')
     const smaller = { entries: plan.entries.map((e) => ({ ...e, servings: Math.max(1, e.servings - 1) })) }
     assert(listWith(andrew, meals, smaller, tick).items.find((l) => l.key === onion.key)?.stocked !== false, 'a tick still covers the same line at a smaller amount')
   }

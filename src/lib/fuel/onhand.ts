@@ -77,12 +77,13 @@ export function startRows(saved: InventoryItem[], draft: Pick<ListItem, 'key' | 
   const shown = prior?.items ? new Set(prior.items.map((l) => norm(l.item))) : null
   const ticked = new Map((prior?.inventory ?? []).flatMap((r) => (r.covers !== undefined ? [[r.covers, r.qty] as const] : [])))
   return saved.filter((r) => {
-    // ...and only while the line asks for no more than it did when it was
-    // ticked: a tick was never a promise about a bigger amount (Codex r3).
+    // A tick is an amount of its line, so it rides at that amount whatever the
+    // line asks for now — a part-tick stays a part-tick, and a line that has
+    // grown buys the difference (the solver, Codex r3, r12).
     // The amount is the PRIOR build's own: the household's row may since have
     // been re-ticked, bigger, for another week's list under the same key, and
     // that says nothing about this one (Codex r4).
-    if (isTick(r)) { const now = amount.get(r.covers as string), was = ticked.get(r.covers as string); return was !== undefined && now !== undefined && r.qty === was && was >= now }
+    if (isTick(r)) { const now = amount.get(r.covers as string), was = ticked.get(r.covers as string); return was !== undefined && now !== undefined && r.qty === was }
     if (!items.has(norm(r.item))) return true
     return counts && (!shown || shown.has(norm(r.item)))
   })
@@ -150,7 +151,10 @@ export const haveUnit = (line: Pick<ListItem, 'unit'>): string => (norm(line.uni
  * goes on to the next. Nothing, or a number that is not one, clears it.
  */
 export function setSome(rows: InventoryItem[], line: Pick<ListItem, 'key' | 'item' | 'unit'>, qty: number): InventoryItem[] {
-  const rest = clearLine(rows, line)
+  // The number is EVERYTHING on hand of that ingredient: stock, this line's
+  // tick, and any tick on its other lines — a part-tick left on the second
+  // trip would come off on top of the pound just typed (Codex r12).
+  const rest = rows.filter((r) => !sameItem(r, line))
   return Number.isFinite(qty) && qty > 0 ? [...rest, { item: line.item, qty, unit: haveUnit(line) }] : rest
 }
 
