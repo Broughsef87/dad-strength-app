@@ -1,11 +1,15 @@
 'use client'
 
-// ── Fuel nights planner — the rotation fills the fortnight, the athlete reviews it ──
-// FOR-241. The plan is the page; the library is the tool. Both weeks are on
-// screen at once as named nights, prefilled from a rotation (FOR-238's
-// builderStart, called by the page) and changed where they stand: swap,
-// remove, servings, add a night. The meal library is a drawer below the
-// fortnight, opened only to swap a night or add one. Presentation plus prefill
+// ── Fuel step 1 — pick the menu (FOR-281, on FOR-241's nights planner) ──────
+// The suggested menu is a CARD: its plain name, its one-line description and
+// its dinners, with one volt control — use this menu. Another menu is one tap
+// away as a card of its own, and "change a night" opens what FOR-241 built:
+// both weeks on screen at once as named nights, prefilled from a rotation
+// (FOR-238's builderStart, called by the page) and changed where they stand:
+// swap, remove, servings, add a night. The meal library is a drawer below the
+// nights, opened only to swap a night or add one. A plan that cannot be used
+// as it stands — a flagged night, a missing night — opens on its nights, so
+// the thing to fix is never behind a tap. Presentation plus prefill
 // only: the entries model, servings semantics and every rule belong to the
 // solver, validatePlan still decides whether the list can be built, and
 // planner.ts places what it says on the night that causes it.
@@ -110,14 +114,12 @@ export function LibraryDrawer({ meals, household, heading, onPick, onClose, onAd
   )
 }
 
-export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, askInventory = false, countByDefault = false, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal, onRetireMeal, libraryStale = false, savingMeal = false }: {
+export default function PlanBuilder({ household, meals, initial, building, onBuild, cycles, rotations = NO_ROTATIONS, members = NO_MEMBERS, onSaveMeal, onRetireMeal, libraryStale = false, savingMeal = false, startEditing = false }: {
   household: Household; meals: MealRow[]; initial: Plan | null; building: boolean
-  /** `countInventory`: whether what is on hand is counted against this plan — asked only when it was not (a NEXT cycle, or a rebuild of a plan built without it), otherwise always (Codex, rounds 15 and 16). */
-  onBuild: (plan: Plan, opts: { countInventory: boolean }) => void
-  /** Ask whether to count what is on hand: anything but a rebuild of a plan that already counted it — the saved choice stands unless changed here. */
-  askInventory?: boolean
-  /** The ask's default: on when what is on hand was saved after the newest plan was built, off when a cycle has been eating it (Codex, round 17). */
-  countByDefault?: boolean
+  /** Use this menu: the nights go on to step 2, where what is already in the kitchen is ticked off before the list is built (FOR-281). Whether what is on hand counts is decided there and at the build, never here. */
+  onBuild: (plan: Plan) => void
+  /** Open on the nights rather than on the card (FOR-281). The card is the default; a plan with something to fix opens on its nights whatever this says. */
+  startEditing?: boolean
   /** The cycles already planned and where this plan would land — the rules that look across cycles read it (Codex, rounds 10, 13, 14). */
   cycles?: PlanContext
   /** The rotations the picks can start from, and their membership (FOR-238). None before the rotations migration is applied: no rotation control. */
@@ -216,7 +218,6 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   const frozenSlugs = useMemo(() => unrecordedSlugs(cycles?.history ?? []), [cycles])
   const drawerRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (drawer) drawerRef.current?.scrollIntoView({ block: 'start' }) }, [drawer])
-  const [countInventory, setCountInventory] = useState(countByDefault)
   const warnings = useMemo(() => validatePlan({ entries }, meals, household, { cycles }), [entries, meals, household, cycles])
   // Every warning placed on the night, the week or the plan it belongs to —
   // the rule still gates the build; this only says where to look (FOR-241).
@@ -225,8 +226,13 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   // there is no rotation state here to disagree with them. Starting from a
   // rotation puts every night back to it, each meal at its usual week.
   const current = useMemo(() => rotationOf(entries, rotations, members), [entries, rotations, members])
-  const rotationName = current ? sortedRotations(rotations).find((r) => r.slug === current)?.name.toLowerCase() ?? null : null
-  const startFrom = (slug: string) => { setEntries(rotationEntries(slug, members, meals, household)); setDrawer(null) }
+  const currentRow = current ? sortedRotations(rotations).find((r) => r.slug === current) ?? null : null
+  const rotationName = currentRow?.name.toLowerCase() ?? null
+  // FOR-281: the other menus, each as a card, and the nights behind "change a
+  // night". Picking another menu puts every night back to it and closes both.
+  const [choosing, setChoosing] = useState(false)
+  const [editing, setEditing] = useState(startEditing)
+  const startFrom = (slug: string) => { setEntries(rotationEntries(slug, members, meals, household)); setDrawer(null); setChoosing(false); setEditing(false) }
   const cap = maxServings(household)
   const nightsIn = (w: number) => entries.flatMap((e, i) => (e.week === w ? [{ e, i }] : []))
   const roomIn = (w: number) => nightsIn(w).length < household.nights_per_week
@@ -244,33 +250,77 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
     setDrawer(null)
   }
 
+  // A plan that cannot be used as it stands opens on its nights: the night to
+  // fix, or the gap to fill, is on screen without a tap (FOR-281).
+  const showNights = editing || !complete || warnings.length > 0 || !!drawer
+  const others = sortedRotations(rotations).filter((r) => r.slug !== current)
+  const dinnersOf = (list: PlanEntry[], w: number) => list.filter((e) => e.week === w).map((e) => bySlug.get(e.slug)?.name.toLowerCase()).filter((n): n is string => !!n)
+
   if (recipe && recipeMeal) return <RecipeView meal={recipeMeal} household={household} servings={recipe.servings} onClose={() => setRecipe(null)} />
 
   return (
     <div className="space-y-3" ref={planRef}>
-      <section className="tile p-5 space-y-2">
-        <p className="eyebrow-mono">{weeks === 2 ? 'the fortnight' : 'the week'}</p>
-        <h2 className="text-[26px] lowercase">{weeks === 2 ? 'your dinners for the next two weeks' : 'your dinners for the week'}</h2>
-        <p className="text-sm text-muted-foreground">
-          {household.nights_per_week} nights a week. every night below goes on your shopping list — swap or remove any of them, then build the list.
-        </p>
-        {rotations.length > 1 && (
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <p className="eyebrow-mono">{rotationName ? `started from ${rotationName}` : 'your own picks'}</p>
-            {sortedRotations(rotations).filter((r) => r.slug !== current).map((r) => (
-              <button key={r.slug} type="button" onClick={() => startFrom(r.slug)} className="pill-quiet px-3 py-1.5 text-[12px] lowercase">
-                start from {r.name.toLowerCase()}
-              </button>
-            ))}
+      <section className="tile p-5 space-y-3" aria-label="this menu">
+        <div>
+          <p className="eyebrow-mono">{weeks === 2 ? 'your dinners for the next two weeks' : 'your dinners for the week'}</p>
+          <h2 className="text-[26px] lowercase mt-1">{rotationName ?? 'your own menu'}</h2>
+          {currentRow?.note && <p className="text-sm text-muted-foreground mt-1">{currentRow.note}</p>}
+        </div>
+        {!showNights && weekList.map((w) => (
+          <div key={w} className="space-y-1">
+            {weeks === 2 && <p className="eyebrow-mono-sm">week {w}</p>}
+            <ol className="space-y-1">
+              {nightsIn(w).map(({ e, i }, n) => {
+                const m = bySlug.get(e.slug)
+                if (!m) return null
+                return (
+                  <li key={`${i}-${e.slug}`}>
+                    <button type="button" className="row-recessed w-full px-3.5 py-2.5 text-left flex items-baseline gap-3" data-recipe-opener={`menu-${i}`} aria-label={`recipe for ${m.name.toLowerCase()}`} onClick={() => openRecipe(`menu-${i}`, e.slug, e.servings)}>
+                      <span className="data-mono shrink-0">{n + 1}</span>
+                      <span className="text-sm lowercase min-w-0">{m.name}</span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
           </div>
-        )}
+        ))}
+        <p className="text-sm text-muted-foreground">
+          {household.nights_per_week} nights a week. every dinner here goes on your shopping list.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {others.length > 0 && (
+            <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase" aria-expanded={choosing} onClick={() => setChoosing((c) => !c)}>
+              {choosing ? 'keep this menu' : 'choose a different menu'}
+            </button>
+          )}
+          <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase" aria-expanded={showNights} onClick={() => { setEditing(!showNights); if (showNights) setDrawer(null) }}>
+            {showNights ? 'done changing nights' : 'change a night'}
+          </button>
+        </div>
       </section>
+
+      {choosing && others.map((r) => {
+        const theirs = rotationEntries(r.slug, members, meals, household)
+        return (
+          <section key={r.slug} className="tile p-5 space-y-2" aria-label={r.name.toLowerCase()}>
+            <h3 className="text-xl lowercase">{r.name}</h3>
+            {r.note && <p className="text-sm text-muted-foreground">{r.note}</p>}
+            {weekList.map((w) => (
+              <p key={w} className="text-[12px] text-muted-foreground lowercase">
+                {weeks === 2 && <span className="eyebrow-mono-sm mr-2">week {w}</span>}{dinnersOf(theirs, w).join(' · ')}
+              </p>
+            ))}
+            <button type="button" className="pill-quiet px-3 py-1.5 text-[12px] lowercase font-semibold" onClick={() => startFrom(r.slug)}>pick {r.name.toLowerCase()}</button>
+          </section>
+        )
+      })}
 
       {retired.length > 0 && (
         <p className="status-msg text-[12px]" role="status">{droppedMessage(retired)}</p>
       )}
 
-      {weekList.map((w) => (
+      {showNights && weekList.map((w) => (
         <section key={w} className="tile p-5 space-y-3" aria-label={weeks === 2 ? `week ${w}` : 'this week'}>
           <div className="flex items-baseline justify-between gap-3">
             <p className="eyebrow-mono">{weeks === 2 ? `week ${w}` : 'this week'}</p>
@@ -350,17 +400,6 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
         </div>
       )}
 
-      {askInventory && household.inventory.length > 0 && (
-        <div className="tile p-3 space-y-2">
-          <p className="text-[12px] text-muted-foreground">
-            {countByDefault ? 'What is on hand was updated after the last plan was built, so it counts against this one unless you say otherwise.' : 'What is on hand has not been updated since the last plan was built — a cycle has been eating it. Count it only if it will still be there.'}
-          </p>
-          <button type="button" onClick={() => setCountInventory((c) => !c)} aria-pressed={countInventory}
-            className={`pill-quiet px-3 py-1.5 text-[12px] lowercase ${countInventory ? 'font-semibold' : ''}`}>
-            {countInventory ? 'counting what\'s on hand again' : 'count what\'s on hand again'}
-          </button>
-        </div>
-      )}
       {issues.plan.length > 0 && (
         <div className="status-msg danger text-[12px] space-y-1" role="status">
           {issues.plan.map((t) => <p key={t}>{t}</p>)}
@@ -368,8 +407,8 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
       )}
 
       <button type="button" className="pill-volt w-full py-3 text-sm" disabled={!complete || building || savingMeal || libraryStale || warnings.length > 0}
-        onClick={() => onBuild({ entries }, { countInventory: askInventory ? countInventory : true })}>
-        {building ? 'building the list…' : missing > 0 ? `add ${missing} more night${missing === 1 ? '' : 's'} to build the list` : !complete || warnings.length > 0 ? 'fix the flagged nights to build the list' : 'build the shopping list'}
+        onClick={() => onBuild({ entries })}>
+        {building ? 'one moment…' : missing > 0 ? `add ${missing} more night${missing === 1 ? '' : 's'} to use this menu` : !complete || warnings.length > 0 ? 'fix the flagged nights to use this menu' : 'use this menu'}
       </button>
     </div>
   )

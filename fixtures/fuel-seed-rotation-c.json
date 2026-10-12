@@ -25,27 +25,27 @@
   "fuel_rotations": [
     {
       "slug": "rotation-c1",
-      "name": "Soup Fortnight One",
+      "name": "Soup season 1",
       "sort_order": 3,
-      "note": "Week 1 is Fortnight One's first week with beef and barley stew in place of the ribeye. Week 2 is Fortnight Two's second week with chicken tortilla soup in place of the jerk thighs."
+      "note": "Beef and barley stew one week, chicken tortilla soup the next."
     },
     {
       "slug": "rotation-c2",
-      "name": "Soup Fortnight Two",
+      "name": "Soup season 2",
       "sort_order": 4,
-      "note": "Week 1 is Fortnight One's first week with white chicken chili in place of the chili-lime thighs. Week 2 is Fortnight Two's second week with Italian wedding soup in place of the turkey meatballs."
+      "note": "White chicken chili one week, Italian wedding soup the next."
     },
     {
       "slug": "rotation-c3",
-      "name": "Soup Fortnight Three",
+      "name": "Soup season 3",
       "sort_order": 5,
-      "note": "Week 1 is Fortnight One's first week with pork green chili in place of the ribeye. Week 2 is Fortnight Two's second week with lentil and sausage soup in place of the tandoori chicken."
+      "note": "Pork green chili one week, lentil and sausage soup the next."
     },
     {
       "slug": "rotation-c4",
-      "name": "Soup Fortnight Four",
+      "name": "Soup season 4",
       "sort_order": 6,
-      "note": "Week 1 is Fortnight One's first week with turkey chili in place of the Greek turkey bowl. Week 2 is Fortnight Two's second week with zuppa toscana in place of the jerk thighs."
+      "note": "Turkey chili one week, zuppa toscana the next."
     }
   ],
   "fuel_rotation_meals": [

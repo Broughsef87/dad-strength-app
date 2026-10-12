@@ -62,8 +62,8 @@ ON CONFLICT (slug) DO UPDATE SET
 -- ── The rotations ────────────────────────────────────────────────────────
 INSERT INTO public.fuel_rotations (slug, name, sort_order, note)
 VALUES
-  ('rotation-a', 'Fortnight One', 1, 'The original eight. Ran Aug 24 – Sep 14, 2026.'),
-  ('rotation-b', 'Fortnight Two', 2, 'Five new meals plus the three keepers. Same cut mix as rotation A — ribeye 1, chicken thigh 2, ground turkey 2, fish 2, chicken breast 1 — so the Costco shop is identical in shape and cost. Every spice profile and format is new against rotation A.')
+  ('rotation-a', 'Everyday menu 1', 1, 'The original eight: ribeye, chili-lime thighs, lemon-garlic salmon, turkey bowls and burgers, blackened cod and a stir-fry.'),
+  ('rotation-b', 'Everyday menu 2', 2, 'Same shop, new flavours: miso salmon, jerk thighs, turkey meatballs, tandoori chicken and cod tacos.')
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name, sort_order = EXCLUDED.sort_order, note = EXCLUDED.note;
 

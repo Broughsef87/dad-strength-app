@@ -101,7 +101,7 @@ export default function IntakeForm({ initial, meals = NO_MEALS, saving, onSave }
           <p className="text-sm lowercase">main shop every</p>
           <div className="flex gap-2">
             <Chip on={h.shop_cadence_days === 7} label="week" onClick={() => set({ shop_cadence_days: 7 })} />
-            <Chip on={h.shop_cadence_days === 14} label="fortnight" onClick={() => set({ shop_cadence_days: 14 })} />
+            <Chip on={h.shop_cadence_days === 14} label="two weeks" onClick={() => set({ shop_cadence_days: 14 })} />
           </div>
         </div>
       </section>
@@ -133,11 +133,14 @@ export default function IntakeForm({ initial, meals = NO_MEALS, saving, onSave }
 
       <section className="tile p-4 space-y-2">
         <p className="eyebrow-mono">already on hand</p>
-        <p className="text-[12px] text-muted-foreground">Freezer and pantry. What is here comes off the list before you shop.</p>
+        <p className="text-[12px] text-muted-foreground">Freezer and pantry that lasts. What is here comes off the list before you shop — and each week you tick off the rest on the list itself.</p>
         <p className="text-[11px] text-muted-foreground">only ingredients your meals use can come off the list{known.size === 0 ? ' — none are loaded yet' : ''}</p>
-        {h.inventory.length > 0 && (
+        {h.inventory.some((inv) => inv.covers === undefined) && (
           <ul className="space-y-1">
             {h.inventory.map((inv, i) => {
+              // A "have it" tick belongs to the list it was made on (FOR-281): it
+              // is kept on save, and is not stock to edit here.
+              if (inv.covers !== undefined) return null
               const issue = issues.get(i)
               return (
                 <li key={`${inv.item}-${i}`} className="row-recessed px-3 py-2 text-sm space-y-2">

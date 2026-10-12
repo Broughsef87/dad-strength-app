@@ -222,6 +222,33 @@ export async function saveHousehold(db: Db, userId: string, h: Household) {
 }
 
 /**
+ * What step 2 gathered, saved as the household's rows on hand before a build
+ * (FOR-281). ONE column: the rules and the people are not this write's to
+ * carry, so a rule changed in another tab is never put back by a build here.
+ *
+ * `updated_at` is deliberately NOT moved. That stamp is how the page tells
+ * stock counted since the newest plan from stock a week has been eating
+ * (inventoryFresh, FOR-177 round 17), and this save lands a moment before the
+ * plan it is for — on the client's clock, against the database's. Stamping it
+ * would make "was it saved after the plan?" a race between two clocks, and
+ * last week's stock would count again unasked whenever the phone ran ahead.
+ * Only a save from settings says the stock was counted afresh.
+ */
+export async function saveOnHand(db: Db, userId: string, rows: Household['inventory'], loaded: Household['inventory']): Promise<{ error: { code?: string; message?: string } | null; changedElsewhere: boolean }> {
+  // Only over the inventory this page LOADED (Codex r1, r2): step 2 opened on
+  // that copy of the stock, so if it has changed since — a pound added to the
+  // freezer in another tab's settings, or another tab's step 2 building its
+  // own list — writing these rows would erase that, or leave the newest list
+  // snapshotting rows the household no longer holds. The column itself is the
+  // witness, compared by the database as jsonb: no row matched means it moved,
+  // nothing is written, and the athlete is told to reload.
+  const { data, error } = await db.from('fuel_household').update({ inventory: rows }).eq('user_id', userId).eq('inventory', JSON.stringify(loaded)).select('user_id').maybeSingle()
+  if (error) return { error, changedElsewhere: false }
+  if (!data) return { error: { message: 'what you have on hand was changed somewhere else since this page loaded — reload, then tick what you have again' }, changedElsewhere: true }
+  return { error: null, changedElsewhere: false }
+}
+
+/**
  * The live cycle's newest plan and its list. A fortnight plan stays live for
  * fourteen days from its start (cycle.ts), so the second week — and the
  * second trip — is still on the page.

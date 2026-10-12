@@ -47,6 +47,8 @@ export const MEAT_SECTION = 'Meat & Seafood'
 export const PRODUCE_SECTION = 'Produce'
 export const SECOND_TRIP_SECTION = 'Second trip'
 export const STOCKED_SECTION = 'Stocked'
+/** Why a line ticked "have it" needs no purchase (FOR-281). */
+export const HAVE_IT_REASON = 'you have it'
 
 /** Unit conversions the inventory subtraction understands. Everything else must match units exactly. */
 const TO_BASE: Record<string, { base: string; factor: number }> = {
@@ -123,6 +125,9 @@ export function inventoryIssues(inventory: InventoryItem[], meals: Pick<MealRow,
   if (unitsOf.size === 0) return []
   const issues: InventoryIssue[] = []
   inventory.forEach((inv, index) => {
+    // A "have it" tick is about one line of one list, not a name the athlete
+    // typed: it has nothing to re-pick, so it is never an issue (FOR-281).
+    if (inv.covers !== undefined) return
     const units = unitsOf.get(norm(inv.item))
     if (!units) { issues.push({ index, item: inv.item, unit: inv.unit, reason: 'not-an-ingredient', units: [] }); return }
     const onHand = TO_BASE[norm(inv.unit)]
@@ -135,8 +140,8 @@ export function inventoryIssues(inventory: InventoryItem[], meals: Pick<MealRow,
 /** The same rows, worded for a person: what is wrong, and what to do about it. */
 export function inventoryWarnings(inventory: InventoryItem[], meals: Pick<MealRow, 'ingredients'>[]): string[] {
   return inventoryIssues(inventory, meals).map((i) => (i.reason === 'not-an-ingredient'
-    ? `"${i.item}" is on hand, but no meal uses an ingredient by that name, so nothing comes off the list for it. In the household, pick the ingredient you mean, or remove it.`
-    : `"${i.item}" is on hand in ${i.unit}, but the meals measure it in ${i.units.join(' or ')}, so nothing comes off the list for it. In the household, remove it and add it again in ${i.units.join(' or ')}.`))
+    ? `"${i.item}" is on hand, but no meal uses an ingredient by that name, so nothing comes off the list for it. In settings, pick the ingredient you mean, or remove it.`
+    : `"${i.item}" is on hand in ${i.unit}, but the meals measure it in ${i.units.join(' or ')}, so nothing comes off the list for it. In settings, remove it and add it again in ${i.units.join(' or ')}.`))
 }
 const round = (n: number) => Math.round(n * 100) / 100
 
@@ -421,7 +426,19 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
   for (const [key, b] of allocation) {
     let need = b.need
     let reason: string | undefined
+    // FOR-281: a tick is an AMOUNT OF THIS LINE the athlete has, by the line's
+    // own key, in the unit and the terms the line is bought in — and it counts
+    // toward this line and no other. A line ticked "have it" carries the whole
+    // amount, so nothing is left to buy. The stock on hand is spent on the
+    // line FIRST, exactly as on any line, and the tick covers what is left:
+    // "I have it" includes the pound already counted in the freezer, so that
+    // pound must not also come off the next line (Codex r7). And because a
+    // tick is an amount, it never covers more than it was made on: servings
+    // doubled on a rebuild double the line under the same key, and the extra
+    // was never said to be in the kitchen, so the extra is bought (Codex r3).
+    const tick = inventory.find((inv) => inv.covers === key)
     for (const inv of inventory) {
+      if (inv.covers !== undefined) continue
       if (norm(inv.item) !== norm(b.item) || inv.left <= 0) continue
       const a = TO_BASE[norm(b.unit)], c = TO_BASE[norm(inv.unit)]
       let available: number
@@ -441,8 +458,14 @@ export function buildShoppingList(household: Household, meals: MealRow[], plan: 
         : `${inv.qty} ${inv.unit} on hand`
       if (need <= 0) break
     }
-    // What still has to reach the table, scaled to what must be bought.
-    const qty = need <= 0 ? 0 : need * (b.diverted ? mult : 1)
+    // What still has to reach the table, scaled to what must be bought — less
+    // what the tick says is already there. Compared as the line is shown, to
+    // two places, so a whole tick never leaves a sliver of its line behind.
+    let qty = need <= 0 ? 0 : need * (b.diverted ? mult : 1)
+    if (tick && qty > 0) {
+      qty = round(qty) <= tick.qty ? 0 : qty - tick.qty
+      if (qty <= 0) reason = HAVE_IT_REASON
+    }
     const line: ListItem = {
       key, item: b.item, qty: round(Math.max(0, qty)), unit: b.unit, section: b.section,
       from: [...b.from].sort(), second_trip: b.second_trip, inferred: b.inferred,
