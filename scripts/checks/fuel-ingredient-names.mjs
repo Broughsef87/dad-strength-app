@@ -224,7 +224,11 @@ const TWO_UNITS = {
     const line = reverts.find((l) => l.endsWith(`WHERE slug = ${q(r.slug)} AND user_id IS NULL;`)) ?? ''
     const was = JSON.parse((line.match(/ingredients = '(.*)'::jsonb/)?.[1] ?? '[]').replace(/''/g, "'"))
     assert(was.some((i) => Object.keys(r.was).every((k) => i[k] === r.was[k])), `the revert gives ${r.slug} its "${r.was.item}" back as it was`)
-    assert(!live.some((l) => l.includes(JSON.stringify(r.was).slice(1, -1)) && l.includes(q(r.slug))), `and the migration itself no longer writes it`)
+    // Read as rows, not as text: a field order the SQL does not use cannot hide it (Codex r1).
+    const stmt = live.find((l) => l.endsWith(`WHERE slug = ${q(r.slug)} AND user_id IS NULL;`)) ?? ''
+    const now = JSON.parse((stmt.match(/ingredients = '(.*)'::jsonb/)?.[1] ?? '[]').replace(/''/g, "'"))
+    assert(now.length > 0 && !now.some((i) => Object.keys(r.was).every((k) => i[k] === r.was[k])), `and the migration itself no longer writes it`)
+    assert(now.some((i) => Object.keys(r.now).every((k) => i[k] === r.now[k])), `it writes ${r.slug}'s "${r.now.item}" as the fixture names it`)
   }
   // The connector that applies SQL to production hangs on a semicolon inside
   // a string literal, so a statement has exactly one: its last character.
@@ -243,6 +247,9 @@ const TWO_UNITS = {
   refuses((s) => { s.fuel_ingredient_renames[0].was.item = 'garlic powder' }, 'a rename whose old name is still in the meal')
   refuses((s) => { s.fuel_ingredient_renames = [] }, 'an empty list of renames')
   refuses((s) => { s.fuel_meals_new = [] }, 'a meal arriving in this fixture')
+  // A rename that only looks like one: the two sides differ as written and the meal is left as it is.
+  refuses((s) => { s.fuel_ingredient_renames[0] = { slug: 'chili-lime-thighs', was: { item: 'ground cumin', unit: 'tsp' }, now: { item: 'ground cumin' } } }, 'a was that names a field now does not')
+  refuses((s) => { s.fuel_ingredient_renames[0].was = { ...s.fuel_ingredient_renames[0].now } }, 'a rename to itself')
 }
 
 if (failures) { console.log(`\nfuel-ingredient-names: ${failures} of ${failures + passes} checks FAILED`); process.exit(1) }

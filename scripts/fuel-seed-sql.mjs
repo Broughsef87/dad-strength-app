@@ -666,7 +666,10 @@ export function renderIngredientNames(seed, pair) {
       const odd = Object.keys(r[side]).filter((k) => !RENAME_KEYS.includes(k))
       if (odd.length) throw new Error(`${r.slug}: ${side} carries ${odd.join(', ')} — a rename moves ${RENAME_KEYS.join(', ')} and nothing else`)
     }
-    if (RENAME_KEYS.every((k) => r.was[k] === r.now[k])) throw new Error(`${r.slug}: "${r.was.item}" is renamed to itself`)
+    // Both sides name the SAME fields, so `was` puts back exactly what `now`
+    // took away. A `was` with a field `now` leaves out could differ from it
+    // on paper and still change nothing in the meal (Codex r1).
+    if (Object.keys(r.was).sort().join() !== Object.keys(r.now).sort().join()) throw new Error(`${r.slug}: was and now must name the same fields — was has ${Object.keys(r.was).join(', ')}, now has ${Object.keys(r.now).join(', ')}`)
     const meal = library.get(r.slug)
     if (!meal) throw new Error(`${r.slug}: is not a seeded meal — the update would match no row`)
     const now = meal.ingredients.filter((i) => sameLine(i, r.now))
@@ -677,6 +680,9 @@ export function renderIngredientNames(seed, pair) {
     const list = before.get(r.slug) ?? meal.ingredients.map((i) => ({ ...i }))
     const line = list.filter((i) => sameLine(i, r.now))
     if (line.length !== 1) throw new Error(`${r.slug}: two renames land on "${r.now.item}"`)
+    // Judged on the ingredient itself, not on the two descriptions of it: the
+    // revert must come out different from what the migration writes.
+    if (RENAME_KEYS.every((k) => !(k in r.was) || line[0][k] === r.was[k])) throw new Error(`${r.slug}: "${r.was.item}" is renamed to itself — the revert would change nothing`)
     Object.assign(line[0], r.was)
     before.set(r.slug, list)
   }
