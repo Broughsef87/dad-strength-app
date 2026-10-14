@@ -19,6 +19,14 @@ export interface RulesSnapshot {
   inventory_counted?: boolean
   store_section_order: string[]
   entries: Plan['entries']
+  /**
+   * The menu the plan was built from (FOR-279). It rides in the snapshot
+   * because the snapshot is what the one write, fuel_create_version, stores:
+   * fuel_plans.rotation_slug is generated from this key, so the column and the
+   * snapshot cannot disagree. Absent on plans built before it, and on a plan
+   * built from no menu.
+   */
+  rotation_slug?: string
 }
 
 export function snapshot(household: Household, plan: Plan, inventoryCounted = true): RulesSnapshot {
@@ -38,6 +46,8 @@ export function snapshot(household: Household, plan: Plan, inventoryCounted = tr
     // the day the database began writing records, every plan already built
     // would read as stale. The record is history, not a rule.
     entries: plan.entries.map(withoutRecord),
+    // Left out entirely when there is none: a key holding null is still a key.
+    ...(plan.rotation ? { rotation_slug: plan.rotation } : {}),
   }
 }
 
@@ -49,7 +59,12 @@ export function snapshot(household: Household, plan: Plan, inventoryCounted = tr
  * and make a dietary-rule change invisible).
  */
 export function snapshotKey(s: RulesSnapshot): string {
-  return canonical(s)
+  // WITHOUT the menu (FOR-279), for the reason the record is left out of the
+  // entries: a plan is compared on its rules and its nights. The page compares
+  // a stored snapshot with one built fresh from the stored nights, which names
+  // no menu — so with the menu in the key, every plan that recorded one would
+  // read as stale the moment it was built.
+  return canonical({ ...s, rotation_slug: undefined })
 }
 
 // A key whose value is undefined is omitted, as JSON omits it: a list or a

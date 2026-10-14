@@ -131,6 +131,8 @@ export interface AsPlanned {
 
 export interface Plan {
   entries: PlanEntry[]
+  /** The menu these nights were built from, by slug — recorded on the plan when it is built (FOR-279). Null or absent: built from no menu, or before menus were recorded. */
+  rotation?: string | null
 }
 
 /** One line on the shopping list. */

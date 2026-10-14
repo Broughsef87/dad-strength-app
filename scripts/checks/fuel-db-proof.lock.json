@@ -2,8 +2,8 @@
   "image": "public.ecr.aws/supabase/postgres:17.6.1.156",
   "proof": {
     "file": "scripts/checks/fuel-db-proof.sql",
-    "sha256": "19e6d558a52e58c27dd7de5884e195745191a576d7823dc545da480cb932da45",
-    "cases": 29
+    "sha256": "29233d5d6ae1adc3e52ea405a1f424b6e6c45c616ecbec5e442f14fe03c3d458",
+    "cases": 30
   },
   "migrations": [
     {
@@ -57,6 +57,10 @@
     {
       "file": "supabase/migrations/20261014_fuel_ingredient_names.sql",
       "sha256": "d63ddb1276e372bf0f479d6ff0ea8e1bc2f245da4ab260f0985baea0f1550039"
+    },
+    {
+      "file": "supabase/migrations/20261015_fuel_plan_rotation.sql",
+      "sha256": "e705a57d44147d51f6a7386477e93d11834ed580ac55ba4c5e1d154fe6f9536e"
     }
   ],
   "comparator": [
