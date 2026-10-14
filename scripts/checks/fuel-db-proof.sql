@@ -533,6 +533,36 @@ BEGIN
 END
 $t$;
 
+-- 29. the menu a plan was built from is recorded on the plan (FOR-279). The app
+--     sends it in rules_snapshot; the column is generated from that key, so
+--     both version functions record it without knowing about it, and nothing
+--     can write the column on its own.
+DO $t$
+DECLARE v jsonb; got text;
+BEGIN
+  v := public.fuel_create_version_with_staples('2026-11-30', '[]'::jsonb, '{"rotation_slug":"rotation-c3","people_count":2}'::jsonb, '[]'::jsonb);
+  SELECT rotation_slug INTO got FROM public.fuel_plans WHERE id = (v->>'plan_id')::uuid;
+  IF got IS DISTINCT FROM 'rotation-c3' THEN RAISE EXCEPTION 'FAIL a plan built from rotation-c3 records %', got; END IF;
+  -- The older function, called directly as an old tab would: the same record.
+  v := public.fuel_create_version('2026-11-30', '[]'::jsonb, '{"rotation_slug":"rotation-b"}'::jsonb, '[]'::jsonb);
+  SELECT rotation_slug INTO got FROM public.fuel_plans WHERE id = (v->>'plan_id')::uuid;
+  IF got IS DISTINCT FROM 'rotation-b' THEN RAISE EXCEPTION 'FAIL fuel_create_version directly records %', got; END IF;
+  -- The first version keeps its own record: a rebuild from another menu is a new row.
+  IF (SELECT rotation_slug FROM public.fuel_plans WHERE user_id = auth.uid() AND week_start = '2026-11-30' AND version = 1) IS DISTINCT FROM 'rotation-c3' THEN
+    RAISE EXCEPTION 'FAIL an older version lost the menu it was built from'; END IF;
+  -- A plan built from no menu, or by a client that predates the record: NULL.
+  v := public.fuel_create_version('2026-11-30', '[]'::jsonb, '{}'::jsonb, '[]'::jsonb);
+  SELECT rotation_slug INTO got FROM public.fuel_plans WHERE id = (v->>'plan_id')::uuid;
+  IF got IS NOT NULL THEN RAISE EXCEPTION 'FAIL a plan built from no menu records %', got; END IF;
+  -- And the record cannot be moved afterwards.
+  BEGIN
+    UPDATE public.fuel_plans SET rotation_slug = 'rotation-a' WHERE id = (v->>'plan_id')::uuid;
+    RAISE EXCEPTION 'FAIL the menu on a stored plan was written directly';
+  EXCEPTION WHEN generated_always THEN NULL; END;
+  RAISE NOTICE 'PASS 29 (FOR-279) the menu a plan was built from is recorded on the plan by both version functions, is NULL when there is none, and cannot be written on its own';
+END
+$t$;
+
 -- 10. someone else cannot touch the list, see the staples, or plant one
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000002ff","role":"authenticated"}', true);
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-0000000002ff', true);

@@ -503,7 +503,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/if \(incomingKey !== seenKey\) \{\n\s+setSeenKey\(incomingKey\)\n\s+if \(!dirty \|\| incomingKey === JSON\.stringify\(h\)\) \{ setH\(initial\); setDirty\(false\); setConflict\(false\) \} else setConflict\(true\)/.test(inf18) && /disabled=\{saving \|\| conflict\}/.test(inf18) && /reload what was saved/.test(inf18) && /setH\(\{ \.\.\.h, \.\.\.patch \}\); setDirty\(true\)/.test(inf18),
     'an untouched intake draft follows a household changed elsewhere; a touched one shows the conflict and cannot save over it until reloaded')
   const st17 = readLF('src/lib/fuel/store.ts')
-  assert(/updated_at: new Date\(\)\.toISOString\(\),/.test(st17) && /updatedAt: typeof data\.updated_at === 'string' \? data\.updated_at : null/.test(st17) && /select\('id, week_start, version, meal_ids, rules_snapshot, created_at'\)/.test(st17) && /created_at: row\.updated_at \}/.test(st17),
+  assert(/updated_at: new Date\(\)\.toISOString\(\),/.test(st17) && /updatedAt: typeof data\.updated_at === 'string' \? data\.updated_at : null/.test(st17) && /const PLAN_COLUMNS = 'id, week_start, version, meal_ids, rules_snapshot, created_at'/.test(st17) && /await recentPlans\(`\$\{PLAN_COLUMNS\}, rotation_slug`\)/.test(st17) && /created_at: row\.updated_at \}/.test(st17),
     'the household save is stamped, and both stamps are read back, so freshness can be judged')
   // round 17's wake refresh is DELETED (FOR-233, Codex r3): the page re-reads only when the database refuses a tick, and on the retry of a failed re-read.
   // Pinned by how many times the code NAMES `refresh`, not by trigger names: a trigger re-added in any form has to name it to call it (FOR-233, review of ad68a14).
@@ -860,10 +860,13 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/if \(error\) return \{ rotations: \[\], members: \[\], error: isMissingTable\(error\) \? null : error \}/.test(st11) && /from\('fuel_rotations'\)\.select\('slug, name, sort_order, note'\)/.test(st11) && /from\('fuel_rotation_meals'\)\.select\('rotation_slug, meal_slug, week, sort_order'\)/.test(st11),
     'before the rotations migration is applied, Fuel runs as it did: no rotations, and never "not ready"')
   const pb11 = readLF('src/components/fuel/PlanBuilder.tsx')
-  assert(/const startFrom = \(slug: string\) => \{ setEntries\(rotationEntries\(slug, members, meals, household\)\); setDrawer\(null\); setChoosing\(false\); setEditing\(false\) \}/.test(pb11) && /onClick=\{\(\) => startFrom\(r\.slug\)\}/.test(pb11),
+  assert(/const startFrom = \(slug: string\) => \{ setStarted\(slug\); setEntries\(rotationEntries\(slug, members, meals, household\)\); setDrawer\(null\); setChoosing\(false\); setEditing\(false\) \}/.test(pb11) && /onClick=\{\(\) => startFrom\(r\.slug\)\}/.test(pb11),
     'the switcher starts the picks over from a rotation')
-  assert(/const current = useMemo\(\(\) => rotationOf\(entries, rotations, members\), \[entries, rotations, members\]\)/.test(pb11) && /\{rotationName \?\? 'your own menu'\}/.test(pb11) && /\.filter\(\(r\) => r\.slug !== current\)/.test(pb11) && /\{others\.length > 0 && \(/.test(pb11) && !/useState<string/.test(pb11),
-    'the switcher shows which rotation the picks are, read from the picks, with no rotation state beside them')
+  // FOR-279: the builder holds the rotation the picks were STARTED from, and
+  // that one string is the only state beside the picks — which rotation they
+  // ARE is still decided against them, in chosenRotation, on every render.
+  assert(/const current = useMemo\(\(\) => chosenRotation\(started, entries, rotations, members\), \[started, entries, rotations, members\]\)/.test(pb11) && /\{rotationName \?\? 'your own menu'\}/.test(pb11) && /\.filter\(\(r\) => r\.slug !== current\)/.test(pb11) && /\{others\.length > 0 && \(/.test(pb11) && (pb11.match(/useState<string/g) || []).length === 1 && /const \[started, setStarted\] = useState<string \| null>\(initial\?\.rotation \?\? null\)/.test(pb11),
+    'the switcher shows which rotation the picks are: the one they were started from, judged against the picks, and no other rotation state')
   // acceptance 6: ticks persist on reload exactly as FOR-177 shipped them
   for (const f of ['src/components/fuel/Checklist.tsx', 'src/lib/fuel/ticks.ts', 'supabase/migrations/20260916_fuel_tick_superseded_guard.sql']) {
     assert(!/rotation/i.test(readLF(f)), `${f} is untouched by rotations — ticks persist on reload as they shipped`)

@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { Household, MealRow, Plan, PlanEntry, RotationMealRow, RotationRow } from '../../lib/fuel/types'
 import { cycleWeeks, defaultServings, validatePlan, type PlanContext } from '../../lib/fuel/solve'
-import { rotationEntries, rotationOf, sortedRotations } from '../../lib/fuel/rotation'
+import { chosenRotation, rotationEntries, sortedRotations } from '../../lib/fuel/rotation'
 import { addNight, nightLine, nightSource, planIssues, reconcileDraft, removeNight, setServings, swapNight, withinCap } from '../../lib/fuel/planner'
 import { isOwn, type OwnMealDraft } from '../../lib/fuel/ownMeal'
 import { isRecorded, unrecordedSlugs } from '../../lib/fuel/record'
@@ -222,17 +222,23 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
   // Every warning placed on the night, the week or the plan it belongs to —
   // the rule still gates the build; this only says where to look (FOR-241).
   const issues = useMemo(() => planIssues(warnings, entries, meals), [warnings, entries, meals])
-  // FOR-238: which rotation the picks are is read from the picks themselves —
-  // there is no rotation state here to disagree with them. Starting from a
+  // FOR-279: which rotation the picks are is the one they were STARTED from —
+  // the menu the builder opened on, or the one tapped since — for as long as
+  // most of them are still its dinners (chosenRotation). It used to be read
+  // from the picks alone (FOR-238), and the soup menus share too many dinners
+  // with the everyday ones for that: a cook cap that leaves the soups out and
+  // the picks say nothing. The start is held here and the picks still decide
+  // whether it describes them, so the two cannot drift apart. Starting from a
   // rotation puts every night back to it, each meal at its usual week.
-  const current = useMemo(() => rotationOf(entries, rotations, members), [entries, rotations, members])
+  const [started, setStarted] = useState<string | null>(initial?.rotation ?? null)
+  const current = useMemo(() => chosenRotation(started, entries, rotations, members), [started, entries, rotations, members])
   const currentRow = current ? sortedRotations(rotations).find((r) => r.slug === current) ?? null : null
   const rotationName = currentRow?.name.toLowerCase() ?? null
   // FOR-281: the other menus, each as a card, and the nights behind "change a
   // night". Picking another menu puts every night back to it and closes both.
   const [choosing, setChoosing] = useState(false)
   const [editing, setEditing] = useState(startEditing)
-  const startFrom = (slug: string) => { setEntries(rotationEntries(slug, members, meals, household)); setDrawer(null); setChoosing(false); setEditing(false) }
+  const startFrom = (slug: string) => { setStarted(slug); setEntries(rotationEntries(slug, members, meals, household)); setDrawer(null); setChoosing(false); setEditing(false) }
   const cap = maxServings(household)
   const nightsIn = (w: number) => entries.flatMap((e, i) => (e.week === w ? [{ e, i }] : []))
   const roomIn = (w: number) => nightsIn(w).length < household.nights_per_week
@@ -407,7 +413,7 @@ export default function PlanBuilder({ household, meals, initial, building, onBui
       )}
 
       <button type="button" className="pill-volt w-full py-3 text-sm" disabled={!complete || building || savingMeal || libraryStale || warnings.length > 0}
-        onClick={() => onBuild({ entries })}>
+        onClick={() => onBuild({ entries, rotation: current })}>
         {building ? 'one moment…' : missing > 0 ? `add ${missing} more night${missing === 1 ? '' : 's'} to use this menu` : !complete || warnings.length > 0 ? 'fix the flagged nights to use this menu' : 'use this menu'}
       </button>
     </div>

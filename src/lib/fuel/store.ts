@@ -48,12 +48,16 @@ export function isMissingTable(err: { code?: string; message?: string } | null |
   return err.code === '42P01' || err.code === 'PGRST205' || err.code === 'PGRST202' || /relation .* does not exist|Could not find the (table|function)/i.test(err.message ?? '')
 }
 
+const PLAN_COLUMNS = 'id, week_start, version, meal_ids, rules_snapshot, created_at'
+
 export interface PlanRow {
   id: string
   week_start: string
   version: number
   meal_ids: Plan['entries']
   rules_snapshot: RulesSnapshot
+  /** The menu this version was built from, as the database recorded it (FOR-279). Null on a plan built from no menu, or before the column existed. */
+  rotation_slug?: string | null
   /** When this version was built — the inventory's freshness is judged against it (Codex, round 17). */
   created_at?: string
 }
@@ -266,8 +270,13 @@ export async function loadActive(db: Db, userId: string, today: Date): Promise<{
   // forward (anything planned ahead), all versions, so a busy cycle's
   // history cannot crowd the live cycle out (Codex, round 5). The rows come
   // back as `recent` for the rules that look across cycles (Codex, round 10).
-  const { data: rows, error } = await db.from('fuel_plans').select('id, week_start, version, meal_ids, rules_snapshot, created_at')
+  // The menu each plan was built from comes with it (FOR-279). Before that
+  // migration is applied the column is not there: the plans are read as they
+  // always were, and which menu each ran is worked out from its nights.
+  const recentPlans = (columns: string) => db.from('fuel_plans').select(columns)
     .eq('user_id', userId).gte('week_start', historyFloor(today)).order('week_start', { ascending: false }).order('version', { ascending: false }).limit(500)
+  let { data: rows, error } = await recentPlans(`${PLAN_COLUMNS}, rotation_slug`)
+  if (error && isMissingColumn(error)) ({ data: rows, error } = await recentPlans(PLAN_COLUMNS))
   if (error || !rows?.length) return { plan: null, list: null, upcoming: null, recent: [], newestPlanAt, newestPlanKnown, error: error ?? newestError }
   const candidates = (rows as PlanRow[]).map((r) => ({ ...r, shop_cadence_days: Number(r.rules_snapshot?.shop_cadence_days ?? 7) }))
   // A cycle planned ahead is loadable before it is live (Codex, round 4) —
@@ -335,7 +344,7 @@ export async function createVersion(db: Db, weekStart: string, household: Househ
   // need to, never less.
   const mealIds = (await storedNights(db, row.plan_id)) ?? sent
   return {
-    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: mealIds, rules_snapshot: snapshot(household, plan, inventoryCounted), created_at: row.updated_at },
+    plan: { id: row.plan_id, week_start: weekStart, version: row.version, meal_ids: mealIds, rules_snapshot: snapshot(household, plan, inventoryCounted), rotation_slug: plan.rotation ?? null, created_at: row.updated_at },
     list: { id: row.list_id, plan_id: row.plan_id, version: row.version, items: stored, updated_at: row.updated_at },
     error: null,
   }

@@ -57,6 +57,8 @@ const MUST = [
   ['a cut a plan has already counted cannot be edited at the write boundary', 'the cut lock is enforced in the database, not only in the form (FOR-242)'],
   ['the meal cannot be retired', 'retiring a planned meal would drop its night from the steak allowance (FOR-242)'],
   ['and their own meal at the database', 'own meals are behind the Pro gate, like every other Fuel write (FOR-242)'],
+  // FOR-279: which menu a plan ran is on the plan, written by the database.
+  ['the menu a plan was built from is recorded on the plan by both version functions', 'a plan built from rotation-c3 reports c3 at the database, and the record cannot be moved (FOR-279)'],
 ]
 for (const [text, what] of MUST) assert(proof.includes(text), `the proof covers it: ${what}`)
 assert(now.proof.cases >= 29, `the proof keeps all its cases (${now.proof.cases})`)

@@ -59,7 +59,7 @@ import type { OwnMealDraft } from '../../lib/fuel/ownMeal'
 import { changed, inventoryFresh, listUnchanged } from '../../lib/fuel/version'
 import { buildShoppingList, householdFor, inventoryWarnings, validatePlan } from '../../lib/fuel/solve'
 import { activeCycle, cycleKeyFor, expired, newestVersion, nextCycleKey, nextCycleStart, planningMode, rebuildKey, upcomingCycle, type CycleRow } from '../../lib/fuel/cycle'
-import { builderStart } from '../../lib/fuel/rotation'
+import { builderStart, builderStartRotation } from '../../lib/fuel/rotation'
 import { planIssueSentences } from '../../lib/fuel/planner'
 
 // 'intake' is settings, behind the gear. The three steps of the flow, in order,
@@ -296,7 +296,9 @@ export default function FuelPage() {
   // the rotations migration is applied: the selected cycle's picks, as before.
   const startEntries = (targetStart: string, h: Household): Plan | null => {
     const entries = builderStart(targetStart, recent, rotations, members, meals, h, plan ? plan.meal_ids : null)
-    return entries ? { entries } : null
+    // The menu those picks are goes with them (FOR-279), so the build can
+    // record it on the plan.
+    return entries ? { entries, rotation: builderStartRotation(targetStart, recent, rotations, members) } : null
   }
 
   // FOR-242: the athlete's own meal. One write, then the LIBRARY IS RE-READ —
