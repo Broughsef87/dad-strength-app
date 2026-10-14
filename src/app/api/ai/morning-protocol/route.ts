@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
   const req = request
   try {
-    const { minutes, babyNight, energy, objectives, dayOfWeek } = await req.json()
+    const { minutes, sleepQuality, energy, objectives, dayOfWeek } = await req.json()
 
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GEMINI_API_KEY) {
       console.error('Missing Google/Gemini API key in environment');
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       system: `You are a high-performance coach for busy dads with young babies. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Goals. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
       prompt: `Today is ${dayOfWeek}.
 Available time: ${minutes} minutes
-Baby's night: ${babyNight}
+Last night's sleep: ${sleepQuality ?? 'not given'}
 Energy level: ${energy}
 Today's objectives:
 ${objectivesList}
@@ -46,7 +46,7 @@ ${objectivesList}
 Generate a morning protocol with exactly 4 steps — one for each pillar. Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading/Goals.`,
       schema: z.object({
         theme: z.string().describe("A short, punchy theme for today's morning — e.g. 'The Quiet Before the War'"),
-        greeting: z.string().describe("1-2 sentence personal greeting acknowledging the baby's night and energy level. Direct, warm, stoic."),
+        greeting: z.string().describe("1-2 sentence personal greeting acknowledging last night's sleep and energy level. Direct, warm, stoic."),
         steps: z.array(z.object({
           pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Goals']),
           minutes: z.number().describe('Minutes allocated to this pillar'),
