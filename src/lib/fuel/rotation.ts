@@ -86,21 +86,30 @@ export function planRotation(plan: RanPlan, rotations: RotationRow[], members: R
 
 /**
  * The rotation the picks in the builder are (FOR-279): the one they were
- * STARTED from, for as long as most of them are still its dinners; otherwise
- * what rotationOf reads from them. This is what a build records on the plan.
+ * STARTED from, for as long as it still describes them; otherwise what
+ * rotationOf reads from them. This is what a build records on the plan.
  *
- * "Most" is the line between a rotation with a night or two changed, which is
- * still that rotation, and picks rebuilt by hand into something else, which
- * are not — A and B share three dinners, so "any one of its dinners is still
- * there" would hold rotation A over a plan that is now rotation B's eight.
+ * It still describes them while at least half the picks are its dinners AND
+ * no other rotation holds more of them. The first half is a rotation with a
+ * night changed, which is still that rotation — on a two-night week too, where
+ * one swap is half the plan (Codex r1). The second is picks rebuilt by hand
+ * into another rotation: A and B share three dinners, so rotation B's eight
+ * are three of A's, and B's own week one is three of A's four — neither is
+ * rotation A any more, and both are more B's than A's. A tie stays with the
+ * start: three dinners every rotation shares are the start's as much as
+ * anyone's, and the start is the one thing known about them.
+ *
  * With no start, or a start that has stopped describing the picks, the picks
  * are read as they always were.
  */
 export function chosenRotation(started: string | null | undefined, entries: Pick<PlanEntry, 'slug'>[], rotations: RotationRow[], members: RotationMealRow[]): string | null {
   if (started && rotations.some((r) => r.slug === started) && entries.length > 0) {
-    const its = new Set(members.filter((x) => x.rotation_slug === started).map((x) => x.meal_slug))
-    const kept = entries.filter((e) => its.has(e.slug)).length
-    if (kept * 2 > entries.length) return started
+    const held = (slug: string) => {
+      const its = new Set(members.filter((x) => x.rotation_slug === slug).map((x) => x.meal_slug))
+      return entries.filter((e) => its.has(e.slug)).length
+    }
+    const kept = held(started)
+    if (kept * 2 >= entries.length && rotations.every((r) => held(r.slug) <= kept)) return started
   }
   return rotationOf(entries, rotations, members)
 }

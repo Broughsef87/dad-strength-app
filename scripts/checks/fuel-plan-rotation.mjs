@@ -124,9 +124,27 @@ const stored = (plan, household, at = {}) => ({ week_start: '2026-10-12', versio
       assert(chosenRotation(slug, swapped, rotations, members) === slug, `${slug} with ${entries[i].slug} swapped out is still ${slug} — got ${chosenRotation(slug, swapped, rotations, members)}`)
     }
   }
+  // The same on a SMALL plan, where one night is a large share of it (Codex
+  // r1): two cook-nights a week, one swapped, is still the menu it started as.
+  let small = 0
+  for (const nights of [2, 3]) for (const cadence of [7, 14]) for (const slug of SLUGS) {
+    const household = { ...andrew, nights_per_week: nights, shop_cadence_days: cadence }
+    const entries = rotationEntries(slug, members, meals, household)
+    for (let i = 0; i < entries.length; i++) {
+      const swapped = entries.map((e, k) => (k === i ? { ...e, slug: outside[1] } : e))
+      small++
+      assert(chosenRotation(slug, swapped, rotations, members) === slug, `${slug}, ${nights} nights on a ${cadence}-day shop, with ${entries[i].slug} swapped out is still ${slug} — got ${chosenRotation(slug, swapped, rotations, members)}`)
+    }
+  }
+  assert(small >= 60, `the small plans are real ones — ${small} swaps judged`)
   // Rebuilt by hand into another menu: the start no longer describes it.
   const b = rotationEntries('rotation-b', members, meals, andrew)
   assert(chosenRotation('rotation-a', b, rotations, members) === 'rotation-b', `started from menu A and rebuilt into menu B's eight is menu B — got ${chosenRotation('rotation-a', b, rotations, members)}`)
+  // …and on a weekly shop, where menu B's week is three of menu A's four.
+  const bWeek = rotationEntries('rotation-b', members, meals, { ...andrew, shop_cadence_days: 7 })
+  assert(bWeek.length === 4 && chosenRotation('rotation-a', bWeek, rotations, members) === 'rotation-b', `started from menu A and rebuilt into menu B's week is menu B — got ${chosenRotation('rotation-a', bWeek, rotations, members)}`)
+  // A tie stays with the start: three dinners every menu shares.
+  assert(chosenRotation('rotation-c3', rotationEntries('rotation-c3', members, meals, TIGHT), rotations, members) === 'rotation-c3', 'dinners several menus share are still the menu they were started from')
   const own = outside.slice(0, 2).map((slug) => ({ slug, week: 1, servings: 2 }))
   assert(chosenRotation('rotation-a', own, rotations, members) === null, 'started from menu A and replaced with meals from no menu is no menu')
   assert(chosenRotation('rotation-a', [], rotations, members) === null, 'no nights, no menu')
