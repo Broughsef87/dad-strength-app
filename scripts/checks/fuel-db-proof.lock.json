@@ -8,7 +8,7 @@
   "migrations": [
     {
       "file": "supabase/migrations/20260914_fuel_phase_1.sql",
-      "sha256": "a2f2f70a8cad7ba46f3dd214334f1cf03f6367eccd10a2a659b1eb1d21d2f403"
+      "sha256": "5f2ad67b914c4dfef757ae1e3ff1b48ef8dc18538a9b95d53d4f35ecacac551b"
     },
     {
       "file": "supabase/migrations/20260915_fuel_macro_columns.sql",
@@ -20,7 +20,7 @@
     },
     {
       "file": "supabase/migrations/20260917_fuel_rotations.sql",
-      "sha256": "34f8f6a2d282163039e17977d9dd2854ad7bb47aa81bb88330ffe517568d5bf1"
+      "sha256": "49e7477c95bbf64c305bbc0655c6fde1f94e08a37c707359217042072a4308d2"
     },
     {
       "file": "supabase/migrations/20260918_fuel_custom_items.sql",
@@ -40,7 +40,7 @@
     },
     {
       "file": "supabase/migrations/20261005_fuel_library_expansion.sql",
-      "sha256": "291862585161c562a789d59f0e9c801d4e49e02b3dc0b138baca9152ec6b5111"
+      "sha256": "c1f271a58226c0bab66cd7965ec40cb44498f91648d36770996ca0887912981d"
     },
     {
       "file": "supabase/migrations/20261010_fuel_rotation_c.sql",
@@ -53,6 +53,10 @@
     {
       "file": "supabase/migrations/20261013_fuel_menu_names.sql",
       "sha256": "f7c74799107cdf4929c36ba089dc2f67578f770d3679f9e66a2592f74722773a"
+    },
+    {
+      "file": "supabase/migrations/20261014_fuel_ingredient_names.sql",
+      "sha256": "d63ddb1276e372bf0f479d6ff0ea8e1bc2f245da4ab260f0985baea0f1550039"
     }
   ],
   "comparator": [
@@ -66,15 +70,15 @@
     },
     {
       "file": "fixtures/fuel-seed.json",
-      "sha256": "1c4108e4767d58656d8da3152483cbca5a69974e5f4e7eca31cb153f9a46be2c"
+      "sha256": "302b991491e615f98a410a73a63a3bd29352886d443120e50a19c622759ffd3c"
     },
     {
       "file": "fixtures/fuel-seed-rotation-b.json",
-      "sha256": "c16cf1b37fb071a4c99af533df95302d321bceeea739ccf49cfd301728c596ab"
+      "sha256": "689f0e3a64611b50ccb2300a6d65b94f7600772ad69e81bc96e0e05ee1c2229c"
     },
     {
       "file": "fixtures/fuel-seed-library-expansion.json",
-      "sha256": "7d73ec60cab04f4acb3cb26e9f7f46c11ff9f7e58e97fe2d6b3830b6534aaa0c"
+      "sha256": "3c624075491fcd13faa670d42f54e2613396054a320bf2ef125872aac347ed4b"
     },
     {
       "file": "fixtures/fuel-seed-steps.json",

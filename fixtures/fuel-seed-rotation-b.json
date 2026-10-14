@@ -202,7 +202,7 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 4,
-      "rotation_note": "Week 2. Same thigh as the chili-lime night, different profile and format — L5 in practice. 10 active minutes; the oven does the rest. Cooks 3 so a leftover night comes free.",
+      "rotation_note": "Week 2. Same thigh as the chili-lime night, different profile and format. 10 active minutes; the oven does the rest. Cooks 3 so a leftover night comes free.",
       "ingredients": [
         {
           "item": "chicken thigh, boneless skinless",
@@ -255,7 +255,7 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 3,
-      "rotation_note": "TURKEY — week 2, in the slot the turkey burgers held. 93/7 ONLY — 99% lean will not hold a meatball together any better than it holds a patty. Reheats better than anything else in either rotation.",
+      "rotation_note": "TURKEY, week 2. Use 93/7 only: 99% lean will not hold a meatball together. Reheats better than anything else on the menu.",
       "ingredients": [
         {
           "item": "ground turkey 93/7",
@@ -279,7 +279,7 @@
           "inferred": true
         },
         {
-          "item": "onion",
+          "item": "yellow onion",
           "qty_per_person": 0.25,
           "unit": "each",
           "store_section": "Produce",
@@ -410,7 +410,7 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 3,
-      "rotation_note": "FISH — week 2. BOUGHT ON THE SECOND TRIP, not the main shop — learning L3, same as the blackened cod it replaces. Cod is leaner than salmon, so weigh heavier. THE ONE DELIBERATE L5 EXCEPTION: corn tortillas and cabbage are bought for this meal and nothing else. Approved by Andrew 2026-09-15 on the grounds that it is the most different plate in the rotation and both items are cheap.",
+      "rotation_note": "FISH, week 2. Buy the cod on a quick mid-week top-up shop, not the main shop, so it is fresh. Cod is leaner than salmon, so buy a little more by weight. Corn tortillas and cabbage are bought just for this meal. They are cheap, and it is the most different plate on the menu.",
       "ingredients": [
         {
           "item": "cod or halibut",
@@ -441,7 +441,7 @@
           "inferred": true
         },
         {
-          "item": "corn tortillas",
+          "item": "corn tortilla",
           "qty_per_person": 3,
           "unit": "each",
           "store_section": "Pantry",
@@ -455,7 +455,7 @@
           "inferred": true
         },
         {
-          "item": "cumin",
+          "item": "ground cumin",
           "qty_per_person": 0.5,
           "unit": "tsp",
           "store_section": "Pantry",

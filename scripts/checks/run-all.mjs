@@ -79,6 +79,8 @@ const SUITES = [
   ['fuel recipes (FUEL-RECIPES)', 'fuel-steps.mjs'],
   // The three-step flow, the "have it" tick as a row on hand, and no fortnight, rotation or cycle on screen — its own suite (FOR-281).
   ['fuel flow (FOR-281)', 'fuel-flow.mjs'],
+  // One name and one unit per ingredient, so the list has one line for each — its own suite (FOR-280).
+  ['fuel ingredient names (FOR-280)', 'fuel-ingredient-names.mjs'],
   // The database proof ran against exactly this SQL (npm run proof:db writes the lock) — its own suite (FOR-240).
   ['fuel db proof lock (FOR-240, FOR-242, FOR-243)', 'fuel-db-proof-lock.mjs'],
 ]
