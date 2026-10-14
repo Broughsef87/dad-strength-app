@@ -79,7 +79,7 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 4,
-      "rotation_note": "The only steak in the fortnight. Does not reheat — cooks to order, 2 servings.",
+      "rotation_note": "The only steak night in these two weeks. Does not reheat, so cook it to order: 2 servings.",
       "ingredients": [
         { "item": "ribeye", "qty_per_person": 8, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
         { "item": "broccoli", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
@@ -108,7 +108,7 @@
         { "item": "sweet potato", "qty_per_person": 1, "unit": "each", "store_section": "Produce", "inferred": true },
         { "item": "lime", "qty_per_person": 0.5, "unit": "each", "store_section": "Produce", "inferred": true },
         { "item": "chili powder", "qty_per_person": 1, "unit": "tsp", "store_section": "Pantry", "inferred": true },
-        { "item": "cumin", "qty_per_person": 0.5, "unit": "tsp", "store_section": "Pantry", "inferred": true },
+        { "item": "ground cumin", "qty_per_person": 0.5, "unit": "tsp", "store_section": "Pantry", "inferred": true },
         { "item": "garlic powder", "qty_per_person": 0.5, "unit": "tsp", "store_section": "Pantry", "inferred": true }
       ]
     },
@@ -174,7 +174,7 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 2,
-      "rotation_note": "Week 2. Same thigh as the chili-lime night, different profile and format — L5 in practice.",
+      "rotation_note": "Week 2. Same thigh as the chili-lime night, different profile and format.",
       "ingredients": [
         { "item": "chicken thigh, boneless skinless", "qty_per_person": 8, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
         { "item": "green beans", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
@@ -220,7 +220,7 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 3,
-      "rotation_note": "FISH — week 2. BOUGHT ON THE SECOND TRIP, not the main shop. This is the meal that forces the mid-cycle top-up — learning L3. Cod is leaner than salmon, so weigh heavier.",
+      "rotation_note": "FISH, week 2. Buy the cod on a quick mid-week top-up shop, not the main shop, so it is fresh. Cod is leaner than salmon, so buy a little more by weight.",
       "ingredients": [
         { "item": "cod or halibut", "qty_per_person": 8.5, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
         { "item": "broccoli", "qty_per_person": 6, "unit": "oz", "store_section": "Produce", "inferred": true },
@@ -246,7 +246,7 @@
       "ingredients": [
         { "item": "chicken breast, boneless skinless", "qty_per_person": 6.5, "unit": "oz", "store_section": "Meat & Seafood", "inferred": false },
         { "item": "bell pepper", "qty_per_person": 1, "unit": "each", "store_section": "Produce", "inferred": true },
-        { "item": "onion", "qty_per_person": 0.5, "unit": "each", "store_section": "Produce", "inferred": true },
+        { "item": "yellow onion", "qty_per_person": 0.5, "unit": "each", "store_section": "Produce", "inferred": true },
         { "item": "fresh ginger", "qty_per_person": 1, "unit": "tsp", "store_section": "Produce", "inferred": true },
         { "item": "garlic", "qty_per_person": 2, "unit": "clove", "store_section": "Produce", "inferred": true },
         { "item": "low-sodium soy sauce", "qty_per_person": 1, "unit": "tbsp", "store_section": "Pantry", "inferred": true },

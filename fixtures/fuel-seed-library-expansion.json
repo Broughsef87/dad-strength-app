@@ -167,7 +167,7 @@
       "rotation_note": "SOUP. Thickens on white beans rather than cream. Keeps four days and tastes better on day two.",
       "ingredients": [
         {
-          "item": "chicken breast",
+          "item": "chicken breast, boneless skinless",
           "qty_per_person": 7,
           "unit": "oz",
           "store_section": "Meat & Seafood",
@@ -464,8 +464,8 @@
         },
         {
           "item": "crushed tomatoes",
-          "qty_per_person": 0.75,
-          "unit": "cup dry",
+          "qty_per_person": 6.5,
+          "unit": "oz",
           "store_section": "Pantry",
           "inferred": true
         },
@@ -760,7 +760,7 @@
       "fat_g_per_person": null,
       "calories_per_person": null,
       "perishable_within_days": 3,
-      "rotation_note": "STIR-FRY. Slice the flank against the grain while the rice cooks. Shares its sauce base with the soy-ginger stir-fry already in rotation A.",
+      "rotation_note": "STIR-FRY. Slice the flank against the grain while the rice cooks. Uses the same sauce base as the soy-ginger stir-fry.",
       "ingredients": [
         {
           "item": "flank steak",
@@ -1218,7 +1218,7 @@
       "rotation_note": "FAST. Pound the breasts thin and they cook in six minutes. Capers are the only unusual jar and they keep forever.",
       "ingredients": [
         {
-          "item": "chicken breast",
+          "item": "chicken breast, boneless skinless",
           "qty_per_person": 7.5,
           "unit": "oz",
           "store_section": "Meat & Seafood",

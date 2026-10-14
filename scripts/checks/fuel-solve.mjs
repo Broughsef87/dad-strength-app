@@ -220,7 +220,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(strayWeek2.some((w) => /week 2 on a weekly shop/.test(w)), 'a week-2 night on a weekly shop is reported, not folded into the main shop')
   assert(isSecondTrip({ item: 'x', qty_per_person: 1, unit: 'oz', store_section: 'Pantry', inferred: false }, byslug('blackened-cod'), entry('blackened-cod', 2), andrew) === false, 'pantry never goes on the second trip')
   // the fixture says so, in its own words
-  assert(/SECOND TRIP/.test(byslug('blackened-cod').rotation_note) && /week 1/i.test(byslug('lemon-garlic-salmon').rotation_note), 'the fixture names cod as the second-trip meal and salmon as week 1')
+  assert(/top-up shop, not the main shop/.test(byslug('blackened-cod').rotation_note) && /week 1/i.test(byslug('lemon-garlic-salmon').rotation_note), 'the fixture names cod as the second-trip meal and salmon as week 1')
 }
 
 // ── 5. versioning ───────────────────────────────────────────────────────────
@@ -682,6 +682,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
     'fixtures/fuel-seed-library-expansion.json -> supabase/migrations/20261005_fuel_library_expansion.sql',
     'fixtures/fuel-seed-rotation-c.json -> supabase/migrations/20261010_fuel_rotation_c.sql',
     'fixtures/fuel-seed-steps.json -> supabase/migrations/20261012_fuel_meal_steps.sql',
+    'fixtures/fuel-seed-ingredient-names.json -> supabase/migrations/20261014_fuel_ingredient_names.sql',
   ]
   const pairs = PAIRS.map((p) => `${p.fixture} -> ${p.migration}`)
   const missing = EXPECTED_PAIRS.filter((x) => !pairs.includes(x))

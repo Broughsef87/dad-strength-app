@@ -15,6 +15,7 @@
 //   fixtures/fuel-seed-library-expansion.json    -> 20261005_fuel_library_expansion.sql (FOR-257)
 //   fixtures/fuel-seed-rotation-c.json           -> 20261010_fuel_rotation_c.sql      (FOR-250)
 //   fixtures/fuel-seed-steps.json                -> 20261012_fuel_meal_steps.sql      (FUEL-RECIPES)
+//   fixtures/fuel-seed-ingredient-names.json     -> 20261014_fuel_ingredient_names.sql (FOR-280)
 //
 // The phase-1 migration is applied in production: what it renders never
 // changes. Tables and RLS ship in the SAME migration (rls_hardening lesson).
@@ -627,6 +628,95 @@ $$;
 }
 
 // ── The pairs ────────────────────────────────────────────────────────────────
+// ── fixtures/fuel-seed-ingredient-names.json -> ingredient names (FOR-280) ───
+// The shopping list makes one line per ingredient NAME and unit, so two names
+// for one thing are two lines. The meal fixtures now hold one name for each,
+// and the seed migrations generated from them land a fresh database there.
+// This pair is what moves a database that was ALREADY seeded: one UPDATE per
+// meal, writing that meal's whole ingredient list as its own fixture holds it.
+//
+// It is a pair, and generated, because a hand-written UPDATE of fuel_meals is
+// the stray write every other check here exists to stop: the statement is
+// rendered from the meal's fixture row, so it cannot say anything else.
+//
+// The fixture holds only WHICH meals moved and what each ingredient was
+// before. The revert is rendered from that, so it is exact, and a rename the
+// meal fixtures do not carry is refused here rather than rendering an UPDATE
+// that changes nothing.
+export const INGREDIENT_NAMES_FIXTURE = 'fixtures/fuel-seed-ingredient-names.json'
+
+const RENAME_KEYS = ['item', 'qty_per_person', 'unit']
+const sameLine = (ing, part) => RENAME_KEYS.every((k) => !(k in part) || ing[k] === part[k])
+const ingredientUpdate = (slug, ingredients) => `UPDATE public.fuel_meals SET ingredients = ${j(ingredients)} WHERE slug = ${q(slug)} AND user_id IS NULL;`
+
+export function renderIngredientNames(seed, pair) {
+  if (!pair?.fixture) throw new Error('renderIngredientNames needs the pair it is rendering — its fixture is what gets excluded from the seeded library')
+  for (const key of ['fuel_meals_new', 'fuel_meals', 'fuel_rotations', 'fuel_rotation_meals', 'fuel_meal_steps']) {
+    if (key in seed) throw new Error(`${pair.fixture} carries ${key} — this pair renders ingredient renames only; a meal, a rotation or a recipe needs its own fixture and guards`)
+  }
+  const renames = seed.fuel_ingredient_renames
+  if (!Array.isArray(renames) || renames.length === 0) throw new Error(`${pair.fixture}: fuel_ingredient_renames is missing or empty — there is nothing to move`)
+  const library = new Map(PAIRS.filter((p) => p.fixture !== pair.fixture).flatMap((p) => p.meals(readFixture(p.fixture))).map((m) => [m.slug, m]))
+  const before = new Map()
+  for (const r of renames) {
+    const extra = Object.keys(r).filter((k) => !['slug', 'was', 'now'].includes(k))
+    if (extra.length) throw new Error(`${r.slug}: a rename is { slug, was, now } — it carries ${extra.join(', ')}`)
+    for (const side of ['was', 'now']) {
+      if (!r[side] || typeof r[side].item !== 'string' || !r[side].item.trim()) throw new Error(`${r.slug}: ${side} names no item`)
+      const odd = Object.keys(r[side]).filter((k) => !RENAME_KEYS.includes(k))
+      if (odd.length) throw new Error(`${r.slug}: ${side} carries ${odd.join(', ')} — a rename moves ${RENAME_KEYS.join(', ')} and nothing else`)
+    }
+    if (RENAME_KEYS.every((k) => r.was[k] === r.now[k])) throw new Error(`${r.slug}: "${r.was.item}" is renamed to itself`)
+    const meal = library.get(r.slug)
+    if (!meal) throw new Error(`${r.slug}: is not a seeded meal — the update would match no row`)
+    const now = meal.ingredients.filter((i) => sameLine(i, r.now))
+    if (now.length !== 1) throw new Error(`${r.slug}: its fixture holds ${now.length} ingredients matching the new "${r.now.item}" — the meal fixture must already carry the rename, once`)
+    // Judged against the meal as its fixture holds it, before this rename is
+    // undone: an old name still seeded beside the new one is the split itself.
+    if (meal.ingredients.some((i) => i !== now[0] && i.item === r.was.item)) throw new Error(`${r.slug}: its fixture still holds "${r.was.item}" beside "${r.now.item}"`)
+    const list = before.get(r.slug) ?? meal.ingredients.map((i) => ({ ...i }))
+    const line = list.filter((i) => sameLine(i, r.now))
+    if (line.length !== 1) throw new Error(`${r.slug}: two renames land on "${r.now.item}"`)
+    Object.assign(line[0], r.was)
+    before.set(r.slug, list)
+  }
+  const slugs = [...before.keys()]
+  const moved = renames.map((r) => `--   ${r.slug}: ${RENAME_KEYS.filter((k) => k in r.was && r.was[k] !== r.now[k]).map((k) => `${k} ${JSON.stringify(r.was[k])} -> ${JSON.stringify(r.now[k])}`).join(', ')}${r.was.item === r.now.item ? ` (${r.now.item})` : ''}`).join('\n')
+
+  return `-- ============================================================
+-- Fuel ingredient names (FOR-280) — 2026-10-13
+-- GENERATED by scripts/fuel-seed-sql.mjs from ${pair.fixture}
+-- and the meal fixtures. Do not edit by hand; edit the fixtures and regenerate.
+--
+-- ROW UPDATES ONLY, on ${slugs.length} seeded fuel_meals rows (user_id IS NULL): the
+-- \`ingredients\` column. No table, column, constraint, policy or index changes.
+-- No slug moves, no row is added or deleted, and no athlete's own meal
+-- (user_id set) is touched.
+--
+-- The shopping list makes one line per ingredient name and unit. Two names
+-- for one thing were two lines, so the list asked for "onion" and for
+-- "yellow onion". Each is now one name everywhere it is seeded, and crushed
+-- tomatoes are in one unit:
+--
+${moved}
+--
+-- Each statement writes the meal's whole ingredient list, exactly as its
+-- fixture holds it. The seed migrations before this one are generated from the
+-- same fixtures, so a fresh database is already here when this runs and it
+-- writes the same values again.
+--
+-- A list built before this ran keeps the names it was built with. A rebuild
+-- gives a renamed line a new key, so a tick on the old line does not carry to
+-- it (FOR-243: a line whose key changed inherits no tick).
+--
+-- REVERT, exactly:
+${slugs.map((s) => `--   ${ingredientUpdate(s, before.get(s))}`).join('\n')}
+-- ============================================================
+
+${slugs.map((s) => ingredientUpdate(s, library.get(s).ingredients)).join('\n')}
+`
+}
+
 export const PAIRS = [
   { fixture: 'fixtures/fuel-seed.json', migration: 'supabase/migrations/20260914_fuel_phase_1.sql', meals: (seed) => seed.fuel_meals, render: renderPhase1 },
   { fixture: 'fixtures/fuel-seed-rotation-b.json', migration: 'supabase/migrations/20260917_fuel_rotations.sql', meals: (seed) => seed.fuel_meals_new, render: renderRotations },
@@ -635,6 +725,8 @@ export const PAIRS = [
   { fixture: ROTATION_C_FIXTURE, migration: 'supabase/migrations/20261010_fuel_rotation_c.sql', meals: () => [], render: renderRotationRows },
   // Adds no meal either: one column, and the steps of the meals the pairs above seed.
   { fixture: STEPS_FIXTURE, migration: 'supabase/migrations/20261012_fuel_meal_steps.sql', meals: () => [], render: renderMealSteps },
+  // Adds no meal: the renamed ingredients are already in the meal fixtures above. This moves a database seeded before them.
+  { fixture: INGREDIENT_NAMES_FIXTURE, migration: 'supabase/migrations/20261014_fuel_ingredient_names.sql', meals: () => [], render: renderIngredientNames },
 ]
 
 /** The migration a pair's fixture generates. Throws, before rendering, on anything a seed migration must not carry. */

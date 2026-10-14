@@ -1,0 +1,19 @@
+{
+  "_provenance": {
+    "authored_by": "CC, 2026-10-13, FOR-280",
+    "why": "Blaine, FOR-280: the shopping list splits one ingredient under two names. The list makes one line per ingredient name and unit, so \"onion\" and \"yellow onion\" were two lines.",
+    "what_this_is": "The record of which seeded meals had an ingredient renamed or re-united, and what each was called before. The ingredient lists themselves live in the three meal fixtures, already carrying the new names; this fixture adds no meal and holds no ingredient list. scripts/fuel-seed-sql.mjs renders one UPDATE per meal named here from that meal's own fixture row, and refuses to render if a `now` name is not in the meal or a `was` name still is.",
+    "DECIDED_BY_CC": "Which name of each pair is kept: the more specific one where the two differ in specificity (yellow onion, ground cumin, chicken breast, boneless skinless), and the singular for the tortilla, as every other counted ingredient is written. The fourth pair, chicken breast, was found by the check and is not in the ticket. Crushed tomatoes go to oz at 8.5 oz a cup, rounded to the half ounce.",
+    "NOT_DECIDED": "rice / jasmine rice, soy sauce / low-sodium soy sauce, greek yogurt / nonfat greek yogurt, cucumber / english cucumber, green cabbage / shredded cabbage are left apart. See scripts/checks/fuel-ingredient-names.mjs."
+  },
+  "fuel_ingredient_renames": [
+    { "slug": "chili-lime-thighs", "was": { "item": "cumin" }, "now": { "item": "ground cumin" } },
+    { "slug": "soy-ginger-stirfry", "was": { "item": "onion" }, "now": { "item": "yellow onion" } },
+    { "slug": "turkey-meatballs", "was": { "item": "onion" }, "now": { "item": "yellow onion" } },
+    { "slug": "chipotle-cod-tacos", "was": { "item": "corn tortillas" }, "now": { "item": "corn tortilla" } },
+    { "slug": "chipotle-cod-tacos", "was": { "item": "cumin" }, "now": { "item": "ground cumin" } },
+    { "slug": "white-chicken-chili", "was": { "item": "chicken breast" }, "now": { "item": "chicken breast, boneless skinless" } },
+    { "slug": "chicken-piccata", "was": { "item": "chicken breast" }, "now": { "item": "chicken breast, boneless skinless" } },
+    { "slug": "turkey-chili", "was": { "item": "crushed tomatoes", "qty_per_person": 0.75, "unit": "cup dry" }, "now": { "item": "crushed tomatoes", "qty_per_person": 6.5, "unit": "oz" } }
+  ]
+}
