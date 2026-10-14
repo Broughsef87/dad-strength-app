@@ -116,6 +116,25 @@ for (const w of [5, 6, 7, 8]) {
     `W${w} squat: reps/percent describe the FIRST set, so nothing reading them sees undefined`)
 }
 
+// ── 3b. THE EIGHT SINGLES AND THE SIX-SET WAVE ARE MESO 2'S ALONE (FOR-272) ──
+//
+// set-ceiling-allowlist.json excuses sn_top at 8 sets and back_squat_heavy at
+// 6, in weeks 5 to 8. set-ceiling.mjs holds every other week to the ceiling
+// for the day as it normally builds; this holds the same line for a forced
+// deload too, which that sweep does not build — in any week, meso 2 included,
+// a deload is under the ceiling. FOR-271 did the same for Friday's cl_top.
+for (let w = 1; w <= 12; w++) {
+  for (const opts of [undefined, { forceDeload: true }]) {
+    if (!opts && w >= 5 && w <= 8) continue
+    const items = hybridPower.buildDay(w, 1, MAXES, {}, opts).items
+    for (const slot of ['sn_top', 'back_squat_heavy']) {
+      const sets = items.find((i) => i.slot === slot)?.sets
+      assert(typeof sets === 'number' && sets <= 4,
+        `W${w}${opts ? ' forced deload' : ''} ${slot} is ${sets} sets — more than four is meso 2's working weeks only`)
+    }
+  }
+}
+
 // ── 4b. A DELOAD IS NOT A WAVE (Codex r1 P1) ──────────────────────────────
 //
 // applyDeload spread the prescription, so `setPlan` survived while `percent`

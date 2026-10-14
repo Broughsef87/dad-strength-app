@@ -25,12 +25,18 @@
 // An entry is `{ entry: "slug:slot", maxSets, reason }`. maxSets BOUNDS the
 // exemption: `hybrid-power:sn_top` is excused at 8 sets because M2's snatch is
 // an 8x1 EMOM, and a ninth set would be a regression this check should still
-// catch. A bare string excuses the slot at any count, which is why the two
-// FOR-263 entries do not use one.
+// catch.
+//
+// weeks SCOPES it (FOR-272): `[5, 8]` excuses the slot in weeks 5 to 8 and in
+// no other. All three entries are meso 2's, and without it each one excused
+// its slot in every week of the program — an 8-set snatch in week 2 passed.
+// FOR-271 held cl_top to its weeks with a loop in sweep.mjs because this file
+// could not say "weeks 5-8"; now it can, and every entry has to.
 import { readFileSync } from 'node:fs'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 
 const CEILING = 4
+const WEEKS = 13
 const MAXES = {
   snatch: 165, clean: 225, jerk: 205, backSquat: 315, frontSquat: 255,
   bench: 245, deadlift: 405, ohp: 145, clean_jerk: 225,
@@ -60,7 +66,19 @@ for (const a of allow) {
     console.error(`✗ set-ceiling-allowlist.json: ${key} has maxSets ${a.maxSets}, which is not a whole number above the ${CEILING}-set ceiling`)
     process.exit(1)
   }
+  // EVERY ENTRY SAYS WHICH WEEKS, checked (FOR-272). An entry without them is
+  // the hole this closed: excused everywhere, because nobody had to say where.
+  const w = a?.weeks
+  if (!Array.isArray(w) || w.length !== 2 || !w.every((n) => Number.isInteger(n) && n >= 1 && n <= WEEKS) || w[0] > w[1]) {
+    console.error(`✗ set-ceiling-allowlist.json: ${key} needs weeks [from, to] within 1-${WEEKS} — the weeks the ceiling does not apply in`)
+    process.exit(1)
+  }
 }
+
+// One rule for "is this prescription excused", used by the sweep below and by
+// the proof under it that the scope bites.
+const excused = (key, sets, week) => allow.some((a) => a.entry === key
+  && (a.maxSets == null || sets <= a.maxSets) && week >= a.weeks[0] && week <= a.weeks[1])
 
 const violations = []
 let inspected = 0
@@ -74,7 +92,7 @@ for (const [slug, program] of Object.entries(PROGRAMS)) {
   const days = Array.isArray(program.gymDayNumbers) && program.gymDayNumbers.length
     ? program.gymDayNumbers
     : [1, 2, 3, 4, 5, 6, 7]
-  for (let week = 1; week <= 13; week++) {
+  for (let week = 1; week <= WEEKS; week++) {
     for (const day of days) {
       // No try/catch. buildDay returns a rest day rather than throwing for a
       // day it does not program, so a throw here is a genuinely broken config
@@ -91,9 +109,8 @@ for (const [slug, program] of Object.entries(PROGRAMS)) {
         const isTestRamp = week === 13 && String(item.slot ?? '').startsWith('test_')
         if (isTestRamp) { exemptTest++; continue }
         const key = `${slug}:${item.slot}`
-        // BOUNDED: an entry with maxSets excuses that many sets and no more.
-        if (allow.some((a) => a === key
-          || (a?.entry === key && (a.maxSets == null || item.sets <= a.maxSets)))) continue
+        // BOUNDED: an entry excuses up to maxSets, in its weeks, and no more.
+        if (excused(key, item.sets, week)) continue
         violations.push(
           `${slug} W${week}D${day} ${item.slot} — ${item.sets}x${item.reps ?? '?'}`
           + (item.percent != null ? ` @${item.percent}%` : ''))
@@ -113,9 +130,37 @@ console.log(`  exempt, test-week ramp      ${exemptTest}`)
 console.log(`  allowlisted                 ${allow.length}`)
 for (const a of allow) {
   const key = typeof a === 'string' ? a : a.entry
-  console.log(`    ${key} ${a?.maxSets != null ? `<= ${a.maxSets} sets` : '(unbounded)'}`)
+  console.log(`    ${key} ${a?.maxSets != null ? `<= ${a.maxSets} sets` : '(unbounded)'}${a?.weeks ? `, weeks ${a.weeks[0]}-${a.weeks[1]}` : ''}`)
 }
 console.log('')
+
+// THE SCOPE BITES (FOR-272). The sweep above only proves no program breaks the
+// rule today. This proves the rule: each entry excuses its slot at its own
+// count inside its weeks, and in NO week outside them — so the day a program
+// prescribes an 8-set snatch in week 4, the sweep is what fails.
+const scope = []
+for (const a of allow) {
+  for (let week = 1; week <= WEEKS; week++) {
+    const inside = week >= a.weeks[0] && week <= a.weeks[1]
+    if (excused(a.entry, a.maxSets ?? CEILING + 1, week) !== inside) {
+      scope.push(`${a.entry} is ${inside ? 'not excused' : 'excused'} in week ${week} — its weeks are ${a.weeks[0]}-${a.weeks[1]}`)
+    }
+  }
+}
+// The two FOR-263 slots and FOR-271's are meso 2's: weeks 5 to 8, by name, so
+// widening an entry's weeks is a change somebody has to make here as well.
+for (const key of ['hybrid-power:sn_top', 'hybrid-power:back_squat_heavy', 'hybrid-power:cl_top']) {
+  const a = allow.find((x) => x?.entry === key)
+  if (!a || a.weeks[0] !== 5 || a.weeks[1] !== 8) scope.push(`${key} must be excused in weeks 5-8 and no others — got ${a ? `${a.weeks[0]}-${a.weeks[1]}` : 'no entry'}`)
+  for (const week of [1, 4, 9, 12, 13]) {
+    if (excused(key, CEILING + 1, week)) scope.push(`${key} at ${CEILING + 1} sets passes in week ${week}, outside meso 2`)
+  }
+}
+if (scope.length) {
+  console.log(`✗ the allowlist excuses a slot outside its weeks:`)
+  for (const v of scope) console.log(`    ${v}`)
+  process.exit(1)
+}
 
 if (unique.length) {
   console.log(`✗ ${unique.length} slot(s) over the ${CEILING}-set ceiling:`)
