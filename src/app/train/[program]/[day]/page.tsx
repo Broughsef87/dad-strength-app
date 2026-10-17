@@ -28,6 +28,7 @@ import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
 import { withSetCount } from '../../../../lib/programs/setPlan'
+import { TIME_CONSTRAINED_MAX_SETS } from '../../../../lib/programs/timeConstrained'
 import { RECORDED, isRecorded, isTrained, samePlan, serialWriter, sessionPlan } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
 import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
@@ -127,6 +128,10 @@ interface SessionOverrides {
   setCounts?: Record<string, number>          // slot → overridden set count
   removedSlots?: string[]                     // hidden prescribed items
   addedExercises?: Array<{ slot: string; name: string; sets: number; reps: number }>
+}
+
+function hasOverrides(o: SessionOverrides): boolean {
+  return Object.keys(o.setCounts ?? {}).length > 0 || (o.removedSlots?.length ?? 0) > 0 || (o.addedExercises?.length ?? 0) > 0
 }
 
 function applyOverrides(plan: DayPlan, o: SessionOverrides): DayPlan {
@@ -1174,6 +1179,9 @@ export default function TrainingDayPage() {
   const [error, setError] = useState<string | null>(null)
   const [sessionComplete, setSessionComplete] = useState(false)
   const [timeCrunch, setTimeCrunch] = useState(false)
+  // Set the moment any log write begins on this page, so the time crunch
+  // toggle is gone before a set can save under the plan it would replace.
+  const [started, setStarted] = useState(false)
   const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
   const [liftHistory, setLiftHistory] = useState<LiftHistory>({})
   const [logWriteError, setLogWriteError] = useState<string | null>(null)
@@ -1524,6 +1532,7 @@ export default function TrainingDayPage() {
 
   const logLiftSets = async (item: LiftPrescription, sets: SetEntry[]) => {
     if (!user || !workoutIdRef.current) return
+    setStarted(true)
     const now = new Date().toISOString()
     const rows = sets.map(s => ({
       ...baseRow(),
@@ -1564,6 +1573,7 @@ export default function TrainingDayPage() {
 
   const logPlyoSets = async (item: PlyoPrescription, sets: PlyoSetEntry[], notes: string) => {
     if (!user || !workoutIdRef.current) return
+    setStarted(true)
     const now = new Date().toISOString()
     const rows = sets.map(s => ({
       ...baseRow(),
@@ -1581,6 +1591,7 @@ export default function TrainingDayPage() {
 
   const logSimple = async (blockName: string, logType: string, notes: string, extra?: Record<string, unknown>) => {
     if (!user || !workoutIdRef.current) return
+    setStarted(true)
     report(blockName, await supabase.from('ares_session_logs').upsert({
       ...baseRow(),
       log_type: logType,
@@ -1959,21 +1970,30 @@ export default function TrainingDayPage() {
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
         <p className="text-xs text-muted-foreground italic border-l-2 border-border pl-3">{plan.sessionIntent}</p>
 
-        {/* Time crunch: offered on a gym day until its first set is logged.
-            After that the session is drawn from what it was trained under,
-            so a toggle would change nothing. */}
-        {plan.dayType === 'gym' && !sessionComplete && !isTrained(sessionLogs) && (
+        {/* Time crunch: offered on a gym day until anything is logged. After
+            that the session is drawn from what it was trained under, so a
+            toggle would change nothing — and a toggle racing a set save could
+            record a plan without the exercise that set belongs to. Not offered
+            on a session already edited by hand either: its overrides are
+            reapplied after the reduction, so the day would not be short. */}
+        {plan.dayType === 'gym' && !sessionComplete && !started && !isTrained(sessionLogs)
+          && !hasOverrides(overrides) && (
           <button
             onClick={() => {
               const url = new URL(window.location.href)
               if (timeCrunch) url.searchParams.delete('short')
               else url.searchParams.set('short', '1')
               window.history.replaceState(null, '', url)
+              // The loader replaces the cards (and this button) until the
+              // rebuild lands, so nothing can be logged or toggled mid-flight.
+              setLoading(true)
               loadDay()
             }}
             className="pill-quiet w-full px-4 py-2.5 text-sm lowercase"
           >
-            {timeCrunch ? 'back to the full session' : 'time crunch · main lifts only, 3 sets each'}
+            {timeCrunch
+              ? 'back to the full session'
+              : `time crunch · main lifts only, up to ${TIME_CONSTRAINED_MAX_SETS} sets each`}
           </button>
         )}
 
