@@ -10,8 +10,9 @@ import { useTheme } from '../contexts/ThemeContext';
 /**
  * The sign-in card on the public home page. Split out of src/app/page.tsx so
  * the page itself can server-render: crawlers and link previews used to get
- * nothing but "Loading". Signed-in visitors are redirected by middleware
- * before this mounts; the listener below handles an in-place sign-in.
+ * nothing but "Loading". A visitor who is already signed in sees a way into
+ * the app instead of the form, so the public site stays browsable; only a
+ * sign-in that happens here sends him to the dashboard.
  */
 export default function AuthPanel() {
   // Memoize the client — a fresh instance each render would re-subscribe
@@ -20,6 +21,7 @@ export default function AuthPanel() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
 
   const authColors = resolvedTheme === 'light'
     ? {
@@ -48,20 +50,37 @@ export default function AuthPanel() {
       };
 
   useEffect(() => {
-    // Initial check — already-authenticated visitors skip the login screen.
+    // Set once the initial check has seen no session. Supabase can emit
+    // SIGNED_IN for a session it merely restored (e.g. on tab refocus), so
+    // only an event after a signed-out start counts as signing in here.
+    //
+    // A Google sign-in comes back as /dashboard?code=…, which middleware sends
+    // on to /?code=…&signin=oauth before the browser has exchanged the code.
+    // The browser client can exchange the code and strip ?code= before this
+    // effect runs, so the marker is what counts: Supabase deletes only `code`,
+    // and only middleware adds `signin`, so a stray ?code= does not.
+    const oauthReturn = new URLSearchParams(window.location.search).get('signin') === 'oauth';
+    let startedSignedOut = oauthReturn;
+
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) { router.replace('/dashboard'); return; }
+      if (session && oauthReturn) { router.replace('/dashboard'); return; }
+      setSignedIn(!!session);
+      startedSignedOut = startedSignedOut || !session;
       setLoading(false);
     };
     checkUser();
 
     // Live listener — THIS is what redirects after an in-place email/password
-    // or OAuth sign-in. Without it, a successful login updates the session but
-    // the page just sits there ("nothing happens on Sign In").
+    // sign-in. Without it, a successful login updates the session but the
+    // page just sits there ("nothing happens on Sign In").
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: unknown) => {
-      if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+      if (session && event === 'SIGNED_IN' && startedSignedOut) {
         router.replace('/dashboard');
+      }
+      if (!session && event === 'SIGNED_OUT') {
+        setSignedIn(false);
+        startedSignedOut = true;
       }
     });
     return () => subscription.unsubscribe();
@@ -71,6 +90,20 @@ export default function AuthPanel() {
     return (
       <div className="flex h-48 items-center justify-center bg-card border border-border">
         <div className="w-5 h-5 border border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (signedIn) {
+    return (
+      <div className="relative bg-card border border-border p-6">
+        <p className="eyebrow-mono">signed in</p>
+        <p className="mt-2 mb-5 text-[15px] font-light leading-[1.65] text-muted-foreground">
+          you are already signed in.
+        </p>
+        <a href="/dashboard" className="pill-volt inline-block px-6 py-3.5 text-base font-semibold">
+          open the app
+        </a>
       </div>
     );
   }

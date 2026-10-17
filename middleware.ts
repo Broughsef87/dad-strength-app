@@ -47,14 +47,15 @@ export async function middleware(request: NextRequest) {
   if (!user && isProtected) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
+    // A Google sign-in returns to /dashboard?code=… before the browser has
+    // exchanged the code. Mark it so AuthPanel on / knows a sign-in is landing,
+    // even after the browser client has stripped ?code= from the URL.
+    if (url.searchParams.has('code')) url.searchParams.set('signin', 'oauth')
     return NextResponse.redirect(url)
   }
 
-  if (user && pathname === '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
+  // Signed-in visitors may browse the public site at /; the PWA opens on
+  // /dashboard through manifest start_url, and AuthPanel offers "open the app".
 
   return response
 }
