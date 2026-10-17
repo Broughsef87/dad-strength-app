@@ -7,6 +7,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { UserProvider } from '../contexts/UserContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { SubscriptionProvider } from '../contexts/SubscriptionContext'
+import { GRAPHITE_PATHS } from '../lib/publicSite'
 
 // CHALK/VOLT type: one confident grotesk carries the whole app —
 // display, body, and the giant hero numerals.
@@ -100,7 +101,7 @@ export default function RootLayout({
           (function(){
             try{
               var t=localStorage.getItem('dad-strength-theme');
-              var dark=t==='dark'||(t==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+              var dark=${JSON.stringify(GRAPHITE_PATHS)}.indexOf(location.pathname)>=0||t==='dark'||(t==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);
               if(dark)document.documentElement.classList.add('dark');
             }catch(e){}
           })();

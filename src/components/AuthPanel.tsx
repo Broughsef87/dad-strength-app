@@ -5,7 +5,6 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * The sign-in card on the public home page. Split out of src/app/page.tsx so
@@ -19,35 +18,23 @@ export default function AuthPanel() {
   // the auth listener on every render and thrash the session check.
   const [supabase] = useState(() => createClient());
   const router = useRouter();
-  const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
 
-  const authColors = resolvedTheme === 'light'
-    ? {
-        brand: '#CE0928',
-        brandAccent: '#9C0720',
-        inputBackground: 'hsl(214 18% 93%)',
-        inputBorder: 'hsl(214 22% 80%)',
-        inputText: 'hsl(222 32% 11%)',
-        inputPlaceholder: 'hsl(215 18% 58%)',
-        inputLabelText: 'hsl(215 18% 40%)',
-        messageText: 'hsl(215 18% 40%)',
-        anchorTextColor: 'hsl(38 90% 36%)',
-        dividerBackground: 'hsl(214 22% 80%)',
-      }
-    : {
-        brand: '#CE0928',
-        brandAccent: '#9C0720',
-        inputBackground: 'hsl(222 21% 7%)',
-        inputBorder: 'hsl(214 35% 18%)',
-        inputText: 'hsl(210 24% 80%)',
-        inputPlaceholder: 'hsl(213 22% 32%)',
-        inputLabelText: 'hsl(213 22% 52%)',
-        messageText: 'hsl(213 22% 52%)',
-        anchorTextColor: 'hsl(38 90% 41%)',
-        dividerBackground: 'hsl(214 35% 18%)',
-      };
+  // The public site is always graphite (GRAPHITE_PATHS), so the form takes the
+  // graphite palette whatever the app theme is set to.
+  const authColors = {
+    brand: '#CE0928',
+    brandAccent: '#9C0720',
+    inputBackground: 'hsl(222 21% 7%)',
+    inputBorder: 'hsl(214 35% 18%)',
+    inputText: 'hsl(210 24% 80%)',
+    inputPlaceholder: 'hsl(213 22% 32%)',
+    inputLabelText: 'hsl(213 22% 52%)',
+    messageText: 'hsl(213 22% 52%)',
+    anchorTextColor: 'hsl(38 90% 41%)',
+    dividerBackground: 'hsl(214 35% 18%)',
+  };
 
   useEffect(() => {
     // Set once the initial check has seen no session. Supabase can emit

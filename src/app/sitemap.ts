@@ -6,6 +6,7 @@ const SITE = 'https://www.dadstrength.tech';
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${SITE}/`, changeFrequency: 'weekly', priority: 1 },
+    { url: `${SITE}/programs`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE}/terms`, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${SITE}/privacy`, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${SITE}/disclaimer`, changeFrequency: 'yearly', priority: 0.2 },
