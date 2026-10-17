@@ -74,6 +74,10 @@ const HOW = [
     body: 'every working weight comes from your own maxes and what you logged last week. log the session and next week adjusts. nothing is generated.',
   },
   {
+    heading: 'time crunch',
+    body: 'twenty-five minutes instead of an hour? tap time crunch and the day runs as its two main lifts, three working sets each, warm-up kept. everything else waits for a fuller day.',
+  },
+  {
     heading: 'tired week',
     body: 'flag a deload any week you need one. the block picks back up after.',
   },
