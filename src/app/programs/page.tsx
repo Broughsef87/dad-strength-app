@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import SiteShell from '../../components/site/SiteShell';
 import { COACH, FOUNDING_SPOTS } from '../../components/site/content';
 import { PROGRAMS } from '../../lib/programs';
+import { TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../../lib/programs/timeConstrained';
 
 // The public programs page. Server-rendered, like /, so the copy ships in the
 // HTML. Names, block length, days and the maxes each program asks for are read
@@ -75,7 +76,7 @@ const HOW = [
   },
   {
     heading: 'time crunch',
-    body: 'twenty-five minutes instead of an hour? tap time crunch and the day runs as its two main lifts, three working sets each, warm-up kept. everything else waits for a fuller day.',
+    body: `short window on a gym day? tap time crunch and the day runs as its main lifts only, ${TIME_CONSTRAINED_LIFTS} lifts at up to ${TIME_CONSTRAINED_MAX_SETS} working sets each. everything else waits for a fuller day.`,
   },
   {
     heading: 'tired week',
