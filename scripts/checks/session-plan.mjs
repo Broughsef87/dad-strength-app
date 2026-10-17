@@ -229,11 +229,11 @@ const asTrained = (v, key) => {
 
   // THE RECORD is written while the session loads, before any card exists to
   // log against — never around a log (Codex r2, r3).
-  assert(/if \(!trained && \(!samePlan\(wd\.plan, built\) \|\| !isRecorded\(wd\)\)\) \{\s*workoutDataRef\.current = \{ \.\.\.wd, plan: built, \[RECORDED\]: true \}/.test(adopt),
+  assert(/if \(!trained && \(!samePlan\(wd\.plan, built\) \|\| !isRecorded\(wd\)\)\) \{\s*workoutDataRef\.current = \{ \.\.\.wd, plan: built, (?:timeConstrained, )?\[RECORDED\]: true \}/.test(adopt),
     "an untrained session's stored plan is written to what its cards will show and marked as the record — whenever it differs or is unmarked")
   assert(/const synced = await queueRow\(/.test(adopt) && /if \(synced\.error\) throw new Error/.test(adopt),
     "that write goes through the row's one queue, and if it fails the session does not open — no training against a record that disagrees with the screen")
-  assert(/const fresh = \{ plan: built, adjustments, \[RECORDED\]: true \}/.test(pg) && /workout_data: fresh,/.test(pg) && /workoutDataRef\.current = fresh/.test(pg),
+  assert(/const fresh = \{ plan: built, adjustments, (?:timeConstrained, )?\[RECORDED\]: true \}/.test(pg) && /workout_data: fresh,/.test(pg) && /workoutDataRef\.current = fresh/.test(pg),
     'a row created for a new session is born recorded, with the plan it shows')
   assert(pg.indexOf('if (loading) {') > 0 && /setLoading\(false\)/.test(pg),
     'cards render only once loading is done — the reason the record written in loadDay cannot race a log')
