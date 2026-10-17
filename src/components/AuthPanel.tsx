@@ -53,25 +53,34 @@ export default function AuthPanel() {
     // Set once the initial check has seen no session. Supabase can emit
     // SIGNED_IN for a session it merely restored (e.g. on tab refocus), so
     // only an event after a signed-out start counts as signing in here.
-    let startedSignedOut = false;
+    //
+    // A Google sign-in comes back as /dashboard?code=…, which middleware sends
+    // on to /?code=… before the browser has exchanged the code; the session
+    // then exists by the time getSession() resolves. A ?code= on the URL is
+    // that return, so it counts as signing in here too.
+    const oauthReturn = new URLSearchParams(window.location.search).has('code');
+    let startedSignedOut = oauthReturn;
 
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      if (session && oauthReturn) { router.replace('/dashboard'); return; }
       setSignedIn(!!session);
-      startedSignedOut = !session;
+      startedSignedOut = startedSignedOut || !session;
       setLoading(false);
     };
     checkUser();
 
     // Live listener — THIS is what redirects after an in-place email/password
     // sign-in. Without it, a successful login updates the session but the
-    // page just sits there ("nothing happens on Sign In"). Google sign-in
-    // returns straight to /dashboard via redirectTo.
+    // page just sits there ("nothing happens on Sign In").
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: unknown) => {
       if (session && event === 'SIGNED_IN' && startedSignedOut) {
         router.replace('/dashboard');
       }
-      if (!session && event === 'SIGNED_OUT') setSignedIn(false);
+      if (!session && event === 'SIGNED_OUT') {
+        setSignedIn(false);
+        startedSignedOut = true;
+      }
     });
     return () => subscription.unsubscribe();
   }, [router, supabase]);
