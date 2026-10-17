@@ -1173,6 +1173,7 @@ export default function TrainingDayPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sessionComplete, setSessionComplete] = useState(false)
+  const [timeCrunch, setTimeCrunch] = useState(false)
   const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
   const [liftHistory, setLiftHistory] = useState<LiftHistory>({})
   const [logWriteError, setLogWriteError] = useState<string | null>(null)
@@ -1227,6 +1228,15 @@ export default function TrainingDayPage() {
         const n = q ? parseInt(q, 10) : NaN
         if (Number.isFinite(n) && n >= 1) weekOverride = n
       } catch { /* SSR-safe no-op */ }
+      // ?short=1 is the time crunch: the same day through the time-constrained
+      // mode (timeConstrained.ts). On the URL, not the row, so it can only
+      // shape a session that has not been trained — a trained one is drawn
+      // from its record below, whatever the URL says.
+      let timeConstrained = false
+      try {
+        timeConstrained = new URLSearchParams(window.location.search).get('short') === '1'
+      } catch { /* SSR-safe no-op */ }
+      setTimeCrunch(timeConstrained)
 
       const [progState, userMaxes, subRes] = await Promise.all([
         fetchProgramState(supabase, userId, slug),
@@ -1280,7 +1290,7 @@ export default function TrainingDayPage() {
       // Without this the engine still WORKS and every check still passes —
       // buildDay just never receives loadTargets, so every accessory renders
       // with no weight, forever. The whole feature is invisible from here.
-      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) })
+      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, timeConstrained, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) })
       const ranges: Record<string, [number, number]> = {}
       const steps: Record<string, number> = {}
       for (const it of probe.items) {
@@ -1319,7 +1329,7 @@ export default function TrainingDayPage() {
 
       // Deterministic build — instant, no AI — then user substitutions on top.
       const built = applySubs(
-        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) }),
+        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, timeConstrained, loadTargets: progressionLoads, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) }),
         subs,
       )
       // Nothing is shown — no plan, no overrides, no row state — until this
@@ -1948,6 +1958,24 @@ export default function TrainingDayPage() {
 
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
         <p className="text-xs text-muted-foreground italic border-l-2 border-border pl-3">{plan.sessionIntent}</p>
+
+        {/* Time crunch: offered on a gym day until its first set is logged.
+            After that the session is drawn from what it was trained under,
+            so a toggle would change nothing. */}
+        {plan.dayType === 'gym' && !sessionComplete && !isTrained(sessionLogs) && (
+          <button
+            onClick={() => {
+              const url = new URL(window.location.href)
+              if (timeCrunch) url.searchParams.delete('short')
+              else url.searchParams.set('short', '1')
+              window.history.replaceState(null, '', url)
+              loadDay()
+            }}
+            className="pill-quiet w-full px-4 py-2.5 text-sm lowercase"
+          >
+            {timeCrunch ? 'back to the full session' : 'time crunch · main lifts only, 3 sets each'}
+          </button>
+        )}
 
         {missingMaxes.length > 0 && plan.dayType === 'gym' && (
           <div className="bg-status-danger-fill/5 border border-status-danger-fill/30 rounded-lg px-4 py-3">
