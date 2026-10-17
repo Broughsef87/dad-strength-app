@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { createClient } from '../utils/supabase/client'
+import { PUBLIC_PATHS } from '../lib/publicSite'
 
 // Routes where the gate must never block: the auth wall itself, the legal
 // pages the gate links to (a user must be able to read what they are being
 // asked to accept), and the design-proof harness — sample data outside the
 // app, and it must render unobstructed for a signed-in preview user who has
 // not accepted yet.
-const EXEMPT_PATHS = ['/', '/privacy', '/terms', '/disclaimer', '/design-proof']
+const EXEMPT_PATHS = [...PUBLIC_PATHS, '/design-proof']
 
 /**
  * LegalGate — first-run fitness/medical acknowledgement.

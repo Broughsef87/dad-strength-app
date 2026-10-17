@@ -1,6 +1,8 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useMemo, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useState, useMemo, ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
+import { GRAPHITE_PATHS } from '../lib/publicSite'
 
 export type Theme = 'dark' | 'light' | 'auto'
 
@@ -48,14 +50,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(getSavedTheme)
   const [systemDark, setSystemDark] = useState<boolean>(getSystemDark)
 
+  // The public site is always graphite; the saved theme is untouched and
+  // applies again the moment the app opens.
+  const pathname = usePathname()
+  const forcedDark = GRAPHITE_PATHS.includes(pathname ?? '')
+
   // resolvedTheme is pure derived state — no extra setState needed
   const resolvedTheme: 'dark' | 'light' = useMemo(
-    () => (theme === 'auto' ? (systemDark ? 'dark' : 'light') : theme),
-    [theme, systemDark]
+    () => (forcedDark ? 'dark' : theme === 'auto' ? (systemDark ? 'dark' : 'light') : theme),
+    [forcedDark, theme, systemDark]
   )
 
-  // Apply to DOM whenever resolvedTheme changes
-  useEffect(() => {
+  // Apply to DOM whenever resolvedTheme changes. A layout effect, so a client
+  // navigation between the site (always graphite) and the app never paints a
+  // frame in the previous route's palette.
+  useLayoutEffect(() => {
     applyToDOM(resolvedTheme)
   }, [resolvedTheme])
 
