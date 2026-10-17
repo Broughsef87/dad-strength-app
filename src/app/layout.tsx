@@ -32,6 +32,9 @@ const spaceMono = Space_Mono({
 
 
 export const metadata: Metadata = {
+  // Resolves every relative OG / canonical URL against the real domain, not
+  // the Vercel deploy host.
+  metadataBase: new URL('https://www.dadstrength.tech'),
   title: 'Dad Strength',
   description: 'The Operating System for Modern Fatherhood.',
   manifest: '/manifest.json',
@@ -53,11 +56,11 @@ export const metadata: Metadata = {
     title: 'Dad Strength',
     description: 'The Operating System for Modern Fatherhood.',
     type: 'website',
-    url: 'https://dad-strength-app-rnz1.vercel.app',
+    url: '/',
     siteName: 'Dad Strength',
     images: [
       {
-        url: 'https://dad-strength-app-rnz1.vercel.app/logo-suite/ds_banner_dark.png',
+        url: '/logo-suite/ds_banner_dark.png',
         width: 1500,
         height: 500,
         alt: 'Dad Strength — The OS for Modern Fatherhood',
@@ -68,7 +71,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Dad Strength',
     description: 'The Operating System for Modern Fatherhood.',
-    images: ['https://dad-strength-app-rnz1.vercel.app/logo-suite/ds_banner_dark.png'],
+    images: ['/logo-suite/ds_banner_dark.png'],
   },
 }
 
