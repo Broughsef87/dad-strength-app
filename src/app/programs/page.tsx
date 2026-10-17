@@ -47,7 +47,7 @@ const COPY: Record<string, { forWho: string; body: string[] }> = {
   'hybrid-power': {
     forWho: 'for the dad who wants to stay fast and explosive.',
     body: [
-      'power dad is built around the olympic lifts. two days a week you snatch and clean heavy, then work sub-max back-offs. no technique drills eat the window. a third gym day covers presses, single-leg strength and ballistic power, and the fourth puts a heavy deadlift and the week\'s conditioning in one session.',
+      'power dad is built around the olympic lifts. two days a week you snatch and clean heavy, then work sub-max back-offs. no drill work eats your window. a third gym day covers presses, single-leg strength and ballistic power, and the fourth puts a heavy deadlift and the week\'s conditioning in one session.',
       'outside the gym there is one speed day, where quality beats quantity and every rep gets a full rest, and one interval session on a bike, rower or road. every gym day caps at six blocks, so the session ends when your window does.',
     ],
   },
@@ -101,7 +101,10 @@ export default function ProgramsPage() {
             and ends with a deload and a test week.
           </p>
           <p className="data-mono mt-5">
-            written by {COACH.name.toLowerCase()} · {COACH.credentials.map((c) => c.code).join(' · ')}
+            <a href="/#coach" className="underline-offset-4 hover:underline">
+              written by {COACH.name.toLowerCase()}
+            </a>{' '}
+            · {COACH.credentials.map((c) => c.code).join(' · ')}
           </p>
         </section>
 

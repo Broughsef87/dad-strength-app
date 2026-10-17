@@ -62,7 +62,9 @@ const JSON_LD = {
     {
       '@type': 'Person',
       '@id': `${SITE}/#coach`,
+      url: `${SITE}/#coach`,
       name: COACH.name,
+      worksFor: { '@id': `${SITE}/#organization` },
       jobTitle: 'Strength coach',
       hasCredential: COACH.credentials.map((c) => ({
         '@type': 'EducationalOccupationalCredential',
