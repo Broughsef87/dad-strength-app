@@ -28,6 +28,7 @@ import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
 import { withSetCount } from '../../../../lib/programs/setPlan'
+import { TIME_CONSTRAINED_MAX_SETS } from '../../../../lib/programs/timeConstrained'
 import { RECORDED, isRecorded, isTrained, samePlan, serialWriter, sessionPlan } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
 import { isCompletable, scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek }
@@ -127,6 +128,10 @@ interface SessionOverrides {
   setCounts?: Record<string, number>          // slot → overridden set count
   removedSlots?: string[]                     // hidden prescribed items
   addedExercises?: Array<{ slot: string; name: string; sets: number; reps: number }>
+}
+
+function hasOverrides(o: SessionOverrides): boolean {
+  return Object.keys(o.setCounts ?? {}).length > 0 || (o.removedSlots?.length ?? 0) > 0 || (o.addedExercises?.length ?? 0) > 0
 }
 
 function applyOverrides(plan: DayPlan, o: SessionOverrides): DayPlan {
@@ -1173,6 +1178,11 @@ export default function TrainingDayPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sessionComplete, setSessionComplete] = useState(false)
+  const [timeCrunch, setTimeCrunch] = useState(false)
+  // Set the moment any write that shapes this session begins on this page — a
+  // log, a swap, a set-count or exercise edit, completion — so the time crunch
+  // toggle is gone before anything can save under the plan it would replace.
+  const [started, setStarted] = useState(false)
   const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
   const [liftHistory, setLiftHistory] = useState<LiftHistory>({})
   const [logWriteError, setLogWriteError] = useState<string | null>(null)
@@ -1227,6 +1237,16 @@ export default function TrainingDayPage() {
         const n = q ? parseInt(q, 10) : NaN
         if (Number.isFinite(n) && n >= 1) weekOverride = n
       } catch { /* SSR-safe no-op */ }
+      // The time crunch: the same day through the time-constrained mode
+      // (timeConstrained.ts). The toggle puts an explicit ?short=1 or ?short=0
+      // on the URL; without one, the mode is whatever this session's row
+      // recorded, so reopening the day on another screen builds the same plan
+      // rather than quietly swapping it. A trained session is drawn from its
+      // record below either way.
+      let shortParam: string | null = null
+      try {
+        shortParam = new URLSearchParams(window.location.search).get('short')
+      } catch { /* SSR-safe no-op */ }
 
       const [progState, userMaxes, subRes] = await Promise.all([
         fetchProgramState(supabase, userId, slug),
@@ -1260,6 +1280,18 @@ export default function TrainingDayPage() {
       // along am I' is scoped to it — a find-or-create that ignores it adopts the
       // previous attempt's row, and its completion sentinel with it.
       const runStart = await runStartedAt(supabase, userId, slug)
+      let timeConstrained = shortParam === '1'
+      if (shortParam !== '1' && shortParam !== '0') {
+        const { data: modeRows } = await supabase
+          .from('generated_workouts')
+          .select('workout_data')
+          .eq('user_id', userId).eq('program_slug', slug)
+          .eq('week_number', weekNumber).eq('day_number', dayNumber)
+          .gte('created_at', runStart)
+          .order('created_at', { ascending: true }).limit(1)
+        timeConstrained = (modeRows?.[0]?.workout_data as { timeConstrained?: unknown } | undefined)?.timeConstrained === true
+      }
+      setTimeCrunch(timeConstrained)
       const doneDays = await fetchDoneDays(supabase, userId, slug, weekNumber)
       if (doneDays.includes(dayNumber)) setSessionComplete(true)
 
@@ -1280,7 +1312,7 @@ export default function TrainingDayPage() {
       // Without this the engine still WORKS and every check still passes —
       // buildDay just never receives loadTargets, so every accessory renders
       // with no weight, forever. The whole feature is invisible from here.
-      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) })
+      const probe = program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, timeConstrained, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) })
       const ranges: Record<string, [number, number]> = {}
       const steps: Record<string, number> = {}
       for (const it of probe.items) {
@@ -1319,7 +1351,7 @@ export default function TrainingDayPage() {
 
       // Deterministic build — instant, no AI — then user substitutions on top.
       const built = applySubs(
-        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, loadTargets: progressionLoads, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) }),
+        program.buildDay(weekNumber, dayNumber, userMaxes, adjustments, { forceDeload, timeConstrained, loadTargets: progressionLoads, jumpRampFromWeek: rampOriginFor(weekNumber, progState.jumpRampRestarts) }),
         subs,
       )
       // Nothing is shown — no plan, no overrides, no row state — until this
@@ -1332,7 +1364,7 @@ export default function TrainingDayPage() {
       // `adjustments` rides along on the row: next week's autoreg needs to know
       // what this card actually SHOWED, not just what the table said, or it
       // re-counts its own advice as freelancing and ratchets the load up.
-      const fresh = { plan: built, adjustments, [RECORDED]: true }
+      const fresh = { plan: built, adjustments, timeConstrained, [RECORDED]: true }
       // What the cards are drawn from — `built` unless this session has been
       // trained (FOR-248). Its logs are read with the row, not after it: the
       // rule needs them to decide.
@@ -1360,7 +1392,7 @@ export default function TrainingDayPage() {
         // logs would not save either, and training against a record that
         // disagrees with the screen is the defect itself.
         if (!trained && (!samePlan(wd.plan, built) || !isRecorded(wd))) {
-          workoutDataRef.current = { ...wd, plan: built, [RECORDED]: true }
+          workoutDataRef.current = { ...wd, plan: built, timeConstrained, [RECORDED]: true }
           const payload = workoutDataRef.current
           const synced = await queueRow(async () => supabase.from('generated_workouts').update({ workout_data: payload }).eq('id', id))
           if (synced.error) throw new Error(`Could not save this session's plan (${synced.error.message ?? synced.error.code ?? 'unknown error'}) — nothing was trained against it. Try again.`)
@@ -1514,6 +1546,7 @@ export default function TrainingDayPage() {
 
   const logLiftSets = async (item: LiftPrescription, sets: SetEntry[]) => {
     if (!user || !workoutIdRef.current) return
+    setStarted(true)
     const now = new Date().toISOString()
     const rows = sets.map(s => ({
       ...baseRow(),
@@ -1554,6 +1587,7 @@ export default function TrainingDayPage() {
 
   const logPlyoSets = async (item: PlyoPrescription, sets: PlyoSetEntry[], notes: string) => {
     if (!user || !workoutIdRef.current) return
+    setStarted(true)
     const now = new Date().toISOString()
     const rows = sets.map(s => ({
       ...baseRow(),
@@ -1571,6 +1605,7 @@ export default function TrainingDayPage() {
 
   const logSimple = async (blockName: string, logType: string, notes: string, extra?: Record<string, unknown>) => {
     if (!user || !workoutIdRef.current) return
+    setStarted(true)
     report(blockName, await supabase.from('ares_session_logs').upsert({
       ...baseRow(),
       log_type: logType,
@@ -1585,6 +1620,7 @@ export default function TrainingDayPage() {
 
   const completeSession = async () => {
     if (!user || !workoutIdRef.current || !program) return
+    setStarted(true)
     // A rest day cannot be finished. It prescribes nothing, so a sentinel
     // written here is a session that never happened — which is exactly how
     // Dad Strong's week used to advance, on its rendered-but-empty Wednesday
@@ -1648,6 +1684,7 @@ export default function TrainingDayPage() {
   // user_exercise_subs and patches the in-memory plan without a reload.
   const applySwap = async (subName: string | null, repeatMeso = true) => {
     if (!user || !swapTarget || swapInFlight.current) return
+    setStarted(true)
     const run = swapNow(user.id, swapTarget, subName, repeatMeso)
     swapInFlight.current = run
     setSwapping(true)
@@ -1711,6 +1748,7 @@ export default function TrainingDayPage() {
 
   // ── Session overrides: add/remove sets + exercises (this week+day only) ─────
   const updateOverrides = async (next: SessionOverrides) => {
+    setStarted(true)
     // An edit made while a swap is saving waits for it, so the row it sends is
     // built on the swap's outcome — kept or taken back — and never carries a
     // swap that then fails (Codex r6).
@@ -1723,6 +1761,7 @@ export default function TrainingDayPage() {
   }
 
   const changeSetCount = async (item: LiftPrescription | PlyoPrescription, newCount: number) => {
+    setStarted(true)
     const n = Math.max(1, newCount)
     // Shrinking: purge log rows beyond the new count so they don't resurface.
     if (workoutIdRef.current) {
@@ -1948,6 +1987,32 @@ export default function TrainingDayPage() {
 
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
         <p className="text-xs text-muted-foreground italic border-l-2 border-border pl-3">{plan.sessionIntent}</p>
+
+        {/* Time crunch: offered on a gym day until anything is logged. After
+            that the session is drawn from what it was trained under, so a
+            toggle would change nothing — and a toggle racing a set save could
+            record a plan without the exercise that set belongs to. Not offered
+            on a session already edited by hand either: its overrides are
+            reapplied after the reduction, so the day would not be short. */}
+        {plan.dayType === 'gym' && !sessionComplete && !started && !swapTarget && !isTrained(sessionLogs)
+          && !hasOverrides(overrides) && (
+          <button
+            onClick={() => {
+              const url = new URL(window.location.href)
+              url.searchParams.set('short', timeCrunch ? '0' : '1')
+              window.history.replaceState(null, '', url)
+              // The loader replaces the cards (and this button) until the
+              // rebuild lands, so nothing can be logged or toggled mid-flight.
+              setLoading(true)
+              loadDay()
+            }}
+            className="pill-quiet w-full px-4 py-2.5 text-sm lowercase"
+          >
+            {timeCrunch
+              ? 'back to the full session'
+              : `time crunch · main lifts only, up to ${TIME_CONSTRAINED_MAX_SETS} sets each`}
+          </button>
+        )}
 
         {missingMaxes.length > 0 && plan.dayType === 'gym' && (
           <div className="bg-status-danger-fill/5 border border-status-danger-fill/30 rounded-lg px-4 py-3">
