@@ -1,7 +1,6 @@
 [
   "[day]/page.tsx  text-muted-foreground/40  x11",
   "[day]/page.tsx  text-muted-foreground/70  x5",
-  "app/page.tsx  text-muted-foreground/60  x3",
   "build/page.tsx  text-muted-foreground/40  x1",
   "components/DailyObjectivesCard.tsx  text-muted-foreground/40  x1",
   "components/DailyObjectivesCard.tsx  text-muted-foreground/50  x2",
