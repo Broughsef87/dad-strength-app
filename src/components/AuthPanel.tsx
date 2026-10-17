@@ -55,10 +55,11 @@ export default function AuthPanel() {
     // only an event after a signed-out start counts as signing in here.
     //
     // A Google sign-in comes back as /dashboard?code=…, which middleware sends
-    // on to /?code=… before the browser has exchanged the code; the session
-    // then exists by the time getSession() resolves. A ?code= on the URL is
-    // that return, so it counts as signing in here too.
-    const oauthReturn = new URLSearchParams(window.location.search).has('code');
+    // on to /?code=…&signin=oauth before the browser has exchanged the code.
+    // The browser client can exchange the code and strip ?code= before this
+    // effect runs, so the marker is what counts: Supabase deletes only `code`,
+    // and only middleware adds `signin`, so a stray ?code= does not.
+    const oauthReturn = new URLSearchParams(window.location.search).get('signin') === 'oauth';
     let startedSignedOut = oauthReturn;
 
     const checkUser = async () => {
