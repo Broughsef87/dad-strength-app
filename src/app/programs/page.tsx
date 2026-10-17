@@ -54,14 +54,14 @@ const COPY: Record<string, { forWho: string; body: string[] }> = {
     forWho: 'for the dad who wants to look like he lifts and still move like an athlete.',
     body: [
       'dad built is powerbuilding. four gym days, two upper and two lower. each one opens with a single heavy top set off your tested max, then moves into the rep work that builds muscle.',
-      'the volume progresses on one plain rule: hold the weight until every set reaches the top of its rep range, then add load. two easy, conversational runs keep your conditioning honest without eating your recovery.',
+      'the volume progresses on one plain rule: hold the weight until every set reaches the top of its rep range, then add load. two easy aerobic days, a walk, a ruck or an easy bike, keep your conditioning honest without eating your recovery.',
     ],
   },
   'hybrid-dad': {
     forWho: 'for the dad who wants a real engine without losing his strength.',
     body: [
-      'hybrid dad builds a serious aerobic base and keeps your strength in place. two short lifting days hold the squat, press and hinge, at low volume on purpose so your legs are there for the running.',
-      'the rest of the week is running: intervals for the hard effort, tempo at comfortably hard, easy zone 2 with core work, and a long session that grows across the block. every pace comes from your 5k time, and the block ends with a 5k time trial.',
+      'hybrid dad builds a serious aerobic base and keeps your strength in place. two short lifting days hold the squat, press and hinge, at low volume on purpose so your legs are there for the aerobic work.',
+      'the rest of the week is aerobic work: intervals for the hard effort, tempo at comfortably hard, easy zone 2 with core work, and a long session that grows across the block. your run paces come from your 5k time, and the block ends with a 5k time trial.',
     ],
   },
 };

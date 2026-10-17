@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useMemo, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useState, useMemo, ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { GRAPHITE_PATHS } from '../lib/publicSite'
 
@@ -61,8 +61,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [forcedDark, theme, systemDark]
   )
 
-  // Apply to DOM whenever resolvedTheme changes
-  useEffect(() => {
+  // Apply to DOM whenever resolvedTheme changes. A layout effect, so a client
+  // navigation between the site (always graphite) and the app never paints a
+  // frame in the previous route's palette.
+  useLayoutEffect(() => {
     applyToDOM(resolvedTheme)
   }, [resolvedTheme])
 
