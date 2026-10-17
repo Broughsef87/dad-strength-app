@@ -134,7 +134,7 @@ export default function Home() {
       <div className="mx-auto w-full max-w-2xl px-4 sm:px-6">
         {/* Lockup: mark 34px + wordmark, gap 12 (DS brand marks). */}
         <header className="flex items-center justify-between py-5">
-          <a href="/" className="flex items-center gap-3" aria-label="Dad Strength home">
+          <a href="/" className="flex items-center gap-3" aria-label="dad strength home">
             <Logo className="h-[34px] w-[34px]" />
             <span className="font-display text-xl font-semibold tracking-[-0.03em] lowercase text-foreground">
               dad strength
@@ -209,27 +209,23 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Founding dads: the volt slab. Brand-ink is the only ink on it;
-              the CTA is a quiet pill, its own recessed fill and ink. */}
-          <section
-            id="founding"
-            className="mt-12 rounded-3xl bg-brand p-7 text-brand-ink shadow-[var(--shadow-tile-lg)] sm:p-10"
-          >
-            <p className="font-mono text-[11px] tracking-[0.16em] lowercase text-brand-ink">
-              founding dads
-            </p>
-            <p className="stat-num mt-4 text-[72px] text-brand-ink" aria-hidden="true">
+          {/* Founding dads: a plain tile. Volt means live, earned or the
+              number you lift — a promotion is none of those, so the only volt
+              here is the one CTA, as a fill. */}
+          <section id="founding" className="tile mt-12 p-7 sm:p-10">
+            <p className="eyebrow-mono">founding dads</p>
+            <p className="stat-num mt-4 text-[72px] text-foreground" aria-hidden="true">
               {FOUNDING.count}
             </p>
-            <h2 className="font-display mt-3 text-[26px] font-semibold leading-tight tracking-[-0.02em] lowercase text-brand-ink sm:text-[40px]">
+            <h2 className="font-display mt-3 text-[26px] font-semibold leading-tight tracking-[-0.02em] lowercase text-foreground sm:text-[40px]">
               {FOUNDING.heading}
             </h2>
-            <p className="mt-3 max-w-md text-base font-normal leading-[1.65] text-brand-ink">
+            <p className="mt-3 max-w-md text-base font-light leading-[1.65] text-muted-foreground">
               {FOUNDING.body}
             </p>
             <a
               href="#sign-in"
-              className="pill-quiet mt-7 inline-block px-6 py-3.5 text-base font-semibold"
+              className="pill-volt mt-7 inline-block px-6 py-3.5 text-base font-semibold"
             >
               {CTA}
             </a>
