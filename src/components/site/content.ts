@@ -6,7 +6,7 @@
 export const COACH = {
   name: 'Andrew Brough',
   credentials: [
-    { name: 'usa weightlifting coach', code: 'usaw', formal: 'USA Weightlifting Coach' },
+    { name: 'usaw sports performance coach', code: 'usaw', formal: 'USAW Sports Performance Coach' },
     { name: 'crossfit level 1 trainer', code: 'cf-l1', formal: 'CrossFit Level 1 Trainer (CF-L1)' },
     { name: 'nasm certified personal trainer', code: 'nasm-cpt', formal: 'NASM Certified Personal Trainer (NASM-CPT)' },
   ],
