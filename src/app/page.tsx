@@ -144,15 +144,15 @@ const STEPS = [
   {
     n: '02',
     heading: 'last week moves this week',
-    body: 'log the sets. accessory work holds its weight until every set reaches the top of its range, then adds load. main lifts that felt harder than their target rpe come down a little next week, and easy ones go up.',
+    body: 'log the sets and the next session uses them. accessory work adds load once every set reaches the top of its range. on the main lifts, how hard a session felt against its target rpe nudges the next week\'s percentage.',
     trace: RANGED
       ? `${RANGED.name.toLowerCase()} · ${RANGED.sets}×${RANGED.reps} · all sets at ${RANGED.top} → +${RANGED.step} lb`
       : null,
   },
   {
     n: '03',
-    heading: 'short on time, keep the main lifts',
-    body: `tap time crunch on any gym day you have not started. the day keeps its warm-up and its first ${TIME_CONSTRAINED_LIFTS} lifts, at up to ${TIME_CONSTRAINED_MAX_SETS} sets each, and the accessories wait for a fuller day.`,
+    heading: 'short on time, do the start of the day',
+    body: `tap time crunch on any gym day you have not started. the day keeps its warm-up and up to ${TIME_CONSTRAINED_LIFTS} of its first lifts, at up to ${TIME_CONSTRAINED_MAX_SETS} sets each. the rest of the day is skipped.`,
     trace: `${S.dayName.toLowerCase()} · ${S.fullCount} lifts → ${S.crunchCount} lifts, up to ${S.crunchSets} sets each`,
   },
 ];
