@@ -28,6 +28,7 @@ import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
 import { withSetCount } from '../../../../lib/programs/setPlan'
+import { BAR, plateString } from '../../../../lib/plates'
 import { TIME_CONSTRAINED_MAX_SETS } from '../../../../lib/programs/timeConstrained'
 import { RECORDED, isRecorded, isTrained, samePlan, serialWriter, sessionPlan } from '../../../../lib/programs/sessionPlan'
 import type { ProgramConfig } from '../../../../lib/programs/types'
@@ -62,22 +63,6 @@ interface SetEntry {
 const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
 
 // ── Plate math + warm-up ramps ─────────────────────────────────────────────────
-
-const BAR = 45
-const PLATE_SIZES = [45, 35, 25, 10, 5, 2.5]
-
-// "45·25·5 /side" for a total barbell weight; null when it's not plate-able.
-function plateString(total: number | null | undefined): string | null {
-  if (total == null || total < BAR) return null
-  if (total <= BAR + 2.5) return 'empty bar'
-  let side = (total - BAR) / 2
-  const out: string[] = []
-  for (const p of PLATE_SIZES) {
-    while (side >= p - 0.01) { out.push(p === 2.5 ? '2.5' : String(p)); side -= p }
-  }
-  if (!out.length) return 'empty bar'
-  return `${out.join('·')} /side${side > 0.01 ? ' +' : ''}`
-}
 
 interface RampSet { weight: number; reps: number }
 

@@ -90,105 +90,129 @@ export default function ProgramsPage() {
   return (
     <SiteShell>
       <main>
-        <section className="pt-12 pb-10 sm:pt-20 sm:pb-14">
-          <p className="eyebrow-mono">programs</p>
-          <h1 className="font-display mt-4 text-[40px] font-bold leading-[1.02] tracking-[-0.045em] lowercase text-foreground sm:text-[64px]">
-            three strength programs for dads
-          </h1>
-          <p className="mt-5 max-w-md text-lg font-light leading-[1.65] text-muted-foreground">
-            pick the one that fits the dad you want to be. each runs in {PROGRAM_LIST[0].macroWeeks}-week
-            blocks
-            and ends with a deload and a test week.
-          </p>
-          <p className="data-mono mt-5">
-            <a href="/#coach" className="underline-offset-4 hover:underline">
-              written by {COACH.name.toLowerCase()}
-            </a>{' '}
-            · {COACH.credentials.map((c) => c.code).join(' · ')}
-          </p>
+        <section className="grid gap-10 pt-10 pb-16 lg:grid-cols-[7fr_5fr] lg:items-end lg:gap-16 lg:pt-16 lg:pb-20">
+          <div>
+            <p className="eyebrow-mono">programs</p>
+            <h1 className="font-display mt-5 text-[44px] font-bold leading-[0.98] tracking-[-0.045em] lowercase text-foreground sm:text-[76px]">
+              three strength programs for dads
+            </h1>
+            <p className="mt-6 max-w-md text-lg font-light leading-[1.65] text-muted-foreground">
+              pick the one that fits the dad you want to be. each runs in {PROGRAM_LIST[0].macroWeeks}-week
+              blocks and ends with a deload and a test week.
+            </p>
+            <p className="data-mono mt-6">
+              <a href="/#coach" className="underline-offset-4 hover:underline">
+                written by {COACH.name.toLowerCase()}
+              </a>{' '}
+              · {COACH.credentials.map((c) => c.code).join(' · ')}
+            </p>
+          </div>
+          {/* The index: one row per program, jumping to its section. */}
+          <nav aria-label="the programs" className="space-y-2">
+            {PROGRAM_LIST.map((p, i) => (
+              <a
+                key={p.slug}
+                href={`#${p.slug}`}
+                className="row-recessed flex items-center gap-4 px-4 py-3.5 transition-colors active:bg-muted"
+              >
+                <span className="data-mono w-6">{String(i + 1).padStart(2, '0')}</span>
+                <span className="font-display text-lg font-semibold tracking-[-0.02em] lowercase text-foreground">
+                  {p.name.toLowerCase()}
+                </span>
+                <span className="data-mono ml-auto">{p.gymDayNumbers.length} gym days</span>
+              </a>
+            ))}
+          </nav>
         </section>
 
-        <div className="space-y-3">
+        <div className="space-y-6">
           {PROGRAM_LIST.map((p, i) => {
             const copy = COPY[p.slug];
             return (
-              <section key={p.slug} id={p.slug} className="tile scroll-mt-6 p-5.5 sm:p-7">
-                <p className="eyebrow-mono">
-                  {String(i + 1).padStart(2, '0')} · {p.tagline.toLowerCase()}
-                </p>
-                <h2 className="font-display mt-2.5 text-2xl font-semibold tracking-[-0.02em] lowercase text-foreground sm:text-[30px]">
-                  {p.name.toLowerCase()}
-                </h2>
-                {copy && (
-                  <>
-                    <p className="mt-2 text-[15px] font-medium leading-[1.65] text-foreground">
-                      {copy.forWho}
-                    </p>
-                    {copy.body.map((para) => (
-                      <p key={para.slice(0, 24)} className="mt-2 text-[15px] font-light leading-[1.65] text-muted-foreground">
-                        {para}
+              <section
+                key={p.slug}
+                id={p.slug}
+                className="tile scroll-mt-6 grid gap-10 p-5.5 sm:p-10 lg:grid-cols-[6fr_5fr] lg:gap-16"
+              >
+                <div>
+                  <p className="eyebrow-mono">
+                    {String(i + 1).padStart(2, '0')} · {p.tagline.toLowerCase()}
+                  </p>
+                  <h2 className="font-display mt-3 text-[30px] font-semibold leading-[1.05] tracking-[-0.03em] lowercase text-foreground sm:text-[44px]">
+                    {p.name.toLowerCase()}
+                  </h2>
+                  {copy && (
+                    <>
+                      <p className="mt-4 text-lg font-medium leading-[1.5] text-foreground">{copy.forWho}</p>
+                      {copy.body.map((para) => (
+                        <p key={para.slice(0, 24)} className="mt-3 text-[15px] font-light leading-[1.65] text-muted-foreground">
+                          {para}
+                        </p>
+                      ))}
+                    </>
+                  )}
+                  <div className="mt-8 grid grid-cols-2 gap-6">
+                    <div>
+                      <p className="stat-num text-[44px] text-foreground">{p.macroWeeks}</p>
+                      <p className="eyebrow-mono mt-2">
+                        wk block · deload wk {p.macroWeeks - 1} · test wk {p.macroWeeks}
                       </p>
-                    ))}
-                  </>
-                )}
+                    </div>
+                    <div>
+                      <p className="stat-num text-[44px] text-foreground">{p.gymDayNumbers.length}</p>
+                      <p className="eyebrow-mono mt-2">gym days a week</p>
+                    </div>
+                  </div>
+                </div>
 
-                <p className="eyebrow-mono mt-6 mb-2.5">the week</p>
-                <ul className="space-y-1.5">
-                  {DAYS.map((day, d) => {
-                    // Week 1, no maxes: only the day's name and kind are read.
-                    const plan = p.buildDay(1, d + 1, {});
-                    return (
-                      <li key={day} className="row-recessed flex items-center gap-3 px-3.5 py-2.5">
-                        <span className="data-mono w-9 shrink-0">{day}</span>
-                        <span className="text-[15px] lowercase text-foreground">{plan.dayName.toLowerCase()}</span>
-                        <span className="data-mono ml-auto">{plan.dayType}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-
-                <ul className="mt-3 space-y-2">
-                  <li className="row-recessed flex items-center justify-between gap-3 px-3.5 py-3">
-                    <span className="shrink-0 text-[15px] font-medium lowercase text-foreground">the block</span>
-                    <span className="data-mono">
-                      {p.macroWeeks} wk · deload wk {p.macroWeeks - 1} · test wk {p.macroWeeks}
-                    </span>
-                  </li>
-                  <li className="row-recessed flex items-center justify-between gap-3 px-3.5 py-3">
-                    <span className="shrink-0 text-[15px] font-medium lowercase text-foreground">to start</span>
-                    <span className="data-mono text-right">
-                      {p.requiredMaxes.map((m) => m.label.toLowerCase()).join(' · ')}
-                    </span>
-                  </li>
-                </ul>
+                <div>
+                  <p className="eyebrow-mono mb-2.5">the week</p>
+                  <ul className="space-y-1.5">
+                    {DAYS.map((day, d) => {
+                      // Week 1, no maxes: only the day's name and kind are read.
+                      const plan = p.buildDay(1, d + 1, {});
+                      return (
+                        <li key={day} className="row-recessed flex items-center gap-3 px-3.5 py-2.5">
+                          <span className="data-mono w-9 shrink-0">{day}</span>
+                          <span className="text-[15px] lowercase text-foreground">{plan.dayName.toLowerCase()}</span>
+                          <span className="data-mono ml-auto">{plan.dayType}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="eyebrow-mono mt-6 mb-2.5">to start, your</p>
+                  <p className="data-mono leading-relaxed">
+                    {p.requiredMaxes.map((m) => m.label.toLowerCase()).join(' · ')}
+                  </p>
+                </div>
               </section>
             );
           })}
         </div>
 
-        <section className="mt-12" aria-label="how the programs work">
-          <p className="eyebrow-mono mb-3.5">how they work</p>
-          <div className="tile p-5.5 sm:p-7">
-            <ul className="space-y-5">
-              {HOW.map((h) => (
-                <li key={h.heading}>
-                  <h2 className="font-display text-xl font-semibold tracking-[-0.02em] lowercase text-foreground">
-                    {h.heading}
-                  </h2>
-                  <p className="mt-1.5 text-[15px] font-light leading-[1.65] text-muted-foreground">
-                    {h.body}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <section className="mt-28" aria-label="how the programs work">
+          <p className="eyebrow-mono">how they work</p>
+          <h2 className="font-display mt-3 text-[30px] font-semibold leading-[1.05] tracking-[-0.03em] lowercase text-foreground sm:text-[44px]">
+            same engine under all three
+          </h2>
+          <ul className="mt-10 grid gap-3 md:grid-cols-3">
+            {HOW.map((h, i) => (
+              <li key={h.heading} className="tile p-5.5 sm:p-7">
+                <p className="stat-num text-3xl text-muted-foreground">{String(i + 1).padStart(2, '0')}</p>
+                <h3 className="font-display mt-5 text-xl font-semibold tracking-[-0.02em] lowercase text-foreground">
+                  {h.heading}
+                </h3>
+                <p className="mt-2 text-[15px] font-light leading-[1.65] text-muted-foreground">{h.body}</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        <section className="mt-12 pb-4 text-center">
-          <p className="font-display text-[26px] font-semibold tracking-[-0.02em] lowercase text-foreground">
+        <section className="mt-28 flex flex-col items-start justify-between gap-8 border-t border-border pt-12 md:flex-row md:items-center">
+          <p className="font-display max-w-2xl text-[30px] font-semibold leading-[1.1] tracking-[-0.03em] lowercase text-foreground sm:text-[40px]">
             {FOUNDING_SPOTS} founding dads train free for life, for honest feedback.
           </p>
-          <a href="/#sign-in" className="pill-volt mt-6 inline-block px-6 py-3.5 text-base font-semibold">
+          <a href="/#sign-in" className="pill-volt shrink-0 px-6 py-3.5 text-base font-semibold">
             claim a founding spot
           </a>
         </section>
