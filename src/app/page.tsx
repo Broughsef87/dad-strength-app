@@ -328,14 +328,14 @@ export default function Home() {
                 </li>
               ))}
             </ul>
-            {/* Source is 441px wide, so it stays small to stay sharp. */}
-            <figure className="tile-lg mt-8 w-full max-w-[260px] overflow-hidden">
+            {/* A frame from a 720p video, so it stays small enough to stay sharp. */}
+            <figure className="tile-lg mt-8 w-full max-w-[340px] overflow-hidden">
               <Image
-                src="/site/coach-gym.jpg"
-                alt={`${COACH.name} in the gym`}
-                width={441}
-                height={810}
-                sizes="260px"
+                src="/site/coach-deadlift.jpg"
+                alt={`${COACH.name} locking out a deadlift`}
+                width={680}
+                height={720}
+                sizes="340px"
                 className="h-auto w-full"
               />
             </figure>
