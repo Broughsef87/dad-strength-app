@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import AuthPanel from '../components/AuthPanel';
 import SiteShell from '../components/site/SiteShell';
 import SampleSession from '../components/site/SampleSession';
@@ -294,6 +295,18 @@ export default function Home() {
               {COACH.name.toLowerCase()}
             </p>
             <p className="data-mono mt-4">{COACH.credentials.map((c) => c.code).join(' · ')}</p>
+            {/* Real photographs live on the public site only, never the app
+                (design-system/readme.md, Imagery). Bystanders are blurred. */}
+            <figure className="tile-lg mt-8 overflow-hidden">
+              <Image
+                src="/site/coach-family.jpg"
+                alt={`${COACH.name} with his wife and baby at a hockey game`}
+                width={960}
+                height={1200}
+                sizes="(min-width: 1024px) 420px, 100vw"
+                className="h-auto w-full"
+              />
+            </figure>
           </div>
           <div>
             <h2 className="font-display text-2xl font-semibold tracking-[-0.02em] lowercase text-foreground sm:text-[30px]">
@@ -315,6 +328,17 @@ export default function Home() {
                 </li>
               ))}
             </ul>
+            {/* Source is 441px wide, so it stays small to stay sharp. */}
+            <figure className="tile-lg mt-8 w-full max-w-[260px] overflow-hidden">
+              <Image
+                src="/site/coach-gym.jpg"
+                alt={`${COACH.name} in the gym`}
+                width={441}
+                height={810}
+                sizes="260px"
+                className="h-auto w-full"
+              />
+            </figure>
           </div>
         </section>
 

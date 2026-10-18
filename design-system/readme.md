@@ -226,7 +226,7 @@ Phone-first, single column, 390px design width. 16px screen gutter, 12px between
 
 ### Imagery
 
-There is none, and that is the intent. No photography, no illustration, no exercise diagrams in this system. If exercise imagery is added later it should arrive as line diagrams in ink on recessed fill — never photographic, never volt. **This is an open question for the product owner.**
+There is none, and that is the intent. No photography, no illustration, no exercise diagrams in this system. **One exception, the product owner's call (2026-10-18):** the public site's coach section carries real photographs of the coach (`public/site/coach-*.jpg`), unfiltered, with bystanders blurred. The app stays photo-free. If exercise imagery is added later it should arrive as line diagrams in ink on recessed fill — never photographic, never volt. **This is an open question for the product owner.**
 
 ---
 
