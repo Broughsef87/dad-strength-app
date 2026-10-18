@@ -295,8 +295,8 @@ export default function Home() {
               {COACH.name.toLowerCase()}
             </p>
             <p className="data-mono mt-4">{COACH.credentials.map((c) => c.code).join(' · ')}</p>
-            {/* The one photograph on the site: the public site only, never the
-                app (design-system/readme.md, Imagery). Fans behind are blurred. */}
+            {/* Real photographs live on the public site only, never the app
+                (design-system/readme.md, Imagery). Bystanders are blurred. */}
             <figure className="tile-lg mt-8 overflow-hidden">
               <Image
                 src="/site/coach-family.jpg"
@@ -328,6 +328,17 @@ export default function Home() {
                 </li>
               ))}
             </ul>
+            {/* Source is 441px wide, so it stays small to stay sharp. */}
+            <figure className="tile-lg mt-8 w-full max-w-[260px] overflow-hidden">
+              <Image
+                src="/site/coach-gym.jpg"
+                alt={`${COACH.name} in the gym`}
+                width={441}
+                height={810}
+                sizes="260px"
+                className="h-auto w-full"
+              />
+            </figure>
           </div>
         </section>
 
