@@ -36,7 +36,7 @@ export default function WeekGrid() {
                 key={day}
                 className={`${surface} flex min-h-[64px] flex-col justify-between gap-2 !rounded-sm px-1.5 py-2 md:min-h-[96px] md:px-3 md:py-3`}
               >
-                <span className="data-mono md:hidden">{day}</span>
+                <span className="data-mono md:sr-only">{day}</span>
                 <span className="hidden text-[13px] leading-snug lowercase text-foreground md:block">
                   {plan.dayType === 'rest' ? '' : plan.dayName.toLowerCase()}
                 </span>

@@ -75,7 +75,7 @@ export default function SampleSession() {
           {S.rest.length > 3 && <li className="data-mono">+ {S.rest.length - 3} more</li>}
         </ul>
       </div>
-      <figcaption className="data-mono mt-3 leading-relaxed">
+      <figcaption className="mt-3 text-sm font-light leading-[1.65] text-muted-foreground">
         a real session from the engine: week {SAMPLE.week} of {S.programName.toLowerCase()}, for a{' '}
         {L.max} lb {L.maxLabel.toLowerCase()}. yours is built from your numbers.
       </figcaption>

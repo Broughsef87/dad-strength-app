@@ -8,6 +8,7 @@ import BlockBar from '../components/site/BlockBar';
 import { COACH, FOUNDING_SPOTS } from '../components/site/content';
 import { SAMPLE, SAMPLE_SESSION as S } from '../components/site/sample';
 import { PROGRAMS } from '../lib/programs';
+import { TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../lib/programs/timeConstrained';
 
 // The public front door. A server component so the copy, headings and links
 // below ship in the HTML: before this, / rendered client-side and crawlers and
@@ -129,7 +130,7 @@ function Heading({ eyebrow, children }: { eyebrow: string; children: ReactNode }
 const STATS = [
   { num: String(PROGRAM_LIST[0].macroWeeks), label: 'weeks a block, deload and test week included' },
   { num: String(PROGRAM_LIST.length), label: 'programs, one coach' },
-  { num: String(S.crunchCount), label: `lifts when time is short, not ${S.fullCount}` },
+  { num: String(S.crunchCount), label: `lifts on a time-crunched ${S.dayName.toLowerCase()}, not ${S.fullCount}` },
   { num: String(FOUNDING_SPOTS), label: 'founding spots, free for life' },
 ];
 
@@ -137,7 +138,7 @@ const STEPS = [
   {
     n: '01',
     heading: 'your numbers set the weight',
-    body: 'tell it your maxes once. every working weight is a percentage of them, rounded to a load you can build from plates.',
+    body: 'tell it your maxes once. the main lifts are a percentage of them, rounded to a load you can build from plates. accessory weights come from what you log.',
     trace: `${L.maxLabel.toLowerCase()} ${L.max} × ${L.percent}% = ${((L.max * L.percent) / 100).toFixed(1)} → ${L.load} lb${L.plates ? ` · ${L.plates}` : ''}`,
   },
   {
@@ -151,7 +152,7 @@ const STEPS = [
   {
     n: '03',
     heading: 'short on time, keep the main lifts',
-    body: 'tap time crunch on any gym day you have not started. the day runs as its main lifts only, and everything else waits for a fuller day.',
+    body: `tap time crunch on any gym day you have not started. the day keeps its warm-up and its first ${TIME_CONSTRAINED_LIFTS} lifts, at up to ${TIME_CONSTRAINED_MAX_SETS} sets each, and the accessories wait for a fuller day.`,
     trace: `${S.dayName.toLowerCase()} · ${S.fullCount} lifts → ${S.crunchCount} lifts, up to ${S.crunchSets} sets each`,
   },
 ];
@@ -234,8 +235,8 @@ export default function Home() {
             <div>
               <Heading eyebrow="the programs">three programs. seven days each.</Heading>
               <p className="mt-5 max-w-lg text-base font-light leading-[1.65] text-muted-foreground">
-                gym days are the full sessions. the rest are short and done outside, and the lifting
-                days anchor the week.
+                gym days are the full sessions. the other days are outside sessions or rest, and the
+                lifting days anchor the week.
               </p>
             </div>
             <a href="/programs" className="pill-quiet px-5 py-2.5 text-sm">

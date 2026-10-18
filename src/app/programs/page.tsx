@@ -76,7 +76,7 @@ const HOW = [
   },
   {
     heading: 'time crunch',
-    body: `short window on a gym day? tap time crunch and the day runs as its main lifts only, ${TIME_CONSTRAINED_LIFTS} lifts at up to ${TIME_CONSTRAINED_MAX_SETS} working sets each. everything else waits for a fuller day.`,
+    body: `short window on a gym day? tap time crunch and the day keeps its warm-up and its first ${TIME_CONSTRAINED_LIFTS} lifts, at up to ${TIME_CONSTRAINED_MAX_SETS} working sets each. the accessories wait for a fuller day.`,
   },
   {
     heading: 'tired week',
