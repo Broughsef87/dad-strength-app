@@ -65,6 +65,7 @@ const JSON_LD = {
         url: 'https://www.forge-automations.com/',
       },
       founder: { '@id': `${SITE}/#coach` },
+      sameAs: ['https://www.instagram.com/dad_strength.tech/'],
     },
     {
       '@type': 'Person',
