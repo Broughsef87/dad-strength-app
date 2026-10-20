@@ -40,6 +40,11 @@ function deltaFor(diff: number): number {
 // heavy lift is ~1%). Above it, the prescription re-anchors to what was lifted.
 const WEIGHT_DEADBAND_PCT = 1.5
 
+// The most any slot may sit off its table, either way. The programs clamp to
+// this when they build, and the carry below clamps to it when it stores, so a
+// run of easy weeks cannot bank more than the screen will ever show.
+export const MAX_ADJ = 8
+
 export async function computeAdjustments(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -162,13 +167,28 @@ export async function computeAdjustments(
   //     backing off moves it down.
   //  2. RPE — the existing difficulty correction, applied on top.
   // Clamping (MAX_ADJ) and percent floors live in the program config.
+  //
+  // Both signals are measured against what he was SHOWN, which already had
+  // last week's adjustment in it, so they are CHANGES to that adjustment, not
+  // a replacement for it. Returning only the change threw the old one away
+  // whenever he did as told: week 6 squat showed +3%, he lifted exactly that
+  // at RPE 7, the change came out 0, and week 7 dropped back to the bare
+  // table — lighter than the week he had just beaten. The carry keeps it.
   const adjustments: Record<string, number> = {}
+  const sameLift = (slot: string) => {
+    const p = prescribed[slot]
+    const now = current[slot]
+    return !!p && !!now && now.name === p.name && now.maxKey === p.maxKey
+  }
+  // A slot he skipped last week keeps where it was; no logs is not a signal.
+  for (const [slot, a] of Object.entries(prevAdj)) {
+    if (typeof a === 'number' && a !== 0 && !bySlot[slot] && sameLift(slot)) adjustments[slot] = a
+  }
   for (const [slot, s] of Object.entries(bySlot)) {
     const p = prescribed[slot]
     if (!p) continue
     // Rotated slot — last week was a different lift. Start this one clean.
-    const now = current[slot]
-    if (!now || now.name !== p.name || now.maxKey !== p.maxKey) continue
+    if (!sameLift(slot)) continue
 
     let weightDelta = 0
     const max = p.maxKey ? maxes[p.maxKey] : undefined
@@ -202,7 +222,8 @@ export async function computeAdjustments(
       rpeDelta = deltaFor(avg - p.targetRpe)
     }
 
-    const total = Math.round((weightDelta + rpeDelta) * 2) / 2
+    const carried = typeof prevAdj[slot] === 'number' ? prevAdj[slot] : 0
+    const total = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, Math.round((carried + weightDelta + rpeDelta) * 2) / 2))
     if (total !== 0) adjustments[slot] = total
   }
   return adjustments

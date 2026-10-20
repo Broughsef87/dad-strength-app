@@ -1,3 +1,4 @@
+import { MAX_ADJ } from './autoreg'
 import {
   BuildDayOpts,
   DayPlan,
@@ -87,7 +88,7 @@ interface SlotMeso {
 }
 
 // 8 gives the weight-follow (re-anchoring to actual lifted loads) real room.
-const MAX_ADJ = 8
+// The number lives in autoreg, which stores the carried value against it.
 const STRENGTH_TARGET_RPE = 7 // maintenance — never grinding
 
 function liftFromSlot(
