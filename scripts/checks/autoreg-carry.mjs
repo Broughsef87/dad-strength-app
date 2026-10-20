@@ -63,4 +63,42 @@ const loads = (wk, adj) => hybridPower.buildDay(wk, 1, MAXES, adj).items.find(i 
   check('obeyed +3 at RPE 10 → comes down', (adj[SLOT] ?? 0) < 3, adj)
 }
 
+// 5. Nothing logged at all last session → still carries (Codex r1 P2-3).
+{
+  const adj = await computeAdjustments(db([], { [SLOT]: 3 }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  check('empty session → +3 carried', adj[SLOT] === 3, adj)
+}
+
+// 6. A legacy stored value past the clamp carries as what was SHOWN (+8),
+//    so a hard session pulls it down at once (Codex r1 P2-2).
+{
+  const shown = loads(6, { [SLOT]: 12 })
+  const logs = shown.map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: 10 }))
+  const adj = await computeAdjustments(db(logs, { [SLOT]: 12 }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  check('stored +12, shown +8, RPE 10 → +4', adj[SLOT] === 4, adj)
+  const skip = await computeAdjustments(db([], { [SLOT]: 12 }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  check('stored +12, skipped → carries the shown +8', skip[SLOT] === MAX_ADJ, skip)
+}
+
+// 7. Part of a stored adjustment hidden by a floor is not carried
+//    (Codex r1 P2-1): the carry is what the card moved, not what was stored.
+{
+  let found = null
+  for (let day = 1; day <= 7 && !found; day++) {
+    const items = hybridPower.buildDay(6, day, MAXES).items
+    for (const it of items) {
+      if (it.kind !== 'lift' || it.percent == null || it.setPlan?.length) continue
+      const low = hybridPower.buildDay(6, day, MAXES, { [it.slot]: -MAX_ADJ }).items.find(i => i.slot === it.slot)
+      const moved = low.percent - it.percent
+      if (moved > -MAX_ADJ) { found = { day, slot: it.slot, moved, lbs: low.targetWeightLbs }; break }
+    }
+  }
+  check('a floored slot exists to test against', !!found, found)
+  if (found) {
+    const logs = [{ slot: found.slot, set_number: 1, weight_lbs: found.lbs, rpe: null }]
+    const adj = await computeAdjustments(db(logs, { [found.slot]: -MAX_ADJ }), 'u', hybridPower, 7, found.day, RUN_EPOCH, MAXES)
+    check(`stored -${MAX_ADJ}, card moved ${found.moved} → carries ${found.moved}`, (adj[found.slot] ?? 0) === found.moved, adj)
+  }
+}
+
 if (fails) { console.error(`\n${fails} failing`); process.exit(1) }

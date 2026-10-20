@@ -95,10 +95,11 @@ export async function computeAdjustments(
     .eq('log_type', 'strength_set')
     .eq('completed', true)
     .not('slot', 'is', null)
-  if (!rows?.length) return {}
+  // No early return on an empty session: a week with nothing logged still
+  // carries what it showed (below), it just adds no new signal to it.
 
   const bySlot: Record<string, { rpes: number[]; weights: number[]; sets: Array<{ n: number; lbs: number }> }> = {}
-  for (const r of rows as Array<{ slot: string; rpe: number | null; weight_lbs: number | null; set_number: number | null }>) {
+  for (const r of (rows ?? []) as Array<{ slot: string; rpe: number | null; weight_lbs: number | null; set_number: number | null }>) {
     const s = (bySlot[r.slot] ??= { rpes: [], weights: [], sets: [] })
     if (r.rpe != null) s.rpes.push(r.rpe)
     if (r.weight_lbs != null && r.weight_lbs > 0) {
@@ -118,6 +119,25 @@ export async function computeAdjustments(
   // MAX_ADJ clamp stopped it 8 points above the wave. A speed squat designed
   // for 55-70% drifted to 74% on nothing but obedience.
   const prevPlan = program.buildDay(prevWeek, dayNumber, maxes, prevAdj)
+
+  // What last week's adjustment actually MOVED the card by, per slot: the
+  // shown percent minus the bare table's. Carried instead of the stored
+  // number, because floors and the MAX_ADJ clamp can hide part of what is
+  // stored — a stored -8 floored to -1.5 on screen must carry as -1.5, or a
+  // run of hard weeks banks a debt no card ever showed and the easy week
+  // after it changes nothing.
+  const meanPct = (i: { percent?: number; setPlan?: Array<{ percent: number }> }) =>
+    i.setPlan?.length ? i.setPlan.reduce((a, x) => a + x.percent, 0) / i.setPlan.length : i.percent
+  const barePct: Record<string, number | undefined> = {}
+  for (const item of program.buildDay(prevWeek, dayNumber, maxes).items) {
+    if (item.kind === 'lift') barePct[item.slot] = meanPct(item)
+  }
+  const shownAdj: Record<string, number> = {}
+  for (const item of prevPlan.items) {
+    if (item.kind !== 'lift' || !(item.slot in prevAdj)) continue
+    const shown = meanPct(item), bare = barePct[item.slot]
+    if (shown != null && bare != null) shownAdj[item.slot] = Math.round((shown - bare) * 2) / 2
+  }
   const prescribed: Record<string, { percent: number; setPcts?: number[]; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
   for (const item of prevPlan.items) {
     if (item.kind === 'lift' && item.percent != null) {
@@ -181,8 +201,8 @@ export async function computeAdjustments(
     return !!p && !!now && now.name === p.name && now.maxKey === p.maxKey
   }
   // A slot he skipped last week keeps where it was; no logs is not a signal.
-  for (const [slot, a] of Object.entries(prevAdj)) {
-    if (typeof a === 'number' && a !== 0 && !bySlot[slot] && sameLift(slot)) adjustments[slot] = a
+  for (const [slot, a] of Object.entries(shownAdj)) {
+    if (a !== 0 && !bySlot[slot] && sameLift(slot)) adjustments[slot] = a
   }
   for (const [slot, s] of Object.entries(bySlot)) {
     const p = prescribed[slot]
@@ -222,7 +242,7 @@ export async function computeAdjustments(
       rpeDelta = deltaFor(avg - p.targetRpe)
     }
 
-    const carried = typeof prevAdj[slot] === 'number' ? prevAdj[slot] : 0
+    const carried = shownAdj[slot] ?? 0
     const total = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, Math.round((carried + weightDelta + rpeDelta) * 2) / 2))
     if (total !== 0) adjustments[slot] = total
   }
