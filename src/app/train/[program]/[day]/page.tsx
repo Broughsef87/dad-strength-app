@@ -24,6 +24,7 @@ import {
   PlyoPrescription, PrepPrescription, getProgram, rampOriginFor,
 } from '../../../../lib/programs'
 import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
+import { beginLoad, findOrCreateSession, isNewestLoad } from '../../../../lib/sessionLookup'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
@@ -1213,6 +1214,9 @@ export default function TrainingDayPage() {
   const userId = user?.id ?? null
   const loadDay = useCallback(async () => {
     if (!userId || !program) return
+    // Set when a newer load of this session takes over, so this one leaves
+    // the loader up for it rather than uncovering a screen it never drew.
+    let superseded = false
     try {
       // ?week=N override lets the schedule open any week of the macro —
       // prescriptions are deterministic so every week is trainable.
@@ -1389,14 +1393,50 @@ export default function TrainingDayPage() {
         placed = true
       }
 
-      // Find-or-create the generated_workouts row for log linkage.
-      const { data: rows } = await supabase
-        .from('generated_workouts')
-        .select('id, workout_data')
-        .eq('user_id', userId).eq('program_slug', slug)
-        .eq('week_number', weekNumber).eq('day_number', dayNumber)
-        .gte('created_at', runStart)
-        .order('created_at', { ascending: true }).limit(1)
+      // Find-or-create the generated_workouts row for log linkage. Two loads
+      // of this page in the same moment both found nothing and both inserted:
+      // Andrew's week 6 and 7 Mondays each have two rows 1-25 ms apart, his
+      // sets split across them, and autoreg reads only the first, so a 385
+      // single on the second was never seen. The lookup is shared while one
+      // is in flight, so the second load waits for the first one's row.
+      const sessionKey = `${userId}|${slug}|${weekNumber}|${dayNumber}|${runStart}`
+      const loadToken = beginLoad(sessionKey)
+      const { value: found, shared } = await findOrCreateSession(
+        sessionKey,
+        async () => {
+          const { data: rows } = await supabase
+            .from('generated_workouts')
+            .select('id, workout_data')
+            .eq('user_id', userId).eq('program_slug', slug)
+            .eq('week_number', weekNumber).eq('day_number', dayNumber)
+            .gte('created_at', runStart)
+            .order('created_at', { ascending: true }).limit(1)
+          if (rows?.[0]?.id) return { rows, saved: null, insertError: null, wd: null }
+          const { data: saved, error: insertError } = await supabase
+            .from('generated_workouts')
+            .insert({
+              user_id: userId,
+              program_slug: slug,
+              week_number: weekNumber,
+              day_number: dayNumber,
+              workout_data: fresh,
+              exercises: [],
+            })
+            .select('id').single()
+          return { rows: null, saved, insertError, wd: fresh }
+        },
+      )
+      const { saved, insertError } = found
+      // A row another load just created is an existing row to this one: it
+      // was built from THAT load's options (time crunch, say), so it is
+      // adopted like any other, never shown as this load's own build.
+      // A newer load of this session started while this one waited: it will
+      // adopt the row and draw the screen. This one stops here, before it can
+      // write a plan or show one over the newer load's.
+      if (!isNewestLoad(sessionKey, loadToken)) { superseded = true; return }
+      const rows = found.rows ?? (shared && saved
+        ? [{ id: saved.id, workout_data: structuredClone(found.wd) }]
+        : null)
 
       let workoutId: string | null = rows?.[0]?.id ?? null
       if (workoutId) {
@@ -1417,17 +1457,6 @@ export default function TrainingDayPage() {
         await adopt(workoutId, wd)
       }
       if (!workoutId) {
-        const { data: saved, error: insertError } = await supabase
-          .from('generated_workouts')
-          .insert({
-            user_id: userId,
-            program_slug: slug,
-            week_number: weekNumber,
-            day_number: dayNumber,
-            workout_data: fresh,
-            exercises: [],
-          })
-          .select('id').single()
         if (saved) workoutId = saved.id
         else if ((insertError as { code?: string } | null)?.code === '23505') {
           // Deliberately NOT run-scoped. A 23505 here means a unique index
@@ -1480,7 +1509,7 @@ export default function TrainingDayPage() {
       setError(e instanceof Error ? e.message : 'Unknown error')
       console.error(e)
     } finally {
-      setLoading(false)
+      if (!superseded) setLoading(false)
     }
   }, [userId, program, slug, dayNumber, supabase, queueRow])
 
