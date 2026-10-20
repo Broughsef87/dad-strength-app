@@ -1,3 +1,4 @@
+import { MAX_ADJ } from './autoreg'
 import {
   BuildDayOpts,
   DayPlan,
@@ -183,7 +184,7 @@ function compound(
 ): LiftPrescription {
   const def = COMPOUND[pos.meso]
   const raw = adjustments[slot] ?? 0
-  const adj = Math.max(-8, Math.min(8, raw))
+  const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, raw))
   const percent = Math.round((def.pctStart + def.pctStep * (pos.weekInMeso - 1) + adj) * 2) / 2
   return {
     kind: 'lift', slot, name, maxKey, percent,

@@ -26,6 +26,7 @@ const SUITES = [
   ['double progression', 'progression-check.mjs'],
   ['autoreg behaviour', 'autoreg-behaviour.mjs'],
   ['autoreg ratchet', 'autoreg-ratchet.mjs'],
+  ['autoreg carry', 'autoreg-carry.mjs'],
   ['training analytics', 'analytics-check.mjs'],
   ['onboarding reachability', 'onboarding-check.mjs'],
   ['the 4-set ceiling', 'set-ceiling.mjs'],

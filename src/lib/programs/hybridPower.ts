@@ -1,3 +1,4 @@
+import { MAX_ADJ } from './autoreg'
 import {
   BuildDayOpts,
   DayPlan,
@@ -102,7 +103,7 @@ const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 9 }
 // Autoreg deltas are clamped so feedback can bend the wave, never break it.
 // 8 gives the weight-follow (re-anchoring to what was actually lifted) real
 // room while still stopping a single wild session from hijacking the macro.
-const MAX_ADJ = 8
+// The number lives in autoreg, which stores the carried value against it.
 
 // Classic-lift percent floors. The snatch and clean & jerk are speed-strength
 // skills, not grinds, and the sport's realities set the floor by rep/variation:

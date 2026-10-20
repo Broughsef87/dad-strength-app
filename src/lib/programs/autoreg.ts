@@ -40,6 +40,11 @@ function deltaFor(diff: number): number {
 // heavy lift is ~1%). Above it, the prescription re-anchors to what was lifted.
 const WEIGHT_DEADBAND_PCT = 1.5
 
+// The most any slot may sit off its table, either way. The programs clamp to
+// this when they build, and the carry below clamps to it when it stores, so a
+// run of easy weeks cannot bank more than the screen will ever show.
+export const MAX_ADJ = 8
+
 export async function computeAdjustments(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -90,10 +95,11 @@ export async function computeAdjustments(
     .eq('log_type', 'strength_set')
     .eq('completed', true)
     .not('slot', 'is', null)
-  if (!rows?.length) return {}
+  // No early return on an empty session: a week with nothing logged still
+  // carries what it showed (below), it just adds no new signal to it.
 
   const bySlot: Record<string, { rpes: number[]; weights: number[]; sets: Array<{ n: number; lbs: number }> }> = {}
-  for (const r of rows as Array<{ slot: string; rpe: number | null; weight_lbs: number | null; set_number: number | null }>) {
+  for (const r of (rows ?? []) as Array<{ slot: string; rpe: number | null; weight_lbs: number | null; set_number: number | null }>) {
     const s = (bySlot[r.slot] ??= { rpes: [], weights: [], sets: [] })
     if (r.rpe != null) s.rpes.push(r.rpe)
     if (r.weight_lbs != null && r.weight_lbs > 0) {
@@ -113,7 +119,35 @@ export async function computeAdjustments(
   // MAX_ADJ clamp stopped it 8 points above the wave. A speed squat designed
   // for 55-70% drifted to 74% on nothing but obedience.
   const prevPlan = program.buildDay(prevWeek, dayNumber, maxes, prevAdj)
-  const prescribed: Record<string, { percent: number; setPcts?: number[]; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
+
+  // What last week's adjustment actually MOVED the card by, per slot: the
+  // shown percent minus the bare table's. Carried instead of the stored
+  // number, because floors and the MAX_ADJ clamp can hide part of what is
+  // stored — a stored -8 floored to -1.5 on screen must carry as -1.5, or a
+  // run of hard weeks banks a debt no card ever showed and the easy week
+  // after it changes nothing.
+  //
+  // On a wave the floor can catch some sets and not others, so the sets
+  // moved by different amounts. Carry the LARGEST move, not the mean: floors
+  // only ever pull toward the table, so the set that moved furthest is the
+  // one the floor left alone, and rebuilding with it reproduces the same
+  // floored wave. A mean is a number no set showed.
+  const pcts = (i: { percent?: number; setPlan?: Array<{ percent: number }> }) =>
+    i.setPlan?.length ? i.setPlan.map((x) => x.percent) : i.percent != null ? [i.percent] : []
+  const barePcts: Record<string, number[]> = {}
+  for (const item of program.buildDay(prevWeek, dayNumber, maxes).items) {
+    if (item.kind === 'lift') barePcts[item.slot] = pcts(item)
+  }
+  const shownAdj: Record<string, number> = {}
+  for (const item of prevPlan.items) {
+    if (item.kind !== 'lift' || !(item.slot in prevAdj)) continue
+    const shown = pcts(item), bare = barePcts[item.slot] ?? []
+    if (!shown.length || shown.length !== bare.length) continue
+    const moves = shown.map((x, i) => x - bare[i])
+    const furthest = moves.reduce((a, m) => (Math.abs(m) > Math.abs(a) ? m : a), 0)
+    shownAdj[item.slot] = Math.round(furthest * 2) / 2
+  }
+  const prescribed: Record<string, { percent: number; setPcts?: number[]; lbs?: number; setLbs?: Array<number | undefined>; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
   for (const item of prevPlan.items) {
     if (item.kind === 'lift' && item.percent != null) {
       prescribed[item.slot] = {
@@ -136,6 +170,12 @@ export async function computeAdjustments(
           ? item.setPlan.reduce((a, s) => a + s.percent, 0) / item.setPlan.length
           : item.percent,
         setPcts: item.setPlan?.length ? item.setPlan.map((x) => x.percent) : undefined,
+        // The LOADS shown, after plate rounding. Obeying a card means lifting
+        // these; measured against the raw percent instead, a light max reads
+        // every obeyed week as a couple of percent light (65 lb shown for a
+        // 67% of 100), and the carry turns that into -2, -4, -6, -8.
+        lbs: item.targetWeightLbs,
+        setLbs: item.setPlan?.length ? item.setPlan.map((x) => x.targetWeightLbs) : undefined,
         targetRpe: item.targetRpe, maxKey: item.maxKey,
         name: item.name, velocity: item.velocity,
       }
@@ -162,13 +202,28 @@ export async function computeAdjustments(
   //     backing off moves it down.
   //  2. RPE — the existing difficulty correction, applied on top.
   // Clamping (MAX_ADJ) and percent floors live in the program config.
+  //
+  // Both signals are measured against what he was SHOWN, which already had
+  // last week's adjustment in it, so they are CHANGES to that adjustment, not
+  // a replacement for it. Returning only the change threw the old one away
+  // whenever he did as told: week 6 squat showed +3%, he lifted exactly that
+  // at RPE 7, the change came out 0, and week 7 dropped back to the bare
+  // table — lighter than the week he had just beaten. The carry keeps it.
   const adjustments: Record<string, number> = {}
+  const sameLift = (slot: string) => {
+    const p = prescribed[slot]
+    const now = current[slot]
+    return !!p && !!now && now.name === p.name && now.maxKey === p.maxKey
+  }
+  // A slot he skipped last week keeps where it was; no logs is not a signal.
+  for (const [slot, a] of Object.entries(shownAdj)) {
+    if (a !== 0 && !bySlot[slot] && sameLift(slot)) adjustments[slot] = a
+  }
   for (const [slot, s] of Object.entries(bySlot)) {
     const p = prescribed[slot]
     if (!p) continue
     // Rotated slot — last week was a different lift. Start this one clean.
-    const now = current[slot]
-    if (!now || now.name !== p.name || now.maxKey !== p.maxKey) continue
+    if (!sameLift(slot)) continue
 
     let weightDelta = 0
     const max = p.maxKey ? maxes[p.maxKey] : undefined
@@ -180,15 +235,16 @@ export async function computeAdjustments(
       // (FOR-263 r1). A row with no set number, or a set number past the end
       // of the plan (a set he added by hand), falls back to the slot's mean,
       // because no planned load exists to compare it with.
+      const asPct = (lbs: number | undefined, pct: number) => (lbs != null && lbs > 0 ? (lbs / max) * 100 : pct)
       const matched = p.setPcts
         ? s.sets.map(({ n, lbs }) => ({
             pct: (lbs / max) * 100,
-            want: p.setPcts![n - 1] ?? p.percent,
+            want: p.setPcts![n - 1] != null ? asPct(p.setLbs?.[n - 1], p.setPcts![n - 1]) : p.percent,
           }))
         : []
       const d = matched.length
         ? matched.reduce((a, m) => a + (m.pct - m.want), 0) / matched.length
-        : (s.weights.reduce((a, b) => a + b, 0) / s.weights.length / max) * 100 - p.percent
+        : (s.weights.reduce((a, b) => a + b, 0) / s.weights.length / max) * 100 - (p.setPcts ? p.percent : asPct(p.lbs, p.percent))
       if (Math.abs(d) >= WEIGHT_DEADBAND_PCT) weightDelta = d
       // On a speed slot, going heavier than prescribed isn't a data point to
       // build on — it's the failure mode of the slot. Following it up would
@@ -202,7 +258,8 @@ export async function computeAdjustments(
       rpeDelta = deltaFor(avg - p.targetRpe)
     }
 
-    const total = Math.round((weightDelta + rpeDelta) * 2) / 2
+    const carried = shownAdj[slot] ?? 0
+    const total = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, Math.round((carried + weightDelta + rpeDelta) * 2) / 2))
     if (total !== 0) adjustments[slot] = total
   }
   return adjustments
