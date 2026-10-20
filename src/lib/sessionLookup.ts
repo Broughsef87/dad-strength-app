@@ -15,3 +15,22 @@ export async function findOrCreateSession<T>(key: string, run: () => Promise<T>)
   lookups.set(key, p)
   return { value: await p, shared: false }
 }
+
+// Which load of a session is the newest, across every mount in this tab. Two
+// loads that overlap (a back-and-forth with the time-crunch toggle flipped)
+// must not both publish: the older one would show its own plan on a row the
+// newer one is about to adopt, and a set logged in that gap could be hidden
+// when the newer one lands. Only the newest load of a key goes on to adopt
+// and display; an older one stops once its lookup returns.
+const newest = new Map<string, number>()
+let loads = 0
+
+export function beginLoad(key: string): number {
+  const token = ++loads
+  newest.set(key, token)
+  return token
+}
+
+export function isNewestLoad(key: string, token: number): boolean {
+  return newest.get(key) === token
+}

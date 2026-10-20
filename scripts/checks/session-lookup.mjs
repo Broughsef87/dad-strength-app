@@ -1,6 +1,6 @@
 // Two loads of one session at once must share one find-or-create, or each
 // inserts its own generated_workouts row (Andrew's week 6/7 Mondays, 2026-10).
-import { findOrCreateSession } from '../../src/lib/sessionLookup.ts'
+import { beginLoad, findOrCreateSession, isNewestLoad } from '../../src/lib/sessionLookup.ts'
 
 let fails = 0
 const check = (label, ok, got) => {
@@ -26,5 +26,13 @@ const boom = () => Promise.reject(new Error('net'))
 await findOrCreateSession('e', boom).catch(() => {})
 const { value: d } = await findOrCreateSession('e', run)
 check('a failed lookup does not stick', !!d.id, d)
+
+// Overlapping loads: only the newest publishes (Codex r2 on #57).
+{
+  const t1 = beginLoad('s'), t2 = beginLoad('s'), other = beginLoad('z')
+  check('older load of a session is stale', !isNewestLoad('s', t1), t1)
+  check('newest load of a session publishes', isNewestLoad('s', t2), t2)
+  check('another session is unaffected', isNewestLoad('z', other), other)
+}
 
 if (fails) { console.error(`\n${fails} failing`); process.exit(1) }
