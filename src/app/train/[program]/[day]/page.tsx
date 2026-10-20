@@ -1396,7 +1396,7 @@ export default function TrainingDayPage() {
       // sets split across them, and autoreg reads only the first, so a 385
       // single on the second was never seen. The lookup is shared while one
       // is in flight, so the second load waits for the first one's row.
-      const { rows, saved, insertError } = await findOrCreateSession(
+      const { value: found, shared } = await findOrCreateSession(
         `${userId}|${slug}|${weekNumber}|${dayNumber}|${runStart}`,
         async () => {
           const { data: rows } = await supabase
@@ -1406,7 +1406,7 @@ export default function TrainingDayPage() {
             .eq('week_number', weekNumber).eq('day_number', dayNumber)
             .gte('created_at', runStart)
             .order('created_at', { ascending: true }).limit(1)
-          if (rows?.[0]?.id) return { rows, saved: null, insertError: null }
+          if (rows?.[0]?.id) return { rows, saved: null, insertError: null, wd: null }
           const { data: saved, error: insertError } = await supabase
             .from('generated_workouts')
             .insert({
@@ -1418,9 +1418,16 @@ export default function TrainingDayPage() {
               exercises: [],
             })
             .select('id').single()
-          return { rows: null, saved, insertError }
+          return { rows: null, saved, insertError, wd: fresh }
         },
       )
+      const { saved, insertError } = found
+      // A row another load just created is an existing row to this one: it
+      // was built from THAT load's options (time crunch, say), so it is
+      // adopted like any other, never shown as this load's own build.
+      const rows = found.rows ?? (shared && saved
+        ? [{ id: saved.id, workout_data: structuredClone(found.wd) }]
+        : null)
 
       let workoutId: string | null = rows?.[0]?.id ?? null
       if (workoutId) {
