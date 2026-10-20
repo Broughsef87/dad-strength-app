@@ -126,19 +126,28 @@ export async function computeAdjustments(
   // stored — a stored -8 floored to -1.5 on screen must carry as -1.5, or a
   // run of hard weeks banks a debt no card ever showed and the easy week
   // after it changes nothing.
-  const meanPct = (i: { percent?: number; setPlan?: Array<{ percent: number }> }) =>
-    i.setPlan?.length ? i.setPlan.reduce((a, x) => a + x.percent, 0) / i.setPlan.length : i.percent
-  const barePct: Record<string, number | undefined> = {}
+  //
+  // On a wave the floor can catch some sets and not others, so the sets
+  // moved by different amounts. Carry the LARGEST move, not the mean: floors
+  // only ever pull toward the table, so the set that moved furthest is the
+  // one the floor left alone, and rebuilding with it reproduces the same
+  // floored wave. A mean is a number no set showed.
+  const pcts = (i: { percent?: number; setPlan?: Array<{ percent: number }> }) =>
+    i.setPlan?.length ? i.setPlan.map((x) => x.percent) : i.percent != null ? [i.percent] : []
+  const barePcts: Record<string, number[]> = {}
   for (const item of program.buildDay(prevWeek, dayNumber, maxes).items) {
-    if (item.kind === 'lift') barePct[item.slot] = meanPct(item)
+    if (item.kind === 'lift') barePcts[item.slot] = pcts(item)
   }
   const shownAdj: Record<string, number> = {}
   for (const item of prevPlan.items) {
     if (item.kind !== 'lift' || !(item.slot in prevAdj)) continue
-    const shown = meanPct(item), bare = barePct[item.slot]
-    if (shown != null && bare != null) shownAdj[item.slot] = Math.round((shown - bare) * 2) / 2
+    const shown = pcts(item), bare = barePcts[item.slot] ?? []
+    if (!shown.length || shown.length !== bare.length) continue
+    const moves = shown.map((x, i) => x - bare[i])
+    const furthest = moves.reduce((a, m) => (Math.abs(m) > Math.abs(a) ? m : a), 0)
+    shownAdj[item.slot] = Math.round(furthest * 2) / 2
   }
-  const prescribed: Record<string, { percent: number; setPcts?: number[]; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
+  const prescribed: Record<string, { percent: number; setPcts?: number[]; lbs?: number; setLbs?: Array<number | undefined>; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
   for (const item of prevPlan.items) {
     if (item.kind === 'lift' && item.percent != null) {
       prescribed[item.slot] = {
@@ -161,6 +170,12 @@ export async function computeAdjustments(
           ? item.setPlan.reduce((a, s) => a + s.percent, 0) / item.setPlan.length
           : item.percent,
         setPcts: item.setPlan?.length ? item.setPlan.map((x) => x.percent) : undefined,
+        // The LOADS shown, after plate rounding. Obeying a card means lifting
+        // these; measured against the raw percent instead, a light max reads
+        // every obeyed week as a couple of percent light (65 lb shown for a
+        // 67% of 100), and the carry turns that into -2, -4, -6, -8.
+        lbs: item.targetWeightLbs,
+        setLbs: item.setPlan?.length ? item.setPlan.map((x) => x.targetWeightLbs) : undefined,
         targetRpe: item.targetRpe, maxKey: item.maxKey,
         name: item.name, velocity: item.velocity,
       }
@@ -220,15 +235,16 @@ export async function computeAdjustments(
       // (FOR-263 r1). A row with no set number, or a set number past the end
       // of the plan (a set he added by hand), falls back to the slot's mean,
       // because no planned load exists to compare it with.
+      const asPct = (lbs: number | undefined, pct: number) => (lbs != null && lbs > 0 ? (lbs / max) * 100 : pct)
       const matched = p.setPcts
         ? s.sets.map(({ n, lbs }) => ({
             pct: (lbs / max) * 100,
-            want: p.setPcts![n - 1] ?? p.percent,
+            want: p.setPcts![n - 1] != null ? asPct(p.setLbs?.[n - 1], p.setPcts![n - 1]) : p.percent,
           }))
         : []
       const d = matched.length
         ? matched.reduce((a, m) => a + (m.pct - m.want), 0) / matched.length
-        : (s.weights.reduce((a, b) => a + b, 0) / s.weights.length / max) * 100 - p.percent
+        : (s.weights.reduce((a, b) => a + b, 0) / s.weights.length / max) * 100 - (p.setPcts ? p.percent : asPct(p.lbs, p.percent))
       if (Math.abs(d) >= WEIGHT_DEADBAND_PCT) weightDelta = d
       // On a speed slot, going heavier than prescribed isn't a data point to
       // build on — it's the failure mode of the slot. Following it up would

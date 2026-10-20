@@ -101,4 +101,44 @@ const loads = (wk, adj) => hybridPower.buildDay(wk, 1, MAXES, adj).items.find(i 
   }
 }
 
+// 8. A wave the floor caught on some sets only carries the move the
+//    untouched sets showed, so the rebuilt wave matches (Codex r2 P2-1).
+{
+  let found = null
+  for (let wk = 2; wk <= 10 && !found; wk++) for (let day = 1; day <= 7 && !found; day++) {
+    for (const it of hybridPower.buildDay(wk, day, MAXES).items) {
+      if (it.kind !== 'lift' || !(it.setPlan?.length > 1)) continue
+      const low = hybridPower.buildDay(wk, day, MAXES, { [it.slot]: -MAX_ADJ }).items.find(i => i.slot === it.slot)
+      const moves = low.setPlan.map((x, i) => x.percent - it.setPlan[i].percent)
+      if (new Set(moves).size > 1) { found = { wk, day, slot: it.slot, moves, shown: low.setPlan.map(x => x.percent) }; break }
+    }
+  }
+  check('a partly floored wave exists to test against', !!found, found && { wk: found.wk, slot: found.slot, moves: found.moves })
+  if (found) {
+    const adj = await computeAdjustments(db([], { [found.slot]: -MAX_ADJ }), 'u', hybridPower, found.wk + 1, found.day, RUN_EPOCH, MAXES)
+    const furthest = found.moves.reduce((a, m) => (Math.abs(m) > Math.abs(a) ? m : a), 0)
+    check(`carries the furthest move (${furthest}), not the mean`, adj[found.slot] === furthest, adj)
+  }
+}
+
+// 9. Plate rounding is not a signal (Codex r2 P2-2): a light OHP whose
+//    shown loads round under the percent, obeyed at target RPE, carries 0
+//    for four straight weeks.
+{
+  const LIGHT = { ...MAXES, ohp: 100 }
+  let worst = 0
+  for (let day = 1; day <= 7; day++) {
+    let adj = {}
+    for (let wk = 1; wk <= 5; wk++) {
+      const items = hybridPower.buildDay(wk, day, LIGHT, adj).items.filter(i => i.kind === 'lift' && i.maxKey === 'ohp' && i.targetWeightLbs)
+      if (!items.length) break
+      const logs = items.flatMap(it => (it.setPlan?.length ? it.setPlan : [{ targetWeightLbs: it.targetWeightLbs }])
+        .map((x, i) => ({ slot: it.slot, set_number: i + 1, weight_lbs: x.targetWeightLbs, rpe: it.targetRpe ?? null })))
+      adj = await computeAdjustments(db(logs, adj), 'u', hybridPower, wk + 1, day, RUN_EPOCH, LIGHT)
+      for (const it of items) worst = Math.min(worst, adj[it.slot] ?? 0)
+    }
+  }
+  check('100 lb OHP obeyed for weeks → no drift', worst === 0, { worst })
+}
+
 if (fails) { console.error(`\n${fails} failing`); process.exit(1) }
