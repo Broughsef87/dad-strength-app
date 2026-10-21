@@ -24,7 +24,7 @@ import {
   PlyoPrescription, PrepPrescription, getProgram, rampOriginFor,
 } from '../../../../lib/programs'
 import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
-import { beginLoad, findOrCreateSession, isNewestLoad } from '../../../../lib/sessionLookup'
+import { findOrCreateSession } from '../../../../lib/sessionLookup'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
@@ -1197,6 +1197,11 @@ export default function TrainingDayPage() {
   // whole object, so two in flight at once could land out of order and put back
   // what the newer one removed.
   const [queueRow] = useState(() => serialWriter())
+  // Counts this mount's loads, so an older load stands down for a newer one.
+  // Per mount, not per tab: a tab-wide count let a load from a mount that had
+  // already gone (back, then the day tapped again on a slow connection) take
+  // the newest slot, and the mount on screen kept its spinner forever.
+  const loadSeq = useRef(0)
   // A swap is EXCLUSIVE (Codex r6). While one is saving, the sheet cannot be
   // dismissed or picked from, a second swap cannot start, and a session edit
   // waits for it before reading the row — so nothing builds on a plan the swap
@@ -1400,7 +1405,7 @@ export default function TrainingDayPage() {
       // single on the second was never seen. The lookup is shared while one
       // is in flight, so the second load waits for the first one's row.
       const sessionKey = `${userId}|${slug}|${weekNumber}|${dayNumber}|${runStart}`
-      const loadToken = beginLoad(sessionKey)
+      const loadToken = ++loadSeq.current
       const { value: found, shared } = await findOrCreateSession(
         sessionKey,
         async () => {
@@ -1433,7 +1438,7 @@ export default function TrainingDayPage() {
       // A newer load of this session started while this one waited: it will
       // adopt the row and draw the screen. This one stops here, before it can
       // write a plan or show one over the newer load's.
-      if (!isNewestLoad(sessionKey, loadToken)) { superseded = true; return }
+      if (loadToken !== loadSeq.current) { superseded = true; return }
       const rows = found.rows ?? (shared && saved
         ? [{ id: saved.id, workout_data: structuredClone(found.wd) }]
         : null)
