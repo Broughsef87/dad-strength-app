@@ -76,7 +76,7 @@ export default function PrivacyPolicy() {
             <ul className="space-y-2 list-none">
               {[
                 'To provide and personalize your Dad Strength experience',
-                'To generate AI-powered coaching recommendations (via Google Gemini AI)',
+                'To generate AI-powered coaching recommendations (via Anthropic Claude)',
                 'To process your subscription and send receipts',
                 'To save your workout history and track your progress over time',
                 'To improve the app based on how features are used',
@@ -106,9 +106,9 @@ export default function PrivacyPolicy() {
                   link: 'https://stripe.com/privacy',
                 },
                 {
-                  name: 'Google Gemini AI',
+                  name: 'Anthropic Claude',
                   desc: 'Powers AI coaching features like the Morning Protocol. Prompts may include your fitness context but never your full name or payment details.',
-                  link: 'https://policies.google.com/privacy',
+                  link: 'https://www.anthropic.com/legal/privacy',
                 },
                 {
                   name: 'Vercel',
