@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google'
+import { anthropic } from '@ai-sdk/anthropic'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { NextResponse } from 'next/server'
@@ -23,8 +23,8 @@ export async function POST(request: Request) {
   try {
     const { minutes, sleepQuality, energy, objectives, dayOfWeek } = await req.json()
 
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GEMINI_API_KEY) {
-      console.error('Missing Google/Gemini API key in environment');
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('Missing ANTHROPIC_API_KEY in environment');
       return Response.json({ error: 'AI configuration missing' }, { status: 500 });
     }
 
@@ -34,7 +34,9 @@ export async function POST(request: Request) {
       : 'No objectives set'
 
     const { object: protocol } = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: anthropic('claude-haiku-5-5'),
+      // Short structured output: low effort keeps the response fast.
+      providerOptions: { anthropic: { effort: 'low' } },
       system: `You are a high-performance coach for busy dads with young babies. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Goals. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
       prompt: `Today is ${dayOfWeek}.
 Available time: ${minutes} minutes
