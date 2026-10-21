@@ -62,6 +62,8 @@ interface SetEntry {
 }
 
 const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
+// Thrown by a load that a newer load (or an unmount) has overtaken.
+const STALE_LOAD = Symbol('stale load')
 
 // ── Plate math + warm-up ramps ─────────────────────────────────────────────────
 
@@ -1202,6 +1204,10 @@ export default function TrainingDayPage() {
   // already gone (back, then the day tapped again on a slow connection) take
   // the newest slot, and the mount on screen kept its spinner forever.
   const loadSeq = useRef(0)
+  // False once this mount is gone: its loads must not write the session's row
+  // or set state after another mount has taken over (Codex P1 on #59).
+  const alive = useRef(true)
+  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   // A swap is EXCLUSIVE (Codex r6). While one is saving, the sheet cannot be
   // dismissed or picked from, a second swap cannot start, and a session edit
   // waits for it before reading the row — so nothing builds on a plan the swap
@@ -1222,6 +1228,15 @@ export default function TrainingDayPage() {
     // Set when a newer load of this session takes over, so this one leaves
     // the loader up for it rather than uncovering a screen it never drew.
     let superseded = false
+    // Taken on entry, so the last call is the newest whatever order the async
+    // prep finishes in. Checked after every await that precedes a write or a
+    // draw: a stale load stops there without touching the row or the screen.
+    const loadToken = ++loadSeq.current
+    const halt = () => {
+      if (alive.current && loadToken === loadSeq.current) return
+      superseded = true
+      throw STALE_LOAD
+    }
     try {
       // ?week=N override lets the schedule open any week of the macro —
       // prescriptions are deterministic so every week is trainable.
@@ -1370,6 +1385,7 @@ export default function TrainingDayPage() {
       const adopt = async (id: string, wd: Record<string, unknown>) => {
         workoutDataRef.current = wd
         const read = await fetchSessionLogs(supabase, id)
+        halt()
         // Not knowing is not "untrained". Nothing is drawn, recorded or
         // written until this session's logs can be read (Codex r1).
         if (read.error) throw new Error(`Could not read this session's logs (${read.error.message ?? read.error.code ?? 'unknown error'}) — nothing was changed. Try again.`)
@@ -1389,6 +1405,7 @@ export default function TrainingDayPage() {
           workoutDataRef.current = { ...wd, plan: built, timeConstrained, [RECORDED]: true }
           const payload = workoutDataRef.current
           const synced = await queueRow(async () => supabase.from('generated_workouts').update({ workout_data: payload }).eq('id', id))
+          halt()
           if (synced.error) throw new Error(`Could not save this session's plan (${synced.error.message ?? synced.error.code ?? 'unknown error'}) — nothing was trained against it. Try again.`)
         }
         basePlanRef.current = drawn
@@ -1405,7 +1422,6 @@ export default function TrainingDayPage() {
       // single on the second was never seen. The lookup is shared while one
       // is in flight, so the second load waits for the first one's row.
       const sessionKey = `${userId}|${slug}|${weekNumber}|${dayNumber}|${runStart}`
-      const loadToken = ++loadSeq.current
       const { value: found, shared } = await findOrCreateSession(
         sessionKey,
         async () => {
@@ -1438,7 +1454,7 @@ export default function TrainingDayPage() {
       // A newer load of this session started while this one waited: it will
       // adopt the row and draw the screen. This one stops here, before it can
       // write a plan or show one over the newer load's.
-      if (loadToken !== loadSeq.current) { superseded = true; return }
+      halt()
       const rows = found.rows ?? (shared && saved
         ? [{ id: saved.id, workout_data: structuredClone(found.wd) }]
         : null)
@@ -1453,6 +1469,7 @@ export default function TrainingDayPage() {
           wd.adjustments = adjustments
           await supabase.from('generated_workouts')
             .update({ workout_data: wd }).eq('id', workoutId)
+          halt()
         }
         // A TRAINED session is drawn from what it was trained under, not from
         // whatever buildDay returns today — a program change must not rewrite
@@ -1475,6 +1492,7 @@ export default function TrainingDayPage() {
             .eq('user_id', userId).eq('program_slug', slug)
             .eq('week_number', weekNumber).eq('day_number', dayNumber)
             .order('id', { ascending: true }).limit(1)
+          halt()
           workoutId = again?.[0]?.id ?? null
           if (workoutId) await adopt(workoutId, (again?.[0]?.workout_data ?? {}) as Record<string, unknown>)
         } else if (insertError) {
@@ -1491,7 +1509,9 @@ export default function TrainingDayPage() {
       }
       workoutIdRef.current = workoutId
       setSessionLogs(logs)
-      setLiftHistory(await fetchLiftHistory(supabase, userId, slug, weekNumber, program.macroWeeks))
+      const history = await fetchLiftHistory(supabase, userId, slug, weekNumber, program.macroWeeks)
+      halt()
+      setLiftHistory(history)
 
       // All-time bests for today's lifts — powers live PR detection.
       const liftNames = [...new Set(drawn.items.filter(i => i.kind === 'lift').map(i => i.name))]
@@ -1503,6 +1523,7 @@ export default function TrainingDayPage() {
           .in('block_name', liftNames)
           .not('weight_lbs', 'is', null).gt('weight_lbs', 0)
           .limit(4000)
+        halt()
         const bests: Record<string, Array<{ w: number; r: number }>> = {}
         for (const r of (prRows ?? []) as Array<{ block_name: string; weight_lbs: number; reps: number | null }>) {
           (bests[r.block_name] ??= []).push({ w: Number(r.weight_lbs), r: r.reps ?? 1 })
@@ -1511,6 +1532,7 @@ export default function TrainingDayPage() {
       }
       sessionPRsRef.current = []
     } catch (e) {
+      if (e === STALE_LOAD) return
       setError(e instanceof Error ? e.message : 'Unknown error')
       console.error(e)
     } finally {
