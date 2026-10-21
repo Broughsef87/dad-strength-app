@@ -1404,6 +1404,7 @@ export default function TrainingDayPage() {
         if (!trained && (!samePlan(wd.plan, built) || !isRecorded(wd))) {
           workoutDataRef.current = { ...wd, plan: built, timeConstrained, [RECORDED]: true }
           const payload = workoutDataRef.current
+          halt()
           const synced = await queueRow(async () => supabase.from('generated_workouts').update({ workout_data: payload }).eq('id', id))
           halt()
           if (synced.error) throw new Error(`Could not save this session's plan (${synced.error.message ?? synced.error.code ?? 'unknown error'}) — nothing was trained against it. Try again.`)
@@ -1533,6 +1534,9 @@ export default function TrainingDayPage() {
       sessionPRsRef.current = []
     } catch (e) {
       if (e === STALE_LOAD) return
+      // An overtaken load's real failure is not the screen's: its successor owns
+      // the error and the spinner (Codex r2 on #59).
+      if (!alive.current || loadToken !== loadSeq.current) { superseded = true; return }
       setError(e instanceof Error ? e.message : 'Unknown error')
       console.error(e)
     } finally {
