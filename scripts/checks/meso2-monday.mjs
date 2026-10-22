@@ -72,7 +72,7 @@ for (const w of [5, 6, 7, 8]) {
 // …and M1 and M3 still have theirs, so this is M2's exception and not a
 // deletion of the slot.
 assert(at(1, 'sn_back')?.sets === 3, `M1 keeps its back-offs, got ${at(1, 'sn_back')?.sets} sets`)
-assert(at(9, 'sn_back')?.sets === 2, `M3 keeps its back-offs, got ${at(9, 'sn_back')?.sets} sets`)
+assert(at(9, 'sn_back')?.sets === 3, `M3 keeps its back-offs, got ${at(9, 'sn_back')?.sets} sets`)
 
 // ── 4. the squat is two waves of 3/2/1, week by week ───────────────────────
 const WAVES = {
@@ -318,30 +318,30 @@ const BASELINE = {
   ],
   9: [
     'broad_jump|Broad Jump|4x3@undefined|undefined',
-    'back_squat_heavy|Back Squat|4x3@85|310',
+    'back_squat_heavy|Back Squat|4x2@87|320',
     'sn_top|Snatch|1x1@87|180',
-    'sn_back|Snatch|2x1@83|170',
+    'sn_back|Snatch|3x2@78|160',
     'bench_heavy|Bench Press|3x2@86|215',
     'acc_nordic|Nordic Curl|3x5@undefined|undefined',
   ],
   10: [
     'broad_jump|Broad Jump|4x3@undefined|undefined',
-    'back_squat_heavy|Back Squat|4x3@86.5|315',
+    'back_squat_heavy|Back Squat|4x2@89|325',
     'sn_top|Snatch|1x1@88.5|180',
-    'sn_back|Snatch|2x1@84|170',
+    'sn_back|Snatch|3x2@79|160',
     'bench_heavy|Bench Press|3x2@87|220',
     'acc_nordic|Nordic Curl|3x5@undefined|undefined',
   ],
   11: [
     'broad_jump|Broad Jump|4x3@undefined|undefined',
-    'back_squat_heavy|Back Squat|4x3@88|320',
+    'back_squat_heavy|Back Squat|4x2@91|330',
     'sn_top|Snatch|1x1@90|185',
-    'sn_back|Snatch|2x1@85|175',
+    'sn_back|Snatch|3x2@80|165',
     'bench_heavy|Bench Press|3x2@88|220',
     'acc_nordic|Nordic Curl|3x5@undefined|undefined',
   ],
   12: [
-    'back_squat_heavy|Back Squat|2x3@60|220',
+    'back_squat_heavy|Back Squat|2x2@60|220',
     'sn_top|Snatch|2x1@65|135',
     'bench_heavy|Bench Press|2x2@60|150',
     'acc_nordic|Nordic Curl|3x5@undefined|undefined',

@@ -493,7 +493,7 @@ for (const [wk, sets, reps] of [[1, 5, 3], [9, 4, 2]]) {
 assert(itemAt(1, 1, 'sn_top')?.sets === 2, `M1 snatch top should be 2 sets, got ${itemAt(1, 1, 'sn_top')?.sets}`)
 // M2 is absent from this table on purpose (FOR-263): its snatch is the EMOM
 // asserted in 8f, and it prescribes no back-off at all.
-for (const [wk, sets, lo] of [[1, 3, 75], [9, 2, 83]]) {
+for (const [wk, sets, lo] of [[1, 3, 75], [9, 3, 78]]) {
   const b = itemAt(wk, 1, 'sn_back')
   assert(b?.sets === sets, `W${wk} snatch back-offs should be ${sets} sets, got ${b?.sets}`)
   assert(b?.percent === lo, `W${wk} snatch back-offs should open at ${lo}%, got ${b?.percent}`)
@@ -820,7 +820,7 @@ for (const [label, wk, opts] of [['W12', 12, undefined], ['forced', 3, { forceDe
   const scheme = (wk, slot) => { const i = at(wk, slot); return `${i.sets}x${i.reps}@${i.percent}` }
   assert(scheme(4, 'cl_top') === '4x2@83' && scheme(4, 'cl_back') === '2x2@76' && scheme(4, 'clean_pull') === '3x4@106',
     `W4 Friday moved: ${scheme(4, 'cl_top')} ${scheme(4, 'cl_back')} ${scheme(4, 'clean_pull')}`)
-  assert(scheme(9, 'cl_top') === '1x1@87' && scheme(9, 'cl_back') === '4x1@83' && scheme(9, 'clean_pull') === '3x2@110',
+  assert(scheme(9, 'cl_top') === '1x1@87' && scheme(9, 'cl_back') === '4x1@83' && scheme(9, 'clean_pull') === '3x2@105',
     `W9 Friday moved: ${scheme(9, 'cl_top')} ${scheme(9, 'cl_back')} ${scheme(9, 'clean_pull')}`)
 }
 
