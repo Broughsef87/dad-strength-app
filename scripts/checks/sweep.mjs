@@ -511,6 +511,16 @@ for (const wk of [1, 5, 9]) {
   assert(jumps[0]?.sets === 3 && jumps[0]?.reps === 3,
     `W${wk} Wednesday jumps should be 3×3, got ${jumps[0]?.sets}×${jumps[0]?.reps} (${jumps[0]?.slot})`)
 }
+// M3 front squat is capped for the W13 peak (Andrew, 2026-10-22): 82 → 85.
+for (const [wk, pct] of [[9, 82], [10, 83.5], [11, 85]]) {
+  const fs = itemAt(wk, 3, 'front_squat')
+  assert(fs?.sets === 3 && fs?.reps === 2 && fs?.percent === pct,
+    `W${wk} front squat should be 3x2@${pct}, got ${fs?.sets}x${fs?.reps}@${fs?.percent}`)
+}
+// The W12 deload cuts Wednesday's pull-ups and split squats to 2 sets.
+for (const slot of ['acc_wpu', 'acc_single_leg']) {
+  assert(itemAt(12, 3, slot)?.sets === 2, `W12 ${slot} should be 2 sets, got ${itemAt(12, 3, slot)?.sets}`)
+}
 // WHICH movement, by meso (FOR-268). M2 is the depth jump and nothing else is.
 for (const [wk, slot, name] of [[1, 'tb_jump', 'Trap Bar Jump'], [3, 'tb_jump', 'Trap Bar Jump'],
                                 [5, 'depth_jump', 'Depth Jump'], [8, 'depth_jump', 'Depth Jump'],
