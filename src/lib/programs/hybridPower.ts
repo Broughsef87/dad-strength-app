@@ -27,13 +27,13 @@ import { lowRamp, rampStage } from './prep'
 // Percent rules: pure lifts ≤2 reps ≥80% on the TOP sets (a *_back slot takes
 // the 75 doubles floor instead — see classicFloor); any ≤2-rep set ≥75%;
 // power/hang triples ≥65%. Clean pulls (Fri) key off the clean max in every
-// meso, heavy (100-119%);
+// meso, heavy (95-110%);
 // Monday is squat-priority (squat leads) with Nordics as the hamstring slot.
 //
 // 13-week macro: 3 × 4-week mesos + test week.
 //   Meso 1 (W1-4):   straight heavy doubles @ 80-83%
 //   Meso 2 (W5-8):   top double (83-86%) + back-off doubles @ 80%
-//   Meso 3 (W9-12):  top single (87-91%) + back-off singles @ 83-85%.
+//   Meso 3 (W9-12):  top single (87-90%) + back-off doubles @ 78-80%.
 //                    W12 = deload. W13 = TEST (Snatch, Clean, squats, bench, DL).
 // Variation model ("variation isn't the enemy"): vary the MIDDLE, get
 // specific at the end. M2 is the variation meso — hang-position snatch
@@ -512,7 +512,10 @@ const D1_SN_BACK: SlotMeso[] = [
   // FOR-263: the Hang Snatch 3×2 is removed. Eight singles on the minute is
   // the dose; a back-off after it is volume for its own sake.
   { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 0, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7 },
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles' },
+  // M3 peaks for the W13 test (Andrew, 2026-10-22): the top single is the
+  // test-day rehearsal, and the back-offs are doubles again for clean volume.
+  // 78 / 79 / 80 stays above the 75 doubles floor.
+  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 2, pctStart: 78, pctStep: 1, targetRpe: 7, note: 'Back-off doubles — full lift, sharp and fast' },
 ]
 // Monday heavy bench — the week's heavy-upper anchor. Dip-drive overhead was
 // triple-booked (Mon power jerk + Wed push press + Sat jerk slot); the jerk
@@ -528,7 +531,7 @@ const D1_BENCH_HEAVY: SlotMeso[] = [
 ]
 // Monday's snatch pull retired (2026-07): the day is squat-priority now, and
 // the freed slot went to Nordic curls — the program's only knee-flexion work.
-// Positional pulling lives in Friday's clean pulls (100-116%).
+// Positional pulling lives in Friday's clean pulls (95-110%).
 //
 // M2 IS TWO WAVES OF 3/2/1, not a straight 4×4 (Andrew, 2026-10-05; FOR-263).
 // A straight 4×4 at 78 sat a couple of percent off M1's last week. Six sets,
@@ -554,7 +557,9 @@ const D1_SQUAT: SlotMeso[] = [
     ],
     note: 'Two waves of 3/2/1. Second wave is 2% over the first — the single at the top of each is the point.',
   },
-  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 3, pctStart: 85, pctStep: 1.5 },
+  // M3 doubles (Andrew, 2026-10-22). M2's second wave already reached a 93%
+  // single, so 4×3 at 85 was a step back before the W13 test: 87 / 89 / 91.
+  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 2, pctStart: 87, pctStep: 2, note: 'Heavy doubles — RPE 8-9, leave one in the tank' },
 ]
 
 // ── Day 3 — Athletic Strength (Wed): presses + FS/jump contrast + unilateral ──
@@ -593,7 +598,9 @@ const D3_FSQUAT: SlotMeso[] = [
   // this slot and 70% was not asking anything of it; the dead stop is worth
   // more loaded. At his 330 front squat: W5 250, W6 255, W7 265, W8 270.
   { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 76, pctStep: 2, note: '2-count dead stop in the hole, then UP — depth jumps ~30s after each set' },
-  { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 85, pctStep: 2.5, note: 'Contrast: trap bar jumps ~30s after each set' },
+  // M3 capped at 82 / 83.5 / 85 (Andrew, 2026-10-22): it lands two days after
+  // Monday's heavy back squat doubles, and the block is peaking for W13.
+  { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 82, pctStep: 1.5, note: 'Contrast: trap bar jumps ~30s after each set' },
 ]
 
 // ── Day 5 — Oly B (Fri): power clean primary + snatch speed + pull + speed squat
@@ -655,7 +662,9 @@ const D5_CL_BACK: SlotMeso[] = [
 // Friday entirely now and lives on Monday, so a snatch pull on the clean day
 // was the last thing keeping two lifts on one session. The percentages carry
 // the M1→M3 ramp continuously instead of resetting across a lift change:
-//   M1  100 → 106  (4s)      M2  95 → 102.5 (3s, paused)      M3  110 → 119 (2s)
+//   M1  100 → 106  (4s)      M2  95 → 102.5 (3s, paused)      M3  105 → 110 (2s)
+// M3 was 110 → 116; capped at 110 (Andrew, 2026-10-22) because the pulls are
+// speed off the floor in a peaking block, not overload.
 // M2 IS A PAUSE CLEAN PULL (Andrew, 2026-10-09; FOR-271): 95 instead of 102,
 // same 2.5 step. A two-second stop below the knee is a harder lift than the
 // straight pull at the same percentage, so the load comes down for it. It is
@@ -665,7 +674,7 @@ const D5_CL_BACK: SlotMeso[] = [
 const D5_PULL: SlotMeso[] = [
   { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
   { names: ['Pause Clean Pull', 'Pause Clean Pull', 'Pause Clean Pull', 'Pause Clean Pull'], sets: 3, reps: 3, pctStart: 95, pctStep: 2.5, targetRpe: 8, note: 'Pause 2 seconds just below the knee, shoulders over the bar, back tight, then finish fast.' },
-  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 110, pctStep: 3, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
+  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 105, pctStep: 2.5, targetRpe: 8, note: 'Fast off the floor — position honest, bar tight' },
 ]
 // Speed-strength slot: box squat at dynamic-effort loads. Dead stop on the box
 // kills the stretch reflex — force from zero, max RFD. Autoreg anchors low:
@@ -1002,7 +1011,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         liftFromSlot('bench_heavy', D1_BENCH_HEAVY[m], w, 'bench', maxes, pos.meso, adjustments),
         // Knee-flexion hamstring work — the one pattern pulls/DL don't cover.
         // Snatch pull slot retired for this (positions still trained: full
-        // snatch here, the Fri speed-oly slot, clean pulls Fri at 100-116%).
+        // snatch here, the Fri speed-oly slot, clean pulls Fri at 95-110%).
         accessory('acc_nordic', 'Nordic Curl', 3, 5, 'Heels under a lat-pulldown pad or loaded bar. Slow lower, push-up assist back up. Swap for Romanian Deadlift if needed.'),
       )
       // Core RELOCATED to Saturday (FOR-195 items 3 + 11b). Monday is the
@@ -1064,6 +1073,9 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
           // sets instead — otherwise the barbell drops to 60% while the DB
           // bench still asks for four sets at the top of the window.
           .map(i => (i.kind === 'lift' && i.repRange ? { ...i, sets: 2, note: DELOAD_NOTE } : i))
+          // Accessories have no percent either; cut them by sets so the week
+          // before the test stays fresh (Andrew, 2026-10-22).
+          .map(i => (i.kind === 'lift' && (i.slot === 'acc_wpu' || i.slot === 'acc_single_leg') ? { ...i, sets: 2, note: DELOAD_NOTE } : i))
       }
       return {
         dayNumber, dayName: 'Athletic Strength', dayType: 'gym',
@@ -1112,7 +1124,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
               step: 5,
               note: 'Rear foot on a bench. Leave 2 reps in the tank. First time: start with dumbbells you could do ~10 with. Reps are per leg, weight is PER HAND.',
             }),
-        // 5. Heavy pull at 100-119% — paused and lighter in M2.
+        // 5. Heavy pull at 95-110% — paused and lighter in M2.
         liftFromSlot('clean_pull', D5_PULL[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
         // 6. The program's ONLY horizontal pulling, against five pressing
         //    exposures a week — so M2 and M3 both row. Deliberately last: this
