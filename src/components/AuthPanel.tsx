@@ -21,19 +21,90 @@ export default function AuthPanel() {
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
 
-  // The public site is always graphite (GRAPHITE_PATHS), so the form takes the
-  // graphite palette whatever the app theme is set to.
-  const authColors = {
-    brand: '#CE0928',
-    brandAccent: '#9C0720',
-    inputBackground: 'hsl(222 21% 7%)',
-    inputBorder: 'hsl(214 35% 18%)',
-    inputText: 'hsl(210 24% 80%)',
-    inputPlaceholder: 'hsl(213 22% 32%)',
-    inputLabelText: 'hsl(213 22% 52%)',
-    messageText: 'hsl(213 22% 52%)',
-    anchorTextColor: 'hsl(38 90% 41%)',
-    dividerBackground: 'hsl(214 35% 18%)',
+  // The public site is always graphite (GRAPHITE_PATHS), so the form reads
+  // the site's own tokens: the volt fill for the button, recessed graphite
+  // inputs, muted labels. The stock Supabase red, navy and orange are gone,
+  // so the one form on the site no longer looks bolted on.
+  const authAppearance = {
+    theme: ThemeSupa,
+    variables: {
+      default: {
+        colors: {
+          brand: 'hsl(var(--brand))',
+          brandAccent: 'hsl(var(--brand-deep))',
+          brandButtonText: 'hsl(var(--brand-ink))',
+          defaultButtonBackground: 'hsl(var(--surface-2))',
+          defaultButtonBackgroundHover: 'hsl(var(--muted))',
+          defaultButtonBorder: 'hsl(var(--border))',
+          defaultButtonText: 'hsl(var(--foreground))',
+          inputBackground: 'hsl(var(--surface-2))',
+          inputBorder: 'hsl(var(--border))',
+          inputBorderHover: 'hsl(var(--muted-foreground))',
+          inputBorderFocus: 'hsl(var(--brand))',
+          inputText: 'hsl(var(--foreground))',
+          inputPlaceholder: 'hsl(var(--muted-foreground))',
+          inputLabelText: 'hsl(var(--muted-foreground))',
+          // Text and box together: the stock pale-green box under our ink
+          // fell to 3.2:1. Same for errors, with the red kept to the border.
+          messageText: 'hsl(var(--foreground))',
+          messageBackground: 'hsl(var(--surface-2))',
+          messageBorder: 'hsl(var(--border))',
+          messageTextDanger: 'hsl(var(--foreground))',
+          messageBackgroundDanger: 'hsl(var(--surface-2))',
+          messageBorderDanger: 'hsl(var(--destructive))',
+          anchorTextColor: 'hsl(var(--muted-foreground))',
+          anchorTextHoverColor: 'hsl(var(--foreground))',
+          dividerBackground: 'hsl(var(--border))',
+        },
+        fonts: {
+          bodyFontFamily: 'var(--font-sans)',
+          buttonFontFamily: 'var(--font-sans)',
+          inputFontFamily: 'var(--font-sans)',
+          labelFontFamily: 'var(--font-sans)',
+        },
+        radii: {
+          borderRadiusButton: '999px',
+          buttonBorderRadius: '999px',
+          inputBorderRadius: '0.875rem',
+        },
+      },
+    },
+  };
+
+  // The site's voice is lowercase; the widget's defaults are Title Case.
+  const authLocalization = {
+    variables: {
+      sign_in: {
+        email_label: 'email',
+        password_label: 'password',
+        email_input_placeholder: 'you@example.com',
+        password_input_placeholder: 'your password',
+        button_label: 'sign in',
+        loading_button_label: 'signing in…',
+        social_provider_text: 'sign in with {{provider}}',
+        link_text: 'already have an account? sign in',
+      },
+      sign_up: {
+        email_label: 'email',
+        password_label: 'create a password',
+        email_input_placeholder: 'you@example.com',
+        password_input_placeholder: 'your password',
+        button_label: 'sign up',
+        loading_button_label: 'signing up…',
+        social_provider_text: 'sign up with {{provider}}',
+        link_text: "don't have an account? sign up",
+        confirmation_text: 'check your email for the confirmation link',
+      },
+      forgotten_password: {
+        email_label: 'email',
+        password_label: 'password',
+        email_input_placeholder: 'you@example.com',
+        button_label: 'send reset instructions',
+        loading_button_label: 'sending…',
+        link_text: 'forgot your password?',
+        confirmation_text: 'check your email for the reset link',
+      },
+    },
   };
 
   useEffect(() => {
@@ -96,17 +167,11 @@ export default function AuthPanel() {
   }
 
   return (
-    <div className="relative bg-card border border-border p-6 pt-9 shadow-2xl">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="status-dot" />
-        <span className="eyebrow-mono">Pilot Authentication</span>
-      </div>
+    <div className="relative bg-card border border-border p-6">
       <Auth
         supabaseClient={supabase}
-        appearance={{
-          theme: ThemeSupa,
-          variables: { default: { colors: authColors } },
-        }}
+        appearance={authAppearance}
+        localization={authLocalization}
         providers={['google']}
         redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined}
       />

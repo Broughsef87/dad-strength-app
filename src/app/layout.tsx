@@ -32,12 +32,17 @@ const spaceMono = Space_Mono({
 })
 
 
+// Inherited by every page that does not set its own (the legal pages do
+// not), so this is what their share previews say.
+const SITE_DESCRIPTION =
+  'Strength programs for dads, written by a coach, plus a morning routine and Fuel, a dinner planner that builds your shopping list.'
+
 export const metadata: Metadata = {
   // Resolves every relative OG / canonical URL against the real domain, not
   // the Vercel deploy host.
   metadataBase: new URL('https://www.dadstrength.tech'),
   title: 'Dad Strength',
-  description: 'The Operating System for Modern Fatherhood.',
+  description: SITE_DESCRIPTION,
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -55,7 +60,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Dad Strength',
-    description: 'The Operating System for Modern Fatherhood.',
+    description: SITE_DESCRIPTION,
     type: 'website',
     url: '/',
     siteName: 'Dad Strength',
@@ -64,14 +69,14 @@ export const metadata: Metadata = {
         url: '/logo-suite/ds_banner_dark.png',
         width: 1500,
         height: 500,
-        alt: 'Dad Strength — The OS for Modern Fatherhood',
+        alt: 'Dad Strength — strength training for dads',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Dad Strength',
-    description: 'The Operating System for Modern Fatherhood.',
+    description: SITE_DESCRIPTION,
     images: ['/logo-suite/ds_banner_dark.png'],
   },
 }

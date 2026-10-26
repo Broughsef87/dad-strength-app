@@ -13,7 +13,7 @@ export default function SampleSession() {
           <p className="eyebrow-mono">
             wk {SAMPLE.week} · {DAYS[SAMPLE.day - 1]} · {S.programName.toLowerCase()}
           </p>
-          <span className="chip-live chip-live-sm">live</span>
+          <span className="eyebrow-mono">example</span>
         </div>
         <p className="font-display mt-3 text-[26px] font-semibold leading-tight tracking-[-0.02em] lowercase text-foreground">
           {S.dayName.toLowerCase()}

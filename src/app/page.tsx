@@ -129,13 +129,6 @@ function Heading({ eyebrow, children }: { eyebrow: string; children: ReactNode }
   );
 }
 
-const STATS = [
-  { num: String(PROGRAM_LIST[0].macroWeeks), label: 'weeks a block, deload and test week included' },
-  { num: String(PROGRAM_LIST.length), label: 'programs, one coach' },
-  { num: String(S.crunchCount), label: `lifts on a time-crunched ${S.dayName.toLowerCase()}, not ${S.fullCount}` },
-  { num: String(FOUNDING_SPOTS), label: 'founding spots, free for life' },
-];
-
 const STEPS = [
   {
     n: '01',
@@ -171,13 +164,19 @@ export default function Home() {
         {/* Hero: the claim on the left, a real session on the right. */}
         <section className="grid items-center gap-12 pt-10 pb-20 lg:grid-cols-[7fr_5fr] lg:gap-16 lg:pt-16 lg:pb-28">
           <div>
-            <p className="eyebrow-mono">DS-01 · strength training for fathers</p>
+            <p className="eyebrow-mono">strength training for dads</p>
             <h1 className="font-display mt-5 text-[44px] font-bold leading-[0.98] tracking-[-0.045em] lowercase text-foreground sm:text-[76px]">
-              the workout app for busy dads
+              real programming, worked out to the plate
             </h1>
             <p className="mt-6 max-w-md text-lg font-light leading-[1.65] text-muted-foreground sm:text-xl">
-              strength programs built for the hours you actually have. a coach writes the program. the
-              app does the math from what you lifted last week.
+              three {PROGRAM_LIST[0].macroWeeks}-week programs for dads who train around a job and a
+              family. put in your maxes, log what you lift, and next week&apos;s weights follow from it.
+            </p>
+            <p className="data-mono mt-4">
+              <a href="#coach" className="underline-offset-4 hover:underline">
+                written by {COACH.name.toLowerCase()}
+              </a>{' '}
+              · {COACH.credentials.map((c) => c.code).join(' · ')}
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <a href="#sign-in" className="pill-volt px-6 py-3.5 text-base">
@@ -194,18 +193,8 @@ export default function Home() {
           <SampleSession />
         </section>
 
-        {/* The numbers, on the ground with no tiles: numerals are heroes. */}
-        <section aria-label="by the numbers" className="grid grid-cols-2 gap-x-6 gap-y-10 border-t border-border pt-10 md:grid-cols-4">
-          {STATS.map((s) => (
-            <div key={s.label}>
-              <p className="stat-num text-[44px] text-foreground sm:text-[72px]">{s.num}</p>
-              <p className="mt-3 max-w-[14rem] text-sm font-light leading-[1.5] text-muted-foreground">{s.label}</p>
-            </div>
-          ))}
-        </section>
-
         {/* How it decides: the claim pinned left, the three steps right. */}
-        <section id="how" className="scroll-mt-6 mt-28 grid gap-10 lg:grid-cols-[5fr_7fr] lg:gap-16">
+        <section id="how" className="scroll-mt-6 mt-20 grid gap-10 lg:grid-cols-[5fr_7fr] lg:gap-16">
           <div className="lg:sticky lg:top-10 lg:self-start">
             <Heading eyebrow="how it decides">the coach writes it. the app does the math.</Heading>
             <p className="mt-5 max-w-sm text-base font-light leading-[1.65] text-muted-foreground">
@@ -213,17 +202,19 @@ export default function Home() {
               log, and you can see the working.
             </p>
           </div>
-          <ol className="space-y-3">
+          {/* A worksheet, not cards: ruled lines on the ground, the working
+              shown in the margin of each step. */}
+          <ol className="border-b border-border">
             {STEPS.map((st) => (
-              <li key={st.n} className="tile grid gap-4 p-5.5 sm:grid-cols-[56px_1fr] sm:p-7">
-                <span className="stat-num text-3xl text-muted-foreground">{st.n}</span>
+              <li key={st.n} className="grid gap-3 border-t border-border py-7 sm:grid-cols-[56px_1fr]">
+                <span className="data-mono pt-1.5">{st.n}</span>
                 <div>
                   <h3 className="font-display text-xl font-semibold tracking-[-0.02em] lowercase text-foreground sm:text-2xl">
                     {st.heading}
                   </h3>
                   <p className="mt-2 text-[15px] font-light leading-[1.65] text-muted-foreground">{st.body}</p>
                   {st.trace && (
-                    <p className="row-recessed data-mono mt-4 px-3.5 py-3 leading-relaxed">{st.trace}</p>
+                    <p className="data-mono mt-4 border-l-2 border-border pl-3.5 leading-relaxed">{st.trace}</p>
                   )}
                 </div>
               </li>
@@ -232,7 +223,7 @@ export default function Home() {
         </section>
 
         {/* The week, every program side by side, and the block it sits in. */}
-        <section id="programs" className="scroll-mt-6 mt-28">
+        <section id="programs" className="scroll-mt-6 mt-32">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <Heading eyebrow="the programs">three programs. seven days each.</Heading>
@@ -264,16 +255,17 @@ export default function Home() {
         </section>
 
         {/* The other two features, side by side. */}
-        <section aria-label="beyond the gym" className="mt-28 grid gap-3 md:grid-cols-2">
+        <section aria-label="beyond the gym" className="mt-16 grid gap-3 md:grid-cols-2">
           <div className="tile p-5.5 sm:p-8">
             <p className="eyebrow-mono">morning</p>
             <h2 className="font-display mt-3 text-2xl font-semibold tracking-[-0.02em] lowercase text-foreground sm:text-[30px]">
               a morning routine before the house wakes up
             </h2>
             <p className="mt-3 text-[15px] font-light leading-[1.65] text-muted-foreground">
-              tell it how you slept and how much time you have. you get a short list for the morning.
+              tell it how you slept, how you feel and how many minutes you have, and it splits them
+              across prayer, meditation, reading and your goals for the day. this is the one part of
+              the app written by ai. your training never is.
             </p>
-            <p className="data-mono mt-6">sleep · time you have · a short list</p>
           </div>
           <div className="tile p-5.5 sm:p-8">
             <p className="eyebrow-mono">fuel</p>
@@ -284,12 +276,11 @@ export default function Home() {
               pick a dinner menu, open any meal for the full recipe, tick off what is already at home,
               and get a shopping list in store order.
             </p>
-            <p className="data-mono mt-6">menu · recipe · pantry · list in store order</p>
           </div>
         </section>
 
         {/* The coach. Credentials come from COACH, the one copy. */}
-        <section id="coach" className="scroll-mt-6 mt-28 grid gap-10 lg:grid-cols-[5fr_7fr] lg:gap-16" aria-label="your coach">
+        <section id="coach" className="scroll-mt-6 mt-24 grid gap-10 lg:grid-cols-[5fr_7fr] lg:gap-16" aria-label="your coach">
           <div>
             <p className="eyebrow-mono">your coach</p>
             <p className="font-display mt-3 text-[44px] font-bold leading-[0.98] tracking-[-0.045em] lowercase text-foreground sm:text-[64px]">
@@ -311,12 +302,11 @@ export default function Home() {
           </div>
           <div>
             <h2 className="font-display text-2xl font-semibold tracking-[-0.02em] lowercase text-foreground sm:text-[30px]">
-              written by a coach who is also a dad
+              a coach with a baby at home
             </h2>
             <p className="mt-3 max-w-xl text-base font-light leading-[1.65] text-muted-foreground">
-              {COACH.name.toLowerCase()} built dad strength for the hours dads actually have. the
-              programming is his. the app does the math: every working weight comes from your own
-              numbers and what you logged last week.
+              {COACH.name.toLowerCase()} coaches weightlifting and strength and has a baby daughter at
+              home. he wrote all three programs, and he trains on power dad himself.
             </p>
             <ul className="mt-6 space-y-2">
               {COACH.credentials.map((c) => (
