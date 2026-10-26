@@ -1,0 +1,86 @@
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+// LIVES IN src/. With the app under src/app, Next only compiles middleware
+// that sits beside it; at the repo root this file was never built — the
+// production middleware manifest was empty, no route was protected server
+// side, and the ?signin=oauth handoff below never ran. See
+// scripts/checks/middleware-wired.mjs, which reads the built manifest.
+
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+
+  // Protected routes
+  const protectedPaths = [
+    '/dashboard', '/body', '/profile',
+    '/workout', '/edit-program', '/onboarding', '/history', '/library',
+    '/build', '/schedule', '/exercises', '/train',
+    '/fuel', // FOR-177: the Pro anchor is signed-in only, server-side, like every other surface
+  ]
+  const isProtected = protectedPaths.some(path => pathname.startsWith(path))
+
+  if (!user && isProtected) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    // Only the sign-in handoff travels to '/'; a deep link's own query
+    // (?week=, ?short=) means nothing on the home page.
+    const code = request.nextUrl.searchParams.get('code')
+    url.search = ''
+    // A Google sign-in returns to /dashboard?code=… before the browser has
+    // exchanged the code. Mark it so AuthPanel on / knows a sign-in is landing,
+    // even after the browser client has stripped ?code= from the URL.
+    if (code) {
+      url.searchParams.set('code', code)
+      url.searchParams.set('signin', 'oauth')
+    }
+    const redirect = NextResponse.redirect(url)
+    // Keep whatever getUser() just did to the session cookies (a refresh, or
+    // clearing a dead token) — a fresh redirect response would drop it.
+    response.cookies.getAll().forEach((c) => redirect.cookies.set(c))
+    return redirect
+  }
+
+  // Signed-in visitors may browse the public site at /; the PWA opens on
+  // /dashboard through manifest start_url, and AuthPanel offers "open the app".
+
+  return response
+}
+
+export const config = {
+  matcher: [
+    // 'monitoring' is the Sentry tunnel route — auth middleware must not
+    // touch ingest traffic.
+    '/((?!monitoring|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}
