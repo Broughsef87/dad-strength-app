@@ -23,12 +23,21 @@ export default function AuthPanel() {
   // New visitors get the sign-up form; only the header's "sign in" link
   // (/#sign-in) opens sign-in. "claim a founding spot" used to land on a
   // form headed sign in, which reads as "not for me" to a first-time dad.
+  // A click on either link always resets the form, even when the hash is
+  // already set or the visitor toggled views inside the widget, so `nonce`
+  // remounts it rather than trusting `view` to have changed.
   const [view, setView] = useState<'sign_up' | 'sign_in'>('sign_up');
+  const [nonce, setNonce] = useState(0);
   useEffect(() => {
-    const pick = () => setView(window.location.hash === '#sign-in' ? 'sign_in' : 'sign_up');
-    pick();
-    window.addEventListener('hashchange', pick);
-    return () => window.removeEventListener('hashchange', pick);
+    if (window.location.hash === '#sign-in') setView('sign_in');
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href$="#founding"], a[href$="#sign-in"]');
+      if (!a) return;
+      setView(a.getAttribute('href')!.endsWith('#sign-in') ? 'sign_in' : 'sign_up');
+      setNonce((n) => n + 1);
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
   }, []);
 
   // The public site is always graphite (GRAPHITE_PATHS), so the form reads
@@ -179,7 +188,7 @@ export default function AuthPanel() {
   return (
     <div className="relative bg-card border border-border p-6">
       <Auth
-        key={view}
+        key={`${view}-${nonce}`}
         view={view}
         supabaseClient={supabase}
         appearance={authAppearance}
