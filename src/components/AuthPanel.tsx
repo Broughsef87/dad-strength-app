@@ -20,6 +20,16 @@ export default function AuthPanel() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
+  // New visitors get the sign-up form; only the header's "sign in" link
+  // (/#sign-in) opens sign-in. "claim a founding spot" used to land on a
+  // form headed sign in, which reads as "not for me" to a first-time dad.
+  const [view, setView] = useState<'sign_up' | 'sign_in'>('sign_up');
+  useEffect(() => {
+    const pick = () => setView(window.location.hash === '#sign-in' ? 'sign_in' : 'sign_up');
+    pick();
+    window.addEventListener('hashchange', pick);
+    return () => window.removeEventListener('hashchange', pick);
+  }, []);
 
   // The public site is always graphite (GRAPHITE_PATHS), so the form reads
   // the site's own tokens: the volt fill for the button, recessed graphite
@@ -169,6 +179,8 @@ export default function AuthPanel() {
   return (
     <div className="relative bg-card border border-border p-6">
       <Auth
+        key={view}
+        view={view}
         supabaseClient={supabase}
         appearance={authAppearance}
         localization={authLocalization}

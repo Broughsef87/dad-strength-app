@@ -7,7 +7,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { UserProvider } from '../contexts/UserContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { SubscriptionProvider } from '../contexts/SubscriptionContext'
-import { GRAPHITE_PATHS } from '../lib/publicSite'
+import { GRAPHITE_PATHS, OG_IMAGE } from '../lib/publicSite'
 
 // CHALK/VOLT type: one confident grotesk carries the whole app —
 // display, body, and the giant hero numerals.
@@ -64,20 +64,13 @@ export const metadata: Metadata = {
     type: 'website',
     url: '/',
     siteName: 'Dad Strength',
-    images: [
-      {
-        url: '/logo-suite/ds_banner_dark.png',
-        width: 1500,
-        height: 500,
-        alt: 'Dad Strength — strength training for dads',
-      },
-    ],
+    images: [OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Dad Strength',
     description: SITE_DESCRIPTION,
-    images: ['/logo-suite/ds_banner_dark.png'],
+    images: [OG_IMAGE.url],
   },
 }
 
