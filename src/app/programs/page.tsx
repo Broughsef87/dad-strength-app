@@ -3,6 +3,7 @@ import SiteShell from '../../components/site/SiteShell';
 import { COACH, FOUNDING_SPOTS } from '../../components/site/content';
 import { PROGRAMS } from '../../lib/programs';
 import { TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../../lib/programs/timeConstrained';
+import { OG_IMAGE } from '../../lib/publicSite';
 
 // The public programs page. Server-rendered, like /, so the copy ships in the
 // HTML. Names, block length, days and the maxes each program asks for are read
@@ -13,13 +14,6 @@ import { TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../../lib/pro
 const TITLE = 'Dad Workout Plans: 3 Strength Programs — Dad Strength';
 const DESCRIPTION =
   'Power Dad, Dad Built and Hybrid Dad: 13-week strength blocks that adjust to what you actually lifted last week. Built for home training and short windows.';
-const OG_IMAGE = {
-  url: '/logo-suite/ds_banner_dark.png',
-  width: 1500,
-  height: 500,
-  alt: 'Dad Strength — workout app for busy dads',
-};
-
 export const metadata: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
@@ -194,7 +188,7 @@ export default function ProgramsPage() {
           <p className="font-display max-w-2xl text-[30px] font-semibold leading-[1.1] tracking-[-0.03em] lowercase text-foreground sm:text-[40px]">
             {FOUNDING_SPOTS} founding dads train free for life, for honest feedback.
           </p>
-          <a href="/#sign-in" className="pill-volt shrink-0 px-6 py-3.5 text-base font-semibold">
+          <a href="/#founding" className="pill-volt shrink-0 px-6 py-3.5 text-base font-semibold">
             claim a founding spot
           </a>
         </section>

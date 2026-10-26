@@ -1,6 +1,12 @@
+import { OG_IMAGE } from '../../lib/publicSite'
+
 export const metadata = {
   title: 'Terms of Service — Dad Strength',
   description: 'Terms of Service for the Dad Strength app.',
+  // Its own preview: without these the page inherited the home page's.
+  alternates: { canonical: '/terms' },
+  openGraph: { title: 'Terms of Service — Dad Strength', description: 'Terms of Service for the Dad Strength app.', url: '/terms', siteName: 'Dad Strength', type: 'website', images: [OG_IMAGE] },
+  twitter: { card: 'summary_large_image', images: [OG_IMAGE.url], title: 'Terms of Service — Dad Strength', description: 'Terms of Service for the Dad Strength app.' },
 }
 
 export default function TermsOfService() {
