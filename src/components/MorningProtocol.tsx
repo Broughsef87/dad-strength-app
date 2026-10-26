@@ -84,7 +84,6 @@ type Protocol = {
 // check-in doesn't wipe a routine completed that morning.
 const todayKey = () => localDayWithCutoff(4)
 
-
 export default function MorningProtocol(
   { objectives = [], onSaved }:
   {
