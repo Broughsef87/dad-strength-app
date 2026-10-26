@@ -45,7 +45,8 @@ Energy level: ${energy}
 Today's objectives:
 ${objectivesList}
 
-Generate a morning protocol with exactly 4 steps — one for each pillar. Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading/Goals.`,
+Generate a morning protocol with exactly 4 steps — one for each pillar. Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading/Goals.
+If last night was rough (Rough night or Up all night): keep the time split, but make Reading a short, light passage (no heavy study), and make Goals about the ONE most important objective today, not the whole list. Name that in the guidance.`,
       schema: z.object({
         theme: z.string().describe("A short, punchy theme for today's morning — e.g. 'The Quiet Before the War'"),
         greeting: z.string().describe("1-2 sentence personal greeting acknowledging last night's sleep and energy level. Direct, warm, stoic."),
