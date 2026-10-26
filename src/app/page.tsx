@@ -214,7 +214,7 @@ export default function Home() {
                   </h3>
                   <p className="mt-2 text-[15px] font-light leading-[1.65] text-muted-foreground">{st.body}</p>
                   {st.trace && (
-                    <p className="data-mono mt-4 border-l-2 border-brand pl-3.5 leading-relaxed">{st.trace}</p>
+                    <p className="data-mono mt-4 border-l-2 border-border pl-3.5 leading-relaxed">{st.trace}</p>
                   )}
                 </div>
               </li>

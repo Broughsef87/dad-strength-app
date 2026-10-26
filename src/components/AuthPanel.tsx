@@ -44,7 +44,14 @@ export default function AuthPanel() {
           inputText: 'hsl(var(--foreground))',
           inputPlaceholder: 'hsl(var(--muted-foreground))',
           inputLabelText: 'hsl(var(--muted-foreground))',
-          messageText: 'hsl(var(--muted-foreground))',
+          // Text and box together: the stock pale-green box under our ink
+          // fell to 3.2:1. Same for errors, with the red kept to the border.
+          messageText: 'hsl(var(--foreground))',
+          messageBackground: 'hsl(var(--surface-2))',
+          messageBorder: 'hsl(var(--border))',
+          messageTextDanger: 'hsl(var(--foreground))',
+          messageBackgroundDanger: 'hsl(var(--surface-2))',
+          messageBorderDanger: 'hsl(var(--destructive))',
           anchorTextColor: 'hsl(var(--muted-foreground))',
           anchorTextHoverColor: 'hsl(var(--foreground))',
           dividerBackground: 'hsl(var(--border))',
