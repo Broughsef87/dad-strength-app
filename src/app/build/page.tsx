@@ -101,6 +101,11 @@ export default function BuildPage() {
         throw new Error(`Activating program failed: ${progErr.message}`)
       }
 
+      // The dashboard's onboarding gate reads this. Best-effort: the
+      // dashboard also treats an active program as onboarded, so a lost write
+      // here cannot trap anyone on /build.
+      await supabase.from('user_profiles').upsert({ id: user.id, onboarding_complete: true }, { onConflict: 'id' })
+
       router.push(`/train/${selected.slug}/1`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')

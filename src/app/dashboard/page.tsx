@@ -192,7 +192,17 @@ export default function Dashboard() {
       const onboardingLocal = typeof window !== 'undefined' ? localStorage.getItem('onboardingComplete') === 'true' : false
       const onboardingDB = profile?.onboarding_complete || false
 
-      if (!onboardingLocal && !onboardingDB) { router.push('/build'); return }
+      // Nothing has written onboarding_complete since the legacy /onboarding
+      // flow was retired (4a954cd), so for every account created after it this
+      // gate sent the dashboard straight back to /build — forever, even with a
+      // program running. Having a program IS being onboarded.
+      if (!onboardingLocal && !onboardingDB) {
+        const { data: running } = await supabase
+          .from('user_programs').select('id')
+          .eq('user_id', user.id).eq('status', 'active').limit(1)
+        if (!running?.length) { router.push('/build'); return }
+        await supabase.from('user_profiles').upsert({ id: user.id, onboarding_complete: true }, { onConflict: 'id' })
+      }
 
       if (onboardingLocal && !onboardingDB) {
         const localConfig = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('activeProgramConfig') || '{}') : {}
