@@ -17,6 +17,9 @@ export async function checkRateLimit(
   route: string,
   limit = 10,
   windowMs = 60_000,
+  // false = only ask. The daily AI quota asks first and records with
+  // recordRequest() once the work succeeded, so a failed call costs nothing.
+  opts: { record?: boolean } = {},
 ): Promise<{ allowed: boolean; remaining: number }> {
   try {
     const windowStart = new Date(Date.now() - windowMs).toISOString()
@@ -39,11 +42,17 @@ export async function checkRateLimit(
     }
 
     // Log this request
-    await supabase.from('ai_request_logs').insert({ user_id: userId, route })
+    if (opts.record !== false) await recordRequest(supabase, userId, route)
 
     return { allowed: true, remaining: limit - used - 1 }
   } catch {
     // Fail open
     return { allowed: true, remaining: limit }
   }
+}
+
+/** Record one use of `route` for `userId` (counted by checkRateLimit). */
+export async function recordRequest(supabase: SupabaseClient, userId: string, route: string): Promise<void> {
+  const { error } = await supabase.from('ai_request_logs').insert({ user_id: userId, route })
+  if (error) console.error('rate limit: could not record request', route, error.message)
 }

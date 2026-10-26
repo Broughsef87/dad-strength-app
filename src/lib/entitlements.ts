@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { checkRateLimit } from './rateLimit'
+import { checkRateLimit, recordRequest } from './rateLimit'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENTITLEMENTS — the single server-side source of truth for what a tier unlocks.
@@ -38,7 +38,11 @@ export const AI_DAILY_LIMITS: Record<string, { free: number; pro: number }> = {
   'squeeze-generate': { free: 2, pro: 60 },
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
+// "Per day" for someone who does this every morning. A rolling 24 hours
+// refused a dad who built at 6:30 Monday and 6:00 Tuesday — the paywall on an
+// ordinary second morning. 20 hours still allows one build per morning and no
+// more, whatever time he wakes.
+const QUOTA_WINDOW_MS = 20 * 60 * 60 * 1000
 
 export async function getEntitlement(supabase: SupabaseClient, userId: string): Promise<Entitlement> {
   const { data } = await supabase
@@ -91,6 +95,10 @@ export async function getActiveProgramSlug(supabase: SupabaseClient, userId: str
  * Guard for metered AI routes. Enforces a per-day cap that scales with tier.
  * Free users who hit their cap get a 402 (upgrade), pro users who somehow hit
  * the high ceiling get a 429 (slow down). Returns null if allowed.
+ *
+ * It only ASKS. Call chargeAiQuota() after the AI call succeeded: charging on
+ * entry meant a free user's one build that failed (a model hiccup, a timeout,
+ * a missing key) used up the day, and pressing "Try again" opened the paywall.
  */
 export async function requireAiQuota(
   supabase: SupabaseClient,
@@ -103,7 +111,7 @@ export async function requireAiQuota(
   const cap = limits[ent.tier]
   // Distinct log key (":day") so the daily cap doesn't collide with any
   // short-window burst limiter on the same route.
-  const { allowed } = await checkRateLimit(supabase, userId, `${route}:day`, cap, DAY_MS)
+  const { allowed } = await checkRateLimit(supabase, userId, `${route}:day`, cap, QUOTA_WINDOW_MS, { record: false })
   if (allowed) return null
   return ent.isPro
     ? NextResponse.json({ error: 'Daily AI limit reached. Try again tomorrow.', code: 'rate_limited' }, { status: 429 })
@@ -111,4 +119,10 @@ export async function requireAiQuota(
         { error: `Free plan includes ${cap} of this per day. Upgrade for unlimited.`, code: 'upgrade_required' },
         { status: 402 },
       )
+}
+
+/** Count one successful use of a metered AI route against today's quota. */
+export async function chargeAiQuota(supabase: SupabaseClient, userId: string, route: string): Promise<void> {
+  if (!AI_DAILY_LIMITS[route]) return
+  await recordRequest(supabase, userId, `${route}:day`)
 }

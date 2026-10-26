@@ -337,7 +337,10 @@ export default function MorningProtocol(
     setLoading(true)
     setError('')
     try {
-      const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+      // The weekday of the day this routine is FILED under (4am cutoff), not
+      // of the wall clock: at 3:30am Tuesday the entry is Monday's, and the
+      // model was being told it was Tuesday.
+      const dayOfWeek = new Date(`${todayKey()}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long' })
       const res = await fetch('/api/ai/morning-protocol', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
