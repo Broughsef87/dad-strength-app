@@ -339,11 +339,6 @@ export default function MorningProtocol(
     setError('')
     try {
       const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' })
-      // Today's objectives, read from the card's row at build time. No caller
-      // passed them, so the model always heard "No objectives set" and the
-      // Goals step could never name one. Read, never copied: the card stays
-      // the only writer. A failed read builds without them rather than not at all.
-      const todaysObjectives = objectives.length ? objectives : await readTodaysObjectives()
       const res = await fetch('/api/ai/morning-protocol', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -351,7 +346,11 @@ export default function MorningProtocol(
           minutes,
           sleepQuality: SLEEP_QUALITY.find(s => s.id === sleep)?.label,
           energy: ENERGY_LEVELS.find(e => e.id === energy)?.label,
-          objectives: todaysObjectives,
+          // Today's objectives, read from the card's row at build time. No
+          // caller passed them, so the model always heard "No objectives set".
+          // Read, never copied: the card stays the only writer, and a failed
+          // read builds without them rather than not at all.
+          objectives: objectives.length ? objectives : await readTodaysObjectives(),
           dayOfWeek,
         }),
       })
