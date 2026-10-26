@@ -61,7 +61,23 @@ interface SetEntry {
   rpe: number | null
 }
 
-const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
+// A logged set is identified by its SLOT as well as its name. Power Dad lists
+// the top single and the back-offs under one name ("Power Clean", "Snatch")
+// on 14 days, and keyed on name + set number the two cards wrote the same
+// rows: logging back-off set 1 overwrote the top single, and on reload the
+// top card showed the back-off's weight. Reproduced locally; 89 rows were
+// lost that way across four seeded Power Dad users.
+//
+// The database needs a unique index on this key — supabase/pending/
+// 20261026_set_log_key_includes_slot.sql, to be applied AFTER this code is
+// deployed. Until it is, Postgres answers 42P10 (no matching constraint) and
+// the writer falls back to the old key, so this code is safe on either side.
+const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,slot,set_number'
+const LEGACY_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'
+let logConflictKey = UPSERT_CONFLICT
+/** Whether a logged row belongs to this card: same name, and same slot when the row recorded one. */
+const ownsLog = (item: { name: string; slot: string }, l: { block_name: string; slot?: string | null }) =>
+  l.block_name === item.name && (l.slot == null || l.slot === item.slot)
 // Thrown by a load that a newer load (or an unmount) has overtaken.
 const STALE_LOAD = Symbol('stale load')
 
@@ -1334,6 +1350,15 @@ export default function TrainingDayPage() {
       if (Object.keys(ranges).length) {
         // Slot ids are program-unique, so scoping by slot is enough — and it
         // avoids joining through generated_workouts on every session open.
+        //
+        // But not RUN-unique. doubleProgression takes the highest (week, day)
+        // as "last time", so after a restart a previous attempt's week 5
+        // outranked this run's week 2 and the card prescribed what was lifted
+        // months ago — for five weeks, until this run's week numbers caught
+        // up. Measured on a seeded switch-and-return: 85/70/85 shown where this
+        // run's last session says 80. Same rule as every other "how far along
+        // am I" read (src/lib/programs/run.ts). Newest first, so the cap can
+        // only ever drop the oldest rows.
         const { data: histRows } = await supabase
           .from('ares_session_logs')
           .select('slot, block_name, weight_lbs, reps, completed, week_number, day_number, log_type')
@@ -1341,6 +1366,8 @@ export default function TrainingDayPage() {
           .eq('log_type', 'strength_set')
           .eq('completed', true)
           .in('slot', Object.keys(ranges))
+          .gte('created_at', runStart)
+          .order('created_at', { ascending: false })
           .limit(2000)
         // Drop THIS session's own rows before computing targets. Reopening a
         // day after logging its sets would otherwise feed them straight back
@@ -1482,17 +1509,18 @@ export default function TrainingDayPage() {
       if (!workoutId) {
         if (saved) workoutId = saved.id
         else if ((insertError as { code?: string } | null)?.code === '23505') {
-          // Deliberately NOT run-scoped. A 23505 here means a unique index
-          // rejected the insert, and those indexes are partial: only legacy,
-          // zeus and ares have one. On those a second row for the same
-          // week+day cannot exist, so reusing the existing row is the only
-          // option — scoping would return nothing and break log linkage.
-          // The macrocycle programs have no such index and never reach here.
+          // Another device or tab created this session's row first. The
+          // database refuses a second row per session per run
+          // (20261026_one_session_row_per_run.sql) exactly so that this path
+          // runs: adopt THIS RUN's row — the earliest, the one every other
+          // reader (autoreg, done-days) already picks. Ordering by id, as this
+          // used to, picked a random row once more than one existed.
           const { data: again } = await supabase
             .from('generated_workouts').select('id, workout_data')
             .eq('user_id', userId).eq('program_slug', slug)
             .eq('week_number', weekNumber).eq('day_number', dayNumber)
-            .order('id', { ascending: true }).limit(1)
+            .gte('created_at', runStart)
+            .order('created_at', { ascending: true }).limit(1)
           halt()
           workoutId = again?.[0]?.id ?? null
           if (workoutId) await adopt(workoutId, (again?.[0]?.workout_data ?? {}) as Record<string, unknown>)
@@ -1559,6 +1587,17 @@ export default function TrainingDayPage() {
     }
   }
 
+  // Every set-log write goes through here, for the conflict key above.
+  const upsertLogs = async (rows: Record<string, unknown> | Record<string, unknown>[]): Promise<SbRes> => {
+    const list = (Array.isArray(rows) ? rows : [rows]).map((r) => ({ slot: null, ...r }))
+    let res = await supabase.from('ares_session_logs').upsert(list, { onConflict: logConflictKey })
+    if ((res.error as { code?: string } | null)?.code === '42P10' && logConflictKey !== LEGACY_CONFLICT) {
+      logConflictKey = LEGACY_CONFLICT
+      res = await supabase.from('ares_session_logs').upsert(list, { onConflict: logConflictKey })
+    }
+    return res
+  }
+
   const baseRow = () => ({
     user_id: user!.id,
     generated_workout_id: workoutIdRef.current,
@@ -1605,7 +1644,7 @@ export default function TrainingDayPage() {
       completed: s.done,
       completed_at: s.done ? now : null,
     }))
-    report(item.name, await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT }))
+    report(item.name, await upsertLogs(rows))
   }
 
   // PR check on set completion: beats your best weight at >= that rep count.
@@ -1645,13 +1684,13 @@ export default function TrainingDayPage() {
       completed_at: s.done ? now : null,
       notes: s.setIndex === 0 ? notes || null : null, // card-level notes ride on set 1
     }))
-    report(item.name, await supabase.from('ares_session_logs').upsert(rows, { onConflict: UPSERT_CONFLICT }))
+    report(item.name, await upsertLogs(rows))
   }
 
   const logSimple = async (blockName: string, logType: string, notes: string, extra?: Record<string, unknown>) => {
     if (!user || !workoutIdRef.current) return
     setStarted(true)
-    report(blockName, await supabase.from('ares_session_logs').upsert({
+    report(blockName, await upsertLogs({
       ...baseRow(),
       log_type: logType,
       block_name: blockName,
@@ -1660,7 +1699,7 @@ export default function TrainingDayPage() {
       completed: true,
       completed_at: new Date().toISOString(),
       ...extra,
-    }, { onConflict: UPSERT_CONFLICT }))
+    }))
   }
 
   const completeSession = async () => {
@@ -1673,14 +1712,21 @@ export default function TrainingDayPage() {
     // rest day is listed anywhere any more, but /train/<slug>/<a rest day> is still
     // a URL anyone can type.
     if (plan && !isCompletable(plan)) return
-    await supabase.from('ares_session_logs').upsert({
+    // The completion record IS the session being done — the week advances off
+    // it. Its write was unchecked: a failure still showed the cleared screen
+    // while nothing was recorded, and the day came back undone next visit.
+    const sentinel = await upsertLogs({
       ...baseRow(),
       log_type: 'session_complete',
       block_name: '__session_complete__',
       set_number: null,
       completed: true,
       completed_at: new Date().toISOString(),
-    }, { onConflict: UPSERT_CONFLICT })
+    })
+    if (sentinel.error) {
+      report('finishing the session', sentinel)
+      return
+    }
     await advanceWeekIfDone(supabase, user.id, slug, program)
     // Streak shim so dashboard streak sees this session.
     await supabase.from('workout_logs').upsert({
@@ -1812,10 +1858,16 @@ export default function TrainingDayPage() {
     if (workoutIdRef.current) {
       const current = overrides.setCounts?.[item.slot] ?? item.sets
       if (n < current) {
-        await supabase.from('ares_session_logs').delete()
-          .eq('user_id', user!.id).eq('generated_workout_id', workoutIdRef.current)
-          .eq('block_name', item.name).gt('set_number', n)
-        setSessionLogs(logs => logs.filter(l => !(l.block_name === item.name && (l.set_number ?? 0) > n)))
+        // This card's rows only — by slot, so removing a back-off set cannot
+        // delete the same-named top single's rows. Rows from before slots were
+        // recorded (slot null) still belong to the card with this name.
+        for (const bySlot of [true, false]) {
+          const q = supabase.from('ares_session_logs').delete()
+            .eq('user_id', user!.id).eq('generated_workout_id', workoutIdRef.current)
+            .eq('block_name', item.name).gt('set_number', n)
+          await (bySlot ? q.eq('slot', item.slot) : q.is('slot', null))
+        }
+        setSessionLogs(logs => logs.filter(l => !(ownsLog(item, l) && (l.set_number ?? 0) > n)))
       }
     }
     await updateOverrides({ ...overrides, setCounts: { ...overrides.setCounts, [item.slot]: n } })
@@ -2068,7 +2120,7 @@ export default function TrainingDayPage() {
         )}
 
         {(() => {
-          const logsFor = (name: string) => sessionLogs.filter(l => l.block_name === name)
+          const logsFor = (it: { name: string; slot: string }) => sessionLogs.filter(l => ownsLog(it, l))
           const firstLog = (name: string) => sessionLogs.find(l => l.block_name === name)
           type Item = DayPlan['items'][number]
           const swapFor = (item: LiftPrescription | PlyoPrescription) =>
@@ -2077,12 +2129,12 @@ export default function TrainingDayPage() {
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]}
+                <LiftCard item={item} index={i} initialLogs={logsFor(item)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]}
                   onSetComplete={entry => { setRestTrigger(t => t + 1); checkPR(item, entry) }}
                   onSetCountChange={n => void changeSetCount(item, n)} onRemove={() => removeExercise(item)} />
               )}
               {item.kind === 'plyo' && (
-                <PlyoCard item={item} index={i} initialLogs={logsFor(item.name)} onLog={(sets, n) => logPlyoSets(item, sets, n)} onSwap={swapFor(item)} onSetComplete={() => setRestTrigger(t => t + 1)}
+                <PlyoCard item={item} index={i} initialLogs={logsFor(item)} onLog={(sets, n) => logPlyoSets(item, sets, n)} onSwap={swapFor(item)} onSetComplete={() => setRestTrigger(t => t + 1)}
                   onSetCountChange={n => void changeSetCount(item, n)} onRemove={() => removeExercise(item)} />
               )}
               {item.kind === 'metcon' && (
