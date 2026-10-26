@@ -45,21 +45,21 @@ export const metadata: Metadata = {
 // (the week, the block, what to test) is read from the registry below.
 const COPY: Record<string, { forWho: string; body: string[] }> = {
   'hybrid-power': {
-    forWho: 'for the dad who wants to stay fast and explosive.',
+    forWho: 'two heavy snatch-and-clean days a week, for the dad who wants to stay fast.',
     body: [
       'power dad is built around the olympic lifts. two days a week you snatch and clean heavy, then work sub-max back-offs. no drill work eats your window. a third gym day covers presses, single-leg strength and ballistic power, and the fourth puts a heavy deadlift and the week\'s conditioning in one session.',
       'outside the gym there is one speed day, where quality beats quantity and every rep gets a full rest, and one interval session on a bike, rower or road. every gym day caps at six blocks, so the session ends when your window does.',
     ],
   },
   'dad-built': {
-    forWho: 'for the dad who wants to look like he lifts and still move like an athlete.',
+    forWho: 'one heavy top set off your tested max, then the rep work that builds muscle.',
     body: [
       'dad built is powerbuilding. four gym days, two upper and two lower. each one opens with a single heavy top set off your tested max, then moves into the rep work that builds muscle.',
       'the volume progresses on one plain rule: hold the weight until every set reaches the top of its rep range, then add load. two easy aerobic days, a walk, a ruck or an easy bike, keep your conditioning honest without eating your recovery.',
     ],
   },
   'hybrid-dad': {
-    forWho: 'for the dad who wants a real engine without losing his strength.',
+    forWho: 'run paces from your 5k, with two short lifting days to hold your strength.',
     body: [
       'hybrid dad builds a serious aerobic base and keeps your strength in place. two short lifting days hold the squat, press and hinge, at low volume on purpose so your legs are there for the aerobic work.',
       'the rest of the week is aerobic work: intervals for the hard effort, tempo at comfortably hard, easy zone 2 with core work, and a long session that grows across the block. your run paces come from your 5k time, and the block ends with a 5k time trial.',
@@ -68,21 +68,6 @@ const COPY: Record<string, { forWho: string; body: string[] }> = {
 };
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-
-const HOW = [
-  {
-    heading: 'the numbers are calculated',
-    body: 'every working weight comes from your own maxes and what you logged last week. log the session and next week adjusts. nothing is generated.',
-  },
-  {
-    heading: 'time crunch',
-    body: `short window on a gym day? tap time crunch and the day keeps its warm-up and up to ${TIME_CONSTRAINED_LIFTS} of its first lifts, at up to ${TIME_CONSTRAINED_MAX_SETS} working sets each. the rest of the day is skipped.`,
-  },
-  {
-    heading: 'tired week',
-    body: 'flag a deload any week you need one. the block picks back up after.',
-  },
-];
 
 const PROGRAM_LIST = Object.values(PROGRAMS);
 
@@ -190,25 +175,22 @@ export default function ProgramsPage() {
           })}
         </div>
 
-        <section className="mt-28" aria-label="how the programs work">
+        {/* One paragraph, not a three-card grid: it is one engine. */}
+        <section className="mt-20 max-w-2xl" aria-label="how the programs work">
           <p className="eyebrow-mono">how they work</p>
           <h2 className="font-display mt-3 text-[30px] font-semibold leading-[1.05] tracking-[-0.03em] lowercase text-foreground sm:text-[44px]">
             same engine under all three
           </h2>
-          <ul className="mt-10 grid gap-3 md:grid-cols-3">
-            {HOW.map((h, i) => (
-              <li key={h.heading} className="tile p-5.5 sm:p-7">
-                <p className="stat-num text-3xl text-muted-foreground">{String(i + 1).padStart(2, '0')}</p>
-                <h3 className="font-display mt-5 text-xl font-semibold tracking-[-0.02em] lowercase text-foreground">
-                  {h.heading}
-                </h3>
-                <p className="mt-2 text-[15px] font-light leading-[1.65] text-muted-foreground">{h.body}</p>
-              </li>
-            ))}
-          </ul>
+          <p className="mt-6 text-base font-light leading-[1.75] text-muted-foreground">
+            every working weight comes from your own maxes and what you logged last week, so log the
+            session and next week adjusts. short on time on a gym day? tap time crunch and the day keeps
+            its warm-up and up to {TIME_CONSTRAINED_LIFTS} of its first lifts, at up to{' '}
+            {TIME_CONSTRAINED_MAX_SETS} working sets each. tired week? flag a deload whenever you need
+            one, and the block picks back up after.
+          </p>
         </section>
 
-        <section className="mt-28 flex flex-col items-start justify-between gap-8 border-t border-border pt-12 md:flex-row md:items-center">
+        <section className="mt-24 flex flex-col items-start justify-between gap-8 border-t border-border pt-12 md:flex-row md:items-center">
           <p className="font-display max-w-2xl text-[30px] font-semibold leading-[1.1] tracking-[-0.03em] lowercase text-foreground sm:text-[40px]">
             {FOUNDING_SPOTS} founding dads train free for life, for honest feedback.
           </p>

@@ -54,7 +54,7 @@ export default function SiteFooter() {
       </div>
 
       <div className="mt-12 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="eyebrow-mono">DS-01 // built for the long haul</p>
+        <p className="eyebrow-mono">dad strength · written by andrew brough</p>
         {/* Who this is for (FOR-267). NOT `lowercase`: the site names itself
             Romans XII, and lowercasing somebody else's name to satisfy our own
             voice rule is the wrong trade. Full-opacity muted ink — inks never

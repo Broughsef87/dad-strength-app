@@ -4,7 +4,7 @@ export const metadata = {
 }
 
 export default function FitnessDisclaimer() {
-  const lastUpdated = 'August 23, 2026'
+  const lastUpdated = 'October 26, 2026'
   const contactEmail = 'dad.strength@the-forge-agency.com'
 
   return (
@@ -33,7 +33,7 @@ export default function FitnessDisclaimer() {
             <h2 className="text-base font-display font-semibold lowercase text-foreground mb-3">Not Medical Advice</h2>
             <p>
               All content in the Dad Strength app — workouts, training programs, load and rep prescriptions,
-              AI-generated coaching, recovery guidance, sleep and body-composition tracking, and any nutrition
+              the AI-written morning routine, recovery guidance, sleep and body-composition tracking, and any nutrition
               content — is for general informational and educational purposes only. It is not medical advice,
               diagnosis, or treatment, and it is not a substitute for consultation with a qualified physician,
               physical therapist, or other healthcare provider. Using the app does not create a
@@ -85,7 +85,7 @@ export default function FitnessDisclaimer() {
           <section>
             <h2 className="text-base font-display font-semibold lowercase text-foreground mb-3">The App Doesn&apos;t Know Your Body</h2>
             <p>
-              Programs and AI-generated recommendations are produced from the limited information you provide.
+              Programs, and the AI-written morning routine, are produced from the limited information you provide.
               They cannot account for your full medical history, technique, fatigue, equipment, or environment.
               A prescribed load or progression may be inappropriate for you on any given day. If something
               feels wrong — sharp pain, chest discomfort, unusual shortness of breath, dizziness, numbness —
