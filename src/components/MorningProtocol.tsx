@@ -7,7 +7,7 @@ import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
 import { localDay, localDayBefore, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
-import { patchCheckin, usePaintGate, type CheckinPatch } from '../lib/checkins'
+import { patchCheckin, readTodaysObjectives, usePaintGate, type CheckinPatch } from '../lib/checkins'
 
 // A tag names the path its writer owns.
 type SpiritTag = 'protocol' | 'tick' | 'gratitude'
@@ -83,6 +83,7 @@ type Protocol = {
 // The morning routine's "day" runs 4am → 3:59am, so a late-night or pre-dawn
 // check-in doesn't wipe a routine completed that morning.
 const todayKey = () => localDayWithCutoff(4)
+
 
 export default function MorningProtocol(
   { objectives = [], onSaved }:
@@ -338,6 +339,11 @@ export default function MorningProtocol(
     setError('')
     try {
       const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+      // Today's objectives, read from the card's row at build time. No caller
+      // passed them, so the model always heard "No objectives set" and the
+      // Goals step could never name one. Read, never copied: the card stays
+      // the only writer. A failed read builds without them rather than not at all.
+      const todaysObjectives = objectives.length ? objectives : await readTodaysObjectives()
       const res = await fetch('/api/ai/morning-protocol', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -345,7 +351,7 @@ export default function MorningProtocol(
           minutes,
           sleepQuality: SLEEP_QUALITY.find(s => s.id === sleep)?.label,
           energy: ENERGY_LEVELS.find(e => e.id === energy)?.label,
-          objectives,
+          objectives: todaysObjectives,
           dayOfWeek,
         }),
       })
