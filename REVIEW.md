@@ -327,14 +327,21 @@ Each item is labelled as verified (reproduced or measured) or read only.
 
 ## Deploy order
 
-1. Review and merge this PR. It is safe without any database change: the set-log
-   writer falls back, and the other code paths need nothing new.
-2. Apply `supabase/migrations/20261026_protect_billing_columns.sql`, then run
-   `scripts/checks/billing-columns-proof.sql` against a replayed copy. **Do not
-   run either proof against production.**
-3. Apply `supabase/migrations/20261026_one_session_row_per_run.sql`.
-4. **Only after step 1 is live,** apply
-   `supabase/pending/20261026_set_log_key_includes_slot.sql`.
+0. `supabase/migrations/20261027_webhook_event_processed.sql` (additive): already
+   applied to production on 2026-10-27, before the merge, as the new webhook
+   needs it.
+1. Review and merge this PR. It is safe without any further database change:
+   the set-log writer falls back, and the other code paths need nothing new.
+2. **Once step 1 is live,** apply
+   `supabase/migrations/20261026_protect_billing_columns.sql`. Before then the
+   live checkout links the Stripe customer with the user's own client, and the
+   lock would refuse it: a payment with no Pro. Run
+   `scripts/checks/billing-columns-proof.sql` against a replayed copy only.
+   **Do not run either proof against production.**
+3. **At least a day after step 1 is live** (so tabs opened on the old code have
+   reloaded), apply `supabase/migrations/20261026_one_session_row_per_run.sql`,
+   then `supabase/pending/20261026_set_log_key_includes_slot.sql`. An old tab
+   has no fallback for the key swap, and every set save in it would fail.
 5. Before launch: decide items 1 and 12, fix item 6, upgrade per item 21.
 
 Per CLAUDE.md, items touching Stripe, billing, auth or secrets are gated on

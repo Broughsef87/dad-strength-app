@@ -27,6 +27,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 })
   }
 
-  const { status, body: out } = await processEvent(createAdminClient(), event)
+  const { status, body: out } = await processEvent(createAdminClient(), stripe, event)
   return NextResponse.json(out, { status })
 }

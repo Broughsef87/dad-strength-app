@@ -3,23 +3,40 @@ import type { createAdminClient } from '../utils/supabase/admin'
 
 // The Stripe webhook's work once the signature is verified. Lives outside the
 // route file because a route may only export its handlers.
+//
+// Subscription events are treated as a NUDGE, not as data: Stripe delivers
+// them late, out of order and sometimes twice at once, so the handler re-reads
+// the customer's subscriptions from Stripe and writes what is true now. Any
+// interleaving of deliveries then ends on the same, current state.
 
 type Reply = { status: number; body: Record<string, unknown> }
+type Admin = ReturnType<typeof createAdminClient>
+/** The part of the Stripe client the webhook uses, so the check can fake it. */
+export type StripeReader = { subscriptions: { list(params: Stripe.SubscriptionListParams): Promise<{ data: Stripe.Subscription[] }> } }
+
+/** A claim older than this is presumed abandoned (its delivery died mid-run). */
+const LEASE_MS = 60_000
+const EPOCH = new Date(0).toISOString()
 
 /**
- * Claim, handle and stamp one verified event. The database is passed in, so scripts/checks/stripe-webhook.mjs can run it against an
- * in-memory table with failures injected.
+ * Claim, handle and stamp one verified event. The database and Stripe are
+ * passed in, so scripts/checks/stripe-webhook.mjs can run it against
+ * in-memory fakes with failures injected.
  */
-export async function processEvent(supabase: Admin, event: Stripe.Event): Promise<Reply> {
-  // Idempotency: CLAIM the event, handle it, then stamp it processed. Only a
-  // stamped claim makes a redelivery a duplicate. A failure releases the claim
-  // and answers 500 so Stripe retries; if even the release fails (database
-  // down), the unstamped claim still lets the retry through. Before, one failed
-  // write left a permanent claim and a paying subscriber on the free tier.
-  const { error: dedupError } = await supabase
+export async function processEvent(supabase: Admin, stripe: StripeReader, event: Stripe.Event): Promise<Reply> {
+  // Idempotency: one delivery at a time holds a claim (a lease stamped with
+  // its own claim time), handles the event, then stamps it processed. Only a
+  // stamped claim makes a redelivery a duplicate. A delivery that finds a live
+  // claim held by another answers 500, and Stripe retries it later. A failed
+  // delivery hands its lease back (by its own claim time, never anyone
+  // else's) so the retry can take it at once; if even that fails, the lease
+  // simply expires.
+  const mine = new Date().toISOString()
+  const { error: insertError } = await supabase
     .from('stripe_webhook_events')
-    .insert({ event_id: event.id, event_type: event.type })
-  if (dedupError?.code === '23505') {
+    .insert({ event_id: event.id, event_type: event.type, created_at: mine })
+  let claimed = !insertError
+  if (insertError?.code === '23505') {
     const { data: prior, error: priorError } = await supabase
       .from('stripe_webhook_events').select('processed_at').eq('event_id', event.id).maybeSingle()
     if (priorError) {
@@ -27,21 +44,28 @@ export async function processEvent(supabase: Admin, event: Stripe.Event): Promis
       return { status: 500, body: { error: 'Webhook dedup check failed' } }
     }
     if (prior?.processed_at) return { status: 200, body: { received: true, duplicate: true } }
-    // Claimed but never finished: handle it now. Every handler writes absolute
-    // state, so running one twice is harmless.
+    // Unfinished: take the lease only if it has expired or was handed back.
+    const { data: taken, error: takeError } = await supabase.from('stripe_webhook_events')
+      .update({ created_at: mine }).eq('event_id', event.id).is('processed_at', null)
+      .lt('created_at', new Date(Date.parse(mine) - LEASE_MS).toISOString()).select('event_id')
+    if (takeError || !taken?.length) {
+      return { status: 500, body: { error: 'Event is being processed by another delivery' } }
+    }
+    claimed = true
+  } else if (insertError) {
+    // Any other claim error: proceed without a claim (better to process twice
+    // than drop; handlers write current Stripe state, so a second run is safe).
+    console.error('Webhook dedup check failed:', insertError.message)
   }
-  // Any other claim error: proceed without a claim (better to process twice
-  // than drop), and there is nothing to release afterwards.
-  const claimed = !dedupError || dedupError.code === '23505'
-  if (dedupError && dedupError.code !== '23505') console.error('Webhook dedup check failed:', dedupError.message)
 
   try {
-    await handle(supabase, event)
+    await handle(supabase, stripe, event)
   } catch (err) {
     console.error('Webhook handler error:', event.type, event.id, err)
     if (claimed) {
-      const { error: releaseError } = await supabase.from('stripe_webhook_events').delete().eq('event_id', event.id)
-      if (releaseError) console.error('Webhook: could not release claim; it stays unstamped, so the retry still runs:', event.id, releaseError.message)
+      const { error: releaseError } = await supabase.from('stripe_webhook_events')
+        .update({ created_at: EPOCH }).eq('event_id', event.id).eq('created_at', mine).is('processed_at', null)
+      if (releaseError) console.error('Webhook: could not hand back the claim; it expires on its own:', event.id, releaseError.message)
     }
     return { status: 500, body: { error: 'Webhook handler failed' } }
   }
@@ -54,8 +78,7 @@ export async function processEvent(supabase: Admin, event: Stripe.Event): Promis
   return { status: 200, body: { received: true } }
 }
 
-type Admin = ReturnType<typeof createAdminClient>
-type Profile = { id: string; founder_pass: boolean | null; stripe_subscription_id: string | null; subscription_status: string | null }
+type Profile = { id: string; founder_pass: boolean | null }
 
 /** Throws on a database error, so the event is retried rather than lost. */
 function must<T extends { error: { message: string } | null }>(res: T, what: string): T {
@@ -65,82 +88,67 @@ function must<T extends { error: { message: string } | null }>(res: T, what: str
 
 /**
  * The profile a Stripe customer belongs to. By the customer link first; if the
- * link is missing (checkout's write never landed), by the user id checkout put
- * on the subscription's metadata — and the link is repaired. Null when the
- * customer belongs to no account here (a deleted account): nothing to update.
+ * link is empty (checkout's write never landed), by the user id checkout put
+ * on the subscription's metadata, filling the link only while it is still
+ * empty. Null when the customer is not the one linked to any account here (a
+ * deleted account, or a stray second customer): nothing to update.
  */
 async function profileFor(supabase: Admin, customerId: string, userId?: string | null): Promise<Profile | null> {
   const { data: byCustomer } = must(await supabase.from('user_profiles')
-    .select('id, founder_pass, stripe_subscription_id, subscription_status').eq('stripe_customer_id', customerId).maybeSingle(), 'profile by customer')
+    .select('id, founder_pass').eq('stripe_customer_id', customerId).maybeSingle(), 'profile by customer')
   if (byCustomer) return byCustomer as Profile
   if (!userId) {
     console.warn('Webhook: no profile for customer', customerId)
     return null
   }
+  must(await supabase.from('user_profiles').update({ stripe_customer_id: customerId })
+    .eq('id', userId).is('stripe_customer_id', null), 'link customer')
   const { data: byUser } = must(await supabase.from('user_profiles')
-    .select('id, founder_pass, stripe_subscription_id, subscription_status, stripe_customer_id').eq('id', userId).maybeSingle(), 'profile by user')
+    .select('id, founder_pass, stripe_customer_id').eq('id', userId).maybeSingle(), 'profile by user')
   if (!byUser) {
     console.warn('Webhook: subscription metadata names a user with no profile', userId, customerId)
     return null
   }
-  if (!byUser.stripe_customer_id) {
-    must(await supabase.from('user_profiles').update({ stripe_customer_id: customerId }).eq('id', userId), 'link customer')
-  } else {
-    console.warn('Webhook: user', userId, 'is linked to', byUser.stripe_customer_id, 'but paid as', customerId)
+  if (byUser.stripe_customer_id !== customerId) {
+    // Money on a customer that is not this user's linked one. Applying it
+    // would let the stray customer overwrite the real subscription; leave the
+    // profile alone and make it loud so it can be refunded.
+    console.error('Webhook: user', userId, 'is linked to', byUser.stripe_customer_id, 'but has a subscription on', customerId, '(not applied)')
+    return null
   }
   return byUser as Profile
 }
 
-/**
- * A different subscription is already active on this profile, and this one is
- * not active: it is a stray (two checkouts at once) and must not overwrite the
- * live one. An active subscription always wins, so a real switch still lands.
- */
-function supersededBy(profile: Profile, subscription: Stripe.Subscription): boolean {
-  const other = profile.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id
-  if (other && profile.subscription_status === 'active' && subscription.status !== 'active') {
-    console.warn('Webhook: ignoring', subscription.status, 'subscription', subscription.id, 'while', profile.stripe_subscription_id, 'is active for', profile.id)
-    return true
-  }
-  return false
+/** Best first: the subscription that should define the account now, or null. */
+const RANK: Record<string, number> = { active: 0, trialing: 1, past_due: 2, unpaid: 3, incomplete: 4, paused: 5 }
+function liveSubscription(subs: Stripe.Subscription[]): Stripe.Subscription | null {
+  const live = subs.filter((s) => s.status in RANK)
+  live.sort((a, b) => RANK[a.status] - RANK[b.status] || b.created - a.created)
+  return live[0] ?? null
 }
 
-async function handle(supabase: Admin, event: Stripe.Event): Promise<void> {
-  switch (event.type) {
-    // Subscription created or updated
-    case 'customer.subscription.created':
-    case 'customer.subscription.updated': {
-      const subscription = event.data.object as Stripe.Subscription
-      const profile = await profileFor(supabase, subscription.customer as string, subscription.metadata?.supabase_user_id)
-      if (!profile) return
-      if (supersededBy(profile, subscription)) return
-      must(await supabase.from('user_profiles').update({
-        subscription_tier: subscription.status === 'active' ? 'pro' : 'free',
-        subscription_status: subscription.status,
-        stripe_subscription_id: subscription.id,
-        subscription_updated_at: new Date().toISOString(),
-      }).eq('id', profile.id), 'subscription update')
-      return
-    }
+/** Write the customer's subscription state as Stripe has it right now. */
+async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: string, userId?: string | null): Promise<void> {
+  const profile = await profileFor(supabase, customerId, userId)
+  if (!profile) return
+  const { data: subs } = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
+  const live = liveSubscription(subs)
+  must(await supabase.from('user_profiles').update({
+    // A Founder's Pass keeps Pro whatever its subscriptions do.
+    subscription_tier: live?.status === 'active' || profile.founder_pass ? 'pro' : 'free',
+    subscription_status: live?.status ?? 'canceled',
+    stripe_subscription_id: live?.id ?? null,
+    subscription_updated_at: new Date().toISOString(),
+  }).eq('id', profile.id), 'subscription sync')
+}
 
-    // Subscription cancelled/expired
+async function handle(supabase: Admin, stripe: StripeReader, event: Stripe.Event): Promise<void> {
+  switch (event.type) {
+    case 'customer.subscription.created':
+    case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription
-      const profile = await profileFor(supabase, subscription.customer as string, subscription.metadata?.supabase_user_id)
-      if (!profile) return
-      // Ending a subscription that is not the one on the profile (a duplicate
-      // from two checkouts at once) must not take Pro off the live one.
-      if (profile.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
-        console.warn('Webhook: ignoring deletion of non-current subscription', subscription.id, 'for', profile.id)
-        return
-      }
-      must(await supabase.from('user_profiles').update({
-        // Keep pro if they have founder pass
-        subscription_tier: profile.founder_pass ? 'pro' : 'free',
-        subscription_status: 'canceled',
-        stripe_subscription_id: null,
-        subscription_updated_at: new Date().toISOString(),
-      }).eq('id', profile.id), 'subscription cancel')
+      await syncCustomer(supabase, stripe, subscription.customer as string, subscription.metadata?.supabase_user_id)
       return
     }
 
@@ -166,17 +174,12 @@ async function handle(supabase: Admin, event: Stripe.Event): Promise<void> {
       return
     }
 
-    // Payment failed. NOTE: entitlements require status 'active', so this
-    // removes Pro immediately — there is no grace period while Stripe retries.
-    // That is a product decision recorded in REVIEW.md, not changed here.
+    // Payment failed: Stripe has moved the subscription to past_due; sync it.
+    // NOTE: entitlements require status 'active', so this removes Pro at once.
+    // The 7-day past_due grace is a separate change.
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice
-      const profile = await profileFor(supabase, invoice.customer as string)
-      if (!profile) return
-      must(await supabase.from('user_profiles').update({
-        subscription_status: 'past_due',
-        subscription_updated_at: new Date().toISOString(),
-      }).eq('id', profile.id), 'payment failed')
+      await syncCustomer(supabase, stripe, invoice.customer as string)
       return
     }
   }
