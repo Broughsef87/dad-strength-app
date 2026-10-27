@@ -191,7 +191,7 @@ export default function Settings() {
     setResetError('')
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined,
+        redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
       })
       if (error) throw error
       setResetSent(true)
