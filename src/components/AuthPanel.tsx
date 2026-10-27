@@ -26,7 +26,8 @@ export default function AuthPanel() {
   // A click on either link always resets the form, even when the hash is
   // already set or the visitor toggled views inside the widget, so `nonce`
   // remounts it rather than trusting `view` to have changed.
-  const [view, setView] = useState<'sign_up' | 'sign_in'>('sign_up');
+  const [view, setView] = useState<'sign_up' | 'sign_in' | 'forgotten_password'>('sign_up');
+  const go = (v: typeof view) => { setView(v); setNonce((n) => n + 1); };
   const [nonce, setNonce] = useState(0);
   useEffect(() => {
     if (window.location.hash === '#sign-in') setView('sign_in');
@@ -194,8 +195,24 @@ export default function AuthPanel() {
         appearance={authAppearance}
         localization={authLocalization}
         providers={['google']}
-        redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined}
+        // One redirect serves Google sign-in and the reset email, so the
+        // widget's own view links are off and ours below switch the view:
+        // a reset link must land on /reset-password, a sign-in on /dashboard.
+        showLinks={false}
+        redirectTo={typeof window !== 'undefined'
+          ? `${window.location.origin}${view === 'forgotten_password' ? '/reset-password' : '/dashboard'}`
+          : undefined}
       />
+      <div className="mt-3 flex flex-col items-center gap-2 text-sm text-muted-foreground">
+        {view === 'sign_in' && (
+          <button type="button" className="underline-offset-4 hover:underline" onClick={() => go('forgotten_password')}>forgot your password?</button>
+        )}
+        {view === 'sign_up'
+          ? <button type="button" className="underline-offset-4 hover:underline" onClick={() => go('sign_in')}>already have an account? sign in</button>
+          : view === 'sign_in'
+            ? <button type="button" className="underline-offset-4 hover:underline" onClick={() => go('sign_up')}>don&apos;t have an account? sign up</button>
+            : <button type="button" className="underline-offset-4 hover:underline" onClick={() => go('sign_in')}>back to sign in</button>}
+      </div>
     </div>
   );
 }

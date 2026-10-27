@@ -6,7 +6,18 @@ import { createClient } from '../../utils/supabase/client'
 
 // Landing page for a password reset email. The browser client exchanges the
 // link's ?code= for a session on load; this page then sets the new password.
-// UserContext sends a PASSWORD_RECOVERY landing anywhere else here.
+// Both reset links (sign-in form and settings) point here directly.
+/** Whether this access token came from a password-recovery link (its amr claim). */
+function signedInByRecovery(accessToken: string): boolean {
+  try {
+    const part = accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const claims = JSON.parse(atob(part.padEnd(part.length + ((4 - (part.length % 4)) % 4), '=')))
+    return Array.isArray(claims.amr) && claims.amr.some((a: { method?: string }) => a?.method === 'recovery')
+  } catch {
+    return false
+  }
+}
+
 export default function ResetPassword() {
   const [supabase] = useState(() => createClient())
   const [ready, setReady] = useState<'checking' | 'yes' | 'no'>('checking')
@@ -17,11 +28,12 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false)
 
   useEffect(() => {
-    // getSession waits for the client to finish exchanging the link's code,
-    // so no session here means the link expired, was used, or was opened in
-    // a different browser from the one that asked for it.
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: unknown } }) => {
-      setReady(session ? 'yes' : 'no')
+    // getSession waits for the client to finish exchanging the link's code.
+    // Only a session the link itself created counts (its token records the
+    // 'recovery' method): someone already signed in who opens an expired link
+    // must not be offered a password change for whichever account is open.
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: { access_token: string } | null } }) => {
+      setReady(session && signedInByRecovery(session.access_token) ? 'yes' : 'no')
     })
   }, [supabase])
 

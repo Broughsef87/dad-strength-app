@@ -25,14 +25,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     })
 
     // Keep in sync with auth state changes (login / logout / token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null)
       setLoading(false)
-      // A reset link from the sign-in form returns to /dashboard (bounced to /
-      // when signed out); wherever it lands, finish on the set-password page.
-      if (event === 'PASSWORD_RECOVERY' && window.location.pathname !== '/reset-password') {
-        window.location.replace('/reset-password')
-      }
     })
 
     return () => subscription.unsubscribe()
