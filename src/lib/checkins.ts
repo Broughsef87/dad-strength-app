@@ -153,7 +153,11 @@ export async function readTodaysObjectives(): Promise<string[]> {
       .maybeSingle()
     if (error) return []
     const objs = (data?.mind_state as { objectives?: unknown } | null)?.objectives
-    return Array.isArray(objs) ? objs.filter((o): o is string => typeof o === 'string' && o.trim() !== '') : []
+    // The morning route accepts at most 3 objectives of 200 characters; one
+    // over the limit would fail the whole build, so cut to fit here.
+    return Array.isArray(objs)
+      ? objs.filter((o): o is string => typeof o === 'string' && o.trim() !== '').map((o) => o.trim().slice(0, 200)).slice(0, 3)
+      : []
   } catch {
     return []
   }
