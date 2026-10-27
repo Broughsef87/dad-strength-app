@@ -1,6 +1,12 @@
+import { OG_IMAGE } from '../../lib/publicSite'
+
 export const metadata = {
   title: 'Fitness & Medical Disclaimer — Dad Strength',
   description: 'Fitness and medical disclaimer for the Dad Strength app.',
+  // Its own preview: without these the page inherited the home page's.
+  alternates: { canonical: '/disclaimer' },
+  openGraph: { title: 'Fitness & Medical Disclaimer — Dad Strength', description: 'Fitness and medical disclaimer for the Dad Strength app.', url: '/disclaimer', siteName: 'Dad Strength', type: 'website', images: [OG_IMAGE] },
+  twitter: { card: 'summary_large_image', images: [OG_IMAGE.url], title: 'Fitness & Medical Disclaimer — Dad Strength', description: 'Fitness and medical disclaimer for the Dad Strength app.' },
 }
 
 export default function FitnessDisclaimer() {

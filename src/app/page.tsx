@@ -10,6 +10,7 @@ import { COACH, FOUNDING_SPOTS } from '../components/site/content';
 import { SAMPLE, SAMPLE_SESSION as S } from '../components/site/sample';
 import { PROGRAMS } from '../lib/programs';
 import { TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../lib/programs/timeConstrained';
+import { OG_IMAGE } from '../lib/publicSite';
 
 // The public front door. A server component so the copy, headings and links
 // below ship in the HTML: before this, / rendered client-side and crawlers and
@@ -18,13 +19,6 @@ import { TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../lib/progra
 
 // Next merges metadata shallowly: a page-level openGraph replaces the
 // layout's whole object, so the image and site name are restated here.
-const OG_IMAGE = {
-  url: '/logo-suite/ds_banner_dark.png',
-  width: 1500,
-  height: 500,
-  alt: 'Dad Strength — workout app for busy dads',
-};
-
 const DESCRIPTION =
   'Strength programs built for the hours dads actually have, a morning routine, and Fuel: pick dinners, get a shopping list in store order. Founding dads wanted.';
 
@@ -103,7 +97,7 @@ const JSON_LD = {
         'Morning routine',
         'Fuel: dinner menu, full recipes, and a shopping list in store order',
       ],
-      image: `${SITE}/logo-suite/ds_banner_dark.png`,
+      image: `${SITE}${OG_IMAGE.url}`,
       publisher: { '@id': `${SITE}/#organization` },
     },
   ],
@@ -179,7 +173,7 @@ export default function Home() {
               · {COACH.credentials.map((c) => c.code).join(' · ')}
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-3">
-              <a href="#sign-in" className="pill-volt px-6 py-3.5 text-base">
+              <a href="#founding" className="pill-volt px-6 py-3.5 text-base">
                 {CTA}
               </a>
               <a href="/programs" className="pill-quiet px-6 py-3.5 text-base">
@@ -345,12 +339,12 @@ export default function Home() {
               join the first {FOUNDING_SPOTS} founding dads
             </h2>
             <p className="mt-4 max-w-md text-base font-light leading-[1.65] text-muted-foreground">
-              founding dads get dad strength free for life in exchange for honest feedback. sign in with
-              google to claim a spot. paid plans are not live yet.
+              founding dads get dad strength free for life in exchange for honest feedback. sign up with
+              google or an email to claim a spot. paid plans are not live yet.
             </p>
           </div>
           <div className="w-full max-w-sm lg:justify-self-end">
-            <p className="eyebrow-mono mb-4">sign in</p>
+            <p className="eyebrow-mono mb-4">join or sign in</p>
             <AuthPanel />
           </div>
         </section>
