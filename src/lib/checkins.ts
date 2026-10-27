@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { localDay } from '../utils/day'
 
 /**
  * WRITE YOUR OWN FIELDS, NOT THE WHOLE ENTRY (FOR-231 v2, round 3).
@@ -131,4 +132,33 @@ export function usePaintGate(): PaintGate {
   const gate = useRef<PaintGate | null>(null)
   if (gate.current === null) gate.current = paintGate()
   return gate.current
+}
+
+/**
+ * Today's objectives as the daily objectives card saved them (its row is keyed
+ * on localDay()). READ ONLY: the card stays the one writer of mind_state. The
+ * morning routine reads this at build time so the model hears the real list;
+ * a failed read returns [] and the routine is built without them.
+ */
+export async function readTodaysObjectives(): Promise<string[]> {
+  try {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('daily_checkins')
+      .select('mind_state')
+      .eq('user_id', user.id)
+      .eq('date', localDay())
+      .maybeSingle()
+    if (error) return []
+    const objs = (data?.mind_state as { objectives?: unknown } | null)?.objectives
+    // The morning route accepts at most 3 objectives of 200 characters; one
+    // over the limit would fail the whole build, so cut to fit here.
+    return Array.isArray(objs)
+      ? objs.filter((o): o is string => typeof o === 'string' && o.trim() !== '').map((o) => o.trim().slice(0, 200)).slice(0, 3)
+      : []
+  } catch {
+    return []
+  }
 }

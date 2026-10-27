@@ -7,7 +7,7 @@ import RecommendedReading from './RecommendedReading'
 import { createClient } from '../utils/supabase/client'
 import { localDay, localDayBefore, localDayWithCutoff } from '../utils/day'
 import { isUpgradeRequired } from '../lib/upgradeRequired'
-import { patchCheckin, usePaintGate, type CheckinPatch } from '../lib/checkins'
+import { patchCheckin, readTodaysObjectives, usePaintGate, type CheckinPatch } from '../lib/checkins'
 
 // A tag names the path its writer owns.
 type SpiritTag = 'protocol' | 'tick' | 'gratitude'
@@ -345,7 +345,11 @@ export default function MorningProtocol(
           minutes,
           sleepQuality: SLEEP_QUALITY.find(s => s.id === sleep)?.label,
           energy: ENERGY_LEVELS.find(e => e.id === energy)?.label,
-          objectives,
+          // Today's objectives, read from the card's row at build time. No
+          // caller passed them, so the model always heard "No objectives set".
+          // Read, never copied: the card stays the only writer, and a failed
+          // read builds without them rather than not at all.
+          objectives: objectives.length ? objectives : await readTodaysObjectives(),
           dayOfWeek,
         }),
       })
