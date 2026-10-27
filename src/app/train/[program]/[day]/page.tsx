@@ -1590,10 +1590,15 @@ export default function TrainingDayPage() {
   // Every set-log write goes through here, for the conflict key above.
   const upsertLogs = async (rows: Record<string, unknown> | Record<string, unknown>[]): Promise<SbRes> => {
     const list = (Array.isArray(rows) ? rows : [rows]).map((r) => ({ slot: null, ...r }))
-    let res = await supabase.from('ares_session_logs').upsert(list, { onConflict: logConflictKey })
-    if ((res.error as { code?: string } | null)?.code === '42P10' && logConflictKey !== LEGACY_CONFLICT) {
-      logConflictKey = LEGACY_CONFLICT
-      res = await supabase.from('ares_session_logs').upsert(list, { onConflict: logConflictKey })
+    const tried = logConflictKey
+    let res = await supabase.from('ares_session_logs').upsert(list, { onConflict: tried })
+    // 42P10: the database has no index for this key. Either way round, since a
+    // tab open across the index swap has to move back from the legacy key to
+    // the new one; switch to the other key and retry once.
+    if ((res.error as { code?: string } | null)?.code === '42P10') {
+      const other = tried === LEGACY_CONFLICT ? UPSERT_CONFLICT : LEGACY_CONFLICT
+      logConflictKey = other
+      res = await supabase.from('ares_session_logs').upsert(list, { onConflict: other })
     }
     return res
   }

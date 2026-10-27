@@ -53,24 +53,32 @@ export async function POST(req: NextRequest) {
     let customerId = profile?.stripe_customer_id
 
     if (!customerId) {
+      // Two checkouts started at once must end up on ONE customer: two
+      // customers for one user can carry two subscriptions, and webhooks for
+      // the stray one used to overwrite the live one. Stripe's idempotency key
+      // returns the same customer to concurrent creates for 24 hours.
       const customer = await stripe.customers.create({
         email: user.email!,
         metadata: { supabase_user_id: user.id },
-      })
-      customerId = customer.id
+      }, { idempotencyKey: `customer-for-${user.id}` })
 
       // The link the webhook finds this user by. Billing columns are
       // server-written only (20261026_protect_billing_columns.sql), so this
-      // goes through the service role — and it must land: a checkout whose
-      // customer is not linked is a payment the webhook cannot credit.
-      const { error: linkError } = await createAdminClient().from('user_profiles').upsert({
-        id: user.id,
-        stripe_customer_id: customerId,
-      }, { onConflict: 'id' })
-      if (linkError) {
-        console.error('Checkout: could not link Stripe customer', linkError)
+      // goes through the service role, and it must land: a checkout whose
+      // customer is not linked is a payment the webhook cannot credit. It only
+      // fills an empty link, and the link that stands is the one we use.
+      const admin = createAdminClient()
+      const { error: rowError } = await admin.from('user_profiles')
+        .upsert({ id: user.id }, { onConflict: 'id', ignoreDuplicates: true })
+      const { error: linkError } = rowError ? { error: rowError } : await admin.from('user_profiles')
+        .update({ stripe_customer_id: customer.id }).eq('id', user.id).is('stripe_customer_id', null)
+      const { data: linked, error: readError } = linkError ? { data: null, error: linkError } : await admin
+        .from('user_profiles').select('stripe_customer_id').eq('id', user.id).maybeSingle()
+      if (readError || !linked?.stripe_customer_id) {
+        console.error('Checkout: could not link Stripe customer', readError)
         return NextResponse.json({ error: 'Checkout is unavailable right now. You have not been charged.' }, { status: 503 })
       }
+      customerId = linked.stripe_customer_id as string
     }
 
     // Build redirect URLs from env var, not the spoofable Origin header

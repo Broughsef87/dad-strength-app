@@ -316,15 +316,16 @@ const asTrained = (v, key) => {
   // Logs are keyed by NAME AND SLOT. Keyed by name alone, Power Dad's top
   // single and back-offs (one name, two slots) wrote the same rows and the top
   // single was lost. The writer names the new key and falls back to the old
-  // one while its index is not yet applied (supabase/pending/), so it never
+  // one while its index is not yet applied (supabase/pending/), and back again
+  // once it is (a tab open across the swap), so it never
   // writes a second row for an edited set; cards read their own rows by the
   // same rule.
   assert(/const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,slot,set_number'/.test(pg)
     && /const LEGACY_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'/.test(pg)
-    && /code === '42P10' && logConflictKey !== LEGACY_CONFLICT/.test(pg)
+    && /code === '42P10'\) \{\s*const other = tried === LEGACY_CONFLICT \? UPSERT_CONFLICT : LEGACY_CONFLICT/.test(pg)
     && /l\.block_name === item\.name && \(l\.slot == null \|\| l\.slot === item\.slot\)/.test(pg)
     && /const logsFor = \(it: \{ name: string; slot: string \}\) => sessionLogs\.filter\(l => ownsLog\(it, l\)\)/.test(pg)
-    && (pg.match(/from\('ares_session_logs'\)\.upsert\(/g) ?? []).length === (pg.match(/from\('ares_session_logs'\)\.upsert\(list, \{ onConflict: logConflictKey \}\)/g) ?? []).length,
+    && (pg.match(/from\('ares_session_logs'\)\.upsert\(/g) ?? []).length === (pg.match(/from\('ares_session_logs'\)\.upsert\(list, \{ onConflict: (tried|other) \}\)/g) ?? []).length,
     'logs attach to a card by name and slot, matching the key they are written under, and every set write goes through it')
   // Autoregulation reads what the card SHOWED from `adjustments`, not from the
   // plan; nothing here may start writing it.
