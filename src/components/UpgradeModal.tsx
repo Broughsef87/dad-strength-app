@@ -24,9 +24,11 @@ const PRO_FEATURES = [
 
 export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalProps) {
   const [loading, setLoading] = useState<'monthly' | 'yearly' | 'founder' | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleCheckout = async (type: 'monthly' | 'yearly' | 'founder') => {
     setLoading(type)
+    setError(null)
     try {
       const priceMap: Record<string, { priceId: string; mode: string }> = {
         monthly: {
@@ -60,6 +62,8 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
       }
     } catch (err) {
       console.error('Upgrade error:', err)
+      // A tap that does nothing reads as a broken button. Say what happened.
+      setError(err instanceof Error && err.message ? err.message : 'Checkout failed. You have not been charged.')
       setLoading(null)
     }
   }
@@ -198,6 +202,9 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                 }
               </button>
 
+              {error && (
+                <p role="alert" className="text-center text-xs text-status-danger-ink pt-0.5">{error}</p>
+              )}
               <p className="text-center text-[9px] text-muted-foreground pt-0.5 tracking-wide">
                 Secure checkout · Stripe · Cancel anytime
               </p>
