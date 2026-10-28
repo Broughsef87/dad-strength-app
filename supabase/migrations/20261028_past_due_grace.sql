@@ -74,7 +74,7 @@ AS $$
     WHERE id = user_id
       AND (
         (subscription_tier = 'pro' AND (
-          subscription_status IN ('active', 'trialing')
+          subscription_status = 'active'
           OR (subscription_status = 'past_due' AND grace_until > now())
         ))
         OR founder_pass = true

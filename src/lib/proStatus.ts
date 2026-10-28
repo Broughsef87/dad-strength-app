@@ -20,6 +20,6 @@ export function hasPro(p: ProFields | null | undefined, now: number = Date.now()
   if (!p) return false
   if (p.founder_pass === true) return true
   if (p.subscription_tier !== 'pro') return false
-  if (p.subscription_status === 'active' || p.subscription_status === 'trialing') return true
+  if (p.subscription_status === 'active') return true
   return p.subscription_status === 'past_due' && p.grace_until != null && Date.parse(p.grace_until) > now
 }

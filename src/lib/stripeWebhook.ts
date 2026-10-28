@@ -168,7 +168,7 @@ async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: s
   })
   const live = liveSubscription(subs)
   const grace = graceUntil(live, profile)
-  const paid = live?.status === 'active' || live?.status === 'trialing'
+  const paid = live?.status === 'active'
     || (grace != null && Date.parse(grace) > Date.parse(readAt))
   must(await supabase.from('user_profiles').update({
     // A Founder's Pass keeps Pro whatever its subscriptions do.

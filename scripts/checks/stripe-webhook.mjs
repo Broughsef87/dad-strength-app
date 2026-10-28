@@ -212,7 +212,7 @@ if (processEvent) {
       const paidBack = await run([sub('sub_A', 'active')], 'evt_16', { subscription_status: 'past_due', grace_until: firstEnd })
       assert(paidBack.row.subscription_tier === 'pro' && paidBack.row.grace_until === null, 'paying clears the grace')
       const trial = await run([sub('sub_T', 'trialing', 3), pastDue(20)], 'evt_17')
-      assert(trial.row.subscription_tier === 'pro' && hasPro(trial.row), 'a trial alongside an old past-due subscription keeps Pro')
+      assert(trial.row.subscription_tier === 'free' && !hasPro(trial.row), 'a trial is not Pro (no trials are sold; matches master)')
     }
   } finally { restore() }
 }
