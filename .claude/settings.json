@@ -29,7 +29,6 @@
       "mcp__github__merge_pull_request",
       "Bash(gh pr merge:*)",
       "Bash(gh api -X PUT repos/Broughsef87/dad-strength-app/pulls/*)",
-      "mcp__claude-code-remote__send_message",
       "Bash(codex:*)",
       "Bash(npx codex:*)",
       "mcp__Supabase__apply_migration",
