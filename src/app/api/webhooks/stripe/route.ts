@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createAdminClient } from '../../../../utils/supabase/admin'
+import { processEvent } from '../../../../lib/stripeWebhook'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +10,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 })
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+  // Bounded well inside the 60s claim lease (src/lib/stripeWebhook.ts).
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { timeout: 10_000, maxNetworkRetries: 1 })
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
@@ -26,113 +28,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 })
   }
 
-  const supabase = createAdminClient()
-
-  // Idempotency guard — ignore events we've already processed
-  const { error: dedupError } = await supabase
-    .from('stripe_webhook_events')
-    .insert({ event_id: event.id, event_type: event.type })
-  if (dedupError) {
-    // Unique constraint violation = already processed
-    if (dedupError.code === '23505') {
-      return NextResponse.json({ received: true, duplicate: true })
-    }
-    // Any other DB error — log but continue (better to double-process than drop)
-    console.error('Webhook dedup check failed:', dedupError.message)
-  }
-
-  try {
-    switch (event.type) {
-
-      // Subscription created or updated
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription
-        const customerId = subscription.customer as string
-
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('id')
-          .eq('stripe_customer_id', customerId)
-          .maybeSingle()
-
-        if (profile) {
-          await supabase.from('user_profiles').update({
-            subscription_tier: subscription.status === 'active' ? 'pro' : 'free',
-            subscription_status: subscription.status,
-            stripe_subscription_id: subscription.id,
-            subscription_updated_at: new Date().toISOString(),
-          }).eq('id', profile.id)
-        }
-        break
-      }
-
-      // Subscription cancelled/expired
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription
-        const customerId = subscription.customer as string
-
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('id, founder_pass')
-          .eq('stripe_customer_id', customerId)
-          .maybeSingle()
-
-        if (profile) {
-          await supabase.from('user_profiles').update({
-            // Keep pro if they have founder pass
-            subscription_tier: profile.founder_pass ? 'pro' : 'free',
-            subscription_status: 'canceled',
-            stripe_subscription_id: null,
-            subscription_updated_at: new Date().toISOString(),
-          }).eq('id', profile.id)
-        }
-        break
-      }
-
-      // One-time payment (Founder's Pass)
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session
-
-        if (session.mode === 'payment' && session.payment_status === 'paid') {
-          const userId = session.metadata?.supabase_user_id
-
-          if (userId) {
-            await supabase.from('user_profiles').update({
-              founder_pass: true,
-              subscription_tier: 'pro',
-              subscription_status: 'active',
-              subscription_updated_at: new Date().toISOString(),
-            }).eq('id', userId)
-          }
-        }
-        break
-      }
-
-      // Payment failed — downgrade after grace period handled by subscription.updated
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as Stripe.Invoice
-        const customerId = invoice.customer as string
-
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('id')
-          .eq('stripe_customer_id', customerId)
-          .maybeSingle()
-
-        if (profile) {
-          await supabase.from('user_profiles').update({
-            subscription_status: 'past_due',
-            subscription_updated_at: new Date().toISOString(),
-          }).eq('id', profile.id)
-        }
-        break
-      }
-    }
-
-    return NextResponse.json({ received: true })
-  } catch (err) {
-    console.error('Webhook handler error:', err)
-    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
-  }
+  const { status, body: out } = await processEvent(createAdminClient(), stripe, event)
+  return NextResponse.json(out, { status })
 }

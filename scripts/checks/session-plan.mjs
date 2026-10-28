@@ -303,16 +303,30 @@ const asTrained = (v, key) => {
     && /onClick=\{busy \? undefined : onClose\}/.test(pg) && /<fieldset disabled=\{busy\} className="contents">/.test(pg),
     'and the sheet cannot be dismissed or picked from while its swap saves — the way a second swap got started')
 
-  assert((pg.match(/await adopt\(/g) ?? []).length === 2 && /select\('id, workout_data'\)\s*\.eq\('user_id', userId\)\.eq\('program_slug', slug\)\s*\.eq\('week_number', weekNumber\)\.eq\('day_number', dayNumber\)\s*\.order\('id'/.test(pg),
+  // The 23505 fallback is run-scoped and takes the EARLIEST row, like every
+  // other reader: it runs when another device created the session's row first
+  // (20261026_one_session_row_per_run.sql), and ordering by id picked a random
+  // row whenever more than one existed.
+  assert((pg.match(/await adopt\(/g) ?? []).length === 2 && /select\('id, workout_data'\)\s*\.eq\('user_id', userId\)\.eq\('program_slug', slug\)\s*\.eq\('week_number', weekNumber\)\.eq\('day_number', dayNumber\)\s*\.gte\('created_at', runStart\)\s*\.order\('created_at', \{ ascending: true \}\)/.test(pg),
     'BOTH ways a row is found — the run-scoped lookup and the unique-index fallback — draw through the same path')
   assert(/setSessionLogs\(logs\)/.test(pg) && !/if \(workoutId\) setSessionLogs\(await fetchSessionLogs/.test(pg),
     'the logs the rule decided on are the logs the cards show — read once')
   assert(/const liftNames = \[\.\.\.new Set\(drawn\.items/.test(pg), 'records are detected against the movements on screen, not the build')
 
-  // Logs stay keyed by NAME: the database's unique index is, and a card keyed
-  // by slot would write a second row the first time a set was edited.
-  assert(/const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'/.test(pg) && /const logsFor = \(name: string\) => sessionLogs\.filter\(l => l\.block_name === name\)/.test(pg),
-    'logs attach to a card by name, matching the unique index they are written under')
+  // Logs are keyed by NAME AND SLOT. Keyed by name alone, Power Dad's top
+  // single and back-offs (one name, two slots) wrote the same rows and the top
+  // single was lost. The writer names the new key and falls back to the old
+  // one while its index is not yet applied (supabase/pending/), and back again
+  // once it is (a tab open across the swap), so it never
+  // writes a second row for an edited set; cards read their own rows by the
+  // same rule.
+  assert(/const UPSERT_CONFLICT = 'user_id,generated_workout_id,block_name,slot,set_number'/.test(pg)
+    && /const LEGACY_CONFLICT = 'user_id,generated_workout_id,block_name,set_number'/.test(pg)
+    && /code === '42P10'\) \{\s*const other = tried === LEGACY_CONFLICT \? UPSERT_CONFLICT : LEGACY_CONFLICT/.test(pg)
+    && /l\.block_name === item\.name && \(l\.slot == null \|\| l\.slot === item\.slot\)/.test(pg)
+    && /const logsFor = \(it: \{ name: string; slot: string \}\) => sessionLogs\.filter\(l => ownsLog\(it, l\)\)/.test(pg)
+    && (pg.match(/from\('ares_session_logs'\)\.upsert\(/g) ?? []).length === (pg.match(/from\('ares_session_logs'\)\.upsert\(list, \{ onConflict: (tried|other) \}\)/g) ?? []).length,
+    'logs attach to a card by name and slot, matching the key they are written under, and every set write goes through it')
   // Autoregulation reads what the card SHOWED from `adjustments`, not from the
   // plan; nothing here may start writing it.
   assert(!/adjustments/.test(readLF('src/lib/programs/sessionPlan.ts').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n'))

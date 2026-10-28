@@ -573,7 +573,7 @@ assert(usableInventoryFraction(50) === 0.5, 'at 50% only half of meat on hand co
   assert(/\{ id: 'fuel', label: 'fuel', path: '\/fuel', icon: Utensils \}/.test(nav) && (nav.match(/\{ id: '/g) || []).length === 4, 'Fuel is the fourth BottomNav config entry')
   const page = readLF('src/app/fuel/page.tsx')
   assert(/<PremiumGate feature=/.test(page) && page.indexOf('<PremiumGate') < page.indexOf('<IntakeForm'), 'the Fuel page sits behind PremiumGate')
-  const mw = readLF('middleware.ts')
+  const mw = readLF('src/middleware.ts')
   const protectedList = (mw.match(/const protectedPaths = \[([\s\S]*?)\]/) || [])[1] || ''
   assert(/'\/fuel'/.test(protectedList), '/fuel is a protected path in the middleware — signed-out visitors are redirected server-side, not by the page alone')
   const modal = readLF('src/components/UpgradeModal.tsx')

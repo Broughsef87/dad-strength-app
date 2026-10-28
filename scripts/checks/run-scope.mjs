@@ -27,13 +27,6 @@ const EXEMPT = [
     file: 'app/history/page.tsx',
     why: 'the history screen is meant to show every session ever, across runs and programs',
   },
-  {
-    file: 'app/train/[program]/[day]/page.tsx',
-    needs: '23505',
-    why: 'the unique-violation retry. Those indexes are partial (legacy/zeus/ares only), so on '
-       + 'those programs a second row cannot exist and reuse is the only option; scoping would '
-       + 'return nothing and break log linkage',
-  },
 ]
 
 const walk = (d, out = []) => {
@@ -60,6 +53,23 @@ for (const p of walk(SRC)) {
     const ex = EXEMPT.find((x) => x.file === rel && (!x.needs || window.includes(x.needs)))
     if (ex) continue
     unscoped.push(rel + ':' + (i + 1))
+  }
+}
+
+// The double-progression history is a read of ares_session_logs, not of
+// generated_workouts, so the rule above never saw it — and it went unscoped:
+// after a restart, a previous run's higher week numbers won "last time" and
+// the accessories were prescribed from the abandoned run. Any read that feeds
+// progression by slot carries the same run bound.
+for (const p of walk(SRC)) {
+  const rel = p.slice(p.indexOf('src') + 4).replace(/\\/g, '/')
+  const lines = readFileSync(p, 'utf8').split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].includes("from('ares_session_logs')")) continue
+    const window = lines.slice(i, i + 12).join('\n')
+    if (!/\.in\('slot'/.test(window)) continue
+    reads++
+    if (!/gte\('created_at'/.test(window)) unscoped.push(rel + ':' + (i + 1) + ' (progression history by slot)')
   }
 }
 

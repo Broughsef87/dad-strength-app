@@ -35,6 +35,10 @@ const SUITES = [
   ['ink contrast', 'contrast.mjs'],
   ['raw palette', 'palette.mjs'],
   ['run scope', 'run-scope.mjs'],
+  // The auth middleware is read off the BUILD, not the source: at the repo
+  // root it was never compiled while every source-reading check passed.
+  ['middleware wired', 'middleware-wired.mjs'],
+  ['stripe webhook', 'stripe-webhook.mjs'],
   ['week shape', 'week-shape.mjs'],
   ['design system', 'design-system.mjs'],
   ['adherence (FOR-228)', 'adherence.mjs'],
