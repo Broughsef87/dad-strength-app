@@ -129,6 +129,24 @@ function liveSubscription(subs: Stripe.Subscription[]): Stripe.Subscription | nu
   return live[0] ?? null
 }
 
+/**
+ * A failed renewal keeps Pro this long, while Stripe retries the card. Counted
+ * from the unpaid invoice, so each retry Stripe reports re-checks it, and the
+ * first event after the grace (a later failed retry, or Stripe ending the
+ * subscription) drops the account to free.
+ */
+export const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000
+
+/** Whether this subscription should unlock Pro at `now`. */
+export function paidUp(sub: Stripe.Subscription | null, now: number): boolean {
+  if (sub?.status === 'active') return true
+  if (sub?.status !== 'past_due') return false
+  const invoice = sub.latest_invoice
+  // Not expanded or missing: no date to count from, so no grace.
+  if (!invoice || typeof invoice === 'string') return false
+  return now - invoice.created * 1000 < PAST_DUE_GRACE_MS
+}
+
 /** Write the customer's subscription state as Stripe has it right now. */
 async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: string, userId?: string | null): Promise<void> {
   const profile = await profileFor(supabase, customerId, userId)
@@ -137,11 +155,13 @@ async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: s
   // overlap; the write below lands only if nothing read later has already
   // been written, so a slow delivery cannot put back a state Stripe has left.
   const readAt = new Date().toISOString()
-  const { data: subs } = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
+  const { data: subs } = await stripe.subscriptions.list({
+    customer: customerId, status: 'all', limit: 100, expand: ['data.latest_invoice'],
+  })
   const live = liveSubscription(subs)
   must(await supabase.from('user_profiles').update({
     // A Founder's Pass keeps Pro whatever its subscriptions do.
-    subscription_tier: live?.status === 'active' || profile.founder_pass ? 'pro' : 'free',
+    subscription_tier: paidUp(live, Date.parse(readAt)) || profile.founder_pass ? 'pro' : 'free',
     subscription_status: live?.status ?? 'canceled',
     stripe_subscription_id: live?.id ?? null,
     subscription_updated_at: readAt,
@@ -181,8 +201,7 @@ async function handle(supabase: Admin, stripe: StripeReader, event: Stripe.Event
     }
 
     // Payment failed: Stripe has moved the subscription to past_due; sync it.
-    // NOTE: entitlements require status 'active', so this removes Pro at once.
-    // The 7-day past_due grace is a separate change.
+    // Pro stays for the grace (paidUp); a failed retry after it drops to free.
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice
       await syncCustomer(supabase, stripe, invoice.customer as string)

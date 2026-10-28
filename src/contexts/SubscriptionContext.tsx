@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { createClient } from '../utils/supabase/client'
+import { PRO_STATUSES } from '../lib/proStatus'
 
 export type SubscriptionTier = 'free' | 'pro'
 
@@ -47,7 +48,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         .maybeSingle()
 
       const isFounder = profile?.founder_pass === true
-      const isActivePro = profile?.subscription_tier === 'pro' && profile?.subscription_status === 'active'
+      const isActivePro = profile?.subscription_tier === 'pro' && PRO_STATUSES.includes(profile?.subscription_status)
       const isPro = isFounder || isActivePro
 
       setState({

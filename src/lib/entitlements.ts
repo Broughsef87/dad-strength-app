@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { checkRateLimit, recordRequest } from './rateLimit'
+import { PRO_STATUSES } from './proStatus'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENTITLEMENTS — the single server-side source of truth for what a tier unlocks.
@@ -52,7 +53,9 @@ export async function getEntitlement(supabase: SupabaseClient, userId: string): 
     .maybeSingle()
 
   const isFounder = data?.founder_pass === true
-  const isActivePro = data?.subscription_tier === 'pro' && data?.subscription_status === 'active'
+  // The webhook decides tier (including the past-due grace); status only
+  // confirms the subscription has not ended.
+  const isActivePro = data?.subscription_tier === 'pro' && PRO_STATUSES.includes(data?.subscription_status)
   const isPro = isFounder || isActivePro
   return { tier: isPro ? 'pro' : 'free', isPro, isFounder }
 }

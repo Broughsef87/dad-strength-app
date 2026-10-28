@@ -181,6 +181,26 @@ if (processEvent) {
       await processEvent(db, stripe, subEvent('evt_11', 'customer.subscription.created', { id: 'sub_A', status: 'active' }))
       assert(!t.stripe_webhook_events[0].processed_at, 'a lease that was taken over is not stamped by its old holder')
     }
+
+    // 11. A failed renewal keeps Pro for 7 days from the unpaid invoice, then drops it.
+    {
+      const pastDue = (daysAgo, invoice = { created: Math.floor((Date.now() - daysAgo * 86_400_000) / 1000) }) =>
+        ({ ...sub('sub_A', 'past_due'), latest_invoice: invoice })
+      const run = async (s, evt) => {
+        const t = { user_profiles: [profile({ subscription_tier: 'pro', subscription_status: 'active', stripe_subscription_id: 'sub_A' })] }
+        let asked
+        const stripe = { subscriptions: { list: async (params) => { asked = params; return { data: [s] } } } }
+        await processEvent(fakeDb(t), stripe, { id: evt, type: 'invoice.payment_failed', data: { object: { customer: 'cus_1' } } })
+        return { row: t.user_profiles[0], asked }
+      }
+      const fresh = await run(pastDue(2), 'evt_12')
+      assert(fresh.row.subscription_tier === 'pro' && fresh.row.subscription_status === 'past_due', 'two days past due keeps Pro')
+      assert(fresh.asked?.expand?.includes('data.latest_invoice'), 'the sync asks Stripe for the unpaid invoice date')
+      const late = await run(pastDue(8), 'evt_13')
+      assert(late.row.subscription_tier === 'free', 'eight days past due drops to free')
+      const undated = await run({ ...sub('sub_A', 'past_due'), latest_invoice: 'in_1' }, 'evt_14')
+      assert(undated.row.subscription_tier === 'free', 'past due with no invoice date gets no grace')
+    }
   } finally { restore() }
 }
 
