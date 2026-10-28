@@ -23,6 +23,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const SUITES = [
   ['program rules — Power Dad', 'sweep.mjs'],
   ['program rules — Dad Built', 'dadbuilt-sweep.mjs'],
+  ['Dad Built grouping', 'dadbuilt-grouping.mjs'],
   ['double progression', 'progression-check.mjs'],
   ['autoreg behaviour', 'autoreg-behaviour.mjs'],
   ['autoreg ratchet', 'autoreg-ratchet.mjs'],

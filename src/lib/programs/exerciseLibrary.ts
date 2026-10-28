@@ -43,6 +43,8 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   { name: 'Trap Bar Squat', cat: 'squat', equip: ['trap'] },
   { name: 'Leg Press', cat: 'squat', equip: ['machine'] },
   { name: 'Hack Squat', cat: 'squat', equip: ['machine'] },
+  { name: 'Belt Squat', cat: 'squat', equip: ['machine'] },
+  { name: 'Leg Extension', cat: 'squat', equip: ['machine'] },
   // ── Hinge ──
   { name: 'Deadlift', cat: 'hinge', equip: ['bb'] },
   { name: 'Trap Bar Deadlift', cat: 'hinge', equip: ['trap'] },
@@ -87,6 +89,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   { name: 'Chest-Supported Row', cat: 'pull_h', equip: ['db', 'machine'] },
   { name: 'Seal Row', cat: 'pull_h', equip: ['bb', 'db'] },
   { name: 'Cable Row', cat: 'pull_h', equip: ['cable'] },
+  { name: 'Seated Cable Row', cat: 'pull_h', equip: ['cable'] },
   { name: 'TRX / Ring Row', cat: 'pull_h', equip: ['bw'] },
   { name: 'T-Bar Row', cat: 'pull_h', equip: ['machine', 'bb'] },
   // ── Vertical pull ──
@@ -95,6 +98,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   { name: 'Chin-Up', cat: 'pull_v', equip: ['bw'] },
   { name: 'Lat Pulldown', cat: 'pull_v', equip: ['cable', 'machine'] },
   { name: 'Neutral-Grip Pulldown', cat: 'pull_v', equip: ['cable', 'machine'] },
+  { name: 'Straight-Arm Lat Pulldown', cat: 'pull_v', equip: ['cable'] },
   // ── Hams / glutes ──
   { name: 'Leg Curl', cat: 'ham_glute', equip: ['machine'] },
   { name: 'Nordic Curl (negatives OK)', cat: 'ham_glute', equip: ['bw'] },

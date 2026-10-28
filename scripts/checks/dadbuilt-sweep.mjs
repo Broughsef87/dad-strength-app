@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { dadBuilt, MUSCLE_MAP, setCredit, DAD_BUILT_BLOCK_BUDGET }
   from '../../src/lib/programs/dadBuilt.ts'
 
-const MAXES = { back_squat: 315, bench: 225, deadlift: 405, ohp: 135 }
+const MAXES = { back_squat: 315, bench: 225, ohp: 135 }
 const GYM = [1, 3, 5, 6]   // Mon / Wed / Fri / Sat — FOR-176 ruling 2
 
 let checks = 0
@@ -20,6 +20,11 @@ const MAX_SETS = 22
 // in a day and gets trained inside every squat and carry anyway.
 const SMALL = new Set(['calves', 'core'])
 const SMALL_MIN = 6
+// Andrew, 2026-10-28: the curl + calf superset came off leg day and calves
+// get one exercise a day at most. Hamstrings get RDL + lying leg curl on
+// Saturday (8 sets) and calves one 4-set raise (the 4-set ceiling holds) — his legs are his strongest
+// group, and this program spends its 6-7 slots a day on his upper body.
+const FLOOR_OVERRIDE = { hamstrings: 8, calves: 4 }
 
 const creditOf = (it) => (it.kind === 'lift' || it.kind === 'plyo') ? setCredit(it.slot, it.sets) : {}
 
@@ -67,7 +72,9 @@ for (let week = 1; week <= 13; week++) {
       }
     }
 
-    assert(compounds === 1, `${tag}: ${compounds} percent compounds, expected 1`)
+    // Pull day (Fri) has no 1RM lift since deadlifts came out (2026-10-28).
+    const wantCompounds = day === 5 ? 0 : 1
+    assert(compounds === wantCompounds, `${tag}: ${compounds} percent compounds, expected ${wantCompounds}`)
 
     const groups = {}
     plan.items.forEach((it, idx) => { if (it.superset) (groups[it.superset] ??= []).push(idx) })
@@ -81,7 +88,7 @@ for (let week = 1; week <= 13; week++) {
 
   if (!isDeload) {
     for (const [muscle, sets] of Object.entries(perMuscle)) {
-      const floor = SMALL.has(muscle) ? SMALL_MIN : MIN_SETS
+      const floor = FLOOR_OVERRIDE[muscle] ?? (SMALL.has(muscle) ? SMALL_MIN : MIN_SETS)
       assert(sets >= floor, `W${week}: ${muscle} only ${sets} sets/wk (min ${floor})`)
       assert(sets <= MAX_SETS, `W${week}: ${muscle} ${sets} sets/wk (max ${MAX_SETS})`)
     }
@@ -99,8 +106,8 @@ for (let week = 1; week <= 13; week++) {
 
 // ── Double progression feeds the prescription ────────────────────────────────
 {
-  const bare = dadBuilt.buildDay(3, 1, MAXES)
-  const fed = dadBuilt.buildDay(3, 1, MAXES, {}, { loadTargets: { pb_lateral_a: 30 } })
+  const bare = dadBuilt.buildDay(3, 6, MAXES)
+  const fed = dadBuilt.buildDay(3, 6, MAXES, {}, { loadTargets: { pb_lateral_a: 30 } })
   assert(bare.items.find(i => i.slot === 'pb_lateral_a').targetWeightLbs == null,
     'no history should mean no invented accessory weight')
   assert(fed.items.find(i => i.slot === 'pb_lateral_a').targetWeightLbs === 30,
@@ -123,8 +130,9 @@ for (let d = 1; d <= dadBuilt.daysPerWeek; d++) {
 }
 
 // ── DoD 1: test week caps 8/8/6/8, W12 deload treatment ──────────────────────
-// Caps follow the LIFT through the reorder: bench 8, squat 8, press 8, deadlift 6.
-const CAPS = { 1: 8, 3: 8, 5: 8, 6: 6 }
+// Caps follow the LIFT: bench 8 (Mon), squat 8 (Wed), press 8 (Sat).
+// Friday is pull day, which has no max to test.
+const CAPS = { 1: 8, 3: 8, 6: 8 }
 for (const [day, cap] of Object.entries(CAPS)) {
   const t = dadBuilt.buildDay(13, Number(day), MAXES)
   const lift = t.items.find(i => i.kind === 'lift')
@@ -140,52 +148,49 @@ for (const [day, cap] of Object.entries(CAPS)) {
 }
 assert(dadBuilt.buildDay(13, 6, MAXES).items.some(i => i.slot === 'pb_wrap'),
   'Saturday must close with the update-maxes card')
+{
+  const t = dadBuilt.buildDay(13, 5, MAXES)
+  assert(t.dayType === 'gym' && t.items.length > 0, 'W13 Fri: pull day runs an easy session in test week')
+  assert(t.items.every(i => i.kind !== 'lift' || i.sets === 2), 'W13 Fri: the test-week pull session is deload volume')
+}
 for (const d of GYM) {
   const dl = dadBuilt.buildDay(12, d, MAXES)
   assert(dl.items.every(i => i.kind !== 'plyo'), `W12 D${d}: primers/carry must drop in the deload`)
-  assert(dl.items.find(i => i.kind === 'lift' && i.percent != null).percent === 60,
-    `W12 D${d}: deload % should be 60`)
+  const pct = dl.items.find(i => i.kind === 'lift' && i.percent != null)
+  if (d !== 5) assert(pct?.percent === 60, `W12 D${d}: deload % should be 60`)
 }
 
-// ── DoD 3: block counts ──────────────────────────────────────────────────────
-// Lower days dropped to 7 when the jump primers came out (2026-08-24).
-const EXPECTED_BLOCKS = { 1: 8, 3: 7, 5: 8, 6: 7 }
+// ── Block counts ────────────────────────────────────────────────────────────
+// Athlete, 2026-10-28: "should realistically only need 6 or 7 per day".
 for (const d of GYM) {
   const n = dadBuilt.buildDay(1, d, MAXES).items.length
-  assert(n === EXPECTED_BLOCKS[d], `D${d} should be ${EXPECTED_BLOCKS[d]} blocks, got ${n}`)
+  assert(n >= 6 && n <= 7, `D${d} should be 6-7 blocks, got ${n}`)
 }
 
-// ── Compound opens the lower days, carry closes Lower B ────────────────────
+// ── The week is push / legs / pull / shoulders, one leg day, no deadlifts ──
+// Athlete's call, 2026-10-28. Asserted on the built plan rather than on the
+// SESSION_BY_DAY table, so this fails if the table and the switch drift apart.
 {
-  const lowerA = dadBuilt.buildDay(1, 3, MAXES).items   // Wed
-  const lowerB = dadBuilt.buildDay(1, 6, MAXES).items   // Sat
-  assert(lowerA[0].slot === 'pb_squat', 'Back Squat must open Lower A')
-  assert(lowerB[0].slot === 'pb_deadlift', 'Deadlift must open Lower B')
-  assert(lowerB[lowerB.length - 1].slot === 'pb_carry', 'Farmer Carry must close Lower B')
-  // Contest upheld on FOR-176: the Ab Wheel was the cut, not the calves.
-  assert(!lowerB.some(i => i.slot === 'pb_core_b'), 'Ab Wheel Rollout was the agreed cut')
-  assert(lowerB.some(i => i.slot === 'pb_calf_b'), 'Seated Calf Raise stays on Lower B')
-}
-
-// ── The week alternates upper / lower / upper / lower ──────────────────────
-// Athlete's call, 2026-08-24. Asserted on the built plan rather than on the
-// SESSION_BY_DAY table, so this fails if the table and the switch ever drift
-// apart — a table nobody reads is not a guarantee.
-{
-  const order = GYM.map(d => dadBuilt.buildDay(1, d, MAXES).dayName)
-  const kind = order.map(n => /Upper/.test(n) ? 'U' : /Lower/.test(n) ? 'L' : '?')
-  assert(kind.join('') === 'ULUL', `week must run upper/lower/upper/lower, got ${kind.join('')} (${order.join(' · ')})`)
-  // Same alternation must survive the test week, or the macro closes on two
-  // lower sessions back to back.
-  const tKind = GYM.map(d => {
-    const n = dadBuilt.buildDay(13, d, MAXES).dayName
-    return /Bench|Press/.test(n) ? 'U' : /Squat|Deadlift/.test(n) ? 'L' : '?'
-  })
-  assert(tKind.join('') === 'ULUL', `test week must alternate too, got ${tKind.join('')}`)
-  // No two consecutive gym days share a half of the body.
-  for (let i = 1; i < kind.length; i++) {
-    assert(kind[i] !== kind[i - 1], `D${GYM[i - 1]} and D${GYM[i]} are both ${kind[i]}`)
+  const days = GYM.map(d => dadBuilt.buildDay(1, d, MAXES))
+  const kind = days.map(p => p.dayName.split(' ')[0]).join(' ')
+  assert(kind === 'Push Legs Pull Shoulders', `week must run push/legs/pull/shoulders, got ${kind}`)
+  assert(days[0].items[0].slot === 'pb_bench', 'Bench must open push day')
+  assert(days[1].items[0].slot === 'pb_squat', 'Back Squat must open legs day')
+  assert(days[2].items[0].slot === 'pb_pullup', 'Weighted Pull-Up must open pull day')
+  assert(days[3].items[0].slot === 'pb_ohp', 'Overhead Press must open shoulders day')
+  assert(days[3].items[days[3].items.length - 1].slot === 'pb_carry', 'Farmer Carry must close the week')
+  // One leg day: quads are only trained on Wednesday.
+  const quadDays = days.filter(p => p.items.some(i => (MUSCLE_MAP[i.slot]?.primary ?? []).includes('quads')))
+  assert(quadDays.length === 1, `quads trained on ${quadDays.length} days, expected 1 (one leg day)`)
+  // More arms where he asked: triceps direct work on push, biceps on pull.
+  const direct = (p, m) => p.items.filter(i => JSON.stringify(MUSCLE_MAP[i.slot]?.primary) === JSON.stringify([m])).length
+  assert(direct(days[0], 'triceps') >= 3, 'push day needs at least 3 direct triceps moves')
+  assert(direct(days[2], 'biceps') >= 3, 'pull day needs at least 3 direct biceps moves')
+  for (let w = 1; w <= 13; w++) for (const d of GYM) for (const it of dadBuilt.buildDay(w, d, MAXES).items) {
+    assert(!/^(pb_deadlift|test_dl)$/.test(it.slot ?? '') && !/^Deadlift/.test(it.name ?? ''),
+      `W${w} D${d}: deadlifts came out on 2026-10-28`)
   }
+  assert(!dadBuilt.requiredMaxes.some(m => m.key === 'deadlift'), 'no deadlift max is asked for')
 }
 
 // ── No jumping, anywhere, any week ─────────────────────────────────────────
@@ -218,7 +223,13 @@ for (let w = 1; w <= 13; w++) {
 }
 
 // ── DoD 1: every % slot's computed weight, W1-W13 ───────────────────────────
-console.log(`── Main-lift loads at ${MAXES.back_squat}/${MAXES.bench}/${MAXES.deadlift}/${MAXES.ohp} ──`)
+// Andrew, 2026-10-28: never two calf exercises in one day.
+for (let w = 1; w <= 13; w++) for (const d of GYM) {
+  const calves = dadBuilt.buildDay(w, d, MAXES).items.filter(i => creditOf(i).calves === 1)
+  assert(calves.length <= 1, `W${w} D${d}: ${calves.length} calf exercises (${calves.map(i => i.name).join(', ')}) — max one a day`)
+}
+
+console.log(`── Main-lift loads at ${MAXES.back_squat}/${MAXES.bench}/${MAXES.ohp} ──`)
 for (const d of GYM) {
   const rows = []
   for (let w = 1; w <= 13; w++) {
@@ -228,7 +239,9 @@ for (const d of GYM) {
     const tagW = wim === 13 ? 'T' : wim === 12 ? 'D' : String(w)
     rows.push(`${tagW}:${it.percent}%/${it.targetWeightLbs}x${it.sets}x${it.reps}`)
   }
-  const name = dadBuilt.buildDay(1, d, MAXES).items.find(i => i.percent != null).name
+  const lead = dadBuilt.buildDay(1, d, MAXES).items.find(i => i.percent != null)
+  if (!lead) continue   // pull day: no 1RM lift
+  const name = lead.name
   console.log(`  D${d} ${name.padEnd(16)} ${rows.join('  ')}`)
 }
 
