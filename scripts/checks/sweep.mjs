@@ -709,11 +709,15 @@ assert(new Set([1, 5, 9].map(wk => hybridPower.buildDay(wk, 4, MAXES).items[0].p
   // advanceWeekIfDone — because the debrief counter lower down calls
   // scheduledDoneDays too and satisfied the pattern. Presence-in-file is not
   // the claim; presence in the function that advances the week is.
-  const advance = day.slice(day.indexOf('async function advanceWeekIfDone('))
+  // advanceWeekIfDone moved to src/lib/programs/advance.ts and decides with
+  // weekFinished; the rule lives there now.
+  const advSrc = readLF('../../src/lib/programs/advance.ts')
+  const advance = advSrc.slice(advSrc.indexOf('export function weekFinished('))
   const body = advance.slice(0, advance.indexOf('\n}\n'))
-  assert(body.length > 0 && body.length < 2000, 'could not isolate advanceWeekIfDone')
+  assert(body.length > 0 && body.length < 2000, 'could not isolate weekFinished')
   assert(/scheduledDoneDays\(/.test(body),
-    'advanceWeekIfDone must filter done days to the ones the program schedules')
+    'weekFinished must filter done days to the ones the program schedules')
+  assert(/await advanceWeekIfDone\(/.test(day), 'finishing a session still advances the week')
   for (const [file, url] of [
     ['dashboard', '../../src/app/dashboard/page.tsx'],
     ['ActiveProgram', '../../src/components/ActiveProgram.tsx'],

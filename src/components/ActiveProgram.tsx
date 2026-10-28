@@ -14,6 +14,7 @@ import { useUser } from '../contexts/UserContext'
 import { getProgram } from '../lib/programs'
 import { RUN_EPOCH } from '../lib/programs/run'
 import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../lib/programs/schedule'
+import { nextOpenDay, skippedDays } from '../lib/programs/advance'
 
 interface ProgramRow {
   slug: string
@@ -26,6 +27,7 @@ export default function ActiveProgram() {
   const { user } = useUser()
   const [row, setRow] = useState<ProgramRow | null>(null)
   const [doneDays, setDoneDays] = useState<number[]>([])
+  const [skipped, setSkipped] = useState<number[]>([])
   const [loaded, setLoaded] = useState(false)
 
   const load = useCallback(async () => {
@@ -33,7 +35,7 @@ export default function ActiveProgram() {
     try {
       const { data: prog } = await supabase
         .from('user_programs')
-        .select('program_slug, current_week, started_at')
+        .select('program_slug, current_week, started_at, preferences')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .maybeSingle()
@@ -41,6 +43,7 @@ export default function ActiveProgram() {
       const slug: string = prog.program_slug
       const currentWeek: number = prog.current_week ?? 1
       setRow({ slug, currentWeek })
+      setSkipped(skippedDays(prog.preferences, currentWeek))
 
       if (getProgram(slug)) {
         const { data: workouts } = await supabase
@@ -85,8 +88,7 @@ export default function ActiveProgram() {
   const launch = () => {
     if (row && program) {
       // First unfinished SCHEDULED day — see src/lib/programs/schedule.ts.
-      const sched = scheduledDayNumbers(program, row.currentWeek)
-      const nextDay = sched.find(d => !doneDays.includes(d)) ?? sched[0] ?? 1
+      const nextDay = nextOpenDay(program, row.currentWeek, doneDays, skipped)
       router.push(`/train/${row.slug}/${nextDay}`)
     } else {
       router.push('/build')
