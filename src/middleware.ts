@@ -80,7 +80,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // 'monitoring' is the Sentry tunnel route — auth middleware must not
-    // touch ingest traffic.
-    '/((?!monitoring|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // touch ingest traffic. 'api/version' is public and polled by every tab
+    // (StaleBuildReload), so it skips the session refresh too.
+    '/((?!monitoring|api/version|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
