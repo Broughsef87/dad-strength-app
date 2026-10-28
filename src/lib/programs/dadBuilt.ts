@@ -199,6 +199,8 @@ function compound(
     targetRpe: def.targetRpe,
     appliedAdjustmentPct: adj !== 0 ? adj : undefined,
     note,
+    // The opener is always one of a short day's two lifts.
+    shortDay: true,
   }
 }
 
@@ -212,7 +214,7 @@ function compound(
  */
 function range(
   slot: string, name: string, sets: number, window: [number, number],
-  loadTargets: Record<string, number>, opts?: { rir?: number; step?: number; note?: string; superset?: string },
+  loadTargets: Record<string, number>, opts?: { rir?: number; step?: number; note?: string; superset?: string; shortDay?: boolean },
 ): LiftPrescription {
   const suggested = loadTargets[slot]
   return {
@@ -224,6 +226,7 @@ function range(
     targetWeightLbs: suggested != null && suggested > 0 ? suggested : undefined,
     note: opts?.note,
     superset: opts?.superset,
+    shortDay: opts?.shortDay,
   }
 }
 
@@ -369,7 +372,7 @@ function session(
         items: [
           compound('pb_bench', 'Bench Press', 'bench', pos, maxes, adjustments),
           range('pb_incline', 'Incline DB Press', 3, r.mid, lt),
-          range('pb_dip', 'Dips', 3, r.heavy, lt, { note: 'Add load when bodyweight gets easy.' }),
+          range('pb_dip', 'Dips', 3, r.heavy, lt, { shortDay: true, note: 'Add load when bodyweight gets easy.' }),
           range('pb_fly', 'Cable Fly', 3, r.wide, lt),
           range('pb_skull', 'EZ-Bar Skull Crusher', 3, r.heavy, lt, { note: 'Bar to the forehead, elbows stay pointed up.' }),
           range('pb_triceps_a', 'Rope Pushdown', 3, r.mid, lt, { superset: 'pb_ss_c', rir: 1 }),
@@ -383,7 +386,7 @@ function session(
         intent: 'The one leg day. Squat heavy, then everything that makes legs bigger.',
         items: [
           compound('pb_squat', 'Back Squat', 'back_squat', pos, maxes, adjustments, 'The strength anchor — everything after this is volume.'),
-          range('pb_split_squat', 'Bulgarian Split Squat', 3, r.heavy, lt, { note: 'Per leg. DBs in hand.' }),
+          range('pb_split_squat', 'Bulgarian Split Squat', 3, r.heavy, lt, { shortDay: true, note: 'Per leg. DBs in hand.' }),
           range('pb_legpress', 'Leg Press', 3, r.mid, lt, { step: 10 }),
           range('pb_legcurl_a', 'Seated Leg Curl', 3, r.mid, lt, { superset: 'pb_ss_a' }),
           range('pb_calf_a', 'Standing Calf Raise', 4, r.wide, lt, { superset: 'pb_ss_a', step: 10, note: 'Pause at the bottom. Calves answer to stretch, not bounce.' }),
@@ -399,8 +402,8 @@ function session(
         dayName: 'Pull — Back',
         intent: 'Pull heavy, row hard, then give the biceps a real day.',
         items: [
-          range('pb_pullup', 'Weighted Pull-Up', 4, r.heavy, lt, { note: 'The anchor today. Add load when the top of the range is easy. Dead hang to chin over.' }),
-          range('pb_row_b', 'Barbell Row', 3, r.heavy, lt, { step: 10, note: 'Flat back, pull to the sternum.' }),
+          range('pb_pullup', 'Weighted Pull-Up', 4, r.heavy, lt, { shortDay: true, note: 'The anchor today. Add load when the top of the range is easy. Dead hang to chin over.' }),
+          range('pb_row_b', 'Barbell Row', 3, r.heavy, lt, { shortDay: true, step: 10, note: 'Flat back, pull to the sternum.' }),
           range('pb_row_a', 'Chest-Supported Row', 3, r.mid, lt, { note: 'Chest stays down. No body english.' }),
           range('pb_pulldown', 'Lat Pulldown', 3, r.mid, lt, { note: 'Wider grip than the rows — different job.' }),
           range('pb_curl_a', 'EZ-Bar Curl', 3, r.mid, lt),
@@ -417,7 +420,7 @@ function session(
           compound('pb_ohp', 'Overhead Press', 'ohp', pos, maxes, adjustments, 'Strict. Glutes tight, no leg drive.'),
           range('pb_lateral_a', 'Lateral Raise', 4, r.wide, lt, { rir: 1, superset: 'pb_ss_f', note: 'Light. Delts do not care what the number is — 2.5s if the rack has them.' }),
           range('pb_reardelt', 'Face Pull', 4, r.wide, lt, { rir: 1, superset: 'pb_ss_f', note: 'Rear delts and the bit of your back that holds posture together.' }),
-          range('pb_rdl', 'Romanian Deadlift', 4, r.heavy, lt, { step: 10, note: 'Hinge, do not squat it. Stretch is the point.' }),
+          range('pb_rdl', 'Romanian Deadlift', 4, r.heavy, lt, { shortDay: true, step: 10, note: 'Hinge, do not squat it. Stretch is the point.' }),
           range('pb_legcurl_b', 'Lying Leg Curl', 3, r.mid, lt),
           range('pb_hipthrust', 'Hip Thrust', 3, r.mid, lt, { step: 10, note: 'Chin tucked, ribs down, pause at the top.' }),
           { kind: 'plyo', slot: 'pb_carry', name: 'Farmer Carry', sets: 3, reps: 1,

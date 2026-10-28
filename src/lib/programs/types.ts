@@ -47,6 +47,13 @@ export interface LiftPrescription {
   note?: string            // "1+1 — one clean, one jerk" / "90s rest"
   superset?: string        // items sharing this id (and adjacent in the day) render linked
   subbedFrom?: string      // set client-side when a user substitution renamed this item
+  /**
+   * Kept on a time-constrained day. When any lift in a day carries it, the
+   * reduced day keeps exactly those lifts; otherwise it keeps the first two.
+   * Picking by flag, not position, means reordering a day for other reasons
+   * (Dad Built's muscle grouping) cannot change what a short day gives you.
+   */
+  shortDay?: boolean
 }
 
 /**
