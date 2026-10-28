@@ -16,8 +16,10 @@ const fails = []
 const assert = (cond, msg) => { checks++; if (!cond) fails.push(msg) }
 
 let processEvent = null
+let hasPro = null
 try {
   processEvent = (await import('../../src/lib/stripeWebhook.ts')).processEvent
+  hasPro = (await import('../../src/lib/proStatus.ts')).hasPro
 } catch (e) {
   fails.push(`could not import src/lib/stripeWebhook.ts processEvent: ${e.message}`)
 }
@@ -182,24 +184,35 @@ if (processEvent) {
       assert(!t.stripe_webhook_events[0].processed_at, 'a lease that was taken over is not stamped by its old holder')
     }
 
-    // 11. A failed renewal keeps Pro for 7 days from the unpaid invoice, then drops it.
+    // 11. A failed renewal keeps Pro for 7 days from the FIRST unpaid invoice,
+    //     stored as grace_until so it ends even if Stripe goes quiet.
     {
-      const pastDue = (daysAgo, invoice = { created: Math.floor((Date.now() - daysAgo * 86_400_000) / 1000) }) =>
-        ({ ...sub('sub_A', 'past_due'), latest_invoice: invoice })
-      const run = async (s, evt) => {
-        const t = { user_profiles: [profile({ subscription_tier: 'pro', subscription_status: 'active', stripe_subscription_id: 'sub_A' })] }
+      const DAY = 86_400_000
+      const inv = (daysAgo) => ({ created: Math.floor((Date.now() - daysAgo * DAY) / 1000) })
+      const pastDue = (daysAgo) => ({ ...sub('sub_A', 'past_due'), latest_invoice: inv(daysAgo) })
+      const run = async (subs, evt, before = {}) => {
+        const t = { user_profiles: [profile({ subscription_tier: 'pro', subscription_status: 'active', stripe_subscription_id: 'sub_A', ...before })] }
         let asked
-        const stripe = { subscriptions: { list: async (params) => { asked = params; return { data: [s] } } } }
+        const stripe = { subscriptions: { list: async (params) => { asked = params; return { data: subs } } } }
         await processEvent(fakeDb(t), stripe, { id: evt, type: 'invoice.payment_failed', data: { object: { customer: 'cus_1' } } })
         return { row: t.user_profiles[0], asked }
       }
-      const fresh = await run(pastDue(2), 'evt_12')
-      assert(fresh.row.subscription_tier === 'pro' && fresh.row.subscription_status === 'past_due', 'two days past due keeps Pro')
+      const fresh = await run([pastDue(2)], 'evt_12')
+      const end = Date.parse(fresh.row.grace_until)
+      assert(fresh.row.subscription_tier === 'pro' && Math.abs(end - (Date.now() + 5 * DAY)) < 60_000, 'two days past due keeps Pro, grace ending in five days')
       assert(fresh.asked?.expand?.includes('data.latest_invoice'), 'the sync asks Stripe for the unpaid invoice date')
-      const late = await run(pastDue(8), 'evt_13')
-      assert(late.row.subscription_tier === 'free', 'eight days past due drops to free')
-      const undated = await run({ ...sub('sub_A', 'past_due'), latest_invoice: 'in_1' }, 'evt_14')
-      assert(undated.row.subscription_tier === 'free', 'past due with no invoice date gets no grace')
+      assert(hasPro(fresh.row) && !hasPro(fresh.row, end + 1), 'the stored grace ends on its own: no Pro after grace_until, with no event')
+      const late = await run([pastDue(8)], 'evt_13')
+      assert(late.row.subscription_tier === 'free' && !hasPro(late.row), 'eight days past due drops to free')
+      const undated = await run([{ ...sub('sub_A', 'past_due'), latest_invoice: 'in_1' }], 'evt_14')
+      assert(undated.row.subscription_tier === 'free' && undated.row.grace_until === null, 'past due with no invoice date gets no grace')
+      const firstEnd = new Date(Date.now() + 1 * DAY).toISOString()
+      const renewed = await run([pastDue(0)], 'evt_15', { subscription_status: 'past_due', grace_until: firstEnd })
+      assert(renewed.row.grace_until === firstEnd, 'a newer unpaid invoice cannot push the grace end out')
+      const paidBack = await run([sub('sub_A', 'active')], 'evt_16', { subscription_status: 'past_due', grace_until: firstEnd })
+      assert(paidBack.row.subscription_tier === 'pro' && paidBack.row.grace_until === null, 'paying clears the grace')
+      const trial = await run([sub('sub_T', 'trialing', 3), pastDue(20)], 'evt_17')
+      assert(trial.row.subscription_tier === 'pro' && hasPro(trial.row), 'a trial alongside an old past-due subscription keeps Pro')
     }
   } finally { restore() }
 }

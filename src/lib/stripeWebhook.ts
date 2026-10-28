@@ -80,7 +80,11 @@ export async function processEvent(supabase: Admin, stripe: StripeReader, event:
   return { status: 200, body: { received: true } }
 }
 
-type Profile = { id: string; founder_pass: boolean | null }
+type Profile = {
+  id: string; founder_pass: boolean | null
+  subscription_status: string | null; stripe_subscription_id: string | null; grace_until: string | null
+}
+const PROFILE_COLUMNS = 'id, founder_pass, subscription_status, stripe_subscription_id, grace_until'
 
 /** Throws on a database error, so the event is retried rather than lost. */
 function must<T extends { error: { message: string } | null }>(res: T, what: string): T {
@@ -97,7 +101,7 @@ function must<T extends { error: { message: string } | null }>(res: T, what: str
  */
 async function profileFor(supabase: Admin, customerId: string, userId?: string | null): Promise<Profile | null> {
   const { data: byCustomer } = must(await supabase.from('user_profiles')
-    .select('id, founder_pass').eq('stripe_customer_id', customerId).maybeSingle(), 'profile by customer')
+    .select(PROFILE_COLUMNS).eq('stripe_customer_id', customerId).maybeSingle(), 'profile by customer')
   if (byCustomer) return byCustomer as Profile
   if (!userId) {
     console.warn('Webhook: no profile for customer', customerId)
@@ -106,7 +110,7 @@ async function profileFor(supabase: Admin, customerId: string, userId?: string |
   must(await supabase.from('user_profiles').update({ stripe_customer_id: customerId })
     .eq('id', userId).is('stripe_customer_id', null), 'link customer')
   const { data: byUser } = must(await supabase.from('user_profiles')
-    .select('id, founder_pass, stripe_customer_id').eq('id', userId).maybeSingle(), 'profile by user')
+    .select(`${PROFILE_COLUMNS}, stripe_customer_id`).eq('id', userId).maybeSingle(), 'profile by user')
   if (!byUser) {
     console.warn('Webhook: subscription metadata names a user with no profile', userId, customerId)
     return null
@@ -129,22 +133,26 @@ function liveSubscription(subs: Stripe.Subscription[]): Stripe.Subscription | nu
   return live[0] ?? null
 }
 
-/**
- * A failed renewal keeps Pro this long, while Stripe retries the card. Counted
- * from the unpaid invoice, so each retry Stripe reports re-checks it, and the
- * first event after the grace (a later failed retry, or Stripe ending the
- * subscription) drops the account to free.
- */
+/** A failed renewal keeps Pro this long, while Stripe retries the card. */
 export const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000
 
-/** Whether this subscription should unlock Pro at `now`. */
-export function paidUp(sub: Stripe.Subscription | null, now: number): boolean {
-  if (sub?.status === 'active') return true
-  if (sub?.status !== 'past_due') return false
+/**
+ * When a past-due subscription's grace ends, or null for no grace. Counted
+ * from the FIRST unpaid invoice: while the profile already holds a grace for
+ * this same past-due subscription, a later invoice (the next cycle, still
+ * unpaid) cannot push the end out. Stored as grace_until, and every reader
+ * compares against it (src/lib/proStatus.ts), so the grace ends on time even
+ * if Stripe sends nothing more.
+ */
+export function graceUntil(sub: Stripe.Subscription | null, prior: Profile): string | null {
+  if (sub?.status !== 'past_due') return null
+  const held = prior.subscription_status === 'past_due' && prior.stripe_subscription_id === sub.id && prior.grace_until
+    ? Date.parse(prior.grace_until) : null
   const invoice = sub.latest_invoice
-  // Not expanded or missing: no date to count from, so no grace.
-  if (!invoice || typeof invoice === 'string') return false
-  return now - invoice.created * 1000 < PAST_DUE_GRACE_MS
+  // Not expanded or missing: no date to count from, so only a grace already held.
+  const fresh = invoice && typeof invoice !== 'string' ? invoice.created * 1000 + PAST_DUE_GRACE_MS : null
+  const end = held != null && fresh != null ? Math.min(held, fresh) : held ?? fresh
+  return end == null ? null : new Date(end).toISOString()
 }
 
 /** Write the customer's subscription state as Stripe has it right now. */
@@ -159,10 +167,14 @@ async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: s
     customer: customerId, status: 'all', limit: 100, expand: ['data.latest_invoice'],
   })
   const live = liveSubscription(subs)
+  const grace = graceUntil(live, profile)
+  const paid = live?.status === 'active' || live?.status === 'trialing'
+    || (grace != null && Date.parse(grace) > Date.parse(readAt))
   must(await supabase.from('user_profiles').update({
     // A Founder's Pass keeps Pro whatever its subscriptions do.
-    subscription_tier: paidUp(live, Date.parse(readAt)) || profile.founder_pass ? 'pro' : 'free',
+    subscription_tier: paid || profile.founder_pass ? 'pro' : 'free',
     subscription_status: live?.status ?? 'canceled',
+    grace_until: grace,
     stripe_subscription_id: live?.id ?? null,
     subscription_updated_at: readAt,
   }).eq('id', profile.id).or(`subscription_updated_at.is.null,subscription_updated_at.lt.${readAt}`), 'subscription sync')
@@ -201,7 +213,7 @@ async function handle(supabase: Admin, stripe: StripeReader, event: Stripe.Event
     }
 
     // Payment failed: Stripe has moved the subscription to past_due; sync it.
-    // Pro stays for the grace (paidUp); a failed retry after it drops to free.
+    // Pro stays until grace_until (graceUntil), which every reader checks.
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice
       await syncCustomer(supabase, stripe, invoice.customer as string)
