@@ -20,6 +20,11 @@ const MAX_SETS = 22
 // in a day and gets trained inside every squat and carry anyway.
 const SMALL = new Set(['calves', 'core'])
 const SMALL_MIN = 6
+// Andrew, 2026-10-28: the curl + calf superset came off leg day and calves
+// get one exercise a day at most. Hamstrings get RDL + lying leg curl on
+// Saturday (8 sets) and calves one 4-set raise (the 4-set ceiling holds) — his legs are his strongest
+// group, and this program spends its 6-7 slots a day on his upper body.
+const FLOOR_OVERRIDE = { hamstrings: 8, calves: 4 }
 
 const creditOf = (it) => (it.kind === 'lift' || it.kind === 'plyo') ? setCredit(it.slot, it.sets) : {}
 
@@ -83,7 +88,7 @@ for (let week = 1; week <= 13; week++) {
 
   if (!isDeload) {
     for (const [muscle, sets] of Object.entries(perMuscle)) {
-      const floor = SMALL.has(muscle) ? SMALL_MIN : MIN_SETS
+      const floor = FLOOR_OVERRIDE[muscle] ?? (SMALL.has(muscle) ? SMALL_MIN : MIN_SETS)
       assert(sets >= floor, `W${week}: ${muscle} only ${sets} sets/wk (min ${floor})`)
       assert(sets <= MAX_SETS, `W${week}: ${muscle} ${sets} sets/wk (max ${MAX_SETS})`)
     }
@@ -218,6 +223,12 @@ for (let w = 1; w <= 13; w++) {
 }
 
 // ── DoD 1: every % slot's computed weight, W1-W13 ───────────────────────────
+// Andrew, 2026-10-28: never two calf exercises in one day.
+for (let w = 1; w <= 13; w++) for (const d of GYM) {
+  const calves = dadBuilt.buildDay(w, d, MAXES).items.filter(i => creditOf(i).calves === 1)
+  assert(calves.length <= 1, `W${w} D${d}: ${calves.length} calf exercises (${calves.map(i => i.name).join(', ')}) — max one a day`)
+}
+
 console.log(`── Main-lift loads at ${MAXES.back_squat}/${MAXES.bench}/${MAXES.ohp} ──`)
 for (const d of GYM) {
   const rows = []

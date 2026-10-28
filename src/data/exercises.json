@@ -110,6 +110,7 @@
   { "id": "qu14", "name": "Cyclist Squat",              "category": "Legs",      "subcategory": "Quads",      "target": "Quads — Isolation",         "mechanic": "Compound",  "equipment": "both" },
   { "id": "qu15", "name": "Sissy Squat",                "category": "Legs",      "subcategory": "Quads",      "target": "Quads",                     "mechanic": "Isolation", "equipment": "home" },
   { "id": "qu16", "name": "Barbell Lunge",              "category": "Legs",      "subcategory": "Quads",      "target": "Quads / Glutes",            "mechanic": "Compound",  "equipment": "iron" },
+  { "id": "qu17", "name": "Belt Squat",                 "category": "Legs",      "subcategory": "Quads",      "target": "Quads / Glutes",            "mechanic": "Compound",  "equipment": "iron" },
 
   { "id": "ha1",  "name": "Romanian Deadlift",           "category": "Legs",      "subcategory": "Hamstrings", "target": "Hamstrings / Glutes",       "mechanic": "Compound",  "equipment": "both" },
   { "id": "ha2",  "name": "Sumo Deadlift",               "category": "Legs",      "subcategory": "Hamstrings", "target": "Inner Quads / Glutes / Hams","mechanic": "Compound",  "equipment": "iron" },
