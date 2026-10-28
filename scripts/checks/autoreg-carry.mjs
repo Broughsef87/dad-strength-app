@@ -141,4 +141,22 @@ const loads = (wk, adj) => hybridPower.buildDay(wk, 1, MAXES, adj).items.find(i 
   check('100 lb OHP obeyed for weeks → no drift', worst === 0, { worst })
 }
 
+{
+  // A skipped day has no row. The week before it still carries: week 8 reads
+  // week 7 (none, skipped), walks back to week 6's stored +3 with no new logs.
+  let lookups = 0
+  const skipDb = {
+    from: () => {
+      const o = {
+        select: () => o, eq: () => o, gte: () => o, order: () => o,
+        limit: () => Promise.resolve({ data: lookups++ === 0 ? [] : [{ id: 'w', workout_data: { adjustments: { [SLOT]: -3 } } }] }),
+        not: () => Promise.resolve({ data: [] }),
+      }
+      return o
+    },
+  }
+  const adj = await computeAdjustments(skipDb, 'u', hybridPower, 8, 1, RUN_EPOCH, MAXES)
+  check('skipped week 7 → week 6 carry of -3 survives into week 8', adj[SLOT] === -3, adj)
+}
+
 if (fails) { console.error(`\n${fails} failing`); process.exit(1) }

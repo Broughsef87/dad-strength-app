@@ -224,13 +224,27 @@ export default function SchedulePage() {
     if (!window.confirm('skip this day? nothing gets logged, and the week moves on once every other day is done or skipped. you can still train it later.')) return
     setSkipping(true)
     try {
-      const prior = (prefsRef.current as { skipped_days?: unknown }).skipped_days
-      const next = [...(Array.isArray(prior) ? prior : []), { week: currentWeek, day }]
-      prefsRef.current = { ...prefsRef.current, skipped_days: next }
-      const { error } = await supabase.from('user_programs')
-        .update({ preferences: prefsRef.current })
+      // Read preferences fresh, not from this tab's copy: another device may
+      // have skipped a day since, or the program may have been restarted
+      // (empty preferences), and writing back an old copy would undo either.
+      const { data: fresh, error: readErr } = await supabase.from('user_programs')
+        .select('preferences, started_at')
+        .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active').maybeSingle()
+      if (readErr || !fresh) { window.alert('could not skip that day. try again.'); return }
+      const prefs = (fresh.preferences ?? {}) as Record<string, unknown>
+      const prior = prefs.skipped_days
+      const next = { ...prefs, skipped_days: [...(Array.isArray(prior) ? prior : []), { week: currentWeek, day }] }
+      // Compare-and-set on the run: a restart between the read and this write
+      // must not receive the old run's skip.
+      const write = supabase.from('user_programs')
+        .update({ preferences: next })
         .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')
-      if (error) { window.alert('could not skip that day. try again.'); return }
+      const { data: wrote, error } = await (fresh.started_at == null
+        ? write.is('started_at', null)
+        : write.eq('started_at', fresh.started_at)
+      ).select('user_id')
+      if (error || !wrote?.length) { window.alert('could not skip that day. try again.'); await load(); return }
+      prefsRef.current = next
       await advanceWeekIfDone(supabase, user.id, slug, program)
       await load()
     } finally {
