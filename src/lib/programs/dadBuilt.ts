@@ -360,6 +360,10 @@ function buildDay(
     }
   }
 
+  // ORDER RULE (athlete, 2026-10-28): a muscle's exercises run back to back.
+  // The only thing allowed to split a muscle's run is a superset partner,
+  // which is why each pair below sits at the seam between two muscles.
+  // scripts/checks/dadbuilt-grouping.mjs holds every day to this.
   let items: Prescription[]
   let dayName: string
   let intent: string
@@ -370,11 +374,11 @@ function buildDay(
       intent = 'Squat heavy, then everything that makes legs bigger.'
       items = [
         compound('pb_squat', 'Back Squat', 'back_squat', pos, maxes, adjustments, 'The strength anchor — everything after this is volume.'),
-        range('pb_rdl', 'Romanian Deadlift', 3, r.heavy, lt, { step: 10, note: 'Hinge, do not squat it. Stretch is the point.' }),
+        range('pb_split_squat', 'Bulgarian Split Squat', 3, r.heavy, lt, { note: 'Per leg. DBs in hand.' }),
         range('pb_legpress', 'Leg Press', 3, r.mid, lt, { step: 10 }),
+        range('pb_rdl', 'Romanian Deadlift', 3, r.heavy, lt, { step: 10, note: 'Hinge, do not squat it. Stretch is the point.' }),
         range('pb_legcurl_a', 'Seated Leg Curl', 3, r.mid, lt, { superset: 'pb_ss_a' }),
         range('pb_calf_a', 'Standing Calf Raise', 4, r.wide, lt, { superset: 'pb_ss_a', step: 10, note: 'Pause at the bottom. Calves answer to stretch, not bounce.' }),
-        range('pb_split_squat', 'Bulgarian Split Squat', 3, r.heavy, lt, { note: 'Per leg. DBs in hand.' }),
         range('pb_core_a', 'Hanging Leg Raise', 3, r.wide, lt, { rir: 1 }),
       ]
       break
@@ -384,11 +388,11 @@ function buildDay(
       intent = 'Press heavy, row hard, then chase the pump.'
       items = [
         compound('pb_bench', 'Bench Press', 'bench', pos, maxes, adjustments),
-        range('pb_pullup', 'Weighted Pull-Up', 3, r.heavy, lt, { note: 'Add load when the top of the range is easy. Dead hang to chin over.' }),
-        range('pb_incline', 'Incline DB Press', 3, r.mid, lt, { superset: 'pb_ss_b' }),
+        range('pb_incline', 'Incline DB Press', 3, r.mid, lt),
+        range('pb_fly', 'Cable Fly', 3, r.wide, lt, { superset: 'pb_ss_b' }),
         range('pb_row_a', 'Chest-Supported Row', 3, r.mid, lt, { superset: 'pb_ss_b', note: 'Chest stays down. No body english.' }),
+        range('pb_pullup', 'Weighted Pull-Up', 3, r.heavy, lt, { note: 'Add load when the top of the range is easy. Dead hang to chin over.' }),
         range('pb_lateral_a', 'Lateral Raise', 4, r.wide, lt, { rir: 1, note: 'Light. Delts do not care what the number is — 2.5s if the rack has them.' }),
-        range('pb_fly', 'Cable Fly', 3, r.wide, lt),
         range('pb_curl_a', 'EZ-Bar Curl', 3, r.mid, lt, { superset: 'pb_ss_c' }),
         range('pb_triceps_a', 'Rope Pushdown', 3, r.mid, lt, { superset: 'pb_ss_c', rir: 1 }),
       ]
@@ -399,11 +403,11 @@ function buildDay(
       intent = 'Pull heavy, then glutes and hams — and finish with the carry.'
       items = [
         compound('pb_deadlift', 'Deadlift', 'deadlift', pos, maxes, adjustments, 'Reset every rep. No touch-and-go on the heavy sets.'),
-        range('pb_frontsquat', 'Front Squat', 3, r.heavy, lt, { step: 10, note: 'Upright torso — this is the quad answer to Monday.' }),
-        range('pb_hipthrust', 'Hip Thrust', 3, r.mid, lt, { step: 10, note: 'Chin tucked, ribs down, pause at the top.' }),
-        range('pb_legext', 'Leg Extension', 3, r.wide, lt, { rir: 1, superset: 'pb_ss_d' }),
         range('pb_legcurl_b', 'Lying Leg Curl', 3, r.mid, lt, { superset: 'pb_ss_d' }),
-        range('pb_calf_b', 'Seated Calf Raise', 4, r.wide, lt, { step: 10, note: 'Knees bent hits soleus — the half of the calf Monday misses.' }),
+        range('pb_calf_b', 'Seated Calf Raise', 4, r.wide, lt, { step: 10, superset: 'pb_ss_d', note: 'Knees bent hits soleus — the half of the calf Monday misses.' }),
+        range('pb_frontsquat', 'Front Squat', 3, r.heavy, lt, { step: 10, note: 'Upright torso — this is the quad answer to Monday.' }),
+        range('pb_legext', 'Leg Extension', 3, r.wide, lt, { rir: 1 }),
+        range('pb_hipthrust', 'Hip Thrust', 3, r.mid, lt, { step: 10, note: 'Chin tucked, ribs down, pause at the top.' }),
         // Fixed finisher. The block ceiling forced a cut here, and the Ab Wheel
         // lost rather than the calves: this carry is loaded trunk work landing
         // on the same day, so dropping the wheel loses a stimulus that returns
@@ -419,11 +423,11 @@ function buildDay(
       intent = 'Overhead first, then back thickness and the arms that show.'
       items = [
         compound('pb_ohp', 'Overhead Press', 'ohp', pos, maxes, adjustments, 'Strict. Glutes tight, no leg drive.'),
-        range('pb_row_b', 'Barbell Row', 3, r.heavy, lt, { step: 10, note: 'Flat back, pull to the sternum.' }),
-        range('pb_dip', 'Dips', 3, r.heavy, lt, { superset: 'pb_ss_e', note: 'Add load when bodyweight gets easy.' }),
-        range('pb_pulldown', 'Lat Pulldown', 3, r.mid, lt, { superset: 'pb_ss_e', note: 'Wider grip than the row — different job.' }),
         range('pb_reardelt', 'Face Pull', 4, r.wide, lt, { rir: 1, superset: 'pb_ss_f', note: 'Rear delts and the bit of your back that holds posture together.' }),
         range('pb_lateral_b', 'Cable Lateral Raise', 3, r.wide, lt, { rir: 1, superset: 'pb_ss_f' }),
+        range('pb_row_b', 'Barbell Row', 3, r.heavy, lt, { step: 10, note: 'Flat back, pull to the sternum.' }),
+        range('pb_pulldown', 'Lat Pulldown', 3, r.mid, lt, { superset: 'pb_ss_e', note: 'Wider grip than the row — different job.' }),
+        range('pb_dip', 'Dips', 3, r.heavy, lt, { superset: 'pb_ss_e', note: 'Add load when bodyweight gets easy.' }),
         range('pb_curl_b', 'Hammer Curl', 3, r.mid, lt, { superset: 'pb_ss_g' }),
         range('pb_triceps_b', 'Overhead Triceps Extension', 3, r.mid, lt, { superset: 'pb_ss_g', rir: 1 }),
       ]
