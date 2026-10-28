@@ -15,15 +15,18 @@ import {
 //
 // The sibling to Power Dad. Same deterministic engine, opposite emphasis:
 // Power Dad spends its week buying rate of force development, this one
-// spends it buying tissue. Four gym days, upper/lower twice each, Mon-Fri with
-// the weekend genuinely off.
+// spends it buying tissue. Four gym days: push, legs, pull, then shoulders
+// with the posterior chain. One leg day on purpose (athlete's call,
+// 2026-10-28: legs are already his strongest group, the arms get the room).
 //
 // TWO PROGRESSION SYSTEMS, ON PURPOSE. This is the thing that makes the file
 // look different from hybridPower.ts:
 //
-//   · The compound that opens each day is PERCENT-based off a tested 1RM,
-//     waved across the macro exactly like the other programs. Squat, bench,
-//     deadlift and press have a 1RM, so a percentage means something.
+//   · The compound that opens push, legs and shoulders is PERCENT-based off a
+//     tested 1RM, waved across the macro exactly like the other programs.
+//     Squat, bench and press have a 1RM, so a percentage means something.
+//     Pull day has no 1RM lift (deadlifts came out 2026-10-28), so it opens
+//     with weighted pull-ups on double progression instead.
 //
 //   · Everything after it is RANGE-based and progresses by DOUBLE PROGRESSION
 //     (see progression.ts). A cable fly has no 1RM; a percentage of one would
@@ -41,39 +44,42 @@ import {
 // that count is this program's equivalent of Power Dad's percentage floors,
 // and it is the thing to check when editing.
 //
-// SESSION BUDGET: 8 blocks (raised from the 6 that governs Power Dad —
-// athlete's call for this program specifically). Eight is a CEILING, not a
-// quota: the lower days run seven because stuffing an eighth would add junk.
+// SESSION BUDGET: 7 blocks. It was 8 on the upper/lower split; push/legs/
+// pull/shoulders needs fewer per day (athlete, 2026-10-28). Seven is a
+// CEILING, not a quota.
 //
 // 13-week macro, matching every other path so the deload flag, the fatigue
 // check, the test week and the autoreg meso-boundary guard all work unchanged.
 //   M1 (W1-4)  volume:        compounds 4x6 @70-76, ranges wide (12-20)
 //   M2 (W5-8)  intensification: compounds 4x4 @78-84, ranges tighter (10-12)
 //   M3 (W9-12) realization:   compounds 4x3 @85-88, ranges heaviest (8-10)
-//   W12 deload · W13 TEST = rep-max AMRAPs at 85%, capped 8/8/6/8
+//   W12 deload · W13 TEST = rep-max AMRAPs at 85%, capped at 8 (bench,
+//   squat, press); pull day runs its deload session that week
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const MACRO_WEEKS = 13
-const BLOCK_BUDGET = 8
+const BLOCK_BUDGET = 7
 
 /**
- * Which session each gym day runs. Upper / lower / upper / lower — athlete's
- * call, 2026-08-24 (it opened lower/upper/lower/upper).
+ * Which session each gym day runs. Push / legs / pull / shoulders + posterior
+ * chain — athlete's call, 2026-10-28 (it was upper/lower/upper/lower; he
+ * wanted more triceps on bench day, more biceps on back day, one leg day, and
+ * no deadlifts).
  *
  * This is a declared table rather than case labels on the day number so the
  * split is one line to change and impossible to get half-right. Anything keyed
  * to a SESSION — the test-week AMRAP and its rep cap, the wrap card — must be
- * looked up through here too, or reordering the week silently hands the
- * deadlift's cap to the press.
+ * looked up through here too, or reordering the week silently hands one
+ * lift's cap to another.
  *
  * Day numbers are Mon=1 … Sun=7; 2 and 4 are dad miles, 7 is off.
  */
-type Session = 'upperA' | 'lowerA' | 'upperB' | 'lowerB'
+type Session = 'push' | 'legs' | 'pull' | 'shoulders'
 const SESSION_BY_DAY: Record<number, Session> = {
-  1: 'upperA',   // Mon — Bench
-  3: 'lowerA',   // Wed — Squat
-  5: 'upperB',   // Fri — Press
-  6: 'lowerB',   // Sat — Deadlift, and the macro closes here
+  1: 'push',       // Mon — Bench, chest, triceps
+  3: 'legs',       // Wed — Squat, the one leg day
+  5: 'pull',       // Fri — Pull-ups, back, biceps
+  6: 'shoulders',  // Sat — Press, delts, hamstrings and glutes; the macro closes here
 }
 
 interface MacroPos {
@@ -129,43 +135,43 @@ const RANGE_BY_MESO: Record<number, { wide: [number, number]; mid: [number, numb
 export interface MuscleShare { primary: string[]; secondary?: string[] }
 
 export const MUSCLE_MAP: Record<string, MuscleShare> = {
+  // Push
+  pb_bench: { primary: ['chest'], secondary: ['triceps', 'delts'] },
+  pb_incline: { primary: ['chest'], secondary: ['triceps'] },
+  pb_dip: { primary: ['chest'], secondary: ['triceps'] },
+  pb_fly: { primary: ['chest'] },
+  pb_skull: { primary: ['triceps'] },
+  pb_triceps_a: { primary: ['triceps'] },
+  pb_triceps_b: { primary: ['triceps'] },
+
+  // Legs
   pb_squat: { primary: ['quads'], secondary: ['glutes'] },
-  pb_rdl: { primary: ['hamstrings'], secondary: ['glutes'] },
+  pb_split_squat: { primary: ['quads', 'glutes'] },
   pb_legpress: { primary: ['quads'], secondary: ['glutes'] },
   pb_legcurl_a: { primary: ['hamstrings'] },
   pb_calf_a: { primary: ['calves'] },
-  pb_split_squat: { primary: ['quads', 'glutes'] },
+  pb_calf_b: { primary: ['calves'] },
   pb_core_a: { primary: ['core'] },
 
-  pb_bench: { primary: ['chest'], secondary: ['triceps', 'delts'] },
+  // Pull
   pb_pullup: { primary: ['back'], secondary: ['biceps'] },
-  pb_incline: { primary: ['chest'], secondary: ['triceps'] },
-  pb_row_a: { primary: ['back'], secondary: ['biceps'] },
-  pb_lateral_a: { primary: ['delts'] },
-  pb_fly: { primary: ['chest'] },
-  pb_curl_a: { primary: ['biceps'] },
-  pb_triceps_a: { primary: ['triceps'] },
-
-  pb_deadlift: { primary: ['hamstrings'], secondary: ['glutes', 'back'] },
-  pb_frontsquat: { primary: ['quads'] },
-  pb_hipthrust: { primary: ['glutes'] },
-  pb_legext: { primary: ['quads'] },
-  pb_legcurl_b: { primary: ['hamstrings'] },
-  pb_calf_b: { primary: ['calves'] },
-  // The carry IS trunk work — anti-lateral-flexion under load — so it earns
-  // credit. The jump primers earn none on purpose: they prime the CNS, they do
-  // not build tissue, and counting them would inflate leg volume with work
-  // that never grew anything.
-  pb_carry: { primary: ['core'], secondary: ['back'] },
-
-  pb_ohp: { primary: ['delts'], secondary: ['triceps'] },
   pb_row_b: { primary: ['back'], secondary: ['biceps'] },
-  pb_dip: { primary: ['chest'], secondary: ['triceps'] },
+  pb_row_a: { primary: ['back'], secondary: ['biceps'] },
   pb_pulldown: { primary: ['back'], secondary: ['biceps'] },
-  pb_reardelt: { primary: ['delts'] },
-  pb_lateral_b: { primary: ['delts'] },
+  pb_curl_a: { primary: ['biceps'] },
+  pb_curl_c: { primary: ['biceps'] },
   pb_curl_b: { primary: ['biceps'] },
-  pb_triceps_b: { primary: ['triceps'] },
+
+  // Shoulders + posterior chain
+  pb_ohp: { primary: ['delts'], secondary: ['triceps'] },
+  pb_lateral_a: { primary: ['delts'] },
+  pb_reardelt: { primary: ['delts'] },
+  pb_rdl: { primary: ['hamstrings'], secondary: ['glutes'] },
+  pb_legcurl_b: { primary: ['hamstrings'] },
+  pb_hipthrust: { primary: ['glutes'] },
+  // The carry IS trunk work — anti-lateral-flexion under load — so it earns
+  // credit.
+  pb_carry: { primary: ['core'], secondary: ['back'] },
 }
 
 /** Fractional weekly set credit for one prescribed block. */
@@ -265,7 +271,10 @@ const E1RM_NOTE = 'e1RM = weight × (1 + reps/30). Put the result in your maxes 
  * that ran to 14 would produce a number the app then declines to use.
  * Deadlift caps lower because heavy pulls get ugly past six.
  */
-function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
+function testDay(
+  dayNumber: number, maxes: Record<string, number>,
+  adjustments: Record<string, number>, lt: Record<string, number>,
+): DayPlan {
   const amrap = (slot: string, name: string, maxKey: string, cap: number): LiftPrescription => ({
     kind: 'lift', slot, name: name + ' — AMRAP @ 85%', maxKey, percent: 85,
     sets: 1, reps: cap,
@@ -276,36 +285,39 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
   })
 
   // Keyed by SESSION, not day number: each lift keeps its own rep cap when the
-  // week is reordered. Keying these to the day is how the deadlift's cap of 6
-  // would silently land on the press.
+  // week is reordered.
   const wrapCard = {
     kind: 'outside' as const, slot: 'pb_wrap', title: 'Update your maxes',
     parts: [
       'Convert each AMRAP: weight × (1 + reps/30)',
-      'Enter all four — squat, bench, deadlift, press',
+      'Enter all three — squat, bench, press',
       'Next macro recomputes the moment you do',
     ],
   }
   // The wrap closes the macro, so it belongs to whichever session runs last.
   const lastSession = SESSION_BY_DAY[Math.max(...Object.keys(SESSION_BY_DAY).map(Number))]
 
+  // Pull day has no 1RM lift to test, so test week runs its deload session:
+  // keeps the back and biceps ticking over between the AMRAP days.
+  const pullPos: MacroPos = { weekInMacro: 13, meso: 3, weekInMeso: 4, isDeload: true, isTest: true }
+  const pull = session('pull', pullPos, maxes, adjustments, lt)
   const bySession: Record<Session, DayPlan> = {
-    lowerA: {
-      dayNumber, dayName: 'TEST — Squat AMRAP', dayType: 'test',
-      sessionIntent: 'One all-out set at 85%. Warm up properly, then send it — capped at 8.',
-      items: [amrap('test_squat', 'Back Squat', 'back_squat', 8)],
-    },
-    upperA: {
+    push: {
       dayNumber, dayName: 'TEST — Bench AMRAP', dayType: 'test',
       sessionIntent: 'One all-out set at 85%, capped at 8. Get a spot.',
       items: [amrap('test_bench', 'Bench Press', 'bench', 8)],
     },
-    lowerB: {
-      dayNumber, dayName: 'TEST — Deadlift AMRAP', dayType: 'test',
-      sessionIntent: 'One all-out set at 85%, capped at 6. Reset every rep.',
-      items: [amrap('test_dl', 'Deadlift', 'deadlift', 6)],
+    legs: {
+      dayNumber, dayName: 'TEST — Squat AMRAP', dayType: 'test',
+      sessionIntent: 'One all-out set at 85%. Warm up properly, then send it — capped at 8.',
+      items: [amrap('test_squat', 'Back Squat', 'back_squat', 8)],
     },
-    upperB: {
+    pull: {
+      dayNumber, dayName: pull.dayName + ' (easy)', dayType: 'gym',
+      sessionIntent: 'Test week — no max to chase on pull day. Two easy sets each, then go home.',
+      items: deloadify(pull.items, maxes),
+    },
+    shoulders: {
       dayNumber, dayName: 'TEST — Press AMRAP', dayType: 'test',
       sessionIntent: 'Strict press at 85%, capped at 8.',
       items: [amrap('test_ohp', 'Overhead Press', 'ohp', 8)],
@@ -337,6 +349,84 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
 // MUSCLE_MAP credit, so weekly hard sets per muscle are unchanged. The Farmer
 // Carry stays: it is loaded carrying, not jumping.
 
+/**
+ * One session's lifts, before any deload treatment.
+ *
+ * ORDER RULE (athlete, 2026-10-28): a muscle's exercises run back to back.
+ * The only thing allowed to split a muscle's run is a superset partner.
+ * scripts/checks/dadbuilt-grouping.mjs holds every day to this.
+ */
+function session(
+  sess: Session, pos: MacroPos, maxes: Record<string, number>,
+  adjustments: Record<string, number>, lt: Record<string, number>,
+): { dayName: string; intent: string; items: Prescription[] } {
+  const r = RANGE_BY_MESO[pos.meso]
+  switch (sess) {
+    case 'push':
+      return {
+        dayName: 'Push — Bench',
+        intent: 'Press heavy, finish the chest, then give the triceps a real day.',
+        items: [
+          compound('pb_bench', 'Bench Press', 'bench', pos, maxes, adjustments),
+          range('pb_incline', 'Incline DB Press', 3, r.mid, lt),
+          range('pb_dip', 'Dips', 3, r.heavy, lt, { note: 'Add load when bodyweight gets easy.' }),
+          range('pb_fly', 'Cable Fly', 3, r.wide, lt),
+          range('pb_skull', 'EZ-Bar Skull Crusher', 3, r.heavy, lt, { note: 'Bar to the forehead, elbows stay pointed up.' }),
+          range('pb_triceps_a', 'Rope Pushdown', 3, r.mid, lt, { superset: 'pb_ss_c', rir: 1 }),
+          range('pb_triceps_b', 'Overhead Triceps Extension', 3, r.mid, lt, { superset: 'pb_ss_c', rir: 1, note: 'Long head — the stretch overhead is the point.' }),
+        ],
+      }
+
+    case 'legs':
+      return {
+        dayName: 'Legs — Squat',
+        intent: 'The one leg day. Squat heavy, then everything that makes legs bigger.',
+        items: [
+          compound('pb_squat', 'Back Squat', 'back_squat', pos, maxes, adjustments, 'The strength anchor — everything after this is volume.'),
+          range('pb_split_squat', 'Bulgarian Split Squat', 3, r.heavy, lt, { note: 'Per leg. DBs in hand.' }),
+          range('pb_legpress', 'Leg Press', 3, r.mid, lt, { step: 10 }),
+          range('pb_legcurl_a', 'Seated Leg Curl', 3, r.mid, lt, { superset: 'pb_ss_a' }),
+          range('pb_calf_a', 'Standing Calf Raise', 4, r.wide, lt, { superset: 'pb_ss_a', step: 10, note: 'Pause at the bottom. Calves answer to stretch, not bounce.' }),
+          range('pb_calf_b', 'Seated Calf Raise', 4, r.wide, lt, { step: 10, note: 'Knees bent hits soleus — the half of the calf the standing raise misses.' }),
+          range('pb_core_a', 'Hanging Leg Raise', 3, r.wide, lt, { rir: 1 }),
+        ],
+      }
+
+    case 'pull':
+      // No 1RM lift opens this day: the heavy pull-up is the anchor, on double
+      // progression like everything else here.
+      return {
+        dayName: 'Pull — Back',
+        intent: 'Pull heavy, row hard, then give the biceps a real day.',
+        items: [
+          range('pb_pullup', 'Weighted Pull-Up', 4, r.heavy, lt, { note: 'The anchor today. Add load when the top of the range is easy. Dead hang to chin over.' }),
+          range('pb_row_b', 'Barbell Row', 3, r.heavy, lt, { step: 10, note: 'Flat back, pull to the sternum.' }),
+          range('pb_row_a', 'Chest-Supported Row', 3, r.mid, lt, { note: 'Chest stays down. No body english.' }),
+          range('pb_pulldown', 'Lat Pulldown', 3, r.mid, lt, { note: 'Wider grip than the rows — different job.' }),
+          range('pb_curl_a', 'EZ-Bar Curl', 3, r.mid, lt),
+          range('pb_curl_c', 'Incline DB Curl', 3, r.wide, lt, { superset: 'pb_ss_g', note: 'Arms hang behind you — the stretch is the point.' }),
+          range('pb_curl_b', 'Hammer Curl', 3, r.mid, lt, { superset: 'pb_ss_g' }),
+        ],
+      }
+
+    case 'shoulders':
+      return {
+        dayName: 'Shoulders + Hinge',
+        intent: 'Press overhead, build the delts, then hamstrings and glutes — and finish with the carry.',
+        items: [
+          compound('pb_ohp', 'Overhead Press', 'ohp', pos, maxes, adjustments, 'Strict. Glutes tight, no leg drive.'),
+          range('pb_lateral_a', 'Lateral Raise', 4, r.wide, lt, { rir: 1, superset: 'pb_ss_f', note: 'Light. Delts do not care what the number is — 2.5s if the rack has them.' }),
+          range('pb_reardelt', 'Face Pull', 4, r.wide, lt, { rir: 1, superset: 'pb_ss_f', note: 'Rear delts and the bit of your back that holds posture together.' }),
+          range('pb_rdl', 'Romanian Deadlift', 4, r.heavy, lt, { step: 10, note: 'Hinge, do not squat it. Stretch is the point.' }),
+          range('pb_legcurl_b', 'Lying Leg Curl', 3, r.mid, lt),
+          range('pb_hipthrust', 'Hip Thrust', 3, r.mid, lt, { step: 10, note: 'Chin tucked, ribs down, pause at the top.' }),
+          { kind: 'plyo', slot: 'pb_carry', name: 'Farmer Carry', sets: 3, reps: 1,
+            note: '40yd per trip, heavy. Grip is the event — walk tall, ribs down, no leaning.' },
+        ],
+      }
+  }
+}
+
 function buildDay(
   weekNumber: number, dayNumber: number,
   maxes: Record<string, number>,
@@ -345,10 +435,9 @@ function buildDay(
 ): DayPlan {
   const pos = macroPos(weekNumber)
   if (opts?.forceDeload && !pos.isTest) pos.isDeload = true
-  if (pos.isTest) return testDay(dayNumber, maxes)
+  if (pos.isTest) return testDay(dayNumber, maxes, adjustments, opts?.loadTargets ?? {})
 
   const lt = opts?.loadTargets ?? {}
-  const r = RANGE_BY_MESO[pos.meso]
 
   // Tue and Thu are the easy days, and stay easy. Sunday is not rendered at
   // all (daysPerWeek 6) — the week genuinely ends on Saturday.
@@ -360,82 +449,12 @@ function buildDay(
     }
   }
 
-  // ORDER RULE (athlete, 2026-10-28): a muscle's exercises run back to back.
-  // The only thing allowed to split a muscle's run is a superset partner,
-  // which is why each pair below sits at the seam between two muscles.
-  // scripts/checks/dadbuilt-grouping.mjs holds every day to this.
-  let items: Prescription[]
-  let dayName: string
-  let intent: string
-
-  switch (SESSION_BY_DAY[dayNumber]) {
-    case 'lowerA':
-      dayName = 'Lower A — Squat'
-      intent = 'Squat heavy, then everything that makes legs bigger.'
-      items = [
-        compound('pb_squat', 'Back Squat', 'back_squat', pos, maxes, adjustments, 'The strength anchor — everything after this is volume.'),
-        range('pb_split_squat', 'Bulgarian Split Squat', 3, r.heavy, lt, { note: 'Per leg. DBs in hand.' }),
-        range('pb_legpress', 'Leg Press', 3, r.mid, lt, { step: 10 }),
-        range('pb_rdl', 'Romanian Deadlift', 3, r.heavy, lt, { step: 10, note: 'Hinge, do not squat it. Stretch is the point.' }),
-        range('pb_legcurl_a', 'Seated Leg Curl', 3, r.mid, lt, { superset: 'pb_ss_a' }),
-        range('pb_calf_a', 'Standing Calf Raise', 4, r.wide, lt, { superset: 'pb_ss_a', step: 10, note: 'Pause at the bottom. Calves answer to stretch, not bounce.' }),
-        range('pb_core_a', 'Hanging Leg Raise', 3, r.wide, lt, { rir: 1 }),
-      ]
-      break
-
-    case 'upperA':
-      dayName = 'Upper A — Bench'
-      intent = 'Press heavy, row hard, then chase the pump.'
-      items = [
-        compound('pb_bench', 'Bench Press', 'bench', pos, maxes, adjustments),
-        range('pb_incline', 'Incline DB Press', 3, r.mid, lt),
-        range('pb_fly', 'Cable Fly', 3, r.wide, lt, { superset: 'pb_ss_b' }),
-        range('pb_row_a', 'Chest-Supported Row', 3, r.mid, lt, { superset: 'pb_ss_b', note: 'Chest stays down. No body english.' }),
-        range('pb_pullup', 'Weighted Pull-Up', 3, r.heavy, lt, { note: 'Add load when the top of the range is easy. Dead hang to chin over.' }),
-        range('pb_lateral_a', 'Lateral Raise', 4, r.wide, lt, { rir: 1, note: 'Light. Delts do not care what the number is — 2.5s if the rack has them.' }),
-        range('pb_curl_a', 'EZ-Bar Curl', 3, r.mid, lt, { superset: 'pb_ss_c' }),
-        range('pb_triceps_a', 'Rope Pushdown', 3, r.mid, lt, { superset: 'pb_ss_c', rir: 1 }),
-      ]
-      break
-
-    case 'lowerB':
-      dayName = 'Lower B — Hinge'
-      intent = 'Pull heavy, then glutes and hams — and finish with the carry.'
-      items = [
-        compound('pb_deadlift', 'Deadlift', 'deadlift', pos, maxes, adjustments, 'Reset every rep. No touch-and-go on the heavy sets.'),
-        range('pb_legcurl_b', 'Lying Leg Curl', 3, r.mid, lt, { superset: 'pb_ss_d' }),
-        range('pb_calf_b', 'Seated Calf Raise', 4, r.wide, lt, { step: 10, superset: 'pb_ss_d', note: 'Knees bent hits soleus — the half of the calf Monday misses.' }),
-        range('pb_frontsquat', 'Front Squat', 3, r.heavy, lt, { step: 10, note: 'Upright torso — this is the quad answer to Monday.' }),
-        range('pb_legext', 'Leg Extension', 3, r.wide, lt, { rir: 1 }),
-        range('pb_hipthrust', 'Hip Thrust', 3, r.mid, lt, { step: 10, note: 'Chin tucked, ribs down, pause at the top.' }),
-        // Fixed finisher. The block ceiling forced a cut here, and the Ab Wheel
-        // lost rather than the calves: this carry is loaded trunk work landing
-        // on the same day, so dropping the wheel loses a stimulus that returns
-        // two blocks later — while nothing else on Lower B trains calves, and
-        // cutting them left calves the only muscle under band at 4 sets/week.
-        { kind: 'plyo', slot: 'pb_carry', name: 'Farmer Carry', sets: 3, reps: 1,
-          note: '40yd per trip, heavy. Grip is the event — walk tall, ribs down, no leaning.' },
-      ]
-      break
-
-    case 'upperB':
-      dayName = 'Upper B — Press'
-      intent = 'Overhead first, then back thickness and the arms that show.'
-      items = [
-        compound('pb_ohp', 'Overhead Press', 'ohp', pos, maxes, adjustments, 'Strict. Glutes tight, no leg drive.'),
-        range('pb_reardelt', 'Face Pull', 4, r.wide, lt, { rir: 1, superset: 'pb_ss_f', note: 'Rear delts and the bit of your back that holds posture together.' }),
-        range('pb_lateral_b', 'Cable Lateral Raise', 3, r.wide, lt, { rir: 1, superset: 'pb_ss_f' }),
-        range('pb_row_b', 'Barbell Row', 3, r.heavy, lt, { step: 10, note: 'Flat back, pull to the sternum.' }),
-        range('pb_pulldown', 'Lat Pulldown', 3, r.mid, lt, { superset: 'pb_ss_e', note: 'Wider grip than the row — different job.' }),
-        range('pb_dip', 'Dips', 3, r.heavy, lt, { superset: 'pb_ss_e', note: 'Add load when bodyweight gets easy.' }),
-        range('pb_curl_b', 'Hammer Curl', 3, r.mid, lt, { superset: 'pb_ss_g' }),
-        range('pb_triceps_b', 'Overhead Triceps Extension', 3, r.mid, lt, { superset: 'pb_ss_g', rir: 1 }),
-      ]
-      break
-
-    default:
-      return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Off. Growth happens here.', items: [] }
-  }
+  const sess = SESSION_BY_DAY[dayNumber]
+  if (!sess) return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Off. Growth happens here.', items: [] }
+  const built = session(sess, pos, maxes, adjustments, lt)
+  let items = built.items
+  let intent = built.intent
+  const dayName = built.dayName
 
   if (pos.isDeload) {
     // Primers and the carry come out entirely — a deload is not the week to
@@ -452,14 +471,13 @@ export const dadBuilt: ProgramConfig = {
   name: 'Dad Built',
   tagline: 'powerbuilding · athletic hypertrophy',
   description:
-    'Built for the dad who wants to look like he lifts and still move like an athlete. Four gym days — lower Monday and Friday, upper Wednesday and Saturday — with easy dad miles on Tuesday and Thursday and Sunday fully off. Every gym day opens with one heavy top-set wave off a tested 1RM, then volume in rep ranges that actually progresses week to week: hold the weight until every set clears the top of the range, then add load. 13-week macro, deload week 12, rep-max test week 13.',
+    'Built for the dad who wants to look like he lifts and still move like an athlete. Four gym days: push Monday, legs Wednesday, pull Friday, shoulders and hinge Saturday, with easy dad miles on Tuesday and Thursday and Sunday fully off. Bench, squat and press days open with one heavy top-set wave off a tested 1RM; pull day opens with heavy weighted pull-ups. Then volume in rep ranges that actually progresses week to week: hold the weight until every set clears the top of the range, then add load. 13-week macro, deload week 12, rep-max test week 13.',
   daysPerWeek: 6,
   gymDayNumbers: [1, 3, 5, 6],
   macroWeeks: MACRO_WEEKS,
   requiredMaxes: [
     { key: 'back_squat', label: 'Back Squat', hint: 'Best recent single (lbs)' },
     { key: 'bench', label: 'Bench Press', hint: 'Best recent single (lbs)' },
-    { key: 'deadlift', label: 'Deadlift', hint: 'Best recent single (lbs)' },
     { key: 'ohp', label: 'Overhead Press', hint: 'Strict press single — estimate: best 5×5 × 1.15' },
   ],
   buildDay,
