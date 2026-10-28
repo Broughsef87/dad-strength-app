@@ -2,7 +2,7 @@
 // finishing a session (the day page) and skipping a day (the schedule page).
 
 import { runStartedAt } from './run'
-import { scheduledDoneDays, sessionsThisWeek } from './schedule'
+import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from './schedule'
 import type { ProgramConfig } from './types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +23,17 @@ export function skippedDays(prefs: unknown, week: number): number[] {
     .filter((s): s is SkippedDay => typeof s?.week === 'number' && typeof s?.day === 'number')
     .filter(s => s.week === week)
     .map(s => s.day)
+}
+
+/**
+ * The day "start session" opens: the first scheduled day of the week neither
+ * done nor skipped. A week where every day is done or skipped has already
+ * moved on, so the fallbacks only cover a read that raced it.
+ */
+export function nextOpenDay(program: ProgramConfig, week: number, done: number[], skipped: number[]): number {
+  const sched = scheduledDayNumbers(program, week)
+  return sched.find(d => !done.includes(d) && !skipped.includes(d))
+    ?? sched.find(d => !done.includes(d)) ?? sched[0] ?? 1
 }
 
 /** Whether `week` is finished: every session it asks for is done or skipped. */

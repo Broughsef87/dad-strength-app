@@ -80,13 +80,11 @@ export async function computeAdjustments(
     .gte('created_at', runStart)
     .order('created_at', { ascending: true }).limit(1)
   const workoutId: string | undefined = workouts?.[0]?.id
-  // No row: last week's session was never opened, so it was skipped (a week
-  // only moves on when every day is done or skipped). Nothing was shown and
-  // nothing was lifted, so there is no new signal, but what last week WOULD
-  // have shown carries on unchanged. Returning {} here dropped a standing
-  // carry (a -4% for a grinder) just because a day was skipped. Bounded: the
-  // week-1 / deload / test guard above ends the walk back.
-  if (!workoutId) return computeAdjustments(supabase, userId, program, prevWeek, dayNumber, runStart, maxes)
+  // No row: last week's session was never opened (skipped). Nothing was
+  // shown or lifted, so the table numbers stand. Walking further back to carry
+  // an older adjustment was tried (Codex r2) and is wrong across a slot
+  // rotation and through a flagged deload; a skip resets the carry instead.
+  if (!workoutId) return {}
   const prevAdj = ((workouts?.[0]?.workout_data as { adjustments?: unknown } | null)?.adjustments
     ?? {}) as Record<string, number>
 

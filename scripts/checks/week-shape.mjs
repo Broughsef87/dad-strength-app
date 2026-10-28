@@ -25,7 +25,7 @@ import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import {
   scheduledDayNumbers, sessionsThisWeek, scheduledDoneDays, dayLabel, isCompletable,
 } from '../../src/lib/programs/schedule.ts'
-import { weekFinished, skippedDays } from '../../src/lib/programs/advance.ts'
+import { weekFinished, skippedDays, nextOpenDay } from '../../src/lib/programs/advance.ts'
 
 const MAXES = {
   snatch: 205, clean_jerk: 260,
@@ -237,6 +237,10 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
     'skippedDays reads only well-formed entries for the asked week')
   assert(skippedDays(null, 1).length === 0 && skippedDays({ skipped_days: 'x' }, 1).length === 0,
     'missing or malformed preferences mean no skips')
+
+  // "start session" opens the first day neither done nor skipped.
+  assert(nextOpenDay(hy, 13, [], [w13[0]]) === w13[1], 'start session passes over a skipped day')
+  assert(nextOpenDay(hy, 13, [w13[1]], [w13[0]]) === w13[2], 'start session passes over done and skipped days')
 
   // ...and the function that moves the pointer still uses that rule.
   const adv = readLF('../../src/lib/programs/advance.ts')
