@@ -20,6 +20,7 @@ import MaxesCard from '../../../components/MaxesCard'
 import { RUN_EPOCH } from '../../../lib/programs/run'
 import { blockCount, dayLabel, scheduledDayNumbers } from '../../../lib/programs/schedule'
 import { PREP_MINUTES, exposureWeek, rampOriginFor, rampStage } from '../../../lib/programs/prep'
+import { advanceWeekIfDone, skippedDays } from '../../../lib/programs/advance'
 
 interface DoneMap { [week: number]: Set<number> }
 
@@ -58,6 +59,7 @@ export default function SchedulePage() {
   // week: the origin in force depends on the week being drawn, so a restart
   // today cannot rewrite what a completed week prescribed.
   const [jumpRampRestarts, setJumpRampRestarts] = useState<number[]>([])
+  const [skipping, setSkipping] = useState(false)
 
   const load = useCallback(async () => {
     if (!user || !program) return
@@ -173,6 +175,7 @@ export default function SchedulePage() {
     full: 'full — every jump as written',
   }
   const doneDays = doneMap[selectedWeek] ?? new Set<number>()
+  const skippedThisWeek = skippedDays(prefsRef.current, selectedWeek)
 
   const weekTag = (wim: number, wk?: number) =>
     wim === program.macroWeeks ? 'test'
@@ -211,6 +214,28 @@ export default function SchedulePage() {
     await supabase.from('user_programs')
       .update({ preferences: prefsRef.current })
       .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')
+  }
+
+  // Skip a missed day of the active week. Writes no session (a skip is not
+  // training), records the day in preferences, and moves the week on if that
+  // was the last day it was waiting for. See src/lib/programs/advance.ts.
+  const skipDay = async (day: number) => {
+    if (!user || skipping) return
+    if (!window.confirm('skip this day? nothing gets logged, and the week moves on once every other day is done or skipped. you can still train it later.')) return
+    setSkipping(true)
+    try {
+      const prior = (prefsRef.current as { skipped_days?: unknown }).skipped_days
+      const next = [...(Array.isArray(prior) ? prior : []), { week: currentWeek, day }]
+      prefsRef.current = { ...prefsRef.current, skipped_days: next }
+      const { error } = await supabase.from('user_programs')
+        .update({ preferences: prefsRef.current })
+        .eq('user_id', user.id).eq('program_slug', slug).eq('status', 'active')
+      if (error) { window.alert('could not skip that day. try again.'); return }
+      await advanceWeekIfDone(supabase, user.id, slug, program)
+      await load()
+    } finally {
+      setSkipping(false)
+    }
   }
 
   const dismissFatigueCheck = async () => {
@@ -323,13 +348,17 @@ export default function SchedulePage() {
 
           {weekPlans.map(({ day: d, plan }) => {
             const done = doneDays.has(d)
+            const skipped = skippedThisWeek.includes(d)
+            // Only the active week: skipping exists to let it move on. A
+            // previewed week has nothing to unblock.
+            const canSkip = selectedWeek === currentWeek && !done && !skipped
             const isGym = program.gymDayNumbers.includes(d)
             const Icon = plan.dayType === 'test' ? FlaskConical : isGym ? Dumbbell : Wind
             return (
+              <div key={d} className="flex items-stretch gap-2">
               <button
-                key={d}
                 onClick={() => router.push(`/train/${slug}/${d}${selectedWeek !== currentWeek ? `?week=${selectedWeek}` : ''}`)}
-                className="tile w-full text-left p-3.5 flex items-center gap-3 group"
+                className="tile flex-1 min-w-0 text-left p-3.5 flex items-center gap-3 group"
               >
                 <span className="data-mono w-9 shrink-0">{dayLabel(plan)}</span>
                 <Icon size={14} className={done ? 'text-brand' : 'text-muted-foreground'} />
@@ -341,8 +370,21 @@ export default function SchedulePage() {
                 </div>
                 {done
                   ? <span className="chip-live shrink-0">done</span>
-                  : <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />}
+                  : skipped
+                    ? <span className="pill-quiet px-2.5 py-1 text-[11px] shrink-0">skipped</span>
+                    : <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />}
               </button>
+              {canSkip && (
+                <button
+                  onClick={() => void skipDay(d)}
+                  disabled={skipping}
+                  title="missed it? skip this day so the week can move on. nothing is logged."
+                  className="pill-quiet px-3 py-2 text-[11px] shrink-0 hover:text-foreground transition-colors disabled:saturate-[.15]"
+                >
+                  skip
+                </button>
+              )}
+              </div>
             )
           })}
         </section>

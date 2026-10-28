@@ -28,6 +28,7 @@ import { findOrCreateSession } from '../../../../lib/sessionLookup'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
+import { advanceWeekIfDone, fetchDoneDays } from '../../../../lib/programs/advance'
 import { withSetCount } from '../../../../lib/programs/setPlan'
 import { BAR, plateString } from '../../../../lib/plates'
 import { TIME_CONSTRAINED_MAX_SETS } from '../../../../lib/programs/timeConstrained'
@@ -202,56 +203,6 @@ async function fetchProgramState(
     week: prog?.current_week ?? 1,
     deloadWeeks: Array.isArray(dw) ? dw.filter((n: unknown) => typeof n === 'number') : [],
   }
-}
-
-async function fetchDoneDays(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any, userId: string, slug: string, weekNumber: number,
-): Promise<number[]> {
-  const { data: workouts } = await supabase
-    .from('generated_workouts')
-    .select('id')
-    .eq('user_id', userId).eq('program_slug', slug).eq('week_number', weekNumber)
-    // this run only — see src/lib/programs/run.ts
-    .gte('created_at', await runStartedAt(supabase, userId, slug))
-  const ids: string[] = (workouts ?? []).map((w: { id: string }) => w.id)
-  if (!ids.length) return []
-
-  const { data: rows } = await supabase
-    .from('ares_session_logs')
-    .select('day_number')
-    .eq('user_id', userId).in('generated_workout_id', ids)
-    .eq('log_type', 'session_complete')
-  return [...new Set((rows ?? []).map((r: { day_number: number }) => r.day_number))].sort() as number[]
-}
-
-// Only advances user_programs.current_week when the CURRENT week is fully
-// logged — completing a previewed future/past week never moves the pointer.
-async function advanceWeekIfDone(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any, userId: string, slug: string, program: ProgramConfig,
-): Promise<void> {
-  const { week: weekNumber } = await fetchProgramState(supabase, userId, slug)
-  // Only days the program still SCHEDULES count toward finishing the week.
-  // A legacy day-7 sentinel from before Power Dad dropped Sunday would
-  // otherwise stand in for a session never trained, and the week would
-  // advance a day early — permanently, since current_week drives the macro
-  // position the whole percent engine reads.
-  //
-  // It takes the PROGRAM, not daysPerWeek, because that number is a count
-  // and not a range: the days a week runs on are whatever buildDay does not
-  // call a rest day. See src/lib/programs/schedule.ts.
-  const doneDays = scheduledDoneDays(
-    await fetchDoneDays(supabase, userId, slug, weekNumber), program, weekNumber)
-  // ...and the THRESHOLD is what this week asks for, not the headline
-  // daysPerWeek. They diverge in test week: Hybrid Dad schedules 5
-  // sessions in W13 against a daysPerWeek of 6, so measured against the
-  // headline it could never advance out of week 13. Dad Built schedules 7.
-  if (doneDays.length < sessionsThisWeek(program, weekNumber)) return
-  await supabase
-    .from('user_programs')
-    .update({ current_week: weekNumber + 1 })
-    .eq('user_id', userId).eq('program_slug', slug).eq('status', 'active')
 }
 
 async function fetchMaxes(
