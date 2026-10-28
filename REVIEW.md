@@ -338,10 +338,11 @@ Each item is labelled as verified (reproduced or measured) or read only.
    lock would refuse it: a payment with no Pro. Run
    `scripts/checks/billing-columns-proof.sql` against a replayed copy only.
    **Do not run either proof against production.**
-3. **At least a day after step 1 is live** (so tabs opened on the old code have
-   reloaded), apply `supabase/migrations/20261026_one_session_row_per_run.sql`,
-   then `supabase/pending/20261026_set_log_key_includes_slot.sql`. An old tab
-   has no fallback for the key swap, and every set save in it would fail.
+3. **Hold** `supabase/migrations/20261026_one_session_row_per_run.sql` and
+   `supabase/pending/20261026_set_log_key_includes_slot.sql` until a follow-up
+   ships that forces tabs and installed apps on an older build to reload.
+   Waiting does not guarantee every open tab reloads, and an old tab has no
+   fallback for the key swap: every set save in it would fail.
 5. Before launch: decide items 1 and 12, fix item 6, upgrade per item 21.
 
 Per CLAUDE.md, items touching Stripe, billing, auth or secrets are gated on

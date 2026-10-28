@@ -56,6 +56,12 @@ function fakeDb(tables, failing = () => null) {
         eq(k, v) { q.filters.push((r) => r[k] === v); return b },
         is(k, v) { q.filters.push((r) => (r[k] ?? null) === v); return b },
         lt(k, v) { q.filters.push((r) => r[k] < v); return b },
+        // Only the shape the webhook uses: "col.is.null,col.lt.<value>".
+        or(expr) {
+          const [, col, val] = expr.match(/^(\w+)\.is\.null,\1\.lt\.(.+)$/) ?? []
+          if (!col) throw new Error('fake or(): unsupported ' + expr)
+          q.filters.push((r) => r[col] == null || r[col] < val); return b
+        },
         maybeSingle() { return Promise.resolve(run()) },
         then(res, rej) { return Promise.resolve(run()).then(res, rej) },
       }
@@ -154,6 +160,26 @@ if (processEvent) {
       const t = { user_profiles: [profile({ founder_pass: true, subscription_tier: 'pro' })] }
       await processEvent(fakeDb(t), fakeStripe({ cus_1: [] }), subEvent('evt_9', 'customer.subscription.deleted', { id: 'sub_A', status: 'canceled' }))
       assert(t.user_profiles[0].subscription_tier === 'pro', 'a Founder\'s Pass keeps Pro')
+    }
+
+    // 9. A slow delivery that read Stripe BEFORE a later one wrote cannot undo it.
+    {
+      const t = { user_profiles: [profile({ subscription_updated_at: new Date(Date.now() + 60_000).toISOString(), subscription_status: 'canceled' })] }
+      await processEvent(fakeDb(t), fakeStripe({ cus_1: [sub('sub_A', 'active')] }), subEvent('evt_10', 'customer.subscription.updated', { id: 'sub_A', status: 'active' }))
+      assert(t.user_profiles[0].subscription_tier === 'free' && t.user_profiles[0].subscription_status === 'canceled', 'an older read of Stripe does not overwrite a newer one')
+    }
+
+    // 10. A delivery that overran its lease cannot stamp the retry's work as done.
+    {
+      const t = { user_profiles: [profile()] }
+      const db = fakeDb(t)
+      const stripe = { subscriptions: { list: async () => {
+        // While this delivery runs, its lease expires and a retry takes it over.
+        t.stripe_webhook_events[0].created_at = 'taken-by-retry'
+        return { data: [sub('sub_A', 'active')] }
+      } } }
+      await processEvent(db, stripe, subEvent('evt_11', 'customer.subscription.created', { id: 'sub_A', status: 'active' }))
+      assert(!t.stripe_webhook_events[0].processed_at, 'a lease that was taken over is not stamped by its old holder')
     }
   } finally { restore() }
 }

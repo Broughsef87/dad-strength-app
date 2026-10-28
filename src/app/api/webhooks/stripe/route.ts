@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 })
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+  // Bounded well inside the 60s claim lease (src/lib/stripeWebhook.ts).
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { timeout: 10_000, maxNetworkRetries: 1 })
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 

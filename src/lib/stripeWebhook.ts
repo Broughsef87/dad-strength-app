@@ -70,8 +70,10 @@ export async function processEvent(supabase: Admin, stripe: StripeReader, event:
     return { status: 500, body: { error: 'Webhook handler failed' } }
   }
   if (claimed) {
+    // Only while the lease is still ours: a delivery that overran it must not
+    // mark done the work of the retry that took it over.
     const { error: stampError } = await supabase.from('stripe_webhook_events')
-      .update({ processed_at: new Date().toISOString() }).eq('event_id', event.id)
+      .update({ processed_at: new Date().toISOString() }).eq('event_id', event.id).eq('created_at', mine)
     // The work is done; an unstamped claim only means a redelivery would redo it.
     if (stampError) console.error('Webhook: could not stamp processed:', event.id, stampError.message)
   }
@@ -131,6 +133,10 @@ function liveSubscription(subs: Stripe.Subscription[]): Stripe.Subscription | nu
 async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: string, userId?: string | null): Promise<void> {
   const profile = await profileFor(supabase, customerId, userId)
   if (!profile) return
+  // The time of THIS read of Stripe. Two deliveries for one customer can
+  // overlap; the write below lands only if nothing read later has already
+  // been written, so a slow delivery cannot put back a state Stripe has left.
+  const readAt = new Date().toISOString()
   const { data: subs } = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
   const live = liveSubscription(subs)
   must(await supabase.from('user_profiles').update({
@@ -138,8 +144,8 @@ async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: s
     subscription_tier: live?.status === 'active' || profile.founder_pass ? 'pro' : 'free',
     subscription_status: live?.status ?? 'canceled',
     stripe_subscription_id: live?.id ?? null,
-    subscription_updated_at: new Date().toISOString(),
-  }).eq('id', profile.id), 'subscription sync')
+    subscription_updated_at: readAt,
+  }).eq('id', profile.id).or(`subscription_updated_at.is.null,subscription_updated_at.lt.${readAt}`), 'subscription sync')
 }
 
 async function handle(supabase: Admin, stripe: StripeReader, event: Stripe.Event): Promise<void> {
