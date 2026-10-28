@@ -223,9 +223,15 @@ for (let w = 1; w <= 13; w++) {
 }
 
 // ── DoD 1: every % slot's computed weight, W1-W13 ───────────────────────────
-// Andrew, 2026-10-28: never two calf exercises in one day.
+// Andrew, 2026-10-28: never two calf exercises in one day. Counted by what
+// the exercise trains (MUSCLE_MAP), not by its set credit.
+const isCalf = (i) => MUSCLE_MAP[i.slot]?.primary.includes('calves') ?? false
+{
+  const twoCalves = [{ slot: 'pb_calf_a', sets: 4 }, { slot: 'pb_calf_a', sets: 3 }, { slot: 'pb_squat', sets: 4 }]
+  assert(twoCalves.filter(isCalf).length === 2, 'calf counter must see both calf exercises in the red fixture')
+}
 for (let w = 1; w <= 13; w++) for (const d of GYM) {
-  const calves = dadBuilt.buildDay(w, d, MAXES).items.filter(i => creditOf(i).calves === 1)
+  const calves = dadBuilt.buildDay(w, d, MAXES).items.filter(isCalf)
   assert(calves.length <= 1, `W${w} D${d}: ${calves.length} calf exercises (${calves.map(i => i.name).join(', ')}) — max one a day`)
 }
 
