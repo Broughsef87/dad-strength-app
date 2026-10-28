@@ -149,7 +149,7 @@ export const MUSCLE_MAP: Record<string, MuscleShare> = {
   pb_split_squat: { primary: ['quads', 'glutes'] },
   pb_legpress: { primary: ['quads'], secondary: ['glutes'] },
   pb_legext: { primary: ['quads'] },
-  pb_calf_a: { primary: ['calves'] },
+  pb_calf_b: { primary: ['calves'] },
   pb_core_a: { primary: ['core'] },
 
   // Pull
@@ -389,7 +389,9 @@ function session(
           range('pb_legpress', 'Leg Press', 3, r.mid, lt, { step: 10 }),
           range('pb_legext', 'Leg Extension', 3, r.wide, lt, { rir: 1, note: 'Pause at the top. Slow on the way down.' }),
           // One calf exercise a day, never two (Andrew, 2026-10-28).
-          range('pb_calf_a', 'Standing Calf Raise', 4, r.wide, lt, { step: 10, note: 'Pause at the bottom. Calves answer to stretch, not bounce.' }),
+          // The whole curl + standing-calf superset came out; the seated raise
+          // that followed it stays (Andrew, 2026-10-28).
+          range('pb_calf_b', 'Seated Calf Raise', 4, r.wide, lt, { step: 10, note: 'Pause at the bottom. Calves answer to stretch, not bounce.' }),
           range('pb_core_a', 'Hanging Leg Raise', 3, r.wide, lt, { rir: 1 }),
         ],
       }

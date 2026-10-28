@@ -227,7 +227,7 @@ for (let w = 1; w <= 13; w++) {
 // the exercise trains (MUSCLE_MAP), not by its set credit.
 const isCalf = (i) => MUSCLE_MAP[i.slot]?.primary.includes('calves') ?? false
 {
-  const twoCalves = [{ slot: 'pb_calf_a', sets: 4 }, { slot: 'pb_calf_a', sets: 3 }, { slot: 'pb_squat', sets: 4 }]
+  const twoCalves = [{ slot: 'pb_calf_b', sets: 4 }, { slot: 'pb_calf_b', sets: 3 }, { slot: 'pb_squat', sets: 4 }]
   assert(twoCalves.filter(isCalf).length === 2, 'calf counter must see both calf exercises in the red fixture')
 }
 for (let w = 1; w <= 13; w++) for (const d of GYM) {
