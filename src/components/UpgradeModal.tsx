@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Zap, Check, Shield, Loader2 } from 'lucide-react'
 
@@ -22,11 +22,20 @@ const PRO_FEATURES = [
   'Meal planner + shopping list — Fuel, built from what is on hand',
 ]
 
+const CHECKOUT_FAILED = 'Checkout did not open. You have not been charged. Try again in a minute.'
+
 export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalProps) {
   const [loading, setLoading] = useState<'monthly' | 'yearly' | 'founder' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // A closed window starts clean next time: no stale error, no stuck spinner.
+  useEffect(() => {
+    if (isOpen) { setError(null); setLoading(null) }
+  }, [isOpen])
 
   const handleCheckout = async (type: 'monthly' | 'yearly' | 'founder') => {
     setLoading(type)
+    setError(null)
     try {
       const priceMap: Record<string, { priceId: string; mode: string }> = {
         monthly: {
@@ -51,15 +60,22 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
         body: JSON.stringify({ priceId, mode }),
       })
 
-      const data = await res.json()
+      // An HTML error page or an empty body is not JSON; treat it as no answer.
+      const data: { url?: string; error?: string } = await res.json().catch(() => ({}))
 
       if (data.url) {
         window.location.href = data.url
-      } else {
-        throw new Error(data.error || 'Checkout failed')
+        return
       }
+      // Only the checkout route's own JSON error is shown as written; those
+      // strings are written for people. Anything else gets the fixed line.
+      setError(typeof data.error === 'string' && data.error ? data.error : CHECKOUT_FAILED)
+      setLoading(null)
     } catch (err) {
+      // Offline, or the request never completed. The raw message ("Failed to
+      // fetch") means nothing to anyone, so say what happened instead.
       console.error('Upgrade error:', err)
+      setError(CHECKOUT_FAILED)
       setLoading(null)
     }
   }
@@ -198,6 +214,9 @@ export default function UpgradeModal({ isOpen, onClose, trigger }: UpgradeModalP
                 }
               </button>
 
+              {error && (
+                <p role="alert" className="text-center text-xs lowercase text-status-danger-ink pt-0.5">{error}</p>
+              )}
               <p className="text-center text-[9px] text-muted-foreground pt-0.5 tracking-wide">
                 Secure checkout · Stripe · Cancel anytime
               </p>
