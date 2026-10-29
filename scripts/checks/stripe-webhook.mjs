@@ -73,9 +73,14 @@ function fakeDb(tables, failing = () => null) {
 }
 
 /** Stripe as it stands now: each customer's subscriptions. */
-const fakeStripe = (byCustomer, openInvoices = {}) => ({
+// Invoices page like Stripe's: newest first, `limit` at a time, after `starting_after`.
+const fakeStripe = (byCustomer, openInvoices = {}, uncollectible = {}) => ({
   subscriptions: { list: async ({ customer }) => ({ data: byCustomer[customer] ?? [] }) },
-  invoices: { list: async ({ subscription, status }) => ({ data: status === 'open' ? openInvoices[subscription] ?? [] : [] }) },
+  invoices: { list: async ({ subscription, status, limit = 10, starting_after }) => {
+    const all = (status === 'open' ? openInvoices : status === 'uncollectible' ? uncollectible : {})[subscription] ?? []
+    const from = starting_after ? all.findIndex((i) => i.id === starting_after) + 1 : 0
+    return { data: all.slice(from, from + limit), has_more: from + limit < all.length }
+  } },
 })
 const sub = (id, status, created = 1) => ({ id, status, created })
 
@@ -192,10 +197,11 @@ if (processEvent) {
     //     even if Stripe goes quiet and nothing the profile held can move it.
     {
       const DAY = 86_400_000
-      const inv = (daysAgo) => ({ created: Math.floor((Date.now() - daysAgo * DAY) / 1000) })
-      const run = async (subs, open, evt, before = {}) => {
+      let n = 0
+      const inv = (daysAgo, owed = 999) => ({ id: `in_${++n}`, amount_remaining: owed, created: Math.floor((Date.now() - daysAgo * DAY) / 1000) })
+      const run = async (subs, open, evt, before = {}, written = {}) => {
         const t = { user_profiles: [profile({ subscription_tier: 'pro', subscription_status: 'active', stripe_subscription_id: 'sub_A', ...before })] }
-        await processEvent(fakeDb(t), fakeStripe({ cus_1: subs }, open), { id: evt, type: 'invoice.payment_failed', data: { object: { customer: 'cus_1' } } })
+        await processEvent(fakeDb(t), fakeStripe({ cus_1: subs }, open, written), { id: evt, type: 'invoice.payment_failed', data: { object: { customer: 'cus_1' } } })
         return t.user_profiles[0]
       }
       const pastDue = sub('sub_A', 'past_due')
@@ -214,7 +220,16 @@ if (processEvent) {
       const paidBack = await run([sub('sub_A', 'active')], {}, 'evt_16', { subscription_status: 'past_due', grace_until: new Date(Date.now() + DAY).toISOString() })
       assert(paidBack.subscription_tier === 'pro' && paidBack.grace_until === null, 'paying clears the grace')
       const trial = await run([sub('sub_T', 'trialing', 3), pastDue], { sub_A: [inv(20)] }, 'evt_17')
-      assert(trial.subscription_tier === 'free' && !hasPro(trial), 'a trial is not Pro (no trials are sold; matches master)')
+      assert(trial.subscription_tier === 'free' && !hasPro(trial) && trial.subscription_status === 'trialing' && trial.grace_until === null, 'a trial is not Pro, and a spent grace beside it changes nothing (no trials are sold; matches master)')
+      const trialGrace = await run([sub('sub_T', 'trialing', 3), pastDue], { sub_A: [inv(2)] }, 'evt_17b')
+      assert(trialGrace.subscription_tier === 'pro' && trialGrace.stripe_subscription_id === 'sub_A' && hasPro(trialGrace), 'a trial beside a past-due subscription still in grace does not take the grace away')
+      const many = Array.from({ length: 150 }, (_, i) => inv(i === 149 ? 6 : 0))
+      const paged = await run([pastDue], { sub_A: many }, 'evt_17c')
+      assert(Math.abs(Date.parse(paged.grace_until) - (Date.now() + 1 * DAY)) < 60_000, 'the oldest open invoice counts even past the first page of 100')
+      const writtenOff = await run([pastDue], { sub_A: [inv(1)] }, 'evt_17d', {}, { sub_A: [inv(9)] })
+      assert(writtenOff.subscription_tier === 'free' && !hasPro(writtenOff), 'an older bill Stripe wrote off as uncollectible still starts the clock: a new failure does not restart grace')
+      const settled = await run([pastDue], { sub_A: [inv(1), inv(9, 0)] }, 'evt_17e')
+      assert(Math.abs(Date.parse(settled.grace_until) - (Date.now() + 6 * DAY)) < 60_000, 'an open invoice with nothing left to pay does not count')
       // Two past-due subscriptions: the newer one's grace is spent, the older
       // one is still covered. The account follows the covered one.
       const two = await run([sub('sub_N', 'past_due', 5), sub('sub_O', 'past_due', 1)], { sub_N: [inv(9)], sub_O: [inv(1)] }, 'evt_18')

@@ -14,7 +14,7 @@ type Admin = ReturnType<typeof createAdminClient>
 /** The part of the Stripe client the webhook uses, so the check can fake it. */
 export type StripeReader = {
   subscriptions: { list(params: Stripe.SubscriptionListParams): Promise<{ data: Stripe.Subscription[] }> }
-  invoices: { list(params: Stripe.InvoiceListParams): Promise<{ data: Stripe.Invoice[] }> }
+  invoices: { list(params: Stripe.InvoiceListParams): Promise<{ data: Stripe.Invoice[]; has_more: boolean }> }
 }
 
 /** A claim older than this is presumed abandoned (its delivery died mid-run). */
@@ -141,17 +141,30 @@ export const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000
 
 /**
  * When a past-due subscription's grace ends (ms), or null for no grace.
- * Counted from its OLDEST still-open invoice, the first renewal that went
- * unpaid, read from Stripe on every sync. Nothing here depends on what the
- * profile held before, so two deliveries racing, a later unpaid cycle, or a
- * customer who was already past due when grace shipped all land on the same
- * end. Stored as grace_until; every reader compares against it
- * (src/lib/proStatus.ts), so the grace ends on time even if Stripe goes quiet.
+ * Counted from its OLDEST unpaid invoice (open, or written off as
+ * uncollectible, with money still owed), the first renewal that went unpaid,
+ * read from Stripe on every sync. Written-off invoices count so that Stripe
+ * giving up on an old bill cannot restart the clock on the next failure.
+ * Nothing here depends on what the profile held before, so two deliveries
+ * racing, a later unpaid cycle, or a customer who was already past due when
+ * grace shipped all land on the same end. Stored as grace_until; every reader
+ * compares against it (src/lib/proStatus.ts), so the grace ends on time even
+ * if Stripe goes quiet.
  */
 async function graceEnd(stripe: StripeReader, sub: Stripe.Subscription): Promise<number | null> {
-  const { data: open } = await stripe.invoices.list({ subscription: sub.id, status: 'open', limit: 100 })
-  if (!open.length) return null
-  return Math.min(...open.map((i) => i.created)) * 1000 + PAST_DUE_GRACE_MS
+  let oldest: number | null = null
+  for (const status of ['open', 'uncollectible'] as const) {
+    let after: string | undefined
+    for (;;) {
+      const page = await stripe.invoices.list({ subscription: sub.id, status, limit: 100, ...(after ? { starting_after: after } : {}) })
+      for (const i of page.data) {
+        if (i.amount_remaining > 0 && (oldest == null || i.created < oldest)) oldest = i.created
+      }
+      if (!page.has_more || !page.data.length) break
+      after = page.data[page.data.length - 1].id
+    }
+  }
+  return oldest == null ? null : oldest * 1000 + PAST_DUE_GRACE_MS
 }
 
 /** Write the customer's subscription state as Stripe has it right now. */
@@ -165,13 +178,18 @@ async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: s
   const { data: subs } = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
   let live = liveSubscription(subs)
   let graceMs: number | null = null
-  if (live?.status === 'past_due') {
-    // Two past-due subscriptions: the account follows the one whose grace runs
-    // longest, so the other cannot drop a customer who is still covered.
+  if (live && live.status !== 'active') {
+    // No active subscription: a past-due one still in grace keeps Pro. With
+    // two, the account follows the one whose grace runs longest, so the other
+    // cannot drop a customer who is still covered. A trial or other non-Pro
+    // subscription ranks above past_due but gives way to a running grace.
+    let best: Stripe.Subscription | null = null
     for (const s of subs.filter((x) => x.status === 'past_due')) {
       const end = await graceEnd(stripe, s)
-      if (end != null && (graceMs == null || end > graceMs)) { graceMs = end; live = s }
+      if (end != null && (graceMs == null || end > graceMs)) { graceMs = end; best = s }
     }
+    if (best && (live.status === 'past_due' || graceMs! > Date.parse(readAt))) live = best
+    else if (live.status !== 'past_due') graceMs = null
   }
   const grace = graceMs == null ? null : new Date(graceMs).toISOString()
   const paid = live?.status === 'active' || (graceMs != null && graceMs > Date.parse(readAt))
