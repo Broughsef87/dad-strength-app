@@ -142,7 +142,8 @@ export const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000
 /**
  * When a past-due subscription's grace ends (ms), or null for no grace.
  * Counted from its OLDEST unpaid invoice (open, or written off as
- * uncollectible, with money still owed), the first renewal that went unpaid,
+ * uncollectible, with money still owed) since its last paid one: the first
+ * renewal of this streak that went unpaid,
  * read from Stripe on every sync. Written-off invoices count so that Stripe
  * giving up on an old bill cannot restart the clock on the next failure.
  * Nothing here depends on what the profile held before, so two deliveries
@@ -152,13 +153,17 @@ export const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000
  * if Stripe goes quiet.
  */
 async function graceEnd(stripe: StripeReader, sub: Stripe.Subscription): Promise<number | null> {
+  // A bill paid since closes the earlier streak: unpaid bills from before it
+  // (one written off months ago, then recovered) do not start this clock.
+  const { data: paid } = await stripe.invoices.list({ subscription: sub.id, status: 'paid', limit: 1 })
+  const since = paid[0]?.created ?? -Infinity
   let oldest: number | null = null
   for (const status of ['open', 'uncollectible'] as const) {
     let after: string | undefined
     for (;;) {
       const page = await stripe.invoices.list({ subscription: sub.id, status, limit: 100, ...(after ? { starting_after: after } : {}) })
       for (const i of page.data) {
-        if (i.amount_remaining > 0 && (oldest == null || i.created < oldest)) oldest = i.created
+        if (i.amount_remaining > 0 && i.created > since && (oldest == null || i.created < oldest)) oldest = i.created
       }
       if (!page.has_more || !page.data.length) break
       after = page.data[page.data.length - 1].id

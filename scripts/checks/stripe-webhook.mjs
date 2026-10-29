@@ -74,10 +74,10 @@ function fakeDb(tables, failing = () => null) {
 
 /** Stripe as it stands now: each customer's subscriptions. */
 // Invoices page like Stripe's: newest first, `limit` at a time, after `starting_after`.
-const fakeStripe = (byCustomer, openInvoices = {}, uncollectible = {}) => ({
+const fakeStripe = (byCustomer, openInvoices = {}, uncollectible = {}, paidInvoices = {}) => ({
   subscriptions: { list: async ({ customer }) => ({ data: byCustomer[customer] ?? [] }) },
   invoices: { list: async ({ subscription, status, limit = 10, starting_after }) => {
-    const all = (status === 'open' ? openInvoices : status === 'uncollectible' ? uncollectible : {})[subscription] ?? []
+    const all = (status === 'open' ? openInvoices : status === 'uncollectible' ? uncollectible : status === 'paid' ? paidInvoices : {})[subscription] ?? []
     const from = starting_after ? all.findIndex((i) => i.id === starting_after) + 1 : 0
     return { data: all.slice(from, from + limit), has_more: from + limit < all.length }
   } },
@@ -199,9 +199,9 @@ if (processEvent) {
       const DAY = 86_400_000
       let n = 0
       const inv = (daysAgo, owed = 999) => ({ id: `in_${++n}`, amount_remaining: owed, created: Math.floor((Date.now() - daysAgo * DAY) / 1000) })
-      const run = async (subs, open, evt, before = {}, written = {}) => {
+      const run = async (subs, open, evt, before = {}, written = {}, paid = {}) => {
         const t = { user_profiles: [profile({ subscription_tier: 'pro', subscription_status: 'active', stripe_subscription_id: 'sub_A', ...before })] }
-        await processEvent(fakeDb(t), fakeStripe({ cus_1: subs }, open, written), { id: evt, type: 'invoice.payment_failed', data: { object: { customer: 'cus_1' } } })
+        await processEvent(fakeDb(t), fakeStripe({ cus_1: subs }, open, written, paid), { id: evt, type: 'invoice.payment_failed', data: { object: { customer: 'cus_1' } } })
         return t.user_profiles[0]
       }
       const pastDue = sub('sub_A', 'past_due')
@@ -228,6 +228,8 @@ if (processEvent) {
       assert(Math.abs(Date.parse(paged.grace_until) - (Date.now() + 1 * DAY)) < 60_000, 'the oldest open invoice counts even past the first page of 100')
       const writtenOff = await run([pastDue], { sub_A: [inv(1)] }, 'evt_17d', {}, { sub_A: [inv(9)] })
       assert(writtenOff.subscription_tier === 'free' && !hasPro(writtenOff), 'an older bill Stripe wrote off as uncollectible still starts the clock: a new failure does not restart grace')
+      const recovered = await run([pastDue], { sub_A: [inv(1)] }, 'evt_17f', {}, { sub_A: [inv(90)] }, { sub_A: [inv(30)] })
+      assert(recovered.subscription_tier === 'pro' && Math.abs(Date.parse(recovered.grace_until) - (Date.now() + 6 * DAY)) < 60_000, 'an old written-off bill from before a paid one does not take away a new failure\'s grace')
       const settled = await run([pastDue], { sub_A: [inv(1), inv(9, 0)] }, 'evt_17e')
       assert(Math.abs(Date.parse(settled.grace_until) - (Date.now() + 6 * DAY)) < 60_000, 'an open invoice with nothing left to pay does not count')
       // Two past-due subscriptions: the newer one's grace is spent, the older
