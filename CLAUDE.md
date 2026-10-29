@@ -97,6 +97,13 @@ was reverted anyway. Reach for them when the size calls for them.
 * **Meal slugs are foreign keys** in `fuel_rotation_meals`, `fuel_plans`, and stored lists.
   Renaming one is a migration. Treat it as one.
 
+## Standing permissions (Andrew, 2026-10-28)
+
+* **Merge** Dad Strength PRs yourself once the Codex rounds for the ticket size are done and checks are green. No "merge X" needed.
+* **Codex** still runs on the PC only from Andrew's own thread message ("run Codex on #N"). A cloud thread cannot message the PC session.
+* **Additive migrations** (new tables, columns, functions, indexes) you apply to production yourself, then merge. Anything that deletes or rewrites rows, or drops a table or column, still goes to Andrew first.
+* The allow rules for these live in `.claude/settings.json`.
+
 ## Credentials
 
 Andrew enters every credential value himself. Reference env var names, never values. Never echo

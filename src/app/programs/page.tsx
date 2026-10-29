@@ -48,7 +48,7 @@ const COPY: Record<string, { forWho: string; body: string[] }> = {
   'dad-built': {
     forWho: 'four heavy working sets off your tested max, then the rep work that builds muscle.',
     body: [
-      'dad built is powerbuilding. four gym days, two upper and two lower. each one opens with four heavy working sets off your tested max, then moves into the rep work that builds muscle.',
+      'dad built is powerbuilding. four gym days: push, legs, pull, then shoulders with hamstrings and glutes. bench, squat and press days open with four heavy working sets off your tested max, pull day with heavy weighted pull-ups, then the rep work that builds muscle.',
       'the volume progresses on one plain rule: hold the weight until every set reaches the top of its rep range, then add load. two easy aerobic days, a walk, a ruck or an easy bike, keep your conditioning honest without eating your recovery.',
     ],
   },

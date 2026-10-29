@@ -88,8 +88,11 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
         assert(!/contrast|superset|pair/i.test(note) || short.items.some((k) => k !== i && 'superset' in k && k.superset === ('superset' in i ? i.superset : undefined)),
           `${slug} W${wk} D${d}: kept "${i.name ?? i.title}" keeps a pairing note ("${i.note}") with no partner`)
       }
+      // The primaries: the lifts flagged shortDay, else the first two.
       const fullLifts = full.items.filter((i) => i.kind === 'lift')
-      assert(lifts.every((l, i) => l.slot === fullLifts[i].slot && l.name === fullLifts[i].name),
+      const flagged = fullLifts.filter((i) => i.shortDay)
+      const primaries = (flagged.length ? flagged : fullLifts).slice(0, TIME_CONSTRAINED_LIFTS)
+      assert(lifts.length === primaries.length && lifts.every((l, i) => l.slot === primaries[i].slot && l.name === primaries[i].name),
         `${slug} W${wk} D${d}: the kept lifts are the program's primaries, in order`)
       assert(short.dayName.endsWith(' · short') && short.sessionIntent.startsWith('Time-constrained:'),
         `${slug} W${wk} D${d}: the reduced day says so`)

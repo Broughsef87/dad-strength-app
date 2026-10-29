@@ -25,6 +25,7 @@ import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import {
   scheduledDayNumbers, sessionsThisWeek, scheduledDoneDays, dayLabel, isCompletable,
 } from '../../src/lib/programs/schedule.ts'
+import { weekFinished, skippedDays, nextOpenDay } from '../../src/lib/programs/advance.ts'
 
 const MAXES = {
   snatch: 205, clean_jerk: 260,
@@ -219,11 +220,34 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
   assert(sessionsThisWeek(PROGRAMS['dad-built'], 13) === 7,
     'dad-built W13 schedules 7 — its threshold rises 6 -> 7, stated in the PR')
 
-  const day = readLF('../../src/app/train/[program]/[day]/page.tsx')
-  const start = day.indexOf('async function advanceWeekIfDone(')
-  const body = day.slice(start, day.indexOf('\n}\n', start))
-  assert(/sessionsThisWeek\(/.test(body),
-    'advanceWeekIfDone must measure against sessionsThisWeek, not daysPerWeek')
+  // The week advances on what THIS week asks for, run, not read: hybrid-dad
+  // W13 finishes on its 5 scheduled days, against a daysPerWeek of 6.
+  const hy = PROGRAMS['hybrid-dad']
+  const w13 = scheduledDayNumbers(hy, 13)
+  assert(weekFinished(hy, 13, w13, []),
+    'the week advances on sessionsThisWeek, not daysPerWeek (hybrid-dad W13 on 5 days)')
+  assert(!weekFinished(hy, 13, w13.slice(1), []), 'one scheduled day short does not finish the week')
+
+  // Skipped days count toward finishing it, and only scheduled ones do.
+  assert(weekFinished(hy, 13, w13.slice(1), [w13[0]]), 'a skipped day stands in for the missing one')
+  const unscheduled = [1, 2, 3, 4, 5, 6, 7].find(d => !w13.includes(d))
+  assert(!weekFinished(hy, 13, w13.slice(1), [unscheduled]), 'skipping a rest day does not finish the week')
+  assert(!weekFinished(hy, 13, w13.slice(1), w13.slice(1)), 'a day both done and skipped counts once')
+  assert(JSON.stringify(skippedDays({ skipped_days: [{ week: 3, day: 2 }, { week: 4, day: 5 }, 'junk', { week: 3 }] }, 3)) === '[2]',
+    'skippedDays reads only well-formed entries for the asked week')
+  assert(skippedDays(null, 1).length === 0 && skippedDays({ skipped_days: 'x' }, 1).length === 0,
+    'missing or malformed preferences mean no skips')
+
+  // "start session" opens the first day neither done nor skipped.
+  assert(nextOpenDay(hy, 13, [], [w13[0]]) === w13[1], 'start session passes over a skipped day')
+  assert(nextOpenDay(hy, 13, [w13[1]], [w13[0]]) === w13[2], 'start session passes over done and skipped days')
+
+  // ...and the function that moves the pointer still uses that rule.
+  const adv = readLF('../../src/lib/programs/advance.ts')
+  const start = adv.indexOf('export async function advanceWeekIfDone(')
+  const body = adv.slice(start, adv.indexOf('\n}\n', start))
+  assert(start > 0 && /weekFinished\(/.test(body) && /skippedDays\(/.test(body),
+    'advanceWeekIfDone must decide with weekFinished, counting skipped days')
 }
 
 // ── Report ─────────────────────────────────────────────────────────────────

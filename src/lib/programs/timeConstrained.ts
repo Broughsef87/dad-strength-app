@@ -18,8 +18,8 @@ export const TIME_CONSTRAINED_MAX_SETS = 3
 /**
  * The reduced day.
  *
- * Gym days: keep the first two lifts — every program in the registry lists
- * its primaries first — plus any jump primer that precedes them (it is short
+ * Gym days: keep the lifts flagged shortDay, or the first two lifts when
+ * none are flagged (every program lists its primaries first), plus any jump primer that precedes them (it is short
  * and it is the warm-up), keep the whole prep sequence, cap each kept lift at
  * three sets, and drop the
  * rest: accessories, supersets, metcons. Test, rest and outside days come
@@ -28,11 +28,15 @@ export const TIME_CONSTRAINED_MAX_SETS = 3
  */
 export function reduceForTime(plan: DayPlan): DayPlan {
   if (plan.dayType !== 'gym') return plan
+  const allLifts = plan.items.filter((i) => i.kind === 'lift')
+  const flagged = allLifts.filter((i) => i.shortDay)
+  const keepLifts = new Set((flagged.length ? flagged : allLifts).slice(0, TIME_CONSTRAINED_LIFTS))
   const kept: Prescription[] = []
   let lifts = 0
   for (const item of plan.items) {
     if (item.kind === 'lift') {
       if (lifts >= TIME_CONSTRAINED_LIFTS) break
+      if (!keepLifts.has(item)) continue
       lifts++
       // withSetCount, so a wave's plan is trimmed with its set count — three
       // sets holding six planned loads made the header describe a day that was
@@ -44,7 +48,7 @@ export function reduceForTime(plan: DayPlan): DayPlan {
       // primer below — so dropping the prep would leave the cold jump and take
       // away the thing that makes it safe (FOR-244).
       kept.push(item)
-    } else if (item.kind === 'plyo' && lifts === 0) {
+    } else if (item.kind === 'plyo' && lifts === 0 && !allLifts.some((l) => plan.items.indexOf(l) < plan.items.indexOf(item))) {
       kept.push(withSetCount(item, Math.min(item.sets, TIME_CONSTRAINED_MAX_SETS)))
     } else if (lifts >= TIME_CONSTRAINED_LIFTS) {
       break

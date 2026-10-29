@@ -6,16 +6,33 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bus-boot.sh\"" }
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bus-boot.sh\""
+          }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bus-continue.sh\"" }
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bus-continue.sh\""
+          }
         ]
       }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__github__merge_pull_request",
+      "Bash(gh pr merge:*)",
+      "Bash(gh api -X PUT repos/Broughsef87/dad-strength-app/pulls/*)",
+      "Bash(codex:*)",
+      "Bash(npx codex:*)",
+      "mcp__Supabase__apply_migration",
+      "mcp__2b06205b-5ef7-48ff-ad8f-b75981562dbb__apply_migration"
     ]
   }
 }
