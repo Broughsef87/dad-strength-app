@@ -25,6 +25,7 @@ import DailyObjectivesCard from '../../components/DailyObjectivesCard'
 import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
 import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../../lib/programs/schedule'
+import { nextOpenDay, skippedDays } from '../../lib/programs/advance'
 import {
   rollingDays, protocolCompleteDays, trainingAdherence,
   type RollingDays, type MorningState,
@@ -91,6 +92,7 @@ export default function Dashboard() {
   // Source of truth — replaces the old per-device dad-strength-week-progress-*
   // localStorage for Zeus.
   const [zeusDoneDays, setZeusDoneDays] = useState<number[]>([])
+  const [skippedThisWeek, setSkippedThisWeek] = useState<number[]>([])
   // The DAILY number: morning protocols completed in the last 20 days. A
   // rolling window, not a streak — it cannot reset (FOR-228). The WEEKLY
   // training number is derived below from the same done days the week strip
@@ -243,6 +245,7 @@ export default function Dashboard() {
           primaryGoal: dbProgram.preferences?.primaryGoal ?? '',
           equipment: dbProgram.equipment ?? {},
         }
+        setSkippedThisWeek(skippedDays(dbProgram.preferences, dbProgram.current_week ?? 1))
         setActiveProgram(programData)
         // Registry programs derive done_days from session_complete sentinel
         // rows — canonical, consistent across devices.
@@ -503,10 +506,10 @@ export default function Dashboard() {
                   onClick={() => {
                     const registryProgram = activeProgram ? getProgram(activeProgram.slug ?? '') : null
                     if (activeProgram && registryProgram) {
-                      // Server-derived done days → first unfinished SCHEDULED day.
-                      // Walking 1..daysPerWeek sent Dad Strong users to a rest day.
-                      const sched = scheduledDayNumbers(registryProgram, activeProgram.currentWeek)
-                      const nextDay = sched.find(d => !zeusDoneDays.includes(d)) ?? sched[0] ?? 1
+                      // Server-derived done days → first SCHEDULED day neither
+                      // done nor skipped. Walking 1..daysPerWeek sent Dad Strong
+                      // users to a rest day.
+                      const nextDay = nextOpenDay(registryProgram, activeProgram.currentWeek, zeusDoneDays, skippedThisWeek)
                       router.push(`/train/${activeProgram.slug}/${nextDay}`)
                     } else {
                       // No active program (or a retired legacy slug) → path select.

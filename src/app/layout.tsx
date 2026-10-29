@@ -5,6 +5,7 @@ import PageTransition from '../components/PageTransition'
 import LegalGate from '../components/LegalGate'
 import { Analytics } from '@vercel/analytics/next'
 import { UserProvider } from '../contexts/UserContext'
+import StaleBuildReload from '../components/StaleBuildReload'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { SubscriptionProvider } from '../contexts/SubscriptionContext'
 import { GRAPHITE_PATHS, OG_IMAGE } from '../lib/publicSite'
@@ -116,6 +117,7 @@ export default function RootLayout({
                   authed app until accepted once (per account, not device). */}
               <LegalGate />
               <Analytics />
+              <StaleBuildReload />
             </SubscriptionProvider>
           </UserProvider>
         </ThemeProvider>
