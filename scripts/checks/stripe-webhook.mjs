@@ -16,8 +16,10 @@ const fails = []
 const assert = (cond, msg) => { checks++; if (!cond) fails.push(msg) }
 
 let processEvent = null
+let hasPro = null
 try {
   processEvent = (await import('../../src/lib/stripeWebhook.ts')).processEvent
+  hasPro = (await import('../../src/lib/proStatus.ts')).hasPro
 } catch (e) {
   fails.push(`could not import src/lib/stripeWebhook.ts processEvent: ${e.message}`)
 }
@@ -71,7 +73,15 @@ function fakeDb(tables, failing = () => null) {
 }
 
 /** Stripe as it stands now: each customer's subscriptions. */
-const fakeStripe = (byCustomer) => ({ subscriptions: { list: async ({ customer }) => ({ data: byCustomer[customer] ?? [] }) } })
+// Invoices page like Stripe's: newest first, `limit` at a time, after `starting_after`.
+const fakeStripe = (byCustomer, openInvoices = {}, uncollectible = {}, paidInvoices = {}) => ({
+  subscriptions: { list: async ({ customer }) => ({ data: byCustomer[customer] ?? [] }) },
+  invoices: { list: async ({ subscription, status, limit = 10, starting_after }) => {
+    const all = (status === 'open' ? openInvoices : status === 'uncollectible' ? uncollectible : status === 'paid' ? paidInvoices : {})[subscription] ?? []
+    const from = starting_after ? all.findIndex((i) => i.id === starting_after) + 1 : 0
+    return { data: all.slice(from, from + limit), has_more: from + limit < all.length }
+  } },
+})
 const sub = (id, status, created = 1) => ({ id, status, created })
 
 const quiet = () => { const o = { e: console.error, w: console.warn }; console.error = () => {}; console.warn = () => {}; return () => { console.error = o.e; console.warn = o.w } }
@@ -173,13 +183,59 @@ if (processEvent) {
     {
       const t = { user_profiles: [profile()] }
       const db = fakeDb(t)
-      const stripe = { subscriptions: { list: async () => {
+      const stripe = { ...fakeStripe({}), subscriptions: { list: async () => {
         // While this delivery runs, its lease expires and a retry takes it over.
         t.stripe_webhook_events[0].created_at = 'taken-by-retry'
         return { data: [sub('sub_A', 'active')] }
       } } }
       await processEvent(db, stripe, subEvent('evt_11', 'customer.subscription.created', { id: 'sub_A', status: 'active' }))
       assert(!t.stripe_webhook_events[0].processed_at, 'a lease that was taken over is not stamped by its old holder')
+    }
+
+    // 11. A failed renewal keeps Pro for 7 days from the OLDEST open invoice,
+    //     read from Stripe each time and stored as grace_until, so it ends
+    //     even if Stripe goes quiet and nothing the profile held can move it.
+    {
+      const DAY = 86_400_000
+      let n = 0
+      const inv = (daysAgo, owed = 999) => ({ id: `in_${++n}`, amount_remaining: owed, created: Math.floor((Date.now() - daysAgo * DAY) / 1000) })
+      const run = async (subs, open, evt, before = {}, written = {}, paid = {}) => {
+        const t = { user_profiles: [profile({ subscription_tier: 'pro', subscription_status: 'active', stripe_subscription_id: 'sub_A', ...before })] }
+        await processEvent(fakeDb(t), fakeStripe({ cus_1: subs }, open, written, paid), { id: evt, type: 'invoice.payment_failed', data: { object: { customer: 'cus_1' } } })
+        return t.user_profiles[0]
+      }
+      const pastDue = sub('sub_A', 'past_due')
+      const fresh = await run([pastDue], { sub_A: [inv(2)] }, 'evt_12')
+      const end = Date.parse(fresh.grace_until)
+      assert(fresh.subscription_tier === 'pro' && Math.abs(end - (Date.now() + 5 * DAY)) < 60_000, 'two days past due keeps Pro, grace ending in five days')
+      assert(hasPro(fresh) && !hasPro(fresh, end + 1), 'the stored grace ends on its own: no Pro after grace_until, with no event')
+      const late = await run([pastDue], { sub_A: [inv(8)] }, 'evt_13')
+      assert(late.subscription_tier === 'free' && !hasPro(late), 'eight days past due drops to free')
+      const none = await run([pastDue], {}, 'evt_14')
+      assert(none.subscription_tier === 'free' && none.grace_until === null, 'past due with no open invoice gets no grace')
+      const twoCycles = await run([pastDue], { sub_A: [inv(0), inv(6)] }, 'evt_15')
+      assert(Math.abs(Date.parse(twoCycles.grace_until) - (Date.now() + 1 * DAY)) < 60_000, 'a newer unpaid invoice cannot push the grace end out: the oldest open one counts')
+      const stretched = await run([pastDue], { sub_A: [inv(6)] }, 'evt_15b', { subscription_status: 'past_due', grace_until: new Date(Date.now() + 7 * DAY).toISOString() })
+      assert(Math.abs(Date.parse(stretched.grace_until) - (Date.now() + 1 * DAY)) < 60_000, 'a later grace already on the profile (a racing delivery, or past due before grace shipped) is not kept')
+      const paidBack = await run([sub('sub_A', 'active')], {}, 'evt_16', { subscription_status: 'past_due', grace_until: new Date(Date.now() + DAY).toISOString() })
+      assert(paidBack.subscription_tier === 'pro' && paidBack.grace_until === null, 'paying clears the grace')
+      const trial = await run([sub('sub_T', 'trialing', 3), pastDue], { sub_A: [inv(20)] }, 'evt_17')
+      assert(trial.subscription_tier === 'free' && !hasPro(trial) && trial.subscription_status === 'trialing' && trial.grace_until === null, 'a trial is not Pro, and a spent grace beside it changes nothing (no trials are sold; matches master)')
+      const trialGrace = await run([sub('sub_T', 'trialing', 3), pastDue], { sub_A: [inv(2)] }, 'evt_17b')
+      assert(trialGrace.subscription_tier === 'pro' && trialGrace.stripe_subscription_id === 'sub_A' && hasPro(trialGrace), 'a trial beside a past-due subscription still in grace does not take the grace away')
+      const many = Array.from({ length: 150 }, (_, i) => inv(i === 149 ? 6 : 0))
+      const paged = await run([pastDue], { sub_A: many }, 'evt_17c')
+      assert(Math.abs(Date.parse(paged.grace_until) - (Date.now() + 1 * DAY)) < 60_000, 'the oldest open invoice counts even past the first page of 100')
+      const writtenOff = await run([pastDue], { sub_A: [inv(1)] }, 'evt_17d', {}, { sub_A: [inv(9)] })
+      assert(writtenOff.subscription_tier === 'free' && !hasPro(writtenOff), 'an older bill Stripe wrote off as uncollectible still starts the clock: a new failure does not restart grace')
+      const recovered = await run([pastDue], { sub_A: [inv(1)] }, 'evt_17f', {}, { sub_A: [inv(90)] }, { sub_A: [inv(30)] })
+      assert(recovered.subscription_tier === 'pro' && Math.abs(Date.parse(recovered.grace_until) - (Date.now() + 6 * DAY)) < 60_000, 'an old written-off bill from before a paid one does not take away a new failure\'s grace')
+      const settled = await run([pastDue], { sub_A: [inv(1), inv(9, 0)] }, 'evt_17e')
+      assert(Math.abs(Date.parse(settled.grace_until) - (Date.now() + 6 * DAY)) < 60_000, 'an open invoice with nothing left to pay does not count')
+      // Two past-due subscriptions: the newer one's grace is spent, the older
+      // one is still covered. The account follows the covered one.
+      const two = await run([sub('sub_N', 'past_due', 5), sub('sub_O', 'past_due', 1)], { sub_N: [inv(9)], sub_O: [inv(1)] }, 'evt_18')
+      assert(two.subscription_tier === 'pro' && two.stripe_subscription_id === 'sub_O' && hasPro(two), 'with two past-due subscriptions, the one still in grace keeps Pro')
     }
   } finally { restore() }
 }

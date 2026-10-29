@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { checkRateLimit, recordRequest } from './rateLimit'
+import { PRO_FIELDS, hasPro } from './proStatus'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENTITLEMENTS — the single server-side source of truth for what a tier unlocks.
@@ -47,13 +48,12 @@ const QUOTA_WINDOW_MS = 20 * 60 * 60 * 1000
 export async function getEntitlement(supabase: SupabaseClient, userId: string): Promise<Entitlement> {
   const { data } = await supabase
     .from('user_profiles')
-    .select('subscription_tier, subscription_status, founder_pass')
+    .select(PRO_FIELDS)
     .eq('id', userId)
     .maybeSingle()
 
   const isFounder = data?.founder_pass === true
-  const isActivePro = data?.subscription_tier === 'pro' && data?.subscription_status === 'active'
-  const isPro = isFounder || isActivePro
+  const isPro = hasPro(data)
   return { tier: isPro ? 'pro' : 'free', isPro, isFounder }
 }
 
