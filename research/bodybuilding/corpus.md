@@ -44,7 +44,7 @@
   * Calf LPs gave +15.2% vs +6.7% full ROM [Kassiano 2023a].
   * LP curls grew the distal biceps more than the short range, with no difference in summed area [Pedrosa 2023].
 * **Evidence for equivalence, larger and better controlled:**
-  * A pre-registered multi-site trial (n≈297, 12 wk) found LPs **practically equivalent** to full ROM for arm and thigh [Gschneidner 2025].
+  * A pre-registered multi-site trial (n≈297, 12 wk) found LPs **not better** than full ROM for arm and thigh. Results were close, but its formal equivalence test did not pass at the pre-registered threshold, so "equivalent" is not established [Gschneidner 2025].
   * Trained lifters, upper body: no difference (Bayes factors 0.16–0.3, moderate support for the null) [Wolf 2025].
   * Trained men, MRI of the vastus lateralis: no difference [Plotkin 2026].
   * Meta-analysis: overall slightly favours full ROM (SMD 0.12). The LP-vs-full subgroup favours LPs non-significantly (−0.28, CI crossing zero) [Wolf 2023].
@@ -125,7 +125,7 @@ This decides what an app can trust.
 
 | Finding | Source | Confidence |
 |---|---|---|
-| People underpredict reps to failure by about **1 rep on average** (0.95, CI 0.17–1.73); heterogeneity is huge (I²≈98%) | [Halperin 2022] | Moderate |
+| On average, people underpredict reps to failure by about **1 rep** (pooled mean bias 0.95, CI 0.17–1.73). That is the group average, not how far off any one person is; heterogeneity is huge (I²≈98%) | [Halperin 2022] | Moderate |
 | Accuracy **improves as the set nears failure** | [Halperin 2022; Remmert 2023a; Hackett 2012] | Moderate–strong |
 | Accuracy is **much worse in sets of more than 12 reps** (β 0.47 vs 0.06) | [Halperin 2022; Remmert 2023b] | Moderate |
 | Accuracy is better in **later sets** than in set 1 | [Halperin 2022; Hackett 2022] | Moderate |
@@ -135,7 +135,7 @@ This decides what an app can trust.
 | Six weeks of practice did **not** improve accuracy | [Remmert 2023b] | Weak (n=9) |
 | Experienced lifters rate true max attempts closer to RPE 10 | [Zourdos 2016; Ormsbee 2019] | Moderate |
 
-⚠ **Experience level:** the popular belief that novices cannot use RIR is **only weakly supported**. The pooled data show error is driven by **rep count and distance from failure**, not years of training. Novices are bad at it in the same ways as everyone else. Their real problem is having never been near failure, so their "2 RIR" is often 5+.
+⚠ **Experience level:** the popular belief that novices cannot use RIR is **only weakly supported**. The pooled data show error is driven by **rep count and distance from failure**, not years of training. Novices are bad at it in the same ways as everyone else. Their real problem is likely having never been near failure, so they may call sets easier than they are (coach observation, not a measured figure).
 
 **Coach practice:** have users occasionally take a safe set to failure (an AMRAP on a machine or isolation) to **calibrate** their RIR sense. This is consistent with accuracy improving near failure, but no trial tests calibration as an intervention. **Weak.**
 
@@ -467,7 +467,7 @@ Per-session muscle caps (§3.3) usually bind before these totals do.
   * Five nights at 4 h cut myofibrillar synthesis. Exercise (HIIT) during restriction **kept it at control levels** [Saner 2020].
   * The sleep–muscle hypothesis [Dattilo 2011] is a hypothesis paper.
 * **Our reading:**
-  * Training while under-slept is still better than not training, since exercise protected protein synthesis in Saner 2020.
+  * Exercise (HIIT, not lifting) protected protein synthesis during sleep restriction in Saner 2020. That suggests training under-slept is not harmful, but it does not show that lifting after a bad night beats resting.
   * Expect lower performance and higher RPE.
   * **Autoregulate rather than skip.** Keep the session but don't chase rep PRs, add about 1 RIR, or drop the last set of compounds. This lines up with "0 vs 1–2 RIR is equal for growth" [Refalo 2024b].
   * Train earlier in the day when possible [Craven 2022].
@@ -497,7 +497,7 @@ Per-session muscle caps (§3.3) usually bind before these totals do.
 
 | Topic | Status |
 |---|---|
-| Lengthened partials > full ROM | ⚠ **Contested**: small trials yes, large trials equivalent. Use full ROM by default |
+| Lengthened partials > full ROM | ⚠ **Contested**: small trials yes; the large trial found them not better (equivalence not formally shown). Use full ROM by default |
 | Long-length exercise preference | Moderate for specific muscles (triceps, hamstrings, gastrocnemius); trivial pooled |
 | Stability → more hypertrophy | ⚠ **Untested**: coach practice |
 | Exercise rotation interval | ⚠ **No trials** on interval; coach practice (per mesocycle) |

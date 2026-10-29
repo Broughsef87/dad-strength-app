@@ -8,6 +8,19 @@ These are short, opinionated rules for generating a Dad Strength hypertrophy pro
 * `superset` for paired items.
 * `shortDay` for the time-constrained cut.
 
+**Precedence (read first).**
+1. **Pain wins over everything** (R0.1), including every volume floor.
+2. **The athlete's own explicit rules win next.** Andrew's standing rules for Dad Built (6–7 exercises a day, never two calf exercises in one day, no conventional deadlifts, the exercise choices he has made) override anything below.
+3. **These rules are policy for a NEW program generator.** They are not a spec for rewriting Dad Built. Dad Built deliberately trains most muscles once a week, puts up to 13 sets of one muscle in a session, and pairs same-muscle supersets (e.g. rope pushdown + overhead extension). Those are the athlete's choices, and R1.4, R3.4 and R6.3 do not apply to it.
+4. Within these rules, where two conflict, the more conservative one wins (more RIR, fewer sets).
+
+**Engine gaps.** Some rules need data the app does not record yet. Until it does, they cannot run as written:
+* **Per-set RIR.** Sets log reps and load only, so RIR-based rules (R4.2–4.4, R5.3's "at target RIR") use reps alone.
+* **A pain or joint flag per session** (R0.1, R7.2).
+* **Sleep history** (R7.2, R9.3, R9.4).
+* **Stall history across mesocycles** (R2.6, R5.4, R3.7).
+* **Short days** keep the two `shortDay`-flagged lifts (`reduceForTime`), not a compound plus a superset pair (R6.7).
+
 ---
 
 ## 0. Inputs the generator needs
@@ -33,10 +46,11 @@ These are short, opinionated rules for generating a Dad Strength hypertrophy pro
 | 2.1 | **Per muscle per week: 1–2 movements.** Two only if they hit different regions or lengths, such as a compound plus a long-length isolation. | W (§1.6) |
 | 2.2 | **Tiebreaker:** among exercises the user can do safely, pick the one that is hardest at long muscle length (see menu). | M (§1.1) |
 | 2.3 | **Full ROM by default.** Never program shortened-range partials. Lengthened partials are allowed only as an optional add-on after the last set of a calf, curl, or leg-extension set, never as a substitute. | M (§1.2) |
-| 2.4 | **Always include direct work for** quads (knee extension or squat/leg press), hamstrings (a **curl**, plus a hinge if room), triceps (an **overhead** extension), biceps, side delts and calves. Compounds do not cover the rectus femoris, triceps long head or hamstrings. | M (§1.5, §3.4) |
+| 2.4 | **Always include direct work for** quads (a **knee extension**; squats and leg presses do not cover the rectus femoris), hamstrings (a **curl**, plus a hinge if room), triceps (an **overhead** extension), biceps, side delts and calves. Compounds do not cover the rectus femoris, triceps long head or hamstrings. | M (§1.5, §3.4) |
 | 2.5 | Free weights vs machines is a **free choice** for hypertrophy. For any lift the user will push to ≤1 RIR alone at home, prefer a machine, dumbbell, or safety-arm setup over an unspotted barbell. | M (§1.4); C for the safety logic |
-| 2.6 | **Hold exercises for a whole mesocycle.** Rotate accessories at the mesocycle boundary if progress has stalled (2 consecutive exposures with no rep or load gain) or the user asks. Keep main compounds for 2+ mesocycles while they are progressing. **Never randomise per session.** | W/C (§1.6) |
-| 2.7 | A `jointFlag` swaps exercises; it does not drop the muscle. Shoulder: neutral-grip DB press, machine press, cable fly. Knee: leg press with controlled depth, leg extension in a comfortable range. Low back: hack squat or leg press, chest-supported rows, seated or lying curls. Elbow: cable over bar, neutral-grip curls. | C |
+| 2.6 | **Hold exercises for a whole mesocycle.** Rotate accessories at the mesocycle boundary if progress has stalled (R5.4: 3 consecutive exposures with no rep or load gain) or the user asks. Keep main compounds for 2+ mesocycles while they are progressing. **Never randomise per session.** | W/C (§1.6) |
+| 0.1 | **Pain override.** If an exercise hurts (joint pain, not muscle burn) the user can drop it for the day with no penalty, and its sets do not count as missed. If it hurts on 2 exposures in a row, remove it and offer a R2.7 swap; if the swap hurts too, drop that muscle's direct work until the user says it's fine. This beats every volume floor (R3.5) and every progression or deload rule. | C (safety) |
+| 2.7 | A `jointFlag` swaps exercises; it does not drop the muscle (unless R0.1 applies). Shoulder: neutral-grip DB press, machine press, cable fly. Knee: leg press with controlled depth, leg extension in a comfortable range. Low back: hack squat or leg press, chest-supported rows, seated or lying curls. Elbow: cable over bar, neutral-grip curls. | C |
 
 **Default menu** (first choice → home-min substitute):
 
@@ -59,10 +73,10 @@ Count **fractional sets**: a set counts 1.0 for the muscle it directly trains an
 
 | R | Rule | Tag |
 |---|---|---|
-| 3.1 | **Starting weekly sets per muscle:** novice **8–10**, intermediate **10–14**, advanced **12–16**. Muscles that get lots of indirect work (front delts, glutes) may sit at the low end. | M (§3.1–3.2) |
-| 3.2 | **Priority muscles** (max 2) start at +4 sets and may progress to **20**. Non-priority muscles are capped at 16. | M/W (§3.2) |
+| 3.1 | **Starting weekly sets per muscle:** novice **8–10**, intermediate **10–14**, advanced **12–16**. Muscles that get lots of indirect work (front delts, glutes) may sit at the low end. The dose-response trend is moderate evidence; the exact bands by experience are a coaching convention. | W/C (§3.1–3.2) |
+| 3.2 | **Priority muscles** (max 2) start at +4 sets and may progress to **20**. Non-priority muscles are capped at 16. | W/C (§3.2) |
 | 3.3 | **Hard ceiling: 20 fractional sets per muscle per week.** Above that the evidence is contested and the time cost is real. | W (§3.2) ⚠ |
-| 3.4 | **Per-session cap: ≤10 direct sets per muscle.** If a muscle's weekly target needs more, increase frequency rather than session volume. | W (§3.3) ⚠ |
+| 3.4 | **Per-session cap: about 10 fractional sets per muscle** (same counting as R3 above). If a muscle's weekly target needs more, increase frequency rather than session volume. The only estimate (about 11) is one non-peer-reviewed preprint, so treat 10 as a soft default, not a limit. | W (§3.3, Remmert 2025 preprint) ⚠ |
 | 3.5 | **Floor: ≥4 direct sets per muscle per week**, even in the minimum plan. In a maintenance or crisis week, about 1/3 of normal volume. | M (§7.2) |
 | 3.6 | **Within a mesocycle:** add **+1 set per muscle per week for priority muscles only**, up to R3.2/R3.3. Hold other muscles flat. Effort ramps instead (R4.4). | C (RP-style, §3.5) |
 | 3.7 | **Between mesocycles:** if a muscle progressed (reps or load up on its main lift), keep its volume. If it stalled and recovery is fine (no joint pain, sleep OK), add +2 sets. If it stalled and recovery is poor, keep or cut −2 sets. | W/C (§3.5; Scarpelli 2022) |
@@ -79,7 +93,7 @@ Count **fractional sets**: a set counts 1.0 for the muscle it directly trains an
 | 4.3 | Show effort as **RIR in words** ("stop with 2 reps left"). Display RPE only as a translation (RPE = 10 − RIR). Novices get the same RIR targets. Accuracy depends on rep count and proximity to failure, not experience. | M (§2.3) |
 | 4.4 | **RIR ramp across a mesocycle** (4 hard weeks + deload): week 1 **3 RIR**, week 2 **2**, week 3 **1–2**, week 4 **1** (isolations 0). Deload **4+**. | C (RP-style) |
 | 4.5 | **%1RM only where a max exists** (main barbell lifts in strength-flavoured programs). Everything else is load-agnostic double progression. Never ask a novice to test a 1RM. | M (§2.4) |
-| 4.6 | **No velocity-based training by default.** It needs hardware that is unreliable at consumer grade. | M (§2.4) |
+| 4.6 | **No velocity-based training by default.** It needs a device, and the one consumer-device validity study found it accurate only in narrow conditions. | W (§2.4, Orange 2019) |
 | 4.7 | **Calibration:** in week 1 of every mesocycle, the last set of 1–2 safe isolation or machine exercises is **AMRAP to failure**. Use it to set loads and to teach what "1 RIR" feels like. | W/C (§2.3) |
 | 4.8 | **Home-min / light load:** if a user can do more than 20 reps at the target RIR with the available load, switch to a harder variation (single-leg, deficit, pause, 3-s eccentric). If none exists, convert to **sets to failure** (0 RIR, AMRAP) on safe movements. | M (§7.4, §2.1) |
 
@@ -89,7 +103,7 @@ Count **fractional sets**: a set counts 1.0 for the muscle it directly trains an
 |---|---|---|
 | 5.1 | **Double progression on every range slot.** When **all** working sets reach the **top of `repRange`** at or above the target RIR, add `loadStepLbs` next exposure and reset to the bottom of the range. | M (§5.1, Plotkin 2022) |
 | 5.2 | **Load steps:** barbell lower 10 lb, barbell upper 5 lb, DB +5 lb per hand (if that takes reps below the range bottom, use the next rep target instead), machine/cable = smallest pin. Home with fixed DBs: progress reps → sets → harder variation. | C |
-| 5.3 | **Reps beat self-reported RIR.** If logged reps exceed the top of the range by **≥2** on the first set, add load next exposure even if the user rated the set at target RIR. If the user misses the bottom of the range on the first set, drop load one step. | M (§2.3–2.5) |
+| 5.3 | **Reps beat self-reported RIR.** Load goes up only when **every** working set reached the top of the range (R5.1); reps logged decide it, whatever RIR the user reported. If **any** working set fell below the bottom of the range, drop load one step. Otherwise hold. This matches the app's progression engine (`src/lib/programs/progression.ts`). Example: 8–12 logged 14 / 9 / 7 → drop one step, not add. | M (§2.3–2.5) |
 | 5.4 | **Stall rule:** 3 consecutive exposures with no rep or load gain on a slot → swap the exercise at the next mesocycle (R2.6), or deload early if ≥2 slots stalled together (R7.2). | C |
 | 5.5 | **Periodization model: none beyond mesocycles.** Linear vs undulating does not matter for hypertrophy. Heavy/light day variants are allowed for variety on the main compound (e.g. 5–8 day A, 8–12 day B). | S (§5.2) |
 
@@ -99,11 +113,11 @@ Count **fractional sets**: a set counts 1.0 for the muscle it directly trains an
 |---|---|---|
 | 6.1 | **Order:** main compound first → secondary compound → isolations. Priority muscle first when practical. | C |
 | 6.2 | **Rest:** compounds **2–3 min**, isolations **60–90 s**. If the session is over time, shorten isolation rest to 60 s before cutting sets. | M (§6.2) |
-| 6.3 | **Supersets:** default for 60-min sessions, optional at 90. Pair **non-competing** muscles: chest/back, biceps/triceps, quads-iso/hams-iso, lateral raise/calf. **Never** pair the same muscle, and never superset the heavy main compound (rest it fully). | M (§6.4) |
+| 6.3 | **Supersets** (new generator only; Dad Built's same-muscle pairs are the athlete's choice): default for 60-min sessions, optional at 90. Pair **non-competing** muscles: chest/back, biceps/triceps, quads-iso/hams-iso, lateral raise/calf. **Never** pair the same muscle, and never superset the heavy main compound (rest it fully). | M (§6.4) |
 | 6.4 | **Intensifiers**, one per muscle per session, isolations only, from week 2 onward: myo-reps/rest-pause or a single drop set on the **last** set. Count a drop set or myo-rep cluster as **1 set** for volume. | M (equivalence) / C (counting) (§6.4) |
 | 6.5 | **Tempo:** controlled lowering of about 2 s with no bounce out of the stretch. Never prescribe slow tempos. | M (§6.3) |
 | 6.6 | **Warm-up:** 5 min general, then 2–3 ramp sets on the first compound for each pattern. Age ≥40 or a `jointFlag` → 3–4 ramp sets. No static stretching unless mobility is a goal. | W/C (§6.4 Iversen, §7.1) |
-| 6.7 | **`shortDay`** (time-crunched day): keep the flagged main compound plus one superset pair, about 25 min. That is ≥1 hard set per muscle trained that day, which protects the R3.5 floor. | M (§7.2) |
+| 6.7 | **`shortDay`** (time-crunched day): keep the `shortDay`-flagged lifts. The app keeps two (`reduceForTime`); flag the two lifts that cover the most of that day's muscles. A short day does **not** guarantee R3.5 for every muscle that day; the weekly floor is checked across the week, and a muscle that falls under it gets its sets back on the next full day. | C (§7.2) |
 
 ## 7. Mesocycles and deloads
 
@@ -129,18 +143,20 @@ Count **fractional sets**: a set counts 1.0 for the muscle it directly trains an
 | R | Rule | Tag |
 |---|---|---|
 | 9.1 | **Age 35–50:** no volume or effort penalty by default; program as a younger adult. Apply R6.6 extended warm-ups and R2.7 joint swaps. Week-to-week volume increases max +1 set per muscle. | M (no age effect seen) / C (§7.1) |
-| 9.2 | **Age 50+:** start volume at the low end of R3.1 and compounds at ≥2 RIR. Progress by reps before load. | W/C (§7.1) |
-| 9.3 | **Bad night (<5–6 h)** reported pre-session: keep the session. Add **+1 RIR** to all targets, skip AMRAPs and intensifiers, and drop the last set of each compound if the user wants. Do not count a missed rep target that day toward the stall rule (R5.4). | W (§7.3) |
+| 9.2 | **Age 50+:** start volume at the low end of R3.1 and compounds at ≥2 RIR. Progress by reps before load. This overrides R4.2 and the R4.4 ramp on compounds: the ramp stops at 2 RIR. | W/C (§7.1) |
+| 9.3 | **Bad night (<5–6 h)** reported pre-session: training is still fine if the user wants it. Default to **+1 RIR** on all targets, no AMRAPs or intensifiers, and the option to drop the last set of each compound. The user may also cut to a short day or skip it with no penalty. Do not count a missed rep target that day toward the stall rule (R5.4). | W (§7.3) |
 | 9.4 | **Chronic short sleep** (≥5 of 7 nights <6 h): cap weekly volume at the R3.1 starting value (no +1/week ramp), and suggest morning training where possible. | W (§7.3) |
 | 9.5 | **Limited time:** use R3.8. If `sessionMinutes` ≤45: full body, supersets everywhere, 1 compound + 2 superset pairs, target R3.5 floors to about 10 sets per muscle per week. | M (§7.2) |
 | 9.6 | **Home-min equipment:** apply R4.8. Substitute per the menu. Flag to the user that hamstrings and lats are the hardest to load at home, and suggest a band or door-anchor kit. | M/C (§7.4) |
-| 9.7 | **Novice:** 3-day full body or 4-day U/L, R3.1 novice volume, and a fixed exercise list for 2 mesocycles. Use R4.7 calibration AMRAPs every mesocycle; a novice's "2 RIR" is often 5. | M (§2.3, §7.5) |
+| 9.7 | **Novice:** 3-day full body or 4-day U/L, R3.1 novice volume, and a fixed exercise list for 2 mesocycles. Use R4.7 calibration AMRAPs every mesocycle; someone who has never trained near failure is likely to call sets easier than they are. | M (§2.3, §7.5) |
 | 9.8 | **Protein note** (outside programming, show in Fuel): target about **1.6 g/kg/day**. | S (§7.1) |
 
 ## 10. What the generator must NOT do
 
 * Prescribe sets to failure (0 RIR) on free-weight barbell squats, bench or deadlifts.
-* Exceed 20 fractional sets per muscle per week, or 10 direct sets per muscle per session.
+* Override the pain rule (R0.1) or the athlete's own explicit rules.
+* Add load when any working set fell short of the top of the range.
+* Exceed 20 fractional sets per muscle per week, or (by default) about 10 fractional sets per muscle per session.
 * Randomise exercises per session.
 * Ask a novice for a 1RM test.
 * Count warm-ups or sets at ≥5 RIR toward volume.

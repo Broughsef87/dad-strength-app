@@ -126,7 +126,7 @@
 **[Gschneidner 2025]**
 * Gschneidner D, Carlson L, Steele J, et al. The effects of lengthened-partial range of motion resistance training of the limbs on arm and thigh muscle area: a multi-site randomised trial. *J Sports Sci* 2025;43(23):2963–2976. PMID 41055237. DOI 10.1080/02640414.2025.2567805.
 * **Design:** pre-registered, 15 sites, n≈297.
-* **Finding:** lengthened partials and full ROM were practically equivalent.
+* **Finding:** lengthened partials were not better than full ROM; the pre-registered equivalence test did not pass at its threshold.
 * The largest trial on the question.
 
 **[Wolf 2025]**
