@@ -12,7 +12,10 @@ import type { createAdminClient } from '../utils/supabase/admin'
 type Reply = { status: number; body: Record<string, unknown> }
 type Admin = ReturnType<typeof createAdminClient>
 /** The part of the Stripe client the webhook uses, so the check can fake it. */
-export type StripeReader = { subscriptions: { list(params: Stripe.SubscriptionListParams): Promise<{ data: Stripe.Subscription[] }> } }
+export type StripeReader = {
+  subscriptions: { list(params: Stripe.SubscriptionListParams): Promise<{ data: Stripe.Subscription[] }> }
+  invoices: { list(params: Stripe.InvoiceListParams): Promise<{ data: Stripe.Invoice[] }> }
+}
 
 /** A claim older than this is presumed abandoned (its delivery died mid-run). */
 const LEASE_MS = 60_000
@@ -137,22 +140,18 @@ function liveSubscription(subs: Stripe.Subscription[]): Stripe.Subscription | nu
 export const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000
 
 /**
- * When a past-due subscription's grace ends, or null for no grace. Counted
- * from the FIRST unpaid invoice: while the profile already holds a grace for
- * this same past-due subscription, a later invoice (the next cycle, still
- * unpaid) cannot push the end out. Stored as grace_until, and every reader
- * compares against it (src/lib/proStatus.ts), so the grace ends on time even
- * if Stripe sends nothing more.
+ * When a past-due subscription's grace ends (ms), or null for no grace.
+ * Counted from its OLDEST still-open invoice, the first renewal that went
+ * unpaid, read from Stripe on every sync. Nothing here depends on what the
+ * profile held before, so two deliveries racing, a later unpaid cycle, or a
+ * customer who was already past due when grace shipped all land on the same
+ * end. Stored as grace_until; every reader compares against it
+ * (src/lib/proStatus.ts), so the grace ends on time even if Stripe goes quiet.
  */
-export function graceUntil(sub: Stripe.Subscription | null, prior: Profile): string | null {
-  if (sub?.status !== 'past_due') return null
-  const held = prior.subscription_status === 'past_due' && prior.stripe_subscription_id === sub.id && prior.grace_until
-    ? Date.parse(prior.grace_until) : null
-  const invoice = sub.latest_invoice
-  // Not expanded or missing: no date to count from, so only a grace already held.
-  const fresh = invoice && typeof invoice !== 'string' ? invoice.created * 1000 + PAST_DUE_GRACE_MS : null
-  const end = held != null && fresh != null ? Math.min(held, fresh) : held ?? fresh
-  return end == null ? null : new Date(end).toISOString()
+async function graceEnd(stripe: StripeReader, sub: Stripe.Subscription): Promise<number | null> {
+  const { data: open } = await stripe.invoices.list({ subscription: sub.id, status: 'open', limit: 100 })
+  if (!open.length) return null
+  return Math.min(...open.map((i) => i.created)) * 1000 + PAST_DUE_GRACE_MS
 }
 
 /** Write the customer's subscription state as Stripe has it right now. */
@@ -163,13 +162,19 @@ async function syncCustomer(supabase: Admin, stripe: StripeReader, customerId: s
   // overlap; the write below lands only if nothing read later has already
   // been written, so a slow delivery cannot put back a state Stripe has left.
   const readAt = new Date().toISOString()
-  const { data: subs } = await stripe.subscriptions.list({
-    customer: customerId, status: 'all', limit: 100, expand: ['data.latest_invoice'],
-  })
-  const live = liveSubscription(subs)
-  const grace = graceUntil(live, profile)
-  const paid = live?.status === 'active'
-    || (grace != null && Date.parse(grace) > Date.parse(readAt))
+  const { data: subs } = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
+  let live = liveSubscription(subs)
+  let graceMs: number | null = null
+  if (live?.status === 'past_due') {
+    // Two past-due subscriptions: the account follows the one whose grace runs
+    // longest, so the other cannot drop a customer who is still covered.
+    for (const s of subs.filter((x) => x.status === 'past_due')) {
+      const end = await graceEnd(stripe, s)
+      if (end != null && (graceMs == null || end > graceMs)) { graceMs = end; live = s }
+    }
+  }
+  const grace = graceMs == null ? null : new Date(graceMs).toISOString()
+  const paid = live?.status === 'active' || (graceMs != null && graceMs > Date.parse(readAt))
   must(await supabase.from('user_profiles').update({
     // A Founder's Pass keeps Pro whatever its subscriptions do.
     subscription_tier: paid || profile.founder_pass ? 'pro' : 'free',
@@ -213,7 +218,7 @@ async function handle(supabase: Admin, stripe: StripeReader, event: Stripe.Event
     }
 
     // Payment failed: Stripe has moved the subscription to past_due; sync it.
-    // Pro stays until grace_until (graceUntil), which every reader checks.
+    // Pro stays until grace_until (graceEnd), which every reader checks.
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice
       await syncCustomer(supabase, stripe, invoice.customer as string)
