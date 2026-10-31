@@ -1,7 +1,8 @@
 import Logo from '../Logo';
 
 // The public site's header, shared by / and /programs. Links are absolute
-// paths so they work from any public page.
+// paths so they work from any public page. Below 390px only the lockup and
+// "sign in" fit on one line, so "programs" waits for a wider screen.
 const LINKS = [
   { href: '/programs', label: 'programs' },
   { href: '/#how', label: 'how it works' },
@@ -23,12 +24,12 @@ export default function SiteHeader() {
           <a
             key={l.href}
             href={l.href}
-            className={`${i === 0 ? 'inline-block' : 'hidden md:inline-block'} px-3 py-2 text-sm lowercase text-muted-foreground transition-colors hover:text-foreground`}
+            className={`${i === 0 ? 'hidden min-[390px]:inline-block' : 'hidden md:inline-block'} px-3 py-2 text-sm lowercase text-muted-foreground transition-colors hover:text-foreground`}
           >
             {l.label}
           </a>
         ))}
-        <a href="/#sign-in" className="pill-quiet ml-1 px-4 py-2 text-sm">
+        <a href="/#sign-in" className="pill-quiet ml-1 whitespace-nowrap px-4 py-2 text-sm">
           sign in
         </a>
       </nav>
