@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '../../../../utils/supabase/server'
 import { checkRateLimit } from '../../../../lib/rateLimit'
 import { chargeAiQuota, requireAiQuota } from '../../../../lib/entitlements'
+import { MORNING_CALL, MORNING_MODEL, MORNING_SYSTEM, MorningProtocolSchema, morningPrompt } from '../../../../lib/ai/morningProtocolPrompt'
 
 export const dynamic = 'force-dynamic'
 // The model gets 25 seconds (below); the function a little longer, so a slow
@@ -20,7 +21,6 @@ const Body = z.object({
   objectives: z.array(z.string().max(200)).max(3).optional().default([]),
   dayOfWeek: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
 })
-const oneLine = (v: string) => v.replace(/[\r\n]+/g, ' ').trim()
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -45,41 +45,15 @@ export async function POST(request: Request) {
   if (quota) return quota
 
   try {
-    const named = objectives.map(oneLine).filter(Boolean)
-    const objectivesList = named.length
-      ? named.map((o, i) => `${i + 1}. ${o}`).join('\n')
-      : 'No objectives set'
-
     const { object: protocol } = await generateObject({
-      model: anthropic('claude-haiku-5-5'),
+      model: anthropic(MORNING_MODEL),
       // A stuck call used to hold the spinner until the platform killed the
       // function — and with no output cap it asked for the model's maximum.
       abortSignal: AbortSignal.timeout(25_000),
-      maxOutputTokens: 2000,
-      // Short structured output: low effort keeps the response fast.
-      providerOptions: { anthropic: { effort: 'low' } },
-      system: `You are a high-performance coach for busy dads with young babies. Generate a morning protocol built around 4 pillars: Prayer, Meditation, Reading, and Goals. Tone: Stoic, direct, no fluff. Time must add up to exactly the requested minutes distributed across the pillars.`,
-      prompt: `Today is ${dayOfWeek}.
-Available time: ${minutes} minutes
-Last night's sleep: ${sleepQuality ? oneLine(sleepQuality) : 'not given'}
-Energy level: ${energy ? oneLine(energy) : 'not given'}
-Today's objectives:
-${objectivesList}
-
-Generate a morning protocol with exactly 4 steps — one for each pillar. Distribute the ${minutes} minutes wisely based on energy. Low energy = more Prayer/Meditation. High energy = more Reading/Goals.
-If last night was rough (Rough night or Up all night): keep the time split, but make Reading a short, light passage (no heavy study), and make Goals about the ONE most important objective today, not the whole list. Name that in the guidance.`,
-      schema: z.object({
-        theme: z.string().describe("A short, punchy theme for today's morning — e.g. 'The Quiet Before the War'"),
-        greeting: z.string().describe("1-2 sentence personal greeting acknowledging last night's sleep and energy level. Direct, warm, stoic."),
-        steps: z.array(z.object({
-          pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Goals']),
-          minutes: z.number().describe('Minutes allocated to this pillar'),
-          title: z.string().describe('Short action title for this pillar'),
-          guidance: z.string().describe('2-3 sentence guidance for this block'),
-          prompt: z.string().describe('A single focus prompt or intention for this block'),
-        })).length(4),
-        closingWord: z.string().describe("One final sentence to send them into the day — stoic, motivating"),
-      })
+      ...MORNING_CALL,
+      system: MORNING_SYSTEM,
+      prompt: morningPrompt({ minutes, sleepQuality, energy, objectives, dayOfWeek }),
+      schema: MorningProtocolSchema,
     })
 
     await chargeAiQuota(supabase, user.id, 'morning-protocol')

@@ -69,6 +69,10 @@ const SUITES = [
   // touched — its own suite, so a revert of hybridPower.ts cannot take the
   // check that would catch the revert (FOR-263).
   ['M2 Monday (FOR-263)', 'meso2-monday.mjs'],
+  // The morning eval's scorers, proven without a model call, and the route
+  // sending the one shared prompt — its own suite, so a revert of the eval or
+  // the route cannot take the check with it (FOR-326).
+  ['morning eval scorers (FOR-326)', 'morning-eval-scorers.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
   // Its own suite, not a section of fuel-solve: a revert of the rotations
   // feature must not take the check that would catch the revert with it.
