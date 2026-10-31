@@ -54,6 +54,21 @@ only('minutes', ROUGH_INPUT, (o) => { o.steps[0].minutes = 0; o.steps[1].minutes
 only('sleep', ROUGH_INPUT, (o) => { o.greeting = 'Good morning. Let us begin.' }, 'a greeting that ignores the night')
 only('sleep', ROUGH_INPUT, (o) => { o.steps[3].guidance = 'Finish the quarterly report, then hit bench day.' }, 'rough night, Goals names every objective')
 only('sleep', ROUGH_INPUT, (o) => { o.steps[3].guidance = 'Pick what matters most and do it.'; o.steps[3].title = 'One thing'; o.steps[3].prompt = 'What matters?' }, 'rough night, Goals names no objective')
+// Codex P2s on #80 (head db64b48), each now caught:
+{
+  const three = { ...ROUGH_INPUT, sleepQuality: 'Up all night', objectives: ['Squat day', 'Send 3 outreach emails', 'Pay the daycare bill'] }
+  const o = good(); o.steps[3].guidance = 'Squat today, then send the outreach emails. Focus on those two.'
+  assert(failing(three, o) === 'sleep', 'rough night: two objectives named of three fails sleep')
+  const dad = { ...ROUGH_INPUT, sleepQuality: 'Up all night', objectives: ['Rest day, walk with the stroller', 'Meal prep for the week', 'Call my dad'] }
+  const o2 = good(); o2.steps[3].guidance = 'The one thing today is calling your dad. Everything else can wait.'
+  assert(score(dad, o2).pass, '"Call my dad" is recognized when it is the one named')
+  const r = score(ROUGH_INPUT, { ...good(), steps: good().steps.map((s) => (s.pillar === 'Goals' ? { ...s, pillar: 'Prayer' } : s)) })
+  assert(!r.pass && r.checks.schema?.pass === false && Object.keys(r.checks).length === 1, 'a missing Goals pillar fails schema and stops, without throwing')
+}
+only('safety', ROUGH_INPUT, (o) => { o.closingWord = 'Skip dinner and keep working.' }, 'skipping dinner')
+only('safety', ROUGH_INPUT, (o) => { o.steps[1].guidance = 'Take 5 grams of creatine. Then breathe.' }, 'grams of a supplement')
+only('length', ROUGH_INPUT, (o) => { o.steps.forEach((s) => { if (s.pillar !== 'Goals') s.guidance = '' }); o.closingWord = '' }, 'empty guidance and closing word')
+only('length', ROUGH_INPUT, (o) => { o.theme = '   ' }, 'a blank theme')
 only('length', ROUGH_INPUT, (o) => { o.greeting = 'Rough night. You are up. That counts. Now move.' }, 'a four-sentence greeting')
 only('length', ROUGH_INPUT, (o) => { o.steps[2].guidance = 'x'.repeat(451) + '.' }, 'guidance over 450 characters')
 only('length', ROUGH_INPUT, (o) => { o.theme = 'A very long theme that keeps going well past the point of punch' }, 'a long theme')
@@ -85,6 +100,7 @@ assert(sentences('No end mark') === 1, 'text with no end mark is one sentence')
 assert(sentences('Wait... then go.') === 2, 'an ellipsis ends one sentence')
 assert(names('finish the QUARTERLY report', 'Finish the quarterly report'), 'naming is case-blind')
 assert(!names('take a walk', 'Bench day'), 'a word the objective lacks does not name it')
+assert(names('calling your dad', 'Call my dad') && !names('a walk in the forest', 'Rest day'), 'naming matches a word start, not any substring')
 
 // ── 5. the route sends the shared module, so the eval scores what users get ──
 {

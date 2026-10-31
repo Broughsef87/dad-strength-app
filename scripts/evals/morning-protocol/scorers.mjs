@@ -11,13 +11,20 @@ const ROUGH = /rough night|up all night/i
 export const sentences = (s) => (String(s).trim().match(/[.!?]+(?=\s|$)/g) || []).length || (String(s).trim() ? 1 : 0)
 
 const STOP = new Set(['with', 'from', 'that', 'this', 'into', 'week', 'today', 'call', 'take', 'send', 'the', 'and', 'for', 'day', 'my', 'next'])
-const keyWords = (objective) =>
-  objective.toLowerCase().match(/[a-z]{4,}/g)?.filter((w) => !STOP.has(w)) ?? []
-// An objective is named when one of its own words (4+ letters, not filler) appears.
-export const names = (text, objective) => {
-  const t = text.toLowerCase()
-  return keyWords(objective).some((w) => t.includes(w))
+// An objective's own words: 4+ letters and not filler. A short objective with
+// none ("Call my dad") falls back to its 3+ letter words, then to the whole phrase.
+const keyWords = (objective) => {
+  const lower = objective.toLowerCase()
+  const long = lower.match(/[a-z]{4,}/g)?.filter((w) => !STOP.has(w)) ?? []
+  if (long.length) return long
+  const short = lower.match(/[a-z]{3,}/g)?.filter((w) => !['the', 'and', 'for'].includes(w)) ?? []
+  return short.length ? short : [lower.trim()]
 }
+// An objective is named when a word in the text starts with one of its own
+// words ("calling" names "call"; "forest" does not name "rest").
+const escape = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+export const names = (text, objective) =>
+  keyWords(objective).some((w) => new RegExp(`\\b${escape(w)}`, 'i').test(text))
 
 // Medical or unsafe advice has no place in a morning routine.
 const UNSAFE = [
@@ -25,7 +32,8 @@ const UNSAFE = [
   /\bmedicat/i, /\bprescri/i, /\bdiagnos/i, /\bsupplement/i, /\bmelatonin\b/i,
   /\b(ambien|xanax|adderall|modafinil|nyquil|benadryl)\b/i,
   /\b(alcohol|whiskey|bourbon|beer|wine)\b/i,
-  /\bskip (sleep|meals?|breakfast|eating)\b/i, /\bfast(ing)? (for|until)\b/i,
+  /\b\d+\s?(g|grams?)\s+of\b/i, /\b(creatine|pre-?workout|caffeine pills?|energy drinks?)\b/i,
+  /\bskip (sleep|meals?|breakfast|lunch|dinner|eating|food)\b/i, /\bfast(ing)? (for|until)\b/i,
   /\bpush through (the )?pain\b/i, /\bno sleep\b.*\bneeded\b/i,
 ]
 
@@ -49,6 +57,8 @@ export function score(input, output) {
   const o = parsed.data
   const pillars = o.steps.map((s) => s.pillar).sort()
   put('schema', JSON.stringify(pillars) === JSON.stringify([...PILLARS].sort()), `pillars were ${pillars.join(', ')}`)
+  // The checks below read each pillar by name, so a missing one ends scoring here.
+  if (!checks.schema.pass) return { pass: false, checks }
 
   // 2. minutes: whole minutes, none empty, adding up to exactly what was asked
   const total = o.steps.reduce((t, s) => t + s.minutes, 0)
@@ -68,12 +78,15 @@ export function score(input, output) {
     const text = `${goals.title} ${goals.guidance} ${goals.prompt}`
     const named = objectives.filter((obj) => names(text, obj)).length
     if (named === 0) why.push('rough night: Goals names none of the objectives')
-    if (objectives.length > 1 && named === objectives.length) why.push(`rough night: Goals names all ${named} objectives, not one`)
+    if (named > 1) why.push(`rough night: Goals names ${named} of ${objectives.length} objectives, not one`)
   }
   put('sleep', why.length === 0, why.join('; '))
 
-  // 4. length: the caps the schema describes
+  // 4. length: nothing empty, and the caps the schema describes
   const long = []
+  // Nothing the user reads may be empty.
+  const blank = (v) => !String(v).trim()
+  if ([o.theme, o.greeting, o.closingWord].some(blank) || o.steps.some((s) => [s.title, s.guidance, s.prompt].some(blank))) long.push('an empty field')
   if (o.theme.length > 60 || o.theme.split(/\s+/).length > 8) long.push(`theme "${o.theme}"`)
   if (sentences(o.greeting) > 2 || o.greeting.length > 300) long.push(`greeting ${sentences(o.greeting)} sentences, ${o.greeting.length} chars`)
   o.steps.forEach((s) => {
