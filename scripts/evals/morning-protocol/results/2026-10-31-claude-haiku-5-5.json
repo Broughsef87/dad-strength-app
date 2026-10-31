@@ -1,0 +1,1040 @@
+{
+  "model": "claude-haiku-5-5",
+  "date": "2026-10-31",
+  "passed": 5,
+  "of": 10,
+  "rows": [
+    {
+      "id": "baby-up-all-night-5min",
+      "tier": "free",
+      "input": {
+        "dayOfWeek": "Tuesday",
+        "minutes": 5,
+        "sleepQuality": "Up all night",
+        "energy": "Running on fumes",
+        "objectives": [
+          "Squat day",
+          "Send 3 outreach emails",
+          "Pay the daycare bill"
+        ]
+      },
+      "ms": 5478,
+      "usage": {
+        "inputTokens": 1056,
+        "inputTokenDetails": {
+          "noCacheTokens": 1056,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 941,
+        "outputTokenDetails": {
+          "textTokens": 681,
+          "reasoningTokens": 260
+        },
+        "totalTokens": 1997,
+        "raw": {
+          "input_tokens": 1056,
+          "output_tokens": 941,
+          "output_tokens_details": {
+            "thinking_tokens": 260
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 260,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Steady Hands on an Empty Tank",
+        "greeting": "You were up all night and you're running on fumes, and that's real. Five minutes is enough if you use them on purpose, so don't try to do everything.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 2,
+            "title": "Ask for Strength You Don't Have Yet",
+            "guidance": "Sit still, breathe slowly, and say plainly what you need: patience with your baby, clarity for the day, and enough strength to carry it. Keep it short and honest. You don't need eloquence, only sincerity.",
+            "prompt": "Lord, give me patience I haven't earned yet and the strength to do what is in front of me."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 1,
+            "title": "Breathe Before the Storm",
+            "guidance": "Close your eyes and count four breaths in, four breaths out. When your mind wanders to the night, the baby, or the list, note it and return to the count. Exhaustion makes everything feel urgent, and this slows that feeling down.",
+            "prompt": "I will not add urgency to a tired body."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 1,
+            "title": "One Light Page",
+            "guidance": "Read a single short passage, a few paragraphs of Marcus Aurelius or a short proverb. Choose something easy to absorb, with no heavy study or note-taking. The goal is a steadying thought, not new knowledge.",
+            "prompt": "Read one line and carry only that one line into the day."
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 1,
+            "title": "Pay the Daycare Bill",
+            "guidance": "Out of today's three objectives, this is the one that matters most, because a missed payment creates a problem you'll have to fix later. Squat day and outreach can wait until you have more capacity. Log in, pay it, and close the tab.",
+            "prompt": "Today I do one thing: pay the daycare bill."
+          }
+        ],
+        "closingWord": "You don't need a full tank to be a good father today; you only need to do the next right thing, and then do it again."
+      },
+      "pass": false,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": false,
+          "why": "rough night: Goals names 3 of 3 objectives, not one"
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "rough-night-20min-workday",
+      "tier": "pro",
+      "input": {
+        "dayOfWeek": "Wednesday",
+        "minutes": 20,
+        "sleepQuality": "Rough night",
+        "energy": "Getting there",
+        "objectives": [
+          "Finish the quarterly report",
+          "Bench day"
+        ]
+      },
+      "ms": 5082,
+      "usage": {
+        "inputTokens": 1041,
+        "inputTokenDetails": {
+          "noCacheTokens": 1041,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 871,
+        "outputTokenDetails": {
+          "textTokens": 620,
+          "reasoningTokens": 251
+        },
+        "totalTokens": 1912,
+        "raw": {
+          "input_tokens": 1041,
+          "output_tokens": 871,
+          "output_tokens_details": {
+            "thinking_tokens": 251
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 251,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Steady Hands After a Hard Night",
+        "greeting": "A rough night is not a verdict on your day, and you are getting there, which is enough to start. Keep your effort measured and your standards intact.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 5,
+            "title": "Breathe and Surrender the Night",
+            "guidance": "Sit somewhere quiet before anyone else wakes. Acknowledge the tiredness plainly, then ask for patience with your child and strength for the work ahead. Keep it short and honest.",
+            "prompt": "Grant me steadiness, not perfection, today."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 5,
+            "title": "Slow Breath Reset",
+            "guidance": "Sit upright and breathe in for four counts, out for six, for the full five minutes. When your mind drifts to the baby, the report, or the lost sleep, note it and return to the breath. Your nervous system needs this more than caffeine.",
+            "prompt": "I control my response, not my circumstances."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 3,
+            "title": "One Light Passage",
+            "guidance": "Read a single short page from something stoic and easy, such as a few Marcus Aurelius meditations. Do not start anything heavy or dense this morning. Pick one line to carry into the day.",
+            "prompt": "What one line will I actually remember at noon?"
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 7,
+            "title": "Finish the Quarterly Report",
+            "guidance": "Your single priority today is the quarterly report; bench day waits until it is done. Spend these seven minutes listing the three remaining sections and choosing the first one to tackle. Do not open email or edit the formatting yet.",
+            "prompt": "What is the first concrete action on the quarterly report?"
+          }
+        ],
+        "closingWord": "Move with discipline today: one priority, finished cleanly, is worth more than a dozen started and abandoned."
+      },
+      "pass": false,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": false,
+          "why": "rough night: Goals names 2 of 2 objectives, not one"
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "slept-great-30min-saturday",
+      "tier": "pro",
+      "input": {
+        "dayOfWeek": "Saturday",
+        "minutes": 30,
+        "sleepQuality": "Slept great",
+        "energy": "Ready to go",
+        "objectives": [
+          "Take the kids to the park",
+          "Plan next week",
+          "Deadlift day"
+        ]
+      },
+      "ms": 5371,
+      "usage": {
+        "inputTokens": 1050,
+        "inputTokenDetails": {
+          "noCacheTokens": 1050,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 897,
+        "outputTokenDetails": {
+          "textTokens": 643,
+          "reasoningTokens": 254
+        },
+        "totalTokens": 1947,
+        "raw": {
+          "input_tokens": 1050,
+          "output_tokens": 897,
+          "output_tokens_details": {
+            "thinking_tokens": 254
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 254,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Rested Hands, Clear Plan",
+        "greeting": "You slept well and you're ready to go, so use that edge before the house wakes up. Spend it on what you control today.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 4,
+            "title": "Gratitude and Strength",
+            "guidance": "Sit still and thank God for the rest you received and for the children who will need your patience today. Ask for steadiness in your work and clear judgment when the kids test your temper. Keep it brief and sincere.",
+            "prompt": "Lord, give me steady hands and a patient heart today."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 4,
+            "title": "Breath and Presence",
+            "guidance": "Sit upright, breathe slowly for four counts in and six out, and let your attention settle. When your mind drifts to the to-do list, note it and return to the breath. Finish by picturing yourself calm at the park and in the squat rack.",
+            "prompt": "I am present for what is in front of me."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 9,
+            "title": "Stoic Reading Block",
+            "guidance": "Read 9 minutes from a Stoic text such as Marcus Aurelius's Meditations or Epictetus's Enchiridion. Pick one line and ask how it applies to your day as a father. Do not chase chapters; finish the passage you start.",
+            "prompt": "What is within my control this morning, and what is not?"
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 13,
+            "title": "Plan Next Week",
+            "guidance": "Open your calendar and block time for the week ahead, with family time, work, and training slotted before anything else. Write the three non-negotiable outcomes for next week and assign each one a day. Today's park trip and deadlift session are already committed, so plan around them without overthinking.",
+            "prompt": "Next week's three non-negotiables are scheduled and assigned to specific days."
+          }
+        ],
+        "closingWord": "Strength is built in the reps you do when no one is watching, so go earn today."
+      },
+      "pass": true,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": true
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "decent-10min-no-objectives",
+      "tier": "free",
+      "input": {
+        "dayOfWeek": "Monday",
+        "minutes": 10,
+        "sleepQuality": "Decent night",
+        "energy": "Getting there",
+        "objectives": []
+      },
+      "ms": 4390,
+      "usage": {
+        "inputTokens": 1026,
+        "inputTokenDetails": {
+          "noCacheTokens": 1026,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 716,
+        "outputTokenDetails": {
+          "textTokens": 602,
+          "reasoningTokens": 114
+        },
+        "totalTokens": 1742,
+        "raw": {
+          "input_tokens": 1026,
+          "output_tokens": 716,
+          "output_tokens_details": {
+            "thinking_tokens": 114
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 114,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Steady Hands, Clear Mind",
+        "greeting": "A decent night is enough to work with, and your energy is still warming up, so start slow and stay deliberate. Ten minutes done with intent beats an hour done half-present.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 2,
+            "title": "Open with Gratitude and Surrender",
+            "guidance": "Sit quietly and name three things you are grateful for, starting with your child and your partner. Ask for patience for the hours ahead and accept what you cannot control.",
+            "prompt": "Today I will meet what comes with patience and strength."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 3,
+            "title": "Breath and Presence",
+            "guidance": "Sit upright and breathe slowly, counting four seconds in and six seconds out. When your mind wanders to the to-do list or the baby's next need, return to the breath without judgment.",
+            "prompt": "I anchor my attention in the present moment."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 2,
+            "title": "One Page of Stoic Wisdom",
+            "guidance": "Read one short passage from Marcus Aurelius or Epictetus. Choose a single line that applies to fatherhood or irritation, and hold it in mind for the rest of the morning.",
+            "prompt": "What is within my control today, and what is not?"
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 3,
+            "title": "Define the Day's Single Win",
+            "guidance": "With no objectives set, decide the one outcome that would make today a success, whether it is work, a household task, or rest. Write it down, then list the first concrete action needed to start it.",
+            "prompt": "The one thing that matters today is..."
+          }
+        ],
+        "closingWord": "Move through the day as a man who has already chosen his response, and let your actions speak before your fatigue does."
+      },
+      "pass": true,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": true
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "nothing-given-20min",
+      "tier": "free",
+      "input": {
+        "dayOfWeek": "Thursday",
+        "minutes": 20,
+        "sleepQuality": null,
+        "energy": null,
+        "objectives": [
+          "Client call at 9"
+        ]
+      },
+      "ms": 5241,
+      "usage": {
+        "inputTokens": 1026,
+        "inputTokenDetails": {
+          "noCacheTokens": 1026,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 829,
+        "outputTokenDetails": {
+          "textTokens": 658,
+          "reasoningTokens": 171
+        },
+        "totalTokens": 1855,
+        "raw": {
+          "input_tokens": 1026,
+          "output_tokens": 829,
+          "output_tokens_details": {
+            "thinking_tokens": 171
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 171,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Steady Hands Before the Call",
+        "greeting": "You didn't tell me how you slept or how your energy is, so we'll start from a neutral baseline and adjust as the morning shows you what you have. Take a breath and let the first minutes set a steady tone for the day.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 4,
+            "title": "Surrender the Outcome",
+            "guidance": "Sit quietly and name what is in your control today: your preparation, your patience, and your response to the baby's needs. Release what isn't, including the outcome of the 9 o'clock call. Keep it short and sincere.",
+            "prompt": "Lord, give me clarity for the work in front of me and patience for whatever the day brings."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 4,
+            "title": "Three Slow Breaths",
+            "guidance": "Sit upright, eyes closed, and breathe in for four counts and out for six for three full minutes. When your mind jumps ahead to the day's demands, note the thought and return to the breath. This trains you to stay composed under pressure.",
+            "prompt": "I respond to the day; I do not react to it."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 5,
+            "title": "One Page of Stoic Discipline",
+            "guidance": "Read one short passage from Marcus Aurelius or Epictetus, no more than a page. Choose one line that applies to a demanding morning and write it on a note you can see. Do not start a new book or go deep into study.",
+            "prompt": "What is within my control right now?"
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 7,
+            "title": "Prepare for the 9 o'clock Call",
+            "guidance": "Write the single outcome you need from the client call and the two points that support it. Then list one likely objection and your calm, direct answer. Close by setting a reminder for 8:50 so you walk in prepared rather than rushed.",
+            "prompt": "Leave the call with a clear next step agreed upon."
+          }
+        ],
+        "closingWord": "Do the work in front of you with calm focus, and let the results follow."
+      },
+      "pass": true,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": true
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "rough-night-ready-to-go-30min",
+      "tier": "pro",
+      "input": {
+        "dayOfWeek": "Friday",
+        "minutes": 30,
+        "sleepQuality": "Rough night",
+        "energy": "Ready to go",
+        "objectives": [
+          "Ship the website update",
+          "Date night"
+        ]
+      },
+      "ms": 5358,
+      "usage": {
+        "inputTokens": 1036,
+        "inputTokenDetails": {
+          "noCacheTokens": 1036,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 913,
+        "outputTokenDetails": {
+          "textTokens": 606,
+          "reasoningTokens": 307
+        },
+        "totalTokens": 1949,
+        "raw": {
+          "input_tokens": 1036,
+          "output_tokens": 913,
+          "output_tokens_details": {
+            "thinking_tokens": 307
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 307,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Quiet Hands, Clear Mind: Ship It Before Noon",
+        "greeting": "The night was rough, but your energy is up, so don't let the lost sleep decide your day. Channel the energy you have into one clean win.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 3,
+            "title": "Ask for Steadiness",
+            "guidance": "Sit still for three minutes and ask for patience with your child and clarity in your work. Name the one thing you cannot control today and release it. Keep it short, since your sleep was poor.",
+            "prompt": "Lord, give me steady hands and a patient heart today."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 4,
+            "title": "Breathe Before the Push",
+            "guidance": "Take four minutes of slow breathing, with a longer exhale than inhale. Scan your body for tension and let it go. Your focus will be your main resource today, so protect it now.",
+            "prompt": "Breathe out longer than you breathe in, and focus on the next task only."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 5,
+            "title": "Light Passage Only",
+            "guidance": "Read a short, easy passage of no more than five pages from something uplifting or practical. Skip dense study because your sleep was rough. Pick one line to carry into the day.",
+            "prompt": "What single line will I carry into the day?"
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 18,
+            "title": "Ship the Website Update",
+            "guidance": "Your one most important objective today is shipping the website update, so the date night is not the priority here. Spend the full block on the final steps needed to ship: fix the blocker, run the last check, and deploy. Ignore everything else until it is live.",
+            "prompt": "What is the exact next step to get the website update live?"
+          }
+        ],
+        "closingWord": "Ship the update, be fully present tonight, and let the discipline you build this morning carry the rest of your day."
+      },
+      "pass": false,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": false,
+          "why": "rough night: Goals names 2 of 2 objectives, not one"
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "great-sleep-fumes-5min",
+      "tier": "pro",
+      "input": {
+        "dayOfWeek": "Sunday",
+        "minutes": 5,
+        "sleepQuality": "Slept great",
+        "energy": "Running on fumes",
+        "objectives": [
+          "Mass with the family"
+        ]
+      },
+      "ms": 5489,
+      "usage": {
+        "inputTokens": 1032,
+        "inputTokenDetails": {
+          "noCacheTokens": 1032,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 961,
+        "outputTokenDetails": {
+          "textTokens": 624,
+          "reasoningTokens": 337
+        },
+        "totalTokens": 1993,
+        "raw": {
+          "input_tokens": 1032,
+          "output_tokens": 961,
+          "output_tokens_details": {
+            "thinking_tokens": 337
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 337,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Strength Borrowed from Grace",
+        "greeting": "You slept well, which is a gift, but your tank is nearly empty, so today we spend what little you have on what matters most. Keep the morning small and steady.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 2,
+            "title": "Offer the Day Before Mass",
+            "guidance": "Sit still and name the day's obligation: Mass with your family. Ask for patience with your children and for the strength to be present, not perfect. Say the Morning Offering slowly, one line at a time.",
+            "prompt": "Lord, let me be present to my family today, and let my weakness become room for Your strength."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 1.5,
+            "title": "Breathe Through the Fumes",
+            "guidance": "Sit upright, eyes closed or open, and breathe in for four counts and out for six. When your mind races to the baby's schedule or your to-do list, return to the breath without judgment. Low energy is information, not failure.",
+            "prompt": "I accept what I cannot control and act on what I can."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 1,
+            "title": "One Short Passage",
+            "guidance": "Read a single short passage from the day's Mass readings or a brief page of Marcus Aurelius. Do not study it; let one sentence sit with you. Stop when the minute ends, even mid-thought.",
+            "prompt": "What one line from this will steady me through a tired day?"
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 0.5,
+            "title": "Name the One Thing",
+            "guidance": "Your only goal today is to get to Mass with your family and be fully there. Write that single objective on a card or in your phone. Everything else waits until the afternoon.",
+            "prompt": "Today I will go to Mass with my family and be fully present."
+          }
+        ],
+        "closingWord": "Go to Mass with your family, carry what little you have with dignity, and let the rest of the day be whatever it is."
+      },
+      "pass": false,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": false,
+          "why": "step minutes 2/1.5/1/0.5"
+        },
+        "sleep": {
+          "pass": true
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "up-all-night-30min-sunday",
+      "tier": "free",
+      "input": {
+        "dayOfWeek": "Sunday",
+        "minutes": 30,
+        "sleepQuality": "Up all night",
+        "energy": "Running on fumes",
+        "objectives": [
+          "Rest day, walk with the stroller",
+          "Meal prep for the week",
+          "Call my dad"
+        ]
+      },
+      "ms": 5238,
+      "usage": {
+        "inputTokens": 1057,
+        "inputTokenDetails": {
+          "noCacheTokens": 1057,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 862,
+        "outputTokenDetails": {
+          "textTokens": 647,
+          "reasoningTokens": 215
+        },
+        "totalTokens": 1919,
+        "raw": {
+          "input_tokens": 1057,
+          "output_tokens": 862,
+          "output_tokens_details": {
+            "thinking_tokens": 215
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 215,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Hold the Line on Empty",
+        "greeting": "You didn't sleep, and you're running on fumes, so today is about conserving what you have rather than proving anything. Move slowly, and let the morning be small.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 8,
+            "title": "Quiet Thanks Before the House Wakes",
+            "guidance": "Sit somewhere quiet and name three things you are grateful for, starting with the child who kept you up. Ask for patience for the hours ahead and nothing more. Keep it short because your body needs the rest more than a long session.",
+            "prompt": "Give me the strength to be steady today, not perfect."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 8,
+            "title": "Slow Breathing to Settle the Body",
+            "guidance": "Lie down or sit back, and breathe in for four counts and out for six for the full eight minutes. When your mind drifts to the sleepless night, label the thought and return to the count. Fatigue is information, not a failure.",
+            "prompt": "I do not need more energy right now, only less friction."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 4,
+            "title": "One Light Page",
+            "guidance": "Read a single short passage from something you already own, such as a few pages of Marcus Aurelius or a Psalm. Do not take notes or study it, and stop when the four minutes end. The goal is a calm thought, not a new project.",
+            "prompt": "What is within my control this morning?"
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 10,
+            "title": "Call Dad",
+            "guidance": "Of today's three objectives, the call to your father matters most, and the walk and meal prep can wait without consequence. Use these ten minutes to plan the call: one thing you want to say and one thing you want to ask him. Make the call today even if the conversation runs short.",
+            "prompt": "Call Dad today and be present for the whole conversation."
+          }
+        ],
+        "closingWord": "You don't need a full tank to do the next right thing, so do one thing well and let the rest wait."
+      },
+      "pass": false,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": false,
+          "why": "rough night: Goals names 3 of 3 objectives, not one"
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "decent-ready-10min-program-day",
+      "tier": "pro",
+      "input": {
+        "dayOfWeek": "Monday",
+        "minutes": 10,
+        "sleepQuality": "Decent night",
+        "energy": "Ready to go",
+        "objectives": [
+          "Power Dad week 3, squat and EMOM",
+          "Interview a new hire"
+        ]
+      },
+      "ms": 5345,
+      "usage": {
+        "inputTokens": 1050,
+        "inputTokenDetails": {
+          "noCacheTokens": 1050,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 832,
+        "outputTokenDetails": {
+          "textTokens": 639,
+          "reasoningTokens": 193
+        },
+        "totalTokens": 1882,
+        "raw": {
+          "input_tokens": 1050,
+          "output_tokens": 832,
+          "output_tokens_details": {
+            "thinking_tokens": 193
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 193,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Earn the Day Before It Starts",
+        "greeting": "Decent sleep and a ready body is a clean launch, so use the energy now rather than letting it drift. Ten minutes is enough if you stop wasting them.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 1,
+            "title": "Set Your Posture",
+            "guidance": "Take one minute to thank God for the sleep you got and the family asleep down the hall. Ask for steadiness in how you lead today, at home and at work. Keep it brief and then move.",
+            "prompt": "Lord, give me steady hands and a patient tongue today."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 1,
+            "title": "Three Breaths, Then Decide",
+            "guidance": "Sit still and take three slow breaths, exhaling longer than you inhale. Notice the urge to rush and let it pass without acting on it. You are choosing the order of your day, not reacting to it.",
+            "prompt": "I act on what matters first."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 3,
+            "title": "One Page of Discipline",
+            "guidance": "Read a short passage on discipline, duty, or fatherhood, and stop when the timer ends even mid-paragraph. Underline one sentence you can apply before noon. Do not turn this into a long session; the goal is one usable idea.",
+            "prompt": "What is one idea I can use before lunch?"
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 5,
+            "title": "Week 3 Squats and the Interview",
+            "guidance": "Write the EMOM plan for Power Dad week 3 with the exact rep target and interval you will hit, and commit to starting the first set before your coffee is finished. Then outline three questions for the new hire interview that test ownership, reliability, and how they handle pressure. Set a time block today for each.",
+            "prompt": "Execute the squat EMOM clean and run the interview with full attention."
+          }
+        ],
+        "closingWord": "Move first, think second, and let the work prove who you are."
+      },
+      "pass": true,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": true
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    },
+    {
+      "id": "rough-night-10min-one-objective",
+      "tier": "free",
+      "input": {
+        "dayOfWeek": "Thursday",
+        "minutes": 10,
+        "sleepQuality": "Rough night",
+        "energy": "Running on fumes",
+        "objectives": [
+          "Get the car inspected"
+        ]
+      },
+      "ms": 5004,
+      "usage": {
+        "inputTokens": 1033,
+        "inputTokenDetails": {
+          "noCacheTokens": 1033,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        },
+        "outputTokens": 841,
+        "outputTokenDetails": {
+          "textTokens": 609,
+          "reasoningTokens": 232
+        },
+        "totalTokens": 1874,
+        "raw": {
+          "input_tokens": 1033,
+          "output_tokens": 841,
+          "output_tokens_details": {
+            "thinking_tokens": 232
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "reasoningTokens": 232,
+        "cachedInputTokens": 0
+      },
+      "output": {
+        "theme": "Steady Hands on a Short Fuse",
+        "greeting": "A rough night and empty tank is the hardest kind of morning, and you're still showing up. Ten minutes is enough if you spend them on what's in front of you.",
+        "steps": [
+          {
+            "pillar": "Prayer",
+            "minutes": 3,
+            "title": "Ask for Strength, Not Relief",
+            "guidance": "Sit still and name the one thing you cannot control today: the tiredness and the baby's schedule. Ask for the patience to handle it without taking it out on the people you love. Keep it brief and honest.",
+            "prompt": "Give me patience for the next hard moment."
+          },
+          {
+            "pillar": "Meditation",
+            "minutes": 3,
+            "title": "Breathe Through the Fog",
+            "guidance": "Close your eyes and breathe in for four counts, out for six, for three minutes. When your mind drifts to the sleepless night, note it and return to the breath. You are training calm, not chasing sleep.",
+            "prompt": "Settle the body so the mind can follow."
+          },
+          {
+            "pillar": "Reading",
+            "minutes": 1,
+            "title": "One Light Page",
+            "guidance": "Read one short page of something easy and uplifting, such as a few Proverbs or a single Marcus Aurelius entry. No note-taking and no heavy study today. The goal is a clear head, not more load.",
+            "prompt": "Take one thought and leave the rest."
+          },
+          {
+            "pillar": "Goals",
+            "minutes": 3,
+            "title": "Get the Car Inspected",
+            "guidance": "Your only priority today is the car inspection, so ignore the rest of the list for now. Check the inspection station hours, pick a slot, and write down what you need to bring. Do the single step that gets it booked or scheduled.",
+            "prompt": "Book the inspection before the day gets louder."
+          }
+        ],
+        "closingWord": "You don't need a full tank to move forward; one clear action done well is a win, so go get it done."
+      },
+      "pass": true,
+      "checks": {
+        "schema": {
+          "pass": true
+        },
+        "minutes": {
+          "pass": true
+        },
+        "sleep": {
+          "pass": true
+        },
+        "length": {
+          "pass": true
+        },
+        "safety": {
+          "pass": true
+        },
+        "tone": {
+          "pass": true
+        }
+      }
+    }
+  ]
+}
