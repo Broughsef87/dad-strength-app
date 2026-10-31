@@ -68,6 +68,24 @@ for (const forceDeload of [false, true]) {
   }
 }
 
+// A forced deload actually deloads: every percent lift lighter or fewer sets,
+// every range slot two easy sets with 4 in reserve (Codex r1).
+for (const wk of [2, 6, 10]) {
+  for (const d of [1, 3, 5, 6]) {
+    const full = p.buildDay(wk, d, MAXES, {}, {})
+    const light = p.buildDay(wk, d, MAXES, {}, { forceDeload: true })
+    for (const i of light.items) {
+      if (i.kind !== 'lift') continue
+      const f = full.items.find((x) => x.slot === i.slot)
+      if (i.percent != null) {
+        assert(i.sets < f.sets || i.percent < f.percent, `W${wk} D${d} ${i.slot}: forced deload is lighter (${f.sets}@${f.percent} -> ${i.sets}@${i.percent})`)
+      } else {
+        assert(i.sets === 2 && i.targetRir >= 4, `W${wk} D${d} ${i.slot}: forced deload range work is 2 sets at 4+ in reserve — got ${i.sets} at RIR ${i.targetRir}`)
+      }
+    }
+  }
+}
+
 // The mock meet: three snatch and three clean & jerk attempts at 90/95/100.
 {
   const meet = p.buildDay(13, 6, MAXES, {}, {})

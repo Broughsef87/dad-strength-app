@@ -347,7 +347,8 @@ function taper(items: Prescription[], maxes: Record<string, number>, isOpenerDay
         note: 'Taper — crisp and fast, leave fresh.',
       }
     }
-    return { ...i, sets: 2, note: 'Taper — two easy sets, well short of failure.' }
+    // Well short of failure means it: 4 in reserve (Codex r1).
+    return { ...i, sets: 2, targetRir: 4, note: 'Taper — two easy sets, well short of failure.' }
   })
 }
 
