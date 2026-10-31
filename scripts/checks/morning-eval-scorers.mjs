@@ -21,7 +21,7 @@ const good = () => ({
     { pillar: 'Prayer', minutes: 6, title: 'Ask for steadiness', guidance: 'Kneel or sit. Ask for patience with the baby and with yourself.', prompt: 'Give me a steady hand today.' },
     { pillar: 'Meditation', minutes: 6, title: 'Slow breath', guidance: 'Breathe in for four, out for six. Let the tiredness be there without arguing with it.', prompt: 'Tired is a feeling, not an order.' },
     { pillar: 'Reading', minutes: 4, title: 'One short passage', guidance: 'Read one page of something light. No study today.', prompt: 'One idea is enough.' },
-    { pillar: 'Goals', minutes: 4, title: 'One thing', guidance: 'Today the one objective is finishing the quarterly report. The rest can wait.', prompt: 'What does done look like by noon?' },
+    { pillar: 'Goals', minutes: 4, title: 'Finish the report', guidance: 'Today the one objective is finishing the quarterly report. The rest can wait.', prompt: 'What does a finished report look like by noon?' },
   ],
   closingWord: 'Do the one thing well and go home.',
 })
@@ -49,18 +49,26 @@ const only = (name, input, mutate, msg) => {
 }
 only('schema', ROUGH_INPUT, (o) => { o.steps[1].pillar = 'Prayer' }, 'two Prayer steps')
 only('minutes', ROUGH_INPUT, (o) => { o.steps[0].minutes = 7 }, 'minutes adding to 21 of 20')
-only('minutes', ROUGH_INPUT, (o) => { o.steps[0].minutes = 5.5; o.steps[1].minutes = 6.5 }, 'fractional minutes')
-only('minutes', ROUGH_INPUT, (o) => { o.steps[0].minutes = 0; o.steps[1].minutes = 12 }, 'an empty step')
+// Whole minutes of at least 1 are the schema's now (Haiku sent 2/1.5/1/0.5 on 2026-10-31).
+only('schema', ROUGH_INPUT, (o) => { o.steps[0].minutes = 5.5; o.steps[1].minutes = 6.5 }, 'fractional minutes')
+only('schema', ROUGH_INPUT, (o) => { o.steps[0].minutes = 0; o.steps[1].minutes = 12 }, 'an empty step')
 only('sleep', ROUGH_INPUT, (o) => { o.greeting = 'Good morning. Let us begin.' }, 'a greeting that ignores the night')
-only('sleep', ROUGH_INPUT, (o) => { o.steps[3].guidance = 'Finish the quarterly report, then hit bench day.' }, 'rough night, Goals names every objective')
+only('sleep', ROUGH_INPUT, (o) => { o.steps[3].title = 'Report and bench' }, 'rough night, the Goals focus names every objective')
+only('sleep', ROUGH_INPUT, (o) => { o.steps[3].title = 'One thing'; o.steps[3].prompt = 'Go.'; o.steps[3].guidance = 'Finish the quarterly report, then hit bench day.' }, 'rough night, a generic focus and guidance naming both')
 only('sleep', ROUGH_INPUT, (o) => { o.steps[3].guidance = 'Pick what matters most and do it.'; o.steps[3].title = 'One thing'; o.steps[3].prompt = 'What matters?' }, 'rough night, Goals names no objective')
 // Codex P2s on #80 (head db64b48), each now caught:
 {
   const three = { ...ROUGH_INPUT, sleepQuality: 'Up all night', objectives: ['Squat day', 'Send 3 outreach emails', 'Pay the daycare bill'] }
-  const o = good(); o.steps[3].guidance = 'Squat today, then send the outreach emails. Focus on those two.'
+  const o = good(); o.steps[3].title = 'Squat and outreach'; o.steps[3].guidance = 'Squat today, then send the outreach emails. Focus on those two.'
   assert(failing(three, o) === 'sleep', 'rough night: two objectives named of three fails sleep')
+  // Haiku, 2026-10-31: one picked, the others named only to set them aside. That is right.
+  const o5 = good(); o5.steps[3].title = 'Pay the Daycare Bill'; o5.steps[3].prompt = 'Today I do one thing: pay the daycare bill.'
+  o5.steps[3].guidance = 'This is the one that matters most. Squat day and outreach can wait until you have more capacity.'
+  assert(score(three, o5).pass, 'rough night: the others named only to defer them still passes')
+  const o6 = good(); o6.steps[3].title = 'One thing'; o6.steps[3].prompt = 'Go.'
+  assert(score(ROUGH_INPUT, o6).pass, 'rough night: a generic focus passes when the guidance names exactly one')
   const dad = { ...ROUGH_INPUT, sleepQuality: 'Up all night', objectives: ['Rest day, walk with the stroller', 'Meal prep for the week', 'Call my dad'] }
-  const o2 = good(); o2.steps[3].guidance = 'The one thing today is calling your dad. Everything else can wait.'
+  const o2 = good(); o2.steps[3].title = 'Call Dad'; o2.steps[3].prompt = 'Call him today.'; o2.steps[3].guidance = 'The one thing today is calling your dad. Everything else can wait.'
   assert(score(dad, o2).pass, '"Call my dad" is recognized when it is the one named')
   const r = score(ROUGH_INPUT, { ...good(), steps: good().steps.map((s) => (s.pillar === 'Goals' ? { ...s, pillar: 'Prayer' } : s)) })
   assert(!r.pass && r.checks.schema?.pass === false && Object.keys(r.checks).length === 1, 'a missing Goals pillar fails schema and stops, without throwing')
@@ -88,7 +96,7 @@ only('tone', ROUGH_INPUT, (o) => { o.steps[0].prompt = 'Stand firm!'; o.closingW
   const o2 = good(); o2.greeting = 'Morning. Twenty minutes, use them well.'
   assert(score(none, o2).pass, 'with no sleep given, the greeting need not mention it')
   const one = { ...ROUGH_INPUT, objectives: ['Get the car inspected'] }
-  const o3 = good(); o3.steps[3].guidance = 'The one objective is getting the car inspected. Nothing else.'
+  const o3 = good(); o3.steps[3].title = 'Get the car inspected'; o3.steps[3].guidance = 'The one objective is getting the car inspected. Nothing else.'
   assert(score(one, o3).pass, 'rough night with a single objective: naming it is right')
   const o4 = good(); o4.closingWord = 'Go.'; o4.steps[0].prompt = 'Stand firm!'
   assert(score(ROUGH_INPUT, o4).pass, 'one exclamation mark is allowed')

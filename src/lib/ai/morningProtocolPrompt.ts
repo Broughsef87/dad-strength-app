@@ -39,7 +39,7 @@ export const MorningProtocolSchema = z.object({
   greeting: z.string().describe("1-2 sentence personal greeting acknowledging last night's sleep and energy level. Direct, warm, stoic."),
   steps: z.array(z.object({
     pillar: z.enum(['Prayer', 'Meditation', 'Reading', 'Goals']),
-    minutes: z.number().describe('Minutes allocated to this pillar'),
+    minutes: z.number().int().min(1).describe('Whole minutes allocated to this pillar, at least 1'),
     title: z.string().describe('Short action title for this pillar'),
     guidance: z.string().describe('2-3 sentence guidance for this block'),
     prompt: z.string().describe('A single focus prompt or intention for this block'),

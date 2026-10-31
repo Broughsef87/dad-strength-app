@@ -67,7 +67,10 @@ export function score(input, output) {
     !whole ? `step minutes ${o.steps.map((s) => s.minutes).join('/')}` : `added to ${total}, asked ${input.minutes}`)
 
   // 3. sleep: the greeting acknowledges a night that was given; after a rough
-  //    one, Goals names the ONE objective (one named, not all of them)
+  //    one, Goals is about ONE objective. Its focus (title and prompt) names
+  //    exactly one; a generic title and prompt pass when the guidance names
+  //    exactly one. The guidance may name the others to set them aside ("bench
+  //    day waits"); that is not a second priority (Haiku, 2026-10-31).
   const why = []
   if (input.sleepQuality && !/\b(sleep|slept|night|rest|rested|tired|bed|baby|woke|awake|fumes|exhaust)/i.test(o.greeting)) {
     why.push('greeting does not mention the night')
@@ -75,10 +78,14 @@ export function score(input, output) {
   const objectives = input.objectives ?? []
   if (input.sleepQuality && ROUGH.test(input.sleepQuality) && objectives.length) {
     const goals = o.steps.find((s) => s.pillar === 'Goals')
-    const text = `${goals.title} ${goals.guidance} ${goals.prompt}`
-    const named = objectives.filter((obj) => names(text, obj)).length
-    if (named === 0) why.push('rough night: Goals names none of the objectives')
-    if (named > 1) why.push(`rough night: Goals names ${named} of ${objectives.length} objectives, not one`)
+    let focus = objectives.filter((obj) => names(`${goals.title} ${goals.prompt}`, obj))
+    let where = 'the Goals title and prompt'
+    if (focus.length === 0) {
+      focus = objectives.filter((obj) => names(goals.guidance, obj))
+      where = 'the Goals block'
+    }
+    if (focus.length === 0) why.push(`rough night: ${where} names none of the objectives`)
+    if (focus.length > 1) why.push(`rough night: ${where} names ${focus.length} of ${objectives.length} objectives, not one`)
   }
   put('sleep', why.length === 0, why.join('; '))
 
