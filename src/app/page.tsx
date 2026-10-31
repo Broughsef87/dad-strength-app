@@ -155,13 +155,20 @@ export default function Home() {
       />
 
       <main className="site-readable">
-        {/* Hero: the claim on the left, a real session on the right. */}
-        <section className="grid items-center gap-12 pt-10 pb-20 lg:grid-cols-[7fr_5fr] lg:gap-16 lg:pt-16 lg:pb-28">
-          <div>
+        {/* Hero: the claim on the left, a real session on the right. On a phone
+            the session comes straight after the headline, so the product is
+            above the fold; the copy and the CTA follow it. */}
+        <section className="grid gap-12 pt-10 pb-20 lg:grid-cols-[7fr_5fr] lg:gap-x-16 lg:gap-y-0 lg:pt-16 lg:pb-28">
+          <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
             <p className="eyebrow-mono">strength training for dads</p>
             <h1 className="font-display mt-5 text-[44px] font-bold leading-[0.98] tracking-[-0.045em] lowercase text-foreground sm:text-[76px]">
               real programming, worked out to the plate
             </h1>
+          </div>
+          <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+            <SampleSession />
+          </div>
+          <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
             <p className="mt-6 max-w-md text-lg font-light leading-[1.65] text-muted-foreground sm:text-xl">
               three {PROGRAM_LIST[0].macroWeeks}-week programs for dads who train around a job and a
               family. put in your maxes, log what you lift, and next week&apos;s weights follow from it.
@@ -184,7 +191,6 @@ export default function Home() {
               {FOUNDING_SPOTS} founding spots · paid plans are not live yet
             </p>
           </div>
-          <SampleSession />
         </section>
 
         {/* How it decides: the claim pinned left, the three steps right. */}
