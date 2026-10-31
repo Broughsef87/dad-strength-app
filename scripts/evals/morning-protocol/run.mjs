@@ -7,6 +7,7 @@
 //   EVAL_ANTHROPIC_API_KEY=... npx tsx scripts/evals/morning-protocol/run.mjs
 //   (ANTHROPIC_API_KEY also works; the EVAL_ name keeps a cloud environment's
 //   own Claude session from picking the key up)
+//   EVAL_ANTHROPIC_WORKSPACE_ID=wrkspc_...  only for a key not scoped to a workspace
 //   MODEL=claude-sonnet-5-5 ...   to score a candidate model on the same cases
 //
 // Calls the model once per case, touches no database and no
@@ -25,7 +26,14 @@ if (!apiKey) {
   process.exit(2)
 }
 // The public API, named outright: a session's ANTHROPIC_BASE_URL may point elsewhere.
-const anthropic = createAnthropic({ apiKey, baseURL: 'https://api.anthropic.com/v1' })
+// A key made at the organization level (not inside a workspace) is refused
+// unless the request names a workspace: set EVAL_ANTHROPIC_WORKSPACE_ID for that.
+const workspaceId = process.env.EVAL_ANTHROPIC_WORKSPACE_ID
+const anthropic = createAnthropic({
+  apiKey,
+  baseURL: 'https://api.anthropic.com/v1',
+  ...(workspaceId ? { headers: { 'anthropic-workspace-id': workspaceId } } : {}),
+})
 
 const model = process.env.MODEL || MORNING_MODEL
 const { cases } = JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 'utf8'))
