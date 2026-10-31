@@ -4,7 +4,9 @@
 // scored pass/fail by scorers.mjs. Rerun after ANY change to the model or the
 // prompt (src/lib/ai/morningProtocolPrompt.ts) and commit the results file.
 //
-//   ANTHROPIC_API_KEY=... npx tsx scripts/evals/morning-protocol/run.mjs
+//   EVAL_ANTHROPIC_API_KEY=... npx tsx scripts/evals/morning-protocol/run.mjs
+//   (ANTHROPIC_API_KEY also works; the EVAL_ name keeps a cloud environment's
+//   own Claude session from picking the key up)
 //   MODEL=claude-sonnet-5-5 ...   to score a candidate model on the same cases
 //
 // Calls the model once per case, touches no database and no
@@ -12,15 +14,18 @@
 // score, so a reader can check a verdict against the text it was given.
 // Exits 1 unless every case passes.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
-import { anthropic } from '@ai-sdk/anthropic'
+import { createAnthropic } from '@ai-sdk/anthropic'
 import { generateObject } from 'ai'
 import { MORNING_CALL, MORNING_MODEL, MORNING_SYSTEM, MorningProtocolSchema, morningPrompt } from '../../../src/lib/ai/morningProtocolPrompt.ts'
 import { score } from './scorers.mjs'
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('ANTHROPIC_API_KEY is not set. This eval calls the model; there is nothing to score without it.')
+const apiKey = process.env.EVAL_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY
+if (!apiKey) {
+  console.error('EVAL_ANTHROPIC_API_KEY (or ANTHROPIC_API_KEY) is not set. This eval calls the model; there is nothing to score without it.')
   process.exit(2)
 }
+// The public API, named outright: a session's ANTHROPIC_BASE_URL may point elsewhere.
+const anthropic = createAnthropic({ apiKey, baseURL: 'https://api.anthropic.com/v1' })
 
 const model = process.env.MODEL || MORNING_MODEL
 const { cases } = JSON.parse(readFileSync(new URL('./cases.json', import.meta.url), 'utf8'))
