@@ -1,0 +1,15 @@
+{
+  "_about": "Ten mornings as the app sends them: sleep and energy use the app's own labels (MorningProtocol.tsx), minutes use its time options (5, 10, 20, 30), up to 3 objectives. 'tier' is a label only: Free and Pro get the same prompt (the route meters calls, it does not change them). Program day reaches the model only as an objective the dad typed, so it appears that way here.",
+  "cases": [
+    { "id": "baby-up-all-night-5min", "tier": "free", "input": { "dayOfWeek": "Tuesday", "minutes": 5, "sleepQuality": "Up all night", "energy": "Running on fumes", "objectives": ["Squat day", "Send 3 outreach emails", "Pay the daycare bill"] } },
+    { "id": "rough-night-20min-workday", "tier": "pro", "input": { "dayOfWeek": "Wednesday", "minutes": 20, "sleepQuality": "Rough night", "energy": "Getting there", "objectives": ["Finish the quarterly report", "Bench day"] } },
+    { "id": "slept-great-30min-saturday", "tier": "pro", "input": { "dayOfWeek": "Saturday", "minutes": 30, "sleepQuality": "Slept great", "energy": "Ready to go", "objectives": ["Take the kids to the park", "Plan next week", "Deadlift day"] } },
+    { "id": "decent-10min-no-objectives", "tier": "free", "input": { "dayOfWeek": "Monday", "minutes": 10, "sleepQuality": "Decent night", "energy": "Getting there", "objectives": [] } },
+    { "id": "nothing-given-20min", "tier": "free", "input": { "dayOfWeek": "Thursday", "minutes": 20, "sleepQuality": null, "energy": null, "objectives": ["Client call at 9"] } },
+    { "id": "rough-night-ready-to-go-30min", "tier": "pro", "input": { "dayOfWeek": "Friday", "minutes": 30, "sleepQuality": "Rough night", "energy": "Ready to go", "objectives": ["Ship the website update", "Date night"] } },
+    { "id": "great-sleep-fumes-5min", "tier": "pro", "input": { "dayOfWeek": "Sunday", "minutes": 5, "sleepQuality": "Slept great", "energy": "Running on fumes", "objectives": ["Mass with the family"] } },
+    { "id": "up-all-night-30min-sunday", "tier": "free", "input": { "dayOfWeek": "Sunday", "minutes": 30, "sleepQuality": "Up all night", "energy": "Running on fumes", "objectives": ["Rest day, walk with the stroller", "Meal prep for the week", "Call my dad"] } },
+    { "id": "decent-ready-10min-program-day", "tier": "pro", "input": { "dayOfWeek": "Monday", "minutes": 10, "sleepQuality": "Decent night", "energy": "Ready to go", "objectives": ["Power Dad week 3, squat and EMOM", "Interview a new hire"] } },
+    { "id": "rough-night-10min-one-objective", "tier": "free", "input": { "dayOfWeek": "Thursday", "minutes": 10, "sleepQuality": "Rough night", "energy": "Running on fumes", "objectives": ["Get the car inspected"] } }
+  ]
+}
