@@ -86,6 +86,23 @@ for (const wk of [2, 6, 10]) {
   }
 }
 
+// A deload never raises a load, with or without the short-day mode (FOR-331).
+for (let wk = 1; wk <= 11; wk++) {
+  for (const d of [1, 3, 5, 6]) {
+    for (const timeConstrained of [false, true]) {
+      const full = p.buildDay(wk, d, MAXES, {}, { timeConstrained })
+      const light = p.buildDay(wk, d, MAXES, {}, { forceDeload: true, timeConstrained })
+      for (const i of light.items) {
+        if (i.kind !== 'lift' || i.percent == null) continue
+        const f = full.items.find((x) => x.slot === i.slot)
+        if (!f) continue
+        const heaviest = (x) => Math.max(x.targetWeightLbs ?? 0, ...(x.setPlan ?? []).map((s) => s.targetWeightLbs ?? 0))
+        assert(heaviest(i) <= heaviest(f), `W${wk} D${d}${timeConstrained ? ' short' : ''} ${i.slot}: deload raised the load ${heaviest(f)} -> ${heaviest(i)}`)
+      }
+    }
+  }
+}
+
 // The mock meet: three snatch and three clean & jerk attempts at 90/95/100.
 {
   const meet = p.buildDay(13, 6, MAXES, {}, {})
