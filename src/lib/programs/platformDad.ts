@@ -340,7 +340,9 @@ function taper(items: Prescription[], maxes: Record<string, number>, isOpenerDay
       }
       const { setPlan: _drop, ...rest } = i
       // A pull lives above the lift's max; 75% of a snatch is not a pull.
-      const tp = /pull/.test(i.slot) ? 90 : 75
+      // Never heavier than the slot's own load this week (FOR-331): a light
+      // M1 slot at 70% must not climb to the taper's 75.
+      const tp = Math.min(/pull/.test(i.slot) ? 90 : 75, i.percent)
       return {
         ...rest, percent: tp, sets: Math.min(3, i.sets), reps: Math.min(2, i.reps), targetRpe: 6,
         targetWeightLbs: resolveWeight(tp, i.maxKey, maxes), appliedAdjustmentPct: undefined,
