@@ -15,7 +15,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join, relative } from 'node:path'
-import { PROGRAMS, getProgram } from '../../src/lib/programs/index.ts'
+import { PROGRAMS, LISTED_PROGRAMS, getProgram } from '../../src/lib/programs/index.ts'
 import { reduceForTime, TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../../src/lib/programs/timeConstrained.ts'
 import { scheduledDayNumbers } from '../../src/lib/programs/schedule.ts'
 
@@ -29,11 +29,17 @@ const MAXES = {
   ohp: 135, overhead_press: 135, push_press: 165, row_2k: 8, run_5k: 25, run_mile: 8,
 }
 
-// ── 1. three programs, the right three ──────────────────────────────────────
+// ── 1. three public programs, the right three ───────────────────────────────
+// Platform Dad (2026-10-31) is Andrew's own program: in the registry so he can
+// run it, `listed: false` so the public site still sells exactly three.
 const slugs = Object.keys(PROGRAMS).sort()
-assert(slugs.length === 3, `the registry has exactly three programs — got ${slugs.length}: ${slugs.join(', ')}`)
-assert(slugs.join(',') === 'dad-built,hybrid-dad,hybrid-power',
-  `the three are Power Dad, Dad Built and Hybrid Dad — got ${slugs.join(', ')}`)
+assert(slugs.join(',') === 'dad-built,hybrid-dad,hybrid-power,platform-dad',
+  `the registry is Power Dad, Dad Built, Hybrid Dad and the unlisted Platform Dad — got ${slugs.join(', ')}`)
+const listed = Object.keys(LISTED_PROGRAMS).sort()
+assert(listed.length === 3, `the public site lists exactly three programs — got ${listed.length}: ${listed.join(', ')}`)
+assert(listed.join(',') === 'dad-built,hybrid-dad,hybrid-power',
+  `the three listed are Power Dad, Dad Built and Hybrid Dad — got ${listed.join(', ')}`)
+assert(PROGRAMS['platform-dad']?.listed === false, 'Platform Dad is unlisted')
 assert(PROGRAMS['hybrid-power']?.name === 'Power Dad' && PROGRAMS['dad-built']?.name === 'Dad Built' && PROGRAMS['hybrid-dad']?.name === 'Hybrid Dad',
   'the display names are Power Dad, Dad Built, Hybrid Dad')
 assert(getProgram('dad-strong') === null, 'Dad Strong resolves nowhere')
@@ -43,7 +49,8 @@ assert(!existsSync(join(ROOT, 'src/lib/programs/hybridEndurance.ts')) && existsS
   'hybridEndurance.ts is hybridDad.ts')
 for (const [slug, p] of Object.entries(PROGRAMS)) {
   assert(p.slug === slug, `${slug}: the registry key is the program's own slug`)
-  assert(scheduledDayNumbers(p, 1).length === 6, `${slug} prescribes six days in week 1 — got ${scheduledDayNumbers(p, 1).length}`)
+  const days = slug === 'platform-dad' ? 4 : 6
+  assert(scheduledDayNumbers(p, 1).length === days, `${slug} prescribes ${days} days in week 1 — got ${scheduledDayNumbers(p, 1).length}`)
 }
 
 // ── 2. the time-constrained MODE ────────────────────────────────────────────
@@ -147,7 +154,7 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
 }
 // ...and it is a mode, not a program: the registry is the same three with the
 // mode on or off, no slug mentions time, and reduceForTime is pure.
-assert(Object.keys(PROGRAMS).length === 3 && !Object.keys(PROGRAMS).some((s) => /time|short|constrained/i.test(s)),
+assert(Object.keys(PROGRAMS).length === 4 && !Object.keys(PROGRAMS).some((s) => /time|short|constrained/i.test(s)),
   'the time-constrained mode adds no program row and no slug')
 {
   const p = PROGRAMS['hybrid-power']

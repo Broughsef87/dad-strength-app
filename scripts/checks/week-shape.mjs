@@ -202,7 +202,7 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
 // ── 6. THE ADVANCEMENT THRESHOLD IS WHAT THE WEEK ASKS FOR ─────────────────
 // Not daysPerWeek. They diverge in test week, in both directions.
 {
-  const expect = { 'hybrid-power': 6, 'hybrid-dad': 6, 'dad-built': 6 }
+  const expect = { 'hybrid-power': 6, 'hybrid-dad': 6, 'dad-built': 6, 'platform-dad': 4 }
   for (const [slug, p] of Object.entries(PROGRAMS)) {
     assert(sessionsThisWeek(p, 1) === expect[slug],
       `${slug} W1 should ask for ${expect[slug]} sessions, got ${sessionsThisWeek(p, 1)}`)

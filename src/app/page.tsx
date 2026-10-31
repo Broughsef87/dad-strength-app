@@ -8,7 +8,7 @@ import WeekGrid from '../components/site/WeekGrid';
 import BlockBar from '../components/site/BlockBar';
 import { COACH, FOUNDING_SPOTS } from '../components/site/content';
 import { SAMPLE, SAMPLE_SESSION as S } from '../components/site/sample';
-import { PROGRAMS } from '../lib/programs';
+import { LISTED_PROGRAMS } from '../lib/programs';
 import { TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../lib/programs/timeConstrained';
 import { OG_IMAGE } from '../lib/publicSite';
 
@@ -103,7 +103,7 @@ const JSON_LD = {
   ],
 };
 
-const PROGRAM_LIST = Object.values(PROGRAMS);
+const PROGRAM_LIST = Object.values(LISTED_PROGRAMS);
 const L = S.lead;
 // The first rest-of-day lift that runs on a rep range: the double-progression
 // example in "how it decides".

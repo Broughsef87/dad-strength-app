@@ -170,6 +170,12 @@ export interface ProgramConfig {
   gymDayNumbers: number[]      // which of 1-7 are full gym sessions
   macroWeeks: number           // full cycle length incl. deload/test (13)
   requiredMaxes: MaxDef[]
+  /**
+   * False keeps a program off the public site (home page, /programs, the week
+   * grid) while it stays selectable in the app. Absent means listed.
+   * Platform Dad is Andrew's own program (2026-10-31).
+   */
+  listed?: boolean
   buildDay(
     weekNumber: number,        // absolute, 1..∞ — config maps into macro position
     dayNumber: number,         // 1-7
