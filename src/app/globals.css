@@ -400,6 +400,12 @@
 }
 .eyebrow-mono-sm { font-size: 10px; letter-spacing: 0.14em; }
 
+/* Public landing page only (FOR-318): its mono labels and working lines read
+   at 13px, the smallest size the site audit passes for body-adjacent text.
+   The app keeps 11px; the dense week grid keeps its 10px labels. */
+.site-readable .eyebrow-mono:not(.eyebrow-mono-sm),
+.site-readable .data-mono { font-size: 13px; }
+
 /* hero numerals — the mono, tabular, tight, huge (rule 03). Sizes come from
    the call site: the DS scale is 72 / 44 / 30px. */
 .stat-num {

@@ -154,7 +154,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
 
-      <main>
+      <main className="site-readable">
         {/* Hero: the claim on the left, a real session on the right. */}
         <section className="grid items-center gap-12 pt-10 pb-20 lg:grid-cols-[7fr_5fr] lg:gap-16 lg:pt-16 lg:pb-28">
           <div>
