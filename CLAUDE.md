@@ -104,6 +104,10 @@ was reverted anyway. Reach for them when the size calls for them.
 * **Additive migrations** (new tables, columns, functions, indexes) you apply to production yourself, then merge. Anything that deletes or rewrites rows, or drops a table or column, still goes to Andrew first.
 * The allow rules for these live in `.claude/settings.json`.
 
+## Site design rule (Andrew, 2026-10-31)
+
+Every new site, new page or redesign starts from the web design corpus in the forge-vault repo (`Broughsef87/forge-vault`, folder `research/web-design/`). Read `README.md`, `motifs.md`, `sector-playbooks.md`, `anti-slop.md` and `small-business.md` before designing. Score the work on both scales (Craft from `design-score.md`, Integrity from `audit-rubric.md`) before and after, and put both numbers plus the verdict in the PR description. The decision note is `80-decisions/Every Site Build or Redesign Starts From the Web Design Corpus.md`. Small copy or price edits need no score.
+
 ## Credentials
 
 Andrew enters every credential value himself. Reference env var names, never values. Never echo
