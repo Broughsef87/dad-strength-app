@@ -1,4 +1,4 @@
-import { PROGRAMS } from '../../lib/programs';
+import { LISTED_PROGRAMS } from '../../lib/programs';
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const SHORT: Record<string, string> = { gym: 'gym', outside: 'out', test: 'test', rest: 'rest' };
@@ -7,7 +7,7 @@ const SHORT: Record<string, string> = { gym: 'gym', outside: 'out', test: 'test'
 // only each day's name and kind are used). Gym days are tiles, outside days
 // are recessed, rest days are bare ground — the app's own depth language.
 export default function WeekGrid() {
-  const programs = Object.values(PROGRAMS);
+  const programs = Object.values(LISTED_PROGRAMS);
   return (
     <div className="space-y-6 md:space-y-2">
       <div className="hidden grid-cols-[150px_repeat(7,minmax(0,1fr))] gap-2 md:grid" aria-hidden="true">

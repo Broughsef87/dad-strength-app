@@ -2,6 +2,7 @@ import { ProgramConfig, BuildDayOpts, DayPlan } from './types'
 import { hybridPower } from './hybridPower'
 import { hybridDad } from './hybridDad'
 import { dadBuilt } from './dadBuilt'
+import { platformDad } from './platformDad'
 import { reduceForTime } from './timeConstrained'
 import { prepSlots } from './prep'
 
@@ -62,7 +63,13 @@ export const PROGRAMS: Record<string, ProgramConfig> = {
   [hybridPower.slug]: withModes(hybridPower),
   [dadBuilt.slug]: withModes(dadBuilt),
   [hybridDad.slug]: withModes(hybridDad),
+  [platformDad.slug]: withModes(platformDad),
 }
+
+/** The programs the public site shows. Unlisted ones stay selectable in the app. */
+export const LISTED_PROGRAMS: Record<string, ProgramConfig> = Object.fromEntries(
+  Object.entries(PROGRAMS).filter(([, p]) => p.listed !== false),
+)
 
 // All three paths are live; new paths queue here while their programming
 // is specced.

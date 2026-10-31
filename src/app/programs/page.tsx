@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import SiteShell from '../../components/site/SiteShell';
 import { COACH, FOUNDING_SPOTS } from '../../components/site/content';
-import { PROGRAMS } from '../../lib/programs';
+import { LISTED_PROGRAMS } from '../../lib/programs';
 import { TIME_CONSTRAINED_LIFTS, TIME_CONSTRAINED_MAX_SETS } from '../../lib/programs/timeConstrained';
 import { OG_IMAGE } from '../../lib/publicSite';
 
@@ -63,7 +63,7 @@ const COPY: Record<string, { forWho: string; body: string[] }> = {
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-const PROGRAM_LIST = Object.values(PROGRAMS);
+const PROGRAM_LIST = Object.values(LISTED_PROGRAMS);
 
 export default function ProgramsPage() {
   return (

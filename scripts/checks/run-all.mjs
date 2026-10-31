@@ -73,6 +73,8 @@ const SUITES = [
   // sending the one shared prompt — its own suite, so a revert of the eval or
   // the route cannot take the check with it (FOR-326).
   ['morning eval scorers (FOR-326)', 'morning-eval-scorers.mjs'],
+  // Platform Dad's rules (2026-10-31), its own suite.
+  ['platform dad rules', 'platform-dad.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
   // Its own suite, not a section of fuel-solve: a revert of the rotations
   // feature must not take the check that would catch the revert with it.
