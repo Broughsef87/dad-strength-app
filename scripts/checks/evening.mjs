@@ -57,6 +57,10 @@ eq(carryOver(mind(sorry), '2026-11-03'), { oneThing: 'Call Dad', apology: { to: 
 eq(carryOver(mind(sorry), '2026-11-04'), null, 'a review from another day carries nothing')
 eq(carryOver(null, '2026-11-03'), null, 'no row carries nothing')
 
+const long = 'Finish the quote for the canopy job and send it before lunch, then call the supplier about the steel and confirm the delivery window for the crew on site today'
+const longE = toEntry({ ...tapped, oneThing: 'no' }, '2026-11-03', long)
+eq(carryOver(mind(longE), '2026-11-03')?.oneThing, long, 'a long objective carries over whole (Codex r1)')
+
 eq(firstObjective({ objectives: ['', '  Call Dad ', 'Lift'] }), 'Call Dad', 'first filled objective')
 eq(firstObjective({}), null, 'no objectives')
 eq(readAwakening({ day: '2026-11-03', at: 'x' }, '2026-11-03'), { day: '2026-11-03', at: 'x' }, 'awakening reads')

@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
 import { patchCheckin, usePaintGate } from '../lib/checkins'
 import { carryOver, lastNightDay, type CarryOver } from '../lib/evening'
+import { OBJECTIVES_SAVED } from '../lib/useClock'
 
 // THE RECORD IS THE ROW (FOR-231 v2).
 // daily_checkins.mind_state holds the day's objectives. Nothing is kept in
@@ -120,6 +121,7 @@ export default function DailyObjectivesCard() {
       setCompleted(dense.map(() => false))
       setLocked(true)
       setListDay(today)
+      window.dispatchEvent(new Event(OBJECTIVES_SAVED))
     } finally {
       setSaving(false)
     }

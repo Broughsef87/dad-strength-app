@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Moon } from 'lucide-react'
 import { createClient } from '../utils/supabase/client'
 import { patchCheckin, usePaintGate } from '../lib/checkins'
+import { useClock, useObjectivesSaved } from '../lib/useClock'
 import {
   SHORTFALLS, ONE_THING, LINE_MAX, emptyAnswers, eveningDay, inEveningWindow, isComplete, toEntry,
   readEntry, toAnswers, firstObjective, type EveningAnswers, type EveningEntry,
@@ -13,7 +14,8 @@ import {
 // Shows from 5pm to the 4am boundary. The record is the row
 // (mind_state.evening); nothing is cached, so a save lands or says it did not.
 export default function EveningReview() {
-  const [now] = useState(() => new Date())
+  const now = useClock()
+  const objectivesSaved = useObjectivesSaved()
   const day = eveningDay(now)
   const open = inEveningWindow(now)
 
@@ -22,7 +24,7 @@ export default function EveningReview() {
   const [oneThing, setOneThing] = useState<string | null>(null)
   const [saved, setSaved] = useState<EveningEntry | null>(null)
   const [editing, setEditing] = useState(false)
-  const [a, setA] = useState<EveningAnswers>(emptyAnswers)
+  const [a, setA] = useState<EveningAnswers & { day?: string }>(() => ({ ...emptyAnswers(), day }))
   const [saving, setSaving] = useState(false)
   const [saveFailed, setSaveFailed] = useState(false)
   const gate = usePaintGate()
@@ -31,6 +33,7 @@ export default function EveningReview() {
     if (!open) return
     const claim = gate.claim()
     const load = async () => {
+      setReadFailed(false)
       try {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -46,13 +49,16 @@ export default function EveningReview() {
         const mind = data?.mind_state ?? null
         setOneThing(firstObjective(mind))
         const e = readEntry((mind as { evening?: unknown } | null)?.evening, day)
-        if (e) { setSaved(e); setA(toAnswers(e)) }
+        // A new day starts clean; a re-read after objectives were locked in
+        // leaves an open form's answers alone.
+        if (e) { setSaved(e); setA(toAnswers(e)); setEditing(false) }
+        else { setSaved(null); setA((cur) => (cur.day === day ? cur : { ...emptyAnswers(), day })) }
       } catch { if (gate.mayPaint(claim)) setReadFailed(true) }
       finally { if (gate.mayPaint(claim)) setLoading(false) }
     }
     load()
     // Once per mount: nothing else writes the evening entry.
-  }, [open, day])
+  }, [open, day, objectivesSaved])
 
   if (!open || loading) return null
 
@@ -110,8 +116,8 @@ export default function EveningReview() {
     `pill text-xs px-3 py-1.5 transition-colors ${on ? 'pill-volt' : 'pill-quiet'}`
   const yesNo = (value: boolean | null, set: (v: boolean) => void) => (
     <div className="flex gap-2">
-      <button type="button" aria-pressed={value === true} onClick={() => set(true)} className={toggle(value === true)}>yes</button>
-      <button type="button" aria-pressed={value === false} onClick={() => set(false)} className={toggle(value === false)}>no</button>
+      <button type="button" aria-pressed={value === true} disabled={saving} onClick={() => set(true)} className={toggle(value === true)}>yes</button>
+      <button type="button" aria-pressed={value === false} disabled={saving} onClick={() => set(false)} className={toggle(value === false)}>no</button>
     </div>
   )
   const line = (value: string, set: (v: string) => void, placeholder: string) => (
@@ -143,6 +149,7 @@ export default function EveningReview() {
                   key={s}
                   type="button"
                   aria-pressed={on}
+                  disabled={saving}
                   onClick={() => setA({ ...a, shortfalls: on ? a.shortfalls.filter((x) => x !== s) : [...a.shortfalls, s] })}
                   className={toggle(on)}
                 >
@@ -181,7 +188,7 @@ export default function EveningReview() {
             <p className="text-xs text-muted-foreground mb-2">{oneThing}</p>
             <div className="flex gap-2">
               {ONE_THING.map((o) => (
-                <button key={o} type="button" aria-pressed={a.oneThing === o} onClick={() => setA({ ...a, oneThing: o })} className={toggle(a.oneThing === o)}>
+                <button key={o} type="button" aria-pressed={a.oneThing === o} disabled={saving} onClick={() => setA({ ...a, oneThing: o })} className={toggle(a.oneThing === o)}>
                   {o}
                 </button>
               ))}

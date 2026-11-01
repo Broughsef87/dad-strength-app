@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Sunrise, CheckCircle2, Circle } from 'lucide-react'
 import { createClient } from '../utils/supabase/client'
 import { patchCheckin, usePaintGate } from '../lib/checkins'
+import { useClock, useObjectivesSaved } from '../lib/useClock'
 import { localDay } from '../utils/day'
 import {
   AWAKENING_ANCHOR, AWAKENING_LINE, inMorningWindow, morningDay, readAwakening, carryOver, lastNightDay, firstObjective,
@@ -14,7 +15,8 @@ import {
 // line to set the day's thinking, and what last night's review handed over.
 // Deterministic — no AI. 4am to noon only.
 export default function OnAwakening({ trainingLine }: { trainingLine: string }) {
-  const [now] = useState(() => new Date())
+  const now = useClock()
+  const objectivesSaved = useObjectivesSaved()
   const open = inMorningWindow(now)
   const day = morningDay(now)
 
@@ -54,7 +56,7 @@ export default function OnAwakening({ trainingLine }: { trainingLine: string }) 
       finally { if (gate.mayPaint(claim)) setLoading(false) }
     }
     load()
-  }, [open, day])
+  }, [open, day, objectivesSaved])
 
   if (!open || loading) return null
 

@@ -116,7 +116,9 @@ export function readEntry(raw: unknown, day: string): EveningEntry | null {
     gaveMore: r.gaveMore,
     better: str(r.better),
     oneThing: ONE_THING.includes(r.oneThing as OneThing) ? (r.oneThing as OneThing) : null,
-    oneThingText: str(r.oneThingText),
+    // Not clipped: it is the objective as written, not a reflection line,
+    // and carries into tomorrow whole (Codex r1).
+    oneThingText: typeof r.oneThingText === 'string' && r.oneThingText.trim() ? r.oneThingText.trim() : null,
     savedAt: typeof r.savedAt === 'string' ? r.savedAt : '',
   }
 }
