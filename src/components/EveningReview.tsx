@@ -51,7 +51,7 @@ export default function EveningReview() {
         const e = readEntry((mind as { evening?: unknown } | null)?.evening, day)
         // A new day starts clean; a re-read after objectives were locked in
         // leaves an open form's answers alone.
-        if (e) { setSaved(e); setA(toAnswers(e)); setEditing(false) }
+        if (e) { setSaved(e); setA({ ...toAnswers(e), day }); setEditing(false) }
         else { setSaved(null); setA((cur) => (cur.day === day ? cur : { ...emptyAnswers(), day })) }
       } catch { if (gate.mayPaint(claim)) setReadFailed(true) }
       finally { if (gate.mayPaint(claim)) setLoading(false) }
@@ -60,7 +60,10 @@ export default function EveningReview() {
     // Once per mount: nothing else writes the evening entry.
   }, [open, day, objectivesSaved])
 
-  if (!open || loading) return null
+  // THE FORM BELONGS TO ONE DAY (Codex r2). When the clock crosses 4am the
+  // answers on screen are yesterday's until today's read has answered; showing
+  // them would let a save write yesterday's review into today's row.
+  if (!open || loading || a.day !== day) return null
 
   if (readFailed) {
     return (
