@@ -75,6 +75,7 @@ const SUITES = [
   ['morning eval scorers (FOR-326)', 'morning-eval-scorers.mjs'],
   // Platform Dad's rules (2026-10-31), its own suite.
   ['platform dad rules', 'platform-dad.mjs'],
+  ['evening review + on awakening', 'evening.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
   // Its own suite, not a section of fuel-solve: a revert of the rotations
   // feature must not take the check that would catch the revert with it.

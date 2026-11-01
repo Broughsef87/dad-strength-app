@@ -98,7 +98,7 @@ export default function Settings() {
       new Notification('Dad Strength', {
         body: type === 'workout'
           ? 'Workout reminders enabled. You\'ll get a daily nudge to train.'
-          : 'Check-in reminders enabled. Reflect each evening.',
+          : 'Check-in reminders enabled. Your evening review is on the dashboard from 5pm.',
         icon: '/icon-192.png',
       })
     }

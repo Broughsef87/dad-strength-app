@@ -22,6 +22,9 @@ import MorningProtocol from '../../components/MorningProtocol'
 import WeekPulse from '../../components/WeekPulse'
 import ForgeLoader from '../../components/ForgeLoader'
 import DailyObjectivesCard from '../../components/DailyObjectivesCard'
+import EveningReview from '../../components/EveningReview'
+import OnAwakening from '../../components/OnAwakening'
+import { trainingAhead } from '../../lib/evening'
 import { getProgram } from '../../lib/programs'
 import { runStartedAt } from '../../lib/programs/run'
 import { scheduledDayNumbers, scheduledDoneDays, sessionsThisWeek } from '../../lib/programs/schedule'
@@ -429,6 +432,10 @@ export default function Dashboard() {
                 onOpenProtocol={() => setForceProtocol(true)}
                 protocolTick={protocolTick}
               />
+              {/* 4am to noon only. The day's first step, before the routine. */}
+              <OnAwakening
+                trainingLine={trainingAhead(activeProgram?.name ?? null, training?.done ?? 0, training?.prescribed ?? 0)}
+              />
               <div ref={protocolRef}>
                 <MorningProtocol
                   onSaved={() => setProtocolTick(t => t + 1)}
@@ -438,6 +445,8 @@ export default function Dashboard() {
                   Goals step points here and writes nothing itself, so this card
                   takes no refresh signal: nobody else changes what it shows. */}
               <DailyObjectivesCard />
+              {/* 5pm to 4am only; renders nothing outside that window. */}
+              <EveningReview />
             </div>
           </motion.div>
 
