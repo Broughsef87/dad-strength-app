@@ -6,6 +6,8 @@ import { CheckCircle2, Circle, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { localDay } from '../utils/day'
 import { patchCheckin, usePaintGate } from '../lib/checkins'
+import { carryOver, lastNightDay, type CarryOver } from '../lib/evening'
+import { OBJECTIVES_SAVED } from '../lib/useClock'
 
 // THE RECORD IS THE ROW (FOR-231 v2).
 // daily_checkins.mind_state holds the day's objectives. Nothing is kept in
@@ -45,6 +47,11 @@ export default function DailyObjectivesCard() {
   const [readNonce, setReadNonce] = useState(0)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
   const [saving, setSaving] = useState(false)
+  // What last night's evening review hands this morning (FOR-332): a one
+  // thing that slipped is offered again as objective 1. READ ONLY — nothing here
+  // writes until the athlete locks the list in, so a carried objective is an
+  // offer, never a decision.
+  const [carry, setCarry] = useState<CarryOver | null>(null)
   // Which writes did not land — tags, never a closure and never a payload.
   // A captured closure holds the draft it was made with, which is a queued
   // intention; the re-spec forbids one and Codex found it writing stale
@@ -114,6 +121,7 @@ export default function DailyObjectivesCard() {
       setCompleted(dense.map(() => false))
       setLocked(true)
       setListDay(today)
+      window.dispatchEvent(new Event(OBJECTIVES_SAVED))
     } finally {
       setSaving(false)
     }
@@ -148,6 +156,23 @@ export default function DailyObjectivesCard() {
           setCompleted(n.completed)
           setLocked(ms.lockedIn || false)
           setListDay(today)
+        }
+
+        // Last night, after today's row has painted, and never able to fail
+        // the card: a missing or unreadable review carries nothing over.
+        const night = lastNightDay()
+        if (night) {
+          const { data: prev } = await supabase
+            .from('daily_checkins')
+            .select('mind_state')
+            .eq('user_id', user.id)
+            .eq('date', night)
+            .maybeSingle()
+          const c = carryOver(prev?.mind_state ?? null, night)
+          if (c && gate.mayPaint(claim)) {
+            setCarry(c)
+            if (c.oneThing) setDraft((d) => (d[0].trim() ? d : [c.oneThing as string, d[1], d[2]]))
+          }
         }
       } catch { if (gate.mayPaint(claim)) setReadFailed(true) }
       finally {
@@ -255,6 +280,14 @@ export default function DailyObjectivesCard() {
     </div>
   ) : null
 
+  // The apology and anything held back show on the On Awakening card; here
+  // only the carried objective, while the editor is open.
+  const fromLastNight = carry?.oneThing && !hasObjectives ? (
+    <p className="mb-3 relative z-10 text-xs text-muted-foreground">
+      Carried from last night: your one thing slipped, so it&apos;s in objective 1. Change it if today needs something else.
+    </p>
+  ) : null
+
   return (
     <div id="daily-objectives" className="tile p-5 relative overflow-hidden scroll-mt-24">
       <div className="flex items-center justify-between mb-4 relative z-10">
@@ -270,6 +303,8 @@ export default function DailyObjectivesCard() {
           </span>
         )}
       </div>
+
+      {fromLastNight}
 
       {!hasObjectives ? (
         /* Set them here rather than sending the user somewhere. The old CTA
