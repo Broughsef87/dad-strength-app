@@ -152,6 +152,10 @@
     {
       "file": "20261028_past_due_grace.sql",
       "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
+    },
+    {
+      "file": "20261102_session_log_lights.sql",
+      "reason": "not a Fuel migration — it names no fuel_ table, so the Fuel row comparison has nothing to say about it"
     }
   ]
 }

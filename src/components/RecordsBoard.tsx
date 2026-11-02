@@ -37,6 +37,8 @@ export default function RecordsBoard() {
       .eq('completed', true)
       .not('weight_lbs', 'is', null)
       .gt('weight_lbs', 0)
+      // A missed snatch or clean & jerk is not a record (FOR-337).
+      .or('lights.is.null,lights.gt.0')
       .order('completed_at', { ascending: false })
       .limit(5000)
 

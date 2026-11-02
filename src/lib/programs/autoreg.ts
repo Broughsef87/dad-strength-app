@@ -14,6 +14,7 @@
 // deload week, or the test week. Deltas are additionally clamped in config.
 
 import { ProgramConfig } from './types'
+import { lightsDelta, usesLights } from './lights'
 
 export const RPE_HINTS: Record<number, string> = {
   1: 'Barely effort',
@@ -94,7 +95,7 @@ export async function computeAdjustments(
     .from('ares_session_logs')
     // set_number, because a wave has a different prescribed load on every set
     // and a load means nothing until you know WHICH set it was (FOR-263 r1).
-    .select('slot, rpe, weight_lbs, set_number')
+    .select('slot, rpe, lights, weight_lbs, set_number')
     .eq('generated_workout_id', workoutId)
     .eq('log_type', 'strength_set')
     .eq('completed', true)
@@ -102,10 +103,13 @@ export async function computeAdjustments(
   // No early return on an empty session: a week with nothing logged still
   // carries what it showed (below), it just adds no new signal to it.
 
-  const bySlot: Record<string, { rpes: number[]; weights: number[]; sets: Array<{ n: number; lbs: number }> }> = {}
-  for (const r of (rows ?? []) as Array<{ slot: string; rpe: number | null; weight_lbs: number | null; set_number: number | null }>) {
-    const s = (bySlot[r.slot] ??= { rpes: [], weights: [], sets: [] })
+  const bySlot: Record<string, { rpes: number[]; lights: Array<number | null>; weights: number[]; sets: Array<{ n: number; lbs: number }> }> = {}
+  for (const r of (rows ?? []) as Array<{ slot: string; rpe: number | null; lights?: number | null; weight_lbs: number | null; set_number: number | null }>) {
+    const s = (bySlot[r.slot] ??= { rpes: [], lights: [], weights: [], sets: [] })
     if (r.rpe != null) s.rpes.push(r.rpe)
+    // Every completed set, rated or not, so "every set clean" can tell an
+    // unrated set from a clean one.
+    s.lights.push(r.lights != null ? Number(r.lights) : null)
     if (r.weight_lbs != null && r.weight_lbs > 0) {
       s.weights.push(Number(r.weight_lbs))
       // Kept alongside the flat list, not instead of it: a slot with no
@@ -193,9 +197,10 @@ export async function computeAdjustments(
   // describe the new one: carrying it forward would open the new exercise up
   // to 8 points heavy or light. When the lift or its reference max changes,
   // drop the adjustment and let the new table's number stand.
-  const current: Record<string, { name: string; maxKey?: string }> = {}
+  const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : undefined)
+  const current: Record<string, { name: string; maxKey?: string; pct?: number }> = {}
   for (const item of program.buildDay(weekNumber, dayNumber, {}).items) {
-    if (item.kind === 'lift') current[item.slot] = { name: item.name, maxKey: item.maxKey }
+    if (item.kind === 'lift') current[item.slot] = { name: item.name, maxKey: item.maxKey, pct: mean(pcts(item)) }
   }
 
   // The app follows the lifter, two signals per slot:
@@ -257,7 +262,15 @@ export async function computeAdjustments(
     }
 
     let rpeDelta = 0
-    if (s.rpes.length && p.targetRpe != null) {
+    // A week logged before lights existed still has its RPEs; they stand.
+    if (s.lights.some((l) => l != null) && usesLights(slot, p.name, p.maxKey)) {
+      // LIGHTS, NOT RPE, on the snatch and clean & jerk (FOR-337). A hold
+      // cancels the step the table takes this week: this week's bare percent
+      // minus last week's. Both bare, so the carry above is untouched by it.
+      const now = current[slot]?.pct, before = mean(barePcts[slot] ?? [])
+      const tableStep = now != null && before != null ? now - before : 0
+      rpeDelta = lightsDelta(s.lights, tableStep)
+    } else if (s.rpes.length && p.targetRpe != null) {
       const avg = s.rpes.reduce((a, b) => a + b, 0) / s.rpes.length
       rpeDelta = deltaFor(avg - p.targetRpe)
     }
