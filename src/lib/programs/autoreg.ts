@@ -103,11 +103,13 @@ export async function computeAdjustments(
   // No early return on an empty session: a week with nothing logged still
   // carries what it showed (below), it just adds no new signal to it.
 
-  const bySlot: Record<string, { rpes: number[]; lights: number[]; weights: number[]; sets: Array<{ n: number; lbs: number }> }> = {}
+  const bySlot: Record<string, { rpes: number[]; lights: Array<number | null>; weights: number[]; sets: Array<{ n: number; lbs: number }> }> = {}
   for (const r of (rows ?? []) as Array<{ slot: string; rpe: number | null; lights?: number | null; weight_lbs: number | null; set_number: number | null }>) {
     const s = (bySlot[r.slot] ??= { rpes: [], lights: [], weights: [], sets: [] })
     if (r.rpe != null) s.rpes.push(r.rpe)
-    if (r.lights != null) s.lights.push(Number(r.lights))
+    // Every completed set, rated or not, so "every set clean" can tell an
+    // unrated set from a clean one.
+    s.lights.push(r.lights != null ? Number(r.lights) : null)
     if (r.weight_lbs != null && r.weight_lbs > 0) {
       s.weights.push(Number(r.weight_lbs))
       // Kept alongside the flat list, not instead of it: a slot with no
@@ -261,7 +263,7 @@ export async function computeAdjustments(
 
     let rpeDelta = 0
     // A week logged before lights existed still has its RPEs; they stand.
-    if (s.lights.length && usesLights(slot, p.name, p.maxKey)) {
+    if (s.lights.some((l) => l != null) && usesLights(slot, p.name, p.maxKey)) {
       // LIGHTS, NOT RPE, on the snatch and clean & jerk (FOR-337). A hold
       // cancels the step the table takes this week: this week's bare percent
       // minus last week's. Both bare, so the carry above is untouched by it.

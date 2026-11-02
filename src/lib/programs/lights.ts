@@ -64,14 +64,16 @@ export const CLEAN_STEP_UP = 1.5
  * this week (0 or negative, a meso boundary) has nothing to cancel, so a hold
  * there is 0.
  */
-export function lightsDelta(lights: readonly number[], tableStep: number): number {
+export function lightsDelta(lights: readonly (number | null)[], tableStep: number): number {
   const rated = lights.filter(isLights)
   if (!rated.length) return 0
   const misses = rated.filter((l) => l === 0).length
   const hold = -Math.max(0, tableStep)
   if (misses >= 2) return hold - MISS_STEP_DOWN
   if (misses === 1 || rated.includes(1)) return hold
-  if (rated.every((l) => l === 3)) return CLEAN_STEP_UP
+  // Every COMPLETED set, not every rated one: one clean single and three
+  // unrated sets is one confirmed clean lift, not a clean session (Codex r1).
+  if (rated.length === lights.length && rated.every((l) => l === 3)) return CLEAN_STEP_UP
   return 0
 }
 

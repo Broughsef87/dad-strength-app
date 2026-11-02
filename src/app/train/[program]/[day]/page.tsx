@@ -24,7 +24,7 @@ import {
   PlyoPrescription, PrepPrescription, getProgram, rampOriginFor,
 } from '../../../../lib/programs'
 import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
-import { LIGHTS, LIGHTS_LABEL, LIGHTS_HINT, usesLights, isLights, shouldAskDeload } from '../../../../lib/programs/lights'
+import { LIGHTS_LABEL, LIGHTS_HINT, usesLights, isLights, shouldAskDeload } from '../../../../lib/programs/lights'
 import DeloadAsk from '../../../../components/DeloadAsk'
 import { findOrCreateSession } from '../../../../lib/sessionLookup'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
@@ -233,14 +233,20 @@ async function fetchMaxes(
 async function fetchPriorMisses(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, userId: string, slug: string, runStart: string, currentId: string | null,
+  week: number, day: number,
 ): Promise<number[] | null> {
   const { data: ws, error } = await supabase
     .from('generated_workouts').select('id, week_number, day_number')
     .eq('user_id', userId).eq('program_slug', slug).gte('created_at', runStart)
+    .lte('week_number', week)
     .order('week_number', { ascending: false }).order('day_number', { ascending: false })
     .limit(12)
   if (error) return null
-  const ids = ((ws ?? []) as Array<{ id: string }>).map(w => w.id).filter(id => id !== currentId)
+  // Only sessions BEFORE this one: reopening week 2 must not read week 5's
+  // misses into a question about week 3 (Codex r1).
+  const ids = ((ws ?? []) as Array<{ id: string; week_number: number; day_number: number }>)
+    .filter(w => w.id !== currentId && (w.week_number < week || (w.week_number === week && w.day_number < day)))
+    .map(w => w.id)
   if (!ids.length) return []
   const { data: rows, error: e2 } = await supabase
     .from('ares_session_logs').select('generated_workout_id, lights')
@@ -685,32 +691,45 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                     : s.rpe != null ? `RPE ${s.rpe}` : 'Hit'}
                 </button>
               </div>
-              {/* Lights strip — the classic lifts, once the set is logged */}
+              {/* Lights — the classic lifts, once the set is logged. Three blank
+                  lights, a judges' panel (Andrew, 2026-11-02): tap light N and
+                  lights 1..N go white, the rest red. "miss" is all three red.
+                  Tap the chosen one again to clear. Blank only while unrated. */}
               {s.done && lit && (
                 <div className="px-2 pb-2">
-                  <div className="flex gap-1">
-                    {LIGHTS.map(l => (
-                      <button
-                        key={l}
-                        onClick={() => update(idx, 'lights', s.lights === l ? null : l)}
-                        aria-pressed={s.lights === l}
-                        title={LIGHTS_HINT[l]}
-                        className={`flex-1 py-1 text-[11px] border transition-colors flex flex-col items-center gap-0.5 ${
- s.lights === l
- ? (l === 0 ? 'bg-status-danger-fill/10 text-status-danger-ink border-status-danger-fill' : 'bg-brand text-brand-ink border-brand')
- : 'border-border/60 text-muted-foreground hover:text-foreground'
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-2" role="group" aria-label="Lights">
+                      {[1, 2, 3].map(n => {
+                        const rated = isLights(s.lights)
+                        const white = rated && n <= (s.lights as number)
+                        return (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => update(idx, 'lights', s.lights === n ? null : n)}
+                            aria-pressed={s.lights === n}
+                            aria-label={`${n} of 3 white lights`}
+                            className={`w-8 h-8 rounded-full border-2 transition-colors ${
+ !rated ? 'border-border bg-transparent'
+ : white ? 'border-neutral-400 bg-[hsl(var(--sheen))]'
+ : 'border-status-danger-fill bg-status-danger-fill'
  }`}
-                      >
-                        <span className="flex gap-0.5" aria-hidden>
-                          {l === 0
-                            ? [0, 1, 2].map(k => <span key={k} className="w-2 h-2 rounded-full bg-status-danger-fill" />)
-                            : Array.from({ length: l }, (_, k) => <span key={k} className="w-2 h-2 rounded-full bg-[hsl(var(--sheen))] border border-neutral-400" />)}
-                        </span>
-                        <span className="lowercase">{LIGHTS_LABEL[l]}</span>
-                      </button>
-                    ))}
+                          />
+                        )
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => update(idx, 'lights', s.lights === 0 ? null : 0)}
+                      aria-pressed={s.lights === 0}
+                      className={`text-[11px] lowercase px-3 py-1.5 border transition-colors ${
+ s.lights === 0 ? 'bg-status-danger-fill/10 text-status-danger-ink border-status-danger-fill' : 'border-border/60 text-muted-foreground hover:text-foreground'
+ }`}
+                    >
+                      miss
+                    </button>
                   </div>
-                  <p className="eyebrow-mono mt-1">
+                  <p className="eyebrow-mono mt-1.5">
                     {isLights(s.lights) ? LIGHTS_HINT[s.lights].toUpperCase() : 'HOW DID IT GO? TAP THE LIGHTS'}
                   </p>
                 </div>
@@ -1579,7 +1598,7 @@ export default function TrainingDayPage() {
         setLiveLights(seed)
       }
       setDeloadState({ weeks: progState.deloadWeeks, dismissed: progState.deloadDismissed })
-      setPriorMisses(await fetchPriorMisses(supabase, userId, slug, runStart, workoutId))
+      setPriorMisses(await fetchPriorMisses(supabase, userId, slug, runStart, workoutId, weekNumber, dayNumber))
       halt()
       const history = await fetchLiftHistory(supabase, userId, slug, weekNumber, program.macroWeeks)
       halt()

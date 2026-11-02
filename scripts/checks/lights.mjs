@@ -34,6 +34,8 @@ eq(lightsDelta([0, 2, 0], 2), -2 - MISS_STEP_DOWN, 'two misses: hold and a step 
 eq(lightsDelta([3, 0], 0), 0, 'one miss on a flat week: nothing to cancel')
 eq(lightsDelta([3, 0], -5), 0, 'one miss on a meso boundary drop: nothing to cancel')
 eq(lightsDelta([0, 0, 0], 0), -MISS_STEP_DOWN, 'three misses on a flat week: a step down')
+eq(lightsDelta([3, null, null, null], 2), 0, 'one clean set and three unrated is not a clean session')
+eq(lightsDelta([null, null], 2), 0, 'nothing rated: as written')
 
 // The deload question: most recent session first.
 eq(shouldAskDeload([]), false, 'no sessions: no question')
@@ -71,6 +73,7 @@ eq(await run(sets([2, 1, 2, 2])), -step, 'one barely: week 3 holds week 2')
 eq(await run(sets([2, 0, 2, 2])), -step, 'one miss: week 3 holds week 2')
 eq(await run(sets([0, 2, 0, 2])), -step - MISS_STEP_DOWN, 'two misses: week 3 a step under week 2')
 eq(await run(sets([3, 3, 3, 3])), CLEAN_STEP_UP, 'all clean: small step up')
+eq(await run(sets([3, null, 3, 3])), 0, 'autoreg: an unrated set blocks the clean step')
 // Lights replace RPE: an RPE of 10 on a lit set is ignored.
 eq(await run(sets([2, 2, 2, 2], { rpe: 10 })), 0, 'RPE on a lit set does not move it')
 // A week logged before lights existed keeps its RPE signal.
