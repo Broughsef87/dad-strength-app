@@ -24,6 +24,8 @@ import {
   PlyoPrescription, PrepPrescription, getProgram, rampOriginFor,
 } from '../../../../lib/programs'
 import { computeAdjustments, RPE_HINTS } from '../../../../lib/programs/autoreg'
+import { LIGHTS, LIGHTS_LABEL, LIGHTS_HINT, usesLights, isLights, shouldAskDeload } from '../../../../lib/programs/lights'
+import DeloadAsk from '../../../../components/DeloadAsk'
 import { findOrCreateSession } from '../../../../lib/sessionLookup'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
 import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
@@ -46,6 +48,8 @@ interface SessionLogRow {
   weight_lbs: number | null
   reps: number | null
   rpe: number | null
+  /** Competition lights, 0–3, on the snatch and clean & jerk (FOR-337). */
+  lights?: number | null
   slot: string | null
   completed: boolean | null
   completed_at: string | null
@@ -60,6 +64,7 @@ interface SetEntry {
   reps: string
   done: boolean
   rpe: number | null
+  lights: number | null
 }
 
 // A logged set is identified by its SLOT as well as its name. Power Dad lists
@@ -188,7 +193,7 @@ function subInScope(
 async function fetchProgramState(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, userId: string, slug: string,
-): Promise<{ week: number; deloadWeeks: number[]; jumpRampRestarts: number[] }> {
+): Promise<{ week: number; deloadWeeks: number[]; deloadDismissed: number[]; jumpRampRestarts: number[] }> {
   const { data: prog } = await supabase
     .from('user_programs')
     .select('current_week, preferences')
@@ -202,6 +207,9 @@ async function fetchProgramState(
     jumpRampRestarts: Array.isArray(jr) ? jr.filter((n: unknown) => typeof n === 'number' && n > 0) : [],
     week: prog?.current_week ?? 1,
     deloadWeeks: Array.isArray(dw) ? dw.filter((n: unknown) => typeof n === 'number') : [],
+    // Weeks the miss-trend deload question was answered "not yet" (FOR-337).
+    deloadDismissed: Array.isArray(prog?.preferences?.deload_dismissed)
+      ? prog.preferences.deload_dismissed.filter((n: unknown) => typeof n === 'number') : [],
   }
 }
 
@@ -218,6 +226,34 @@ async function fetchMaxes(
   return out
 }
 
+// The classic-lift misses of the sessions BEFORE this one, most recent first,
+// counting only sessions that had a lift rated in lights (FOR-337). Two are
+// enough: the deload question looks at the last three sessions, and the third
+// is the one on screen. A failed read is null, and the question stays quiet.
+async function fetchPriorMisses(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any, userId: string, slug: string, runStart: string, currentId: string | null,
+): Promise<number[] | null> {
+  const { data: ws, error } = await supabase
+    .from('generated_workouts').select('id, week_number, day_number')
+    .eq('user_id', userId).eq('program_slug', slug).gte('created_at', runStart)
+    .order('week_number', { ascending: false }).order('day_number', { ascending: false })
+    .limit(12)
+  if (error) return null
+  const ids = ((ws ?? []) as Array<{ id: string }>).map(w => w.id).filter(id => id !== currentId)
+  if (!ids.length) return []
+  const { data: rows, error: e2 } = await supabase
+    .from('ares_session_logs').select('generated_workout_id, lights')
+    .in('generated_workout_id', ids).eq('log_type', 'strength_set').eq('completed', true)
+    .not('lights', 'is', null)
+  if (e2) return null
+  const misses: Record<string, number> = {}
+  for (const r of (rows ?? []) as Array<{ generated_workout_id: string; lights: number }>) {
+    misses[r.generated_workout_id] = (misses[r.generated_workout_id] ?? 0) + (r.lights === 0 ? 1 : 0)
+  }
+  return ids.filter(id => id in misses).slice(0, 2).map(id => misses[id])
+}
+
 // The error is RETURNED, not swallowed. Whether a session has been trained is
 // read off these rows (FOR-248), and a failed read that came back as "no logs"
 // would draw a trained session from today's build — and the next log would then
@@ -228,7 +264,7 @@ async function fetchSessionLogs(
 ): Promise<{ logs: SessionLogRow[]; error: { code?: string; message?: string } | null }> {
   const { data, error } = await supabase
     .from('ares_session_logs')
-    .select('block_name, log_type, set_number, weight_lbs, reps, rpe, slot, completed, completed_at, notes, metcon_time_seconds, metcon_rounds')
+    .select('block_name, log_type, set_number, weight_lbs, reps, rpe, lights, slot, completed, completed_at, notes, metcon_time_seconds, metcon_rounds')
     .eq('generated_workout_id', generatedWorkoutId)
   return { logs: (data ?? []) as SessionLogRow[], error: error ?? null }
 }
@@ -399,7 +435,7 @@ function RestTimer({ trigger }: { trigger: number }) {
 
 // ── Lift card — per-set logging with prescribed load ─────────────────────────
 
-function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetComplete, onSetCountChange, onRemove }: {
+function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetComplete, onRated, onSetCountChange, onRemove }: {
   item: LiftPrescription
   index: number
   initialLogs: SessionLogRow[]
@@ -407,9 +443,13 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
   onSwap?: () => void
   history?: SlotHistoryEntry[]
   onSetComplete?: (entry: SetEntry) => void
+  /** A logged set was given its lights (classic lifts only). */
+  onRated?: (entry: SetEntry) => void
   onSetCountChange?: (newCount: number) => void
   onRemove?: () => void
 }) {
+  // THE SNATCH AND THE CLEAN & JERK ARE RATED IN LIGHTS, not RPE (FOR-337).
+  const lit = usesLights(item.slot, item.name, item.maxKey)
   // EVERY ROW IS PREFILLED FROM ITS OWN PRESCRIBED SET (FOR-263). A wave of
   // 3/2/1 has a different load and a different rep count on every set, so
   // filling six rows from one `targetWeightLbs` would put the opening triple's
@@ -427,6 +467,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
         reps: row?.reps != null ? String(row.reps) : String(plan?.reps ?? item.reps),
         done: row?.completed === true,
         rpe: row?.rpe ?? null,
+        lights: isLights(row?.lights) ? row.lights : null,
       }
     }),
   )
@@ -457,6 +498,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
       // Marking a set done kicks off the rest timer + PR check with the
       // just-completed entry.
       if (field === 'done' && value === true) onSetComplete?.(next[idx])
+      if (field === 'lights' && next[idx].done && isLights(value)) onRated?.(next[idx])
       return next
     })
   }
@@ -638,11 +680,43 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                   className="stat-num w-full bg-transparent border-none outline-none text-base text-foreground placeholder:text-muted-foreground/40 text-center" />
                 <button onClick={() => update(idx, 'done', !s.done)}
                   className={`text-[10px] font-semibold lowercase px-2 py-1.5 transition-colors ${s.done ? 'bg-brand text-brand-ink' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-                  {s.done ? (s.rpe != null ? `RPE ${s.rpe}` : 'Hit') : 'Log'}
+                  {!s.done ? 'Log'
+                    : lit ? (isLights(s.lights) ? LIGHTS_LABEL[s.lights] : 'Hit')
+                    : s.rpe != null ? `RPE ${s.rpe}` : 'Hit'}
                 </button>
               </div>
+              {/* Lights strip — the classic lifts, once the set is logged */}
+              {s.done && lit && (
+                <div className="px-2 pb-2">
+                  <div className="flex gap-1">
+                    {LIGHTS.map(l => (
+                      <button
+                        key={l}
+                        onClick={() => update(idx, 'lights', s.lights === l ? null : l)}
+                        aria-pressed={s.lights === l}
+                        title={LIGHTS_HINT[l]}
+                        className={`flex-1 py-1 text-[11px] border transition-colors flex flex-col items-center gap-0.5 ${
+ s.lights === l
+ ? (l === 0 ? 'bg-status-danger-fill/10 text-status-danger-ink border-status-danger-fill' : 'bg-brand text-brand-ink border-brand')
+ : 'border-border/60 text-muted-foreground hover:text-foreground'
+ }`}
+                      >
+                        <span className="flex gap-0.5" aria-hidden>
+                          {l === 0
+                            ? [0, 1, 2].map(k => <span key={k} className="w-2 h-2 rounded-full bg-status-danger-fill" />)
+                            : Array.from({ length: l }, (_, k) => <span key={k} className="w-2 h-2 rounded-full bg-[hsl(var(--sheen))] border border-neutral-400" />)}
+                        </span>
+                        <span className="lowercase">{LIGHTS_LABEL[l]}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="eyebrow-mono mt-1">
+                    {isLights(s.lights) ? LIGHTS_HINT[s.lights].toUpperCase() : 'HOW DID IT GO? TAP THE LIGHTS'}
+                  </p>
+                </div>
+              )}
               {/* RPE strip — appears once the set is logged */}
-              {s.done && (
+              {s.done && !lit && (
                 <div className="px-2 pb-2">
                   <div className="flex gap-1">
                     {Array.from({ length: 10 }, (_, r) => r + 1).map(r => (
@@ -1139,6 +1213,13 @@ export default function TrainingDayPage() {
   // toggle is gone before anything can save under the plan it would replace.
   const [started, setStarted] = useState(false)
   const [sessionLogs, setSessionLogs] = useState<SessionLogRow[]>([])
+  // THE MISS TREND (FOR-337). Lights logged on this screen, per slot and set,
+  // and the classic-lift misses of the sessions before this one (most recent
+  // first, only sessions that had classic lifts). The deload question reads
+  // both; it asks, it never changes the program on its own.
+  const [liveLights, setLiveLights] = useState<Record<string, Array<number | null>>>({})
+  const [priorMisses, setPriorMisses] = useState<number[] | null>(null)
+  const [deloadState, setDeloadState] = useState<{ weeks: number[]; dismissed: number[] } | null>(null)
   const [liftHistory, setLiftHistory] = useState<LiftHistory>({})
   const [logWriteError, setLogWriteError] = useState<string | null>(null)
   const [restTrigger, setRestTrigger] = useState(0)
@@ -1489,6 +1570,17 @@ export default function TrainingDayPage() {
       }
       workoutIdRef.current = workoutId
       setSessionLogs(logs)
+      {
+        const seed: Record<string, Array<number | null>> = {}
+        for (const l of logs) {
+          if (!l.slot || !l.set_number || l.completed !== true || !isLights(l.lights)) continue
+          ;(seed[l.slot] ??= [])[l.set_number - 1] = l.lights
+        }
+        setLiveLights(seed)
+      }
+      setDeloadState({ weeks: progState.deloadWeeks, dismissed: progState.deloadDismissed })
+      setPriorMisses(await fetchPriorMisses(supabase, userId, slug, runStart, workoutId))
+      halt()
       const history = await fetchLiftHistory(supabase, userId, slug, weekNumber, program.macroWeeks)
       halt()
       setLiftHistory(history)
@@ -1502,6 +1594,8 @@ export default function TrainingDayPage() {
           .eq('user_id', userId).eq('log_type', 'strength_set').eq('completed', true)
           .in('block_name', liftNames)
           .not('weight_lbs', 'is', null).gt('weight_lbs', 0)
+          // A missed snatch is not a best (FOR-337).
+          .or('lights.is.null,lights.gt.0')
           .limit(4000)
         halt()
         const bests: Record<string, Array<{ w: number; r: number }>> = {}
@@ -1586,6 +1680,9 @@ export default function TrainingDayPage() {
 
   const logLiftSets = async (item: LiftPrescription, sets: SetEntry[]) => {
     if (!user || !workoutIdRef.current) return
+    if (usesLights(item.slot, item.name, item.maxKey)) {
+      setLiveLights(prev => ({ ...prev, [item.slot]: sets.map(s => (s.done && isLights(s.lights) ? s.lights : null)) }))
+    }
     setStarted(true)
     const now = new Date().toISOString()
     const rows = sets.map(s => ({
@@ -1597,6 +1694,7 @@ export default function TrainingDayPage() {
       weight_lbs: s.weight === '' ? null : parseFloat(s.weight) || null,
       reps: s.reps === '' ? null : parseInt(s.reps) || null,
       rpe: s.rpe,
+      lights: usesLights(item.slot, item.name, item.maxKey) && isLights(s.lights) ? s.lights : null,
       completed: s.done,
       completed_at: s.done ? now : null,
     }))
@@ -2067,6 +2165,24 @@ export default function TrainingDayPage() {
           </button>
         )}
 
+        {(() => {
+          // The miss-trend deload question (FOR-337). Next week is the one it
+          // would change; a week already a deload, already answered, or the
+          // macro's own deload or test week is never asked about.
+          if (!userId || !program || !deloadState || priorMisses == null) return null
+          const target = weekRef.current + 1
+          const inMacro = ((target - 1) % program.macroWeeks) + 1
+          if (inMacro >= program.macroWeeks - 1) return null
+          if (deloadState.weeks.includes(target) || deloadState.dismissed.includes(target)) return null
+          const rated = Object.values(liveLights).flat().filter(isLights)
+          const sessions = rated.length ? [rated.filter(l => l === 0).length, ...priorMisses] : priorMisses
+          if (!shouldAskDeload(sessions)) return null
+          return (
+            <DeloadAsk supabase={supabase} userId={userId} slug={slug} week={target}
+              onAnswered={(key, weeks) => setDeloadState(d => d && (key === 'deload_weeks' ? { ...d, weeks } : { ...d, dismissed: weeks }))} />
+          )
+        })()}
+
         {missingMaxes.length > 0 && plan.dayType === 'gym' && (
           <div className="bg-status-danger-fill/5 border border-status-danger-fill/30 rounded-lg px-4 py-3">
             <p className="text-xs text-status-danger-ink">
@@ -2086,7 +2202,12 @@ export default function TrainingDayPage() {
             <>
               {item.kind === 'lift' && (
                 <LiftCard item={item} index={i} initialLogs={logsFor(item)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]}
-                  onSetComplete={entry => { setRestTrigger(t => t + 1); checkPR(item, entry) }}
+                  onSetComplete={entry => {
+                    setRestTrigger(t => t + 1)
+                    // A classic lift waits for its lights: a miss is not a PR.
+                    if (!usesLights(item.slot, item.name, item.maxKey)) checkPR(item, entry)
+                  }}
+                  onRated={entry => { if ((entry.lights ?? 0) > 0) checkPR(item, entry) }}
                   onSetCountChange={n => void changeSetCount(item, n)} onRemove={() => removeExercise(item)} />
               )}
               {item.kind === 'plyo' && (
