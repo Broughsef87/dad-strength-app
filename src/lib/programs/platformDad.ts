@@ -29,9 +29,14 @@ import {
 //
 // 13-week macro, the same shape every program uses (deload = week 12, test =
 // week 13), because the week screen, the block bar and autoreg all key off it:
-//   M1 (W1-4)   build:  triples and doubles at 70-80%, positional variations
-//   M2 (W5-8)   heavy:  doubles and singles at 80-90%. Meet decision after W8.
-//   M3 (W9-11)  peak:   singles climbing to 92-95%
+//   M1 (W1-4)   build:  triples, doubles at 75%+, heavy singles 85-92%
+//   M2 (W5-8)   heavy:  doubles and singles at 85-95%. Meet decision after W8.
+//   M3 (W9-11)  peak:   singles climbing to 95-97%
+//
+// Andrew's rule (FOR-335): on the full classic lifts, no single below 85% and
+// no double below 75%. Power and positional singles keyed off the full max
+// (Friday's M3 Power Snatch) are exempt: 85% of the snatch is over a power
+// snatch max.
 //   W12         taper:  same movements, light, openers on Saturday
 //   W13         mock meet: three snatch and three clean & jerk attempts
 //
@@ -114,9 +119,9 @@ const SLOTS: Record<string, PctSlot> = {
   pd_cj: {
     maxKey: 'clean_jerk', shortDay: true,
     mesos: {
-      1: { names: same('Clean + 2 Jerks'), sets: 4, reps: 1, pctStart: 70, pctStep: 2,
+      1: { names: same('Clean + 2 Jerks'), sets: 4, reps: 1, pctStart: 75, pctStep: 2,
         note: 'One clean, then two jerks from the front rack. The jerk needs the reps. ' + KNEE_NOTE },
-      2: { names: same('Clean & Jerk'), sets: 4, reps: 1, pctStart: 80, pctStep: 2, note: KNEE_NOTE },
+      2: { names: same('Clean & Jerk'), sets: 4, reps: 1, pctStart: 85, pctStep: 1, note: KNEE_NOTE },
       3: { names: same('Clean & Jerk'), sets: 4, reps: 1, pctStart: 85, pctStep: 2, note: KNEE_NOTE },
     },
   },
@@ -136,9 +141,9 @@ const SLOTS: Record<string, PctSlot> = {
   pd_snatch_tech: {
     maxKey: 'snatch', shortDay: true,
     mesos: {
-      1: { names: same('Hang Snatch, Above Knee'), sets: 4, reps: 2, pctStart: 70, pctStep: 2,
+      1: { names: same('Hang Snatch, Above Knee'), sets: 4, reps: 2, pctStart: 75, pctStep: 2,
         note: 'Positions over load. Stay over the bar, finish tall, fast elbows.' },
-      2: { names: same('Pause Snatch, At Knee'), sets: 4, reps: 2, pctStart: 72, pctStep: 2,
+      2: { names: same('Pause Snatch, At Knee'), sets: 4, reps: 2, pctStart: 76, pctStep: 2,
         note: 'Two-second pause at the knee, shoulders over the bar, then go.' },
       3: { names: same('Power Snatch'), sets: 4, reps: 1, pctStart: 75, pctStep: 2,
         note: 'Light and fast. The speed you take into Saturday.' },
@@ -158,13 +163,13 @@ const SLOTS: Record<string, PctSlot> = {
     maxKey: 'snatch', shortDay: true,
     mesos: {
       1: { names: same('Snatch — Heavy Single'), sets: 3, reps: 1, pctStart: 74, pctStep: 2,
-        sequence: [{ reps: 1, pctStart: 74, pctStep: 2 }, { reps: 1, pctStart: 78, pctStep: 2 }, { reps: 1, pctStart: 82, pctStep: 2 }],
+        sequence: [{ reps: 1, pctStart: 85, pctStep: 0.5 }, { reps: 1, pctStart: 88, pctStep: 0.5 }, { reps: 1, pctStart: 91, pctStep: 0.5 }],
         note: 'Climb to the day\'s heavy single. Make every one; a miss ends the climb. ' + KNEE_NOTE },
       2: { names: same('Snatch — Heavy Single'), sets: 3, reps: 1, pctStart: 80, pctStep: 1.5,
-        sequence: [{ reps: 1, pctStart: 80, pctStep: 1.5 }, { reps: 1, pctStart: 84, pctStep: 1.5 }, { reps: 1, pctStart: 88, pctStep: 1.5 }],
+        sequence: [{ reps: 1, pctStart: 86, pctStep: 1 }, { reps: 1, pctStart: 89, pctStep: 1 }, { reps: 1, pctStart: 92, pctStep: 1 }],
         note: 'Climb to the day\'s heavy single. Make every one; a miss ends the climb. ' + KNEE_NOTE },
       3: { names: same('Snatch — Heavy Single'), sets: 3, reps: 1, pctStart: 84, pctStep: 1.5,
-        sequence: [{ reps: 1, pctStart: 84, pctStep: 1.5 }, { reps: 1, pctStart: 88, pctStep: 1.5 }, { reps: 1, pctStart: 92, pctStep: 1.5 }],
+        sequence: [{ reps: 1, pctStart: 88, pctStep: 1 }, { reps: 1, pctStart: 92, pctStep: 1 }, { reps: 1, pctStart: 95, pctStep: 1 }],
         note: 'Climb to the day\'s heavy single. Make every one; a miss ends the climb. ' + KNEE_NOTE },
     },
   },
@@ -172,20 +177,20 @@ const SLOTS: Record<string, PctSlot> = {
     maxKey: 'clean_jerk', shortDay: true,
     mesos: {
       1: { names: same('Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 74, pctStep: 2,
-        sequence: [{ reps: 1, pctStart: 74, pctStep: 2 }, { reps: 1, pctStart: 78, pctStep: 2 }, { reps: 1, pctStart: 82, pctStep: 2 }],
+        sequence: [{ reps: 1, pctStart: 85, pctStep: 0.5 }, { reps: 1, pctStart: 88, pctStep: 0.5 }, { reps: 1, pctStart: 91, pctStep: 0.5 }],
         note: 'Climb to the day\'s heavy single. ' + KNEE_NOTE },
       2: { names: same('Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 80, pctStep: 1.5,
-        sequence: [{ reps: 1, pctStart: 80, pctStep: 1.5 }, { reps: 1, pctStart: 84, pctStep: 1.5 }, { reps: 1, pctStart: 88, pctStep: 1.5 }],
+        sequence: [{ reps: 1, pctStart: 86, pctStep: 1 }, { reps: 1, pctStart: 89, pctStep: 1 }, { reps: 1, pctStart: 92, pctStep: 1 }],
         note: 'Climb to the day\'s heavy single. ' + KNEE_NOTE },
       3: { names: same('Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 84, pctStep: 1.5,
-        sequence: [{ reps: 1, pctStart: 84, pctStep: 1.5 }, { reps: 1, pctStart: 88, pctStep: 1.5 }, { reps: 1, pctStart: 92, pctStep: 1.5 }],
+        sequence: [{ reps: 1, pctStart: 88, pctStep: 1 }, { reps: 1, pctStart: 92, pctStep: 1 }, { reps: 1, pctStart: 95, pctStep: 1 }],
         note: 'Climb to the day\'s heavy single. ' + KNEE_NOTE },
     },
   },
   pd_jerk: {
     maxKey: 'clean_jerk',
     mesos: {
-      1: { names: same('Jerk from Rack'), sets: 4, reps: 2, pctStart: 70, pctStep: 2,
+      1: { names: same('Jerk from Rack'), sets: 4, reps: 2, pctStart: 75, pctStep: 2,
         note: 'Off the rack, straight dip, punch under. The overhead work that counts on the platform.' },
       2: { names: same('Jerk from Rack'), sets: 4, reps: 2, pctStart: 78, pctStep: 2,
         note: 'Off the rack, straight dip, punch under.' },
