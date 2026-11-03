@@ -710,7 +710,7 @@ function LiftCard({ item, index, initialLogs, onLog, onSwap, history, onSetCompl
                             aria-pressed={s.lights === n}
                             aria-label={`${n} of 3 white lights`}
                             className={`w-8 h-8 rounded-full border-2 transition-colors ${
- !rated ? 'border-border bg-transparent'
+ !rated ? 'border-muted-foreground bg-muted'
  : white ? 'border-neutral-400 bg-[hsl(var(--sheen))]'
  : 'border-status-danger-fill bg-status-danger-fill'
  }`}
