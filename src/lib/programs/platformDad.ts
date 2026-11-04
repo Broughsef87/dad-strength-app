@@ -41,7 +41,7 @@ import {
 //   W13         mock meet: three snatch and three clean & jerk attempts
 //
 // Two progression systems, as in Dad Built: the classic lifts, squats and the
-// strict press are PERCENT-based off tested maxes; the bodybuilding work is
+// strict press and the push press are PERCENT-based off tested maxes; the bodybuilding work is
 // RANGE-based and climbs by double progression from what was logged.
 //
 // Never more than 4 sets of anything (Andrew, 2026-08-27; set-ceiling.mjs).
@@ -187,6 +187,20 @@ const SLOTS: Record<string, PctSlot> = {
         note: 'Climb to the day\'s heavy single. ' + KNEE_NOTE },
     },
   },
+  // Andrew, 2026-11-04: push press is strength work, so it goes with the
+  // squat, early in the session, as percent work off the clean & jerk (the
+  // same max Hybrid Power keys it to). Lower reps than the old 6-12 range.
+  pd_push_press: {
+    maxKey: 'clean_jerk',
+    mesos: {
+      1: { names: same('Push Press'), sets: 4, reps: 5, pctStart: 60, pctStep: 2,
+        note: 'Out of the front rack. Short dip, drive with the legs, finish with the arms.' },
+      2: { names: same('Push Press'), sets: 4, reps: 4, pctStart: 66, pctStep: 2,
+        note: 'Out of the front rack. Short dip, drive with the legs, finish with the arms.' },
+      3: { names: same('Push Press'), sets: 4, reps: 3, pctStart: 72, pctStep: 2,
+        note: 'Out of the front rack. Short dip, drive with the legs, finish with the arms.' },
+    },
+  },
   pd_jerk: {
     maxKey: 'clean_jerk',
     mesos: {
@@ -302,13 +316,13 @@ function session(
     case 'technique':
       return {
         dayName: 'Snatch Technique + Front Squat',
-        intent: 'Lighter snatch work for positions, the week\'s front squat, a push press, then back and biceps.',
+        intent: 'Lighter snatch work for positions, the week\'s front squat and the push press, then back and biceps.',
         items: [
           pct('pd_snatch_tech', pos, maxes, adj),
           pct('pd_front_squat', pos, maxes, adj),
+          pct('pd_push_press', pos, maxes, adj),
           range('pd_pullup', 'Weighted Pull-Up', 4, r.heavy, lt, { note: 'Dead hang to chin over. Add load when the top of the range is easy.' }),
           range('pd_row', 'Chest-Supported Row', 3, r.mid, lt, { note: 'Chest stays down. No body english.' }),
-          range('pd_push_press', 'Push Press', 3, r.heavy, lt, { note: 'Out of the front rack after the squats. The third overhead day of the week.' }),
           range('pd_curl', 'EZ-Bar Curl', 3, r.mid, lt),
         ],
       }
