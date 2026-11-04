@@ -190,7 +190,11 @@ const SLOTS: Record<string, PctSlot> = {
   // Andrew, 2026-11-04: push press is strength work, so it goes with the
   // squat, early in the session, as percent work off the clean & jerk (the
   // same max Hybrid Power keys it to). Lower reps than the old 6-12 range.
-  pd_push_press: {
+  // A NEW slot id, not the old range slot's: autoreg matches last week's logs
+  // to last week's plan by slot, and the old id would read a logged 3x8 at
+  // 115 against this table's 60% as "17% light" and cut the next week by the
+  // full 8 points (Codex r1, PR #87). A new id starts the percent work clean.
+  pd_push_press_pct: {
     maxKey: 'clean_jerk',
     mesos: {
       1: { names: same('Push Press'), sets: 4, reps: 5, pctStart: 60, pctStep: 2,
@@ -320,7 +324,7 @@ function session(
         items: [
           pct('pd_snatch_tech', pos, maxes, adj),
           pct('pd_front_squat', pos, maxes, adj),
-          pct('pd_push_press', pos, maxes, adj),
+          pct('pd_push_press_pct', pos, maxes, adj),
           range('pd_pullup', 'Weighted Pull-Up', 4, r.heavy, lt, { note: 'Dead hang to chin over. Add load when the top of the range is easy.' }),
           range('pd_row', 'Chest-Supported Row', 3, r.mid, lt, { note: 'Chest stays down. No body english.' }),
           range('pd_curl', 'EZ-Bar Curl', 3, r.mid, lt),
