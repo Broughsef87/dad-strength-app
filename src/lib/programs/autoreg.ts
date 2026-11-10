@@ -88,6 +88,18 @@ export async function computeAdjustments(
   if (!workoutId) return {}
   const prevAdj = ((workouts?.[0]?.workout_data as { adjustments?: unknown } | null)?.adjustments
     ?? {}) as Record<string, number>
+  // The target RPE he was SHOWN, read off the plan recorded on last week's
+  // row. Rebuilding it from today's tables would rate an old log against a
+  // target he never saw: FOR-344 moved light strength work from 7 to 5, and a
+  // week-one squat honestly logged at 7 against the 7 on its card would read
+  // as two points too hard and cut week two by 4% (Codex r1, PR #88).
+  const storedRpe: Record<string, number> = {}
+  const storedItems = ((workouts?.[0]?.workout_data as { plan?: { items?: unknown } } | null)?.plan?.items)
+  if (Array.isArray(storedItems)) {
+    for (const i of storedItems as Array<{ kind?: string; slot?: string; targetRpe?: unknown }>) {
+      if (i?.kind === 'lift' && typeof i.slot === 'string' && typeof i.targetRpe === 'number') storedRpe[i.slot] = i.targetRpe
+    }
+  }
 
   // Completed sets, grouped by slot. `completed = true` so a set that was
   // rated or typed but not actually finished can't skew anything.
@@ -272,7 +284,7 @@ export async function computeAdjustments(
       rpeDelta = lightsDelta(s.lights, tableStep)
     } else if (s.rpes.length && p.targetRpe != null) {
       const avg = s.rpes.reduce((a, b) => a + b, 0) / s.rpes.length
-      rpeDelta = deltaFor(avg - p.targetRpe)
+      rpeDelta = deltaFor(avg - (storedRpe[slot] ?? p.targetRpe))
     }
 
     const carried = shownAdj[slot] ?? 0
