@@ -119,6 +119,27 @@ for (let wk = 1; wk <= 11; wk++) {
   assert(top(1) < top(5) && top(5) < top(9) && top(11) >= 93, `Saturday snatch climbs build < heavy < peak to 93%+ — got ${top(1)}, ${top(5)}, ${top(9)}, ${top(11)}`)
 }
 
+// 9. The target RPE matches the load (FOR-344). Andrew, 2026-11-10: "5 reps
+//    @60% isn't gonna be an rpe 7." Strength work reads its target off the
+//    %-by-reps chart; light volume asks for an honest 5, the heavy end still 7-9.
+{
+  const lift = (wk, d, slot) => p.buildDay(wk, d, MAXES, {}).items.find((i) => i.slot === slot)
+  const want = [
+    ['W1 push press 4x5 @60%', 1, 5, 'pd_push_press_pct', 5],
+    ['W1 back squat 4x5 @68%', 1, 1, 'pd_back_squat', 5],
+    ['W1 front squat 4x4 @70%', 1, 5, 'pd_front_squat', 5],
+    ['W1 strict press 4x6 @70%', 1, 3, 'pd_ohp', 5],
+    ['W8 back squat 4x3 @84%', 8, 1, 'pd_back_squat', 7],
+    ['W11 strict press 4x3 @88%', 11, 3, 'pd_ohp', 9],
+  ]
+  for (const [tag, wk, d, slot, rpe] of want) {
+    const i = lift(wk, d, slot)
+    assert(i?.targetRpe === rpe, `${tag}: target RPE ${rpe}, got ${i?.targetRpe}`)
+  }
+  // The lights lifts keep the meso number; the chart is for strength work only.
+  assert(lift(1, 1, 'pd_snatch')?.targetRpe === 7, 'W1 snatch keeps the meso target (lights rate it)')
+}
+
 if (fails.length) {
   console.error(fails.map((f) => '  ✗ ' + f).join('\n'))
   console.error(`platform-dad: ${fails.length} of ${checks} FAILED`)
