@@ -1,4 +1,5 @@
 import { MAX_ADJ } from './autoreg'
+import { targetRpeFor } from './rpeChart'
 import {
   BuildDayOpts,
   DayPlan,
@@ -81,7 +82,16 @@ interface PctMeso {
   sequence?: Array<{ reps: number; pctStart: number; pctStep: number }>
   note?: string
 }
-type PctSlot = { maxKey: string; mesos: Record<1 | 2 | 3, PctMeso>; shortDay?: boolean }
+type PctSlot = {
+  maxKey: string; mesos: Record<1 | 2 | 3, PctMeso>; shortDay?: boolean
+  /**
+   * Strength work: the target RPE is read off the %-by-reps chart (rpeChart.ts)
+   * instead of the meso's flat number. The value is this lift's own max as a
+   * share of `maxKey` (1 when the max IS the lift's). The classic lifts are
+   * rated by lights and the pulls run past 100%, so they keep the meso number.
+   */
+  rpeByChart?: number
+}
 
 const same = (n: string): [string, string, string, string] => [n, n, n, n]
 
@@ -107,7 +117,7 @@ const SLOTS: Record<string, PctSlot> = {
     },
   },
   pd_back_squat: {
-    maxKey: 'back_squat', shortDay: true,
+    maxKey: 'back_squat', shortDay: true, rpeByChart: 1,
     mesos: {
       1: { names: same('Back Squat'), sets: 4, reps: 5, pctStart: 68, pctStep: 2, note: SQUAT_KNEE_NOTE },
       2: { names: same('Back Squat'), sets: 4, reps: 3, pctStart: 78, pctStep: 2, note: SQUAT_KNEE_NOTE },
@@ -126,7 +136,7 @@ const SLOTS: Record<string, PctSlot> = {
     },
   },
   pd_ohp: {
-    maxKey: 'ohp', shortDay: true,
+    maxKey: 'ohp', shortDay: true, rpeByChart: 1,
     mesos: {
       1: { names: same('Strict Press'), sets: 4, reps: 6, pctStart: 70, pctStep: 2,
         note: 'The priority lift of the program. Glutes tight, no leg drive.' },
@@ -150,7 +160,7 @@ const SLOTS: Record<string, PctSlot> = {
     },
   },
   pd_front_squat: {
-    maxKey: 'front_squat', shortDay: true,
+    maxKey: 'front_squat', shortDay: true, rpeByChart: 1,
     mesos: {
       1: { names: same('Front Squat'), sets: 4, reps: 4, pctStart: 70, pctStep: 2, note: SQUAT_KNEE_NOTE },
       2: { names: same('Front Squat'), sets: 4, reps: 3, pctStart: 78, pctStep: 2, note: SQUAT_KNEE_NOTE },
@@ -194,8 +204,10 @@ const SLOTS: Record<string, PctSlot> = {
   // to last week's plan by slot, and the old id would read a logged 3x8 at
   // 115 against this table's 60% as "17% light" and cut the next week by the
   // full 8 points (Codex r1, PR #87). A new id starts the percent work clean.
+  // rpeByChart 0.9: a push press max runs about 90% of the clean & jerk, so
+  // 60% of the C&J is about 67% of what he can push press (FOR-344).
   pd_push_press_pct: {
-    maxKey: 'clean_jerk',
+    maxKey: 'clean_jerk', rpeByChart: 0.9,
     mesos: {
       1: { names: same('Push Press'), sets: 4, reps: 5, pctStart: 60, pctStep: 2,
         note: 'Out of the front rack. Short dip, drive with the legs, finish with the arms.' },
@@ -242,7 +254,9 @@ function pct(
     maxKey: s.maxKey,
     targetWeightLbs: resolveWeight(percent, s.maxKey, maxes),
     setPlan,
-    targetRpe: MESO_TARGET_RPE[pos.meso] ?? 8,
+    targetRpe: s.rpeByChart
+      ? targetRpeFor(percent / s.rpeByChart, setPlan ? setPlan[0].reps : def.reps)
+      : MESO_TARGET_RPE[pos.meso] ?? 8,
     appliedAdjustmentPct: adj !== 0 ? adj : undefined,
     note: def.note,
     shortDay: s.shortDay,
