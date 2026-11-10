@@ -144,7 +144,7 @@ Do not stop. Pick it up now:
    could not verify, and anything you decided that the ticket did not specify. Nothing new
    is dealt until that doorbell leaves claimed/.
 
-Blaine verifies your work against the repo, not against your report. Report the reasoning the
+Blaine verifies your work against the repo, not against your report. Report the rationale the
 repo cannot show; skip the summary of what the commits already say.
 
 To stop the chain at any time, Andrew: touch .claude/bus/HALT
