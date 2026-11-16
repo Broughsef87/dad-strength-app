@@ -151,5 +151,24 @@ const shown = (wk, day, slot) =>
   check('same card, lifted 20 lb heavy      → follows up', b.pd_snatch_pull, v => (v ?? 0) > 0)
 }
 
+// ── 9. A saved swap is the same lift (Codex r2, PR #89) ───────────────────────
+// The stored plan is post-substitution: a squat swapped to a pause squat is
+// saved under the swap's name with subbedFrom = the program's name. That is
+// the slot's own lift, so RPE 9 last week must still cut this week.
+{
+  const { PROGRAMS } = await import('../../src/lib/programs/index.ts')
+  const pd = PROGRAMS['platform-dad']
+  const PD = { snatch: 215, clean_jerk: 265, back_squat: 425, front_squat: 355, ohp: 180 }
+  const items = pd.buildDay(1, 1, PD).items
+  const sq = items.find(i => i.slot === 'pd_back_squat')
+  const plan = { items: items.map(i => i.slot === 'pd_back_squat' ? { ...i, name: 'Pause Back Squat (2s)', subbedFrom: i.name } : i) }
+  const logs = [1, 2, 3, 4].map(n => ({ slot: 'pd_back_squat', rpe: 9, weight_lbs: sq.targetWeightLbs, set_number: n }))
+  const fake = { from: () => { const o = { select: () => o, eq: () => o, gte: () => o, order: () => o,
+    limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: {}, plan } }] }),
+    not: () => Promise.resolve({ data: logs }) }; return o } }
+  const a = await computeAdjustments(fake, 'u', pd, 2, 1, RUN_EPOCH, PD)
+  check('saved swap, logged RPE 9         → cuts', a.pd_back_squat, v => (v ?? 0) < 0)
+}
+
 console.log('\n' + (fails ? `✗ ${fails} FAILED` : '✓ all behaviour preserved'))
 process.exit(fails ? 1 : 0)

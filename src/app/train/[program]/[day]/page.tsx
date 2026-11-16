@@ -299,47 +299,40 @@ async function fetchLiftHistory(
 
   const { data: workouts } = await supabase
     .from('generated_workouts')
-    .select('id, week_number, workout_data')
+    .select('id, week_number')
     .eq('user_id', userId).eq('program_slug', slug)
     .gte('week_number', mesoStart).lt('week_number', weekNumber)
     // and the same RUN — otherwise 'what you did in week 2' can be from an
     // attempt you abandoned months ago
     .gte('created_at', await runStartedAt(supabase, userId, slug))
   const weekById: Record<string, number> = {}
-  const nameBy: Record<string, Record<string, string>> = {} // workout id → slot → name shown
-  for (const w of workouts ?? []) {
-    weekById[w.id] = w.week_number
-    const items = (w.workout_data as { plan?: { items?: unknown } } | null)?.plan?.items
-    if (!Array.isArray(items)) continue
-    for (const i of items as Array<{ slot?: unknown; name?: unknown }>) {
-      if (typeof i?.slot === 'string' && typeof i.name === 'string') (nameBy[w.id] ??= {})[i.slot] = i.name
-    }
-  }
+  for (const w of workouts ?? []) weekById[w.id] = w.week_number
   const ids = Object.keys(weekById)
   if (!ids.length) return {}
 
   const { data: logs } = await supabase
     .from('ares_session_logs')
-    .select('generated_workout_id, slot, weight_lbs, reps')
+    .select('generated_workout_id, slot, block_name, weight_lbs, reps')
     .eq('user_id', userId).eq('log_type', 'strength_set').eq('completed', true)
     .in('generated_workout_id', ids)
 
-  // Best (heaviest) logged set per (slot, week).
-  const best: Record<string, SlotHistoryEntry> = {} // key: slot|week
+  // Best (heaviest) logged set per (slot, week, movement). The movement is the
+  // name the set was LOGGED under, not the plan's latest name: a swap made
+  // after logging must not hand the old lift's loads to the new one (Codex r2,
+  // PR #89).
+  const best: Record<string, SlotHistoryEntry & { slot: string }> = {}
   for (const l of logs ?? []) {
     if (!l.slot || l.weight_lbs == null) continue
     const week = weekById[l.generated_workout_id as string]
     if (!week) continue
-    const key = `${l.slot}|${week}`
+    const name = typeof l.block_name === 'string' ? l.block_name : undefined
+    const key = JSON.stringify([l.slot, week, name ?? null])
     const w = Number(l.weight_lbs)
-    if (!best[key] || w > best[key].weight) best[key] = { week, weight: w, reps: Number(l.reps ?? 0), name: nameBy[l.generated_workout_id as string]?.[l.slot] }
+    if (!best[key] || w > best[key].weight) best[key] = { slot: l.slot, week, weight: w, reps: Number(l.reps ?? 0), name }
   }
   const out: LiftHistory = {}
   // Group by slot, most recent week first.
-  for (const key of Object.keys(best)) {
-    const slot = key.slice(0, key.lastIndexOf('|'))
-    ;(out[slot] ??= []).push(best[key])
-  }
+  for (const { slot, ...e } of Object.values(best)) (out[slot] ??= []).push(e)
   for (const slot of Object.keys(out)) out[slot].sort((a, b) => b.week - a.week)
   return out
 }
