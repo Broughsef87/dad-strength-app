@@ -94,10 +94,23 @@ export async function computeAdjustments(
   // week-one squat honestly logged at 7 against the 7 on its card would read
   // as two points too hard and cut week two by 4% (Codex r1, PR #88).
   const storedRpe: Record<string, number> = {}
+  // The lift he was SHOWN in each slot, same reason. A deploy that changes a
+  // slot's movement and percents (FOR-349 turned week 1's Snatch Pull into a
+  // halting complex 10% lighter) would otherwise rebuild last week as the NEW
+  // lift, pass the movement-change guard below, and read an obeyed 195 lb pull
+  // as 4.5% heavy against a 185 lb card he never saw (Codex r1, PR #89).
+  const storedLift: Record<string, { name?: string; maxKey?: string; pcts: number[] }> = {}
   const storedItems = ((workouts?.[0]?.workout_data as { plan?: { items?: unknown } } | null)?.plan?.items)
   if (Array.isArray(storedItems)) {
-    for (const i of storedItems as Array<{ kind?: string; slot?: string; targetRpe?: unknown }>) {
-      if (i?.kind === 'lift' && typeof i.slot === 'string' && typeof i.targetRpe === 'number') storedRpe[i.slot] = i.targetRpe
+    for (const i of storedItems as Array<{ kind?: string; slot?: string; targetRpe?: unknown; name?: unknown; maxKey?: unknown; percent?: unknown; setPlan?: unknown }>) {
+      if (i?.kind !== 'lift' || typeof i.slot !== 'string') continue
+      if (typeof i.targetRpe === 'number') storedRpe[i.slot] = i.targetRpe
+      const sets = Array.isArray(i.setPlan) ? (i.setPlan as Array<{ percent?: unknown }>).map((x) => x?.percent) : []
+      storedLift[i.slot] = {
+        name: typeof i.name === 'string' ? i.name : undefined,
+        maxKey: typeof i.maxKey === 'string' ? i.maxKey : undefined,
+        pcts: (sets.length ? sets : [i.percent]).filter((x): x is number => typeof x === 'number'),
+      }
     }
   }
 
@@ -234,7 +247,17 @@ export async function computeAdjustments(
   const sameLift = (slot: string) => {
     const p = prescribed[slot]
     const now = current[slot]
-    return !!p && !!now && now.name === p.name && now.maxKey === p.maxKey
+    if (!p || !now || now.name !== p.name || now.maxKey !== p.maxKey) return false
+    // The rebuilt week must be the week he saw. If the stored card names a
+    // different lift, or its percents differ from the rebuild, the tables
+    // changed under him: nothing logged against it describes today's lift.
+    const was = storedLift[slot]
+    if (!was) return true
+    if (was.name !== undefined && was.name !== p.name) return false
+    if (was.maxKey !== undefined && was.maxKey !== p.maxKey) return false
+    // First set only: a short day drops sets off the end, not off the front.
+    const rebuilt = (p.setPcts ?? [p.percent])[0]
+    return !was.pcts.length || Math.abs(was.pcts[0] - rebuilt) <= 0.25
   }
   // A slot he skipped last week keeps where it was; no logs is not a signal.
   for (const [slot, a] of Object.entries(shownAdj)) {

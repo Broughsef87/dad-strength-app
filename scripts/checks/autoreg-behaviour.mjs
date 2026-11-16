@@ -116,5 +116,40 @@ const shown = (wk, day, slot) =>
   check('W1 squat 4x5 @68%, logged RPE 5 → no change', b.pd_back_squat, v => (v ?? 0) === 0)
 }
 
+// ── 8. A deploy that changes a slot's lift drops the old feedback (Codex r1, PR #89)
+// Week 1 was saved showing Snatch Pull at its old percent; FOR-349 made that
+// slot a halting complex 10% lighter. An obeyed 195 lb pull must not read as
+// "4.5% heavy" against the new 185 lb card and push week 2 up.
+{
+  const { PROGRAMS } = await import('../../src/lib/programs/index.ts')
+  const pd = PROGRAMS['platform-dad']
+  const PD = { snatch: 215, clean_jerk: 265, back_squat: 425, front_squat: 355, ohp: 180 }
+  const items = pd.buildDay(1, 1, PD).items
+  const now = items.find(i => i.slot === 'pd_snatch_pull')
+  const was = { ...now, name: 'Snatch Pull', percent: 90, targetWeightLbs: 195 }
+  const plan = { items: items.map(i => i.slot === 'pd_snatch_pull' ? was : i) }
+  const logs = [1, 2, 3, 4].map(n => ({ slot: 'pd_snatch_pull', rpe: 8, weight_lbs: 195, set_number: n }))
+  const fake = {
+    from: () => {
+      const o = {
+        select: () => o, eq: () => o, gte: () => o, order: () => o,
+        limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: {}, plan } }] }),
+        not: () => Promise.resolve({ data: logs }),
+      }
+      return o
+    },
+  }
+  const a = await computeAdjustments(fake, 'u', pd, 2, 1, RUN_EPOCH, PD)
+  check('old Snatch Pull card, new halting slot → no carry', a.pd_snatch_pull, v => (v ?? 0) === 0)
+  // Same lift, same card: the follow still works (he went 10 lb heavy).
+  const same = { items }
+  const heavy = [1, 2, 3, 4].map(n => ({ slot: 'pd_snatch_pull', rpe: 8, weight_lbs: now.targetWeightLbs + 20, set_number: n }))
+  const fake2 = { from: () => { const o = { select: () => o, eq: () => o, gte: () => o, order: () => o,
+    limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: {}, plan: same } }] }),
+    not: () => Promise.resolve({ data: heavy }) }; return o } }
+  const b = await computeAdjustments(fake2, 'u', pd, 2, 1, RUN_EPOCH, PD)
+  check('same card, lifted 20 lb heavy      → follows up', b.pd_snatch_pull, v => (v ?? 0) > 0)
+}
+
 console.log('\n' + (fails ? `✗ ${fails} FAILED` : '✓ all behaviour preserved'))
 process.exit(fails ? 1 : 0)
