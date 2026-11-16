@@ -279,7 +279,11 @@ async function fetchSessionLogs(
 // current mesocycle. Lets you see "what did I hit last week on this movement"
 // right on the card. Scoped through generated_workouts so week numbers can't
 // collide with a program the user ran previously.
-export interface SlotHistoryEntry { week: number; weight: number; reps: number }
+// `name` is the movement the slot showed that week, read off the plan recorded
+// on its row: a rotation or a swap puts a different lift in the same slot, and
+// its loads say nothing about today's (Codex r1, PR #90). Absent on a row with
+// no recorded plan.
+export interface SlotHistoryEntry { week: number; weight: number; reps: number; name?: string }
 type LiftHistory = Record<string, SlotHistoryEntry[]>
 
 async function fetchLiftHistory(
@@ -308,26 +312,27 @@ async function fetchLiftHistory(
 
   const { data: logs } = await supabase
     .from('ares_session_logs')
-    .select('generated_workout_id, slot, weight_lbs, reps')
+    .select('generated_workout_id, slot, block_name, weight_lbs, reps')
     .eq('user_id', userId).eq('log_type', 'strength_set').eq('completed', true)
     .in('generated_workout_id', ids)
 
-  // Best (heaviest) logged set per (slot, week).
-  const best: Record<string, SlotHistoryEntry> = {} // key: slot|week
+  // Best (heaviest) logged set per (slot, week, movement). The movement is the
+  // name the set was LOGGED under, not the plan's latest name: a swap made
+  // after logging must not hand the old lift's loads to the new one (Codex r2,
+  // PR #89).
+  const best: Record<string, SlotHistoryEntry & { slot: string }> = {}
   for (const l of logs ?? []) {
     if (!l.slot || l.weight_lbs == null) continue
     const week = weekById[l.generated_workout_id as string]
     if (!week) continue
-    const key = `${l.slot}|${week}`
+    const name = typeof l.block_name === 'string' ? l.block_name : undefined
+    const key = JSON.stringify([l.slot, week, name ?? null])
     const w = Number(l.weight_lbs)
-    if (!best[key] || w > best[key].weight) best[key] = { week, weight: w, reps: Number(l.reps ?? 0) }
+    if (!best[key] || w > best[key].weight) best[key] = { slot: l.slot, week, weight: w, reps: Number(l.reps ?? 0), name }
   }
   const out: LiftHistory = {}
   // Group by slot, most recent week first.
-  for (const key of Object.keys(best)) {
-    const slot = key.slice(0, key.lastIndexOf('|'))
-    ;(out[slot] ??= []).push(best[key])
-  }
+  for (const { slot, ...e } of Object.values(best)) (out[slot] ??= []).push(e)
   for (const slot of Object.keys(out)) out[slot].sort((a, b) => b.week - a.week)
   return out
 }
@@ -2220,7 +2225,7 @@ export default function TrainingDayPage() {
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]}
+                <LiftCard item={item} index={i} initialLogs={logsFor(item)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]?.filter(h => h.name == null || h.name === item.name)}
                   onSetComplete={entry => {
                     setRestTrigger(t => t + 1)
                     // A classic lift waits for its lights: a miss is not a PR.

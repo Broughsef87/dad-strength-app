@@ -81,6 +81,24 @@ interface PctMeso {
   /** One entry per set when the sets differ (a climb to a heavy single). */
   sequence?: Array<{ reps: number; pctStart: number; pctStep: number }>
   note?: string
+  /**
+   * Per week, points off the meso's percent. A variation that runs lighter than
+   * the full lift (no jump, segment, three positions) takes 5 off, so a week
+   * that swaps movement does not swap difficulty too (FOR-349).
+   */
+  pctOffset?: [number, number, number, number]
+  /**
+   * Two movements, two weeks each (FOR-349). Andrew, 2026-11-15: "if we change
+   * exercises every two weeks we just need to probably start at a bit higher
+   * intensity". A rotating meso does not climb from pctStart by pctStep; it
+   * starts 5 points higher, climbs 2.5 a week, and the second movement starts
+   * where the first one finished instead of back at the bottom:
+   *   start +5, +7.5 | +7.5, +10
+   * pctOffset (the variation's own discount) still applies on top.
+   */
+  rotation?: boolean
+  /** Per week, a light primer named on the first lift's card, in place of warm-up sets. */
+  primer?: [string, string, string, string]
 }
 type PctSlot = {
   maxKey: string; mesos: Record<1 | 2 | 3, PctMeso>; shortDay?: boolean
@@ -94,6 +112,9 @@ type PctSlot = {
 }
 
 const same = (n: string): [string, string, string, string] => [n, n, n, n]
+/** Two movements, two weeks each: technique rotates every fortnight (FOR-349). */
+const ROTATION_CLIMB = [5, 7.5, 7.5, 10] as const
+const pairs = (a: string, b: string): [string, string, string, string] => [a, a, b, b]
 
 const KNEE_NOTE = 'Knee check first: above 3/10 today, catch these in a power position and keep it smooth.'
 const SQUAT_KNEE_NOTE = 'Knee above 3/10 today: drop to 60% or squat to a box at parallel.'
@@ -103,16 +124,21 @@ const SLOTS: Record<string, PctSlot> = {
   pd_snatch: {
     maxKey: 'snatch', shortDay: true,
     mesos: {
-      1: { names: same('Snatch'), sets: 4, reps: 3, pctStart: 70, pctStep: 2, note: KNEE_NOTE },
-      2: { names: same('Snatch'), sets: 4, reps: 2, pctStart: 80, pctStep: 2, note: KNEE_NOTE },
+      1: { names: same('Snatch'), sets: 4, reps: 3, pctStart: 70, pctStep: 2, note: KNEE_NOTE,
+        primer: pairs('Sots Press', 'Overhead Squat') },
+      2: { names: same('Snatch'), sets: 4, reps: 2, pctStart: 80, pctStep: 2, note: KNEE_NOTE,
+        primer: pairs('Pressing Snatch Balance', 'Snatch Balance, No Dip') },
       3: { names: same('Snatch'), sets: 4, reps: 1, pctStart: 86, pctStep: 2, note: KNEE_NOTE },
     },
   },
   pd_snatch_pull: {
     maxKey: 'snatch',
     mesos: {
-      1: { names: same('Snatch Pull'), sets: 4, reps: 3, pctStart: 90, pctStep: 2 },
-      2: { names: same('Snatch Pull'), sets: 4, reps: 2, pctStart: 98, pctStep: 2 },
+      1: { names: same('Halting Snatch Deadlift + Snatch Pull'), sets: 4, reps: 2, pctStart: 85, pctStep: 2,
+        note: 'Deadlift to the knee, stop two seconds with the shoulders over the bar, then finish the pull. Then one full snatch pull. One rep is both.' },
+      2: { rotation: true, names: pairs('Snatch Segment Pull', 'Snatch Pull, Slowly Lowered'), sets: 4, reps: 2, pctStart: 98, pctStep: 2,
+        pctOffset: [-5, -5, 0, 0],
+        note: 'Segment pull: pause one second just off the floor, at the knee and at mid-thigh, then finish. Slowly lowered: three seconds back to the floor.' },
       3: { names: same('Snatch Pull'), sets: 3, reps: 2, pctStart: 100, pctStep: 2 },
     },
   },
@@ -129,9 +155,11 @@ const SLOTS: Record<string, PctSlot> = {
   pd_cj: {
     maxKey: 'clean_jerk', shortDay: true,
     mesos: {
-      1: { names: same('Clean + 2 Jerks'), sets: 4, reps: 1, pctStart: 75, pctStep: 2,
-        note: 'One clean, then two jerks from the front rack. The jerk needs the reps. ' + KNEE_NOTE },
-      2: { names: same('Clean & Jerk'), sets: 4, reps: 1, pctStart: 85, pctStep: 1, note: KNEE_NOTE },
+      1: { rotation: true, names: pairs('Clean With No Jump + 2 Jerks', '3-Position Clean + Jerk'), sets: 4, reps: 1, pctStart: 75, pctStep: 2,
+        pctOffset: [-5, -5, -5, -5], primer: pairs('Jerk Dip Squat', 'Tall Split Jerk'),
+        note: 'Weeks 1-2: feet stay flat, no jump, finish the pull and pull under; then two jerks. Weeks 3-4: a clean from mid-thigh, from the knee and from the floor without letting go, then one jerk. ' + KNEE_NOTE },
+      2: { names: same('Clean & Jerk'), sets: 4, reps: 1, pctStart: 85, pctStep: 1, note: KNEE_NOTE,
+        primer: pairs('Clean Rack Delivery', 'Clean With No Pull') },
       3: { names: same('Clean & Jerk'), sets: 4, reps: 1, pctStart: 85, pctStep: 2, note: KNEE_NOTE },
     },
   },
@@ -151,10 +179,12 @@ const SLOTS: Record<string, PctSlot> = {
   pd_snatch_tech: {
     maxKey: 'snatch', shortDay: true,
     mesos: {
-      1: { names: same('Hang Snatch, Above Knee'), sets: 4, reps: 2, pctStart: 75, pctStep: 2,
-        note: 'Positions over load. Stay over the bar, finish tall, fast elbows.' },
-      2: { names: same('Pause Snatch, At Knee'), sets: 4, reps: 2, pctStart: 76, pctStep: 2,
-        note: 'Two-second pause at the knee, shoulders over the bar, then go.' },
+      1: { rotation: true, names: pairs('Snatch With No Jump', '2-Position Snatch'), sets: 4, reps: 2, pctStart: 75, pctStep: 2,
+        pctOffset: [-5, -5, 0, 0], primer: same('Snatch With No Pull'),
+        note: 'Weeks 1-2: feet stay flat, no jump; finish the pull and pull yourself under. Weeks 3-4: one rep from the hip, then one from the knee, without letting go.' },
+      2: { rotation: true, names: pairs('Floating Snatch', 'Segment Snatch'), sets: 4, reps: 2, pctStart: 76, pctStep: 2,
+        pctOffset: [0, 0, -5, -5], primer: same('Snatch With No Pull'),
+        note: 'Weeks 5-6: start each rep an inch off the floor, never touching down. Weeks 7-8: pause one second at the knee and at mid-thigh, then go.' },
       3: { names: same('Power Snatch'), sets: 4, reps: 1, pctStart: 75, pctStep: 2,
         note: 'Light and fast. The speed you take into Saturday.' },
     },
@@ -220,10 +250,10 @@ const SLOTS: Record<string, PctSlot> = {
   pd_jerk: {
     maxKey: 'clean_jerk',
     mesos: {
-      1: { names: same('Jerk from Rack'), sets: 4, reps: 2, pctStart: 75, pctStep: 2,
-        note: 'Off the rack, straight dip, punch under. The overhead work that counts on the platform.' },
-      2: { names: same('Jerk from Rack'), sets: 4, reps: 2, pctStart: 78, pctStep: 2,
-        note: 'Off the rack, straight dip, punch under.' },
+      1: { rotation: true, names: pairs('Pause Split Jerk', 'Split Jerk Behind the Neck'), sets: 4, reps: 2, pctStart: 75, pctStep: 2,
+        note: 'Weeks 1-2: off the rack, pause two seconds at the bottom of the dip, then drive and split. Weeks 3-4: from behind the neck, straight dip, punch under.' },
+      2: { rotation: true, names: pairs('Jerk with Paused Dip', 'Jerk from Rack'), sets: 4, reps: 2, pctStart: 78, pctStep: 2,
+        note: 'Weeks 5-6: off the rack, hold the bottom of the dip for two seconds, then drive. Hold the last rep overhead for three seconds. Weeks 7-8: off the rack, straight dip, punch under.' },
       3: { names: same('Jerk from Rack'), sets: 3, reps: 1, pctStart: 85, pctStep: 2,
         note: 'Off the rack, straight dip, punch under.' },
     },
@@ -239,7 +269,9 @@ function pct(
     throw new Error(`${slot}: sets is ${def.sets} and the sequence holds ${def.sequence.length}`)
   }
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, adjustments[slot] ?? 0))
-  const at = (start: number, step: number) => Math.round((start + step * (pos.weekInMeso - 1) + adj) * 2) / 2
+  const off = def.pctOffset?.[pos.weekInMeso - 1] ?? 0
+  const climb = (step: number) => def.rotation ? ROTATION_CLIMB[pos.weekInMeso - 1] : step * (pos.weekInMeso - 1)
+  const at = (start: number, step: number) => Math.round((start + climb(step) + off + adj) * 2) / 2
   const setPlan = def.sequence?.map((st) => {
     const p = at(st.pctStart, st.pctStep)
     return { reps: st.reps, percent: p, targetWeightLbs: resolveWeight(p, s.maxKey, maxes) }
@@ -258,7 +290,8 @@ function pct(
       ? targetRpeFor(percent / s.rpeByChart, setPlan ? setPlan[0].reps : def.reps)
       : MESO_TARGET_RPE[pos.meso] ?? 8,
     appliedAdjustmentPct: adj !== 0 ? adj : undefined,
-    note: def.note,
+    note: [def.primer ? `Primer: ${def.primer[pos.weekInMeso - 1]} (3x3, bar or light, in place of warm-up sets).` : '', def.note ?? '']
+      .filter(Boolean).join(' ') || undefined,
     shortDay: s.shortDay,
   }
 }
