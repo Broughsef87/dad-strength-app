@@ -102,12 +102,15 @@ export async function computeAdjustments(
   const storedLift: Record<string, { name?: string; maxKey?: string; pcts: number[] }> = {}
   const storedItems = ((workouts?.[0]?.workout_data as { plan?: { items?: unknown } } | null)?.plan?.items)
   if (Array.isArray(storedItems)) {
-    for (const i of storedItems as Array<{ kind?: string; slot?: string; targetRpe?: unknown; name?: unknown; maxKey?: unknown; percent?: unknown; setPlan?: unknown }>) {
+    for (const i of storedItems as Array<{ kind?: string; slot?: string; targetRpe?: unknown; name?: unknown; maxKey?: unknown; percent?: unknown; setPlan?: unknown; subbedFrom?: unknown }>) {
       if (i?.kind !== 'lift' || typeof i.slot !== 'string') continue
       if (typeof i.targetRpe === 'number') storedRpe[i.slot] = i.targetRpe
       const sets = Array.isArray(i.setPlan) ? (i.setPlan as Array<{ percent?: unknown }>).map((x) => x?.percent) : []
       storedLift[i.slot] = {
-        name: typeof i.name === 'string' ? i.name : undefined,
+        // The plan is saved post-swap; a swapped card's program name is
+        // subbedFrom. The swap is the slot's own lift, not a change of
+        // movement (Codex r2, PR #89).
+        name: typeof i.subbedFrom === 'string' ? i.subbedFrom : typeof i.name === 'string' ? i.name : undefined,
         maxKey: typeof i.maxKey === 'string' ? i.maxKey : undefined,
         pcts: (sets.length ? sets : [i.percent]).filter((x): x is number => typeof x === 'number'),
       }
