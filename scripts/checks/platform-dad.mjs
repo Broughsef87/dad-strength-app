@@ -41,7 +41,9 @@ for (const forceDeload of [false, true]) {
       assert(plan.items.some(isClassic), `${tag}: a classic lift every session`)
       assert(!plan.items.some((i) => i.kind === 'plyo' || i.kind === 'prep' || i.kind === 'outside' && i.slot !== 'pd_wrap'),
         `${tag}: no jumps, sprints or prep`)
-      assert(!plan.items.some((i) => /jump|bound|sprint|box|lunge/i.test(i.name ?? i.title ?? '')), `${tag}: nothing named like a jump, sprint or lunge`)
+      // "With No Jump" is the opposite of a jump: feet stay flat (FOR-349). It is
+      // stripped before the test so it cannot hide a real jump in the same name.
+      assert(!plan.items.some((i) => /jump|bound|sprint|box|lunge/i.test((i.name ?? i.title ?? '').replace(/\bwith no jump\b/ig, ''))), `${tag}: nothing named like a jump, sprint or lunge`)
       assert(blockCount(plan) <= 6, `${tag}: ${blockCount(plan)} blocks, over the 6-block budget`)
       for (const i of plan.items) {
         if (!('sets' in i)) continue
@@ -138,6 +140,34 @@ for (let wk = 1; wk <= 11; wk++) {
   }
   // The lights lifts keep the meso number; the chart is for strength work only.
   assert(lift(1, 1, 'pd_snatch')?.targetRpe === 7, 'W1 snatch keeps the meso target (lights rate it)')
+}
+
+// 10. Technique variety (FOR-349). Andrew, 2026-11-15: "I like it a lot as
+//     long as we keep the one heavy day with singles of the full lifts."
+//     Saturday is the full snatch and clean & jerk as heavy singles every week;
+//     phases 1-2 rotate the technique work every two weeks; phase 3 does not.
+{
+  const at = (wk, d, slot) => p.buildDay(wk, d, MAXES, {}).items.find((i) => i.slot === slot)
+  for (let wk = 1; wk <= 11; wk++) {
+    const sn = at(wk, 6, 'pd_snatch_heavy'), cj = at(wk, 6, 'pd_cj_heavy')
+    assert(sn?.name === 'Snatch — Heavy Single' && sn.reps === 1, `W${wk} Saturday: full snatch singles, got ${sn?.name}`)
+    assert(cj?.name === 'Clean & Jerk — Heavy Single' && cj.reps === 1, `W${wk} Saturday: full clean & jerk singles, got ${cj?.name}`)
+  }
+  for (const slot of [['pd_snatch_tech', 5], ['pd_jerk', 6]]) {
+    const names = [1, 3, 5, 7].map((wk) => at(wk, slot[1], slot[0])?.name)
+    assert(new Set(names).size === 4, `${slot[0]}: four movements across weeks 1-8, got ${names.join(' / ')}`)
+    for (const wk of [1, 3, 5, 7]) {
+      assert(at(wk, slot[1], slot[0])?.name === at(wk + 1, slot[1], slot[0])?.name, `${slot[0]}: W${wk} and W${wk + 1} share a movement (two-week rotation)`)
+    }
+  }
+  assert(at(1, 3, 'pd_cj')?.name !== at(3, 3, 'pd_cj')?.name, 'Wednesday clean rotates in phase 1')
+  for (let wk = 9; wk <= 13; wk++) {
+    for (const d of scheduledDayNumbers(p, wk)) {
+      for (const i of p.buildDay(wk, d, MAXES, {}).items) {
+        assert(!/Primer:/.test(i.note ?? ''), `W${wk} D${d} ${i.name}: no primer in phase 3, the taper or the meet`)
+      }
+    }
+  }
 }
 
 if (fails.length) {
