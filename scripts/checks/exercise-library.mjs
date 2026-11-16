@@ -89,6 +89,22 @@ assert(!finds('jerk', 'Snatch', 'clean_jerk'), 'search: the category filter hold
   assert(items.length === 40 && total > 40, `search: a big category is capped at 40 and says how many more (got ${items.length} of ${total})`)
 }
 
+// 5. Codex r2, PR #90: every ExRx alias lands on an entry, imports included,
+//    and an exact name is never buried under the cap.
+{
+  const { EXRX_AKAS } = await import('../../src/lib/programs/exerciseImports/exrx.ts')
+  for (const [n, akas] of Object.entries(EXRX_AKAS)) {
+    const e = EXERCISE_LIBRARY.find((x) => x.name === n)
+    assert(!!e, `EXRX_AKAS: "${n}" is not an entry`)
+    for (const a of akas) assert(e?.aka?.includes(a), `EXRX_AKAS: "${a}" not attached to ${n}`)
+  }
+  assert(finds('db split squat', 'Split Squat'), 'search: "db split squat" finds Split Squat')
+  for (const [q, cat] of [['squat', null], ['squat', 'squat'], ['deadlift', null], ['snatch', null]]) {
+    const top = searchLibrary(q, cat, 40).items[0]?.name
+    assert(normalizeExerciseName(top ?? '') === q, `search: "${q}" puts the exact match first (got ${top})`)
+  }
+}
+
 if (fails.length) {
   console.error(fails.map((f) => '  ✗ ' + f).join('\n'))
   console.error(`exercise-library: ${fails.length} of ${checks} FAILED`)

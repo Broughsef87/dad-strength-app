@@ -243,12 +243,10 @@ const CORE_LIBRARY: LibraryExercise[] = [
   { name: 'KB Clean & Press', cat: 'conditioning', equip: ['kb'] },
 ]
 
-/** Every exercise the swap and add sheets offer: the core, then the imports. */
-export const EXERCISE_LIBRARY: LibraryExercise[] = [
-  ...CORE_LIBRARY.map((e) => (EXRX_AKAS[e.name] ? { ...e, aka: [...(e.aka ?? []), ...EXRX_AKAS[e.name]] } : e)),
-  ...OLY_IMPORTS,
-  ...EXRX_IMPORTS,
-]
+/** Every exercise the swap and add sheets offer: the core, then the imports.
+ *  ExRx names attach as akas to whichever entry owns them, imports included. */
+export const EXERCISE_LIBRARY: LibraryExercise[] = [...CORE_LIBRARY, ...OLY_IMPORTS, ...EXRX_IMPORTS]
+  .map((e) => (EXRX_AKAS[e.name] ? { ...e, aka: [...(e.aka ?? []), ...EXRX_AKAS[e.name]] } : e))
 
 /** Lowercase words with punctuation, joiners and plural pulls/racks folded, so
  *  "Snatch Pulls, from the Knee" and "Snatch Pull from Knee" read the same. */
@@ -276,6 +274,15 @@ export function searchLibrary(
     const hay = [e.name, ...(e.aka ?? [])].map(normalizeExerciseName).join(' | ').split(/\s+/)
     return words.every((w) => hay.some((h) => h.startsWith(w)))
   }
+  // Exact name or aka first, then names that start with the query, then the
+  // rest in library order, so "Squat" is never buried under the cap (Codex
+  // r2, PR #90). Array.sort is stable.
+  const q = words.join(' ')
+  const rank = (e: LibraryExercise) => {
+    const names = [e.name, ...(e.aka ?? [])].map(normalizeExerciseName)
+    return names.includes(q) ? 0 : names.some((n) => n.startsWith(q)) ? 1 : 2
+  }
   const all = library.filter(hit)
+  if (q) all.sort((a, b) => rank(a) - rank(b))
   return { items: all.slice(0, limit), total: all.length }
 }
