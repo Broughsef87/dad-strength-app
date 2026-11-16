@@ -130,7 +130,10 @@ for (let wk = 1; wk <= 11; wk++) {
     ['W1 push press 4x5 @60%', 1, 5, 'pd_push_press_pct', 5],
     ['W1 back squat 4x5 @68%', 1, 1, 'pd_back_squat', 5],
     ['W1 front squat 4x4 @70%', 1, 5, 'pd_front_squat', 5],
-    ['W1 strict press 4x6 @70%', 1, 3, 'pd_ohp', 5],
+    // FOR-351: the press runs out of reps sooner. Andrew logged 125-130 x 6
+    // off a 180 press at RPE 6-8, so 70% x 6 asks for 6 and 72% x 6 for 7.
+    ['W1 strict press 4x6 @70%', 1, 3, 'pd_ohp', 6],
+    ['W2 strict press 4x6 @72%', 2, 3, 'pd_ohp', 7],
     ['W8 back squat 4x3 @84%', 8, 1, 'pd_back_squat', 7],
     ['W11 strict press 4x3 @88%', 11, 3, 'pd_ohp', 9],
   ]
