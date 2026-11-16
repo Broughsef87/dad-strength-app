@@ -28,7 +28,7 @@ import { LIGHTS_LABEL, LIGHTS_HINT, usesLights, isLights, shouldAskDeload } from
 import DeloadAsk from '../../../../components/DeloadAsk'
 import { findOrCreateSession } from '../../../../lib/sessionLookup'
 import { doubleProgression, loadTargets as toLoadTargets } from '../../../../lib/programs/progression'
-import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory } from '../../../../lib/programs/exerciseLibrary'
+import { EXERCISE_LIBRARY, CATEGORY_LABELS, ExerciseCategory, searchLibrary, normalizeExerciseName } from '../../../../lib/programs/exerciseLibrary'
 import { runStartedAt } from '../../../../lib/programs/run'
 import { advanceWeekIfDone, fetchDoneDays } from '../../../../lib/programs/advance'
 import { withSetCount } from '../../../../lib/programs/setPlan'
@@ -1042,12 +1042,8 @@ function SwapModal({ target, onPick, onRevert, onClose, busy = false }: {
   const [cat, setCat] = useState<ExerciseCategory | null>(null)
   const [repeat, setRepeat] = useState(true)
   const query = q.trim().toLowerCase()
-  const results = EXERCISE_LIBRARY.filter(e =>
-    e.name !== target.currentName &&
-    (cat == null || e.cat === cat) &&
-    (query === '' || e.name.toLowerCase().includes(query)),
-  ).slice(0, 40)
-  const exactMatch = EXERCISE_LIBRARY.some(e => e.name.toLowerCase() === query)
+  const { items: results, total } = searchLibrary(query, cat, 40, EXERCISE_LIBRARY.filter(e => e.name !== target.currentName))
+  const exactMatch = EXERCISE_LIBRARY.some(e => normalizeExerciseName(e.name) === normalizeExerciseName(query))
   const isSubbed = target.currentName !== target.originalName
 
   return (
@@ -1099,6 +1095,9 @@ function SwapModal({ target, onPick, onRevert, onClose, busy = false }: {
               <span className="text-sm text-foreground">{q.trim()}</span>
             </button>
           )}
+          {total > results.length && (
+            <p className="eyebrow-mono text-center py-2">{total - results.length} MORE — TYPE TO NARROW</p>
+          )}
           {results.length === 0 && query === '' && (
             <p className="eyebrow-mono text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>
           )}
@@ -1143,11 +1142,8 @@ function AddExerciseModal({ onPick, onClose }: {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<ExerciseCategory | null>(null)
   const query = q.trim().toLowerCase()
-  const results = EXERCISE_LIBRARY.filter(e =>
-    (cat == null || e.cat === cat) &&
-    (query === '' || e.name.toLowerCase().includes(query)),
-  ).slice(0, 40)
-  const exactMatch = EXERCISE_LIBRARY.some(e => e.name.toLowerCase() === query)
+  const { items: results, total } = searchLibrary(query, cat, 40)
+  const exactMatch = EXERCISE_LIBRARY.some(e => normalizeExerciseName(e.name) === normalizeExerciseName(query))
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center" onClick={onClose}>
@@ -1191,6 +1187,9 @@ function AddExerciseModal({ onPick, onClose }: {
               <span className="text-sm text-muted-foreground">Add custom: </span>
               <span className="text-sm text-foreground">{q.trim()}</span>
             </button>
+          )}
+          {total > results.length && (
+            <p className="eyebrow-mono text-center py-2">{total - results.length} MORE — TYPE TO NARROW</p>
           )}
           {results.length === 0 && query === '' && (
             <p className="eyebrow-mono text-center py-6">TYPE TO SEARCH OR PICK A CATEGORY</p>

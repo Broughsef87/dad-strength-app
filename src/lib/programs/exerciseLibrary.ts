@@ -4,10 +4,16 @@
 // Used by the workout page's swap feature — substitute any prescribed movement
 // with a peer from its family (or anything, if you know what you're doing).
 
+import { OLY_IMPORTS } from './exerciseImports/oly'
+
 export interface LibraryExercise {
   name: string
   cat: ExerciseCategory
   equip: Equipment[]
+  /** Other names a source uses for this same movement. Search matches them too. */
+  aka?: string[]
+  /** Lands or jumps (jump to split, rebound jerk, jumping pulls). */
+  impact?: true
 }
 
 export type ExerciseCategory =
@@ -29,13 +35,13 @@ export const CATEGORY_LABELS: Record<ExerciseCategory, string> = {
   plyo: 'Jumps / Plyo', conditioning: 'Conditioning',
 }
 
-export const EXERCISE_LIBRARY: LibraryExercise[] = [
+const CORE_LIBRARY: LibraryExercise[] = [
   // ── Squat ──
   { name: 'Back Squat', cat: 'squat', equip: ['bb'] },
   { name: 'Front Squat', cat: 'squat', equip: ['bb'] },
-  { name: 'Pause Back Squat (2s)', cat: 'squat', equip: ['bb'] },
-  { name: 'Pause Front Squat (2s)', cat: 'squat', equip: ['bb'] },
-  { name: 'Tempo Squat (3s down)', cat: 'squat', equip: ['bb'] },
+  { name: 'Pause Back Squat (2s)', cat: 'squat', equip: ['bb'], aka: ['Pause Back Squat'] },
+  { name: 'Pause Front Squat (2s)', cat: 'squat', equip: ['bb'], aka: ['Pause Front Squat', 'Front Squat with Pause'] },
+  { name: 'Tempo Squat (3s down)', cat: 'squat', equip: ['bb'], aka: ['Back Squat with Slow Descent'] },
   { name: 'Box Squat', cat: 'squat', equip: ['bb'] },
   { name: 'Speed Box Squat', cat: 'squat', equip: ['bb'] },
   { name: 'Safety Bar Squat', cat: 'squat', equip: ['bb'] },
@@ -48,12 +54,12 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   // ── Hinge ──
   { name: 'Deadlift', cat: 'hinge', equip: ['bb'] },
   { name: 'Trap Bar Deadlift', cat: 'hinge', equip: ['trap'] },
-  { name: 'Romanian Deadlift', cat: 'hinge', equip: ['bb', 'db'] },
+  { name: 'Romanian Deadlift', cat: 'hinge', equip: ['bb', 'db'], aka: ['RDL', 'Romanian Deadlift (RDL)'] },
   { name: 'Deficit Deadlift (1-2")', cat: 'hinge', equip: ['bb'] },
   { name: 'Block Pull (below knee)', cat: 'hinge', equip: ['bb'] },
   { name: 'Snatch-Grip Deadlift', cat: 'hinge', equip: ['bb'] },
-  { name: 'Good Morning', cat: 'hinge', equip: ['bb'] },
-  { name: 'Single-Leg RDL', cat: 'hinge', equip: ['db', 'kb'] },
+  { name: 'Good Morning', cat: 'hinge', equip: ['bb'], aka: ['Good Morning Exercise'] },
+  { name: 'Single-Leg RDL', cat: 'hinge', equip: ['db', 'kb'], aka: ['One-Legged Deadlift'] },
   { name: 'KB Swing', cat: 'hinge', equip: ['kb'] },
   { name: 'Hip Thrust', cat: 'hinge', equip: ['bb', 'machine'] },
   // ── Lunge / unilateral ──
@@ -75,9 +81,9 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   { name: 'Machine Chest Press', cat: 'push_h', equip: ['machine'] },
   { name: 'Cable Fly', cat: 'push_h', equip: ['cable'] },
   // ── Vertical push ──
-  { name: 'Overhead Press', cat: 'push_v', equip: ['bb'] },
+  { name: 'Overhead Press', cat: 'push_v', equip: ['bb'], aka: ['Press', 'Strict Press', 'Shoulder Press or Strict Press'] },
   { name: 'Push Press', cat: 'push_v', equip: ['bb'] },
-  { name: 'Seated DB Press', cat: 'push_v', equip: ['db'] },
+  { name: 'Seated DB Press', cat: 'push_v', equip: ['db'], aka: ['Seated Dumbbell Press'] },
   { name: 'Standing DB Press', cat: 'push_v', equip: ['db'] },
   { name: 'Z Press', cat: 'push_v', equip: ['bb', 'db'] },
   { name: 'Landmine Press', cat: 'push_v', equip: ['bb'] },
@@ -142,17 +148,17 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   // ── Snatch variations ──
   { name: 'Snatch', cat: 'snatch', equip: ['bb'] },
   { name: 'Power Snatch', cat: 'snatch', equip: ['bb'] },
-  { name: 'Hang Snatch, Above Knee', cat: 'snatch', equip: ['bb'] },
+  { name: 'Hang Snatch, Above Knee', cat: 'snatch', equip: ['bb'], aka: ['Hang Snatch'] },
   { name: 'Hang Power Snatch', cat: 'snatch', equip: ['bb'] },
   { name: 'Pause Snatch, At Knee', cat: 'snatch', equip: ['bb'] },
   { name: 'Pause Snatch, Below Knee', cat: 'snatch', equip: ['bb'] },
-  { name: 'Block Snatch, Below Knee', cat: 'snatch', equip: ['bb'] },
+  { name: 'Block Snatch, Below Knee', cat: 'snatch', equip: ['bb'], aka: ['Block Snatch', 'Snatch from Blocks'] },
   { name: 'Muscle Snatch', cat: 'snatch', equip: ['bb'] },
   { name: 'Tall Snatch', cat: 'snatch', equip: ['bb'] },
   { name: 'Snatch Balance', cat: 'snatch', equip: ['bb'] },
   { name: 'Drop Snatch', cat: 'snatch', equip: ['bb'] },
   { name: 'Overhead Squat', cat: 'snatch', equip: ['bb'] },
-  { name: 'Sots Press', cat: 'snatch', equip: ['bb'] },
+  { name: 'Sots Press', cat: 'snatch', equip: ['bb'], aka: ['Press In Snatch (Sots Press)', 'Press In Snatch Sots Press'] },
   // FOR-349: positions and no-jump work for Platform Dad (named as Catalyst
   // Athletics and Training Weightlifting name them; no jumping or impact drills).
   { name: 'Snatch With No Jump', cat: 'snatch', equip: ['bb'] },
@@ -168,10 +174,10 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   { name: 'Clean & Jerk', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Clean', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Power Clean', cat: 'clean_jerk', equip: ['bb'] },
-  { name: 'Hang Clean, Above Knee', cat: 'clean_jerk', equip: ['bb'] },
+  { name: 'Hang Clean, Above Knee', cat: 'clean_jerk', equip: ['bb'], aka: ['Hang Clean'] },
   { name: 'Hang Power Clean', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Pause Clean, At Knee', cat: 'clean_jerk', equip: ['bb'] },
-  { name: 'Block Clean, Below Knee', cat: 'clean_jerk', equip: ['bb'] },
+  { name: 'Block Clean, Below Knee', cat: 'clean_jerk', equip: ['bb'], aka: ['Block Clean', 'Clean from Blocks'] },
   { name: 'Muscle Clean', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Tall Clean', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Jerk from Rack', cat: 'clean_jerk', equip: ['bb'] },
@@ -184,7 +190,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   { name: 'Clean With No Jump', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Clean With No Pull', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Clean Rack Delivery', cat: 'clean_jerk', equip: ['bb'] },
-  { name: 'Power Clean + Front Squat', cat: 'clean_jerk', equip: ['bb'] },
+  { name: 'Power Clean + Front Squat', cat: 'clean_jerk', equip: ['bb'], aka: ['Power Clean Into Front Squat'] },
   { name: 'Pause Split Jerk', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Split Jerk Behind the Neck', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Jerk with Paused Dip', cat: 'clean_jerk', equip: ['bb'] },
@@ -228,3 +234,36 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   { name: 'DB Snatch', cat: 'conditioning', equip: ['db'] },
   { name: 'KB Clean & Press', cat: 'conditioning', equip: ['kb'] },
 ]
+
+/** Every exercise the swap and add sheets offer: the core, then the imports. */
+export const EXERCISE_LIBRARY: LibraryExercise[] = [...CORE_LIBRARY, ...OLY_IMPORTS]
+
+/** Lowercase words with punctuation, joiners and plural pulls/racks folded, so
+ *  "Snatch Pulls, from the Knee" and "Snatch Pull from Knee" read the same. */
+export function normalizeExerciseName(name: string): string {
+  return name.toLowerCase()
+    .replace(/[&+]/g, ' ')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w && w !== 'and' && w !== 'with' && w !== 'the')
+    .map((w) => (w === 'pulls' ? 'pull' : w === 'racks' ? 'rack' : w))
+    .join(' ')
+}
+
+/** Search the library: every word typed must appear in the name or an aka. */
+export function searchLibrary(
+  query: string,
+  cat: ExerciseCategory | null,
+  limit = 40,
+  library: LibraryExercise[] = EXERCISE_LIBRARY,
+): { items: LibraryExercise[]; total: number } {
+  const words = normalizeExerciseName(query).split(' ').filter(Boolean)
+  const hit = (e: LibraryExercise) => {
+    if (cat != null && e.cat !== cat) return false
+    if (words.length === 0) return true
+    const hay = [e.name, ...(e.aka ?? [])].map(normalizeExerciseName).join(' | ').split(/\s+/)
+    return words.every((w) => hay.some((h) => h.startsWith(w)))
+  }
+  const all = library.filter(hit)
+  return { items: all.slice(0, limit), total: all.length }
+}
