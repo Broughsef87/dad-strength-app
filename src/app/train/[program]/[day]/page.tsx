@@ -299,14 +299,25 @@ async function fetchLiftHistory(
 
   const { data: workouts } = await supabase
     .from('generated_workouts')
-    .select('id, week_number')
+    .select('id, week_number, workout_data')
     .eq('user_id', userId).eq('program_slug', slug)
     .gte('week_number', mesoStart).lt('week_number', weekNumber)
     // and the same RUN — otherwise 'what you did in week 2' can be from an
     // attempt you abandoned months ago
     .gte('created_at', await runStartedAt(supabase, userId, slug))
   const weekById: Record<string, number> = {}
-  for (const w of workouts ?? []) weekById[w.id] = w.week_number
+  // A log row with no block_name (legacy) takes the name its session's saved
+  // plan shows at that slot; with neither, it is left out rather than shown on
+  // every card in the slot (FOR-352).
+  const planName: Record<string, Record<string, string>> = {}
+  for (const w of workouts ?? []) {
+    weekById[w.id] = w.week_number
+    const items = (w.workout_data as { plan?: { items?: unknown } } | null)?.plan?.items
+    if (!Array.isArray(items)) continue
+    for (const i of items as Array<{ slot?: unknown; name?: unknown }>) {
+      if (typeof i?.slot === 'string' && typeof i.name === 'string' && i.name) (planName[w.id] ??= {})[i.slot] = i.name
+    }
+  }
   const ids = Object.keys(weekById)
   if (!ids.length) return {}
 
@@ -325,8 +336,9 @@ async function fetchLiftHistory(
     if (!l.slot || l.weight_lbs == null) continue
     const week = weekById[l.generated_workout_id as string]
     if (!week) continue
-    const name = typeof l.block_name === 'string' ? l.block_name : undefined
-    const key = JSON.stringify([l.slot, week, name ?? null])
+    const name = typeof l.block_name === 'string' && l.block_name ? l.block_name : planName[l.generated_workout_id as string]?.[l.slot]
+    if (!name) continue
+    const key = JSON.stringify([l.slot, week, name])
     const w = Number(l.weight_lbs)
     if (!best[key] || w > best[key].weight) best[key] = { slot: l.slot, week, weight: w, reps: Number(l.reps ?? 0), name }
   }
@@ -1380,7 +1392,7 @@ export default function TrainingDayPage() {
       // RPEs would read as "way under target" and wrongly drag this week down.
       const adjustments = progState.deloadWeeks.includes(weekNumber - 1)
         ? {}
-        : await computeAdjustments(supabase, userId, program, weekNumber, dayNumber, runStart, userMaxes)
+        : await computeAdjustments(supabase, userId, program, weekNumber, dayNumber, runStart, userMaxes, subsRef.current)
 
       // ── Double progression for range-based accessory slots ─────────────
       // The percent engine handles the main lifts; accessories have no 1RM to
@@ -2224,7 +2236,7 @@ export default function TrainingDayPage() {
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]?.filter(h => h.name == null || h.name === item.name)}
+                <LiftCard item={item} index={i} initialLogs={logsFor(item)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]?.filter(h => h.name === item.name)}
                   onSetComplete={entry => {
                     setRestTrigger(t => t + 1)
                     // A classic lift waits for its lights: a miss is not a PR.

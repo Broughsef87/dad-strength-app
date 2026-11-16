@@ -59,6 +59,10 @@ export async function computeAdjustments(
   // three suites started failing the moment it did.
   runStart: string,
   maxes: Record<string, number> = {},
+  // The athlete's standing swaps, `${slot}::${programName}` → movement. Last
+  // week's sets carry only when this week's card is the same movement: the
+  // same swap again, or no swap either week (FOR-352).
+  subs: Record<string, string> = {},
 ): Promise<Record<string, number>> {
   const weekInMacro = ((weekNumber - 1) % program.macroWeeks) + 1
   // Week 1 has no in-macro history; deload + test weeks run as written.
@@ -99,7 +103,7 @@ export async function computeAdjustments(
   // halting complex 10% lighter) would otherwise rebuild last week as the NEW
   // lift, pass the movement-change guard below, and read an obeyed 195 lb pull
   // as 4.5% heavy against a 185 lb card he never saw (Codex r1, PR #89).
-  const storedLift: Record<string, { name?: string; maxKey?: string; pcts: number[] }> = {}
+  const storedLift: Record<string, { name?: string; sub?: string; maxKey?: string; pcts: number[] }> = {}
   const storedItems = ((workouts?.[0]?.workout_data as { plan?: { items?: unknown } } | null)?.plan?.items)
   if (Array.isArray(storedItems)) {
     for (const i of storedItems as Array<{ kind?: string; slot?: string; targetRpe?: unknown; name?: unknown; maxKey?: unknown; percent?: unknown; setPlan?: unknown; subbedFrom?: unknown }>) {
@@ -111,6 +115,7 @@ export async function computeAdjustments(
         // subbedFrom. The swap is the slot's own lift, not a change of
         // movement (Codex r2, PR #89).
         name: typeof i.subbedFrom === 'string' ? i.subbedFrom : typeof i.name === 'string' ? i.name : undefined,
+        sub: typeof i.subbedFrom === 'string' && typeof i.name === 'string' ? i.name : undefined,
         maxKey: typeof i.maxKey === 'string' ? i.maxKey : undefined,
         pcts: (sets.length ? sets : [i.percent]).filter((x): x is number => typeof x === 'number'),
       }
@@ -258,6 +263,11 @@ export async function computeAdjustments(
     if (!was) return true
     if (was.name !== undefined && was.name !== p.name) return false
     if (was.maxKey !== undefined && was.maxKey !== p.maxKey) return false
+    // The movement he lifted last week must be the one on this week's card.
+    // A one-off pause-squat swap logged at RPE 9 says nothing about this
+    // week's plain back squat (FOR-352).
+    const subNow = subs[`${slot}::${p.name}`]
+    if (was.sub !== (subNow && subNow !== p.name ? subNow : undefined)) return false
     // First set only: a short day drops sets off the end, not off the front.
     const rebuilt = (p.setPcts ?? [p.percent])[0]
     return !was.pcts.length || Math.abs(was.pcts[0] - rebuilt) <= 0.25

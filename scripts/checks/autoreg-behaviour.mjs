@@ -166,8 +166,12 @@ const shown = (wk, day, slot) =>
   const fake = { from: () => { const o = { select: () => o, eq: () => o, gte: () => o, order: () => o,
     limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: {}, plan } }] }),
     not: () => Promise.resolve({ data: logs }) }; return o } }
-  const a = await computeAdjustments(fake, 'u', pd, 2, 1, RUN_EPOCH, PD)
-  check('saved swap, logged RPE 9         → cuts', a.pd_back_squat, v => (v ?? 0) < 0)
+  const subs = { [`pd_back_squat::${sq.name}`]: 'Pause Back Squat (2s)' }
+  const a = await computeAdjustments(fake, 'u', pd, 2, 1, RUN_EPOCH, PD, subs)
+  check('repeated swap, logged RPE 9      → cuts', a.pd_back_squat, v => (v ?? 0) < 0)
+  // FOR-352: a one-off swap last week says nothing about this week's plain card.
+  const b = await computeAdjustments(fake, 'u', pd, 2, 1, RUN_EPOCH, PD, {})
+  check('one-off swap, plain card now     → no carry', b.pd_back_squat, v => (v ?? 0) === 0)
 }
 
 console.log('\n' + (fails ? `✗ ${fails} FAILED` : '✓ all behaviour preserved'))
