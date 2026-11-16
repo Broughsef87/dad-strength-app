@@ -75,6 +75,9 @@ const SUITES = [
   ['morning eval scorers (FOR-326)', 'morning-eval-scorers.mjs'],
   // Platform Dad's rules (2026-10-31), its own suite.
   ['platform dad rules', 'platform-dad.mjs'],
+  // Every source name resolves to one entry — its own suite, so a revert of the
+  // import cannot take the check with it (FOR-350).
+  ['exercise library (FOR-350)', 'exercise-library.mjs'],
   ['evening review + on awakening', 'evening.mjs'],
   ['lights on the classic lifts', 'lights.mjs'],
   ['fuel solve (FOR-177)', 'fuel-solve.mjs'],
