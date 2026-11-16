@@ -279,7 +279,11 @@ async function fetchSessionLogs(
 // current mesocycle. Lets you see "what did I hit last week on this movement"
 // right on the card. Scoped through generated_workouts so week numbers can't
 // collide with a program the user ran previously.
-export interface SlotHistoryEntry { week: number; weight: number; reps: number }
+// `name` is the movement the slot showed that week, read off the plan recorded
+// on its row: a rotation or a swap puts a different lift in the same slot, and
+// its loads say nothing about today's (Codex r1, PR #90). Absent on a row with
+// no recorded plan.
+export interface SlotHistoryEntry { week: number; weight: number; reps: number; name?: string }
 type LiftHistory = Record<string, SlotHistoryEntry[]>
 
 async function fetchLiftHistory(
@@ -295,14 +299,22 @@ async function fetchLiftHistory(
 
   const { data: workouts } = await supabase
     .from('generated_workouts')
-    .select('id, week_number')
+    .select('id, week_number, workout_data')
     .eq('user_id', userId).eq('program_slug', slug)
     .gte('week_number', mesoStart).lt('week_number', weekNumber)
     // and the same RUN — otherwise 'what you did in week 2' can be from an
     // attempt you abandoned months ago
     .gte('created_at', await runStartedAt(supabase, userId, slug))
   const weekById: Record<string, number> = {}
-  for (const w of workouts ?? []) weekById[w.id] = w.week_number
+  const nameBy: Record<string, Record<string, string>> = {} // workout id → slot → name shown
+  for (const w of workouts ?? []) {
+    weekById[w.id] = w.week_number
+    const items = (w.workout_data as { plan?: { items?: unknown } } | null)?.plan?.items
+    if (!Array.isArray(items)) continue
+    for (const i of items as Array<{ slot?: unknown; name?: unknown }>) {
+      if (typeof i?.slot === 'string' && typeof i.name === 'string') (nameBy[w.id] ??= {})[i.slot] = i.name
+    }
+  }
   const ids = Object.keys(weekById)
   if (!ids.length) return {}
 
@@ -320,7 +332,7 @@ async function fetchLiftHistory(
     if (!week) continue
     const key = `${l.slot}|${week}`
     const w = Number(l.weight_lbs)
-    if (!best[key] || w > best[key].weight) best[key] = { week, weight: w, reps: Number(l.reps ?? 0) }
+    if (!best[key] || w > best[key].weight) best[key] = { week, weight: w, reps: Number(l.reps ?? 0), name: nameBy[l.generated_workout_id as string]?.[l.slot] }
   }
   const out: LiftHistory = {}
   // Group by slot, most recent week first.
@@ -2219,7 +2231,7 @@ export default function TrainingDayPage() {
           const renderCard = (item: Item, i: number) => (
             <>
               {item.kind === 'lift' && (
-                <LiftCard item={item} index={i} initialLogs={logsFor(item)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]}
+                <LiftCard item={item} index={i} initialLogs={logsFor(item)} onLog={sets => logLiftSets(item, sets)} onSwap={swapFor(item)} history={liftHistory[item.slot]?.filter(h => h.name == null || h.name === item.name)}
                   onSetComplete={entry => {
                     setRestTrigger(t => t + 1)
                     // A classic lift waits for its lights: a miss is not a PR.

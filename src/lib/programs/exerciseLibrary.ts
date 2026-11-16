@@ -194,6 +194,7 @@ const CORE_LIBRARY: LibraryExercise[] = [
   { name: 'Pause Split Jerk', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Split Jerk Behind the Neck', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Jerk with Paused Dip', cat: 'clean_jerk', equip: ['bb'] },
+  { name: 'Jerk with Long Hold', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Power Jerk', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Tall Split Jerk', cat: 'clean_jerk', equip: ['bb'] },
   { name: 'Jerk Dip Squat', cat: 'clean_jerk', equip: ['bb'] },

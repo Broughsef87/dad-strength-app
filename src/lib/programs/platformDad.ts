@@ -251,9 +251,9 @@ const SLOTS: Record<string, PctSlot> = {
     maxKey: 'clean_jerk',
     mesos: {
       1: { rotation: true, names: pairs('Pause Split Jerk', 'Split Jerk Behind the Neck'), sets: 4, reps: 2, pctStart: 75, pctStep: 2,
-        note: 'Weeks 1-2: off the rack, hold the catch in the split for two seconds. Weeks 3-4: from behind the neck, straight dip, punch under.' },
-      2: { rotation: true, names: pairs('Jerk with Paused Dip', 'Jerk from Rack'), sets: 4, reps: 2, pctStart: 78, pctStep: 2,
-        note: 'Weeks 5-6: hold the bottom of the dip for two seconds, then drive. Hold the last rep overhead for three seconds. Weeks 7-8: off the rack, straight dip, punch under.' },
+        note: 'Weeks 1-2: off the rack, pause two seconds at the bottom of the dip, then drive and split. Weeks 3-4: from behind the neck, straight dip, punch under.' },
+      2: { rotation: true, names: pairs('Jerk with Long Hold', 'Jerk from Rack'), sets: 4, reps: 2, pctStart: 78, pctStep: 2,
+        note: 'Weeks 5-6: off the rack, recover from the split and hold every rep overhead for three seconds. Weeks 7-8: off the rack, straight dip, punch under.' },
       3: { names: same('Jerk from Rack'), sets: 3, reps: 1, pctStart: 85, pctStep: 2,
         note: 'Off the rack, straight dip, punch under.' },
     },
