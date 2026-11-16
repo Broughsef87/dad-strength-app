@@ -109,6 +109,8 @@ type PctSlot = {
    * rated by lights and the pulls run past 100%, so they keep the meso number.
    */
   rpeByChart?: number
+  /** Chart calibration for a lift that runs out of reps sooner (rpeChart.ts `repScale`). */
+  rpeRepScale?: number
 }
 
 const same = (n: string): [string, string, string, string] => [n, n, n, n]
@@ -164,7 +166,7 @@ const SLOTS: Record<string, PctSlot> = {
     },
   },
   pd_ohp: {
-    maxKey: 'ohp', shortDay: true, rpeByChart: 1,
+    maxKey: 'ohp', shortDay: true, rpeByChart: 1, rpeRepScale: 0.85,
     mesos: {
       1: { names: same('Strict Press'), sets: 4, reps: 6, pctStart: 70, pctStep: 2,
         note: 'The priority lift of the program. Glutes tight, no leg drive.' },
@@ -287,7 +289,7 @@ function pct(
     targetWeightLbs: resolveWeight(percent, s.maxKey, maxes),
     setPlan,
     targetRpe: s.rpeByChart
-      ? targetRpeFor(percent / s.rpeByChart, setPlan ? setPlan[0].reps : def.reps)
+      ? targetRpeFor(percent / s.rpeByChart, setPlan ? setPlan[0].reps : def.reps, s.rpeRepScale)
       : MESO_TARGET_RPE[pos.meso] ?? 8,
     appliedAdjustmentPct: adj !== 0 ? adj : undefined,
     note: [def.primer ? `Primer: ${def.primer[pos.weekInMeso - 1]} (3x3, bar or light, in place of warm-up sets).` : '', def.note ?? '']

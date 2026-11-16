@@ -27,8 +27,16 @@ export function maxRepsAt(pct: number): number {
   return last + (PCT_AT_MAX_REPS[last] - pct) / PCT_PER_REP_PAST_CHART
 }
 
-/** Target RPE for `reps` at `pct` percent of the max, rounded to a whole number. */
-export function targetRpeFor(pct: number, reps: number): number {
-  const rir = Math.max(0, maxRepsAt(pct) - reps)
+/**
+ * Target RPE for `reps` at `pct` percent of the max, rounded to a whole number.
+ *
+ * `repScale` calibrates a lift that runs out of reps faster than the chart:
+ * the reps a load allows past the first are scaled by it. The strict press
+ * takes 0.85 (FOR-351): Andrew logged 125-130 x 6 off a 180 press at RPE 6-8,
+ * where the plain chart said 5. Scaling reps, not percent, keeps the heavy
+ * triples honest: 88% x 3 stays 9 instead of a grinder 10.
+ */
+export function targetRpeFor(pct: number, reps: number, repScale = 1): number {
+  const rir = Math.max(0, 1 + (maxRepsAt(pct) - 1) * repScale - reps)
   return Math.max(RPE_FLOOR, Math.min(10, Math.round(10 - rir)))
 }
