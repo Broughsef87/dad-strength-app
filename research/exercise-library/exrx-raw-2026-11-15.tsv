@@ -1,0 +1,720 @@
+region	target_muscle	equipment	exercise	exrx_path
+Neck	Sternocleidomastoid	Cable	Neck Flexion	Sternocleidomastoid/CBNeckFlx
+Neck	Sternocleidomastoid	Lever (plate loaded)	Neck Flexion	Sternocleidomastoid/LVNeckFlexionH
+Neck	Sternocleidomastoid	Lever (plate loaded)	Lateral Neck Flexion	Sternocleidomastoid/LVLateralNeckFlexionH
+Neck	Sternocleidomastoid	Lever (selectorized)	Neck Flexion	Sternocleidomastoid/LVNeckFlx
+Neck	Sternocleidomastoid	Lever (selectorized)	Lateral Neck Flexion	Sternocleidomastoid/LVNeckLtrFlx
+Neck	Sternocleidomastoid	Weighted	Neck Flexion	Sternocleidomastoid/WtNeckFlx
+Neck	Sternocleidomastoid	Weighted	Lateral Neck Flexion	Sternocleidomastoid/WtNeckLateralFlex
+Neck	Sternocleidomastoid	Body Weight	Wall Front Neck Bridge	Sternocleidomastoid/BWWallFrontNeckBridge
+Neck	Sternocleidomastoid	Body Weight	Wall Side Neck Bridge	Sternocleidomastoid/BWWallSideNeckBridge
+Neck	Sternocleidomastoid	Suspended	Neck Flexion	Sternocleidomastoid/STNeckFlexion
+Neck	Sternocleidomastoid	Suspended	Lateral Neck Flexion	Sternocleidomastoid/STNeckLateralFlexion
+Neck	Splenius	Cable	Neck Extension	Splenius/CBNeckExt
+Neck	Splenius	Lever (plate loaded)	Neck Extension	Splenius/LVNeckExtentionH
+Neck	Splenius	Lever (selectorized)	Neck Extension	Splenius/LVNeckExt
+Neck	Splenius	Weighted	Seated Neck Extension	Splenius/WtNeckExt
+Neck	Splenius	Weighted	Seated Neck Extension, Harness	Splenius/WtNeckHarnessExt
+Neck	Splenius	Band Resistive	Neck Retraction	Splenius/BRNeckRetraction
+Neck	Splenius	Body Weight	Wall Rear Neck Bridge	Splenius/BWWallRearNeckBridge
+Neck	Splenius	Body Weight	Lying Neck Retraction	Splenius/LyingIsometricNeckRetr
+Neck	Splenius	Suspended	Neck Extension	Splenius/STNeckExtension
+Should	Anterior Deltoid	Barbell	Front Raise	DeltoidAnterior/BBFrontRaise
+Should	Anterior Deltoid	Barbell	Military Press	DeltoidAnterior/BBMilitaryPress
+Should	Anterior Deltoid	Barbell	Military Press, Seated	DeltoidAnterior/BBSeatedMilitaryPress
+Should	Anterior Deltoid	Cable	Front Raise, Isolateral	DeltoidAnterior/CBSeatedFrontRaise
+Should	Anterior Deltoid	Cable	Front Raise, Isolateral, Alternating	DeltoidAnterior/CBAlternatingFrontRaise
+Should	Anterior Deltoid	Cable	Front Raise, One Arm	DeltoidAnterior/CBFrontRaise
+Should	Anterior Deltoid	Cable	Shoulder Press [Isolateral]	DeltoidAnterior/CBStandingShoulderPress
+Should	Anterior Deltoid	Cable	Shoulder Press [Isolateral], Seated	DeltoidAnterior/CBShoulderPress
+Should	Anterior Deltoid	Dumbbell	Arnold Press	DeltoidAnterior/DBArnoldPress
+Should	Anterior Deltoid	Dumbbell	Front Raise	DeltoidAnterior/DBFrontRaise
+Should	Anterior Deltoid	Dumbbell	Front Raise, Alternating	DeltoidAnterior/DBAlternatingFrontRaise
+Should	Anterior Deltoid	Dumbbell	Shoulder Press	DeltoidAnterior/DBShoulderPress
+Should	Anterior Deltoid	Dumbbell	Shoulder Press, One Arm	DeltoidAnterior/DBOneArmShoulderPress
+Should	Anterior Deltoid	Lever (plate loaded)	Military Press [Isolateral]	DeltoidAnterior/LVMilitaryPressH
+Should	Anterior Deltoid	Lever (plate loaded)	One Arm Viking Press (on rack)	DeltoidAnterior/LVLandmineOneArmVikingPress
+Should	Anterior Deltoid	Lever (plate loaded)	Reclined Shoulder Press	DeltoidAnterior/LVReclinedShoulderPressPL
+Should	Anterior Deltoid	Lever (plate loaded)	Shoulder Press [Isolateral]	DeltoidAnterior/LVShoulderPressH
+Should	Anterior Deltoid	Lever (selectorized)	Reclined Shoulder Press	DeltoidAnterior/LVReclinedShoulderPress
+Should	Anterior Deltoid	Lever (selectorized)	Shoulder Press	DeltoidAnterior/LVShoulderPress
+Should	Anterior Deltoid	Lever (selectorized)	Shoulder Press, Parallel Grip	DeltoidAnterior/LVShoulderPressParGrip
+Should	Anterior Deltoid	Sled	Shoulder Press	DeltoidAnterior/SLShoulderPress
+Should	Anterior Deltoid	Smith	Shoulder Press	DeltoidAnterior/SMShoulderPress
+Should	Anterior Deltoid	Body Weight	Pike Press (between benches)	DeltoidAnterior/BWPikePress
+Should	Anterior Deltoid	Body Weight	Pike Press (between benches), Elevated (between benches)	DeltoidAnterior/BWDeclinePikePress
+Should	Anterior Deltoid	Suspended	Front Raise	DeltoidAnterior/STFrontRaise
+Should	Lateral Deltoid	Barbell	Upright Row	DeltoidLateral/BBUprightRow
+Should	Lateral Deltoid	Cable	Lateral Raise, Isolateral	DeltoidLateral/CBLateralRaise
+Should	Lateral Deltoid	Cable	Lateral Raise, One Arm	DeltoidLateral/CBOneArmLateralRaise
+Should	Lateral Deltoid	Cable	Upright Row	DeltoidLateral/CBUprightRow
+Should	Lateral Deltoid	Cable	Upright Row, One Arm	DeltoidLateral/CBOneArmUprightRow
+Should	Lateral Deltoid	Cable	Upright Row, with rope	DeltoidLateral/CBUprightRowRope
+Should	Lateral Deltoid	Cable	Y Raise	DeltoidLateral/CBYRaise
+Should	Lateral Deltoid	Dumbbell	Incline Lateral Raise	DeltoidLateral/DBInclineLateralRaise
+Should	Lateral Deltoid	Dumbbell	Lateral Raise	DeltoidLateral/DBLateralRaise
+Should	Lateral Deltoid	Dumbbell	Side Lying Lateral Raise	DeltoidLateral/DBLyingLateralRaise
+Should	Lateral Deltoid	Dumbbell	Upright Row	DeltoidLateral/DBUprightRow
+Should	Lateral Deltoid	Dumbbell	Upright Row, One Arm	DeltoidLateral/DBOneArmUprightRow
+Should	Lateral Deltoid	Lever (plate loaded)	Lateral Raise [Isolateral]	DeltoidLateral/LVLateralRaiseH
+Should	Lateral Deltoid	Lever (selectorized)	Lateral Raise [Isolateral]	DeltoidLateral/LVLateralRaise
+Should	Lateral Deltoid	Lever (selectorized)	Lateral Raise [Isolateral], alternative machine	DeltoidLateral/LVLateralRaise2
+Should	Lateral Deltoid	Smith	Upright Row	DeltoidLateral/SMUprightRow
+Should	Lateral Deltoid	Suspended	Y Raise	DeltoidLateral/STYShoulderRaise
+Should	Lateral Deltoid	Body Weight		Obliques/BWAngledSideBridge
+Should	Posterior Deltoid	Barbell	Rear Delt Row	DeltoidPosterior/BBRearDeltRow
+Should	Posterior Deltoid	Cable	Rear Delt Row	DeltoidPosterior/CBRearDeltRow
+Should	Posterior Deltoid	Cable	Rear Delt Row, with rope	DeltoidPosterior/CBStandingRearDeltRowRope
+Should	Posterior Deltoid	Cable	Rear Delt Row, Isolateral	DeltoidPosterior/CBStandingRearDeltRowStirrups
+Should	Posterior Deltoid	Cable	Rear Lateral Raise [Isolateral]	DeltoidPosterior/CBRearLateralRaise
+Should	Posterior Deltoid	Cable	Reverse Fly [Isolateral]	DeltoidPosterior/CBStandingReverseFly
+Should	Posterior Deltoid	Dumbbell	Rear Delt Row	DeltoidPosterior/DBRearDeltRow
+Should	Posterior Deltoid	Dumbbell	Rear Lateral Raise	DeltoidPosterior/DBRearLateralRaise
+Should	Posterior Deltoid	Dumbbell	Rear Lateral Raise, Seated	DeltoidPosterior/DBSeatedRearLateralRaise
+Should	Posterior Deltoid	Lever (plate loaded)	Lying Rear Lateral Raise [Isolateral]	DeltoidPosterior/LVLyingRearLateralRaiseH
+Should	Posterior Deltoid	Lever (plate loaded)	Seated Rear Delt Row [Isolateral]	DeltoidPosterior/LVRearDeltRowHammer
+Should	Posterior Deltoid	Lever (plate loaded)	Seated Rear Delt Row [Isolateral], alternative machine	DeltoidPosterior/LVRearDeltRowC
+Should	Posterior Deltoid	Lever (selectorized)	Lying Rear Lateral Raise [Isolateral]	DeltoidPosterior/LVLyingRearLateralRaise
+Should	Posterior Deltoid	Lever (selectorized)	Seated Rear Delt Row	DeltoidPosterior/LVRearDeltRow
+Should	Posterior Deltoid	Lever (selectorized)	Seated Reverse Fly [Isolateral]	DeltoidPosterior/LVRearLateralRaise
+Should	Posterior Deltoid	Lever (selectorized)	Seated Reverse Fly [Isolateral], pronated grip	DeltoidPosterior/LVReverseFlyPronated
+Should	Posterior Deltoid	Smith	Rear Delt Row	DeltoidPosterior/SMRearDeltRow
+Should	Posterior Deltoid	Body Weight	Rear Delt Inverted Row (high bar)	DeltoidPosterior/BWRearDeltInvertedRowHigh
+Should	Posterior Deltoid	Body Weight	Rear Delt Inverted Row (on hips)	DeltoidPosterior/BWRearDeltInvertedRowHips
+Should	Posterior Deltoid	Suspended	Rear Delt Row	DeltoidPosterior/STRearDeltRow
+Should	Posterior Deltoid	Suspended	Reverse Fly	DeltoidPosterior/STReverseFly
+Should	Supraspinatus	Cable	One Arm Front Lateral Raise	Supraspinatus/CBFrontLateralRaise
+Should	Supraspinatus	Dumbbell	One Arm Front Lateral Raise	Supraspinatus/DBFrontLateralRaise
+Should	Supraspinatus	Dumbbell	Full Can Lateral Raise	Supraspinatus/DBFullCanLateralRaise
+Should	Supraspinatus	Body Weight		DeltoidPosterior/DBOneArmRearLateralRaise
+Arm	Triceps Brachii	Assisted	Triceps Dip	Triceps/ASTriDip
+Arm	Triceps Brachii	Assisted	Triceps Dip, kneeling	Triceps/ASTriDipKneeling
+Arm	Triceps Brachii	Barbell	Close Grip Bench Press	Triceps/BBCloseGripBenchPress
+Arm	Triceps Brachii	Barbell	Lying Triceps Extension	Triceps/BBLyingTriExt
+Arm	Triceps Brachii	Barbell	Lying Triceps Extension, Skull Crusher	Triceps/BBLyingTriExtSC
+Arm	Triceps Brachii	Barbell	Triceps Extension	Triceps/BBTriExt
+Arm	Triceps Brachii	Cable	Bent-over Triceps Extension	Triceps/CBBentoverTriExt
+Arm	Triceps Brachii	Cable	Lying Triceps Extension	Triceps/CBLyingTriExt
+Arm	Triceps Brachii	Cable	Pushdown	Triceps/CBPushdown
+Arm	Triceps Brachii	Cable	Pushdown, One Arm	Triceps/CBOneArmPushdown
+Arm	Triceps Brachii	Cable	Pushdown, with back support	Triceps/CBPushdownSupport
+Arm	Triceps Brachii	Cable	Pushdown, with V-bar attachment	Triceps/CBPushdownVBar
+Arm	Triceps Brachii	Cable	Triceps Dip	Triceps/CBTriDip
+Arm	Triceps Brachii	Cable	Triceps Extension	Triceps/CBTriExt
+Arm	Triceps Brachii	Cable	Triceps Extension, with rope	Triceps/CBStandingTricepsExtensionRope
+Arm	Triceps Brachii	Dumbbell	Kickback	Triceps/DBKickback
+Arm	Triceps Brachii	Dumbbell	Lying Triceps Extension	Triceps/DBLyingTriExt
+Arm	Triceps Brachii	Dumbbell	One Arm Triceps Extension (on bench)	Triceps/DBOneArmTriExtBench
+Arm	Triceps Brachii	Dumbbell	Triceps Extension	Triceps/DBTriExt
+Arm	Triceps Brachii	Lever (plate loaded)	Close Grip Bench Press [Isolateral]	Triceps/LVCloseGripBenchPressH
+Arm	Triceps Brachii	Lever (plate loaded)	Triceps Dip	Triceps/LVTriDipH
+Arm	Triceps Brachii	Lever (plate loaded)	Triceps Extension	Triceps/LVTriExtGripless
+Arm	Triceps Brachii	Lever (selectorized)	Triceps Dip	Triceps/LVTriDip
+Arm	Triceps Brachii	Lever (selectorized)	Triceps Dip, alternative machine	Triceps/LVTriDip2
+Arm	Triceps Brachii	Lever (selectorized)	Triceps Extension	Triceps/LVTriExt
+Arm	Triceps Brachii	Lever (selectorized)	Triceps Extension, with preacher pad	Triceps/LVTriExtPreacherPad
+Arm	Triceps Brachii	Sled	Standing Triceps Dip	Triceps/SLStandingTricepsDip
+Arm	Triceps Brachii	Smith	Close Grip Bench Press	Triceps/SMCloseGripBenchPress
+Arm	Triceps Brachii	Weighted	Bench Dip	Triceps/WtBenchDip
+Arm	Triceps Brachii	Weighted	Triceps Dip	Triceps/WtTriDip
+Arm	Triceps Brachii	Band-assisted	Triceps Dip	Triceps/ASTricepsDipBand
+Arm	Triceps Brachii	Body Weight	Bench Dip	Triceps/BWBenchDip
+Arm	Triceps Brachii	Body Weight	Bench Dip, heel on floor	Triceps/BWBenchDipFloor
+Arm	Triceps Brachii	Body Weight	Close Grip Push-up	Triceps/BWCloseGripPushup
+Arm	Triceps Brachii	Body Weight	Close Grip Push-up, Incline on bar	Triceps/BWCloseGripInclinePushupBar
+Arm	Triceps Brachii	Body Weight	Close Grip Push-up, on knees	Triceps/BWCloseGripPushupKnees
+Arm	Triceps Brachii	Body Weight	Triceps Dip	Triceps/BWTriDip
+Arm	Triceps Brachii	Suspended	Triceps Extension	Triceps/STTricepsExtension
+Arm	Triceps Brachii	Self-assisted	Triceps Dip	Triceps/ASTricepsDipSelf
+Arm	Biceps Brachii	Barbell	Curl	Biceps/BBCurl
+Arm	Biceps Brachii	Cable	Curl	Biceps/CBCurl
+Arm	Biceps Brachii	Cable	Curl, Isolateral	Biceps/CBCurlStirrups
+Arm	Biceps Brachii	Cable	Curl, Isolateral, Alternating Curl	Biceps/CBAlternatingCurl
+Arm	Biceps Brachii	Cable	Curl, One Arm	Biceps/CBOneArmCurl
+Arm	Biceps Brachii	Dumbbell	Alternating Curl	Biceps/DBCurl
+Arm	Biceps Brachii	Dumbbell	Alternating Incline Curl	Biceps/DBInclineCurl
+Arm	Biceps Brachii	Lever (plate loaded)	Curl [Isolateral]	Biceps/LVCurlPL
+Arm	Biceps Brachii	Lever (selectorized)	Curl [Isolateral]	Biceps/LVCurl
+Arm	Biceps Brachii	Body Weight	Inverted Biceps Row	BackGeneral/BWUnderhandSupineRow
+Arm	Biceps Brachii	Body Weight		Brachialis/STArmCurl
+Arm	Brachialis	Barbell	Preacher Curl	Brachialis/BBPreacherCurl
+Arm	Brachialis	Barbell	Prone Incline Curl	Brachialis/BBProneInclineCurl
+Arm	Brachialis	Cable	Concentration Curl	Brachialis/CBConcentrationCurl
+Arm	Brachialis	Cable	Preacher Curl	Brachialis/CBPreacherCurl
+Arm	Brachialis	Cable	Preacher Curl, Isolateral	Brachialis/CBPreacherCurlStirrups
+Arm	Brachialis	Dumbbell	Concentration Curl	Brachialis/DBConcentrationCurl
+Arm	Brachialis	Dumbbell	One Arm Preacher Curl	Brachialis/DBPreacherCurl
+Arm	Brachialis	Lever (plate loaded)	Preacher Curl [Isolateral]	Brachialis/LVPreacherCurlH
+Arm	Brachialis	Lever (plate loaded)	Preacher Curl [Isolateral], arms high	Brachialis/LVPreacherCurlHighPL
+Arm	Brachialis	Lever (selectorized)	Preacher Curl	Brachialis/LVPreacherCurl
+Arm	Brachialis	Lever (selectorized)	Preacher Curl, arms high [Isolateral]	Brachialis/LVPreacherCurlHigh
+ForeArm	Brachioradialis	Barbell	Reverse Curl	Brachioradialis/BBReverseCurl
+ForeArm	Brachioradialis	Cable	Hammer Curl	Brachioradialis/CBHammerCurl
+ForeArm	Brachioradialis	Cable	Reverse Curl	Brachioradialis/CBReverseCurl
+ForeArm	Brachioradialis	Dumbbell	Alternating Hammer Curl	Brachioradialis/DBHammerCurl
+ForeArm	Brachioradialis	Lever (plate loaded)	Hammer Preacher Curl [Isolateral]	Brachioradialis/LVHammerPreacherCurlPL
+ForeArm	Brachioradialis	Lever (selectorized)	Reverse Curl [Isolateral]	Brachioradialis/LVReverseCurl
+ForeArm	Wrist Flexors	Barbell	Wrist Curl	WristFlexors/BBWristCurl
+ForeArm	Wrist Flexors	Cable	Wrist Curl	WristFlexors/CBWristCurl
+ForeArm	Wrist Flexors	Dumbbell	Wrist Curl	WristFlexors/DBWristCurl
+ForeArm	Wrist Flexors	Lever (plate loaded)	Grip	WristFlexors/LVGripPL
+ForeArm	Wrist Flexors	Lever (plate loaded)	Wrist Curl	WristFlexors/LVWristCurlPL
+ForeArm	Wrist Flexors	Lever (selectorized)	Grip [Isolateral]	WristFlexors/LVGrip
+ForeArm	Wrist Flexors	Lever (selectorized)	Wrist Curl [Isolateral]	WristFlexors/LVWristCurl
+ForeArm	Wrist Flexors	Sled (selectorized)	One Hand Grip	WristFlexors/SLGrip
+ForeArm	Wrist Flexors	Sled (plate loaded)	One Hand Grip	WristFlexors/SLOneHandGripPlateLoaded
+ForeArm	Wrist Extensors	Barbell	Reverse Wrist Curl	WristExtensors/BBReverseWristCurl
+ForeArm	Wrist Extensors	Cable	Reverse Wrist Curl	WristExtensors/CBReverseWristCurl
+ForeArm	Wrist Extensors	Dumbbell	Reverse Wrist Curl	WristExtensors/DBReverseWristCurl
+ForeArm	Wrist Extensors	Lever (plate loaded)	Reverse Wrist Curl	WristExtensors/LVReverseWristCurlPL
+ForeArm	Wrist Extensors	Lever (selectorized)	Reverse Wrist Curl [Isolateral]	WristExtensors/LVReverseWristCurl
+ForeArm	Pronators	Dumbbell	Seated Pronation	Pronators/DBSeatedPronation
+ForeArm	Pronators	Lever (selectorized)	Seated Pronation [Isolateral]	Pronators/LVSeatedPronation
+ForeArm	Supinators	Dumbbell	Seated Supination	Supinators/DBSeatedSupination
+ForeArm	Supinators	Lever (selectorized)	Seated Supination [Isolateral]	Supinators/LVSeatedSupination
+Back	General Back	Barbell	Bent-over Row	BackGeneral/BBBentOverRow
+Back	General Back	Barbell	Bent-over Row, Underhand	BackGeneral/BBUnderhandBentOverRow
+Back	General Back	Cable	One Arm Bent-over Row	BackGeneral/CBOneArmBentoverRow
+Back	General Back	Cable	Seated Rows, One Arm Straight Back Seated High Row	BackGeneral/CBOneArmStrBackHighRow
+Back	General Back	Cable	Seated Rows, Seated Row	BackGeneral/CBSeatedRow
+Back	General Back	Cable	Seated Rows, Seated Row, Straight Back	BackGeneral/CBStraightBackSeatedRow
+Back	General Back	Cable	Seated Rows, Seated Wide Grip Row	BackGeneral/CBWideGripSeatedRow
+Back	General Back	Cable	Seated Rows, Seated Wide Grip Row, Straight Back	BackGeneral/CBWideGripStrBackSeatedRow
+Back	General Back	Dumbbell	Bent-over Row	BackGeneral/DBBentOverRow
+Back	General Back	Dumbbell	Lying Row	BackGeneral/DBLyingRow
+Back	General Back	Lever (plate loaded)	Incline Row Neutral Grip	BackGeneral/LVNeutralGripInclineRowPL
+Back	General Back	Lever (plate loaded)	Incline Row Wide Grip	BackGeneral/LVWideGripInclineRowPL
+Back	General Back	Lever (plate loaded)	Seated Rows, Narrow Grip [Isolateral]	BackGeneral/LVNarrowGripSeatedRowH
+Back	General Back	Lever (plate loaded)	Seated Rows, Seated High Row [Isolateral]	BackGeneral/LVSeatedHighRowPL
+Back	General Back	Lever (plate loaded)	Seated Rows, Seated Low Row [Isolateral]	BackGeneral/LVSeatedLowRow
+Back	General Back	Lever (plate loaded)	Seated Rows, Wide Grip [Isolateral]	BackGeneral/LVWideGripSeatedRowH
+Back	General Back	Lever (plate loaded)	Seated Rows, Wide Grip [Isolateral], Low Bar	BackGeneral/LVWideLowGripSeatedRowH
+Back	General Back	Lever (plate loaded)	T-bar Row	BackGeneral/LVTBarRow
+Back	General Back	Lever (plate loaded)	T-bar Row, Close grip	BackGeneral/LVCloseGripTBarRow
+Back	General Back	Lever (selectorized)	Seated High Row [Isolateral]	BackGeneral/LVSeatedHighRow
+Back	General Back	Lever (selectorized)	Seated Row	BackGeneral/LVSeatedRow
+Back	General Back	Lever (selectorized)	Seated Row, Wide Grip	BackGeneral/LVWideGripSeatedRow
+Back	General Back	Lever (selectorized)	Seated Row (no chest pad)	BackGeneral/LVSeatedRowNoPad
+Back	General Back	Lever (selectorized)	Seated Row (no chest pad), Straight Back	BackGeneral/LVStraightBackSeatedRowNoPad
+Back	General Back	Lever (selectorized)	Underhand Seated Row [Isolateral]	BackGeneral/LVSeatedUnderhandRow
+Back	General Back	Smith	Bent-over Row	BackGeneral/SMBentOverRow
+Back	General Back	Weighted	Inverted Row	BackGeneral/WTSupineRow
+Back	General Back	Body Weight	Inverted Row	BackGeneral/BWSupineRow
+Back	General Back	Body Weight	Inverted Row, Feet Elevated	BackGeneral/BWSupineRowFeetElevated
+Back	General Back	Body Weight	Inverted Row, High Bar	BackGeneral/BWSupineRowHigh
+Back	General Back	Suspended	Inverted Row	BackGeneral/STInvertedRow
+Back	General Back	Suspended	Row	BackGeneral/STRow
+Back	General Back	Suspended	Row, One Arm	BackGeneral/STOneArmRow
+Back	General Back	Body Weight	Underhand Inverted Row, High Bar	BackGeneral/BWUnderhandSupineRowHigh
+Back	Latissimus Dorsi & Teres Major	Assisted (machine)	Chin-up	LatissimusDorsi/AsUnderhandChinup
+Back	Latissimus Dorsi & Teres Major	Assisted (machine)	Pull-up (open-centered bar)	LatissimusDorsi/AsPullupOpenKneeling
+Back	Latissimus Dorsi & Teres Major	Assisted (machine)	Pull-up (open-centered bar), Standing	LatissimusDorsi/AsPullupOpen
+Back	Latissimus Dorsi & Teres Major	Assisted (machine)	Parallel Close Grip Pull-up	LatissimusDorsi/AsCloseGripChinupKneeling
+Back	Latissimus Dorsi & Teres Major	Barbell	Pullover	LatissimusDorsi/BBPullover
+Back	Latissimus Dorsi & Teres Major	Cable	Bent-over Pullover	LatissimusDorsi/CBBentoverPullover
+Back	Latissimus Dorsi & Teres Major	Cable	Close Grip Pulldown	LatissimusDorsi/CBCloseGripPulldown
+Back	Latissimus Dorsi & Teres Major	Cable	Pulldown	LatissimusDorsi/CBFrontPulldown
+Back	Latissimus Dorsi & Teres Major	Cable	Pulldown, Parallel Grip Pulldown	LatissimusDorsi/CBParallelGripPulldown
+Back	Latissimus Dorsi & Teres Major	Cable	Pullup/Chinup, Chinup	LatissimusDorsi/CBUnderhandChinup
+Back	Latissimus Dorsi & Teres Major	Cable	Pullup/Chinup, Parallel Close Grip Pull-up	LatissimusDorsi/CBParallelCloseGripChinup
+Back	Latissimus Dorsi & Teres Major	Cable	Pullup/Chinup, Parallel Grip Pull-up	LatissimusDorsi/CBParallelGripChinup
+Back	Latissimus Dorsi & Teres Major	Cable	Pullup/Chinup, Pull-up	LatissimusDorsi/CBPullup
+Back	Latissimus Dorsi & Teres Major	Cable	Underhand Pulldown	LatissimusDorsi/CBUnderhandPulldown
+Back	Latissimus Dorsi & Teres Major	Lever (plate loaded)	Pulldown [Isolateral]	LatissimusDorsi/LVPulldownH
+Back	Latissimus Dorsi & Teres Major	Lever (plate loaded)	Underhand Pulldown [Isolateral]	LatissimusDorsi/LVUnderhandPulldownH
+Back	Latissimus Dorsi & Teres Major	Lever (selectorized)	Close Grip Pulldown	LatissimusDorsi/LVCloseGripPulldown
+Back	Latissimus Dorsi & Teres Major	Lever (selectorized)	Front Pulldown	LatissimusDorsi/LVFrontPulldown
+Back	Latissimus Dorsi & Teres Major	Lever (selectorized)	Pulldown [Isolateral]	LatissimusDorsi/LVPulldown
+Back	Latissimus Dorsi & Teres Major	Lever (selectorized)	Pullover	LatissimusDorsi/LVPullover
+Back	Latissimus Dorsi & Teres Major	Weighted	Chin-up	LatissimusDorsi/WtUnderhandChinup
+Back	Latissimus Dorsi & Teres Major	Weighted	Parallel Close Grip Pull-up	LatissimusDorsi/WtCloseGripChinup
+Back	Latissimus Dorsi & Teres Major	Weighted	Pull-up	LatissimusDorsi/WtPullup
+Back	Latissimus Dorsi & Teres Major	Band-assisted	Archer Pull-up	LatissimusDorsi/ASArcherPullupBand
+Back	Latissimus Dorsi & Teres Major	Band-assisted	Chin-up	LatissimusDorsi/ASChinupBand
+Back	Latissimus Dorsi & Teres Major	Band-assisted	Pull-up	LatissimusDorsi/ASPullupBand
+Back	Latissimus Dorsi & Teres Major	Band-assisted	Pull-up, Parallel Grip	LatissimusDorsi/ASParallelGripPullupBand
+Back	Latissimus Dorsi & Teres Major	Body Weight	Archer Pull-up	LatissimusDorsi/BWArcherPullup
+Back	Latissimus Dorsi & Teres Major	Body Weight	Chin-up	LatissimusDorsi/BWUnderhandChinup
+Back	Latissimus Dorsi & Teres Major	Body Weight	One Arm Pull-up	LatissimusDorsi/BWOneArmPullup
+Back	Latissimus Dorsi & Teres Major	Body Weight	Parallel Close Grip Pull-up	LatissimusDorsi/BWCloseGripChinup
+Back	Latissimus Dorsi & Teres Major	Body Weight	Pull-up	LatissimusDorsi/BWPullup
+Back	Latissimus Dorsi & Teres Major	Assisted (partner)	Chin-up	LatissimusDorsi/AsUnderhandChinupPartner
+Back	Latissimus Dorsi & Teres Major	Assisted (partner)	Pull-up	LatissimusDorsi/AsChinupPartner
+Back	Latissimus Dorsi & Teres Major	Self-assisted	Chin-up	LatissimusDorsi/AsUnderhandChinupSelf
+Back	Latissimus Dorsi & Teres Major	Self-assisted	Pull-up	LatissimusDorsi/AsChinupSelf
+Back	Latissimus Dorsi & Teres Major	Suspension	Pull-up	LatissimusDorsi/STPullup
+Back	Latissimus Dorsi & Teres Major	Suspension	Pull-up, Self-assisted	LatissimusDorsi/STSelfAssistedPullup
+Back	Latissimus Dorsi & Teres Major	Body Weight	Wheel Rollout	HipFlexors/BWKneelingWheelRollout
+Back	Trapezius, Upper Fibers & Levator Scapulae	Barbell	Shrug	TrapeziusUpper/BBShrug
+Back	Trapezius, Upper Fibers & Levator Scapulae	Barbell	Trap Bar Shrug	TrapeziusUpper/TBShrug
+Back	Trapezius, Upper Fibers & Levator Scapulae	Cable	Shrug	TrapeziusUpper/CBShrug
+Back	Trapezius, Upper Fibers & Levator Scapulae	Cable	Shrug, Isolateral	TrapeziusUpper/CBShrugStirrups
+Back	Trapezius, Upper Fibers & Levator Scapulae	Dumbbell	Shrug	TrapeziusUpper/DBShrug
+Back	Trapezius, Upper Fibers & Levator Scapulae	Lever (plate loaded)	Seated Shrug	TrapeziusUpper/LVSeatedShrug
+Back	Trapezius, Upper Fibers & Levator Scapulae	Lever (plate loaded)	Shrug	TrapeziusUpper/LVShrugH
+Back	Trapezius, Upper Fibers & Levator Scapulae	Lever (selectorized)	Shrug	TrapeziusUpper/LVShrug
+Back	Trapezius, Upper Fibers & Levator Scapulae	Sled	Gripless Shrug	TrapeziusUpper/SLXGripShrug
+Back	Trapezius, Upper Fibers & Levator Scapulae	Smith	Shrug	TrapeziusUpper/SMShrug
+Back	Trapezius, Upper Fibers & Levator Scapulae	Body Weight		OlympicLifts/HangClean
+Back	Trapezius, Upper Fibers & Levator Scapulae	Body Weight	Inverted Shrug	TrapeziusUpper/BWInvertedShrugPB
+Back	Trapezius, Upper Fibers & Levator Scapulae	Suspended	Inverted Shrug	TrapeziusUpper/BWInvertedShrugRings
+Back	Infraspinatus & Teres Minor	Cable	Standing Shoulder External Rotation	Infraspinatus/CBStandingExternalRotation
+Back	Infraspinatus & Teres Minor	Dumbbell	Lying Shoulder External Rotation	Infraspinatus/DBLyingExternalRotation
+Back	Infraspinatus & Teres Minor	Dumbbell	Upright Shoulder External Rotation (with support)	Infraspinatus/DBUprightExternalRotationSupport
+Back	Infraspinatus & Teres Minor	Lever (plate loaded)	Shoulder External Rotation [Isolateral]	Infraspinatus/LVShoulderExternalRotationPL
+Back	Infraspinatus & Teres Minor	Lever (selectorized)	Shoulder External Rotation	Infraspinatus/LVExternalRotation
+Back	Infraspinatus & Teres Minor	Suspended	Shoulder External Rotation	Infraspinatus/STShoulderExternalRotation
+Back	Subscapularis	Cable	Standing Shoulder Internal Rotation	Subscapularis/CBStandingInternalRotation
+Back	Subscapularis	Dumbbell	Shoulder Internal Rotation (on floor)	Subscapularis/DBInternalRotationFloor
+Back	Subscapularis	Lever (plate loaded)	Shoulder Internal Rotation [Isolateral]	Subscapularis/LVShoulderInternalRotationPL
+Back	Subscapularis	Lever (selectorized)	Shoulder Internal Rotation	Subscapularis/LVInternalRotation
+Chest	General or Pectoralis Major, Sternal	Assisted	Chest Dip	PectoralSternal/AsChestDip
+Chest	General or Pectoralis Major, Sternal	Assisted	Chest Dip, kneeling	PectoralSternal/AsChestDipKneeling
+Chest	General or Pectoralis Major, Sternal	Barbell	Bench Press	PectoralSternal/BBBenchPress
+Chest	General or Pectoralis Major, Sternal	Barbell	Bench Press, Power Lift	PectoralSternal/BBBenchPressPowerLift
+Chest	General or Pectoralis Major, Sternal	Barbell	Decline Bench Press	PectoralSternal/BBDeclineBenchPress
+Chest	General or Pectoralis Major, Sternal	Cable	Flies, Lying Fly [Isolateral]	PectoralSternal/CBLyingFly
+Chest	General or Pectoralis Major, Sternal	Cable	Flies, Seated Fly [Isolateral]	PectoralSternal/CBSeatedFly
+Chest	General or Pectoralis Major, Sternal	Cable	Flies, Standing Fly [Isolateral]	PectoralSternal/CBStandingFly
+Chest	General or Pectoralis Major, Sternal	Cable	Presses, Bench Press [Isolateral]	PectoralSternal/CBBenchPress
+Chest	General or Pectoralis Major, Sternal	Cable	Presses, Chest Press [Isolateral]	PectoralSternal/CBChestPress
+Chest	General or Pectoralis Major, Sternal	Cable	Presses, Chest Press [Isolateral], Standing	PectoralSternal/CBStandingChestPress
+Chest	General or Pectoralis Major, Sternal	Cable	Presses, Decline Chest Press [Isolateral]	PectoralSternal/CBDeclineChestPress
+Chest	General or Pectoralis Major, Sternal	Dumbbell	Bench Press	PectoralSternal/DBBenchPress
+Chest	General or Pectoralis Major, Sternal	Dumbbell	Bench Press, Decline	PectoralSternal/DBDeclineBenchPress
+Chest	General or Pectoralis Major, Sternal	Dumbbell	Fly	PectoralSternal/DBFly
+Chest	General or Pectoralis Major, Sternal	Dumbbell	Pullover	PectoralSternal/DBPullover
+Chest	General or Pectoralis Major, Sternal	Lever (plate loaded)	Bench Press [Isolateral]	PectoralSternal/LVBenchPressH
+Chest	General or Pectoralis Major, Sternal	Lever (plate loaded)	Chest Dip	PectoralSternal/LVChestDipH
+Chest	General or Pectoralis Major, Sternal	Lever (plate loaded)	Chest Press [Isolateral]	PectoralSternal/LVChestPressH
+Chest	General or Pectoralis Major, Sternal	Lever (plate loaded)	Decline Chest Press	PectoralSternal/LVDeclineChestPressPL
+Chest	General or Pectoralis Major, Sternal	Lever (selectorized)	Chest Dip	PectoralSternal/LVChestDip
+Chest	General or Pectoralis Major, Sternal	Lever (selectorized)	Flies, Lying Fly [Isolateral]	PectoralSternal/LVLyingFly
+Chest	General or Pectoralis Major, Sternal	Lever (selectorized)	Flies, Pec Deck Fly [Isolateral]	PectoralSternal/LVPecDeckFly
+Chest	General or Pectoralis Major, Sternal	Lever (selectorized)	Flies, Seated Fly [Isolateral]	PectoralSternal/LVSeatedFly
+Chest	General or Pectoralis Major, Sternal	Lever (selectorized)	Presses, Bench Press	PectoralSternal/LVBenchPress
+Chest	General or Pectoralis Major, Sternal	Lever (selectorized)	Presses, Chest Press	PectoralSternal/LVChestPress
+Chest	General or Pectoralis Major, Sternal	Lever (selectorized)	Presses, Chest Press, Isolateral	PectoralSternal/LVChestPressS
+Chest	General or Pectoralis Major, Sternal	Lever (selectorized)	Presses, Decline Chest Press [Isolateral]	PectoralSternal/LVDeclineChestPress
+Chest	General or Pectoralis Major, Sternal	Sled	Standing Chest Dip	PectoralSternal/SLStandingChestDip
+Chest	General or Pectoralis Major, Sternal	Smith	Bench Press	PectoralSternal/SMBenchPress
+Chest	General or Pectoralis Major, Sternal	Smith	Decline Bench Press	PectoralSternal/SMDeclineBenchPress
+Chest	General or Pectoralis Major, Sternal	Weighted	Chest Dip	PectoralSternal/WtChestDip
+Chest	General or Pectoralis Major, Sternal	Weighted	Push-up	PectoralSternal/WtPushup
+Chest	General or Pectoralis Major, Sternal	Band-assisted	Chest Dip	PectoralSternal/ASChestDipBand
+Chest	General or Pectoralis Major, Sternal	Body Weight	Chest Dip	PectoralSternal/BWChestDip
+Chest	General or Pectoralis Major, Sternal	Body Weight	Push-up	PectoralSternal/BWPushup
+Chest	General or Pectoralis Major, Sternal	Body Weight	Push-up, Archer	PectoralSternal/BWArcherPushup
+Chest	General or Pectoralis Major, Sternal	Body Weight	Push-up, Incline	PectoralSternal/BWInclinePushup
+Chest	General or Pectoralis Major, Sternal	Body Weight	Push-up, on knees	PectoralSternal/BWPushupKnee
+Chest	General or Pectoralis Major, Sternal	Self-assisted	Chest Dip	PectoralSternal/AsChestDipSelf
+Chest	General or Pectoralis Major, Sternal	Suspended	Self-assisted Chest Dip	PectoralSternal/STSelfAssistedChestDip
+Chest	General or Pectoralis Major, Sternal	Suspended	Chest Press	PectoralSternal/STChestPress
+Chest	General or Pectoralis Major, Sternal	Suspended	Fly	PectoralSternal/STFly
+Chest	Pectoralis Major, Clavicular	Barbell	Incline Bench Press	PectoralClavicular/BBInclineBenchPress
+Chest	Pectoralis Major, Clavicular	Cable	Incline Bench Press [Isolateral]	PectoralClavicular/CBInclineBenchPress
+Chest	Pectoralis Major, Clavicular	Cable	Incline Chest Press [Isolateral]	PectoralClavicular/CBInclineChestPress
+Chest	Pectoralis Major, Clavicular	Cable	Incline Fly [Isolateral]	PectoralClavicular/CBInclineFly
+Chest	Pectoralis Major, Clavicular	Dumbbell	Incline Bench Press	PectoralClavicular/DBInclineBenchPress
+Chest	Pectoralis Major, Clavicular	Dumbbell	Incline Fly	PectoralClavicular/DBInclineFly
+Chest	Pectoralis Major, Clavicular	Lever (plate loaded)	Incline Chest Press [Isolateral]	PectoralClavicular/LVInclineChestPressPL
+Chest	Pectoralis Major, Clavicular	Lever (plate loaded)	Incline Chest Press [Isolateral], on Military Press Machine	PectoralClavicular/LVInclineChestPressOnHammerMilitaryPress
+Chest	Pectoralis Major, Clavicular	Lever (selectorized)	Incline Bench Press	PectoralClavicular/LVInclineBenchPress
+Chest	Pectoralis Major, Clavicular	Lever (selectorized)	Incline Chest Press	PectoralClavicular/LVInclineChestPress
+Chest	Pectoralis Major, Clavicular	Lever (selectorized)	Incline Chest Press, Isolateral	PectoralClavicular/LVInclineChestPressH
+Chest	Pectoralis Major, Clavicular	Lever (selectorized)	Incline Fly [Isolateral]	PectoralClavicular/LVInclineFly
+Chest	Pectoralis Major, Clavicular	Smith	Incline Bench Press	PectoralClavicular/SMInclineBenchPress
+Chest	Pectoralis Major, Clavicular	Body Weight	Decline Push-up	PectoralClavicular/BWDeclinePushup
+Chest	Pectoralis Major, Clavicular	Body Weight	Decline Push-up, on stability ball	PectoralClavicular/BWDeclinePushupOnBall
+Chest	Pectoralis Minor	Suspended Angel		Other/STAngle
+Chest	Serratus Anterior	Barbell	Incline Shoulder Raise	SerratusAnterior/BBInclineShoulderRaise
+Chest	Serratus Anterior	Cable	Incline Shoulder Raise [Isolateral]	SerratusAnterior/CBInclineShoulderRaise
+Chest	Serratus Anterior	Dumbbell	Incline Shoulder Raise	SerratusAnterior/DBInclineShoulderRaise
+Chest	Serratus Anterior	Lever (plate loaded)	Incline Shoulder Raise [Isolateral]	SerratusAnterior/LVInclineShoulderRaisePL
+Chest	Serratus Anterior	Lever (selectorized)	Incline Shoulder Raise	SerratusAnterior/LVInclineShoulderRaise
+Chest	Serratus Anterior	Smith	Incline Shoulder Raise	SerratusAnterior/SMInclineShoulderRaise
+Chest	Serratus Anterior	Body Weight	Push-up Plus	SerratusAnterior/BWPushUpPlus
+Waist	Rectus Abdominis	Barbell	Push Crunch	RectusAbdominis/BBPushCrunch
+Waist	Rectus Abdominis	Cable	Kneeling Crunch	RectusAbdominis/CBKneelingCrunch
+Waist	Rectus Abdominis	Cable	Seated Crunch	RectusAbdominis/CBSeatedCrunch
+Waist	Rectus Abdominis	Cable	Standing Crunch [Isolateral]	RectusAbdominis/CBStandingCrunch
+Waist	Rectus Abdominis	Cable	Standing Overhead Crunch	RectusAbdominis/CBStandingOverheadCrunch
+Waist	Rectus Abdominis	Dumbbell	Push Crunch	RectusAbdominis/DBPushCrunch
+Waist	Rectus Abdominis	Lever (plate loaded)	Lying Crunch	RectusAbdominis/LVLyingCrunchPL
+Waist	Rectus Abdominis	Lever (plate loaded)	Seated Leg Raise Crunch	RectusAbdominis/LVSeatedLegRaiseCrunchPL
+Waist	Rectus Abdominis	Lever (selectorized)	Seated Crunch	RectusAbdominis/LVSeatedCrunch
+Waist	Rectus Abdominis	Lever (selectorized)	Seated Crunch, Arm Bar	RectusAbdominis/LVSeatedCrunchArmBar
+Waist	Rectus Abdominis	Lever (selectorized)	Seated Crunch, Arm Pad	RectusAbdominis/LVSeatedCrunchArmPad
+Waist	Rectus Abdominis	Lever (selectorized)	Seated Crunch, Chest Pad	RectusAbdominis/LVSeatedCrunchChestPad
+Waist	Rectus Abdominis	Sled	Leg Hip Raise (Ab Coaster)	RectusAbdominis/SLLegHipRaise
+Waist	Rectus Abdominis	Weighted	Crunch, Crunch	RectusAbdominis/WtCrunch
+Waist	Rectus Abdominis	Weighted	Crunch, Crunch, arms crossed	RectusAbdominis/WtCrunchX
+Waist	Rectus Abdominis	Weighted	Crunch, on ball	RectusAbdominis/WtBallCrunch
+Waist	Rectus Abdominis	Weighted	Crunch, Incline Crunch	RectusAbdominis/WtInclineCrunch
+Waist	Rectus Abdominis	Weighted	Crunch, Incline Crunch, arms crossed	RectusAbdominis/WtInclineCrunchX
+Waist	Rectus Abdominis	Weighted	Sit-ups, Incline Sit-up	RectusAbdominis/WtInclineSitUp
+Waist	Rectus Abdominis	Weighted	Sit-ups, Incline Sit-up, arms crossed	RectusAbdominis/WtInclineSitUpX
+Waist	Rectus Abdominis	Weighted	Sit-ups, Sit-up	RectusAbdominis/WtSitUp
+Waist	Rectus Abdominis	Weighted	Sit-ups, Sit-up, arms crossed	RectusAbdominis/WtSitUpX
+Waist	Rectus Abdominis	Cable	Standing Twisting Crunch [Isolateral]	Obliques/CBStandingTwistingCrunch
+Waist	Rectus Abdominis	Lever (plate loaded)	Seated Twisting Leg Raise Crunch	Obliques/LVSeatedTwistingLegRaiseCrunch
+Waist	Rectus Abdominis	Weighted	Twisting Crunches, Incline Twisting Crunch	Obliques/WtInclineTwistingCrunch
+Waist	Rectus Abdominis	Weighted	Twisting Crunches, Side Crunch	Obliques/WtSideCrunch
+Waist	Rectus Abdominis	Weighted	Twisting Crunches, Twisting Crunch	Obliques/WtTwistingCrunch
+Waist	Rectus Abdominis	Weighted	Twisting Crunches, Twisting Crunch, on ball	Obliques/WtTwistingBallCrunch
+Waist	Rectus Abdominis	Weighted	Twisting Sit-ups, Incline Twisting Sit-up	Obliques/WtInclineTwistingSitUp
+Waist	Rectus Abdominis	Weighted	Twisting Sit-ups, Incline Twisting Sit-up, arms crossed	Obliques/WtInclineTwistingSitUpX
+Waist	Rectus Abdominis	Weighted	Twisting Sit-ups, Twisting Sit-up	Obliques/WtTwistingSitUp
+Waist	Rectus Abdominis	Weighted	Twisting Sit-ups, Twisting Sit-up, arms crossed	Obliques/WtTwistingSitUpX
+Waist	Rectus Abdominis	Body Weight	Crunch	RectusAbdominis/BWCrunch
+Waist	Rectus Abdominis	Body Weight	Crunch, arms crossed	RectusAbdominis/BWCrunchX
+Waist	Rectus Abdominis	Body Weight	Crunch, arms down	RectusAbdominis/BWCrunchAD
+Waist	Rectus Abdominis	Body Weight	Crunch, Incline Crunch	RectusAbdominis/BWInclineCrunch
+Waist	Rectus Abdominis	Body Weight	Crunch, Incline Crunch, arms down	RectusAbdominis/BWInclineCrunchDown
+Waist	Rectus Abdominis	Body Weight	Crunch, on ball	RectusAbdominis/BWBallCrunch
+Waist	Rectus Abdominis	Body Weight	Crunch, on ball, arms crossed	RectusAbdominis/BWBallCrunchX
+Waist	Rectus Abdominis	Body Weight	Leg-Hip Raises, Hanging Leg Hip Raise (with ab straps)	RectusAbdominis/BWHangingLegHipRaiseAbStrap
+Waist	Rectus Abdominis	Body Weight	Sit-ups, Incline Situp	RectusAbdominis/BWInclineSitUp
+Waist	Rectus Abdominis	Body Weight	Sit-ups, Incline Situp, arms crossed	RectusAbdominis/BWInclineSitUpX
+Waist	Rectus Abdominis	Body Weight	Sit-ups, Sit-up	RectusAbdominis/BWSitUp
+Waist	Rectus Abdominis	Body Weight	Sit-ups, Sit-up, arms crossed	RectusAbdominis/BWSitUpX
+Waist	Rectus Abdominis	Body Weight	Sit-ups, Sit-up, arms down	RectusAbdominis/BWSitUpAD
+Waist	Rectus Abdominis	Suspended	Jack-knife	RectusAbdominis/STJackknife
+Waist	Rectus Abdominis	Suspended	Pull Through	RectusAbdominis/STPullThrough
+Waist	Rectus Abdominis	Isometric	Front Plank	RectusAbdominis/BWFrontPlank
+Waist	Transverse Abdominis	Abdominal Vacuum		TransverseAbdominis/AbdominalVacuum
+Waist	Obliques	Cable	Side Bend	Obliques/CBSideBend
+Waist	Obliques	Cable	Side Crunch	Obliques/CBSideCrunch
+Waist	Obliques	Cable	Seated Twist	Obliques/CBSeatedTwist
+Waist	Obliques	Cable	Twist	Obliques/CBTwist
+Waist	Obliques	Dumbbell	Side Bend	Obliques/DBSideBend
+Waist	Obliques	Lever (plate loaded)	Seated Side Leg Raise Crunch	Obliques/LVSeatedSideLegRaiseCrunch
+Waist	Obliques	Lever (selectorized)	Kneeling Twist	Obliques/LVKneelingTwist
+Waist	Obliques	Lever (selectorized)	Seated Twist	Obliques/LVTwist
+Waist	Obliques	Lever (selectorized)	Seated Twist, lower body	Obliques/LVTwistLower
+Waist	Obliques	Lever (selectorized)	Seated Twist, gripless	Obliques/LVTwistGripless
+Waist	Obliques	Sled	Side Leg Hip Raise (Ab Coaster)	Obliques/SLSideHipRaiseAbCoaster
+Waist	Obliques	Cable	Push Pull	Power/CBPushPull
+Waist	Obliques	Dumbbell	One Arm Straight Leg Deadlift	ErectorSpinae/DBOneArmStraightLegDeadlift
+Waist	Obliques	Lever (plate loaded)	Power Twist	Power/LVPowerTwist
+Waist	Obliques	Body Weight	45° Side Bend	Obliques/BW45SideBendHandsBehindHead
+Waist	Obliques	Body Weight	Side Bend on ball	Obliques/BWBallSideBend
+Waist	Obliques	Body Weight	Twisting Leg Raises, Hanging	Obliques/BWHangingTwistingLegRaise
+Waist	Obliques	Body Weight	Twisting Leg Raises, Hanging, Leg Hip Raise	Obliques/BWHangingTwistingLegHipRaise
+Waist	Obliques	Body Weight	Twisting Sit-ups, Incline Twisting Sit-up	Obliques/BWInclineTwistingSitUp
+Waist	Obliques	Body Weight	Twisting Sit-ups, Incline Twisting Sit-up, arms crossed	Obliques/BWInclineTwistingSitUpX
+Waist	Obliques	Body Weight	Twisting Sit-ups, Twisting Sit-up	Obliques/BWTwistingSitUp
+Waist	Obliques	Body Weight	Twisting Sit-ups, Twisting Sit-up, arms crossed	Obliques/BWTwistingSitUpX
+Waist	Obliques	Body Weight	Twisting Crunches, Incline Twisting Crunch	Obliques/BWInclineTwistingCrunch
+Waist	Obliques	Body Weight	Twisting Crunches, Incline Twisting Crunch, arms crossed	Obliques/BWInclineTwistingCrunchX
+Waist	Obliques	Body Weight	Twisting Crunches, Side Crunch	Obliques/BWSideCrunch
+Waist	Obliques	Body Weight	Twisting Crunches, Twisting Crunch	Obliques/BWTwistingCrunch
+Waist	Obliques	Body Weight	Twisting Crunches, Twisting Crunch, arms crossed	Obliques/BWTwistingCrunchX
+Waist	Obliques	Body Weight	Twisting Crunches, Twisting Crunch, on ball	Obliques/BWTwistingBallCrunch
+Waist	Obliques	Suspended	Side Bend	Obliques/STSideBend
+Waist	Obliques	Suspended	Twisting Jack-knife	Obliques/STTwistingJackknife
+Waist	Obliques	Isometric	Side Plank	Obliques/BWSidePlank
+Waist	Obliques	Isometric	Side Plank, Bent Knee	Obliques/BWBentKneeSidePlank
+Waist	Erector Spinae	Barbell	Bent Knee Good-morning	ErectorSpinae/BBBentKneeGoodMorning
+Waist	Erector Spinae	Barbell	Deadlift	ErectorSpinae/BBDeadlift
+Waist	Erector Spinae	Barbell	Deadlift, Stiff-leg Deadlift	ErectorSpinae/BBStiffLegDeadlift
+Waist	Erector Spinae	Barbell	Deadlift, Straight-leg Deadlift	ErectorSpinae/BBStraightLegDeadlift
+Waist	Erector Spinae	Barbell	Hyperextension	ErectorSpinae/BBHyperextension
+Waist	Erector Spinae	Barbell	Hyperextension (45°)	ErectorSpinae/BB45Hyperextension
+Waist	Erector Spinae	Cable	Stiff-leg Deadlift	ErectorSpinae/CBStiffLegDeadlift
+Waist	Erector Spinae	Lever (plate loaded)	Deadlift	ErectorSpinae/LVDeadlift
+Waist	Erector Spinae	Lever (plate loaded)	Stiff-leg Deadlift	ErectorSpinae/LVStiffLegDeadlift
+Waist	Erector Spinae	Lever (selectorized)	Back Extension	ErectorSpinae/LVBackExtensionN
+Waist	Erector Spinae	Lever (selectorized)	Back Extension, on older machine	ErectorSpinae/LVBackExtension
+Waist	Erector Spinae	Smith	Bent Knee Good-morning	ErectorSpinae/SMBentKneeGoodMorning
+Waist	Erector Spinae	Smith	Deadlift	ErectorSpinae/SMDeadlift
+Waist	Erector Spinae	Smith	Stiff-leg Deadlift	ErectorSpinae/SMStiffLegDeadlift
+Waist	Erector Spinae	Weighted	Hyperextension	ErectorSpinae/WtHyperextension
+Waist	Erector Spinae	Weighted	Hyperextension (45°)	ErectorSpinae/Wt45Hyperextension
+Waist	Erector Spinae	Bodyweight	Back Extension (on ball)	ErectorSpinae/BWHyperextensionBall
+Waist	Erector Spinae	Bodyweight	Bird Dog	ErectorSpinae/BWBirdDog
+Waist	Erector Spinae	Bodyweight	Bird Dog, Alternating	ErectorSpinae/BWAlternatingBirdDog
+Waist	Erector Spinae	Bodyweight	Hyperextension (45°)	ErectorSpinae/BW45HyperextensionHips
+Waist	Erector Spinae	Bodyweight	Hyperextension (45°), arms crossed	ErectorSpinae/BW45HyperextensionArmsCrossed
+Waist	Erector Spinae	Bodyweight	Hyperextension (45°), arms up	ErectorSpinae/BW45HyperextensionArmsUp
+Waist	Erector Spinae	Bodyweight	Hyperextension (45°), hands behind neck	ErectorSpinae/BW45HyperextensionNeck
+Waist	Erector Spinae	Bodyweight	Superman	ErectorSpinae/Superman
+Waist	Erector Spinae	Bodyweight	Superman, Contralateral	ErectorSpinae/ContraLateralSuperman
+Waist	Erector Spinae	Suspended	Pull Through	ErectorSpinae/STPullThrough
+Waist	Erector Spinae	Isometric	Rear Bridge	ErectorSpinae/BackPlank
+Waist	Erector Spinae	Isometric	Rear Bridge, Incline	ErectorSpinae/RearInclinePlank
+Hips	Gluteus Maximus	Barbell	Bent Knee Good-morning	GluteusMaximus/BBBentKneeGoodMorning
+Hips	Gluteus Maximus	Barbell	Deadlifts	GluteusMaximus/BBDeadlift
+Hips	Gluteus Maximus	Barbell	Deadlifts, Stiff-leg Deadlift	GluteusMaximus/BBStiffLegDeadlift
+Hips	Gluteus Maximus	Barbell	Deadlifts, Stiff-leg Deadlift, Straight-back	GluteusMaximus/BBStrBackStiffLegDeadlift
+Hips	Gluteus Maximus	Barbell	Hip Thrust	GluteusMaximus/BBHipThrust
+Hips	Gluteus Maximus	Barbell	Lunge	GluteusMaximus/BBLunge
+Hips	Gluteus Maximus	Barbell	Lunge, Rear Lunge	GluteusMaximus/BBRearLunge
+Hips	Gluteus Maximus	Barbell	Single Leg Split Squat	GluteusMaximus/BBSingleLegSplitSquat
+Hips	Gluteus Maximus	Barbell	Single Leg Split Squat, Single Leg Squat	GluteusMaximus/BBSingleLegSquat
+Hips	Gluteus Maximus	Barbell	Single Leg Split Squat, Split Squat	GluteusMaximus/BBSplitSquat
+Hips	Gluteus Maximus	Barbell	Squat	GluteusMaximus/BBSquat
+Hips	Gluteus Maximus	Barbell	Squat, Front Squat	GluteusMaximus/BBFrontSquat
+Hips	Gluteus Maximus	Barbell	Squat, Safety Squat	GluteusMaximus/SBSquat
+Hips	Gluteus Maximus	Barbell	Step-up	GluteusMaximus/BBStepUp
+Hips	Gluteus Maximus	Cable	Glute Kickback	GluteusMaximus/CBGluteKickback
+Hips	Gluteus Maximus	Cable	Rear Lunge	GluteusMaximus/CBRearLunge
+Hips	Gluteus Maximus	Cable	Rear Lunge, Two Arms	GluteusMaximus/CBLungeTwoArm
+Hips	Gluteus Maximus	Cable	Squat	GluteusMaximus/CBSquat
+Hips	Gluteus Maximus	Cable	Standing Hip Extension	GluteusMaximus/CBStandingHipExtension
+Hips	Gluteus Maximus	Cable	Standing Hip Extension, Bent-over	GluteusMaximus/CBBentOverHipExtension
+Hips	Gluteus Maximus	Cable	Step-up	GluteusMaximus/CBStepUp
+Hips	Gluteus Maximus	Cable	Stiff-leg Deadlift	GluteusMaximus/CBStiffLegDeadlift
+Hips	Gluteus Maximus	Cable	Stiff-leg Deadlift, Straight-back	GluteusMaximus/CBStrBackStiffLegDeadlift
+Hips	Gluteus Maximus	Dumbbell	Lunge	GluteusMaximus/DBLunge
+Hips	Gluteus Maximus	Dumbbell	Lunge, Rear Lunge	GluteusMaximus/DBRearLunge
+Hips	Gluteus Maximus	Dumbbell	Split Squat	GluteusMaximus/DBSplitSquat
+Hips	Gluteus Maximus	Dumbbell	Squat	GluteusMaximus/DBSquat
+Hips	Gluteus Maximus	Dumbbell	Squat, Front Squat	GluteusMaximus/DBFrontSquat
+Hips	Gluteus Maximus	Dumbbell	Step-up	GluteusMaximus/DBStepUp
+Hips	Gluteus Maximus	Dumbbell	Step-up, Step-down	GluteusMaximus/DBStepDown
+Hips	Gluteus Maximus	Lever (plate loaded)	Deadlift	GluteusMaximus/LVDeadlift
+Hips	Gluteus Maximus	Lever (plate loaded)	Deadlift, Stiff-leg Deadlift	GluteusMaximus/LVStiffLegDeadlift
+Hips	Gluteus Maximus	Lever (plate loaded)	Deadlift, Stiff-leg Deadlift, Straight-back	GluteusMaximus/LVStrBackStiffLegDeadlift
+Hips	Gluteus Maximus	Lever (plate loaded)	Leg Presses, 45° Leg Press	GluteusMaximus/LV45LegPress
+Hips	Gluteus Maximus	Lever (plate loaded)	Leg Presses, Lying Leg Press	GluteusMaximus/LVLyingLegPressH
+Hips	Gluteus Maximus	Lever (plate loaded)	Leg Presses, Seated Leg Press [Isolateral]	GluteusMaximus/LVSeatedLegPressH
+Hips	Gluteus Maximus	Lever (plate loaded)	Lying Hip Extension	GluteusMaximus/LVLyingHipExtensionH
+Hips	Gluteus Maximus	Lever (plate loaded)	Reverse Hyperextension	GluteusMaximus/LVReverseHyperextension
+Hips	Gluteus Maximus	Lever (plate loaded)	Single Leg Split Squat	GluteusMaximus/LVSingleLegSplitSquat
+Hips	Gluteus Maximus	Lever (plate loaded)	Single Leg Split Squat, Single Leg Squat	GluteusMaximus/LVSingleLegSquat
+Hips	Gluteus Maximus	Lever (plate loaded)	Split Squat	GluteusMaximus/LVSplitSquat
+Hips	Gluteus Maximus	Lever (plate loaded)	Squat	GluteusMaximus/LVSquatPL
+Hips	Gluteus Maximus	Lever (plate loaded)	Squat, Front Squat	GluteusMaximus/LVFrontSquatPL
+Hips	Gluteus Maximus	Lever (selectorized)	Hip Extensions, Bent-over	GluteusMaximus/LVBentOverHipExtension
+Hips	Gluteus Maximus	Lever (selectorized)	Hip Extensions, Lying	GluteusMaximus/LVLyingHipExtension
+Hips	Gluteus Maximus	Lever (selectorized)	Hip Extensions, Standing	GluteusMaximus/LVStandingHipExtension
+Hips	Gluteus Maximus	Lever (selectorized)	Hip Extensions, Standing, alternative machine	GluteusMaximus/LVStandingHipExtensionTech
+Hips	Gluteus Maximus	Lever (selectorized)	Leg Presses, Seated Leg Press	GluteusMaximus/LVSeatedLegPress
+Hips	Gluteus Maximus	Lever (selectorized)	Glute Kickback, Bent-over	GluteusMaximus/LVBentOverRearKick
+Hips	Gluteus Maximus	Lever (selectorized)	Glute Kickback, Kneeling	GluteusMaximus/LVKneelingHipExtension
+Hips	Gluteus Maximus	Lever (selectorized)	Glute Kickback, Standing	GluteusMaximus/LVSingleLegStandingLegPress
+Hips	Gluteus Maximus	Lever (selectorized)	Squat	GluteusMaximus/LVSquat
+Hips	Gluteus Maximus	Lever (selectorized)	Squat, V-Squat	GluteusMaximus/LVVSquat
+Hips	Gluteus Maximus	Sled	Glute Kickback, Kneeling	GluteusMaximus/SLKneelingHipExtension
+Hips	Gluteus Maximus	Sled	Glute Kickback, Standing	GluteusMaximus/SLStandingHipExtension
+Hips	Gluteus Maximus	Sled	Leg Presses, 45° Leg Press	GluteusMaximus/SL45LegPress
+Hips	Gluteus Maximus	Sled	Leg Presses, Lying Leg Press	GluteusMaximus/SLLyingLegPress
+Hips	Gluteus Maximus	Sled	Leg Presses, Seated Leg Press	GluteusMaximus/SLSeatedLegPress
+Hips	Gluteus Maximus	Sled	Squat	GluteusMaximus/SLSquat
+Hips	Gluteus Maximus	Sled	Squat, Hack Squat	GluteusMaximus/SLHackSquat
+Hips	Gluteus Maximus	Smith	Bent Knee Good-morning	GluteusMaximus/SMBentKneeGoodMorning
+Hips	Gluteus Maximus	Smith	Deadlift	GluteusMaximus/SMDeadlift
+Hips	Gluteus Maximus	Smith	Deadlift, Stiff-leg Deadlift	GluteusMaximus/SMStiffLegDeadlift
+Hips	Gluteus Maximus	Smith	Deadlift, Stiff-leg Deadlift, Straight-back	GluteusMaximus/SMStrBackStiffLegDeadlift
+Hips	Gluteus Maximus	Smith	Rear Lunge	GluteusMaximus/SMRearLunge
+Hips	Gluteus Maximus	Smith	Squat	GluteusMaximus/SMSquat
+Hips	Gluteus Maximus	Weighted	Reverse Hyperextension	GluteusMaximus/WtReverseHyperextension
+Hips	Gluteus Maximus	Weighted	Single Leg Squat	GluteusMaximus/WtSingleLegSquat
+Hips	Gluteus Maximus	Front Squat		Kettlebell/KBFrontSquat
+Hips	Gluteus Maximus	Body Weight	Lunge	GluteusMaximus/BWLunge
+Hips	Gluteus Maximus	Body Weight	Rear Lunge	GluteusMaximus/BWRearLunge
+Hips	Gluteus Maximus	Body Weight	Single Leg Squat	GluteusMaximus/BWSingleLegSquat
+Hips	Gluteus Maximus	Body Weight	Single Leg Box Squat (pistol)	GluteusMaximus/BWSingleLegBoxSquat
+Hips	Gluteus Maximus	Body Weight	Single Leg Stiff Leg Deadlift	GluteusMaximus/BWSingleLegStiffLegDeadlift
+Hips	Gluteus Maximus	Body Weight	Split Squat	GluteusMaximus/BWSplitSquat
+Hips	Gluteus Maximus	Body Weight	Split Squat, Single Leg Split Squat	GluteusMaximus/BWSingleLegSplitSquat
+Hips	Gluteus Maximus	Body Weight	Squat	GluteusMaximus/BWSquat
+Hips	Gluteus Maximus	Body Weight	Step-up	GluteusMaximus/BWStepUp
+Hips	Gluteus Maximus	Body Weight	Step-up, Step-down	GluteusMaximus/BWStepDown
+Hips	Gluteus Maximus	Self-assisted	Single Leg Squat (leg wrapped)	GluteusMaximus/AsSingleLegSquatLegSelf
+Hips	Gluteus Maximus	Self-assisted	Step-down	GluteusMaximus/ASStepDownSelf
+Hips	Gluteus Maximus	Suspended	Hip Bridge	GluteusMaximus/STHipBridge
+Hips	Gluteus Maximus	Suspended	Single Leg Squat	GluteusMaximus/STSingleLegSquat
+Hips	Gluteus Maximus	Suspended	Single Leg Split Squat	GluteusMaximus/STSplitSquat
+Hips	Hip Abductors	Cable	Hip Abduction	HipAbductor/CBHipAbduction
+Hips	Hip Abductors	Cable	Seated Hip Internal Rotation	HipAbductor/CBSeatedHipInternalRotation
+Hips	Hip Abductors	Dumbbell	Lying Hip Abduction	HipAbductor/DBLyingHipAbduction
+Hips	Hip Abductors	Lever (plate loaded)	Seated Hip Abduction	HipAbductor/LVSeatedHipAbductionH
+Hips	Hip Abductors	Lever (selectorized)	Seated Hip Abduction	HipAbductor/LVSeatedHipAbduction
+Hips	Hip Abductors	Lever (selectorized)	Standing Hip Abduction	HipAbductor/LVStandHipAbduction
+Hips	Hip Abductors	Weighted	Lying Hip Abduction	HipAbductor/WtLyingHipAbduction
+Hips	Hip Abductors	Body Weight	Side Bridge Hip Abduction	HipAbductor/BWSideBridgeHipAbduction
+Hips	Hip Abductors	Suspended	Hip Abduction	HipAbductor/STHipAbduction
+Hips	Hip Flexors	Cable	Lying Leg Raise (on bench)	HipFlexors/CBLyingLegRaiseBench
+Hips	Hip Flexors	Cable	Lying Straight Leg Raise	HipFlexors/CBLyingStraightLegRaise
+Hips	Hip Flexors	Cable	Standing Leg Raise	HipFlexors/CBStandingLegRaise
+Hips	Hip Flexors	Lever	Hip Flexion	HipFlexors/LVHipFlexion
+Hips	Hip Flexors	Lever	Vertical Leg Raise	HipFlexors/LVVerticalLegRaise
+Hips	Hip Flexors	Weighted	Decline Sit-up	HipFlexors/WtDeclineSitup
+Hips	Hip Flexors	Weighted	Hanging Leg Raise	HipFlexors/WtHangLegRaise
+Hips	Hip Flexors	Weighted	Incline Leg Raise	HipFlexors/WtInclineLegRaise
+Hips	Hip Flexors	Weighted	Lying Leg Raise	HipFlexors/WtLyingLegRaise
+Hips	Hip Flexors	Weighted	Roman Chair Sit-up	HipFlexors/WtRomanChairSitup
+Hips	Hip Flexors	Weighted	Seated Leg Raise	HipFlexors/WtSeatedLegRaise
+Hips	Hip Flexors	Weighted	Vertical Leg Raise	HipFlexors/WtVerticalLegRaise
+Hips	Hip Flexors	Weighted	Vertical Leg Raise, on Parallel Bars	HipFlexors/WtVerticalLegRaisePB
+Hips	Hip Flexors	Weighted	Vertical Leg Raise, Straight Leg	HipFlexors/WtVerticalStraightLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Hanging Leg Raise	HipFlexors/BWHangingLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Hanging Leg Raise, Straight Leg	HipFlexors/BWHangingStraightLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Incline Leg Raise	HipFlexors/BWInclineLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Incline Straight Leg Raise	HipFlexors/BWInclineStraightLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Lying Leg Raise	HipFlexors/BWLyingLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Lying Leg Raise, on floor	HipFlexors/BWLyingLegRaiseFloor
+Hips	Hip Flexors	Body Weight	Leg Raises, Lying Straight Leg Raise	HipFlexors/BWStraightLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Seated Leg Raise	HipFlexors/BWSeatedLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Vertical Leg Raise	HipFlexors/BWVerticalLegRaise
+Hips	Hip Flexors	Body Weight	Leg Raises, Vertical Leg Raise, on parallel bars	HipFlexors/BWVerticalLegRaisePB
+Hips	Hip Flexors	Body Weight	Leg Raises, Vertical Leg Raise, Straight Leg	HipFlexors/BWVerticalStraightLegRaise
+Hips	Hip Flexors	Body Weight	Roman Chair Sit-up	HipFlexors/BWRomanChairSitup
+Hips	Hip Flexors	Suspended	Mountain Climber	HipFlexors/STMountainClimber
+Hips	Hip Flexors	Suspended	Pike	HipFlexors/STPike
+Hips	Deep Hip External Rotators	Cable	Seated Hip External Rotation	HipExternalRotator/CBSeatedHipExternalRotation
+Thigh	Quadriceps	Barbell	Lunge	Quadriceps/BBLunge
+Thigh	Quadriceps	Barbell	Lunge, Rear Lunge	Quadriceps/BBRearLunge
+Thigh	Quadriceps	Barbell	Single Leg Split Squat	Quadriceps/BBSingleLegSplitSquat
+Thigh	Quadriceps	Barbell	Single Leg Split Squat, Single Leg Squat	Quadriceps/BBSingleLegSquat
+Thigh	Quadriceps	Barbell	Single Leg Split Squat, Split Squat	Quadriceps/BBSplitSquat
+Thigh	Quadriceps	Barbell	Squat	Quadriceps/BBSquat
+Thigh	Quadriceps	Barbell	Squat, Front Squat	Quadriceps/BBFrontSquat
+Thigh	Quadriceps	Barbell	Squat, Trap Bar Squat	Quadriceps/TBSquat
+Thigh	Quadriceps	Barbell	Step-up	Quadriceps/BBStepUp
+Thigh	Quadriceps	Assisted (machine)	Reverse Nordic	Quadriceps/ASReverseNordicCable
+Thigh	Quadriceps	Cable	Rear Lunge	Quadriceps/CBRearLunge
+Thigh	Quadriceps	Cable	Split Squat	Quadriceps/CBLungeTwoArm
+Thigh	Quadriceps	Cable	Squat	Quadriceps/CBSquat
+Thigh	Quadriceps	Cable	Step-down	Quadriceps/CBSingleLegSquat
+Thigh	Quadriceps	Cable	Step-up	Quadriceps/CBStepUp
+Thigh	Quadriceps	Dumbbell	Lunge	Quadriceps/DBLunge
+Thigh	Quadriceps	Dumbbell	Lunge, Rear Lunge	Quadriceps/DBRearLunge
+Thigh	Quadriceps	Dumbbell	Split Squat	Quadriceps/DBSplitSquat
+Thigh	Quadriceps	Dumbbell	Squat	Quadriceps/DBSquat
+Thigh	Quadriceps	Dumbbell	Squat, Front Squat	Quadriceps/DBFrontSquat
+Thigh	Quadriceps	Dumbbell	Step-up	Quadriceps/DBStepUp
+Thigh	Quadriceps	Dumbbell	Step-up, Step-down	Quadriceps/DBStepDown
+Thigh	Quadriceps	Lever (plate loaded)	Leg Extension	Quadriceps/LVLegExtensionH
+Thigh	Quadriceps	Lever (plate loaded)	Leg Presses, 45° Leg Press	Quadriceps/LV45LegPress
+Thigh	Quadriceps	Lever (plate loaded)	Leg Presses, Lying Leg Press	Quadriceps/LVLyingLegPressH
+Thigh	Quadriceps	Lever (plate loaded)	Leg Presses, Seated Leg Press	Quadriceps/LVSeatedLegPressH
+Thigh	Quadriceps	Lever (plate loaded)	Single Leg Squat (plate loaded)	Quadriceps/LVSingleLegSquat
+Thigh	Quadriceps	Lever (plate loaded)	Split Squat	Quadriceps/LVSplitSquat
+Thigh	Quadriceps	Lever (plate loaded)	Squat	Quadriceps/LVSquatPL
+Thigh	Quadriceps	Lever (plate loaded)	Squat, Barbell Machine	Quadriceps/LVBBSquat
+Thigh	Quadriceps	Lever (selectorized)	Leg Extension	Quadriceps/LVLegExtension
+Thigh	Quadriceps	Lever (selectorized)	Leg Presses, Seated Leg Press	Quadriceps/LVSeatedLegPress
+Thigh	Quadriceps	Lever (selectorized)	Squat	Quadriceps/LVSquat
+Thigh	Quadriceps	Lever (selectorized)	V-Squat	Quadriceps/LVVSquat
+Thigh	Quadriceps	Sled	Leg Presses, 45° Leg Press	Quadriceps/SL45LegPress
+Thigh	Quadriceps	Sled	Leg Presses, Lying Leg Press	Quadriceps/SLLyingLegPress
+Thigh	Quadriceps	Sled	Leg Presses, Seated Leg Press	Quadriceps/SLSeatedLegPress
+Thigh	Quadriceps	Sled	Squat	Quadriceps/SLSquat
+Thigh	Quadriceps	Sled	Squat, Hack Squat	Quadriceps/SLHackSquat
+Thigh	Quadriceps	Smith	Rear Lunge	Quadriceps/SMRearLunge
+Thigh	Quadriceps	Smith	Squat	Quadriceps/SMSquat
+Thigh	Quadriceps	Weighted	Single Leg Squat	Quadriceps/WTSingleLegSquat
+Thigh	Quadriceps	Band-assisted	Reverse Nordic	Quadriceps/BAReverseNordic
+Thigh	Quadriceps	Body Weight	Rear Lunge	Quadriceps/BWRearLunge
+Thigh	Quadriceps	Body Weight	Lunge	Quadriceps/BWLunge
+Thigh	Quadriceps	Body Weight	Single Leg Squat	Quadriceps/BWSingleLegSquat
+Thigh	Quadriceps	Body Weight	Single Leg Squat, Box	Quadriceps/BWSingleLegBoxSquat
+Thigh	Quadriceps	Body Weight	Split Squat	Quadriceps/BWSplitSquat
+Thigh	Quadriceps	Body Weight	Split Squat, Single Leg Split Squat	Quadriceps/BWSingleLegSplitSquat
+Thigh	Quadriceps	Body Weight	Squat	Quadriceps/BWSquat
+Thigh	Quadriceps	Body Weight	Step-up	Quadriceps/BWStepUp
+Thigh	Quadriceps	Body Weight	Step-up, Step-down	Quadriceps/BWStepDown
+Thigh	Quadriceps	Self-assisted	Single Leg Squat (leg wrapped)	Quadriceps/ASSingleLegSquatSelfLeg
+Thigh	Quadriceps	Self-assisted	Squat	Quadriceps/ASSquatSelf
+Thigh	Quadriceps	Self-assisted	Step-down	Quadriceps/ASStepDownSelf
+Thigh	Quadriceps	Suspended	Single Leg Squat	Quadriceps/STSingleLegSquat
+Thigh	Quadriceps	Suspended	Single Leg Split Squat	Quadriceps/STSplitSquat
+Thigh	Hamstrings	Assisted (machine)	Inverse Leg Curl	Hamstrings/MAInverseLegCurlPL
+Thigh	Hamstrings	Body Weight	Glute-Ham Raise	Hamstrings/BBGluteHamRaise
+Thigh	Hamstrings	Body Weight	Good-morning	Hamstrings/BBGoodMorning
+Thigh	Hamstrings	Body Weight	Hyperextension	Hamstrings/BBHyperextension
+Thigh	Hamstrings	Body Weight	Hyperextension (45°)	Hamstrings/BB45Hyperextension
+Thigh	Hamstrings	Body Weight	Straight-leg Deadlift	Hamstrings/BBStraightLegDeadlift
+Thigh	Hamstrings	Body Weight	Straight-leg Deadlift, Straight-back	Hamstrings/BBStrBackStrLegDeadlift
+Thigh	Hamstrings	Cable	Lying Leg Curl	Hamstrings/CBLyingLegCurl
+Thigh	Hamstrings	Cable	Standing Leg Curl	Hamstrings/CBStandingLegCurl
+Thigh	Hamstrings	Cable	Straight-back Straight-leg Deadlift	Hamstrings/CBStrBackStrLegDeadlift
+Thigh	Hamstrings	Dumbbell	Straight-back Straight-leg Deadlift	Hamstrings/DBStrBackStrLegDeadlift
+Thigh	Hamstrings	Lever (plate loaded)	Kneeling Leg Curl	Hamstrings/LVKneelingLegCurlH
+Thigh	Hamstrings	Lever (plate loaded)	Lying Leg Curl [Isolateral]	Hamstrings/LVLyingLegCurlH
+Thigh	Hamstrings	Lever (plate loaded)	Seated Leg Curl	Hamstrings/LVSeatedLegCurlH
+Thigh	Hamstrings	Lever (plate loaded)	Straight-back Straight-leg Deadlift	Hamstrings/LVStrBackStrLegDeadlift
+Thigh	Hamstrings	Lever (selectorized)	Bent-over Leg Curl	Hamstrings/LVBentOverLegCurl
+Thigh	Hamstrings	Lever (selectorized)	Kneeling Leg Curl	Hamstrings/LVKneelingLegCurl
+Thigh	Hamstrings	Lever (selectorized)	Lying Leg Curl	Hamstrings/LVLyingLegCurl
+Thigh	Hamstrings	Lever (selectorized)	Seated Leg Curl	Hamstrings/LVSeatedLegCurl
+Thigh	Hamstrings	Lever (selectorized)	Standing Leg Curl	Hamstrings/LVStandingLegCurl
+Thigh	Hamstrings	Smith	Good-morning	Hamstrings/SMGoodMorning
+Thigh	Hamstrings	Smith	Straight-back Straight-leg Deadlift	Hamstrings/SMStrBackStrLegDeadlift
+Thigh	Hamstrings	Weighted	Glute-Ham Raise	Hamstrings/WTGluteHamRaise
+Thigh	Hamstrings	Weighted	Hyperextension	Hamstrings/WtHyperextension
+Thigh	Hamstrings	Weighted	Hyperextension (45°)	Hamstrings/Wt45Hyperextension
+Thigh	Hamstrings	Body Weight		OlympicLifts/RomanianDeadlift
+Thigh	Hamstrings	Band-assisted	Inverse Leg Curl	Hamstrings/ASInverseLegCurlBands
+Thigh	Hamstrings	Body Weight	Glute-Ham Raise	Hamstrings/BWGluteHamRaiseHead
+Thigh	Hamstrings	Body Weight	Glute-Ham Raise, hands behind hips	Hamstrings/BWGluteHamRaiseHips
+Thigh	Hamstrings	Body Weight	Hyperextension (45°)	Hamstrings/BW45HyperextensionHips
+Thigh	Hamstrings	Body Weight	Hyperextension (45°), arms crossed	Hamstrings/BW45HyperextensionArmsCrossed
+Thigh	Hamstrings	Body Weight	Hyperextension (45°), arms up	Hamstrings/BW45HyperextensionArmsUp
+Thigh	Hamstrings	Body Weight	Hyperextension (45°), hands behind neck	Hamstrings/BW45HyperextensionNeck
+Thigh	Hamstrings	Body Weight	Single Leg Hanging Hamstring Bridge	Hamstrings/BWSingleLegHangingHamstringBridge
+Thigh	Hamstrings	Body Weight	Single Leg Hyperextension (45°)	Hamstrings/BWSingleLeg45Hyperextension
+Thigh	Hamstrings	Body Weight	Straight Hip Leg Curl (on ball)	Hamstrings/BWBallStraightHipLegCurl
+Thigh	Hamstrings	Self-assisted	Inverse Leg Curl	Hamstrings/ASHamstringRaiseSelf
+Thigh	Hamstrings	Suspended	Hanging Leg Curl	Hamstrings/STHangingLegCurl
+Thigh	Hamstrings	Suspended	Hanging Leg Curl, Straight Hip	Hamstrings/STHangingStraightHipLegCurl
+Thigh	Hamstrings	Suspended	Leg Curl	Hamstrings/STLegCurl
+Thigh	Hamstrings	Suspended	Straight Hip Leg Curl	Hamstrings/STStraightHipLegCurl
+Thigh	Hip Adductors	Cable	Hip Adduction	HipAdductors/CBHipAdduction
+Thigh	Hip Adductors	Lever (plate loaded)	Seated Hip Adduction	HipAdductors/LVSeatedHipAdductionH
+Thigh	Hip Adductors	Lever (selectorized)	Seated Hip Adduction	HipAdductors/LVSeatedHipAdduction
+Thigh	Hip Adductors	Lever (selectorized)	Standing Hip Adduction	HipAdductors/LVStandHipAdduction
+Thigh	Hip Adductors	Weighted	Lying Hip Adduction	HipAdductors/WTLyingHipAdduction
+Calf	General or Gastrocnemius	Barbell	Standing Calf Raise	Gastrocnemius/BBStandingCalfRaise
+Calf	General or Gastrocnemius	Cable	Belt Calf Raise	Gastrocnemius/CBStandingCalfRaise
+Calf	General or Gastrocnemius	Cable	One Arm Single Leg Calf Raise	Gastrocnemius/CBOneArmSingleLegCalfRaise
+Calf	General or Gastrocnemius	Dumbbell	Standing Calf Raise	Gastrocnemius/DBStandingCalfRaise
+Calf	General or Gastrocnemius	Dumbbell	Standing Calf Raise, Single Leg	Gastrocnemius/DBSingleLegCalfRaise
+Calf	General or Gastrocnemius	Lever (plate loaded)	45° Calf Press	Gastrocnemius/LV45CalfPress
+Calf	General or Gastrocnemius	Lever (plate loaded)	Calf Extension	Gastrocnemius/LVSeatedCalfExtensionHammer
+Calf	General or Gastrocnemius	Lever (plate loaded)	Seated Calf Press [Isolateral]	Gastrocnemius/LVSeatedCalfPressH
+Calf	General or Gastrocnemius	Lever (plate loaded)	Standing Calf Raise	Gastrocnemius/LVStandingCalfRaisePL
+Calf	General or Gastrocnemius	Lever (selectorized)	45° Calf Raise	Gastrocnemius/LV45CalfRaise
+Calf	General or Gastrocnemius	Lever (selectorized)	Calf Extension	Gastrocnemius/LVSeatedCalfExtension
+Calf	General or Gastrocnemius	Lever (selectorized)	Donkey Calf Raise	Gastrocnemius/LVDonkeyCalfRaise
+Calf	General or Gastrocnemius	Lever (selectorized)	Seated Calf Press	Gastrocnemius/LVSeatedCalfPress
+Calf	General or Gastrocnemius	Lever (selectorized)	Standing Calf Raise	Gastrocnemius/LVStandingCalfRaise
+Calf	General or Gastrocnemius	Sled	45° Calf Press	Gastrocnemius/SL45CalfPress
+Calf	General or Gastrocnemius	Sled	45° Calf Raise	Gastrocnemius/SL45CalfRaise
+Calf	General or Gastrocnemius	Sled	Donkey Calf Raise	Gastrocnemius/SLDonkeyCalfRaise
+Calf	General or Gastrocnemius	Sled	Lying Calf Press	Gastrocnemius/SLLyingCalfPress
+Calf	General or Gastrocnemius	Sled	Seated Calf Press	Gastrocnemius/SLSeatedCalfPress
+Calf	General or Gastrocnemius	Sled	Standing Calf Raise	Gastrocnemius/SLStandingCalfRaise
+Calf	General or Gastrocnemius	Smith	Standing Calf Raise	Gastrocnemius/SMStandingCalfRaise
+Calf	General or Gastrocnemius	Weighted	Single Leg Calf Raise	Gastrocnemius/WTSingleLegCalfRaise
+Calf	General or Gastrocnemius	Body Weight	Standing Calf Raise	Gastrocnemius/BWStandingCalfRaise
+Calf	General or Gastrocnemius	Body Weight	Standing Calf Raise, Single Leg	Gastrocnemius/BWSingleLegCalfRaise
+Calf	General or Gastrocnemius	Self-assisted	Single Leg Calf Raise	Gastrocnemius/ASSingleLegCalfRaiseSelf
+Calf	General or Gastrocnemius	Suspended	Single Leg Forward Angled Calf Raise	Gastrocnemius/STSingleLegForwardAngledCalfRaise
+Calf	Soleus	Barbell	Safety Barbell Seated Calf Raise	Soleus/SBSeatedCalfRaise
+Calf	Soleus	Lever (plate loaded)	Seated Calf Raise	Soleus/LVSeatedCalfRaiseH
+Calf	Soleus	Lever (selectorized)	Seated Calf Raise	Soleus/LVSeatedCalfRaise
+Calf	Soleus	Smith	Seated Calf Raise	Soleus/SMSeatedCalfRaise
+Calf	Tibialis Anterior	Barbell	Safety Bar Reverse Calf Raise	TibialisAnterior/SBReverseCalfRaise
+Calf	Tibialis Anterior	Cable	Reverse Calf Raise	TibialisAnterior/CBReverseCalfRaise
+Calf	Tibialis Anterior	Cable	Reverse Calf Raise, Single Leg	TibialisAnterior/CBSingleLegReverseCalfRaise
+Calf	Tibialis Anterior	Dumbbell	Reverse Calf Raise	TibialisAnterior/DBReverseCalfRaise
+Calf	Tibialis Anterior	Dumbbell	Reverse Calf Raise, Single Leg	TibialisAnterior/DBSingleLegRevCalfRaise
+Calf	Tibialis Anterior	Lever (plate loaded)	45° Reverse Calf Press	TibialisAnterior/LV45ReverseCalfPress
+Calf	Tibialis Anterior	Lever (plate loaded)	45° Reverse Calf Raise	TibialisAnterior/LV45ReverseCalfRaise
+Calf	Tibialis Anterior	Lever (plate loaded)	Reverse Calf Raise	TibialisAnterior/LVReverseCalfRaisePL
+Calf	Tibialis Anterior	Lever (plate loaded)	Reverse Calf Extension	TibialisAnterior/LVSeatedReverseCalfExtHammer
+Calf	Tibialis Anterior	Lever (selectorized)	Reverse Calf Extension	TibialisAnterior/LVReverseCalfExtension
+Calf	Tibialis Anterior	Lever (selectorized)	Reverse Calf Raise	TibialisAnterior/LVReverseCalfRaise
+Calf	Tibialis Anterior	Sled	45° Reverse Calf Press	TibialisAnterior/SL45ReverseCalfPress
+Calf	Tibialis Anterior	Sled	45° Reverse Calf Raise (plate loaded)	TibialisAnterior/SL45ReverseCalfRaisePL
+Calf	Tibialis Anterior	Sled	45° Reverse Calf Raise (on hack press)	TibialisAnterior/SL45ReverseCalfRaiseHackPress
+Calf	Tibialis Anterior	Sled	Hack Reverse Calf Raise	TibialisAnterior/SLHackReverseCalfRaise
+Calf	Tibialis Anterior	Sled	Lying Reverse Calf Press	TibialisAnterior/SLLyingReverseCalfPress
+Calf	Tibialis Anterior	Sled	Seated Reverse Calf Press	TibialisAnterior/SLSeatedReverseCalfPress
+Calf	Tibialis Anterior	Smith	Reverse Calf Raise	TibialisAnterior/SMReverseCalfRaise
+Calf	Tibialis Anterior	Body Weight	Reverse Calf Raise	TibialisAnterior/BWReverseCalfRaise
+Calf	Tibialis Anterior	Body Weight	Reverse Calf Raise, Single Leg	TibialisAnterior/BWSingleLegRevCalfRaise

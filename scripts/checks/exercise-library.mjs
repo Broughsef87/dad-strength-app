@@ -33,7 +33,7 @@ for (const e of EXERCISE_LIBRARY) {
 const here = dirname(fileURLToPath(import.meta.url))
 const dir = join(here, 'exercise-sources')
 let sourceNames = 0
-for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
+for (const f of readdirSync(dir).filter((x) => x.endsWith('.json') && x !== 'exrx-map.json')) {
   const { sources } = JSON.parse(readFileSync(join(dir, f), 'utf8'))
   for (const [src, names] of Object.entries(sources)) {
     for (const n of names) {
@@ -43,6 +43,27 @@ for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
   }
 }
 assert(sourceNames > 300, `read ${sourceNames} source names; the source files look empty`)
+
+// 2b. ExRx: every page in the raw index maps to a library entry by name. The
+//     index is read here, so a row added to it without a mapping fails.
+{
+  const tsv = readFileSync(join(here, '../../research/exercise-library/exrx-raw-2026-11-15.tsv'), 'utf8')
+  const paths = tsv.trim().split('\n').slice(1).map((l) => l.split('\t')[4])
+  const { pages } = JSON.parse(readFileSync(join(dir, 'exrx-map.json'), 'utf8'))
+  const names = new Set(EXERCISE_LIBRARY.map((e) => e.name))
+  assert(paths.length === 719, `ExRx index: ${paths.length} pages, expected 719`)
+  for (const p of paths) {
+    sourceNames++
+    assert(pages[p] != null, `ExRx ${p}: no library entry mapped`)
+    assert(pages[p] == null || names.has(pages[p]), `ExRx ${p}: maps to "${pages[p]}", which is not in the library`)
+  }
+  for (const [k, n] of [['Back Squat', 'barbell squat'], ['Lat Pulldown', 'cable pulldown'], ['Triceps Pressdown', 'cable pushdown']]) {
+    assert(searchLibrary(n, null, 1000).items.some((e) => e.name === k), `search: ExRx name "${n}" finds ${k}`)
+  }
+  const knee = EXERCISE_LIBRARY.filter((e) => e.kneeLoad).map((e) => e.name)
+  for (const n of ['DB Lunge', 'Single Leg Box Squat (pistol)', 'Machine Split Squat']) assert(knee.includes(n), `${n}: kneeLoad`)
+  for (const n of ['Machine Seated Leg Curl', 'Cable Lateral Raise (one arm)']) assert(!knee.includes(n), `${n}: not kneeLoad`)
+}
 
 // 3. The drills that land or jump carry the flag; nothing Platform Dad
 //    prescribes does.

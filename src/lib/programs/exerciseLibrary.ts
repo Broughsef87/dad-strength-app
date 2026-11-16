@@ -5,6 +5,7 @@
 // with a peer from its family (or anything, if you know what you're doing).
 
 import { OLY_IMPORTS } from './exerciseImports/oly'
+import { EXRX_IMPORTS, EXRX_AKAS } from './exerciseImports/exrx'
 
 export interface LibraryExercise {
   name: string
@@ -14,6 +15,10 @@ export interface LibraryExercise {
   aka?: string[]
   /** Lands or jumps (jump to split, rebound jerk, jumping pulls). */
   impact?: true
+  /** Single-leg knee-dominant work: lunges, split squats, step-ups, pistols. */
+  kneeLoad?: true
+  /** The target muscles a source files it under (ExRx). */
+  muscles?: string[]
 }
 
 export type ExerciseCategory =
@@ -21,6 +26,7 @@ export type ExerciseCategory =
   | 'push_h' | 'push_v' | 'pull_h' | 'pull_v'
   | 'ham_glute' | 'core' | 'carry' | 'arms' | 'shoulders'
   | 'snatch' | 'clean_jerk' | 'oly_pull'
+  | 'calves' | 'neck'
   | 'plyo' | 'conditioning'
 
 export type Equipment = 'bb' | 'db' | 'kb' | 'cable' | 'machine' | 'bw' | 'trap' | 'band' | 'sled'
@@ -32,6 +38,7 @@ export const CATEGORY_LABELS: Record<ExerciseCategory, string> = {
   ham_glute: 'Hams / Glutes', core: 'Core', carry: 'Carries',
   arms: 'Arms', shoulders: 'Shoulders',
   snatch: 'Snatch Variations', clean_jerk: 'Clean & Jerk Variations', oly_pull: 'Oly Pulls',
+  calves: 'Calves', neck: 'Neck',
   plyo: 'Jumps / Plyo', conditioning: 'Conditioning',
 }
 
@@ -237,7 +244,11 @@ const CORE_LIBRARY: LibraryExercise[] = [
 ]
 
 /** Every exercise the swap and add sheets offer: the core, then the imports. */
-export const EXERCISE_LIBRARY: LibraryExercise[] = [...CORE_LIBRARY, ...OLY_IMPORTS]
+export const EXERCISE_LIBRARY: LibraryExercise[] = [
+  ...CORE_LIBRARY.map((e) => (EXRX_AKAS[e.name] ? { ...e, aka: [...(e.aka ?? []), ...EXRX_AKAS[e.name]] } : e)),
+  ...OLY_IMPORTS,
+  ...EXRX_IMPORTS,
+]
 
 /** Lowercase words with punctuation, joiners and plural pulls/racks folded, so
  *  "Snatch Pulls, from the Knee" and "Snatch Pull from Knee" read the same. */
