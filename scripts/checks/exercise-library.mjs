@@ -20,11 +20,12 @@ const owner = new Map()
 for (const e of EXERCISE_LIBRARY) {
   assert(e.cat in CATEGORY_LABELS, `${e.name}: unknown category ${e.cat}`)
   assert(Array.isArray(e.equip) && e.equip.length > 0, `${e.name}: no equipment`)
-  for (const n of [e.name, ...(e.aka ?? [])]) {
-    const k = normalizeExerciseName(n)
-    const prev = owner.get(k)
-    assert(!prev || prev === e.name, `"${n}" (${e.name}) reads the same as ${prev}`)
-    owner.set(k, e.name)
+  // Owned by the ENTRY, not its name: two entries both named "Clean & Jerk"
+  // must collide too (Codex r1, PR #90).
+  for (const n of new Set([e.name, ...(e.aka ?? [])].map(normalizeExerciseName))) {
+    const prev = owner.get(n)
+    assert(!prev || prev === e, `"${n}" (${e.name}) reads the same as ${prev?.name}`)
+    owner.set(n, e)
   }
 }
 
