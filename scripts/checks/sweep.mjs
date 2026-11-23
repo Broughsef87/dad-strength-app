@@ -102,6 +102,23 @@ for (let wk = 1; wk <= 11; wk++) {
   }
 }
 
+// ── 6b. Andrew's set ceiling and single floor (2026-08-27, FOR-335) ────
+// Never more than 4 sets of anything; no single on a full classic lift
+// below 85%, even at the full −8. Deload and test-week ramps are not working
+// sets (set-ceiling.mjs makes the same exemption).
+for (let wk = 1; wk <= 11; wk++) {
+  for (const d of GYM) {
+    for (const it of lifts(app.buildDay(wk, d, MAXES, {}, {}))) assert(it.sets <= 4, `W${wk} D${d} ${it.name}: ${it.sets} sets, ceiling 4`)
+    for (const it of lifts(app.buildDay(wk, d, MAXES, { sn_top: -MAX_ADJ, cl_top: -MAX_ADJ }, {}))) {
+      const n = it.name.trim().toLowerCase()
+      if ((n === 'snatch' || n === 'clean') && it.maxKey) {
+        const singles = (it.setPlan ?? [{ reps: it.reps, percent: it.percent }]).filter((x) => x.reps === 1)
+        for (const x of singles) assert(x.percent >= 85, `W${wk} D${d} ${it.name}: a single at ${x.percent}%, floor 85`)
+      }
+    }
+  }
+}
+
 // ── 7. Every lift varies week to week ──────────────────────────────────
 // "I don't want the same exact exercises for every microcycle." In the two
 // building blocks each percentage slot, and each rotating accessory, shows at

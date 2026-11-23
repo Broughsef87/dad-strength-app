@@ -147,11 +147,13 @@ for (const a of allow) {
     }
   }
 }
-// The two FOR-263 slots and FOR-271's are meso 2's: weeks 5 to 8, by name, so
-// widening an entry's weeks is a change somebody has to make here as well.
+// The FOR-263 and FOR-271 exemptions (Power Dad's M2 EMOM and waves) were
+// retired with the knees-first rebuild (FOR-358): nothing in Power Dad runs
+// over four sets now, so an entry coming back for these slots is a change
+// somebody has to make here as well.
 for (const key of ['hybrid-power:sn_top', 'hybrid-power:back_squat_heavy', 'hybrid-power:cl_top']) {
   const a = allow.find((x) => x?.entry === key)
-  if (!a || a.weeks[0] !== 5 || a.weeks[1] !== 8) scope.push(`${key} must be excused in weeks 5-8 and no others — got ${a ? `${a.weeks[0]}-${a.weeks[1]}` : 'no entry'}`)
+  if (a) scope.push(`${key} is excused again (weeks ${a.weeks[0]}-${a.weeks[1]}) — its exemption retired with FOR-358`)
   for (const week of [1, 4, 9, 12, 13]) {
     if (excused(key, CEILING + 1, week)) scope.push(`${key} at ${CEILING + 1} sets passes in week ${week}, outside meso 2`)
   }
