@@ -154,46 +154,46 @@ const row = (slot, w, reps, week = 5, day = 2) =>
     snatch: 205, clean_jerk: 260,
     back_squat: 365, front_squat: 315, bench: 250, deadlift: 465, ohp: 155,
   }
-  const wed = wk => hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'db_bench')
+  const wed = wk => hybridPower.buildDay(wk, 3, MAXES).items.find(i => i.slot === 'db_incline')
 
   const w1 = wed(1)
-  ok('power dad: Wednesday press is a range slot',
-    w1?.name === 'DB Bench Press' && Array.isArray(w1?.repRange) && w1?.percent == null,
+  ok('power dad: Wednesday incline is a range slot',
+    w1?.name === 'Incline DB Press' && Array.isArray(w1?.repRange) && w1?.percent == null,
     { name: w1?.name, repRange: w1?.repRange, percent: w1?.percent })
   ok('power dad: no history → no invented weight', w1?.targetWeightLbs === undefined, w1?.targetWeightLbs)
 
   // Every set at the TOP of the window → the next build must show +5 lb.
   const [lo, hi] = w1.repRange
   const logs = Array.from({ length: w1.sets }, () => ({
-    slot: 'db_bench', block_name: 'DB Bench Press', weight_lbs: 60, reps: hi,
+    slot: 'db_incline', block_name: 'Incline DB Press', weight_lbs: 60, reps: hi,
     completed: true, week_number: 1, day_number: 3, log_type: 'strength_set',
   }))
   const lt = loadTargets(doubleProgression(logs, {
-    ranges: { db_bench: w1.repRange }, steps: { db_bench: w1.loadStepLbs }, defaultStep: 5,
+    ranges: { db_incline: w1.repRange }, steps: { db_incline: w1.loadStepLbs }, defaultStep: 5,
   }))
-  ok('power dad: a topped-out session suggests +5 lb/hand', lt.db_bench === 65, lt)
+  ok('power dad: a topped-out session suggests +5 lb/hand', lt.db_incline === 65, lt)
 
   const next = hybridPower.buildDay(2, 3, MAXES, {}, { loadTargets: lt })
-    .items.find(i => i.slot === 'db_bench')
+    .items.find(i => i.slot === 'db_incline')
   ok('power dad: buildDay reads opts.loadTargets and prints 65 lb',
     next?.targetWeightLbs === 65, next?.targetWeightLbs)
 
   // ...and it HOLDS when a set falls short, rather than climbing on partial work.
   const short = [
-    { slot: 'db_bench', block_name: 'DB Bench Press', weight_lbs: 60, reps: hi,
+    { slot: 'db_incline', block_name: 'Incline DB Press', weight_lbs: 60, reps: hi,
       completed: true, week_number: 1, day_number: 3, log_type: 'strength_set' },
-    { slot: 'db_bench', block_name: 'DB Bench Press', weight_lbs: 60, reps: lo,
+    { slot: 'db_incline', block_name: 'Incline DB Press', weight_lbs: 60, reps: lo,
       completed: true, week_number: 1, day_number: 3, log_type: 'strength_set' },
   ]
   const held = loadTargets(doubleProgression(short, {
-    ranges: { db_bench: w1.repRange }, steps: { db_bench: w1.loadStepLbs }, defaultStep: 5,
+    ranges: { db_incline: w1.repRange }, steps: { db_incline: w1.loadStepLbs }, defaultStep: 5,
   }))
-  ok('power dad: one set short of the top holds the load', held.db_bench === 60, held)
+  ok('power dad: one set short of the top holds the load', held.db_incline === 60, held)
 
   // The windows tighten across the macro the way the percentages used to.
   ok('power dad: the window narrows and climbs meso to meso',
     JSON.stringify([wed(1).repRange, wed(5).repRange, wed(9).repRange])
-      === JSON.stringify([[8, 10], [6, 8], [5, 6]]),
+      === JSON.stringify([[10, 12], [8, 10], [6, 8]]),
     [wed(1)?.repRange, wed(5)?.repRange, wed(9)?.repRange])
 
   // The day page discovers ranges by PROBING buildDay with no loadTargets, so a
@@ -201,7 +201,7 @@ const row = (slot, w, reps, week = 5, day = 2) =>
   // be discovered at all. Probe-shaped call, deliberately.
   const probe = hybridPower.buildDay(1, 3, MAXES, {}, { forceDeload: false })
   ok('power dad: the probe build still advertises the range',
-    probe.items.some(i => i.slot === 'db_bench' && i.repRange), null)
+    probe.items.some(i => i.slot === 'db_incline' && i.repRange), null)
 }
 
 // ── Regressions found against Andrew's real session 1, 2026-08-25 ───────────

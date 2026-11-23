@@ -49,7 +49,8 @@ assert(!existsSync(join(ROOT, 'src/lib/programs/hybridEndurance.ts')) && existsS
   'hybridEndurance.ts is hybridDad.ts')
 for (const [slug, p] of Object.entries(PROGRAMS)) {
   assert(p.slug === slug, `${slug}: the registry key is the program's own slug`)
-  const days = slug === 'platform-dad' ? 4 : 6
+  // Power Dad went to five days in the knees-first rebuild (FOR-358).
+  const days = slug === 'platform-dad' ? 4 : slug === 'hybrid-power' ? 5 : 6
   assert(scheduledDayNumbers(p, 1).length === days, `${slug} prescribes ${days} days in week 1 — got ${scheduledDayNumbers(p, 1).length}`)
 }
 
@@ -117,24 +118,19 @@ for (const [slug, p] of Object.entries(PROGRAMS)) {
   }
   assert(reducedDays > 0, `${slug}: the mode reduced at least one gym day`)
 }
-// The exact day Codex ran (round 1): Power Dad's non-deload Wednesday drops
-// the trap bar jumps; the kept front squat must not still say "Contrast: trap
-// bar jumps ~30s after each set".
+// Power Dad's short days (FOR-358): Friday keeps the clean and the front
+// squat; Saturday keeps the press and the pull, not the warm-up throws, and
+// its intent names only what it keeps.
 {
-  const short = PROGRAMS['hybrid-power'].buildDay(1, 3, MAXES, {}, { timeConstrained: true })
-  const fs = short.items.find((i) => i.kind === 'lift' && /front squat/i.test(i.name))
-  assert(!!fs, 'Power Dad W1 D3 reduced keeps the front squat')
-  assert(!short.items.some((i) => /trap bar jump/i.test(i.name ?? i.title ?? '')), 'Power Dad W1 D3 reduced drops the trap bar jumps')
-  assert(!fs || !/trap bar/i.test(fs.note ?? ''), `Power Dad W1 D3: the front squat no longer says "${fs?.note}"`)
-}
-// The exact day Codex ran (round 2): Power Dad week 1, day 6 keeps the press
-// and the deadlift; its intent must not still promise dips, core, jumps and
-// the week's metcon.
-{
-  const short = PROGRAMS['hybrid-power'].buildDay(1, 6, MAXES, {}, { timeConstrained: true })
-  const intent = short.sessionIntent.toLowerCase()
-  assert(!/dips|core|metcon|jumps/.test(intent), `Power Dad W1 D6: the intent no longer says "${short.sessionIntent}"`)
-  assert(short.items.every((i) => intent.includes(i.name.toLowerCase())), 'Power Dad W1 D6: the intent names what it keeps')
+  const fri = PROGRAMS['hybrid-power'].buildDay(1, 5, MAXES, {}, { timeConstrained: true })
+  assert(fri.items.some((i) => i.kind === 'lift' && /front squat/i.test(i.name)), 'Power Dad W1 Friday reduced keeps the front squat')
+  assert(fri.items.some((i) => i.kind === 'lift' && /clean/i.test(i.name)), 'Power Dad W1 Friday reduced keeps the clean')
+  const sat = PROGRAMS['hybrid-power'].buildDay(1, 6, MAXES, {}, { timeConstrained: true })
+  const names = sat.items.map((i) => i.name)
+  assert(names.join('|') === 'Overhead Press|Trap-Bar Deadlift', `Power Dad W1 Saturday reduced keeps the press and the pull — got ${names.join(', ')}`)
+  const intent = sat.sessionIntent.toLowerCase()
+  assert(sat.items.every((i) => intent.includes(i.name.toLowerCase())), 'Power Dad W1 D6: the intent names what it keeps')
+  assert(!/throws|close-grip|rear delt/.test(intent), `Power Dad W1 D6: the intent no longer names dropped work — "${sat.sessionIntent}"`)
 }
 // The general rule, on a plan no program ships today so it cannot be satisfied
 // by accident: a kept lift with NO pairing link whose note names a dropped

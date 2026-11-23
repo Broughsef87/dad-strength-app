@@ -310,9 +310,11 @@ for (const [slug, program] of Object.entries(PROGRAMS)) {
           }
         }
         // The six-block budget, on the day the app actually renders.
-        if (plan.dayType === 'gym' && label === 'full' && slug === 'hybrid-power') {
+        // Since FOR-358 Power Dad's jumps live on Thursday, an outside day, so
+        // the prep is measured on every day that carries it, not gym days only.
+        if (label === 'full' && slug === 'hybrid-power') {
           const blocks = blockCount(plan)
-          if (blocks > 6) overBlocks.push(`${slug} w${week} d${day}: ${blocks} blocks`)
+          if (plan.dayType === 'gym' && blocks > 6) overBlocks.push(`${slug} w${week} d${day}: ${blocks} blocks`)
           const preps = items.filter(isPrep)
           if (preps.length) { prepDays++; prepBlocks += preps.filter((i) => !isStationFree(i)).length }
         }
@@ -473,7 +475,7 @@ console.log(`  · heaviest week:    ${worstWeek ? `${worstWeek.k} — ${worstWee
 assert(overBlocks.length === 0,
   `no Power Dad gym day exceeds its six-block budget once the prep is on it — ${overBlocks.length ? `${overBlocks.length} do, first: ${overBlocks[0]}` : 'none'}`)
 assert(prepDays > 0 && prepBlocks === 0,
-  `the prep is on ${prepDays} Power Dad gym days and costs ${prepBlocks} blocks on every one of them`)
+  `the prep is on ${prepDays} Power Dad days and costs ${prepBlocks} blocks on every one of them`)
 
 // ── E. the card cannot shout over the prescription ─────────────────────────
 // The jump card's header read MAX INTENT unconditionally, so a ramp week put

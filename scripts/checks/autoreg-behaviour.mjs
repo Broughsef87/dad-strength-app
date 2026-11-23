@@ -51,40 +51,60 @@ const shown = (wk, day, slot) =>
   check('normal slot, backed off ~7%      → follows DOWN', adj.cl_top, v => v < -1)
 }
 
+// SPEED SLOTS (3-6). Power Dad's speed box squat was retired with the knees-
+// first rebuild (FOR-358), and no shipped program has a velocity slot today.
+// The guard in autoreg is still live code, so it is tested against a fixture
+// program: Power Dad plus one velocity card on Friday.
+const speedProgram = {
+  ...hybridPower,
+  buildDay: (wk, day, maxes, adj = {}, opts) => {
+    const plan = hybridPower.buildDay(wk, day, maxes, adj, opts)
+    if (day !== 5) return plan
+    const pct = 57 + Math.max(-8, Math.min(8, adj.speed_squat ?? 0))
+    const max = maxes.back_squat
+    return { ...plan, items: [...plan.items, {
+      kind: 'lift', slot: 'speed_squat', name: 'Speed Box Squat', sets: 6, reps: 2, percent: pct,
+      maxKey: 'back_squat', velocity: true,
+      targetWeightLbs: max ? Math.round((pct / 100) * max / 5) * 5 : undefined,
+    }] }
+  },
+}
+const speedShown = (wk, day, slot) => speedProgram.buildDay(wk, day, MAXES).items.find(i => i.slot === slot)
+
 // ── 3. SPEED slot, athlete loads ABOVE the window → must NOT chase ───────────
 {
-  const s = shown(2, 5, 'speed_squat')
+  const s = speedShown(2, 5, 'speed_squat')
   const heavier = Math.round(s.targetWeightLbs * 1.12 / 5) * 5
   const adj = await computeAdjustments(
     db([{ slot: 'speed_squat', rpe: 7, weight_lbs: heavier }, { slot: 'speed_squat', rpe: 7, weight_lbs: heavier }]),
-    'u', hybridPower, 3, 5, RUN_EPOCH, MAXES)
+    'u', speedProgram, 3, 5, RUN_EPOCH, MAXES)
   check('speed slot, loaded 12% ABOVE    → refuses to chase', adj.speed_squat, v => (v ?? 0) <= 0)
 }
 
 // ── 4. SPEED slot, athlete backs off (bar was slow) → must follow down ───────
 {
-  const s = shown(2, 5, 'speed_squat')
+  const s = speedShown(2, 5, 'speed_squat')
   const lighter = Math.round(s.targetWeightLbs * 0.90 / 5) * 5
   const adj = await computeAdjustments(
     db([{ slot: 'speed_squat', rpe: 7, weight_lbs: lighter }, { slot: 'speed_squat', rpe: 7, weight_lbs: lighter }]),
-    'u', hybridPower, 3, 5, RUN_EPOCH, MAXES)
+    'u', speedProgram, 3, 5, RUN_EPOCH, MAXES)
   check('speed slot, backed off 10%      → follows DOWN', adj.speed_squat, v => v < -1)
 }
 
 // ── 5. SPEED slot carries no RPE anchor at all ───────────────────────────────
 {
-  const sq = shown(2, 5, 'speed_squat')
+  const sq = speedShown(2, 5, 'speed_squat')
   check('speed squat targetRpe is unset', sq.targetRpe === undefined ? 'undefined' : sq.targetRpe, v => v === 'undefined')
   check('speed squat flagged velocity   ', String(sq.velocity), v => v === 'true')
 }
 
 // ── 6. RPE alone can no longer move a speed slot ─────────────────────────────
 {
-  const s = shown(2, 5, 'speed_squat')
+  const s = speedShown(2, 5, 'speed_squat')
   const adj = await computeAdjustments(
     db([{ slot: 'speed_squat', rpe: 3, weight_lbs: s.targetWeightLbs },
         { slot: 'speed_squat', rpe: 3, weight_lbs: s.targetWeightLbs }]),
-    'u', hybridPower, 3, 5, RUN_EPOCH, MAXES)
+    'u', speedProgram, 3, 5, RUN_EPOCH, MAXES)
   check('speed slot, on-weight + RPE 3   → no RPE-driven bump', adj.speed_squat, v => (v ?? 0) === 0)
 }
 

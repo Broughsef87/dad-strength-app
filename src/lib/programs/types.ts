@@ -15,6 +15,14 @@ export interface LiftPrescription {
   kind: 'lift'
   slot: string             // stable identity for logging, e.g. 'snatch_primary'
   name: string             // "Pause Snatch, At Knee"
+  /**
+   * The lift this card belongs to when its NAME rotates week to week (FOR-358).
+   * Power Dad's back squat is a pause squat one week and a tempo squat the
+   * next; autoreg drops its carry when the movement changes, and without this
+   * every weekly variation would read as a new movement and reset. Same family
+   * and same max means the feedback follows the lift.
+   */
+  family?: string
   sets: number
   reps: number             // per set (for 1+1 complexes, reps=1 and note explains)
   percent?: number         // % of the referenced max, e.g. 73.5

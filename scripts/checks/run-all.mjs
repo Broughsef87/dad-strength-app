@@ -65,10 +65,9 @@ const SUITES = [
   // started; this stubs codex and makes each failure happen. Its own file, so
   // deleting the launcher cannot delete the check that would catch it.
   ['codex launcher (2026-10-06)', 'codex-review-launcher.mjs'],
-  // M2 Monday's EMOM and squat waves, and the nine Mondays this must not have
-  // touched — its own suite, so a revert of hybridPower.ts cannot take the
-  // check that would catch the revert (FOR-263).
-  ['M2 Monday (FOR-263)', 'meso2-monday.mjs'],
+  // The per-set plan contract over every program, and obeying a plan is not
+  // a signal — its own suite (FOR-263, kept through FOR-358).
+  ['set-plan contract (FOR-263)', 'set-plan-contract.mjs'],
   // The morning eval's scorers, proven without a model call, and the route
   // sending the one shared prompt — its own suite, so a revert of the eval or
   // the route cannot take the check with it (FOR-326).

@@ -39,10 +39,10 @@ export const metadata: Metadata = {
 // (the week, the block, what to test) is read from the registry below.
 const COPY: Record<string, { forWho: string; body: string[] }> = {
   'hybrid-power': {
-    forWho: 'two heavy snatch-and-clean days a week, for the dad who wants to stay fast.',
+    forWho: 'snatches, cleans and moderate squats, for the dad who wants to be fast again without wrecking his knees.',
     body: [
-      'power dad is built around the olympic lifts. two days a week you snatch and clean heavy, then work sub-max back-offs. no drill work eats your window. a third gym day covers presses, single-leg strength and ballistic power, and the fourth puts a heavy deadlift and the week\'s conditioning in one session.',
-      'outside the gym there is one speed day, where quality beats quantity and every rep gets a full rest, and one interval session on a bike, rower or road. every gym day caps at six blocks, so the session ends when your window does.',
+      'power dad is built to make you a faster, more powerful athlete. four gym days: snatch, a moderate back squat and heavy bench on monday; push press and upper on wednesday; power cleans and a moderate front squat on friday; strict press, close-grip bench and a trap-bar pull on saturday. squats stay moderate on purpose, and every lift rotates through pauses, tempos, 1¼ reps, deficits and hang positions week to week.',
+      'thursday brings sprinting and jumping back slowly: four levels over about nine months, from sled work and tendon holds up to flying sprints, then fifteen minutes of low-impact engine. five days a week, and every gym day caps at six blocks.',
     ],
   },
   'dad-built': {
