@@ -188,7 +188,7 @@ export async function computeAdjustments(
     const furthest = moves.reduce((a, m) => (Math.abs(m) > Math.abs(a) ? m : a), 0)
     shownAdj[item.slot] = Math.round(furthest * 2) / 2
   }
-  const prescribed: Record<string, { percent: number; setPcts?: number[]; lbs?: number; setLbs?: Array<number | undefined>; targetRpe?: number; maxKey?: string; name: string; velocity?: boolean }> = {}
+  const prescribed: Record<string, { percent: number; setPcts?: number[]; lbs?: number; setLbs?: Array<number | undefined>; targetRpe?: number; maxKey?: string; name: string; family?: string; velocity?: boolean }> = {}
   for (const item of prevPlan.items) {
     if (item.kind === 'lift' && item.percent != null) {
       prescribed[item.slot] = {
@@ -218,7 +218,7 @@ export async function computeAdjustments(
         lbs: item.targetWeightLbs,
         setLbs: item.setPlan?.length ? item.setPlan.map((x) => x.targetWeightLbs) : undefined,
         targetRpe: item.targetRpe, maxKey: item.maxKey,
-        name: item.name, velocity: item.velocity,
+        name: item.name, family: item.family, velocity: item.velocity,
       }
     }
   }
@@ -231,9 +231,9 @@ export async function computeAdjustments(
   // to 8 points heavy or light. When the lift or its reference max changes,
   // drop the adjustment and let the new table's number stand.
   const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : undefined)
-  const current: Record<string, { name: string; maxKey?: string; pct?: number }> = {}
+  const current: Record<string, { name: string; family?: string; maxKey?: string; pct?: number }> = {}
   for (const item of program.buildDay(weekNumber, dayNumber, {}).items) {
-    if (item.kind === 'lift') current[item.slot] = { name: item.name, maxKey: item.maxKey, pct: mean(pcts(item)) }
+    if (item.kind === 'lift') current[item.slot] = { name: item.name, family: item.family, maxKey: item.maxKey, pct: mean(pcts(item)) }
   }
 
   // The app follows the lifter, two signals per slot:
@@ -255,11 +255,21 @@ export async function computeAdjustments(
   const sameLift = (slot: string) => {
     const p = prescribed[slot]
     const now = current[slot]
-    if (!p || !now || now.name !== p.name || now.maxKey !== p.maxKey) return false
+    // A rotating slot (FOR-358) names its lift by family: a pause week and a
+    // tempo week of the same back squat are the same lift for feedback.
+    if (!p || !now || (now.family ?? now.name) !== (p.family ?? p.name) || now.maxKey !== p.maxKey) return false
     // The rebuilt week must be the week he saw. If the stored card names a
     // different lift, or its percents differ from the rebuild, the tables
     // changed under him: nothing logged against it describes today's lift.
+    // A family match bridges two program names, never a swap (Codex r1, PR
+    // #95). If either week's card was swapped for another exercise, feedback
+    // on one movement says nothing about the other. Checked before the stored
+    // card, because a week with no stored card must not skip it.
     const was = storedLift[slot]
+    if (now.name !== p.name) {
+      const subPrev = subs[`${slot}::${p.name}`], subThis = subs[`${slot}::${now.name}`]
+      if (was?.sub !== undefined || (subPrev && subPrev !== p.name) || (subThis && subThis !== now.name)) return false
+    }
     if (!was) return true
     if (was.name !== undefined && was.name !== p.name) return false
     if (was.maxKey !== undefined && was.maxKey !== p.maxKey) return false

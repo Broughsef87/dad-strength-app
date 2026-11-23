@@ -3,61 +3,49 @@ import {
   BuildDayOpts,
   DayPlan,
   LiftPrescription,
-  MetconPrescription,
   OutsideSession,
-  PlyoPrescription,
   ProgramConfig,
   Prescription,
-  RampStage,
   resolveWeight,
 } from './types'
-import { lowRamp, rampStage } from './prep'
+import { exposureWeek } from './prep'
+import { withoutSetPlan } from './setPlan'
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// POWER DAD — athletic power, not weightlifting
+// POWER DAD — knees first, athlete first (FOR-358, Andrew 2026-11-23)
 //
-// The FULL snatch (Mon) and the POWER clean (Fri) are the heavy expression —
-// zero technique work (no pauses, tempos, complexes, receiving drills), just
-// heavy doubles and singles at 80%+ of the FULL-lift maxes. The clean side is
-// powers by the athlete's call, but the percentages stayed where the full
-// clean had them: %-of-power-max under-loads him, so the reference max stays
-// the full clean. Speed lives in Monday's sub-max snatch back-offs and the
-// Friday speed box squats. Overhead is
-// push press (Wed, power) + strict OHP wave (Sat, strength) — jerk retired.
-// Percent rules: pure lifts ≤2 reps ≥80% on the TOP sets (a *_back slot takes
-// the 75 doubles floor instead — see classicFloor); any ≤2-rep set ≥75%;
-// power/hang triples ≥65%. Clean pulls (Fri) key off the clean max in every
-// meso, heavy (95-110%);
-// Monday is squat-priority (squat leads) with Nordics as the hamstring slot.
+// The old Power Dad was a strong lifter's program: three squat days, four to
+// five jump exposures a week, sprints on Tuesday, a heavy deadlift on Saturday.
+// It tore his knees up. The goal now is a faster, leaner, more powerful athlete
+// (rugby or hockey next year, 235 lb cutting to 205-210), so the week trades
+// grinding for positions, speed and variety:
 //
-// 13-week macro: 3 × 4-week mesos + test week.
-//   Meso 1 (W1-4):   straight heavy doubles @ 80-83%
-//   Meso 2 (W5-8):   top double (83-86%) + back-off doubles @ 80%
-//   Meso 3 (W9-12):  top single (87-90%) + back-off doubles @ 78-80%.
-//                    W12 = deload. W13 = TEST (Snatch, Clean, squats, bench, DL).
-// Variation model ("variation isn't the enemy"): vary the MIDDLE, get
-// specific at the end. M2 is the variation meso — hang-position snatch
-// back-offs, 1¼ bench, pause front squat, snatch pulls (off the snatch max),
-// close-grip Wed bench, floor power snatch — then M3 snaps back to the pure
-// lifts for realization. The top Snatch/Clean sets, OHP wave, and push press
-// never rotate. Squat pausing caps at ONE pause-squat slot per week, any
-// variant (currently Wed's M2 pause front squat is the one). Deficit
-// deadlifts are legal for future mesos ("sometimes" — athlete, 2026-08);
-// this macro keeps back squat and deadlift straight.
-// Pauses/tempos are allowed on STRENGTH lifts only — the oly technique ban
-// (complexes, balances, blocks, pause snatches) stands.
+//   · 5 days: Mon / Wed / Fri / Sat gym, Thu sprint-return + engine.
+//     Tue and Sun off. "6 is just too much to reliably get done."
+//   · One back squat day and one front squat day, both MODERATE: 66-76%, and
+//     the 76% ceiling holds after autoreg (pctCeiling), so no run of easy weeks
+//     can walk a squat back into the range that hurt him.
+//   · Snatch is plain snatch: power it if it goes, catch it low if it doesn't
+//     (Andrew: "I don't really care if it's a power or not"). Cleans are hang
+//     power and power cleans. Both key off the FULL-lift maxes and keep the
+//     classic floors. No separate pulls, no separate jerks.
+//   · Bench twice (heavy Mon, close-grip Sat). Overhead stays a priority:
+//     push press Wed, strict press Sat.
+//   · No box, depth, broad or trap-bar jumps on the gym days, no speed box
+//     squats, no split squats or lunges. Jumping and sprinting come back on
+//     THURSDAY, on a four-level ladder that runs over about nine months of
+//     exposure and carries across macros (see thursdaySession).
+//   · EVERY LIFT VARIES WEEK TO WEEK. Each slot's four names are a rotation
+//     (pause, tempo, 1¼, deficit, hang positions, DB variants). Week 4 of a
+//     block returns to the base lift; block 3 runs the base lifts into the
+//     test. A variation's weight discount is its `offsets` entry, so the
+//     percent on the card is honest for the movement on the card.
+//   · Variations share a FAMILY (the slot id), so autoreg follows the lift
+//     across its weekly variations instead of resetting every week.
 //
-// Week: Mon Power A (snatch) · Tue sprint · Wed athletic strength ·
-//       Thu conditioning · Fri Power B (clean) · Sat power + engine · Sun REST.
-// Sunday's steady Z2 was cut in FOR-195 (2026-08-30): seven sessions with no
-// valley in them was the structural reason fatigue accumulated, and it was the
-// session the card itself told him to skip. daysPerWeek is 6.
-// Session budget: every gym day caps at 6 BLOCKS. A back-off slot (*_back) is
-// not its own block — it's the same bar, same station, immediately after the
-// top set, so it costs cards but not gym time. The budget is about the clock
-// ("I have a kid, I can't spend 2+ hours"), so it counts stations you set up.
-//
-// All loads are computed here — deterministic, never AI-generated.
+// 13-week macro: Build W1-4 · Strength W5-8 · Peak W9-11 · deload W12 · test
+// W13 (power clean, bench, strict press; squats to a 3RM, optional). Every gym
+// day caps at 6 blocks. All loads are computed here — deterministic, never AI.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface MacroPos {
@@ -76,73 +64,52 @@ function macroPos(weekNumber: number): MacroPos {
   return { weekInMacro, meso, weekInMeso, isDeload: weekInMacro === 12, isTest }
 }
 
-// A slot definition: per-meso variation names (indexed by weekInMeso) and a
-// percent ramp. pct(week) = pctStart + pctStep * (weekInMeso - 1).
+type Four<T> = [T, T, T, T]
+
+// A slot definition: per-week variation names (indexed by weekInMeso), the
+// variation's discount, and a percent ramp:
+//   pct(week) = pctStart + pctStep * (weekInMeso - 1) + offsets[week] + autoreg
 interface SlotMeso {
-  names: [string, string, string, string]
-  /** 0 means the slot does not run in this meso — M2 has no snatch back-off (FOR-263). */
+  names: Four<string>
   sets: number
   reps: number
   pctStart: number
   pctStep: number
   /**
-   * ONE ENTRY PER SET, when the sets differ from each other (FOR-263). A wave
-   * of 3/2/1 cannot be said with one sets × reps × % scheme. `sets` must equal
-   * this length; each entry ramps on its own pctStep, so the whole wave moves
-   * together week to week.
+   * The variation's discount, per week, in percent of the max. A pause squat
+   * is not a back squat: the same 72% that is honest on week 1 grinds on a
+   * 2-second pause. Zero (or absent) is the base lift.
    */
+  offsets?: Four<number>
+  /** One entry per set when the sets differ (a climb). `sets` must equal its length. */
   sequence?: Array<{ reps: number; pctStart: number; pctStep: number }>
-  targetRpe?: number  // overrides the meso default (pulls feel heavy by design)
-  velocity?: boolean  // speed slot — bar speed governs, so no RPE anchor at all
+  targetRpe?: number
   note?: string
 }
 
-// Default expected difficulty of %-based work per meso — the autoreg anchor.
-const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 9 }
+/**
+ * THE MODERATE CEILING (Andrew's knees). Applied after autoreg, so feedback can
+ * lower a squat but never lift it past this.
+ */
+const SQUAT_CEILING = 76
 
-// Autoreg deltas are clamped so feedback can bend the wave, never break it.
-// 8 gives the weight-follow (re-anchoring to what was actually lifted) real
-// room while still stopping a single wild session from hijacking the macro.
-// The number lives in autoreg, which stores the carried value against it.
+const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 8 }
 
-// Classic-lift percent floors. The snatch and clean & jerk are speed-strength
-// skills, not grinds, and the sport's realities set the floor by rep/variation:
-//   • the PURE competition lift ("Snatch" / "Clean & Jerk") at ≤2 reps must be
-//     heavy — a light single or double of the full lift trains nothing
-//     (2 reps @ 66% is no stimulus). Floor 80%.
-//   • slow tempo / pause work at 3+ reps may drop to 65% — that IS the stimulus.
-//   • everything else classic lives at 70%+ (variations, higher-rep work).
-// This is a backstop: table waves are authored above it, and it also stops
-// autoregulation from ever dropping a classic set below its floor.
-// Applies to the competition lifts + receiving work — NOT pulls (88-114%) or
-// squats/presses (keyed to their own maxes).
-function classicFloor(name: string, reps: number, slot?: string): number {
+// Classic-lift percent floors. A light single or double of a snatch or clean
+// trains nothing, so:
+//   • the full lift ("Snatch", "Clean", anything from blocks) at ≤2 reps: 80%
+//   • any other variation at ≤2 reps: 75%
+//   • power / hang triples: 65%
+// A backstop: the tables are authored above it, and it stops autoreg ever
+// dropping a classic set below its floor.
+function classicFloor(name: string, reps: number): number {
   const n = name.trim().toLowerCase()
-  // Block work is a full-lift expression from a raised start — it follows the
-  // SAME rules as the pure lift (a light block double trains nothing). Hangs
-  // may run a touch lighter (they fall through to the lower floors).
   const isFullLift = n === 'snatch' || n === 'clean' || n === 'clean & jerk' || /block/.test(n)
-  // ...but the 80 floor governs the lift's own WORKING sets, not the volume
-  // that follows them. A *_back slot is the back-off: same bar, immediately
-  // after the top set, deliberately lighter. M2's snatch back-offs have run
-  // at 75 since this macro was written and only cleared the floor because
-  // they were named 'Hang Snatch' — a naming artefact, not a training rule.
-  // FOR-195 gives M1 the same structure with the PURE lift at the same 75,
-  // so the exemption belongs to the slot rather than the word. The 75 floor
-  // below still applies: a back-off is lighter, never light.
-  const isBackOff = slot != null && slot.endsWith('_back')
-  if (isFullLift && reps <= 2 && !isBackOff) return 80
-  // Doubles and singles are never light — a 2-rep set below 75% of the full
-  // lift is no stimulus, whatever the variation.
+  if (isFullLift && reps <= 2) return 80
   if (reps <= 2) return 75
-  // Triples+ on power/hang variants are speed work — 65 floor.
   if (/power|hang/.test(n)) return 65
-  const isTempo = /tempo|pause/.test(n)
-  if (isTempo && reps >= 3) return 65
   return 70
 }
-
-import { withoutSetPlan } from './setPlan'
 
 const OLY_MAX_KEYS = new Set(['snatch', 'clean_jerk'])
 
@@ -159,1076 +126,462 @@ function liftFromSlot(
   maxes: Record<string, number>,
   meso: number,
   adjustments: Record<string, number>,
-  overrides?: Partial<LiftPrescription>,
+  opts: { ceiling?: number; overrides?: Partial<LiftPrescription> } = {},
 ): LiftPrescription {
-  // A SEQUENCE'S SET COUNT IS ITS OWN LENGTH (FOR-263). Checked before any of
-  // the work below, because `sets` drives the rows the screen draws: six rows
-  // against five planned loads is a set with no prescription in it.
   if (def.sequence && def.sequence.length !== def.sets) {
     throw new Error(`${slot}: sets is ${def.sets} and the sequence holds ${def.sequence.length} — a sequence's set count is its own length`)
   }
   const rawAdj = adjustments[slot] ?? 0
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, rawAdj))
-  // ONE floor rule for both shapes. A sequence step is a prescribed set like
-  // any other, so it goes through the same classic floor — on its OWN reps,
-  // since a single and a triple do not floor at the same place (FOR-263).
-  const atWeek = (pctStart: number, pctStep: number, reps: number) => {
-    let pct = Math.round((pctStart + pctStep * (weekInMeso - 1) + adj) * 2) / 2
+  const name = def.names[weekInMeso - 1]
+  const offset = def.offsets?.[weekInMeso - 1] ?? 0
+  const atWeek = (pctStart: number, pctStep: number, reps: number, a = adj) => {
+    let pct = Math.round((pctStart + pctStep * (weekInMeso - 1) + offset + a) * 2) / 2
     if (pct > 0 && isClassicLiftSlot(slot, maxKey)) {
-      const floor = classicFloor(def.names[weekInMeso - 1], reps, slot)
+      const floor = classicFloor(name, reps)
       if (pct < floor) pct = floor
     }
+    if (opts.ceiling != null && pct > opts.ceiling) pct = opts.ceiling
     return pct
   }
   const percent = atWeek(def.pctStart, def.pctStep, def.reps)
-  // A WAVE IS SIX SETS WITH SIX LOADS. Every step takes the same autoreg
-  // delta, so feedback bends the whole wave rather than one set of it.
   const setPlan = def.sequence?.map((step) => {
     const stepPct = atWeek(step.pctStart, step.pctStep, step.reps)
     return { reps: step.reps, percent: stepPct, targetWeightLbs: resolveWeight(stepPct, maxKey, maxes) }
   })
-  // `reps` and `percent` describe the FIRST set, so anything reading them gets
-  // a coherent number rather than undefined or an average of the wave.
   const headReps = setPlan ? setPlan[0].reps : def.reps
   const headPct = setPlan ? setPlan[0].percent : percent
+  // The badge says what autoreg actually moved the card by. With a ceiling or a
+  // floor in the way that is less than the stored number, and the badge must
+  // not claim a change the card does not show.
+  const shownAdj = adj !== 0 ? headPct - atWeek(def.sequence?.[0].pctStart ?? def.pctStart, def.sequence?.[0].pctStep ?? def.pctStep, headReps, 0) : 0
   return {
     kind: 'lift',
     slot,
-    name: def.names[weekInMeso - 1],
+    // Same lift across the block's weekly variations; a new block is a new
+    // lift (different reps, different table), so the carry resets there as it
+    // always has.
+    family: `${slot}:m${meso}`,
+    name,
     sets: def.sets,
     reps: headReps,
     percent: headPct,
     maxKey,
     targetWeightLbs: resolveWeight(headPct, maxKey, maxes),
     setPlan,
-    // Speed slots carry NO difficulty anchor. A 55-64% double SHOULD feel like
-    // an RPE 4; against a target of 6 the autoreg read that honesty as "+3%
-    // too light" every single week and walked the slot out of its speed band.
-    targetRpe: def.velocity ? undefined : (def.targetRpe ?? MESO_TARGET_RPE[meso] ?? 8),
-    appliedAdjustmentPct: adj !== 0 ? adj : undefined,
-    velocity: def.velocity,
+    targetRpe: def.targetRpe ?? MESO_TARGET_RPE[meso] ?? 8,
+    appliedAdjustmentPct: shownAdj !== 0 ? shownAdj : undefined,
     note: def.note,
-    ...overrides,
+    ...opts.overrides,
   }
 }
 
+/** RPE accessory. Rotating ones take the week's name from a four-name rotation. */
 function accessory(slot: string, name: string, sets: number, reps: number, note?: string): LiftPrescription {
   return { kind: 'lift', slot, name, sets, reps, rpe: 7, note }
 }
 
 /**
- * A range-based slot — double progression instead of a percentage.
- *
- * Ported from dadBuilt (FOR-175 built the machinery; this is the first slot
- * in THIS program to use it). Dumbbells have no barbell 1RM to take a
- * percentage of: 4 × 8-10 with 60s in each hand is a real prescription,
- * `72% of your bench` is not. So the load comes from what was actually
- * logged — hold it until every set clears the top of the window, then add a
- * step.
- *
- * `reps` carries the BOTTOM of the window so any consumer reading a plain
- * number still shows something true.
- *
- * The load only arrives if buildDay is handed opts.loadTargets. Without that
- * one line the slot prints with no weight forever and every check still
- * passes — the exact FOR-175 failure mode.
+ * Double-progression slot (FOR-175): no 1RM, so the load comes from
+ * opts.loadTargets — hold until every set clears the top of the window, then
+ * add a step. The name stays fixed, because the progression is the variation.
  */
 function rangeSlot(
   slot: string, name: string, sets: number, window: [number, number],
-  loadTargets: Record<string, number>,
-  opts?: { rir?: number; step?: number; note?: string; superset?: string },
+  loadTargets: Record<string, number>, note?: string,
 ): LiftPrescription {
   const suggested = loadTargets[slot]
   return {
     kind: 'lift', slot, name, sets,
-    reps: window[0],
-    repRange: window,
-    targetRir: opts?.rir ?? 2,
-    loadStepLbs: opts?.step ?? 5,
+    reps: window[0], repRange: window, targetRir: 2, loadStepLbs: 5,
     targetWeightLbs: suggested != null && suggested > 0 ? suggested : undefined,
-    note: opts?.note,
-    superset: opts?.superset,
+    note,
   }
 }
 
-// ── Metcon pool (Saturday) — curated, rotates by absolute week ────────────────
-const METCON_POOL: Array<Omit<MetconPrescription, 'kind' | 'slot'>> = [
-  { name: 'Sled & Row', format: 'for_time', timeCapMinutes: 12, description: '4 rounds:\n40yd sled push (heavy)\n15 cal row\n10 burpees' },
-  // Step-overs, permanently (FOR-244 ruling 5). These were box JUMP overs inside
-  // an uncapped AMRAP — so the landings they produce depend on how many rounds
-  // the athlete gets, which means they cannot be counted at all. Volume nothing
-  // can budget is unbudgetable by construction, and a ceiling over a number that
-  // omits it is worse than no ceiling. A step-over is not a landing.
-  { name: 'Aerodyne Ladder', format: 'amrap', timeCapMinutes: 10, description: 'AMRAP 10\n10 cal Aerodyne\n10 box step-overs (24")\n10 KB swings (53 lb)' },
-  { name: 'Grind', format: 'for_time', timeCapMinutes: 15, description: '3 rounds:\n20 cal row\n15 DB thrusters (35s)\n10 pull-ups' },
-  { name: 'EMOM Engine', format: 'emom', timeCapMinutes: 12, description: 'EMOM 12 (alternating)\nmin 1: 12 cal Aerodyne\nmin 2: 10 DB snatches (50 lb)\nmin 3: 12 box jumps' },
-  { name: 'Sled Sprint Repeats', format: 'for_time', timeCapMinutes: 10, description: '6 rounds:\n20yd sled sprint (moderate)\n10 push-ups\nrest 45s between rounds' },
-  { name: 'Row + Burpee Descender', format: 'for_time', timeCapMinutes: 12, description: '21-15-9\ncal row\nburpees over rower' },
-  { name: 'KB Chipper', format: 'for_time', timeCapMinutes: 14, description: 'For time:\n30 KB swings (53)\n25 goblet squats\n20 cal Aerodyne\n15 burpee box step-overs\n10 TRX rows' },
-  { name: 'Short Circuit', format: 'amrap', timeCapMinutes: 8, description: 'AMRAP 8\n8 DB push press (45s)\n8 cal row\n8 V-ups' },
-]
-
-// ── Sprint day (Tue) — pooled, alternating accel / max-velocity bias ──────────
-// Two pools instead of two fixed sessions. Odd weeks pull from the
-// acceleration pool, even weeks from the max-velocity pool, and each pool
-// advances one step per appearance — so the emphasis still alternates (never
-// two top-speed days back to back) but the session itself keeps changing.
-// NO JOGGING in any warm-up: drills only, athlete's rule.
-// The sprint warm-up is now the PREP SLOT, which the registry puts in front of
-// every ballistic or sprint day (FOR-244). This prose stays as the record of
-// where the prep's content came from — these are its drills, unchanged — but it
-// is no longer prescribed HERE. Leaving it would put the same warm-up on Tuesday
-// twice, in two different orders, with the prose copy carrying no rep counts and
-// therefore no countable landings: a second source of one fact, which is the
-// defect this codebase keeps producing.
-// The drills themselves live in PREP_SEQUENCE (src/lib/programs/prep.ts) — one source.
-const SPRINT_COOLDOWN = 'Cooldown walk 5 min'
-const NECK_ISO = 'Neck: hand-resisted isometrics — 2 × 10s each direction (front/back/sides)'
-
-// trim = meso 3: cut the volume, never the intent.
-type SprintSpec = { title: string; parts: string[]; note?: string }
-type SprintBuilder = (trim: boolean) => SprintSpec
-
-// WHY THE SPRINT POOLS CARRY NO JUMPS (FOR-244).
-// Bounding, hurdle hops and lateral bounds used to close these sessions. They
-// were the whole of Power Dad's spacing problem: Monday opens with broad jumps
-// every non-deload week, so each of them landed 24 hours after a maximal
-// horizontal jump — four pairs under NSCA's 48 hours (W2, W4, W8, W10).
-//
-// The ticket's own proposed remedy was to bias Tuesday to the acceleration pool
-// on the day after broad jumps. That is EVERY Tuesday, because broad jumps open
-// every non-deload Monday — so the max-velocity pool would never run at all,
-// including W6, which contains no jumps. A per-week swap also reproduces the
-// previous week's Tuesday verbatim, since the pool is picked by
-// pool[floor((wk-1)/2) % 4]. Removing the three lines is the smaller fix and the
-// correct one: lower-body plyometric days become Mon / Wed / Sat at 48 / 72 / 48
-// hours — three a week, which is what NSCA asks for.
-//
-// They are not replaced. A sprint day is a sprint day, and the jumps it lost are
-// prescribed on the days that own them.
-const ACCEL_POOL: SprintBuilder[] = [
-  trim => ({
-    title: 'Acceleration — Starts',
-    parts: [`${trim ? 4 : 5} × 20-30m accelerations from a 3-point or falling start, FULL recovery (2-3 min)`],
-    note: 'Every rep max intent. If quality drops, end the session.',
-  }),
-  trim => ({
-    title: 'Sprint Projection — 2-3 Step',
-    parts: [
-      `${trim ? 5 : 6} × 15-20m from a 2- or 3-step walk-in, FULL recovery (2 min)`,
-      'Walk the return slowly — the walk-back IS the rest',
-    ],
-    note: 'Projection is the whole point: push the ground back behind you, chest stays down through the first 8-10m. Out, not up.',
-  }),
-  trim => ({
-    title: 'Resisted Starts — Sled',
-    parts: [
-      `${trim ? 5 : 6} × 15m sled sprint, moderate load (~10-15% bodyweight), full recovery`,
-      '2 × 20m unresisted to finish — feel the contrast',
-    ],
-    note: 'The sled teaches the shin angle for you. If the load makes you shuffle or stand upright, strip a plate.',
-  }),
-  trim => ({
-    title: 'Hill Sprints',
-    parts: [
-      `${trim ? 6 : 8} × 20m uphill, hard effort`,
-      'Walk down = the recovery. Do not rush back to the bottom',
-    ],
-    note: 'Moderate grade — a park slope or driveway. The hill puts you in the acceleration position without you thinking about it.',
-  }),
-]
-
-const MAXV_POOL: SprintBuilder[] = [
-  trim => ({
-    title: 'Max Velocity — Flying 20s',
-    parts: [
-      '2 build-up strides: one at ~80%, one at ~90%',
-      `${trim ? 3 : 5} × flying 20s (20m build + 20m fly), FULL recovery (3-4 min)`,
-    ],
-    note: 'Tall posture, relaxed face and hands at top speed.',
-  }),
-  trim => ({
-    title: 'Flying 10s',
-    parts: [
-      '2 build-up strides',
-      `${trim ? 4 : 6} × flying 10s (30m build-in + 10m fly), FULL recovery (3 min)`,
-    ],
-    note: 'Longest build-in you can hold and still stay loose. That 10m is the fastest you will move all week — do not strain for it.',
-  }),
-  trim => ({
-    title: 'Sprint · Float · Sprint',
-    parts: [
-      '2 build-up strides',
-      `${trim ? 3 : 4} × (20m accelerate / 20m float / 20m re-accelerate), FULL recovery (4 min)`,
-    ],
-    note: 'The float is the skill — hold the speed without pressing, then pick it back up without tensing your jaw or shoulders.',
-  }),
-  trim => ({
-    title: 'Change of Direction',
-    parts: [
-      `${trim ? 4 : 6} × 5-10-5 shuttle, full recovery between reps`,
-      `${trim ? 3 : 4} × 20m curve runs, alternating the direction you lean`,
-    ],
-    note: 'Plant, drop the hips, go. Braking well is what makes the cut fast — the change of direction is a deceleration skill.',
-  }),
-]
-
-function sprintSession(weekNumber: number, pos: MacroPos): OutsideSession {
-  if (pos.isDeload || pos.isTest) {
-    return {
-      kind: 'outside', slot: 'sprint',
-      title: pos.isTest ? 'Easy Strides (test week)' : 'Easy Strides (deload)',
-      parts: ['4 × 15m relaxed strides @ ~70%', 'Full recovery walk-back'],
-      note: 'Keep the legs alive, nothing more. No timing, no straining.',
-    }
-  }
-  const isAccel = weekNumber % 2 === 1
-  const pool = isAccel ? ACCEL_POOL : MAXV_POOL
-  // Each pool advances once per appearance, not once per week.
-  const spec = pool[Math.floor((weekNumber - 1) / 2) % pool.length](pos.meso === 3)
-  return {
-    kind: 'outside', slot: 'sprint', title: spec.title,
-    parts: [...spec.parts, SPRINT_COOLDOWN, NECK_ISO],
-    note: spec.note,
-  }
-}
-
-// ── Conditioning (Thu) ────────────────────────────────────────────────────────
-// Thursday ran the same interval session every working week for twelve weeks —
-// one shape, one energy system, graded only by meso. The engine wants more
-// than the top end, so the week-in-meso now selects the session and each meso
-// runs one full cycle:
-//
-//   W1  intervals        top-end, meso-graded (the session that was here)
-//   W2  threshold        the sustainable-hard piece nothing else trained
-//   W3  distance         one genuinely long aerobic effort
-//   W4  mixed-erg tempo  alternating blocks, moderate — the lightest of the four
-//
-// W4 landing lightest is deliberate: it is the top week of every meso, so the
-// heaviest barbell work of the block already sits around it. And deload (W12)
-// and test (W13) are both weekInMeso 4, so they short-circuit above this and
-// keep their recovery spin regardless.
-function thursdayConditioning(weekNumber: number, pos: MacroPos): OutsideSession {
-  if (pos.isDeload || pos.isTest) {
-    return {
-      kind: 'outside', slot: 'cond_intervals', title: 'Easy Spin (recovery)',
-      parts: ['25-30 min very easy bike or jog — conversational pace'],
-    }
-  }
-
-  if (pos.weekInMeso === 1) {
-    // Time-based intervals work on any modality — the athlete picks the tool.
-    const byMeso: Record<number, string> = {
-      1: '5 × 4 min hard, 2 min easy between',
-      2: '6 × 3 min hard, 2 min easy between',
-      3: '8 × 90s hard, 90s easy between',
-    }
-    return {
-      kind: 'outside', slot: 'cond_intervals',
-      title: 'Intervals — Bike / Row / Run',
-      parts: ['10 min progressive warm-up (any modality)', byMeso[pos.meso], '5-10 min easy cooldown'],
-      note: 'Pick bike, rower, or run — whichever suits you today. Hard but repeatable: the last rep should match the first.',
-    }
-  }
-
-  if (pos.weekInMeso === 2) {
-    // Threshold is the one the intervals never covered: comfortably HARD, held.
-    // Rowing because it loads the posterior chain and the lats — the opposite
-    // half of the body from a week of pressing and squatting.
-    const byMeso: Record<number, string> = {
-      1: '2 × 8 min @ threshold, 3 min easy between',
-      2: '2 × 10 min @ threshold, 3 min easy between',
-      3: '3 × 8 min @ threshold, 3 min easy between',
-    }
-    return {
-      kind: 'outside', slot: 'cond_threshold',
-      title: 'Lactate Threshold — Row',
-      parts: ['10 min easy warm-up', byMeso[pos.meso], '5 min easy cooldown'],
-      note: 'Comfortably hard — a pace you could hold for 30 min if you had to, not one you are surviving. If the split falls off inside the first two minutes you went out too hot.',
-    }
-  }
-
-  if (pos.weekInMeso === 3) {
-    return {
-      kind: 'outside', slot: 'cond_distance',
-      title: 'Distance — Steady',
-      parts: [
-        '40-50 min continuous, Z2 into low Z3',
-        'Any modality — bike, row, run, ruck. Pick the one your legs will forgive on Friday',
-      ],
-      note: 'One effort, no intervals. This is the aerobic base the other three weeks spend.',
-    }
-  }
-
-  return {
-    kind: 'outside', slot: 'cond_tempo',
-    title: 'Mixed-Erg Tempo',
-    parts: [
-      '8 min easy warm-up, alternating machines',
-      '4 rounds: 3 min bike @ tempo + 3 min row @ tempo — no rest at the changeover',
-      '5 min easy cooldown',
-    ],
-    note: 'Tempo, not threshold — you should finish each round able to talk in short sentences. The changeover is the session: 15 seconds to move, then straight back to pace.',
-  }
+function rotating(slot: string, names: Four<string>, weekInMeso: number, sets: number, reps: number, note?: string): LiftPrescription {
+  return accessory(slot, names[weekInMeso - 1], sets, reps, note)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GYM DAY SLOT TABLES  — [meso 1, meso 2, meso 3]
+// SLOT TABLES — [Build W1-4, Strength W5-8, Peak W9-11 (+W12 deload)]
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ── Day 1 — Oly A (Mon): snatch primary + C&J secondary + snatch pull + BS heavy
-// With 2 Oly days, primaries carry a touch more volume than the old 3-day split.
-// Athletic-power rework: NO technique work — no pauses, tempos, or complexes.
-// The FULL lifts are back as the heavy expression — no technique work, just
-// heavy snatches and cleans per the user's own floor: fulls at ≤2 reps live
-// at 80%+. Speed lives in Friday's box squats, and in M1 in the 65-70%
-// warm-up singles below.
-//   M1 straight heavy doubles · M2 EMOM singles · M3 top single.
-// M2 was a top double at 83 with hang back-offs, which put it within a
-// percentage point of M1's last week — the same lifts at nearly the same
-// loads (Andrew, 2026-10-05). It is an EMOM now: eight singles on the minute,
-// one weight, and no back-off slot at all (FOR-263).
-const D1_SN_TOP: SlotMeso[] = [
-  // FOR-195: 4×2 → 2×2. The volume did not vanish, it moved down a slot: the
-  // new back-offs below are 3×2 at 75-78, which is more total snatch than the
-  // two sets that came off — and sub-maximal, which is what M1 was missing.
-  // The 65-70% warm-up singles note goes with them: it was a patch for a meso
-  // with no sub-max snatch in it, and the back-offs are the real fix.
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 2, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Build in singles, then two heavy working doubles — full lift, no fluff' },
-  // FOR-263: 8×1 EMOM at 80 / 81.5 / 83 / 84.5. The density is the stimulus —
-  // same weight every rep, and the minute is the rest.
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 8, reps: 1, pctStart: 80, pctStep: 1.5, targetRpe: 8, note: 'One single at the top of every minute for 8 minutes. Full lift, fast, same weight every rep.' },
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single' },
-]
-// M1 and M3 keep their back-offs. M2 HAS NONE: the EMOM above is the whole
-// snatch dose for the day, and `sets: 0` is how the registry says a slot does
-// not run in a meso (FOR-263). M3 snaps back to the pure lift for realization.
-const D1_SN_BACK: SlotMeso[] = [
-  // M1 gains the top+back structure M2/M3 already had. The PURE lift, not the
-  // hang — M1 is the pure-lift meso, and the hang belongs to M2's variation
-  // brief. 75 is the doubles floor, so these are the lightest legal full-snatch
-  // doubles in the program: real sub-maximal exposure, which is the point.
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7, note: 'Back-off doubles — full lift, sharp and fast. These are the speed work, not a grind' },
-  // FOR-263: the Hang Snatch 3×2 is removed. Eight singles on the minute is
-  // the dose; a back-off after it is volume for its own sake.
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 0, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 7 },
-  // M3 peaks for the W13 test (Andrew, 2026-10-22): the top single is the
-  // test-day rehearsal, and the back-offs are doubles again for clean volume.
-  // 78 / 79 / 80 stays above the 75 doubles floor.
-  { names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 2, pctStart: 78, pctStep: 1, targetRpe: 7, note: 'Back-off doubles — full lift, sharp and fast' },
-]
-// Monday heavy bench — the week's heavy-upper anchor. Dip-drive overhead was
-// triple-booked (Mon power jerk + Wed push press + Sat jerk slot); the jerk
-// left Monday so pressing splits heavy (Mon) / volume (Wed) instead.
-// M2 rotates to the 1¼ bench (athlete's pick — "bench press with a pump
-// fake"): down, drive a quarter up, back down, then press to lockout = one
-// rep. Capacity runs ~85-90% of the comp bench, so the wave sits ~8% under
-// where straight triples would — M3 returns to straight bench to realize.
-const D1_BENCH_HEAVY: SlotMeso[] = [
-  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 4, pctStart: 75, pctStep: 2, targetRpe: 7, note: 'Heavy day — Wednesday stays the volume day' },
-  { names: ['1¼ Bench Press', '1¼ Bench Press', '1¼ Bench Press', '1¼ Bench Press'], sets: 4, reps: 3, pctStart: 72, pctStep: 2, targetRpe: 8, note: 'Pump fake: down, quarter up, back down, press. That whole thing = 1 rep' },
-  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 3, reps: 2, pctStart: 86, pctStep: 1, targetRpe: 8 },
-]
-// Monday's snatch pull retired (2026-07): the day is squat-priority now, and
-// the freed slot went to Nordic curls — the program's only knee-flexion work.
-// Positional pulling lives in Friday's clean pulls (95-110%).
-//
-// M2 IS TWO WAVES OF 3/2/1, not a straight 4×4 (Andrew, 2026-10-05; FOR-263).
-// A straight 4×4 at 78 sat a couple of percent off M1's last week. Six sets,
-// each with its own reps and load, the second wave 2% over the first, and the
-// whole thing +2% a week:
-//   W5  3@75 2@80 1@85 · 3@77 2@82 1@87      W7  3@79 2@84 1@89 · 3@81 2@86 1@91
-//   W6  3@77 2@82 1@87 · 3@79 2@84 1@89      W8  3@81 2@86 1@91 · 3@83 2@88 1@93
-const D1_SQUAT: SlotMeso[] = [
-  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 5, pctStart: 70, pctStep: 2 },
+const OLY_NOTE = 'Lights, not RPE: rate every set. Fast and crisp. If it slows down, it is heavy enough.'
+
+// Monday — Snatch. Plain snatch, any catch height. Off the full snatch max.
+//   Build 4×2 hang positions → full snatch on week 4 (floor 80)
+//   Strength 5×2 · Peak: climb to a heavy single
+const SN: SlotMeso[] = [
+  { names: ['Hang Snatch, Above Knee', 'Hang Snatch, Below Knee', 'Hang Snatch, High Hang', 'Snatch'], sets: 4, reps: 2, pctStart: 75, pctStep: 1.5, targetRpe: 7, note: `Power it if it goes, ride it down if it doesn't. ${OLY_NOTE}` },
+  { names: ['Snatch', 'Hang Snatch, Below Knee', 'Hang Snatch, High Hang', 'Snatch'], sets: 5, reps: 2, pctStart: 78, pctStep: 1.5, targetRpe: 8, note: `Doubles, same weight across. ${OLY_NOTE}` },
   {
-    names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'],
-    sets: 6,
-    reps: 3,
-    pctStart: 75,
-    pctStep: 2,
+    names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 1, pctStart: 82, pctStep: 1.5, targetRpe: 8,
     sequence: [
-      { reps: 3, pctStart: 75, pctStep: 2 },
-      { reps: 2, pctStart: 80, pctStep: 2 },
-      { reps: 1, pctStart: 85, pctStep: 2 },
-      { reps: 3, pctStart: 77, pctStep: 2 },
-      { reps: 2, pctStart: 82, pctStep: 2 },
-      { reps: 1, pctStart: 87, pctStep: 2 },
+      { reps: 1, pctStart: 82, pctStep: 1.5 },
+      { reps: 1, pctStart: 86, pctStep: 1.5 },
+      { reps: 1, pctStart: 89, pctStep: 1.5 },
     ],
-    note: 'Two waves of 3/2/1. Second wave is 2% over the first — the single at the top of each is the point.',
+    note: `Climb to a heavy single. It shouldn't feel light, and it shouldn't be close to a miss. ${OLY_NOTE}`,
   },
-  // M3 doubles (Andrew, 2026-10-22). M2's second wave already reached a 93%
-  // single, so 4×3 at 85 was a step back before the W13 test: 87 / 89 / 91.
-  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 2, pctStart: 87, pctStep: 2, note: 'Heavy doubles — RPE 8-9, leave one in the tank' },
 ]
 
-// ── Day 3 — Athletic Strength (Wed): presses + FS/jump contrast + unilateral ──
-// Strength you can't get from the platform, CNS-friendly enough to leave
-// Friday's C&J fresh. Bench supersets with weighted pull-ups (push/pull pair).
-const D3_PUSH_PRESS: SlotMeso[] = [
-  { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 5, pctStart: 65, pctStep: 2 },
-  // FOR-268: 72 -> 77. Andrew's call, 2026-10-07. Still keyed to the clean &
-  // jerk max. At his 265: W5 205, W6 210, W7 215, W8 220.
-  { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 3, pctStart: 77, pctStep: 2 },
+// Monday — Back squat, MODERATE (ceiling 76).
+const BS: SlotMeso[] = [
+  { names: ['Back Squat', 'Pause Back Squat (2s)', 'Tempo Back Squat (3s down)', 'Back Squat'], offsets: [0, -5, -10, 0], sets: 4, reps: 5, pctStart: 68, pctStep: 2, note: 'Moderate on purpose: smooth reps, nothing grinds. Knee above 3/10 today: take 10% off.' },
+  { names: ['Back Squat', 'Box Squat (box at parallel)', 'Pause Back Squat (2s)', 'Back Squat'], offsets: [0, 0, -5, 0], sets: 4, reps: 4, pctStart: 70, pctStep: 2, note: 'Moderate on purpose: smooth reps, nothing grinds. Box squat: sit, stay tight, stand. Knee above 3/10: take 10% off.' },
+  { names: ['Back Squat', 'Back Squat', 'Back Squat', 'Back Squat'], sets: 4, reps: 3, pctStart: 72, pctStep: 2, note: 'Capped at 76%. Crisp triples, nothing grinds.' },
+]
+
+// Monday — Bench, heavy.
+const BENCH: SlotMeso[] = [
+  { names: ['Bench Press', '1¼ Bench Press', 'Pause Bench Press (2s)', 'Bench Press'], offsets: [0, -10, -5, 0], sets: 4, reps: 5, pctStart: 72, pctStep: 2, note: '1¼: down, a quarter up, back down, press. That whole thing is one rep.' },
+  { names: ['Bench Press', 'Spoto Press', '1¼ Bench Press', 'Bench Press'], offsets: [0, -5, -10, 0], sets: 4, reps: 4, pctStart: 78, pctStep: 2, note: 'Spoto: stop an inch off the chest, hold, press.' },
+  { names: ['Bench Press', 'Bench Press', 'Bench Press', 'Bench Press'], sets: 4, reps: 2, pctStart: 84, pctStep: 2 },
+]
+
+// Wednesday — Push press, off the clean (press strength, as it always was).
+const PP: SlotMeso[] = [
+  { names: ['Push Press', 'Pause Push Press (in the dip)', 'Behind-the-Neck Push Press', 'Push Press'], offsets: [0, -5, -5, 0], sets: 4, reps: 5, pctStart: 65, pctStep: 2 },
+  { names: ['Push Press', 'Behind-the-Neck Push Press', 'Pause Push Press (in the dip)', 'Push Press'], offsets: [0, -5, -5, 0], sets: 4, reps: 3, pctStart: 77, pctStep: 2 },
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 2, pctStart: 78, pctStep: 2 },
 ]
-// Wednesday's press is DUMBBELLS in every meso (FOR-195 item 4). Monday keeps
-// the barbell as the heavy anchor; this slot was the volume day, and volume is
-// what dumbbells are for — more range at the bottom, each side honest, and
-// nothing to strip when the rack is busy.
-//
-// It is also the first slot in this program to leave the percent engine. A DB
-// load has no barbell 1RM behind it, so it progresses by DOUBLE PROGRESSION:
-// hold the pair until every set clears the top of the window, then +5 lb per
-// hand. The windows tighten across the macro the way the percentages used to.
-const D3_DB_BENCH: Array<{ sets: number; window: [number, number] }> = [
-  { sets: 4, window: [8, 10] },
-  { sets: 4, window: [6, 8] },
-  { sets: 3, window: [5, 6] },
-]
-// M2 rotates to the pause front squat — contrast from a dead stop is the
-// best version of the jump pairing (strength lifts may pause; the oly
-// technique ban is about the classic lifts, not squats).
-const D3_FSQUAT: SlotMeso[] = [
-  // FOR-195: M1/M2 down to 3 sets, matching M3. Wednesday is the day the
-  // clock beats him, and the front squat is contrast-paired with jumps — each
-  // set costs two movements and a walk to the trap bar.
-  { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 5, pctStart: 72, pctStep: 2, note: 'Contrast: trap bar jumps ~30s after each set' },
-  // FOR-268: 70 -> 76. Andrew's call, 2026-10-07. The pause is the point of
-  // this slot and 70% was not asking anything of it; the dead stop is worth
-  // more loaded. At his 330 front squat: W5 250, W6 255, W7 265, W8 270.
-  { names: ['Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat', 'Pause Front Squat'], sets: 3, reps: 3, pctStart: 76, pctStep: 2, note: '2-count dead stop in the hole, then UP — depth jumps ~30s after each set' },
-  // M3 capped at 82 / 83.5 / 85 (Andrew, 2026-10-22): it lands two days after
-  // Monday's heavy back squat doubles, and the block is peaking for W13.
-  { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 2, pctStart: 82, pctStep: 1.5, note: 'Contrast: trap bar jumps ~30s after each set' },
-]
 
-// ── Day 5 — Oly B (Fri): power clean primary + snatch speed + pull + speed squat
-// Friday mirrors Monday's shape with the power clean as the primary. No jerk —
-// overhead lives on Wednesday (push press) and Saturday (strict OHP).
-// POWER cleans — catch above parallel, no jerk. Percentages still key off the
-// FULL clean max (athlete's locked rule: %-of-power-max under-loads him), and
-// the numbers are unchanged from when this slot ran full cleans: 80-83 → 83-86
-// → 87-90. Heavy by design: at the top end the catch may ride down into a
-// squat clean, and that's an accepted outcome, not a missed rep — the athlete
-// doesn't police power-vs-squat at these percentages. Don't taper the wave
-// to keep every rep a true power.
-const D5_CL_TOP: SlotMeso[] = [
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 2, pctStart: 80, pctStep: 1, targetRpe: 8, note: 'Straight heavy doubles — catch above parallel, stand it up' },
-  // M2 IS TWO WAVES OF 2/1/1 (Andrew, 2026-10-09; FOR-271), on FOR-263's
-  // sequence machinery — the same shape as Monday's squat. The waves replace
-  // BOTH the top double and the back-offs, so D5_CL_BACK[1] is sets: 0. Second
-  // wave 2% over the first, every set +1% a week:
-  //   W5  2@76 1@80 1@84 · 2@78 1@82 1@86      W7  2@78 1@82 1@86 · 2@80 1@84 1@88
-  //   W6  2@77 1@81 1@85 · 2@79 1@83 1@87      W8  2@79 1@83 1@87 · 2@81 1@85 1@89
-  // Six sets is past the 4-set ceiling, allowlisted with its reason the way
-  // the squat waves are.
+// Friday — Clean. Hang power and power cleans off the FULL clean max (Andrew's
+// ruling: a % of the power max under-loads him).
+const CL: SlotMeso[] = [
+  { names: ['Hang Power Clean, Above Knee', 'Hang Power Clean, Below Knee', 'Hang Power Clean, High Hang', 'Power Clean'], sets: 4, reps: 3, pctStart: 68, pctStep: 1.5, targetRpe: 7, note: `Catch it above parallel and stand it up. ${OLY_NOTE}` },
+  { names: ['Power Clean', 'Hang Power Clean, Below Knee', 'Hang Power Clean, Mid-Thigh', 'Power Clean'], sets: 5, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 8, note: `Doubles, same weight across. ${OLY_NOTE}` },
   {
-    names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'],
-    sets: 6,
-    reps: 2,
-    pctStart: 76,
-    pctStep: 1,
-    targetRpe: 8,
+    names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 3, reps: 1, pctStart: 82, pctStep: 0.5, targetRpe: 8,
     sequence: [
-      { reps: 2, pctStart: 76, pctStep: 1 },
-      { reps: 1, pctStart: 80, pctStep: 1 },
-      { reps: 1, pctStart: 84, pctStep: 1 },
-      { reps: 2, pctStart: 78, pctStep: 1 },
-      { reps: 1, pctStart: 82, pctStep: 1 },
-      { reps: 1, pctStart: 86, pctStep: 1 },
+      { reps: 1, pctStart: 82, pctStep: 0.5 },
+      { reps: 1, pctStart: 85, pctStep: 0.5 },
+      { reps: 1, pctStart: 88, pctStep: 0.5 },
     ],
-    note: 'Two waves. If a rep rides down into a squat clean, ride it and stand up.',
+    note: `Climb to a heavy single. If it rides down, ride it down and stand up. ${OLY_NOTE}`,
   },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 1, reps: 1, pctStart: 87, pctStep: 1.5, targetRpe: 8, note: 'Build to this top single. If it rides down, ride it down and stand up — the weight is the point up here.' },
-]
-// Every clean stays off the FLOOR — athlete's preference, so no hang variant
-// here (the snatch side still hangs in M2). The M2 variation for this slot is
-// structural instead: two waves of 2/1/1 where M1 ran straight sets (FOR-271).
-// The waves are the whole clean dose, so M2 HAS NO BACK-OFF — `sets: 0`, the
-// way the registry says a slot does not run in a meso (FOR-263).
-// FOR-195 item 8: more heavy clean volume, all of it in the BACK-OFFS. Andrew
-// asked for the extra sets on the primary where there are no back-offs, which
-// would have put M1 at 6×2 and failed the 4-set ceiling he ratified himself
-// two days earlier. Same volume, one slot down: +2 sets in M1 and M2, +3 in
-// M3, and no slot goes past 4.
-const D5_CL_BACK: SlotMeso[] = [
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 2, reps: 2, pctStart: 76, pctStep: 0, targetRpe: 7, note: 'Back-off doubles — off the floor, stay sharp' },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 0, reps: 2, pctStart: 80, pctStep: 0, targetRpe: 7 },
-  { names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 4, reps: 1, pctStart: 83, pctStep: 1, targetRpe: 7, note: 'Back-off singles — off the floor, stay sharp' },
-]
-// Clean pulls in EVERY meso (FOR-195 item 6). M2 used to rotate to snatch
-// pulls, which was the snatch's only heavy pulling — but the snatch has left
-// Friday entirely now and lives on Monday, so a snatch pull on the clean day
-// was the last thing keeping two lifts on one session. The percentages carry
-// the M1→M3 ramp continuously instead of resetting across a lift change:
-//   M1  100 → 106  (4s)      M2  95 → 102.5 (3s, paused)      M3  105 → 110 (2s)
-// M3 was 110 → 116; capped at 110 (Andrew, 2026-10-22) because the pulls are
-// speed off the floor in a peaking block, not overload.
-// M2 IS A PAUSE CLEAN PULL (Andrew, 2026-10-09; FOR-271): 95 instead of 102,
-// same 2.5 step. A two-second stop below the knee is a harder lift than the
-// straight pull at the same percentage, so the load comes down for it. It is
-// a pause and not a deficit because Saturday M2 is already a deficit deadlift,
-// and two deficit pulls on back-to-back days is too much. At his 265: W5 250,
-// W6 260, W7 265, W8 270.
-const D5_PULL: SlotMeso[] = [
-  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 4, pctStart: 100, pctStep: 2, targetRpe: 8, note: 'Heavy and fast — position honest, bar tight' },
-  { names: ['Pause Clean Pull', 'Pause Clean Pull', 'Pause Clean Pull', 'Pause Clean Pull'], sets: 3, reps: 3, pctStart: 95, pctStep: 2.5, targetRpe: 8, note: 'Pause 2 seconds just below the knee, shoulders over the bar, back tight, then finish fast.' },
-  { names: ['Clean Pull', 'Clean Pull', 'Clean Pull', 'Clean Pull'], sets: 3, reps: 2, pctStart: 105, pctStep: 2.5, targetRpe: 8, note: 'Fast off the floor — position honest, bar tight' },
-]
-// Speed-strength slot: box squat at dynamic-effort loads. Dead stop on the box
-// kills the stretch reflex — force from zero, max RFD. Autoreg anchors low:
-// this should never feel heavy; if bar speed dies the session is over.
-const D5_SPEED_SQUAT: SlotMeso[] = [
-  // M1 runs triples (FOR-195 item 10) — the lightest wave of the three, so the
-  // extra rep costs seconds and buys bar-speed reps. Velocity slot, so the
-  // 4-set ceiling does not apply: 5×3 @ 55% is the sub-maximal work the rule
-  // explicitly exempts.
-  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 5, reps: 3, pctStart: 55, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
-  // M2 does not run it: `sets: 0`, and D5_BSS below takes the station (FOR-271).
-  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 0, reps: 2, pctStart: 60, pctStep: 2, velocity: true },
-  { names: ['Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat', 'Speed Box Squat'], sets: 4, reps: 2, pctStart: 64, pctStep: 2, velocity: true, note: 'Box at parallel. Sit, pause, EXPLODE. A set slower off the box than the last one ends the exercise.' },
-]
-// M2 swaps the speed box squat for Bulgarian split squats (Andrew, 2026-10-09;
-// FOR-271). Dumbbells, so no percentage and no max: double progression like
-// Wednesday's DB bench — hold the pair until every set reaches 8, then +5 lb
-// per hand. It has its OWN slot key, so its history never mixes with the speed
-// squat's and nothing that counts `speed_squat` as velocity work counts this.
-const D5_BSS: { sets: number; window: [number, number] } = { sets: 3, window: [6, 8] }
-
-// ── Day 6 — Sat: heavy conventional DL + overhead + plyos + metcon ────────────
-// Conventional deadlift off its own 1RM — the strength driver. Positional
-// pulling stays honest via Mon snatch pulls + Fri clean pulls.
-// M2 pulls from a DEFICIT (FOR-195 item 11) — the variation meso finally
-// reaches the deadlift, which the config had already blessed ("deficit
-// deadlifts are legal for future mesos"). Stand on a plate, 1.5-2 inches. The load
-// drops from 78 to 72 because a deficit at the same percentage is not the same
-// lift: the extra range is the stimulus, and matching the conventional number
-// would just be a harder deadlift done worse.
-const D6_DL: SlotMeso[] = [
-  { names: ['Deadlift', 'Deadlift', 'Deadlift', 'Deadlift'], sets: 4, reps: 4, pctStart: 70, pctStep: 2.5 },
-  { names: ['Deficit Deadlift', 'Deficit Deadlift', 'Deficit Deadlift', 'Deficit Deadlift'], sets: 4, reps: 3, pctStart: 72, pctStep: 2.5, note: 'Stand on a plate — 1.5-2\" deficit. Same bar path, longer pull. Percentages are of your conventional max and deliberately lighter for it.' },
-  { names: ['Deadlift', 'Deadlift', 'Deadlift', 'Deadlift'], sets: 3, reps: 2, pctStart: 85, pctStep: 2 },
 ]
 
-// Saturday overhead: strict press wave — the dedicated overhead-STRENGTH slot.
-// The jerk is fully retired (was triple-booked); Wednesday push press owns
-// overhead power, this owns the grind. Keyed to its own ohp max.
-const D6_OHP: SlotMeso[] = [
-  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 6, pctStart: 67, pctStep: 2, targetRpe: 7, note: 'Strict — no leg drive, glutes tight' },
-  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 4, pctStart: 75, pctStep: 2, targetRpe: 8, note: 'Strict — no leg drive, glutes tight' },
-  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 2, pctStart: 83, pctStep: 1.5, targetRpe: 8, note: 'Strict — no leg drive, glutes tight' },
+// Friday — Front squat, MODERATE (ceiling 76). Front squats help his knee.
+const FS: SlotMeso[] = [
+  { names: ['Front Squat', 'Pause Front Squat (2s)', 'Tempo Front Squat (3s down)', 'Front Squat'], offsets: [0, -5, -10, 0], sets: 4, reps: 4, pctStart: 66, pctStep: 2, note: 'Moderate on purpose: elbows high, smooth reps. Knee above 3/10 today: take 10% off.' },
+  { names: ['Front Squat', 'Tempo Front Squat (3s down)', 'Pause Front Squat (2s)', 'Front Squat'], offsets: [0, -10, -5, 0], sets: 4, reps: 3, pctStart: 70, pctStep: 2, note: 'Moderate on purpose: elbows high, smooth reps. Knee above 3/10 today: take 10% off.' },
+  { names: ['Front Squat', 'Front Squat', 'Front Squat', 'Front Squat'], sets: 3, reps: 3, pctStart: 72, pctStep: 2, note: 'Capped at 76%. Crisp triples.' },
 ]
 
-/**
- * Saturday's plyo pair, ramped AT THE DAY rather than line by line (FOR-244).
- *
- * Per-line substitution was wrong here and the output said so: M2 is broad
- * jumps PLUS depth drops, and both map to the same stage movement, so the day
- * rendered the identical line twice. A day is the unit — during the ramp
- * Saturday gets the pair that stage has earned, and the meso's own pairing
- * resumes at full exposure.
- */
-function saturdayPlyo(pos: MacroPos, stage: RampStage): PlyoPrescription[] {
-  if (stage !== 'full') {
-    const note = (t: string) => `Ramp week — ${t}`
-    if (stage === 'low') return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 4, reps: 5, ramp: stage, intent: 'LOW AMPLITUDE', note: note('easy height, step down and reset every rep. Low amplitude while the tissue learns to accept a landing.') }]
-    if (stage === 'submax') return [{ kind: 'plyo', slot: 'plyo', name: 'Broad Jumps', sets: 4, reps: 4, ramp: stage, intent: 'SUBMAXIMAL — ~3/4', note: note('SUBMAXIMAL, about three-quarters. Stick every one — the landing is the point, not the distance.') }]
-    if (stage === 'max_vertical') return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 3, reps: 3, ramp: stage, intent: 'MAX INTENT — VERTICAL', note: note('max height, full recovery. Vertical returns before horizontal: its landing is a fraction of a broad jump\'s.') }]
-    // low_depth: depth enters, on a low box, beside the vertical that is already back.
-    return [
-      { kind: 'plyo', slot: 'plyo', name: 'Depth Drops', sets: 3, reps: 3, ramp: stage, intent: 'LOW BOX', note: note('from a LOW box, about 12". Absorb quietly and hold the bottom.') },
-      { kind: 'plyo', slot: 'plyo_2', name: 'Box Jumps', sets: 3, reps: 3, ramp: stage, intent: 'MAX INTENT — VERTICAL', note: note('max height, full recovery.') },
-    ]
-  }
-  if (pos.meso === 1) return [{ kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 4, reps: 5, note: 'Step down, reset each rep — max intent' }]
-  if (pos.meso === 2) return [
-    { kind: 'plyo', slot: 'plyo', name: 'Broad Jumps', sets: 4, reps: 4, note: 'Stick landings' },
-    { kind: 'plyo', slot: 'plyo_2', name: 'Depth Drops', sets: 3, reps: 3, note: 'From ~18", absorb quietly' },
-  ]
-  return [
-    { kind: 'plyo', slot: 'plyo', name: 'Depth Jumps', sets: 3, reps: 3, note: 'From ~18-24", rebound fast' },
-    { kind: 'plyo', slot: 'plyo_2', name: 'Box Jumps', sets: 3, reps: 3, note: 'Max height, full recovery' },
-  ]
-}
+// Saturday — Strict press, the overhead priority.
+const OHP: SlotMeso[] = [
+  { names: ['Overhead Press', 'Pause Overhead Press (at the chin)', 'Z-Press', 'Overhead Press'], offsets: [0, -5, -10, 0], sets: 4, reps: 6, pctStart: 67, pctStep: 2, targetRpe: 7, note: 'Strict, no leg drive, glutes tight. Z-press: seated on the floor, legs straight.' },
+  { names: ['Overhead Press', 'Z-Press', 'Pause Overhead Press (at the chin)', 'Overhead Press'], offsets: [0, -10, -5, 0], sets: 4, reps: 4, pctStart: 75, pctStep: 2, targetRpe: 8, note: 'Strict, no leg drive, glutes tight.' },
+  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 2, pctStart: 83, pctStep: 1.5, targetRpe: 8, note: 'Strict, no leg drive, glutes tight.' },
+]
 
-// Monday's ballistic slot (EVERY meso since FOR-195): broad jumps — horizontal
-// power to balance the vertical jumps on Friday and Saturday, and the quality
-// that feeds acceleration. Moved off the sprint day at the athlete's request.
-// M2 therefore has broad jumps on Monday AND in saturdayPlyo. That is known
-// and accepted: Saturday's are fatigued end-of-week jumps in a pair, Monday's
-// are the fresh single-quality set.
+// Saturday — Close-grip bench, the second bench day.
+const CG: SlotMeso[] = [
+  { names: ['Close-Grip Bench Press', 'Close-Grip Floor Press', 'Close-Grip 1¼ Bench Press', 'Close-Grip Bench Press'], offsets: [0, 0, -10, 0], sets: 3, reps: 8, pctStart: 63, pctStep: 2 },
+  { names: ['Close-Grip Bench Press', 'Close-Grip Pause Bench (2s)', 'Close-Grip Floor Press', 'Close-Grip Bench Press'], offsets: [0, -5, 0, 0], sets: 3, reps: 6, pctStart: 70, pctStep: 1.5 },
+  { names: ['Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press', 'Close-Grip Bench Press'], sets: 3, reps: 5, pctStart: 75, pctStep: 1 },
+]
+
+// Saturday — Trap-bar deadlift, moderate. Replaces the heavy conventional and
+// deficit deadlifts. Off the deadlift max.
+const TB: SlotMeso[] = [
+  { names: ['Trap-Bar Deadlift', 'Deficit Trap-Bar Deadlift', 'Trap-Bar Deadlift, Pause Below Knee', 'Trap-Bar Deadlift'], offsets: [0, -5, -5, 0], sets: 4, reps: 5, pctStart: 65, pctStep: 2.5, note: 'Moderate: fast off the floor, nothing grinds. Deficit: stand on a 1-2" plate.' },
+  { names: ['Trap-Bar Deadlift', 'Trap-Bar Deadlift, Pause Below Knee', 'Deficit Trap-Bar Deadlift', 'Trap-Bar Deadlift'], offsets: [0, -5, -5, 0], sets: 4, reps: 4, pctStart: 70, pctStep: 2.5, note: 'Moderate: fast off the floor, nothing grinds.' },
+  { names: ['Trap-Bar Deadlift', 'Trap-Bar Deadlift', 'Trap-Bar Deadlift', 'Trap-Bar Deadlift'], sets: 3, reps: 3, pctStart: 75, pctStep: 2.5, note: 'Moderate: fast off the floor, nothing grinds.' },
+]
+
+// Rotating accessories — one rotation per block (Build, Strength, Peak).
+const HINGE: Four<string>[] = [
+  ['Romanian Deadlift', 'Deficit Romanian Deadlift', 'Single-Leg DB Romanian Deadlift', 'Romanian Deadlift'],
+  ['Snatch-Grip Romanian Deadlift', 'Romanian Deadlift', 'Single-Leg DB Romanian Deadlift', 'Romanian Deadlift'],
+  ['Romanian Deadlift', 'Romanian Deadlift', 'Romanian Deadlift', 'Romanian Deadlift'],
+]
+const HAM: Four<string> = ['Lying Leg Curl', 'Nordic Curl (slow lower)', 'Seated Leg Curl', 'Swiss-Ball Leg Curl']
+const LATERAL: Four<string> = ['DB Lateral Raise', 'Cable Lateral Raise', 'Lean-Away Lateral Raise', 'Y-Raise']
+const PULLUP: Four<string> = ['Weighted Pull-Up', 'Chin-Up', 'Neutral-Grip Pull-Up', 'Weighted Pull-Up']
+// The incline window tightens block to block the way the percentages climb.
+const INCLINE_WINDOW: Array<[number, number]> = [[10, 12], [8, 10], [6, 8]]
+const ROW: Four<string> = ['Chest-Supported Row', 'Seal Row', 'Meadows Row', 'Chest-Supported Row']
+const SHOULDER_W: Four<string> = ['Face Pull', 'Band Pull-Apart', 'Face Pull', 'Y-Raise']
+const ARMS: Four<string> = ['Overhead Triceps Extension', 'Hammer Curl', 'Skull Crusher', 'Incline DB Curl']
+const HIP: Four<string> = ['Hip Thrust', 'Single-Leg Hip Thrust', 'B-Stance Hip Thrust', 'KB Swing']
+const LOW_BACK: Four<string> = ['45° Back Extension', 'Reverse Hyper', 'Banded Good Morning', '45° Back Extension']
+const TRUNK: Four<string> = ['Pallof Press', 'Landmine Rotation', 'Copenhagen Plank', 'Half-Kneeling Cable Chop']
+const MEDBALL: Four<string> = ['Med-Ball Scoop Toss', 'Med-Ball Overhead Backward Throw', 'Med-Ball Rotational Side Throw', 'Med-Ball Chest Pass']
+const DB_ROW: Four<string> = ['One-Arm DB Row', 'Kroc Row', 'Pendlay Row', 'One-Arm DB Row']
+const REAR_DELT: Four<string> = ['Rear Delt Fly', 'Face Pull', 'Band Pull-Apart', 'Reverse Pec Deck']
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// THURSDAY — sprint-return ladder + engine
 //
-// These OPEN the day rather than contrasting off the squat: there's no room to
-// broad jump by the racks, and pairing them would mean walking away from a
-// loaded bar on every set. Done first they're also the freshest jumps of the
-// week (max-intent power should never be fatigued) and they prime the squat
-// instead of competing with it.
-/**
- * THE RAMP (FOR-244 AC2, ruling row 4). A maximal horizontal or depth jump is
- * never prescribed before the athlete has the exposure for it. Andrew had none:
- * Monday's broad jumps ran in every meso from week one, because that slot
- * ignored meso entirely.
- *
- * The slot still runs — the day keeps its shape and its ballistic intent — but
- * it renders the stage's movement, and it SAYS it is a ramp week rather than
- * leaving the athlete to infer it. Every substitution is a movement Power Dad
- * already prescribes somewhere; nothing here is a new exercise.
- *
- *   low (wk 1-2)          box jumps, easy height, step down
- *   submax (wk 3-4)       the real movement at about three-quarters
- *   max_vertical (wk 5-6) box jumps for max height — vertical before horizontal
- *   low_depth (wk 7-8)    depth drops from a low box (~12")
- *   full (wk 9+)          as written
- */
-function rampedJump(item: PlyoPrescription, stage: RampStage): PlyoPrescription {
-  const n = item.name.toLowerCase()
-  const maximal = /broad jump|depth jump|depth drop/.test(n)
-  if (!maximal || stage === 'full') return item
-  const weeks = 'Ramp week'
-  switch (stage) {
-    case 'low':
-      return { ...item, name: 'Box Jumps', ramp: stage, intent: 'LOW AMPLITUDE', note: `${weeks} — easy height, step down and reset every rep. Low amplitude on purpose: you are building the tissue that sticks a landing before you ask it to.` }
-    case 'submax':
-      return { ...item, ramp: stage, intent: 'SUBMAXIMAL — ~3/4', note: `${weeks} — SUBMAXIMAL, about three-quarters. Same movement, same landing, nothing like a best effort. Stick every one.` }
-    case 'max_vertical':
-      return { ...item, name: 'Box Jumps', ramp: stage, intent: 'MAX INTENT — VERTICAL', note: `${weeks} — max height, full recovery. Vertical comes back before horizontal does: the landing is a fraction of a broad jump's.` }
-    case 'low_depth':
-      // Monday is the HORIZONTAL day. Depth work enters on Saturday at this
-      // stage, not here — swapping the horizontal slot for a depth drop would
-      // leave the athlete with no horizontal exposure at all right up to the
-      // week it goes maximal, which is the cliff the graded exit exists to
-      // avoid.
-      return { ...item, ramp: stage, intent: 'SUBMAXIMAL — ~3/4', note: `${weeks} — still SUBMAXIMAL, about three-quarters, and the last week it is. Stick every one.` }
-    default:
-      return item
-  }
+// Andrew: "sprinting is the goal though … I want to jump and sprint but I
+// really want to take 6-9 months to condition my body to do it regularly."
+// Every week, not every other week: tendons adapt to small frequent doses. The
+// level is set by WEEKS OF EXPOSURE, not the macro, so it carries across cycles
+// — and it counts from the jump-ramp origin, so "restart jump ramp" after a
+// flare drops him back to level 1 (the existing FOR-244 control).
+//
+//   L1  exposure  1-8   no impact: sled, marches, tendon isometrics
+//   L2  exposure  9-17  low impact: tempo runs, low hops, step-down box jumps
+//   L3  exposure 18-26  strides, short accelerations, broad jumps to a stick
+//   L4  exposure 27+    flying sprints, low depth drops
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const SPRINT_LEVELS: ReadonlyArray<{ from: number; level: 1 | 2 | 3 | 4 }> = [
+  { from: 1, level: 1 },
+  { from: 9, level: 2 },
+  { from: 18, level: 3 },
+  { from: 27, level: 4 },
+]
+
+export function sprintLevel(weekNumber: number, from = 1): 1 | 2 | 3 | 4 {
+  const wk = exposureWeek(weekNumber, from)
+  let level: 1 | 2 | 3 | 4 = 1
+  for (const s of SPRINT_LEVELS) if (wk >= s.from) level = s.level
+  return level
 }
 
-function broadJumps(stage: RampStage): PlyoPrescription {
-  return rampedJump({ kind: 'plyo', slot: 'broad_jump', name: 'Broad Jump', sets: 4, reps: 3, note: 'Session opener — knock these out in the open floor before you claim a rack. Stick every landing, full reset between reps.' }, stage)
+const LEVEL_COPY: Record<1 | 2 | 3 | 4, string> = {
+  1: 'level 1 of 4 — no impact: sled, marches, tendon holds',
+  2: 'level 2 of 4 — low impact: tempo runs, low hops, step-down box jumps',
+  3: 'level 3 of 4 — strides, short accelerations, broad jumps to a stick',
+  4: 'level 4 of 4 — flying sprints and low depth drops',
 }
 
-// Friday's ballistic slot: seated box jump — dead-stop concentric, zero
-// stretch reflex, pure rate of force development. Shares the box with the
-// speed box squat, so it runs off the same station.
-function seatedBoxJumps(): PlyoPrescription {
-  return { kind: 'plyo', slot: 'seated_box_jump', name: 'Seated Box Jump', sets: 4, reps: 3, note: 'Sit tall on a box, shins vertical, NO rock or rebound — explode from a dead stop onto the box. Full reset between reps.' }
-}
+const NECK = 'Neck: hand-resisted isometrics, 2 × 10s each direction (front, back, sides)'
+const KNEE_RULE = 'Knee above 3/10 during this or the next morning: do next Thursday on the bike only, and tap "restart jump ramp" if it keeps happening.'
 
-/**
- * Wednesday's ballistic slot, contrast-paired with the front squat.
- *
- * Ballistic = no deceleration phase; ~20-30% of BS sits at peak power output.
- *
- * M2 IS A DEPTH JUMP (FOR-268). Andrew picked it on 2026-10-07: he snatches and
- * cleans heavy, so a loaded jump adds little he is not already getting, and the
- * Olympic lifts do not train the fast landing-and-rebound at all. A depth jump
- * does, and only that. It carries NO load for the same reason — the drop is the
- * load.
- *
- * THIS IS AN AMENDMENT TO FOR-244's AC2, not a bypass of it. AC2 held that no
- * maximal depth jump is prescribed before full exposure (week 9), and I held
- * this item for exactly that reason. Blaine ruled on 2026-10-07 that the newer
- * specific request wins: AC2 exists so a lifter never meets reactive work
- * cold, and Andrew has had four weeks of trap bar and box jumps and chose this
- * after hearing why. `scripts/checks/ballistic-load.mjs` carries the exemption,
- * scoped to this program, this day and this slot from exposure 5 — every other
- * program and stage keeps the ramp as shipped.
- *
- * THE RAMP SURVIVES IN THE BOX HEIGHT: 12" in W5-6, 18" in W7-8. The drop
- * height is the dose of a depth jump, so the progression moved into it rather
- * than being dropped.
- *
- * ONE function decides which jump Wednesday gets, so the slot, the name, the
- * note and the pairing cannot disagree with each other.
- */
-const WED_BALLISTIC_SLOTS = ['tb_jump', 'depth_jump'] as const
+const ENGINE: Four<string> = [
+  '15 min bike intervals: 6 × 1 min hard, 1 min easy, then easy to finish',
+  '15 min row, zone 2: conversational pace the whole way',
+  'Sled intervals: 8 × 20 m push, walk back; then easy bike to 15 min',
+  '15 min mixed tempo: alternate 3 min bike and 3 min row, no rest at the change',
+]
 
-function wednesdayBallistic(
-  maxes: Record<string, number>,
-  meso: number,
-  weekInMeso: number,
-  entryPhase: boolean,
-): PlyoPrescription {
-  // 3×3 in every meso (FOR-195 item 5): the front squat is 3 sets everywhere
-  // now, and the jumps are its contrast pair — one jump set per squat set.
-  // NOT a contrast pair in the entry weeks (FOR-244 ruling 7): complex training
-  // is for athletes who have already done high-intensity plyometric work
-  // (Essentials p. 480), and the whole point of the ramp is that this one has
-  // not. Same jumps, same load — done fresh, on their own, before the squat.
-  //
-  // The entry weeks are M1's, so M2 never takes that branch. The guard stays on
-  // the meso rather than being assumed away, because the ramp origin is a
-  // stored value and a restart can move it.
-  if (meso === 2 && !entryPhase) {
-    // 12" for the first half of the meso, 18" for the second. An article, not
-    // a template slip: "a 12\" box" and "an 18\" box".
-    const box = weekInMeso <= 2 ? 'a 12"' : 'an 18"'
-    // Its OWN slot key, so a depth jump's history never mixes with a loaded
-    // trap bar jump's — different movements at different loads, and one slot
-    // would read the change as a ~105 lb drop in the same exercise.
+function thursdaySession(weekNumber: number, pos: MacroPos, from: number): DayPlan {
+  if (pos.isDeload || pos.isTest) {
     return {
-      kind: 'plyo',
-      slot: 'depth_jump',
-      name: 'Depth Jump',
-      sets: 3,
-      reps: 3,
-      superset: 'fs_contrast',
-      // The ticket's own words, with only the box height substituted — the
-      // ruling says the rest of the note stays as the ticket wrote it, so the
-      // "~30s after each pause front squat set" cue is NOT appended here
-      // (Codex r2 P3). The pairing is carried by superset: 'fs_contrast' and
-      // stated on the front squat's own note, which is where the athlete reads
-      // it in order.
-      note: `Step off ${box} box (don't jump off). Land and rebound immediately with the shortest ground contact you can, jumping for max height. Full reset between reps.`,
+      dayNumber: 4, dayName: 'Easy Spin', dayType: 'outside',
+      sessionIntent: 'Flush the legs. Nothing hard this week.',
+      items: [{ kind: 'outside', slot: 'cond_engine', title: 'Easy Spin (recovery)', parts: ['20-25 min very easy bike, conversational pace'] }],
     }
   }
-  const bs = maxes['back_squat']
-  const load = bs ? `${Math.round((bs * 0.25) / 5) * 5} lb (~25% BS)` : '~25% of back squat'
-  if (entryPhase) {
-    return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Ramp weeks — these come FIRST, before the front squat, not paired with it.` }
+  const level = sprintLevel(weekNumber, from)
+  const engine: OutsideSession = { kind: 'outside', slot: 'cond_engine', title: 'Engine', parts: [ENGINE[pos.weekInMeso - 1]], note: 'Low impact only: bike, rower or sled. No running here.' }
+  const items: Prescription[] = []
+  if (level === 1) {
+    items.push({
+      kind: 'outside', slot: 'speed_ladder', title: 'Return to Sprint — Level 1 (no impact)',
+      parts: [
+        NECK,
+        'Sled push 6 × 15 m: drive the shins at an angle. Acceleration mechanics with no landing',
+        'Backward sled drag 4 × 20 m',
+        'A-march 3 × 15 m, then wall drill 3 × 10 per leg',
+        'Spanish squat or wall-sit hold 4 × 30-45s',
+        'Slow leg extensions 3 × 12, 3 seconds down',
+        'Calf raise hold 3 × 30s',
+      ],
+      note: `Building the tendons that sprinting needs. ${KNEE_RULE}`,
+    })
+  } else if (level === 2) {
+    items.push(
+      {
+        kind: 'outside', slot: 'speed_ladder', title: 'Return to Sprint — Level 2 (low impact)',
+        parts: [NECK, 'Tempo runs on grass: 6-8 × 100 m at 60-70%, walk back', 'A-march 2 × 20 m to finish'],
+        note: KNEE_RULE,
+      },
+      { kind: 'plyo', slot: 'ladder_hops', name: 'Line Hops', sets: 2, reps: 10, intent: 'LOW AMPLITUDE', note: 'Ankles only, quiet landings.' },
+      { kind: 'plyo', slot: 'ladder_jump', name: 'Box Jump (high box, step down)', sets: 3, reps: 3, intent: 'LOW AMPLITUDE', note: 'A high box keeps the landing small. Step down, never jump down.' },
+    )
+  } else if (level === 3) {
+    items.push(
+      {
+        kind: 'outside', slot: 'sprint', title: 'Return to Sprint — Level 3',
+        parts: [NECK, 'Build-ups 3 × 40 m, finishing at 80-90%', '4-6 × 10-20 m accelerations, full recovery (2 min)'],
+        note: KNEE_RULE,
+      },
+      { kind: 'plyo', slot: 'ladder_jump', name: 'Broad Jump (stick it)', sets: 3, reps: 3, intent: 'SUBMAXIMAL — ~3/4', note: 'Stick every landing. The landing is the point, not the distance.' },
+    )
+  } else {
+    items.push(
+      {
+        kind: 'outside', slot: 'sprint', title: 'Return to Sprint — Level 4',
+        parts: [NECK, '2 build-up strides', '3-5 × flying 20s (20 m build + 20 m fly) at 90-95%, full recovery (3 min)'],
+        note: KNEE_RULE,
+      },
+      { kind: 'plyo', slot: 'ladder_jump', name: 'Broad Jump', sets: 3, reps: 3, note: 'Max intent, stick the landing, full reset.' },
+      { kind: 'plyo', slot: 'plyo_2', name: 'Depth Drop (low box, ~12")', sets: 2, reps: 3, intent: 'LOW BOX', note: 'Step off, absorb quietly, hold the bottom.' },
+    )
   }
-  return { kind: 'plyo', slot: 'tb_jump', name: 'Trap Bar Jump', sets: 3, reps: 3, superset: 'fs_contrast', note: `Load ${load}. Jump for HEIGHT, land soft, reset each rep. Pair ~30s after each front squat set.` }
+  items.push(engine)
+  return {
+    dayNumber: 4, dayName: `Sprint Return L${level} + Engine`, dayType: 'outside',
+    sessionIntent: 'Return-to-sprint work at your level, then 15 minutes of low-impact engine.',
+    items,
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Day builders
+// Deload, test, build
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const DELOAD_NOTE = 'Deload — bar speed crisp, leave feeling fresh'
 
-const DELOAD_CLASSIC_PCT = 65 // deload is recovery, not a working set — light
-                              // technique work is exempt from the ≥80 rule.
-function applyDeload(p: LiftPrescription): LiftPrescription {
-  // Classic lifts deload to a crisp 65%; everything else drops to 60.
-  const pct = p.maxKey && isClassicLiftSlot(p.slot, p.maxKey) ? DELOAD_CLASSIC_PCT : 60
-  // THE WAVE GOES WITH IT (FOR-263, Codex r1). `...p` kept `setPlan`, so a
-  // forced deload inside meso 2 printed "3 x 60%, 220 lb" in the header while
-  // the six rows prefilled 275/290/310/280/300/320 — the deload's number and
-  // the working wave's loads on the same card. A deload IS the scalar shape.
-  return {
+function deloadItem(p: Prescription, maxes: Record<string, number>): Prescription {
+  if (p.kind !== 'lift') return p
+  if (p.percent == null) return { ...p, sets: 2, note: DELOAD_NOTE }
+  const pct = p.maxKey && isClassicLiftSlot(p.slot, p.maxKey) ? 65 : 60
+  const d: LiftPrescription = {
     ...withoutSetPlan(p),
-    sets: Math.max(2, Math.ceil(p.sets / 2)),
-    percent: p.percent != null ? pct : undefined,
-    targetRpe: p.targetRpe != null ? 6 : undefined, // deload should FEEL easy — keep autoreg honest
+    sets: 2,
+    percent: pct,
+    appliedAdjustmentPct: undefined,
+    targetRpe: p.targetRpe != null ? 6 : undefined,
     note: DELOAD_NOTE,
   }
-}
-
-function withResolvedDeload(p: LiftPrescription, maxes: Record<string, number>): LiftPrescription {
-  const d = applyDeload(p)
   d.targetWeightLbs = resolveWeight(d.percent, d.maxKey, maxes)
   return d
 }
 
-function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
-  const plans: Record<number, DayPlan> = {
-    1: {
-      dayNumber, dayName: 'TEST — Snatch 1RM', dayType: 'test',
-      sessionIntent: 'Work to a new 1RM snatch. Take your time between attempts.',
-      items: [
-        { kind: 'lift', slot: 'test_snatch', name: 'Snatch — work to 1RM', sets: 8, reps: 1, note: 'Climb 60/70/78/85/90/95%+ then PR attempts. Log the top single and update your Snatch max — it anchors next macro.' },
-        accessory('test_acc', 'Easy bike flush', 1, 10, '10 min easy spin after'),
-      ],
-    },
-    3: {
-      dayNumber, dayName: 'TEST — Clean + Press 1RMs', dayType: 'test',
-      sessionIntent: 'Work to a new 1RM clean, then a strict press max.',
-      items: [
-        { kind: 'lift', slot: 'test_clean', name: 'Clean — work to 1RM (no jerk)', sets: 8, reps: 1, note: 'Climb 60/70/78/85/90/95%+ then PR attempts. Log the top single and update your Clean max — it anchors next macro.' },
-        // The OHP wave is the overhead-weakness project, and its max was never
-        // retested — so next macro kept computing off the number first entered.
-        { kind: 'lift', slot: 'test_ohp', name: 'Overhead Press — work to 1RM', sets: 5, reps: 1, note: 'Strict, no leg drive. Climb 60/72/82/90%+ then max attempts. Log it and update your OHP max — all of Saturday keys off it.' },
-        accessory('test_acc', 'Easy bike flush', 1, 10, '10 min easy spin after'),
-      ],
-    },
-    5: {
-      dayNumber, dayName: 'TEST — Squat + Bench 1RMs', dayType: 'test',
-      sessionIntent: 'Back squat 1RM, bench 1RM between squat rests, front squat if you have juice left.',
-      items: [
-        { kind: 'lift', slot: 'test_bs', name: 'Back Squat — work to 1RM', sets: 6, reps: 1, note: 'Climb 60/70/80/88/94%+ then max attempts' },
-        { kind: 'lift', slot: 'test_bench', name: 'Bench Press — work to 1RM', sets: 6, reps: 1, note: 'Climb 60/70/80/88/94%+ — alternate with squat rests' },
-        { kind: 'lift', slot: 'test_fs', name: 'Front Squat — work to 1RM (optional)', sets: 4, reps: 1, note: 'Only if back squat felt strong' },
-      ],
-    },
-    6: {
-      dayNumber, dayName: 'TEST — Deadlift 1RM', dayType: 'test',
-      sessionIntent: 'Pull a 1RM deadlift, then the macro is complete. Update your maxes in the app.',
-      items: [
-        { kind: 'lift', slot: 'test_dl', name: 'Deadlift — work to 1RM', sets: 6, reps: 1, note: 'Climb 60/70/80/88/94%+ then max attempts. Belt up.' },
-        { kind: 'outside', slot: 'move', title: 'Celebrate & Move', parts: ['15-20 min easy walk or spin to flush', 'Update ALL 1RMs in the app — next macro computes from the new numbers'] },
-      ],
-    },
+function testDay(dayNumber: number): DayPlan {
+  switch (dayNumber) {
+    case 1:
+      return {
+        dayNumber, dayName: 'TEST — Power Clean + Bench', dayType: 'test',
+        sessionIntent: 'Work to a new power clean, then a bench max between rests.',
+        items: [
+          { kind: 'lift', slot: 'test_power_clean', name: 'Power Clean — work to 1RM', sets: 6, reps: 1, maxKey: 'clean_jerk', note: 'Climb 60/70/78/84/88%+ of your clean, then PR attempts. Catch it above parallel. Log the top single. Your cleans keep running off your full clean max, so update that only if you also hit a new full clean.' },
+          { kind: 'lift', slot: 'test_bench', name: 'Bench Press — work to 1RM', sets: 6, reps: 1, note: 'Climb 60/70/80/88/94%+ then max attempts. Update your bench max after.' },
+        ],
+      }
+    case 3:
+      return {
+        dayNumber, dayName: 'TEST — Strict Press', dayType: 'test',
+        sessionIntent: 'Work to a new strict press max.',
+        items: [
+          { kind: 'lift', slot: 'test_ohp', name: 'Overhead Press — work to 1RM', sets: 5, reps: 1, note: 'Strict, no leg drive. Climb 60/72/82/90%+ then max attempts. Update your OHP max after.' },
+        ],
+      }
+    case 4:
+      return {
+        dayNumber, dayName: 'Easy Spin', dayType: 'outside',
+        sessionIntent: 'Flush the legs between test days.',
+        items: [{ kind: 'outside', slot: 'cond_engine', title: 'Easy Spin (recovery)', parts: ['20-25 min very easy bike, conversational pace'] }],
+      }
+    case 5:
+      return {
+        dayNumber, dayName: 'TEST — Squat 3RM (optional)', dayType: 'test',
+        sessionIntent: 'A 3-rep max on the back or front squat, only if the knee says yes.',
+        items: [
+          { kind: 'lift', slot: 'test_squat_3rm', name: 'Back or Front Squat — work to a 3RM (optional)', sets: 5, reps: 3, note: 'Knee at 2/10 or less today, or skip it. Stop at RPE 9: a 3RM, not a grinder.' },
+        ],
+      }
+    case 6:
+      return {
+        dayNumber, dayName: 'Move + Update Maxes', dayType: 'outside',
+        sessionIntent: 'The macro is done. Move easy and update your maxes.',
+        items: [{ kind: 'outside', slot: 'move', title: 'Celebrate & Move', parts: ['15-20 min easy walk or spin', 'Update your bench and OHP maxes in the app (and your clean, if you hit a new full clean). Next macro computes from them'] }],
+      }
+    default:
+      return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Rest.', items: [] }
   }
-  if (plans[dayNumber]) return plans[dayNumber]
-  // Outside days during test week are easy movement.
-  const pos = { weekInMacro: 13, meso: 3, weekInMeso: 4, isDeload: false, isTest: true }
-  if (dayNumber === 2) return { dayNumber, dayName: 'Strides', dayType: 'outside', sessionIntent: 'Easy speed, stay springy for testing.', items: [sprintSession(13, pos)] }
-  if (dayNumber === 4) return { dayNumber, dayName: 'Recovery Spin', dayType: 'outside', sessionIntent: 'Flush the legs between test days.', items: [thursdayConditioning(13, pos)] }
-  // Day 7 included: test week ends on Saturday's deadlift like every other week.
-  return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Rest. The macro is done.', items: [] }
 }
 
 function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, number>, adjustments: Record<string, number> = {}, opts?: BuildDayOpts): DayPlan {
   const pos = macroPos(weekNumber)
-  // Athlete-flagged fatigue deload — same treatment as the built-in W12.
   if (opts?.forceDeload && !pos.isTest) pos.isDeload = true
-  if (pos.isTest) return testDay(dayNumber, maxes)
+  if (pos.isTest) return testDay(dayNumber)
 
-  // Weeks of EXPOSURE, not meso. A returning athlete taps "restart jump ramp"
-  // and opts.jumpRampFromWeek moves to that week (FOR-244).
-  const stage = rampStage(weekNumber, opts?.jumpRampFromWeek)
-  const entryPhase = lowRamp(weekNumber, opts?.jumpRampFromWeek)
   const m = pos.meso - 1
   const w = pos.weekInMeso
-  // Double-progression loads for range-based slots, computed by the caller
-  // from what was actually logged. Without this line Wednesday's DB bench
-  // renders with no weight forever — the FOR-175 failure mode.
-  const lt = opts?.loadTargets ?? {}
+  const lift = (slot: string, def: SlotMeso, maxKey: string, ceiling?: number, overrides?: Partial<LiftPrescription>) =>
+    liftFromSlot(slot, def, w, maxKey, maxes, pos.meso, adjustments, { ceiling, overrides })
+  const deload = (items: Prescription[]) => (pos.isDeload ? items.map((i) => deloadItem(i, maxes)) : items)
 
   switch (dayNumber) {
-    case 1: {
-      // Broad jumps open the day in EVERY meso (FOR-195 item 2) — a primer,
-      // not a competing lift. They were M2-only, which meant two thirds of the
-      // macro had no horizontal power in it at all.
-      let items: Prescription[] = [broadJumps(stage)]
-      items.push(
-        // Squat-priority day: the back squat leads the barbell work — fresh
-        // legs go to strength. Snatch follows (80%+ doubles tolerate
-        // pre-fatigue; the weight-follow autoreg tracks what actually gets
-        // loaded).
-        liftFromSlot('back_squat_heavy', D1_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments),
-        liftFromSlot('sn_top', D1_SN_TOP[m], w, 'snatch', maxes, pos.meso, adjustments),
-      )
-      // M1 and M3 have back-offs; M2's EMOM is the whole dose, and the
-      // registry says so with sets: 0 (FOR-263). The guard reads the slot
-      // rather than the meso number, so moving the exception is a data change.
-      if (D1_SN_BACK[m].sets > 0) {
-        items.push(liftFromSlot('sn_back', D1_SN_BACK[m], w, 'snatch', maxes, pos.meso, adjustments))
-      }
-      items.push(
-        liftFromSlot('bench_heavy', D1_BENCH_HEAVY[m], w, 'bench', maxes, pos.meso, adjustments),
-        // Knee-flexion hamstring work — the one pattern pulls/DL don't cover.
-        // Snatch pull slot retired for this (positions still trained: full
-        // snatch here, the Fri speed-oly slot, clean pulls Fri at 95-110%).
-        accessory('acc_nordic', 'Nordic Curl', 3, 5, 'Heels under a lat-pulldown pad or loaded bar. Slow lower, push-up assist back up. Swap for Romanian Deadlift if needed.'),
-      )
-      // Core RELOCATED to Saturday (FOR-195 items 3 + 11b). Monday is the
-      // longest gym day and the one the broad jumps just joined, so the block
-      // it sheds is the one that needs a fresh athlete least. Core did not
-      // leave the program — Saturday runs it as dealer's choice.
-      if (pos.isDeload) {
-        items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
-          .filter(i => !(i.kind === 'lift' && i.slot === 'sn_back'))
-          .filter(i => !(i.kind === 'plyo' && i.slot === 'broad_jump'))
-      }
+    case 1:
       return {
-        dayNumber, dayName: 'Power A — Snatch', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — light, fast, out of the gym feeling fresh.' : 'Jump, then squat. Heavy snatch doubles into sub-max back-offs, bench, hamstrings.',
-        items,
+        dayNumber, dayName: 'Snatch + Back Squat + Bench', dayType: 'gym',
+        sessionIntent: pos.isDeload ? 'Deload — light, fast, out feeling fresh.' : 'Snatch first while fresh, then a moderate squat, heavy bench and hamstrings.',
+        items: deload([
+          lift('sn_top', SN[m], 'snatch'),
+          lift('back_squat_heavy', BS[m], 'back_squat', SQUAT_CEILING),
+          lift('bench_heavy', BENCH[m], 'bench'),
+          rotating('acc_hinge', HINGE[m], w, 3, 8, 'RPE 7. Hips back, flat back, feel the hamstrings.'),
+          rotating('acc_ham', HAM, w, 3, 10, 'Nordic week: lower slowly, push yourself back up.'),
+          rotating('acc_lateral', LATERAL, w, 3, 12),
+        ]),
       }
-    }
-    case 3: {
-      // Order is rack-driven: push press and front squat share the bar and the
-      // rack, so they run back to back (with the jump contrast) before the
-      // session moves to the bench.
-      let items: Prescription[] = [
-        liftFromSlot('push_press', D3_PUSH_PRESS[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
-        // ORDER IS THE INSTRUCTION. In the entry weeks the jumps are done fresh,
-        // before the squat — so they are LISTED before the squat. Changing only
-        // the notes would leave the card order saying one thing and the words
-        // another, and the athlete follows the order (Codex r1).
-        ...(entryPhase
-          ? [
-              wednesdayBallistic(maxes, pos.meso, w, true),
-              liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments,
-                { note: 'Ramp weeks — the trap bar jumps ran before this, on their own. Squat is squat.' }),
-            ]
-          : [
-              liftFromSlot('front_squat', D3_FSQUAT[m], w, 'front_squat', maxes, pos.meso, adjustments, { superset: 'fs_contrast' }),
-              wednesdayBallistic(maxes, pos.meso, w, false),
-            ]),
-        rangeSlot('db_bench', 'DB Bench Press', D3_DB_BENCH[m].sets, D3_DB_BENCH[m].window, lt, {
-          step: 5,
-          superset: 'press_pull',
-          note: 'Weight is PER HAND. Superset with weighted pull-ups. Hold the pair until every set clears the top of the range, then take the next pair up.',
-        }),
-        { ...accessory('acc_wpu', 'Weighted Pull-Up', 4, pos.meso === 1 ? 6 : pos.meso === 2 ? 5 : 3, 'Superset with bench — add load as reps drop'), superset: 'press_pull' },
-        pos.meso === 1 ? accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 8, 'Per leg, DBs in hand, 90s rest')
-          : pos.meso === 2 ? accessory('acc_single_leg', 'DB Reverse Lunge', 3, 8, 'Per leg, DBs in hand — control the descent, drive up tall, 90s rest')
-          : accessory('acc_single_leg', 'Rear-Foot-Elevated Split Squat', 3, 5, 'Per leg — heavy DBs, 5s should be honest, 90s rest'),
-      ]
-      // Session diet: med-ball throws + farmer carries cut — ballistic work is
-      // the jump slot's job, carries recur in Saturday's metcon pool.
-      if (pos.isDeload) {
-        // WHICHEVER jump the meso prescribes (FOR-268). This filtered the
-        // literal 'tb_jump', so a forced deload inside M2 would have cut
-        // nothing and left a depth jump — the highest-impact landing in the
-        // program — inside a recovery week. FOR-263 shipped that exact shape of
-        // bug in a deload path, which is why this reads the slot list.
-        items = items.filter(i => !(i.kind === 'plyo' && (WED_BALLISTIC_SLOTS as readonly string[]).includes(i.slot)))
-          .map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
-          // Range work has no percent to cut, so the deload has to reach it by
-          // sets instead — otherwise the barbell drops to 60% while the DB
-          // bench still asks for four sets at the top of the window.
-          .map(i => (i.kind === 'lift' && i.repRange ? { ...i, sets: 2, note: DELOAD_NOTE } : i))
-          // Accessories have no percent either; cut them by sets so the week
-          // before the test stays fresh (Andrew, 2026-10-22).
-          .map(i => (i.kind === 'lift' && (i.slot === 'acc_wpu' || i.slot === 'acc_single_leg') ? { ...i, sets: 2, note: DELOAD_NOTE } : i))
-      }
+    case 3:
       return {
-        dayNumber, dayName: 'Athletic Strength', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — light presses, no jumps, out quick.' : 'Presses, unilateral strength, and ballistic power — everything the platform can\'t give you.',
-        items,
+        dayNumber, dayName: 'Push Press + Upper', dayType: 'gym',
+        sessionIntent: pos.isDeload ? 'Deload — light presses, out quick.' : 'Push press, then a full upper day: pull, incline, row, shoulders, arms.',
+        items: deload([
+          lift('push_press', PP[m], 'clean_jerk'),
+          rotating('acc_wpu', PULLUP, w, 4, 6, 'Add load when every rep is crisp. Log added lbs as the weight.'),
+          rangeSlot('db_incline', 'Incline DB Press', 3, INCLINE_WINDOW[m], opts?.loadTargets ?? {}, 'Every set to the top of the range with 2 in the tank: add 5 lb a hand next week.'),
+          rotating('acc_row', ROW, w, 3, 10, 'Strict, no bounce.'),
+          rotating('acc_shoulder', SHOULDER_W, w, 3, 15),
+          rotating('acc_arms', ARMS, w, 3, 10),
+        ]),
       }
-    }
-    case 5: {
-      // ── THE SPEED DAY — ordered fast-to-heavy ──────────────────────────────
-      // This day always held the week's speed work; it was just ordered like a
-      // strength day, so every fast slot ran behind an 87-90% clean. Rate of
-      // force development is a quality, not a workload: it only exists while
-      // the CNS is fresh, so the jumps and the sub-75% bar speed work go first
-      // and the heavy clean — strength-speed, the ceiling-raiser — goes last.
-      // No load was added anywhere to achieve this. Reordering is the whole fix.
-      let items: Prescription[] = [
-        // 1. Unloaded RFD, freshest moment of the week. Dead-stop, no rebound.
-        seatedBoxJumps(),
-        // (The hang power snatch used to sit here. Removed 2026-08-27: it cost
-        //  more clock than the speed squat despite fewer sets — platform,
-        //  bumpers and long rests against 5x2 @55% off a box with 45-60s
-        //  turnarounds. FOR-195 finished the job: the snatch is Monday-only
-        //  now, carried by that day's new sub-max back-offs.)
-        // 2. THE CLEAN, and it goes second (FOR-195 item 7). This deliberately
-        //    un-does part of the fast-to-heavy ordering that put the speed
-        //    squat ahead of it — Andrew's call, and largely moot with the
-        //    snatch gone: the day is clean-primary now, so the primary gets
-        //    the fresh slot the way the squat does on Monday.
-        liftFromSlot('cl_top', D5_CL_TOP[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
-      ]
-      // 3. Back-offs, same bar, straight after the top set. M2's waves are the
-      //    whole clean dose and the registry says so with sets: 0 (FOR-271) —
-      //    the guard reads the slot, as Monday's snatch back-off does.
-      if (D5_CL_BACK[m].sets > 0) {
-        items.push(liftFromSlot('cl_back', D5_CL_BACK[m], w, 'clean_jerk', maxes, pos.meso, adjustments))
-      }
-      items.push(
-        // 4. Dynamic-effort squat off the box — stretch reflex killed, force
-        //    from zero. Clamped to its band; never chased upward by autoreg.
-        //    Still velocity: true, so autoreg never chases it while fatigued —
-        //    which matters more now that it follows the heavy clean.
-        //    M2 runs Bulgarian split squats at this station instead (FOR-271).
-        D5_SPEED_SQUAT[m].sets > 0
-          ? liftFromSlot('speed_squat', D5_SPEED_SQUAT[m], w, 'back_squat', maxes, pos.meso, adjustments)
-          : rangeSlot('bss', 'Bulgarian Split Squat', D5_BSS.sets, D5_BSS.window, lt, {
-              step: 5,
-              note: 'Rear foot on a bench. Leave 2 reps in the tank. First time: start with dumbbells you could do ~10 with. Reps are per leg, weight is PER HAND.',
-            }),
-        // 5. Heavy pull at 95-110% — paused and lighter in M2.
-        liftFromSlot('clean_pull', D5_PULL[m], w, 'clean_jerk', maxes, pos.meso, adjustments),
-        // 6. The program's ONLY horizontal pulling, against five pressing
-        //    exposures a week — so M2 and M3 both row. Deliberately last: this
-        //    is the designated overflow block, the one to cut when the clock
-        //    beats you. Nothing above it is optional.
-        // FOR-195 item 9: M1's vertical pull-up becomes a ROW, so all three
-        // mesos are horizontal here. Wednesday already owns the vertical pull
-        // (weighted pull-ups, every meso) — this slot exists to answer the
-        // week's five pressing exposures, and it could not do that while one
-        // meso in three duplicated Wednesday.
-        pos.meso === 1 ? accessory('acc_pullup', 'Seated Cable Row', 3, 10, 'Chest tall, drive the elbows back, no torso swing. Cut this block first if the clock beats you.')
-          : pos.meso === 2 ? accessory('acc_pullup', 'Pendlay Row', 3, 8, 'Barbell dead-stops on the floor every rep. Flat back, explosive pull to the sternum. Cut this block first if the clock beats you.')
-          : accessory('acc_pullup', 'Chest-Supported Row', 3, 10, 'Chest on an incline bench — strict, no bounce. Cut this block first if the clock beats you.'),
-      )
-      if (pos.isDeload) {
-        items = items.map(i => (i.kind === 'lift' && i.percent != null ? withResolvedDeload(i, maxes) : i))
-          .filter(i => !(i.kind === 'lift' && (i.slot === 'clean_pull' || i.slot === 'cl_back')))
-          .filter(i => !(i.kind === 'plyo' && i.slot === 'seated_box_jump'))
-          // Range work has no percent to cut, so a forced deload inside M2
-          // reaches the split squats by sets, as Wednesday's DB bench does.
-          .map(i => (i.kind === 'lift' && i.repRange ? { ...i, sets: 2, note: DELOAD_NOTE } : i))
-      }
+    case 4:
+      return thursdaySession(weekNumber, pos, opts?.jumpRampFromWeek ?? 1)
+    case 5:
       return {
-        dayNumber, dayName: 'Speed + Clean', dayType: 'gym',
-        sessionIntent: pos.isDeload
-          ? 'Deload — a few crisp doubles, nothing else.'
-          : pos.meso === 2
-            ? 'Jumps to open, then two waves of power cleans. Split squats and the pause pull to finish.'
-            : 'Jumps to open, then the clean and its back-offs. Speed squats and the pull to finish.',
-        items,
+        dayNumber, dayName: 'Clean + Front Squat', dayType: 'gym',
+        sessionIntent: pos.isDeload ? 'Deload — a few crisp cleans, nothing else heavy.' : 'Cleans first, then a moderate front squat, hips, low back and trunk.',
+        items: deload([
+          lift('cl_top', CL[m], 'clean_jerk'),
+          lift('front_squat', FS[m], 'front_squat', SQUAT_CEILING),
+          rotating('acc_hip', HIP, w, 3, 8),
+          rotating('acc_lowback', LOW_BACK, w, 3, 12),
+          rotating('acc_trunk', TRUNK, w, 3, 10, 'Per side where it is one-sided. Rotation and anti-rotation are what rugby and hockey ask for.'),
+        ]),
       }
-    }
-    case 6: {
-      const dl = liftFromSlot('sat_dl', D6_DL[m], w, 'deadlift', maxes, pos.meso, adjustments)
-      const dips = accessory('acc_dips', 'Dips', 3, pos.meso === 1 ? 10 : pos.meso === 2 ? 8 : 6,
-        'Bodyweight+ — add load when every rep is crisp; log added lbs as the weight')
-      // OHP LEADS: overhead strength is the stated weakness, and it was sitting
-      // behind a heavy deadlift at the end of the week — the worst slot in the
-      // program for the thing being prioritised. Same logic as squat-first
-      // Monday: the priority lift gets the fresh slot.
-      // Core lives here now (FOR-195 item 11b), and it is deliberately
-      // UNTRACKED: no rep range, no double progression, no max. Andrew rotates
-      // core work by feel and always has — prescribing one movement just means
-      // he substitutes it, so the rotation IS the prescription. Three sets is
-      // the only part the program insists on.
-      const core = accessory('acc_core', "Core — Dealer's Choice", 3, 10,
-        'Any core movement you want today — leg raises, Pallof, ab wheel, weighted carry, plank. 10-15 reps (or 30-45s if it is a hold). Pick it when you get there; just do the three sets.')
-      let items: Prescription[] = [liftFromSlot('ohp_press', D6_OHP[m], w, 'ohp', maxes, pos.meso, adjustments), dl, dips, core, ...saturdayPlyo(pos, stage)]
-      if (pos.isDeload) {
-        items = [
-          withResolvedDeload(dl, maxes),
-          { kind: 'plyo', slot: 'plyo', name: 'Box Jumps', sets: 3, reps: 3, note: 'Easy height, springy' },
-          { kind: 'outside', slot: 'metcon_sub', title: 'Easy Flush', parts: ['8-10 min easy row or Aerodyne — Z2, nothing hard'] },
-        ]
-      } else {
-        const mc = METCON_POOL[(weekNumber - 1) % METCON_POOL.length]
-        items.push({ kind: 'metcon', slot: 'metcon', ...mc })
-      }
+    case 6:
       return {
-        dayNumber, dayName: 'Power + Engine', dayType: 'gym',
-        sessionIntent: pos.isDeload ? 'Deload — move, don\'t grind.' : 'Strict press first, then heavy deadlift, dips, core, jumps, and the week\'s metcon.',
-        items,
+        dayNumber, dayName: 'Strict Press + Close-Grip + Hinge', dayType: 'gym',
+        sessionIntent: pos.isDeload ? 'Deload — move, don\'t grind.' : 'Throws to wake up, strict press, close-grip bench, a moderate trap-bar pull, back and rear delts.',
+        items: deload([
+          rotating('acc_medball', MEDBALL, w, 4, 3, 'Explosive, no landing. Full reset between throws.'),
+          // A short Saturday keeps the press and the pull, not the warm-up throws.
+          lift('ohp_press', OHP[m], 'ohp', undefined, { shortDay: true }),
+          lift('cg_bench', CG[m], 'bench'),
+          lift('sat_dl', TB[m], 'deadlift', undefined, { shortDay: true }),
+          rotating('acc_db_row', DB_ROW, w, 3, 10),
+          rotating('acc_rear_delt', REAR_DELT, w, 3, 15),
+        ]),
       }
-    }
     case 2:
-      return { dayNumber, dayName: 'Speed Day', dayType: 'outside', sessionIntent: 'Speed work — quality over quantity, full recoveries.', items: [sprintSession(weekNumber, pos)] }
-    case 4: {
-      // The session rotates now, so the day is named after whatever it is.
-      const cond = thursdayConditioning(weekNumber, pos)
-      return { dayNumber, dayName: cond.title, dayType: 'outside', sessionIntent: 'Engine work.', items: [cond] }
-    }
-    // Day 7 is a REST day (FOR-195 item 12). Sunday's steady Z2 was the
-    // seventh session in a week with no valley in it, and the one the athlete
-    // was most often skipping anyway — the card told him so in writing. Cutting
-    // it outright is the honest version of that, and it is most of the ~40-55
-    // min/week this revision gives back. daysPerWeek drops to 6 with it, so no
-    // surface renders a seventh slot at all.
     case 7:
     default:
-      return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Rest. Nothing to log — the week ended on Saturday.', items: [] }
+      return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Rest. Five days a week is the plan.', items: [] }
   }
 }
 
 export const hybridPower: ProgramConfig = {
-  // Slug stays 'hybrid-power' deliberately. It is an identifier, not branding:
-  // it keys user_programs, generated_workouts and user_exercise_subs, so
-  // renaming it without migrating those three tables would detach the athlete
-  // from his own history. Display name is what anyone actually reads.
+  // Slug stays 'hybrid-power': it keys user_programs, generated_workouts and
+  // user_exercise_subs. The display name is what anyone reads.
   slug: 'hybrid-power',
   name: 'Power Dad',
-  tagline: 'Olympic power · sprinting · engine',
+  tagline: 'Athletic power · sprint return · knees first',
   description:
-    'Two Olympic days — heavy full snatch and power clean, zero technique drills — plus an athletic strength day and a power/engine day in the gym, then a rotating speed day and one conditioning session outside. Six days: Sunday is off. Every gym day caps at 6 blocks. 13-week macro: three mesos that vary the middle and realise on the pure lifts, deload week 12, test week 13. Flag a deload any week you need one.',
-  daysPerWeek: 6,
+    'Built to make you a faster, leaner, more powerful athlete without wrecking your knees. Four gym days: snatch, moderate back squat and heavy bench on Monday; push press and upper on Wednesday; cleans and a moderate front squat on Friday; strict press, close-grip bench and a trap-bar pull on Saturday. Thursday brings sprinting and jumping back on a slow, level-by-level ramp, then 15 minutes of low-impact engine. Every lift rotates through weekly variations: pauses, tempos, 1¼ reps, deficits, hang positions. Five days a week, 6 blocks max per gym day. 13-week macro: build, strength, peak, deload week 12, test week 13.',
+  daysPerWeek: 5,
   gymDayNumbers: [1, 3, 5, 6],
   macroWeeks: 13,
   requiredMaxes: [
     { key: 'snatch', label: 'Snatch', hint: 'Best full-lift single — all snatch work keys off this' },
-    { key: 'clean_jerk', label: 'Clean', hint: 'Best clean single — all clean work keys off this' },
+    { key: 'clean_jerk', label: 'Clean', hint: 'Best clean single — the cleans and push press key off this' },
     { key: 'back_squat', label: 'Back Squat', hint: 'Best recent single (lbs)' },
     { key: 'front_squat', label: 'Front Squat', hint: 'Best recent single (lbs)' },
     { key: 'bench', label: 'Bench Press', hint: 'Best recent single (lbs)' },
-    { key: 'deadlift', label: 'Deadlift', hint: 'Best recent single (lbs)' },
+    { key: 'deadlift', label: 'Deadlift', hint: 'Best recent single — the trap-bar pull keys off this' },
     { key: 'ohp', label: 'Overhead Press', hint: 'Strict press single — estimate: best 5×5 × 1.15' },
   ],
+  rampLabel: (weekNumber, from) => `Thursday sprint return: ${LEVEL_COPY[sprintLevel(weekNumber, from)]}`,
   buildDay,
 }

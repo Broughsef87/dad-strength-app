@@ -188,26 +188,28 @@ const asTrained = (v, key) => {
 }
 
 // ── 3. the ticket's case, on the real build ────────────────────────────────
-// Power Dad, week one, day one, the broad_jump slot. The name it was TRAINED
+// Power Dad, week one, day one, the snatch slot (the broad jump it used to
+// test on left with the knees-first rebuild, FOR-358). The name it was TRAINED
 // under is whatever the build does not say today — so this case stays a real
 // program change however the program is edited later, rather than pinning the
 // program's content (which is Andrew's, and must not redden this suite).
 {
   const power = PROGRAMS['hybrid-power']
   const built = power.buildDay(1, 1, MAXES, {}, { jumpRampFromWeek: rampOriginFor(1, []) })
-  const jump = built.items.find((i) => i.slot === 'broad_jump')
-  assert(!!jump, 'Power Dad week 1 day 1 still has a broad_jump slot to test on')
+  const SLOT = 'sn_top'
+  const jump = built.items.find((i) => i.slot === SLOT)
+  assert(!!jump, `Power Dad week 1 day 1 still has a ${SLOT} slot to test on`)
   const now = jump?.name ?? ''
-  const then = now === 'Broad Jump' ? 'Box Jumps' : 'Broad Jump'
-  const at = (name) => ({ ...clone(built), items: built.items.map((i) => (i.slot === 'broad_jump' ? { ...i, name } : i)) })
-  const logs = [1, 2, 3].map(() => ({ block_name: then, slot: 'broad_jump' }))
-  const card = sessionPlan(built, at(then), logs).plan.items.find((i) => i.slot === 'broad_jump')
+  const then = now === 'Snatch' ? 'Hang Snatch, Below Knee' : 'Snatch'
+  const at = (name) => ({ ...clone(built), items: built.items.map((i) => (i.slot === SLOT ? { ...i, name } : i)) })
+  const logs = [1, 2, 3].map(() => ({ block_name: then, slot: SLOT }))
+  const card = sessionPlan(built, at(then), logs).plan.items.find((i) => i.slot === SLOT)
   assert(card?.name === then, `the week-one session trained as ${then} reopens as ${then}, not as today's "${card?.name}"`)
   assert(logs.filter((l) => l.block_name === card?.name).length === 3, 'and all three of its logged sets attach to that card by name')
   // A row stored at FIRST OPEN and trained after the change — what the
   // first-log record prevents from now on, and reattach covers for rows before it.
-  const loggedAsNew = [1, 2].map(() => ({ block_name: now, slot: 'broad_jump' }))
-  assert(sessionPlan(built, at(then), loggedAsNew).plan.items.find((i) => i.slot === 'broad_jump')?.name === now,
+  const loggedAsNew = [1, 2].map(() => ({ block_name: now, slot: SLOT }))
+  assert(sessionPlan(built, at(then), loggedAsNew).plan.items.find((i) => i.slot === SLOT)?.name === now,
     'a row stored at first open but trained after a change reattaches to what was logged — the sets are not stranded under the old name')
 }
 

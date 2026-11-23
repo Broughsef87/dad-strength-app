@@ -18,7 +18,7 @@
 //   It may be shorter — a set the athlete added by hand has no prescription,
 //   and inventing one for it would be a number nobody chose.
 //
-// `scripts/checks/meso2-monday.mjs` asserts the contract over every program,
+// `scripts/checks/set-plan-contract.mjs` asserts the contract over every program,
 // every mode and every week, so a fourth call site fails rather than drifts.
 import type { LiftPrescription, PlyoPrescription } from './types'
 

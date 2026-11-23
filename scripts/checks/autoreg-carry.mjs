@@ -10,11 +10,11 @@ import { computeAdjustments, MAX_ADJ } from '../../src/lib/programs/autoreg.ts'
 import { RUN_EPOCH } from '../../src/lib/programs/run.ts'
 
 const MAXES = { snatch: 205, clean_jerk: 265, back_squat: 415, front_squat: 330, bench: 255, deadlift: 405, ohp: 175 }
-const db = (logs, storedAdj = {}) => ({
+const db = (logs, storedAdj = {}, plan) => ({
   from: () => {
     const o = {
       select: () => o, eq: () => o, gte: () => o, order: () => o,
-      limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: storedAdj } }] }),
+      limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: storedAdj, ...(plan ? { plan } : {}) } }] }),
       not: () => Promise.resolve({ data: logs }),
     }
     return o
@@ -26,57 +26,65 @@ const check = (label, ok, got) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}  → ${JSON.stringify(got)}`)
   if (!ok) fails++
 }
-const SLOT = 'back_squat_heavy'
-const loads = (wk, adj) => hybridPower.buildDay(wk, 1, MAXES, adj).items.find(i => i.slot === SLOT).setPlan.map(s => s.targetWeightLbs)
+// Bench, not the squat: the squat sits under a 76% ceiling (FOR-358) that
+// would eat a +3 and test the ceiling instead of the carry.
+const SLOT = 'bench_heavy'
+const cardOf = (wk, adj) => hybridPower.buildDay(wk, 1, MAXES, adj).items.find(i => i.slot === SLOT)
+const loads = (wk, adj) => {
+  const c = cardOf(wk, adj)
+  return c.setPlan?.length ? c.setPlan.map(s => s.targetWeightLbs) : Array.from({ length: c.sets }, () => c.targetWeightLbs)
+}
+// Weeks 9 to 10: Peak, the base lift both weeks, so the step is the table's.
+const [A, B] = [9, 10]
 
 // 1. Followed the card exactly, RPE inside ±1 of target → keeps the +3.
 {
-  const shown = loads(6, { [SLOT]: 3 })
-  const rpes = [6, 7, 8, 7, 7, 8]
+  const shown = loads(A, { [SLOT]: 3 })
+  const rpes = [7, 8, 8, 9]
   const logs = shown.map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: rpes[i] }))
-  const adj = await computeAdjustments(db(logs, { [SLOT]: 3 }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  const adj = await computeAdjustments(db(logs, { [SLOT]: 3 }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
   check('obeyed +3 card at target RPE → still +3', adj[SLOT] === 3, adj)
-  const w7 = loads(7, adj), w6 = shown
-  check('week 7 top single is above week 6 top single', w7[5] > w6[5], { w6: w6[5], w7: w7[5] })
+  const w7 = loads(B, adj), w6 = shown
+  check('next week\'s top set is above this week\'s', w7.at(-1) > w6.at(-1), { was: w6.at(-1), now: w7.at(-1) })
 }
 
 // 2. Skipped the slot last week → the adjustment waits, it is not erased.
 {
-  const adj = await computeAdjustments(db([{ slot: 'bench_heavy', set_number: 1, weight_lbs: 200, rpe: 8 }], { [SLOT]: 3 }),
-    'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
-  check('no squat logs → +3 carried', adj[SLOT] === 3, adj)
+  const adj = await computeAdjustments(db([{ slot: 'back_squat_heavy', set_number: 1, weight_lbs: 300, rpe: 8 }], { [SLOT]: 3 }),
+    'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
+  check('no bench logs → +3 carried', adj[SLOT] === 3, adj)
 }
 
 // 3. Carry plus a light RPE never banks past the clamp.
 {
-  const shown = loads(6, { [SLOT]: MAX_ADJ })
+  const shown = loads(A, { [SLOT]: MAX_ADJ })
   const logs = shown.map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: 5 }))
-  const adj = await computeAdjustments(db(logs, { [SLOT]: MAX_ADJ }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  const adj = await computeAdjustments(db(logs, { [SLOT]: MAX_ADJ }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
   check(`stored value clamps at ${MAX_ADJ}`, adj[SLOT] === MAX_ADJ, adj)
 }
 
 // 4. Heavy RPE on an obeyed +3 card still pulls it down.
 {
-  const shown = loads(6, { [SLOT]: 3 })
+  const shown = loads(A, { [SLOT]: 3 })
   const logs = shown.map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: 10 }))
-  const adj = await computeAdjustments(db(logs, { [SLOT]: 3 }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  const adj = await computeAdjustments(db(logs, { [SLOT]: 3 }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
   check('obeyed +3 at RPE 10 → comes down', (adj[SLOT] ?? 0) < 3, adj)
 }
 
 // 5. Nothing logged at all last session → still carries (Codex r1 P2-3).
 {
-  const adj = await computeAdjustments(db([], { [SLOT]: 3 }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  const adj = await computeAdjustments(db([], { [SLOT]: 3 }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
   check('empty session → +3 carried', adj[SLOT] === 3, adj)
 }
 
 // 6. A legacy stored value past the clamp carries as what was SHOWN (+8),
 //    so a hard session pulls it down at once (Codex r1 P2-2).
 {
-  const shown = loads(6, { [SLOT]: 12 })
+  const shown = loads(A, { [SLOT]: 12 })
   const logs = shown.map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: 10 }))
-  const adj = await computeAdjustments(db(logs, { [SLOT]: 12 }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  const adj = await computeAdjustments(db(logs, { [SLOT]: 12 }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
   check('stored +12, shown +8, RPE 10 → +4', adj[SLOT] === 4, adj)
-  const skip = await computeAdjustments(db([], { [SLOT]: 12 }), 'u', hybridPower, 7, 1, RUN_EPOCH, MAXES)
+  const skip = await computeAdjustments(db([], { [SLOT]: 12 }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
   check('stored +12, skipped → carries the shown +8', skip[SLOT] === MAX_ADJ, skip)
 }
 
@@ -139,6 +147,38 @@ const loads = (wk, adj) => hybridPower.buildDay(wk, 1, MAXES, adj).items.find(i 
     }
   }
   check('100 lb OHP obeyed for weeks → no drift', worst === 0, { worst })
+}
+
+// 10. A WEEKLY VARIATION IS THE SAME LIFT (FOR-358). Power Dad's bench is a
+//     plain bench one week and a Spoto press the next. Feedback has to follow
+//     the family across that change, or every week resets to the bare table.
+{
+  const w5 = cardOf(5, { [SLOT]: 3 }), w6 = cardOf(6, {})
+  check('week 5 and week 6 bench are different movements', w5.name !== w6.name, { w5: w5.name, w6: w6.name })
+  const logs = loads(5, { [SLOT]: 3 }).map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: w5.targetRpe }))
+  const adj = await computeAdjustments(db(logs, { [SLOT]: 3 }), 'u', hybridPower, 6, 1, RUN_EPOCH, MAXES)
+  check('obeyed +3 Bench carries into the Spoto week', adj[SLOT] === 3, adj)
+  const sq = (wk, adj) => hybridPower.buildDay(wk, 1, MAXES, adj).items.find(i => i.slot === 'back_squat_heavy')
+  const s5 = sq(5, { back_squat_heavy: 3 })
+  const sqLogs = Array.from({ length: s5.sets }, (_, i) => ({ slot: 'back_squat_heavy', set_number: i + 1, weight_lbs: s5.targetWeightLbs, rpe: s5.targetRpe }))
+  const back = await computeAdjustments(db(sqLogs, { back_squat_heavy: 3 }), 'u', hybridPower, 6, 1, RUN_EPOCH, MAXES)
+  check('the squat family carries too (Back Squat into Box Squat)', back.back_squat_heavy === 3 && sq(6, {}).name !== s5.name, { adj: back, w6: sq(6, {}).name })
+  // A family match never bridges a swap (Codex r1, PR #95). Swapped to dips
+  // in week 5, or swapped away from the Spoto press in week 6: either way the
+  // feedback is about another exercise.
+  const plan5 = hybridPower.buildDay(5, 1, MAXES, { [SLOT]: 3 }).items
+  const swapped5 = { items: plan5.map(i => (i.slot === SLOT ? { ...i, name: 'Weighted Dips', subbedFrom: i.name } : i)) }
+  const sw5 = await computeAdjustments(db(logs, { [SLOT]: 3 }, swapped5), 'u', hybridPower, 6, 1, RUN_EPOCH, MAXES,
+    { [`${SLOT}::${w5.name}`]: 'Weighted Dips' })
+  check('a swap on the Bench week does not carry into the Spoto week', sw5[SLOT] === undefined, sw5)
+  const sw6 = await computeAdjustments(db(logs, { [SLOT]: 3 }), 'u', hybridPower, 6, 1, RUN_EPOCH, MAXES,
+    { [`${SLOT}::${w6.name}`]: 'DB Bench Press' })
+  check('a swap on the Spoto week takes no carry from the Bench week', sw6[SLOT] === undefined, sw6)
+  // A new block is a new table: the carry resets at the meso boundary.
+  const w4 = cardOf(4, { [SLOT]: 3 })
+  const l4 = loads(4, { [SLOT]: 3 }).map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: w4.targetRpe }))
+  const reset = await computeAdjustments(db(l4, { [SLOT]: 3 }), 'u', hybridPower, 5, 1, RUN_EPOCH, MAXES)
+  check('the carry resets at the block boundary (week 4 to 5)', reset[SLOT] === undefined, reset)
 }
 
 if (fails) { console.error(`\n${fails} failing`); process.exit(1) }
