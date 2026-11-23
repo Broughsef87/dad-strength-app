@@ -5,7 +5,7 @@
 //
 //   1. the Olympic lifts on exactly two days a week, power versions only: no
 //      full squat catch outside the taper and the meet (FOR-354, 2026-11-23)
-//   2. squats exactly once a week, to a box (FOR-354; meet week aside)
+//   2. squats twice a week, one back and one front, both moderate (FOR-356)
 //   3. no jumps, sprints or prep sequence anywhere — his knees
 //   4. no day over the 6-block budget (Power Dad's length, no longer)
 //   5. never more than 4 sets of anything
@@ -27,7 +27,7 @@ assert(!!p, 'platform-dad is in the registry')
 if (!p) { console.error(fails.join('\n')); process.exit(1) }
 assert(p.listed === false && !LISTED_PROGRAMS['platform-dad'], 'platform-dad is off the public site')
 
-const MAXES = { snatch: 215, clean_jerk: 265, back_squat: 425, ohp: 180 }
+const MAXES = { snatch: 215, clean_jerk: 265, back_squat: 425, front_squat: 355, ohp: 180 }
 const CLASSIC = /snatch|clean/i
 const isClassic = (i) => i.kind === 'lift' && (i.maxKey === 'snatch' || i.maxKey === 'clean_jerk') && CLASSIC.test(i.name) && !/pull/i.test(i.name)
 const OVERHEAD = /press|jerk/i
@@ -35,7 +35,7 @@ const OVERHEAD = /press|jerk/i
 for (const forceDeload of [false, true]) {
   for (let wk = 1; wk <= 26; wk++) {
     const days = scheduledDayNumbers(p, wk)
-    let squatDays = 0, olyDays = 0, overheadDays = 0
+    let back = 0, front = 0, olyDays = 0, overheadDays = 0
     const wim = ((wk - 1) % 13) + 1
     for (const d of days) {
       const plan = p.buildDay(wk, d, MAXES, {}, { forceDeload })
@@ -51,9 +51,8 @@ for (const forceDeload of [false, true]) {
         `${tag}: no jumps, sprints or prep`)
       // "With No Jump" is the opposite of a jump: feet stay flat (FOR-349). It is
       // stripped before the test so it cannot hide a real jump in the same name.
-      // "Box Squat" is a squat to a box, not box work (FOR-354).
       assert(!plan.items.some((i) => /jump|bound|sprint|box|lunge|burpee|step-over/i.test(
-        `${i.name ?? i.title ?? ''} ${i.description ?? ''}`.replace(/\bwith no jump\b/ig, '').replace(/\bbox squat\b/ig, ''))),
+        `${i.name ?? i.title ?? ''} ${i.description ?? ''}`.replace(/\bwith no jump\b/ig, ''))),
         `${tag}: nothing named like a jump, sprint, lunge or burpee`)
       assert(blockCount(plan) <= 6, `${tag}: ${blockCount(plan)} blocks, over the 6-block budget`)
       for (const i of plan.items) {
@@ -67,16 +66,17 @@ for (const forceDeload of [false, true]) {
           }
         }
       }
-      if (plan.items.some((i) => i.kind === 'lift' && /squat/i.test(i.name))) squatDays++
+      if (plan.items.some((i) => i.kind === 'lift' && /^back squat/i.test(i.name))) back++
+      if (plan.items.some((i) => i.kind === 'lift' && /^front squat/i.test(i.name))) front++
       if (plan.items.some((i) => i.kind === 'lift' && OVERHEAD.test(i.name) && !/incline|db press/i.test(i.name))) overheadDays++
     }
     if (wim !== 13) {
       assert(days.length === 4, `W${wk}: four sessions, got ${days.length}`)
-      assert(squatDays === 1, `W${wk}${forceDeload ? ' (deload)' : ''}: one squat day — got ${squatDays}`)
+      assert(back === 1 && front === 1, `W${wk}${forceDeload ? ' (deload)' : ''}: one back and one front squat day — got ${back} back, ${front} front`)
       assert(olyDays === 2, `W${wk}${forceDeload ? ' (deload)' : ''}: the Olympic lifts on two days — got ${olyDays}`)
       assert(overheadDays >= 3, `W${wk}${forceDeload ? ' (deload)' : ''}: overhead work three days a week — got ${overheadDays}`)
     } else {
-      assert(squatDays === 0, `W${wk}: meet week carries no squats`)
+      assert(back === 0 && front === 0, `W${wk}: test week carries no squats`)
     }
   }
 }
@@ -116,14 +116,14 @@ for (let wk = 1; wk <= 11; wk++) {
   }
 }
 
-// The mock meet: three snatch and three clean & jerk attempts at 90/95/100.
+// The test (FOR-356): "test power clean, we don't need to test snatch."
+// Three power clean attempts at 80/85/90 of the clean & jerk max, nothing else.
 {
-  const meet = p.buildDay(13, 6, MAXES, {}, {})
-  assert(meet.dayType === 'test', 'week 13 Saturday is the mock meet')
-  const sn = meet.items.find((i) => i.slot === 'test_snatch')
-  const cj = meet.items.find((i) => i.slot === 'test_cj')
-  assert(sn?.setPlan?.map((s) => s.targetWeightLbs).join() === '195,205,215', `snatch attempts 195/205/215 — got ${sn?.setPlan?.map((s) => s.targetWeightLbs)}`)
-  assert(cj?.setPlan?.map((s) => s.targetWeightLbs).join() === '240,250,265', `C&J attempts 240/250/265 — got ${cj?.setPlan?.map((s) => s.targetWeightLbs)}`)
+  const test = p.buildDay(13, 6, MAXES, {}, {})
+  assert(test.dayType === 'test', 'week 13 Saturday is the test')
+  const pc = test.items.find((i) => i.slot === 'test_power_clean')
+  assert(pc?.setPlan?.map((s) => s.targetWeightLbs).join() === '210,225,240', `power clean attempts 210/225/240 — got ${pc?.setPlan?.map((s) => s.targetWeightLbs)}`)
+  assert(!test.items.some((i) => i.kind === 'lift' && /snatch/i.test(i.name)), 'no snatch test')
 }
 
 // The percentages climb across the blocks: build < heavy < peak.
@@ -140,12 +140,13 @@ for (let wk = 1; wk <= 11; wk++) {
   const lift = (wk, d, slot) => p.buildDay(wk, d, MAXES, {}).items.find((i) => i.slot === slot)
   const want = [
     ['W1 push press 4x5 @60%', 1, 5, 'pd_push_press_pct', 5],
-    ['W1 box squat 4x5 @62%', 1, 5, 'pd_box_squat', 5],
+    ['W1 back squat 4x5 @66%', 1, 1, 'pd_back_squat', 5],
+    ['W1 front squat 4x4 @66%', 1, 5, 'pd_front_squat', 5],
     // FOR-351: the press runs out of reps sooner. Andrew logged 125-130 x 6
     // off a 180 press at RPE 6-8, so 70% x 6 asks for 6 and 72% x 6 for 7.
     ['W1 strict press 4x6 @70%', 1, 3, 'pd_ohp', 6],
     ['W2 strict press 4x6 @72%', 2, 3, 'pd_ohp', 7],
-    ['W8 box squat 4x4 @74%', 8, 5, 'pd_box_squat', 5],
+    ['W8 back squat 4x4 @76%', 8, 1, 'pd_back_squat', 5],
     ['W11 strict press 4x3 @88%', 11, 3, 'pd_ohp', 9],
   ]
   for (const [tag, wk, d, slot, rpe] of want) {
@@ -156,12 +157,12 @@ for (let wk = 1; wk <= 11; wk++) {
   assert(lift(1, 1, 'pd_hang_power_snatch')?.targetRpe === 7, 'W1 power snatch keeps the meso target (lights rate it)')
 }
 
-// 10. Technique variety (FOR-349), kept through FOR-354: the Monday power
-//     snatch and the Saturday jerk rotate every two weeks in phases 1-2;
+// 10. Technique variety (FOR-349), kept through FOR-356: the Monday power
+//     snatch rotates every two weeks in phases 1-2;
 //     phase 3, the taper and the meet carry no primers.
 {
   const at = (wk, d, slot) => p.buildDay(wk, d, MAXES, {}).items.find((i) => i.slot === slot)
-  for (const slot of [['pd_hang_power_snatch', 1], ['pd_jerk', 6]]) {
+  for (const slot of [['pd_hang_power_snatch', 1]]) {
     const names = [1, 3, 5, 7].map((wk) => at(wk, slot[1], slot[0])?.name)
     assert(new Set(names).size === 4, `${slot[0]}: four movements across weeks 1-8, got ${names.join(' / ')}`)
     for (const wk of [1, 3, 5, 7]) {
@@ -178,23 +179,21 @@ for (let wk = 1; wk <= 11; wk++) {
 }
 
 // 11. Knees first (FOR-354). Andrew, 2026-11-23: "The heavy squatting and the
-//     plyo frequency has really torn my knees up." The one squat stays
-//     moderate, nothing single-leg or deep, and conditioning lands nothing.
+//     plyo frequency has really torn my knees up." Both squats stay moderate,
+//     nothing single-leg or deep, and conditioning lands nothing.
 {
   for (let wk = 1; wk <= 11; wk++) {
-    const sq = p.buildDay(wk, 5, MAXES, {}).items.find((i) => i.slot === 'pd_box_squat')
-    assert(sq && sq.percent <= 76, `W${wk}: box squat at or under 76%, got ${sq?.percent}`)
+    for (const [d, slot] of [[1, 'pd_back_squat'], [5, 'pd_front_squat']]) {
+      const sq = p.buildDay(wk, d, MAXES, {}).items.find((i) => i.slot === slot)
+      assert(sq && sq.percent <= 76, `W${wk} ${slot}: at or under 76%, got ${sq?.percent}`)
+      const up = p.buildDay(wk, d, MAXES, { [slot]: MAX_ADJ }).items.find((i) => i.slot === slot)
+      assert(up && up.percent <= 76, `W${wk} ${slot}: with +${MAX_ADJ} autoreg still at or under 76%, got ${up?.percent}`)
+    }
     for (const d of scheduledDayNumbers(p, wk)) {
       for (const i of p.buildDay(wk, d, MAXES, {}).items) {
-        assert(!/split squat|bulgarian|pistol|step-up|front squat|overhead squat|snatch balance/i.test(i.name ?? ''), `W${wk} D${d}: no deep or single-leg knee work, got ${i.name}`)
+        assert(!/split squat|bulgarian|pistol|step-up|overhead squat|snatch balance/i.test(i.name ?? ''), `W${wk} D${d}: no deep or single-leg knee work, got ${i.name}`)
       }
     }
-  }
-  // The ceiling holds after autoreg too (Codex r1): the biggest allowed push up
-  // still leaves the box squat at 76% or under, every week.
-  for (let wk = 1; wk <= 11; wk++) {
-    const up = p.buildDay(wk, 5, MAXES, { pd_box_squat: MAX_ADJ }).items.find((i) => i.slot === 'pd_box_squat')
-    assert(up && up.percent <= 76, `W${wk}: box squat with +${MAX_ADJ} autoreg stays at or under 76%, got ${up?.percent}`)
   }
   // No full catch before the meet: the taper week's Olympic work is power too.
   for (const d of scheduledDayNumbers(p, 12)) {
@@ -209,6 +208,13 @@ for (let wk = 1; wk <= 11; wk++) {
       assert(plan.dayType === 'rest' || plan.items.length > 0, `W${wk} D${d}: a scheduled session with nothing in it`)
     }
   }
+  // Bench twice, and no separate pulls or jerks (FOR-356).
+  for (let wk = 1; wk <= 11; wk++) {
+    const names = scheduledDayNumbers(p, wk).flatMap((d) => p.buildDay(wk, d, MAXES, {}).items.map((i) => i.name ?? ''))
+    assert(names.filter((n) => /bench press/i.test(n) && !/db/i.test(n)).length === 2, `W${wk}: bench twice a week, got ${names.filter((n) => /bench/i.test(n)).join(', ')}`)
+    const stray = names.filter((n) => /(snatch|clean|segment) pull|halting|^jerk|split jerk/i.test(n))
+    assert(stray.length === 0, `W${wk}: no separate pulls or jerks, got ${stray.join(', ')}`)
+  }
   const conditioning = [1, 2, 3].flatMap((wk) => [5, 6].map((d) => p.buildDay(wk, d, MAXES, {}).items.filter((i) => i.kind === 'metcon'))).flat()
   assert(conditioning.length === 6, `two conditioning pieces a week, got ${conditioning.length} over three weeks`)
   assert(conditioning.every((m) => /bike|row|sled/i.test(m.description)), 'conditioning is bike, rower or sled only')
@@ -219,4 +225,4 @@ if (fails.length) {
   console.error(`platform-dad: ${fails.length} of ${checks} FAILED`)
   process.exit(1)
 }
-console.log(`platform-dad: ${checks} checks passed — Olympic lifts on two days, one box squat, no jumps, six blocks, four sets`)
+console.log(`platform-dad: ${checks} checks passed — Olympic lifts on two days, two moderate squats, bench twice, no jumps, six blocks, four sets`)

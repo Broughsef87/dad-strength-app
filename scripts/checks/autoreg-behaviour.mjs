@@ -95,10 +95,10 @@ const shown = (wk, day, slot) =>
 {
   const { PROGRAMS } = await import('../../src/lib/programs/index.ts')
   const pd = PROGRAMS['platform-dad']
-  const PD = { snatch: 215, clean_jerk: 265, back_squat: 425, ohp: 180 }
-  const items = pd.buildDay(1, 5, PD).items
-  const sq = items.find(i => i.slot === 'pd_box_squat')
-  const rows = (rpe) => [1, 2, 3, 4].map(n => ({ slot: 'pd_box_squat', rpe, weight_lbs: sq.targetWeightLbs, set_number: n }))
+  const PD = { snatch: 215, clean_jerk: 265, back_squat: 425, front_squat: 355, ohp: 180 }
+  const items = pd.buildDay(1, 1, PD).items
+  const sq = items.find(i => i.slot === 'pd_back_squat')
+  const rows = (rpe) => [1, 2, 3, 4].map(n => ({ slot: 'pd_back_squat', rpe, weight_lbs: sq.targetWeightLbs, set_number: n }))
   const withPlan = (logs, plan) => ({
     from: () => {
       const o = {
@@ -109,26 +109,26 @@ const shown = (wk, day, slot) =>
       return o
     },
   })
-  const old = { items: items.map(i => i.slot === 'pd_box_squat' ? { ...i, targetRpe: 7 } : i) }
-  const a = await computeAdjustments(withPlan(rows(7), old), 'u', pd, 2, 5, RUN_EPOCH, PD)
-  check('stored target 7, logged 7       → no change', a.pd_box_squat, v => (v ?? 0) === 0)
-  const b = await computeAdjustments(withPlan(rows(5), { items }), 'u', pd, 2, 5, RUN_EPOCH, PD)
-  check('W1 box squat 4x5 @62%, logged RPE 5 → no change', b.pd_box_squat, v => (v ?? 0) === 0)
+  const old = { items: items.map(i => i.slot === 'pd_back_squat' ? { ...i, targetRpe: 7 } : i) }
+  const a = await computeAdjustments(withPlan(rows(7), old), 'u', pd, 2, 1, RUN_EPOCH, PD)
+  check('stored target 7, logged 7       → no change', a.pd_back_squat, v => (v ?? 0) === 0)
+  const b = await computeAdjustments(withPlan(rows(5), { items }), 'u', pd, 2, 1, RUN_EPOCH, PD)
+  check('W1 back squat 4x5 @66%, logged RPE 5 → no change', b.pd_back_squat, v => (v ?? 0) === 0)
 }
 
 // ── 8. A deploy that changes a slot's lift drops the old feedback (Codex r1, PR #89)
-// Week 1 was saved showing Snatch Pull at its old percent; FOR-349 made that
-// slot a halting complex 10% lighter. An obeyed 195 lb pull must not read as
-// "4.5% heavy" against the new 185 lb card and push week 2 up.
+// Week 1 was saved showing another lift in the slot at a heavier percent. An
+// obeyed load on that old card must not read as "heavy" against the new card
+// and push week 2 up. (Was the snatch pull until FOR-356 cut the pulls.)
 {
   const { PROGRAMS } = await import('../../src/lib/programs/index.ts')
   const pd = PROGRAMS['platform-dad']
-  const PD = { snatch: 215, clean_jerk: 265, back_squat: 425, ohp: 180 }
-  const items = pd.buildDay(1, 1, PD).items
-  const now = items.find(i => i.slot === 'pd_snatch_pull')
-  const was = { ...now, name: 'Snatch Pull', percent: 90, targetWeightLbs: 195 }
-  const plan = { items: items.map(i => i.slot === 'pd_snatch_pull' ? was : i) }
-  const logs = [1, 2, 3, 4].map(n => ({ slot: 'pd_snatch_pull', rpe: 8, weight_lbs: 195, set_number: n }))
+  const PD = { snatch: 215, clean_jerk: 265, back_squat: 425, front_squat: 355, ohp: 180 }
+  const items = pd.buildDay(1, 5, PD).items
+  const now = items.find(i => i.slot === 'pd_push_press_pct')
+  const was = { ...now, name: 'Push Press (old)', percent: now.percent + 10, targetWeightLbs: now.targetWeightLbs + 25 }
+  const plan = { items: items.map(i => i.slot === 'pd_push_press_pct' ? was : i) }
+  const logs = [1, 2, 3, 4].map(n => ({ slot: 'pd_push_press_pct', rpe: 8, weight_lbs: now.targetWeightLbs + 25, set_number: n }))
   const fake = {
     from: () => {
       const o = {
@@ -139,16 +139,16 @@ const shown = (wk, day, slot) =>
       return o
     },
   }
-  const a = await computeAdjustments(fake, 'u', pd, 2, 1, RUN_EPOCH, PD)
-  check('old Snatch Pull card, new halting slot → no carry', a.pd_snatch_pull, v => (v ?? 0) === 0)
+  const a = await computeAdjustments(fake, 'u', pd, 2, 5, RUN_EPOCH, PD)
+  check('old card, changed lift in the slot → no carry', a.pd_push_press_pct, v => (v ?? 0) === 0)
   // Same lift, same card: the follow still works (he went 10 lb heavy).
   const same = { items }
-  const heavy = [1, 2, 3, 4].map(n => ({ slot: 'pd_snatch_pull', rpe: 8, weight_lbs: now.targetWeightLbs + 20, set_number: n }))
+  const heavy = [1, 2, 3, 4].map(n => ({ slot: 'pd_push_press_pct', rpe: 8, weight_lbs: now.targetWeightLbs + 20, set_number: n }))
   const fake2 = { from: () => { const o = { select: () => o, eq: () => o, gte: () => o, order: () => o,
     limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: {}, plan: same } }] }),
     not: () => Promise.resolve({ data: heavy }) }; return o } }
-  const b = await computeAdjustments(fake2, 'u', pd, 2, 1, RUN_EPOCH, PD)
-  check('same card, lifted 20 lb heavy      → follows up', b.pd_snatch_pull, v => (v ?? 0) > 0)
+  const b = await computeAdjustments(fake2, 'u', pd, 2, 5, RUN_EPOCH, PD)
+  check('same card, lifted 20 lb heavy      → follows up', b.pd_push_press_pct, v => (v ?? 0) > 0)
 }
 
 // ── 9. A saved swap is the same lift (Codex r2, PR #89) ───────────────────────
@@ -158,20 +158,20 @@ const shown = (wk, day, slot) =>
 {
   const { PROGRAMS } = await import('../../src/lib/programs/index.ts')
   const pd = PROGRAMS['platform-dad']
-  const PD = { snatch: 215, clean_jerk: 265, back_squat: 425, ohp: 180 }
-  const items = pd.buildDay(1, 5, PD).items
-  const sq = items.find(i => i.slot === 'pd_box_squat')
-  const plan = { items: items.map(i => i.slot === 'pd_box_squat' ? { ...i, name: 'Pause Box Squat', subbedFrom: i.name } : i) }
-  const logs = [1, 2, 3, 4].map(n => ({ slot: 'pd_box_squat', rpe: 9, weight_lbs: sq.targetWeightLbs, set_number: n }))
+  const PD = { snatch: 215, clean_jerk: 265, back_squat: 425, front_squat: 355, ohp: 180 }
+  const items = pd.buildDay(1, 1, PD).items
+  const sq = items.find(i => i.slot === 'pd_back_squat')
+  const plan = { items: items.map(i => i.slot === 'pd_back_squat' ? { ...i, name: 'Pause Back Squat (2s)', subbedFrom: i.name } : i) }
+  const logs = [1, 2, 3, 4].map(n => ({ slot: 'pd_back_squat', rpe: 9, weight_lbs: sq.targetWeightLbs, set_number: n }))
   const fake = { from: () => { const o = { select: () => o, eq: () => o, gte: () => o, order: () => o,
     limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: {}, plan } }] }),
     not: () => Promise.resolve({ data: logs }) }; return o } }
-  const subs = { [`pd_box_squat::${sq.name}`]: 'Pause Box Squat' }
-  const a = await computeAdjustments(fake, 'u', pd, 2, 5, RUN_EPOCH, PD, subs)
-  check('repeated swap, logged RPE 9      → cuts', a.pd_box_squat, v => (v ?? 0) < 0)
+  const subs = { [`pd_back_squat::${sq.name}`]: 'Pause Back Squat (2s)' }
+  const a = await computeAdjustments(fake, 'u', pd, 2, 1, RUN_EPOCH, PD, subs)
+  check('repeated swap, logged RPE 9      → cuts', a.pd_back_squat, v => (v ?? 0) < 0)
   // FOR-352: a one-off swap last week says nothing about this week's plain card.
-  const b = await computeAdjustments(fake, 'u', pd, 2, 5, RUN_EPOCH, PD, {})
-  check('one-off swap, plain card now     → no carry', b.pd_box_squat, v => (v ?? 0) === 0)
+  const b = await computeAdjustments(fake, 'u', pd, 2, 1, RUN_EPOCH, PD, {})
+  check('one-off swap, plain card now     → no carry', b.pd_back_squat, v => (v ?? 0) === 0)
 }
 
 console.log('\n' + (fails ? `✗ ${fails} FAILED` : '✓ all behaviour preserved'))
