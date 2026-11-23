@@ -97,7 +97,7 @@ const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 8 }
 
 // Classic-lift percent floors. A light single or double of a snatch or clean
 // trains nothing, so:
-//   • the full lift ("Snatch", "Clean", anything from blocks) at ≤2 reps: 80%
+//   • the full lift ("Snatch", "Clean", anything from blocks): singles 85%, doubles 80%
 //   • any other variation at ≤2 reps: 75%
 //   • power / hang triples: 65%
 // A backstop: the tables are authored above it, and it stops autoreg ever
@@ -105,6 +105,10 @@ const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 8 }
 function classicFloor(name: string, reps: number): number {
   const n = name.trim().toLowerCase()
   const isFullLift = n === 'snatch' || n === 'clean' || n === 'clean & jerk' || /block/.test(n)
+  // Andrew's rule (FOR-335): no single on a full classic lift below 85%.
+  // Power singles off the full max (Friday's Power Clean) are exempt, as on
+  // Platform Dad: 85% of the clean is over a power clean max.
+  if (isFullLift && reps === 1) return 85
   if (isFullLift && reps <= 2) return 80
   if (reps <= 2) return 75
   if (/power|hang/.test(n)) return 65
@@ -214,13 +218,13 @@ const OLY_NOTE = 'Lights, not RPE: rate every set. Fast and crisp. If it slows d
 //   Strength 5×2 · Peak: climb to a heavy single
 const SN: SlotMeso[] = [
   { names: ['Hang Snatch, Above Knee', 'Hang Snatch, Below Knee', 'Hang Snatch, High Hang', 'Snatch'], sets: 4, reps: 2, pctStart: 75, pctStep: 1.5, targetRpe: 7, note: `Power it if it goes, ride it down if it doesn't. ${OLY_NOTE}` },
-  { names: ['Snatch', 'Hang Snatch, Below Knee', 'Hang Snatch, High Hang', 'Snatch'], sets: 5, reps: 2, pctStart: 78, pctStep: 1.5, targetRpe: 8, note: `Doubles, same weight across. ${OLY_NOTE}` },
+  { names: ['Snatch', 'Hang Snatch, Below Knee', 'Hang Snatch, High Hang', 'Snatch'], sets: 4, reps: 2, pctStart: 78, pctStep: 1.5, targetRpe: 8, note: `Doubles, same weight across. ${OLY_NOTE}` },
   {
-    names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 1, pctStart: 82, pctStep: 1.5, targetRpe: 8,
+    names: ['Snatch', 'Snatch', 'Snatch', 'Snatch'], sets: 3, reps: 1, pctStart: 85, pctStep: 1.5, targetRpe: 8,
     sequence: [
-      { reps: 1, pctStart: 82, pctStep: 1.5 },
-      { reps: 1, pctStart: 86, pctStep: 1.5 },
-      { reps: 1, pctStart: 89, pctStep: 1.5 },
+      { reps: 1, pctStart: 85, pctStep: 1.5 },
+      { reps: 1, pctStart: 88, pctStep: 1.5 },
+      { reps: 1, pctStart: 91, pctStep: 1.5 },
     ],
     note: `Climb to a heavy single. It shouldn't feel light, and it shouldn't be close to a miss. ${OLY_NOTE}`,
   },
@@ -251,7 +255,7 @@ const PP: SlotMeso[] = [
 // ruling: a % of the power max under-loads him).
 const CL: SlotMeso[] = [
   { names: ['Hang Power Clean, Above Knee', 'Hang Power Clean, Below Knee', 'Hang Power Clean, High Hang', 'Power Clean'], sets: 4, reps: 3, pctStart: 68, pctStep: 1.5, targetRpe: 7, note: `Catch it above parallel and stand it up. ${OLY_NOTE}` },
-  { names: ['Power Clean', 'Hang Power Clean, Below Knee', 'Hang Power Clean, Mid-Thigh', 'Power Clean'], sets: 5, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 8, note: `Doubles, same weight across. ${OLY_NOTE}` },
+  { names: ['Power Clean', 'Hang Power Clean, Below Knee', 'Hang Power Clean, Mid-Thigh', 'Power Clean'], sets: 4, reps: 2, pctStart: 75, pctStep: 1, targetRpe: 8, note: `Doubles, same weight across. ${OLY_NOTE}` },
   {
     names: ['Power Clean', 'Power Clean', 'Power Clean', 'Power Clean'], sets: 3, reps: 1, pctStart: 82, pctStep: 0.5, targetRpe: 8,
     sequence: [
