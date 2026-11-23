@@ -124,6 +124,8 @@ for (let wk = 1; wk <= 11; wk++) {
   const pc = test.items.find((i) => i.slot === 'test_power_clean')
   assert(pc?.setPlan?.map((s) => s.targetWeightLbs).join() === '210,225,240', `power clean attempts 210/225/240 — got ${pc?.setPlan?.map((s) => s.targetWeightLbs)}`)
   assert(!test.items.some((i) => i.kind === 'lift' && /snatch/i.test(i.name)), 'no snatch test')
+  const olyDays13 = scheduledDayNumbers(p, 13).filter((d) => p.buildDay(13, d, MAXES, {}).items.some((i) => i.kind === 'lift' && /snatch|clean/i.test(i.name))).length
+  assert(olyDays13 === 2, `test week: two Olympic days, got ${olyDays13}`)
 }
 
 // The percentages climb across the blocks: build < heavy < peak.
@@ -188,6 +190,8 @@ for (let wk = 1; wk <= 11; wk++) {
       assert(sq && sq.percent <= 76, `W${wk} ${slot}: at or under 76%, got ${sq?.percent}`)
       const up = p.buildDay(wk, d, MAXES, { [slot]: MAX_ADJ }).items.find((i) => i.slot === slot)
       assert(up && up.percent <= 76, `W${wk} ${slot}: with +${MAX_ADJ} autoreg still at or under 76%, got ${up?.percent}`)
+      // The AUTO badge shows what the ceiling let through, not the raw push.
+      assert((up.appliedAdjustmentPct ?? 0) === up.percent - sq.percent, `W${wk} ${slot}: AUTO shows ${up.appliedAdjustmentPct}, moved ${up.percent - sq.percent}`)
     }
     for (const d of scheduledDayNumbers(p, wk)) {
       for (const i of p.buildDay(wk, d, MAXES, {}).items) {

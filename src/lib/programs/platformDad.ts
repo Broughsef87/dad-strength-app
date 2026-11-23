@@ -220,8 +220,8 @@ function pct(
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, adjustments[slot] ?? 0))
   const off = def.pctOffset?.[pos.weekInMeso - 1] ?? 0
   const climb = (step: number) => def.rotation ? ROTATION_CLIMB[pos.weekInMeso - 1] : step * (pos.weekInMeso - 1)
-  const at = (start: number, step: number) => {
-    const raw = Math.round((start + climb(step) + off + adj) * 2) / 2
+  const at = (start: number, step: number, a = adj) => {
+    const raw = Math.round((start + climb(step) + off + a) * 2) / 2
     return s.pctCeiling != null ? Math.min(s.pctCeiling, raw) : raw
   }
   const setPlan = def.sequence?.map((st) => {
@@ -229,6 +229,9 @@ function pct(
     return { reps: st.reps, percent: p, targetWeightLbs: resolveWeight(p, s.maxKey, maxes) }
   })
   const percent = setPlan ? setPlan[0].percent : at(def.pctStart, def.pctStep)
+  // What autoreg actually moved the card by, after the ceiling (Codex r2): a
+  // capped +8 that prescribes the same 76% as no change shows no AUTO badge.
+  const shownAdj = setPlan ? adj : percent - at(def.pctStart, def.pctStep, 0)
   return {
     kind: 'lift', slot,
     name: def.names[pos.weekInMeso - 1],
@@ -241,7 +244,7 @@ function pct(
     targetRpe: s.rpeByChart
       ? targetRpeFor(percent / s.rpeByChart, setPlan ? setPlan[0].reps : def.reps, s.rpeRepScale)
       : MESO_TARGET_RPE[pos.meso] ?? 8,
-    appliedAdjustmentPct: adj !== 0 ? adj : undefined,
+    appliedAdjustmentPct: shownAdj !== 0 ? shownAdj : undefined,
     note: [def.primer ? `Primer: ${def.primer[pos.weekInMeso - 1]} (3x3, bar or light, in place of warm-up sets).` : '', def.note ?? '']
       .filter(Boolean).join(' ') || undefined,
     shortDay: s.shortDay,
@@ -439,7 +442,8 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
   const byDay: Record<Session, LiftPrescription[]> = {
     power_snatch: [light('test_sn_light', 'Power Snatch', 'snatch')],
     upper: [light('test_ohp_light', 'Strict Press', 'ohp')],
-    legs: [light('test_cj_light', 'Power Clean & Jerk', 'clean_jerk')],
+    // Not an Olympic lift: two Olympic days in test week too (Codex r2).
+    legs: [light('test_pp_light', 'Push Press', 'clean_jerk')],
     power_cj: [],
   }
   // A session with nothing in it is a rest day, so the week never asks for a

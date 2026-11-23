@@ -83,7 +83,10 @@ eq(rpeOnly < 0, true, 'an old RPE-only week still counts')
 const bound = await run(sets([0, 0, 0, 0]))
 eq(Math.abs(bound) <= MAX_ADJ, true, 'bounded by MAX_ADJ')
 // The squat on the same day is untouched by lights.
-const sq = (await computeAdjustments(db([{ slot: 'pd_box_squat', rpe: null, lights: 0, weight_lbs: null, set_number: 1 }]), 'u', platformDad, 3, 5, RUN_EPOCH, MAXES)).pd_box_squat ?? 0
+// The back squat shares Monday with the power snatch (Codex r2: the old slot
+// name no longer existed, so this passed without testing anything).
+eq(platformDad.buildDay(3, day, MAXES).items.some((i) => i.slot === 'pd_back_squat'), true, 'the back squat is on the lights day')
+const sq = (await computeAdjustments(db([{ slot: 'pd_back_squat', rpe: null, lights: 0, weight_lbs: null, set_number: 1 }]), 'u', platformDad, 3, day, RUN_EPOCH, MAXES)).pd_back_squat ?? 0
 eq(sq, 0, 'a stray light on a squat does nothing')
 
 if (fails.length) {
