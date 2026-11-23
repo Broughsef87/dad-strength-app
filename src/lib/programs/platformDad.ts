@@ -4,6 +4,7 @@ import {
   BuildDayOpts,
   DayPlan,
   LiftPrescription,
+  MetconPrescription,
   OutsideSession,
   ProgramConfig,
   Prescription,
@@ -17,8 +18,9 @@ import {
 // while. He wants four days a week of snatch, clean & jerk and bodybuilding,
 // with a possible meet after about three months. His rules:
 //
-//   · a classic lift (snatch or clean & jerk, full or a variation) EVERY session
-//   · squat exactly twice a week: one back squat day, one front squat day
+//   · (FOR-354, 2026-11-23, replacing his 10-31 rules for the lifts and squats:)
+//     the Olympic lifts on two days a week, power versions caught above parallel
+//   · squat exactly once a week, to a box, moderate
 //   · sessions no longer than Power Dad's (6 blocks)
 //   · bodybuilding leans toward the shoulders: overhead strength is the weak
 //     point (strict press well behind the squat)
@@ -118,19 +120,20 @@ const same = (n: string): [string, string, string, string] => [n, n, n, n]
 const ROTATION_CLIMB = [5, 7.5, 7.5, 10] as const
 const pairs = (a: string, b: string): [string, string, string, string] => [a, a, b, b]
 
-const KNEE_NOTE = 'Knee check first: above 3/10 today, catch these in a power position and keep it smooth.'
-const SQUAT_KNEE_NOTE = 'Knee above 3/10 today: drop to 60% or squat to a box at parallel.'
+const POWER_NOTE = 'Catch it above parallel and stand it up. A lift that drops into a full squat is a miss. Knee above 3/10 today: take 10% off.'
+const BOX_NOTE = 'Box at parallel or a touch above. Sit back, pause a beat without relaxing, stand up. Knee above 3/10 today: take 10% off or swap for a belt squat.'
 
 const SLOTS: Record<string, PctSlot> = {
-  // Monday — the snatch
-  pd_snatch: {
+  // Monday — the power snatch (FOR-354). Caught above parallel: no full squat
+  // catch anywhere in the week. Two-week rotations as before (FOR-349).
+  pd_hang_power_snatch: {
     maxKey: 'snatch', shortDay: true,
     mesos: {
-      1: { names: same('Snatch'), sets: 4, reps: 3, pctStart: 70, pctStep: 2, note: KNEE_NOTE,
-        primer: pairs('Sots Press', 'Overhead Squat') },
-      2: { names: same('Snatch'), sets: 4, reps: 2, pctStart: 80, pctStep: 2, note: KNEE_NOTE,
-        primer: pairs('Pressing Snatch Balance', 'Snatch Balance, No Dip') },
-      3: { names: same('Snatch'), sets: 4, reps: 1, pctStart: 86, pctStep: 2, note: KNEE_NOTE },
+      1: { rotation: true, names: pairs('Hang Power Snatch, Above Knee', 'Hang Power Snatch, Below Knee'), sets: 4, reps: 2, pctStart: 57, pctStep: 2,
+        note: POWER_NOTE, primer: pairs('Snatch High Pull', 'Muscle Snatch') },
+      2: { rotation: true, names: pairs('Power Snatch', 'Pause Power Snatch, At Knee'), sets: 4, reps: 2, pctStart: 63, pctStep: 2,
+        note: POWER_NOTE, primer: pairs('Muscle Snatch', 'Snatch High Pull') },
+      3: { names: same('Power Snatch'), sets: 4, reps: 1, pctStart: 74, pctStep: 2, note: POWER_NOTE },
     },
   },
   pd_snatch_pull: {
@@ -144,27 +147,18 @@ const SLOTS: Record<string, PctSlot> = {
       3: { names: same('Snatch Pull'), sets: 3, reps: 2, pctStart: 100, pctStep: 2 },
     },
   },
-  pd_back_squat: {
+  // Friday — the week's only squat, to a box (FOR-354). Moderate on purpose.
+  // A new slot id: the old back squat logs must not carry into a box squat.
+  pd_box_squat: {
     maxKey: 'back_squat', shortDay: true, rpeByChart: 1,
     mesos: {
-      1: { names: same('Back Squat'), sets: 4, reps: 5, pctStart: 68, pctStep: 2, note: SQUAT_KNEE_NOTE },
-      2: { names: same('Back Squat'), sets: 4, reps: 3, pctStart: 78, pctStep: 2, note: SQUAT_KNEE_NOTE },
-      3: { names: same('Back Squat'), sets: 3, reps: 2, pctStart: 85, pctStep: 2, note: SQUAT_KNEE_NOTE },
+      1: { names: same('Box Squat'), sets: 4, reps: 5, pctStart: 62, pctStep: 2, note: BOX_NOTE },
+      2: { names: same('Box Squat'), sets: 4, reps: 4, pctStart: 68, pctStep: 2, note: BOX_NOTE },
+      3: { names: same('Box Squat'), sets: 4, reps: 3, pctStart: 72, pctStep: 2, note: BOX_NOTE },
     },
   },
 
-  // Wednesday — the clean & jerk, and the strict press
-  pd_cj: {
-    maxKey: 'clean_jerk', shortDay: true,
-    mesos: {
-      1: { rotation: true, names: pairs('Clean With No Jump + 2 Jerks', '3-Position Clean + Jerk'), sets: 4, reps: 1, pctStart: 75, pctStep: 2,
-        pctOffset: [-5, -5, -5, -5], primer: pairs('Jerk Dip Squat', 'Tall Split Jerk'),
-        note: 'Weeks 1-2: feet stay flat, no jump, finish the pull and pull under; then two jerks. Weeks 3-4: a clean from mid-thigh, from the knee and from the floor without letting go, then one jerk. ' + KNEE_NOTE },
-      2: { names: same('Clean & Jerk'), sets: 4, reps: 1, pctStart: 85, pctStep: 1, note: KNEE_NOTE,
-        primer: pairs('Clean Rack Delivery', 'Clean With No Pull') },
-      3: { names: same('Clean & Jerk'), sets: 4, reps: 1, pctStart: 85, pctStep: 2, note: KNEE_NOTE },
-    },
-  },
+  // Wednesday — the strict press
   pd_ohp: {
     maxKey: 'ohp', shortDay: true, rpeByChart: 1, rpeRepScale: 0.85,
     mesos: {
@@ -177,56 +171,19 @@ const SLOTS: Record<string, PctSlot> = {
     },
   },
 
-  // Friday — snatch technique, the front squat
-  pd_snatch_tech: {
-    maxKey: 'snatch', shortDay: true,
-    mesos: {
-      1: { rotation: true, names: pairs('Snatch With No Jump', '2-Position Snatch'), sets: 4, reps: 2, pctStart: 75, pctStep: 2,
-        pctOffset: [-5, -5, 0, 0], primer: same('Snatch With No Pull'),
-        note: 'Weeks 1-2: feet stay flat, no jump; finish the pull and pull yourself under. Weeks 3-4: one rep from the hip, then one from the knee, without letting go.' },
-      2: { rotation: true, names: pairs('Floating Snatch', 'Segment Snatch'), sets: 4, reps: 2, pctStart: 76, pctStep: 2,
-        pctOffset: [0, 0, -5, -5], primer: same('Snatch With No Pull'),
-        note: 'Weeks 5-6: start each rep an inch off the floor, never touching down. Weeks 7-8: pause one second at the knee and at mid-thigh, then go.' },
-      3: { names: same('Power Snatch'), sets: 4, reps: 1, pctStart: 75, pctStep: 2,
-        note: 'Light and fast. The speed you take into Saturday.' },
-    },
-  },
-  pd_front_squat: {
-    maxKey: 'front_squat', shortDay: true, rpeByChart: 1,
-    mesos: {
-      1: { names: same('Front Squat'), sets: 4, reps: 4, pctStart: 70, pctStep: 2, note: SQUAT_KNEE_NOTE },
-      2: { names: same('Front Squat'), sets: 4, reps: 3, pctStart: 78, pctStep: 2, note: SQUAT_KNEE_NOTE },
-      3: { names: same('Front Squat'), sets: 3, reps: 2, pctStart: 85, pctStep: 2, note: SQUAT_KNEE_NOTE },
-    },
-  },
-
-  // Saturday — heavy singles, the jerk
-  pd_snatch_heavy: {
-    maxKey: 'snatch', shortDay: true,
-    mesos: {
-      1: { names: same('Snatch — Heavy Single'), sets: 3, reps: 1, pctStart: 74, pctStep: 2,
-        sequence: [{ reps: 1, pctStart: 85, pctStep: 0.5 }, { reps: 1, pctStart: 88, pctStep: 0.5 }, { reps: 1, pctStart: 91, pctStep: 0.5 }],
-        note: 'Climb to the day\'s heavy single. Make every one; a miss ends the climb. ' + KNEE_NOTE },
-      2: { names: same('Snatch — Heavy Single'), sets: 3, reps: 1, pctStart: 80, pctStep: 1.5,
-        sequence: [{ reps: 1, pctStart: 86, pctStep: 1 }, { reps: 1, pctStart: 89, pctStep: 1 }, { reps: 1, pctStart: 92, pctStep: 1 }],
-        note: 'Climb to the day\'s heavy single. Make every one; a miss ends the climb. ' + KNEE_NOTE },
-      3: { names: same('Snatch — Heavy Single'), sets: 3, reps: 1, pctStart: 84, pctStep: 1.5,
-        sequence: [{ reps: 1, pctStart: 88, pctStep: 1 }, { reps: 1, pctStart: 92, pctStep: 1 }, { reps: 1, pctStart: 95, pctStep: 1 }],
-        note: 'Climb to the day\'s heavy single. Make every one; a miss ends the climb. ' + KNEE_NOTE },
-    },
-  },
-  pd_cj_heavy: {
+  // Saturday — the power clean & jerk, climbing to a heavy single, and the jerk
+  pd_power_cj: {
     maxKey: 'clean_jerk', shortDay: true,
     mesos: {
-      1: { names: same('Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 74, pctStep: 2,
-        sequence: [{ reps: 1, pctStart: 85, pctStep: 0.5 }, { reps: 1, pctStart: 88, pctStep: 0.5 }, { reps: 1, pctStart: 91, pctStep: 0.5 }],
-        note: 'Climb to the day\'s heavy single. ' + KNEE_NOTE },
-      2: { names: same('Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 80, pctStep: 1.5,
-        sequence: [{ reps: 1, pctStart: 86, pctStep: 1 }, { reps: 1, pctStart: 89, pctStep: 1 }, { reps: 1, pctStart: 92, pctStep: 1 }],
-        note: 'Climb to the day\'s heavy single. ' + KNEE_NOTE },
-      3: { names: same('Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 84, pctStep: 1.5,
-        sequence: [{ reps: 1, pctStart: 88, pctStep: 1 }, { reps: 1, pctStart: 92, pctStep: 1 }, { reps: 1, pctStart: 95, pctStep: 1 }],
-        note: 'Climb to the day\'s heavy single. ' + KNEE_NOTE },
+      1: { names: same('Power Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 70, pctStep: 0.5,
+        sequence: [{ reps: 1, pctStart: 70, pctStep: 0.5 }, { reps: 1, pctStart: 73, pctStep: 0.5 }, { reps: 1, pctStart: 76, pctStep: 0.5 }],
+        note: 'Climb to the day\'s heavy single. ' + POWER_NOTE },
+      2: { names: same('Power Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 74, pctStep: 1,
+        sequence: [{ reps: 1, pctStart: 74, pctStep: 1 }, { reps: 1, pctStart: 77, pctStep: 1 }, { reps: 1, pctStart: 80, pctStep: 1 }],
+        note: 'Climb to the day\'s heavy single. ' + POWER_NOTE },
+      3: { names: same('Power Clean & Jerk — Heavy Single'), sets: 3, reps: 1, pctStart: 77, pctStep: 1,
+        sequence: [{ reps: 1, pctStart: 77, pctStep: 1 }, { reps: 1, pctStart: 80, pctStep: 1 }, { reps: 1, pctStart: 83, pctStep: 1 }],
+        note: 'Climb to the day\'s heavy single. ' + POWER_NOTE },
     },
   },
   // Andrew, 2026-11-04: push press is strength work, so it goes with the
@@ -324,72 +281,92 @@ function range(
 
 /**
  * Which session each gym day runs. A declared table so the week is one line to
- * change. Squats: back on Monday, front on Friday, nowhere else.
+ * change (FOR-354, Andrew 2026-11-23: "less emphasis on heavy squatting/olympic
+ * lifts ... I just can't do it all at 40"). The balanced mix he picked:
+ *   · the Olympic lifts on TWO days, power versions only (caught above parallel)
+ *   · ONE squat day, to a box, moderate
+ *   · legs otherwise from the hips: pulls, RDL, hip thrust, sled
+ *   · a full upper day, and two low-impact conditioning pieces
  */
-type Session = 'snatch' | 'cj_press' | 'technique' | 'heavy'
+type Session = 'power_snatch' | 'upper' | 'legs' | 'power_cj'
 const SESSION_BY_DAY: Record<number, Session> = {
-  1: 'snatch',     // Mon — snatch, back squat, hinge, delts
-  3: 'cj_press',   // Wed — clean & jerk, strict press, upper body
-  5: 'technique',  // Fri — snatch technique, front squat, back and arms
-  6: 'heavy',      // Sat — heavy singles, jerk, overhead
+  1: 'power_snatch', // Mon — power snatch, snatch pull, hinge, delts
+  3: 'upper',        // Wed — strict press, upper body
+  5: 'legs',         // Fri — box squat, push press, hips, sled
+  6: 'power_cj',     // Sat — power clean & jerk, jerk, shoulders, engine
 }
 
+/**
+ * Low-impact conditioning: bike, rower and sled only. No burpees, step-overs
+ * or anything that lands. Indexed by week so the piece rotates.
+ */
+const SLED_POOL: Array<Omit<MetconPrescription, 'kind' | 'slot'>> = [
+  { name: 'Sled Push + Drag', format: 'for_time', timeCapMinutes: 10, description: '5 rounds:\n30yd sled push (heavy, walking)\n30yd backward sled drag\nrest 60s between rounds' },
+  { name: 'Sled + Row', format: 'for_time', timeCapMinutes: 12, description: '4 rounds:\n30yd sled push (moderate)\n250m row\nrest 60s between rounds' },
+  { name: 'Sled Drag Intervals', format: 'emom', timeCapMinutes: 10, description: 'EMOM 10\nodd: 20yd backward sled drag\neven: 20yd forward sled drag' },
+]
+const ENGINE_POOL: Array<Omit<MetconPrescription, 'kind' | 'slot'>> = [
+  { name: 'Bike Intervals', format: 'emom', timeCapMinutes: 12, description: 'EMOM 12 (alternating)\nmin 1: 30s hard on the bike\nmin 2: easy spin' },
+  { name: 'Row Pieces', format: 'for_time', timeCapMinutes: 12, description: '4 rounds:\n300m row, hard but even\nrest 90s between rounds' },
+  { name: 'Bike + Row Ladder', format: 'amrap', timeCapMinutes: 10, description: 'AMRAP 10\n10 cal bike\n10 cal row' },
+]
+
 function session(
-  sess: Session, pos: MacroPos, maxes: Record<string, number>,
+  sess: Session, pos: MacroPos, weekNumber: number, maxes: Record<string, number>,
   adj: Record<string, number>, lt: Record<string, number>,
 ): { dayName: string; intent: string; items: Prescription[] } {
   const r = RANGE_BY_MESO[pos.meso]
+  const pick = <T,>(pool: T[]) => pool[(weekNumber - 1) % pool.length]
   switch (sess) {
-    case 'snatch':
+    case 'power_snatch':
       return {
-        dayName: 'Snatch + Back Squat',
-        intent: 'Snatch first while you are fresh, pull heavy, squat, then hamstrings and delts.',
+        dayName: 'Power Snatch + Hinge',
+        intent: 'Power snatch while you are fresh, pull heavy, then hamstrings, low back and delts. No squatting today.',
         items: [
-          pct('pd_snatch', pos, maxes, adj),
+          pct('pd_hang_power_snatch', pos, maxes, adj),
           pct('pd_snatch_pull', pos, maxes, adj),
-          pct('pd_back_squat', pos, maxes, adj),
           range('pd_rdl', 'Romanian Deadlift', 3, r.heavy, lt, { step: 10, note: 'Hinge, do not squat it. Easy on the knees, hard on the hamstrings.' }),
           range('pd_legcurl', 'Lying Leg Curl', 3, r.mid, lt, { note: 'Hamstrings protect the knee. Slow on the way down.' }),
+          range('pd_back_ext', 'Back Extension', 3, r.mid, lt, { note: 'Hips on the pad, round down and squeeze the glutes to come up. Hold a plate once the top of the range is easy.' }),
           range('pd_lateral_a', 'Lateral Raise', 4, r.wide, lt, { rir: 1, note: 'Light and strict. Shoulders are the priority this block.' }),
         ],
       }
-    case 'cj_press':
+    case 'upper':
       return {
-        dayName: 'Clean & Jerk + Press',
-        intent: 'Clean and jerk, then the strict press: the lift this program exists to bring up. Then the upper body.',
+        dayName: 'Press + Upper',
+        intent: 'The strict press first: the lift this program exists to bring up. Then a full upper-body day.',
         items: [
-          pct('pd_cj', pos, maxes, adj),
           pct('pd_ohp', pos, maxes, adj),
-          range('pd_incline', 'Incline DB Press', 3, r.mid, lt),
-          range('pd_lateral_b', 'Lateral Raise', 3, r.wide, lt, { rir: 1, superset: 'pd_ss_delts' }),
-          range('pd_facepull', 'Face Pull', 3, r.wide, lt, { rir: 1, superset: 'pd_ss_delts', note: 'Rear delts and the upper back that holds a jerk overhead.' }),
-          range('pd_oh_triceps', 'Overhead Triceps Extension', 3, r.mid, lt, { rir: 1, note: 'Triceps lock out the jerk. The stretch overhead is the point.' }),
-        ],
-      }
-    case 'technique':
-      return {
-        dayName: 'Snatch Technique + Front Squat',
-        intent: 'Lighter snatch work for positions, the week\'s front squat and the push press, then back and biceps.',
-        items: [
-          pct('pd_snatch_tech', pos, maxes, adj),
-          pct('pd_front_squat', pos, maxes, adj),
-          pct('pd_push_press_pct', pos, maxes, adj),
           range('pd_pullup', 'Weighted Pull-Up', 4, r.heavy, lt, { note: 'Dead hang to chin over. Add load when the top of the range is easy.' }),
-          range('pd_row', 'Chest-Supported Row', 3, r.mid, lt, { note: 'Chest stays down. No body english.' }),
-          range('pd_curl', 'EZ-Bar Curl', 3, r.mid, lt),
+          range('pd_incline', 'Incline DB Press', 3, r.mid, lt),
+          range('pd_facepull', 'Face Pull', 3, r.wide, lt, { rir: 1, note: 'Rear delts and the upper back that holds a jerk overhead.' }),
+          range('pd_oh_triceps', 'Overhead Triceps Extension', 3, r.mid, lt, { rir: 1, superset: 'pd_ss_arms', note: 'Triceps lock out the jerk. The stretch overhead is the point.' }),
+          range('pd_curl', 'EZ-Bar Curl', 3, r.mid, lt, { superset: 'pd_ss_arms' }),
         ],
       }
-    case 'heavy':
+    case 'legs':
       return {
-        dayName: 'Heavy Singles + Jerk',
-        intent: 'Climb to a heavy snatch and clean & jerk, jerk from the rack, then build the shoulders.',
+        dayName: 'Box Squat + Sled',
+        intent: 'The week\'s one squat, to a box and moderate. Push press, hips and back, then the sled.',
         items: [
-          pct('pd_snatch_heavy', pos, maxes, adj),
-          pct('pd_cj_heavy', pos, maxes, adj),
+          pct('pd_box_squat', pos, maxes, adj),
+          pct('pd_push_press_pct', pos, maxes, adj),
+          range('pd_hip_thrust', 'Barbell Hip Thrust', 3, r.heavy, lt, { step: 10, note: 'Shoulders on a bench, chin tucked, drive through the heels and pause a beat at the top.' }),
+          range('pd_row', 'Chest-Supported Row', 3, r.mid, lt, { note: 'Chest stays down. No body english.' }),
+          { kind: 'metcon', slot: 'pd_sled', ...pick(SLED_POOL) },
+        ],
+      }
+    case 'power_cj':
+      return {
+        dayName: 'Power Clean & Jerk + Engine',
+        intent: 'Climb to a heavy power clean & jerk, jerk from the rack, build the shoulders, then a short piece on the bike or rower.',
+        items: [
+          pct('pd_power_cj', pos, maxes, adj),
           pct('pd_jerk', pos, maxes, adj),
           range('pd_zpress', 'Z-Press', 3, r.heavy, lt, { note: 'Seated on the floor, no back support. Strict overhead strength, nothing to cheat with.' }),
-          range('pd_lateral_c', 'Cable Lateral Raise', 3, r.wide, lt, { rir: 1 }),
-          range('pd_triceps', 'Rope Pushdown', 3, r.mid, lt, { rir: 1 }),
+          range('pd_lateral_c', 'Cable Lateral Raise', 3, r.wide, lt, { rir: 1, superset: 'pd_ss_sat' }),
+          range('pd_triceps', 'Rope Pushdown', 3, r.mid, lt, { rir: 1, superset: 'pd_ss_sat' }),
+          { kind: 'metcon', slot: 'pd_engine', ...pick(ENGINE_POOL) },
         ],
       }
   }
@@ -398,13 +375,14 @@ function session(
 // Taper (week 12, or a fatigue deload): same movements, light. Classic lifts
 // and squats drop to 75% for two or three crisp sets; range work to two sets.
 function taper(items: Prescription[], maxes: Record<string, number>, isOpenerDay: boolean): Prescription[] {
-  return items.map((i) => {
+  // Conditioning comes out of a taper week entirely: leave fresh.
+  return items.filter((i) => i.kind !== 'metcon').map((i) => {
     if (i.kind !== 'lift') return i
     if (i.percent != null) {
-      if (isOpenerDay && (i.slot === 'pd_snatch_heavy' || i.slot === 'pd_cj_heavy')) {
+      if (isOpenerDay && i.slot === 'pd_power_cj') {
         const setPlan = [80, 85, 88].map((p) => ({ reps: 1, percent: p, targetWeightLbs: resolveWeight(p, i.maxKey, maxes) }))
         return {
-          ...i, name: i.slot === 'pd_snatch_heavy' ? 'Snatch — Openers' : 'Clean & Jerk — Openers',
+          ...i, name: 'Clean & Jerk — Openers',
           sets: 3, reps: 1, percent: 80, setPlan, targetRpe: 7,
           targetWeightLbs: setPlan[0].targetWeightLbs, appliedAdjustmentPct: undefined,
           note: 'Practise the opener: the last single is what you would open with next week. Easy and fast.',
@@ -414,7 +392,10 @@ function taper(items: Prescription[], maxes: Record<string, number>, isOpenerDay
       // A pull lives above the lift's max; 75% of a snatch is not a pull.
       // Never heavier than the slot's own load this week (FOR-331): a light
       // M1 slot at 70% must not climb to the taper's 75.
-      const tp = Math.min(/pull/.test(i.slot) ? 90 : 75, i.percent)
+      // A climb is as heavy as its top set, so its taper comes off that (FOR-354):
+      // a power climb opening at 70% would otherwise 'taper' to the same 70%.
+      const top = i.setPlan ? Math.max(...i.setPlan.map((st) => st.percent ?? 0)) - 10 : i.percent
+      const tp = Math.min(/pull/.test(i.slot) ? 90 : 75, top)
       return {
         ...rest, percent: tp, sets: Math.min(3, i.sets), reps: Math.min(2, i.reps), targetRpe: 6,
         targetWeightLbs: resolveWeight(tp, i.maxKey, maxes), appliedAdjustmentPct: undefined,
@@ -470,10 +451,10 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
     note: 'Meet week. Fast singles, nothing heavy.',
   })
   const byDay: Record<Session, LiftPrescription[]> = {
-    snatch: [light('test_sn_light', 'Snatch', 'snatch')],
-    cj_press: [light('test_cj_light', 'Clean & Jerk', 'clean_jerk')],
-    technique: [light('test_sn_light', 'Snatch', 'snatch'), light('test_cj_light', 'Clean & Jerk', 'clean_jerk')],
-    heavy: [],
+    power_snatch: [light('test_sn_light', 'Snatch', 'snatch')],
+    upper: [],
+    legs: [light('test_cj_light', 'Clean & Jerk', 'clean_jerk')],
+    power_cj: [],
   }
   return {
     dayNumber, dayName: 'Meet Week — Light', dayType: 'gym',
@@ -496,15 +477,15 @@ function buildDay(
   if (!sess) {
     return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Off. Knees and shoulders recover here.', items: [] }
   }
-  const built = session(sess, pos, maxes, adjustments, opts?.loadTargets ?? {})
+  const built = session(sess, pos, weekNumber, maxes, adjustments, opts?.loadTargets ?? {})
   if (pos.isDeload) {
     const isTaperWeek = pos.weekInMacro === MACRO_WEEKS - 1
     return {
       dayNumber, dayName: built.dayName, dayType: 'gym',
-      sessionIntent: isTaperWeek && sess === 'heavy'
+      sessionIntent: isTaperWeek && sess === 'power_cj'
         ? 'Taper. Practise your openers, then two easy sets of everything else.'
         : 'Taper — same movements, light. Leave feeling better than you arrived.',
-      items: taper(built.items, maxes, isTaperWeek && sess === 'heavy'),
+      items: taper(built.items, maxes, isTaperWeek && sess === 'power_cj'),
     }
   }
   return { dayNumber, dayName: built.dayName, dayType: 'gym', sessionIntent: built.intent, items: built.items }
@@ -515,7 +496,7 @@ export const platformDad: ProgramConfig = {
   name: 'Platform Dad',
   tagline: 'weightlifting · bodybuilding',
   description:
-    'The snatch and the clean & jerk four days a week, with bodybuilding that leans on the shoulders. Monday snatch and back squat, Wednesday clean & jerk and strict press, Friday snatch technique and front squat, Saturday heavy singles and the jerk. No jumps or sprints, squats twice a week. Build, heavy and peak blocks, a taper week, then a mock meet in week 13.',
+    'Power snatch and power clean & jerk twice a week, one box squat day, and bodybuilding that leans on the shoulders, built for cranky knees. Monday power snatch and hinge, Wednesday strict press and upper body, Friday box squat, hips and sled, Saturday power clean & jerk, jerk and a short bike or row piece. No jumps or sprints. Build, heavy and peak blocks, a taper week, then a mock meet in week 13.',
   daysPerWeek: 4,
   gymDayNumbers: [1, 3, 5, 6],
   macroWeeks: MACRO_WEEKS,
@@ -525,7 +506,6 @@ export const platformDad: ProgramConfig = {
     { key: 'snatch', label: 'Snatch', hint: 'Best full snatch single' },
     { key: 'clean_jerk', label: 'Clean & Jerk', hint: 'Best clean & jerk single' },
     { key: 'back_squat', label: 'Back Squat', hint: 'Best recent single (lbs)' },
-    { key: 'front_squat', label: 'Front Squat', hint: 'Best recent single (lbs)' },
     { key: 'ohp', label: 'Overhead Press', hint: 'Strict press single' },
   ],
   buildDay,

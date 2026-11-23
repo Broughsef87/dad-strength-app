@@ -59,19 +59,20 @@ const db = (logs) => ({
 })
 let day = null
 for (let d = 1; d <= 7 && day == null; d++) {
-  if (platformDad.buildDay(2, d, MAXES).items.some((i) => i.slot === 'pd_snatch')) day = d
+  if (platformDad.buildDay(2, d, MAXES).items.some((i) => i.slot === 'pd_hang_power_snatch')) day = d
 }
-eq(day != null, true, 'Platform Dad has a snatch day')
-const shownAt = (wk) => platformDad.buildDay(wk, day, MAXES).items.find((i) => i.slot === 'pd_snatch')
-const wk2 = shownAt(2), wk3 = shownAt(3)
+eq(day != null, true, 'Platform Dad has a power snatch day')
+// Weeks 1 -> 2: the rotation climbs 5 -> 7.5 there (weeks 2 and 3 share 7.5).
+const shownAt = (wk) => platformDad.buildDay(wk, day, MAXES).items.find((i) => i.slot === 'pd_hang_power_snatch')
+const wk2 = shownAt(1), wk3 = shownAt(2)
 const step = wk3.percent - wk2.percent
-eq(step > 0, true, 'the table climbs into week 3')
-const sets = (lights, extra = {}) => lights.map((l, i) => ({ slot: 'pd_snatch', rpe: null, lights: l, weight_lbs: wk2.targetWeightLbs, set_number: i + 1, ...extra }))
-const run = async (logs) => (await computeAdjustments(db(logs), 'u', platformDad, 3, day, RUN_EPOCH, MAXES)).pd_snatch ?? 0
-eq(await run(sets([2, 2, 3, 2])), 0, 'good lifts: week 3 as written')
-eq(await run(sets([2, 1, 2, 2])), -step, 'one barely: week 3 holds week 2')
-eq(await run(sets([2, 0, 2, 2])), -step, 'one miss: week 3 holds week 2')
-eq(await run(sets([0, 2, 0, 2])), -step - MISS_STEP_DOWN, 'two misses: week 3 a step under week 2')
+eq(step > 0, true, 'the table climbs into week 2')
+const sets = (lights, extra = {}) => lights.map((l, i) => ({ slot: 'pd_hang_power_snatch', rpe: null, lights: l, weight_lbs: wk2.targetWeightLbs, set_number: i + 1, ...extra }))
+const run = async (logs) => (await computeAdjustments(db(logs), 'u', platformDad, 2, day, RUN_EPOCH, MAXES)).pd_hang_power_snatch ?? 0
+eq(await run(sets([2, 2, 3, 2])), 0, 'good lifts: week 2 as written')
+eq(await run(sets([2, 1, 2, 2])), -step, 'one barely: week 2 holds week 1')
+eq(await run(sets([2, 0, 2, 2])), -step, 'one miss: week 2 holds week 1')
+eq(await run(sets([0, 2, 0, 2])), -step - MISS_STEP_DOWN, 'two misses: week 2 a step under week 1')
 eq(await run(sets([3, 3, 3, 3])), CLEAN_STEP_UP, 'all clean: small step up')
 eq(await run(sets([3, null, 3, 3])), 0, 'autoreg: an unrated set blocks the clean step')
 // Lights replace RPE: an RPE of 10 on a lit set is ignored.
@@ -82,7 +83,7 @@ eq(rpeOnly < 0, true, 'an old RPE-only week still counts')
 const bound = await run(sets([0, 0, 0, 0]))
 eq(Math.abs(bound) <= MAX_ADJ, true, 'bounded by MAX_ADJ')
 // The squat on the same day is untouched by lights.
-const sq = (await computeAdjustments(db([{ slot: 'pd_back_squat', rpe: null, lights: 0, weight_lbs: null, set_number: 1 }]), 'u', platformDad, 3, day, RUN_EPOCH, MAXES)).pd_back_squat ?? 0
+const sq = (await computeAdjustments(db([{ slot: 'pd_box_squat', rpe: null, lights: 0, weight_lbs: null, set_number: 1 }]), 'u', platformDad, 3, 5, RUN_EPOCH, MAXES)).pd_box_squat ?? 0
 eq(sq, 0, 'a stray light on a squat does nothing')
 
 if (fails.length) {
