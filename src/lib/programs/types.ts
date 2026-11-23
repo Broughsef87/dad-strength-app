@@ -184,6 +184,12 @@ export interface ProgramConfig {
    * Platform Dad is Andrew's own program (2026-10-31).
    */
   listed?: boolean
+  /**
+   * A program with its own jump/sprint ladder describes where the athlete is
+   * on it (FOR-358). When present, the week screen shows the ramp tile and
+   * its restart button every week, prep or not, with this text.
+   */
+  rampLabel?(weekNumber: number, from: number): string
   buildDay(
     weekNumber: number,        // absolute, 1..∞ — config maps into macro position
     dayNumber: number,         // 1-7

@@ -261,7 +261,15 @@ export async function computeAdjustments(
     // The rebuilt week must be the week he saw. If the stored card names a
     // different lift, or its percents differ from the rebuild, the tables
     // changed under him: nothing logged against it describes today's lift.
+    // A family match bridges two program names, never a swap (Codex r1, PR
+    // #95). If either week's card was swapped for another exercise, feedback
+    // on one movement says nothing about the other. Checked before the stored
+    // card, because a week with no stored card must not skip it.
     const was = storedLift[slot]
+    if (now.name !== p.name) {
+      const subPrev = subs[`${slot}::${p.name}`], subThis = subs[`${slot}::${now.name}`]
+      if (was?.sub !== undefined || (subPrev && subPrev !== p.name) || (subThis && subThis !== now.name)) return false
+    }
     if (!was) return true
     if (was.name !== undefined && was.name !== p.name) return false
     if (was.maxKey !== undefined && was.maxKey !== p.maxKey) return false

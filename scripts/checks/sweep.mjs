@@ -162,6 +162,13 @@ for (let wk = 1; wk <= 40; wk++) {
 assert(!thu(30, 30).items.some((i) => i.kind === 'plyo' || i.slot === 'sprint'), 'a ramp restart at W30 drops Thursday back to level 1')
 assert(thu(30).items.some((i) => i.slot === 'sprint'), 'and without it W30 is a sprint week')
 
+// The week screen shows the ladder every week, jumps or not, so the restart
+// is reachable in level 1 and the copy is the ladder's, not the old ramp's
+// (Codex r1, PR #95).
+assert(typeof app.rampLabel === 'function', 'Power Dad describes its own ramp, so the week screen shows the restart every week')
+assert(/level 1 of 4/.test(app.rampLabel(8, 1)) && /level 2 of 4/.test(app.rampLabel(9, 1)), `the ramp copy follows the ladder — got "${app.rampLabel?.(9, 1)}"`)
+assert(/level 1 of 4/.test(app.rampLabel(30, 30)), 'and a restart reads as level 1')
+
 // ── 10. Deload week 12 and test week 13 ─────────────────────────────────
 for (const d of GYM) {
   for (const it of lifts(app.buildDay(12, d, MAXES, {}, {}))) {

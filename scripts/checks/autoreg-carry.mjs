@@ -10,11 +10,11 @@ import { computeAdjustments, MAX_ADJ } from '../../src/lib/programs/autoreg.ts'
 import { RUN_EPOCH } from '../../src/lib/programs/run.ts'
 
 const MAXES = { snatch: 205, clean_jerk: 265, back_squat: 415, front_squat: 330, bench: 255, deadlift: 405, ohp: 175 }
-const db = (logs, storedAdj = {}) => ({
+const db = (logs, storedAdj = {}, plan) => ({
   from: () => {
     const o = {
       select: () => o, eq: () => o, gte: () => o, order: () => o,
-      limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: storedAdj } }] }),
+      limit: () => Promise.resolve({ data: [{ id: 'w', workout_data: { adjustments: storedAdj, ...(plan ? { plan } : {}) } }] }),
       not: () => Promise.resolve({ data: logs }),
     }
     return o
@@ -163,6 +163,17 @@ const [A, B] = [9, 10]
   const sqLogs = Array.from({ length: s5.sets }, (_, i) => ({ slot: 'back_squat_heavy', set_number: i + 1, weight_lbs: s5.targetWeightLbs, rpe: s5.targetRpe }))
   const back = await computeAdjustments(db(sqLogs, { back_squat_heavy: 3 }), 'u', hybridPower, 6, 1, RUN_EPOCH, MAXES)
   check('the squat family carries too (Back Squat into Box Squat)', back.back_squat_heavy === 3 && sq(6, {}).name !== s5.name, { adj: back, w6: sq(6, {}).name })
+  // A family match never bridges a swap (Codex r1, PR #95). Swapped to dips
+  // in week 5, or swapped away from the Spoto press in week 6: either way the
+  // feedback is about another exercise.
+  const plan5 = hybridPower.buildDay(5, 1, MAXES, { [SLOT]: 3 }).items
+  const swapped5 = { items: plan5.map(i => (i.slot === SLOT ? { ...i, name: 'Weighted Dips', subbedFrom: i.name } : i)) }
+  const sw5 = await computeAdjustments(db(logs, { [SLOT]: 3 }, swapped5), 'u', hybridPower, 6, 1, RUN_EPOCH, MAXES,
+    { [`${SLOT}::${w5.name}`]: 'Weighted Dips' })
+  check('a swap on the Bench week does not carry into the Spoto week', sw5[SLOT] === undefined, sw5)
+  const sw6 = await computeAdjustments(db(logs, { [SLOT]: 3 }), 'u', hybridPower, 6, 1, RUN_EPOCH, MAXES,
+    { [`${SLOT}::${w6.name}`]: 'DB Bench Press' })
+  check('a swap on the Spoto week takes no carry from the Bench week', sw6[SLOT] === undefined, sw6)
   // A new block is a new table: the carry resets at the meso boundary.
   const w4 = cardOf(4, { [SLOT]: 3 })
   const l4 = loads(4, { [SLOT]: 3 }).map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: w4.targetRpe }))

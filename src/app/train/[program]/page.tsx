@@ -305,13 +305,15 @@ export default function SchedulePage() {
             </div>
           </div>
 
-          {prepDays > 0 && (
+          {(prepDays > 0 || program.rampLabel) && (
             <div className="tile p-4 space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="eyebrow-mono mb-1">jump prep</p>
                   <p className="text-sm">
-                    {PREP_MINUTES} min before the jumps, on {prepDays} {prepDays === 1 ? 'day' : 'days'} this week
+                    {prepDays > 0
+                      ? <>{PREP_MINUTES} min before the jumps, on {prepDays} {prepDays === 1 ? 'day' : 'days'} this week</>
+                      : <>no jumps this week</>}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                     it does not come out of your six blocks — it is drills on the open floor
@@ -321,7 +323,7 @@ export default function SchedulePage() {
               </div>
               <div className="row-recessed px-3 py-2">
                 <p className="eyebrow-mono-sm mb-0.5">jump ramp</p>
-                <p className="text-xs leading-relaxed">{RAMP_COPY[stage]}</p>
+                <p className="text-xs leading-relaxed">{program.rampLabel ? program.rampLabel(selectedWeek, rampOrigin) : RAMP_COPY[stage]}</p>
               </div>
               <button
                 onClick={() => void restartJumpRamp()}

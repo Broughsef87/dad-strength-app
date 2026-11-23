@@ -343,6 +343,13 @@ export function sprintLevel(weekNumber: number, from = 1): 1 | 2 | 3 | 4 {
   return level
 }
 
+const LEVEL_COPY: Record<1 | 2 | 3 | 4, string> = {
+  1: 'level 1 of 4 — no impact: sled, marches, tendon holds',
+  2: 'level 2 of 4 — low impact: tempo runs, low hops, step-down box jumps',
+  3: 'level 3 of 4 — strides, short accelerations, broad jumps to a stick',
+  4: 'level 4 of 4 — flying sprints and low depth drops',
+}
+
 const NECK = 'Neck: hand-resisted isometrics, 2 × 10s each direction (front, back, sides)'
 const KNEE_RULE = 'Knee above 3/10 during this or the next morning: do next Thursday on the bike only, and tap "restart jump ramp" if it keeps happening.'
 
@@ -445,7 +452,7 @@ function testDay(dayNumber: number): DayPlan {
         dayNumber, dayName: 'TEST — Power Clean + Bench', dayType: 'test',
         sessionIntent: 'Work to a new power clean, then a bench max between rests.',
         items: [
-          { kind: 'lift', slot: 'test_power_clean', name: 'Power Clean — work to 1RM', sets: 6, reps: 1, maxKey: 'clean_jerk', note: 'Climb 60/70/78/84/88%+ of your clean, then PR attempts. Catch it above parallel. Log the top single.' },
+          { kind: 'lift', slot: 'test_power_clean', name: 'Power Clean — work to 1RM', sets: 6, reps: 1, maxKey: 'clean_jerk', note: 'Climb 60/70/78/84/88%+ of your clean, then PR attempts. Catch it above parallel. Log the top single. Your cleans keep running off your full clean max, so update that only if you also hit a new full clean.' },
           { kind: 'lift', slot: 'test_bench', name: 'Bench Press — work to 1RM', sets: 6, reps: 1, note: 'Climb 60/70/80/88/94%+ then max attempts. Update your bench max after.' },
         ],
       }
@@ -475,7 +482,7 @@ function testDay(dayNumber: number): DayPlan {
       return {
         dayNumber, dayName: 'Move + Update Maxes', dayType: 'outside',
         sessionIntent: 'The macro is done. Move easy and update your maxes.',
-        items: [{ kind: 'outside', slot: 'move', title: 'Celebrate & Move', parts: ['15-20 min easy walk or spin', 'Update your power clean, bench and OHP maxes in the app. Next macro computes from them'] }],
+        items: [{ kind: 'outside', slot: 'move', title: 'Celebrate & Move', parts: ['15-20 min easy walk or spin', 'Update your bench and OHP maxes in the app (and your clean, if you hit a new full clean). Next macro computes from them'] }],
       }
     default:
       return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Rest.', items: [] }
@@ -575,5 +582,6 @@ export const hybridPower: ProgramConfig = {
     { key: 'deadlift', label: 'Deadlift', hint: 'Best recent single — the trap-bar pull keys off this' },
     { key: 'ohp', label: 'Overhead Press', hint: 'Strict press single — estimate: best 5×5 × 1.15' },
   ],
+  rampLabel: (weekNumber, from) => `Thursday sprint return: ${LEVEL_COPY[sprintLevel(weekNumber, from)]}`,
   buildDay,
 }
