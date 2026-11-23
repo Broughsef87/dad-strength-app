@@ -16,6 +16,7 @@
 // Its own file, so a revert of the program cannot take the check with it.
 import { PROGRAMS, LISTED_PROGRAMS } from '../../src/lib/programs/index.ts'
 import { blockCount, scheduledDayNumbers } from '../../src/lib/programs/schedule.ts'
+import { MAX_ADJ } from '../../src/lib/programs/autoreg.ts'
 
 let checks = 0
 const fails = []
@@ -187,6 +188,25 @@ for (let wk = 1; wk <= 11; wk++) {
       for (const i of p.buildDay(wk, d, MAXES, {}).items) {
         assert(!/split squat|bulgarian|pistol|step-up|front squat|overhead squat|snatch balance/i.test(i.name ?? ''), `W${wk} D${d}: no deep or single-leg knee work, got ${i.name}`)
       }
+    }
+  }
+  // The ceiling holds after autoreg too (Codex r1): the biggest allowed push up
+  // still leaves the box squat at 76% or under, every week.
+  for (let wk = 1; wk <= 11; wk++) {
+    const up = p.buildDay(wk, 5, MAXES, { pd_box_squat: MAX_ADJ }).items.find((i) => i.slot === 'pd_box_squat')
+    assert(up && up.percent <= 76, `W${wk}: box squat with +${MAX_ADJ} autoreg stays at or under 76%, got ${up?.percent}`)
+  }
+  // No full catch before the meet: the taper week's Olympic work is power too.
+  for (const d of scheduledDayNumbers(p, 12)) {
+    for (const c of p.buildDay(12, d, MAXES, {}).items.filter(isClassic)) {
+      assert(/power/i.test(c.name), `W12 D${d} ${c.slot}: taper Olympic work is a power version, got ${c.name}`)
+    }
+  }
+  // Every scheduled day has work in it (Codex r1: an empty meet-week day).
+  for (const wk of [12, 13]) {
+    for (const d of scheduledDayNumbers(p, wk)) {
+      const plan = p.buildDay(wk, d, MAXES, {})
+      assert(plan.dayType === 'rest' || plan.items.length > 0, `W${wk} D${d}: a scheduled session with nothing in it`)
     }
   }
   const conditioning = [1, 2, 3].flatMap((wk) => [5, 6].map((d) => p.buildDay(wk, d, MAXES, {}).items.filter((i) => i.kind === 'metcon'))).flat()

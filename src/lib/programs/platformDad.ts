@@ -113,6 +113,8 @@ type PctSlot = {
   rpeByChart?: number
   /** Chart calibration for a lift that runs out of reps sooner (rpeChart.ts `repScale`). */
   rpeRepScale?: number
+  /** A hard top, applied AFTER autoreg: no adjustment can push the lift past it (FOR-356). */
+  pctCeiling?: number
 }
 
 const same = (n: string): [string, string, string, string] => [n, n, n, n]
@@ -150,7 +152,7 @@ const SLOTS: Record<string, PctSlot> = {
   // Friday — the week's only squat, to a box (FOR-354). Moderate on purpose.
   // A new slot id: the old back squat logs must not carry into a box squat.
   pd_box_squat: {
-    maxKey: 'back_squat', shortDay: true, rpeByChart: 1,
+    maxKey: 'back_squat', shortDay: true, rpeByChart: 1, pctCeiling: 76,
     mesos: {
       1: { names: same('Box Squat'), sets: 4, reps: 5, pctStart: 62, pctStep: 2, note: BOX_NOTE },
       2: { names: same('Box Squat'), sets: 4, reps: 4, pctStart: 68, pctStep: 2, note: BOX_NOTE },
@@ -230,7 +232,10 @@ function pct(
   const adj = Math.max(-MAX_ADJ, Math.min(MAX_ADJ, adjustments[slot] ?? 0))
   const off = def.pctOffset?.[pos.weekInMeso - 1] ?? 0
   const climb = (step: number) => def.rotation ? ROTATION_CLIMB[pos.weekInMeso - 1] : step * (pos.weekInMeso - 1)
-  const at = (start: number, step: number) => Math.round((start + climb(step) + off + adj) * 2) / 2
+  const at = (start: number, step: number) => {
+    const raw = Math.round((start + climb(step) + off + adj) * 2) / 2
+    return s.pctCeiling != null ? Math.min(s.pctCeiling, raw) : raw
+  }
   const setPlan = def.sequence?.map((st) => {
     const p = at(st.pctStart, st.pctStep)
     return { reps: st.reps, percent: p, targetWeightLbs: resolveWeight(p, s.maxKey, maxes) }
@@ -374,20 +379,13 @@ function session(
 
 // Taper (week 12, or a fatigue deload): same movements, light. Classic lifts
 // and squats drop to 75% for two or three crisp sets; range work to two sets.
-function taper(items: Prescription[], maxes: Record<string, number>, isOpenerDay: boolean): Prescription[] {
+// No full-lift openers in the taper (FOR-356, Codex r1): the power clean & jerk
+// tapers like everything else, so week 12 has no full catch in it.
+function taper(items: Prescription[], maxes: Record<string, number>): Prescription[] {
   // Conditioning comes out of a taper week entirely: leave fresh.
   return items.filter((i) => i.kind !== 'metcon').map((i) => {
     if (i.kind !== 'lift') return i
     if (i.percent != null) {
-      if (isOpenerDay && i.slot === 'pd_power_cj') {
-        const setPlan = [80, 85, 88].map((p) => ({ reps: 1, percent: p, targetWeightLbs: resolveWeight(p, i.maxKey, maxes) }))
-        return {
-          ...i, name: 'Clean & Jerk — Openers',
-          sets: 3, reps: 1, percent: 80, setPlan, targetRpe: 7,
-          targetWeightLbs: setPlan[0].targetWeightLbs, appliedAdjustmentPct: undefined,
-          note: 'Practise the opener: the last single is what you would open with next week. Easy and fast.',
-        }
-      }
       const { setPlan: _drop, ...rest } = i
       // A pull lives above the lift's max; 75% of a snatch is not a pull.
       // Never heavier than the slot's own load this week (FOR-331): a light
@@ -452,9 +450,14 @@ function testDay(dayNumber: number, maxes: Record<string, number>): DayPlan {
   })
   const byDay: Record<Session, LiftPrescription[]> = {
     power_snatch: [light('test_sn_light', 'Snatch', 'snatch')],
-    upper: [],
+    upper: [light('test_ohp_light', 'Strict Press', 'ohp')],
     legs: [light('test_cj_light', 'Clean & Jerk', 'clean_jerk')],
     power_cj: [],
+  }
+  // A session with nothing in it is a rest day, so the week never asks for a
+  // completion that has no work behind it (FOR-356, Codex r1).
+  if (byDay[sess].length === 0) {
+    return { dayNumber, dayName: 'Rest', dayType: 'rest', sessionIntent: 'Off. Fresh for the mock meet.', items: [] }
   }
   return {
     dayNumber, dayName: 'Meet Week — Light', dayType: 'gym',
@@ -479,13 +482,10 @@ function buildDay(
   }
   const built = session(sess, pos, weekNumber, maxes, adjustments, opts?.loadTargets ?? {})
   if (pos.isDeload) {
-    const isTaperWeek = pos.weekInMacro === MACRO_WEEKS - 1
     return {
       dayNumber, dayName: built.dayName, dayType: 'gym',
-      sessionIntent: isTaperWeek && sess === 'power_cj'
-        ? 'Taper. Practise your openers, then two easy sets of everything else.'
-        : 'Taper — same movements, light. Leave feeling better than you arrived.',
-      items: taper(built.items, maxes, isTaperWeek && sess === 'power_cj'),
+      sessionIntent: 'Taper — same movements, light. Leave feeling better than you arrived.',
+      items: taper(built.items, maxes),
     }
   }
   return { dayNumber, dayName: built.dayName, dayType: 'gym', sessionIntent: built.intent, items: built.items }
