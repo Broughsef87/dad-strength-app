@@ -11,6 +11,7 @@ import { hybridPower, sprintLevel } from '../../src/lib/programs/hybridPower.ts'
 import { PROGRAMS } from '../../src/lib/programs/index.ts'
 import { blockCount, scheduledDayNumbers } from '../../src/lib/programs/schedule.ts'
 import { MAX_ADJ } from '../../src/lib/programs/autoreg.ts'
+import { targetRpeFor } from '../../src/lib/programs/rpeChart.ts'
 
 const MAXES = { snatch: 220, clean_jerk: 275, back_squat: 435, front_squat: 355, bench: 255, deadlift: 435, ohp: 185 }
 const app = PROGRAMS['hybrid-power']
@@ -185,6 +186,34 @@ assert(thu(30).items.some((i) => i.slot === 'sprint'), 'and without it W30 is a 
 assert(typeof app.rampLabel === 'function', 'Power Dad describes its own ramp, so the week screen shows the restart every week')
 assert(/level 1 of 4/.test(app.rampLabel(8, 1)) && /level 2 of 4/.test(app.rampLabel(9, 1)), `the ramp copy follows the ladder — got "${app.rampLabel?.(9, 1)}"`)
 assert(/level 1 of 4/.test(app.rampLabel(30, 30)), 'and a restart reads as level 1')
+
+// ── 10b. Target RPE matches the load, as on Platform Dad (FOR-344) ──────
+// Andrew, 2026-11-23: "It should copy from platform." Every strength slot
+// reads its target off the %-by-reps chart, with the press calibration
+// (FOR-351) and the push press read against ~90% of the clean & jerk. The
+// lights lifts keep the block number. Computed from the chart, not pinned, so
+// a table edit cannot leave a flat 7 behind.
+{
+  const CHART = { back_squat_heavy: [1], bench_heavy: [1], front_squat: [1], cg_bench: [1], sat_dl: [1], ohp_press: [1, 0.85], push_press: [0.9] }
+  for (let wk = 1; wk <= 11; wk++) {
+    for (const d of GYM) {
+      for (const i of lifts(app.buildDay(wk, d, MAXES, {}, {}))) {
+        if (i.percent == null) continue
+        const c = CHART[i.slot]
+        if (c) {
+          const want = targetRpeFor(i.percent / c[0], i.reps, c[1])
+          assert(i.targetRpe === want, `W${wk} ${i.slot} ${i.sets}x${i.reps} @${i.percent}%: target RPE ${want} off the chart, got ${i.targetRpe}`)
+        } else {
+          assert(i.slot === 'sn_top' || i.slot === 'cl_top', `W${wk} ${i.slot}: a percent slot with no chart rule`)
+        }
+      }
+    }
+  }
+  const bs = lifts(app.buildDay(1, 1, MAXES, {}, {})).find((i) => i.slot === 'back_squat_heavy')
+  assert(bs?.targetRpe === 5, `W1 back squat 4x5 @68% asks for an honest 5, got ${bs?.targetRpe}`)
+  const sn = lifts(app.buildDay(1, 1, MAXES, {}, {})).find((i) => i.slot === 'sn_top')
+  assert(sn?.targetRpe === 7, `W1 snatch keeps the block target (lights rate it), got ${sn?.targetRpe}`)
+}
 
 // ── 10. Deload week 12 and test week 13 ─────────────────────────────────
 for (const d of GYM) {

@@ -40,7 +40,9 @@ const [A, B] = [9, 10]
 // 1. Followed the card exactly, RPE inside ±1 of target → keeps the +3.
 {
   const shown = loads(A, { [SLOT]: 3 })
-  const rpes = [7, 8, 8, 9]
+  // Around the card's own target: bench reads its target off the chart (FOR-344).
+  const t = cardOf(A, { [SLOT]: 3 }).targetRpe
+  const rpes = [t - 1, t, t, t + 1]
   const logs = shown.map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: rpes[i] }))
   const adj = await computeAdjustments(db(logs, { [SLOT]: 3 }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
   check('obeyed +3 card at target RPE → still +3', adj[SLOT] === 3, adj)
@@ -81,9 +83,13 @@ const [A, B] = [9, 10]
 //    so a hard session pulls it down at once (Codex r1 P2-2).
 {
   const shown = loads(A, { [SLOT]: 12 })
+  // The card's target is chart-read (FOR-344); each point over it cuts 2.
+  // The cut comes off the SHOWN +8, never the stored +12.
+  const t = cardOf(A, { [SLOT]: 12 }).targetRpe
   const logs = shown.map((lbs, i) => ({ slot: SLOT, set_number: i + 1, weight_lbs: lbs, rpe: 10 }))
   const adj = await computeAdjustments(db(logs, { [SLOT]: 12 }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
-  check('stored +12, shown +8, RPE 10 → +4', adj[SLOT] === 4, adj)
+  const want = 8 - 2 * (10 - t)
+  check(`stored +12, shown +8, RPE 10 against ${t} → +${want}`, t < 10 && adj[SLOT] === want, { ...adj, target: t })
   const skip = await computeAdjustments(db([], { [SLOT]: 12 }), 'u', hybridPower, B, 1, RUN_EPOCH, MAXES)
   check('stored +12, skipped → carries the shown +8', skip[SLOT] === MAX_ADJ, skip)
 }
