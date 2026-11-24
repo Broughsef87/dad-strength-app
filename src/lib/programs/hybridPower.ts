@@ -1,3 +1,4 @@
+import { targetRpeFor } from './rpeChart'
 import { MAX_ADJ } from './autoreg'
 import {
   BuildDayOpts,
@@ -83,15 +84,32 @@ interface SlotMeso {
   offsets?: Four<number>
   /** One entry per set when the sets differ (a climb). `sets` must equal its length. */
   sequence?: Array<{ reps: number; pctStart: number; pctStep: number }>
+  /** Lights lifts only. Strength slots read their target off the chart (`chart` below). */
   targetRpe?: number
   note?: string
 }
+
+/**
+ * Strength work reads its target RPE off the %-by-reps chart (rpeChart.ts,
+ * FOR-344), exactly as Platform Dad does: `share` is the lift's own max as a
+ * share of the max its percent is written against (1 when it IS that max),
+ * `repScale` the calibration for a lift that runs out of reps sooner (the
+ * press, FOR-351). The classic lifts are rated by lights and keep the meso
+ * number.
+ */
+interface ChartRpe { share: number; repScale?: number }
 
 /**
  * THE MODERATE CEILING (Andrew's knees). Applied after autoreg, so feedback can
  * lower a squat but never lift it past this.
  */
 const SQUAT_CEILING = 76
+
+const CHART: ChartRpe = { share: 1 }
+// FOR-351: the strict press runs out of reps sooner than the chart (Platform Dad's calibration).
+const PRESS_CHART: ChartRpe = { share: 1, repScale: 0.85 }
+// A push press max runs about 90% of the clean & jerk (Platform Dad, FOR-344).
+const PUSH_PRESS_CHART: ChartRpe = { share: 0.9 }
 
 const MESO_TARGET_RPE: Record<number, number> = { 1: 7, 2: 8, 3: 8 }
 
@@ -130,7 +148,7 @@ function liftFromSlot(
   maxes: Record<string, number>,
   meso: number,
   adjustments: Record<string, number>,
-  opts: { ceiling?: number; overrides?: Partial<LiftPrescription> } = {},
+  opts: { ceiling?: number; chart?: ChartRpe; overrides?: Partial<LiftPrescription> } = {},
 ): LiftPrescription {
   if (def.sequence && def.sequence.length !== def.sets) {
     throw new Error(`${slot}: sets is ${def.sets} and the sequence holds ${def.sequence.length} — a sequence's set count is its own length`)
@@ -173,7 +191,9 @@ function liftFromSlot(
     maxKey,
     targetWeightLbs: resolveWeight(headPct, maxKey, maxes),
     setPlan,
-    targetRpe: def.targetRpe ?? MESO_TARGET_RPE[meso] ?? 8,
+    targetRpe: opts.chart
+      ? targetRpeFor(headPct / opts.chart.share, headReps, opts.chart.repScale)
+      : def.targetRpe ?? MESO_TARGET_RPE[meso] ?? 8,
     appliedAdjustmentPct: shownAdj !== 0 ? shownAdj : undefined,
     note: def.note,
     ...opts.overrides,
@@ -276,9 +296,9 @@ const FS: SlotMeso[] = [
 
 // Saturday — Strict press, the overhead priority.
 const OHP: SlotMeso[] = [
-  { names: ['Overhead Press', 'Pause Overhead Press (at the chin)', 'Z-Press', 'Overhead Press'], offsets: [0, -5, -10, 0], sets: 4, reps: 6, pctStart: 67, pctStep: 2, targetRpe: 7, note: 'Strict, no leg drive, glutes tight. Z-press: seated on the floor, legs straight.' },
-  { names: ['Overhead Press', 'Z-Press', 'Pause Overhead Press (at the chin)', 'Overhead Press'], offsets: [0, -10, -5, 0], sets: 4, reps: 4, pctStart: 75, pctStep: 2, targetRpe: 8, note: 'Strict, no leg drive, glutes tight.' },
-  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 2, pctStart: 83, pctStep: 1.5, targetRpe: 8, note: 'Strict, no leg drive, glutes tight.' },
+  { names: ['Overhead Press', 'Pause Overhead Press (at the chin)', 'Z-Press', 'Overhead Press'], offsets: [0, -5, -10, 0], sets: 4, reps: 6, pctStart: 67, pctStep: 2, note: 'Strict, no leg drive, glutes tight. Z-press: seated on the floor, legs straight.' },
+  { names: ['Overhead Press', 'Z-Press', 'Pause Overhead Press (at the chin)', 'Overhead Press'], offsets: [0, -10, -5, 0], sets: 4, reps: 4, pctStart: 75, pctStep: 2, note: 'Strict, no leg drive, glutes tight.' },
+  { names: ['Overhead Press', 'Overhead Press', 'Overhead Press', 'Overhead Press'], sets: 4, reps: 2, pctStart: 83, pctStep: 1.5, note: 'Strict, no leg drive, glutes tight.' },
 ]
 
 // Saturday — Close-grip bench, the second bench day.
@@ -500,8 +520,8 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
 
   const m = pos.meso - 1
   const w = pos.weekInMeso
-  const lift = (slot: string, def: SlotMeso, maxKey: string, ceiling?: number, overrides?: Partial<LiftPrescription>) =>
-    liftFromSlot(slot, def, w, maxKey, maxes, pos.meso, adjustments, { ceiling, overrides })
+  const lift = (slot: string, def: SlotMeso, maxKey: string, ceiling?: number, overrides?: Partial<LiftPrescription>, chart?: ChartRpe) =>
+    liftFromSlot(slot, def, w, maxKey, maxes, pos.meso, adjustments, { ceiling, chart, overrides })
   const deload = (items: Prescription[]) => (pos.isDeload ? items.map((i) => deloadItem(i, maxes)) : items)
 
   switch (dayNumber) {
@@ -511,8 +531,8 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         sessionIntent: pos.isDeload ? 'Deload — light, fast, out feeling fresh.' : 'Snatch first while fresh, then a moderate squat, heavy bench and hamstrings.',
         items: deload([
           lift('sn_top', SN[m], 'snatch'),
-          lift('back_squat_heavy', BS[m], 'back_squat', SQUAT_CEILING),
-          lift('bench_heavy', BENCH[m], 'bench'),
+          lift('back_squat_heavy', BS[m], 'back_squat', SQUAT_CEILING, undefined, CHART),
+          lift('bench_heavy', BENCH[m], 'bench', undefined, undefined, CHART),
           rotating('acc_hinge', HINGE[m], w, 3, 8, 'RPE 7. Hips back, flat back, feel the hamstrings.'),
           rotating('acc_ham', HAM, w, 3, 10, 'Nordic week: lower slowly, push yourself back up.'),
           rotating('acc_lateral', LATERAL, w, 3, 12),
@@ -523,7 +543,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         dayNumber, dayName: 'Push Press + Upper', dayType: 'gym',
         sessionIntent: pos.isDeload ? 'Deload — light presses, out quick.' : 'Push press, then a full upper day: pull, incline, row, shoulders, arms.',
         items: deload([
-          lift('push_press', PP[m], 'clean_jerk'),
+          lift('push_press', PP[m], 'clean_jerk', undefined, undefined, PUSH_PRESS_CHART),
           rotating('acc_wpu', PULLUP, w, 4, 6, 'Add load when every rep is crisp. Log added lbs as the weight.'),
           rangeSlot('db_incline', 'Incline DB Press', 3, INCLINE_WINDOW[m], opts?.loadTargets ?? {}, 'Every set to the top of the range with 2 in the tank: add 5 lb a hand next week.'),
           rotating('acc_row', ROW, w, 3, 10, 'Strict, no bounce.'),
@@ -539,7 +559,7 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         sessionIntent: pos.isDeload ? 'Deload — a few crisp cleans, nothing else heavy.' : 'Cleans first, then a moderate front squat, hips, low back and trunk.',
         items: deload([
           lift('cl_top', CL[m], 'clean_jerk'),
-          lift('front_squat', FS[m], 'front_squat', SQUAT_CEILING),
+          lift('front_squat', FS[m], 'front_squat', SQUAT_CEILING, undefined, CHART),
           rotating('acc_hip', HIP, w, 3, 8),
           rotating('acc_lowback', LOW_BACK, w, 3, 12),
           rotating('acc_trunk', TRUNK, w, 3, 10, 'Per side where it is one-sided. Rotation and anti-rotation are what rugby and hockey ask for.'),
@@ -552,9 +572,9 @@ function buildDay(weekNumber: number, dayNumber: number, maxes: Record<string, n
         items: deload([
           rotating('acc_medball', MEDBALL, w, 4, 3, 'Explosive, no landing. Full reset between throws.'),
           // A short Saturday keeps the press and the pull, not the warm-up throws.
-          lift('ohp_press', OHP[m], 'ohp', undefined, { shortDay: true }),
-          lift('cg_bench', CG[m], 'bench'),
-          lift('sat_dl', TB[m], 'deadlift', undefined, { shortDay: true }),
+          lift('ohp_press', OHP[m], 'ohp', undefined, { shortDay: true }, PRESS_CHART),
+          lift('cg_bench', CG[m], 'bench', undefined, undefined, CHART),
+          lift('sat_dl', TB[m], 'deadlift', undefined, { shortDay: true }, CHART),
           rotating('acc_db_row', DB_ROW, w, 3, 10),
           rotating('acc_rear_delt', REAR_DELT, w, 3, 15),
         ]),
