@@ -267,7 +267,8 @@ const BENCH: SlotMeso[] = [
 // Wednesday — Push press, off the clean (press strength, as it always was).
 const PP: SlotMeso[] = [
   { names: ['Push Press', 'Pause Push Press (in the dip)', 'Behind-the-Neck Push Press', 'Push Press'], offsets: [0, -5, -5, 0], sets: 4, reps: 5, pctStart: 65, pctStep: 2 },
-  { names: ['Push Press', 'Behind-the-Neck Push Press', 'Pause Push Press (in the dip)', 'Push Press'], offsets: [0, -5, -5, 0], sets: 4, reps: 3, pctStart: 77, pctStep: 2 },
+  // Week 8 at 81, not 83 (Andrew 2026-11-23): 83% of the C&J is ~92% of a push-press max, an RPE-10 triple.
+  { names: ['Push Press', 'Behind-the-Neck Push Press', 'Pause Push Press (in the dip)', 'Push Press'], offsets: [0, -5, -5, -2], sets: 4, reps: 3, pctStart: 77, pctStep: 2 },
   { names: ['Push Press', 'Push Press', 'Push Press', 'Push Press'], sets: 4, reps: 2, pctStart: 78, pctStep: 2 },
 ]
 
