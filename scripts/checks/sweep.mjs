@@ -211,6 +211,9 @@ assert(/level 1 of 4/.test(app.rampLabel(30, 30)), 'and a restart reads as level
   }
   const bs = lifts(app.buildDay(1, 1, MAXES, {}, {})).find((i) => i.slot === 'back_squat_heavy')
   assert(bs?.targetRpe === 5, `W1 back squat 4x5 @68% asks for an honest 5, got ${bs?.targetRpe}`)
+  // Andrew 2026-11-23: no RPE-10 push press triple in week 8.
+  const pp8 = lifts(app.buildDay(8, 3, MAXES, {}, {})).find((i) => i.slot === 'push_press')
+  assert(pp8?.percent === 81 && pp8.targetRpe <= 9, `W8 push press 4x3 @81%, RPE 9 or less, got ${pp8?.percent}% RPE ${pp8?.targetRpe}`)
   const sn = lifts(app.buildDay(1, 1, MAXES, {}, {})).find((i) => i.slot === 'sn_top')
   assert(sn?.targetRpe === 7, `W1 snatch keeps the block target (lights rate it), got ${sn?.targetRpe}`)
 }
